@@ -27,7 +27,7 @@ export default function Dashboard() {
   const displayClasses = showAllClasses ? [...todayClasses, ...pastClasses] : todayClasses;
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-400 via-pink-200 to-pink-600 text-gray-100 p-6">
+    <div className="min-h-screen bg-gray-500 text-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header section */}
         <header className="mb-8 flex justify-between items-center">
@@ -36,18 +36,32 @@ export default function Dashboard() {
             <p className="text-blue-100">Welcome back, {username}</p>
           </div>
           <Link href="/tutor/classes">
-            <button className="bg-gradient-to-r from-pink-500 to-blue-500 text-gray-100 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
+            <button className="bg-gray-600 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
               <Plus size={20} />
               Add New Session
             </button>
+          </Link>
+
+          <Link href="/tutor/create-course">
+          <button className="bg-gray-600 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
+          <Plus size={20} />
+            Create Course
+          </button>
+          </Link>
+
+          <Link href="/tutor/courses">
+          <button className="bg-gray-600 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
+          <Plus size={20} />
+            My Courses
+          </button>
           </Link>
         </header>
         
         {/* Stats section */}
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-blue-300 to-blue-500 rounded-xl p-6 shadow-lg backdrop-blur-sm bg-opacity-80">
+          <div className="bg-gray-600 rounded-xl p-6 shadow-lg backdrop-blur-sm bg-opacity-80">
             <div className="flex flex-col md:flex-row gap-6">
-              <div className="flex-1 bg-gradient-to-br from-blue-600 to-red-700 rounded-lg p-4 shadow-md">
+              <div className="flex-1 bg-gray-700 rounded-lg p-4 shadow-md">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="bg-pink-400 p-2 rounded-md">
                     <Clock size={24} className="text-blue-50" />
@@ -57,7 +71,7 @@ export default function Dashboard() {
                 <div className="text-4xl font-bold text-pink-200">{hoursCount}</div>
               </div>
               
-              <div className="flex-1 bg-gradient-to-br from-blue-600 to-red-700 rounded-lg p-4 shadow-md">
+              <div className="flex-1 bg-gray-700 rounded-lg p-4 shadow-md">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="bg-blue-400 p-2 rounded-md">
                     <Users size={24} className="text-pink-50" />
@@ -71,7 +85,7 @@ export default function Dashboard() {
         </div>
         
         {/* Classes section */}
-        <div className="bg-gradient-to-r from-blue-500 to-pink-400 rounded-xl p-6 shadow-lg mb-6 backdrop-blur-sm bg-opacity-80">
+        <div className="bg-gray-600 rounded-xl p-6 shadow-lg mb-6 backdrop-blur-sm bg-opacity-80">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-pink-200">Classes</h2>
             <button 
@@ -85,7 +99,7 @@ export default function Dashboard() {
           
           <div className="space-y-4">
             {displayClasses.map((cls) => (
-              <div key={cls.id} className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg p-4 hover:from-blue-500 hover:to-purple-500 transition-colors shadow-md">
+              <div key={cls.id} className="bg-gray-700 rounded-lg p-4 hover:from-blue-500 hover:to-purple-500 transition-colors shadow-md">
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-xl font-semibold text-pink-200">{cls.title}</h3>
@@ -120,7 +134,7 @@ export default function Dashboard() {
               <p className="text-pink-100">Schedule your next class and manage your teaching hours efficiently.</p>
             </div>
             <Link href="/tutor/classes">
-              <button className="bg-gradient-to-r from-pink-500 to-blue-500 text-gray-100 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
+              <button className="bg-gray-600 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
                 <Plus size={20} />
                 Add New Session
               </button>

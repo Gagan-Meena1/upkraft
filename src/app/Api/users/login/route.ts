@@ -38,7 +38,7 @@ export async function POST(request : NextRequest ){
 
        const tokenData={
         id:user._id,
-        username:"user.username",
+        username:user.username,
         email:user.email,
         category:user.category
        }
@@ -58,9 +58,7 @@ export async function POST(request : NextRequest ){
       response.cookies.set("token",token,{
         httpOnly:true
       })
-      // console.log("PRINT 8");
-      // const responseBody = await response.json(); // Convert response to JSON
-      // console.log(`${JSON.stringify(responseBody.user)} backend res`); // Correct way to log user details      
+       console.log("PRINT 8");
       return response
 
     }
@@ -73,57 +71,4 @@ export async function POST(request : NextRequest ){
 
 
     
-}
-export async function GET(request : NextRequest ){
-  try{
-    console.log("PRINT 0");
-      const reqBody=await request.json();
-       
-      console.log(reqBody);
-    
-      console.log("PRINT 1");
-
-
-
-      const response=NextResponse.json({
-        message:"logged in Success",
-        success:true
-      })
-
-
-      // const tokenData={
-      //   id:user._id,
-      //   username:"user.username",
-      //   email:user.email
-      //  }
-
-
-
-      // response.cookies.set("token",token,{
-      //   httpOnly:true
-      // })
-      console.log("PRINT 8");
-      return response
-
-
-
-      // const user=await User.findOne({email});
-      
-      
-
-     
-
-     
-     
-
-  }
-  catch(error:any){
-    console.log("PRINT 9");
-    console.log(error.message);
-    
-      return NextResponse.json({error:error.message})
-  }
-
-
-  
 }

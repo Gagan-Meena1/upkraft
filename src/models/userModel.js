@@ -1,4 +1,3 @@
-// import { verify } from "crypto";
 import mongoose from "mongoose";
 
 const userSchema= new mongoose.Schema({
@@ -6,6 +5,18 @@ const userSchema= new mongoose.Schema({
         type:String,
         required : [true , "Please provide a username"],
         unique:[true , "username is not unique"]
+    },
+    age: {
+        type:Number,
+        default:1  
+    },
+    address: {
+        type:String,
+        default:""
+    },
+    contact: {
+        type:String,
+        default:""
     },
     email: {
         type:String,
@@ -46,7 +57,9 @@ const userSchema= new mongoose.Schema({
     forgotPasswordTokenExpiry:Date,
     verifyToken:String,
     verifyTokenExpiry:Date,
-})
+},
+{timestamps:true}
+)
 
 const User = mongoose.models.users || mongoose.model("users",userSchema)
 export default User

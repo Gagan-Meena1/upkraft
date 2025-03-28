@@ -5,10 +5,16 @@ const ClassSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
-  courseName: { 
-    type: String,
+  sessionNo:{
+    type:Number,
     required:true
-    // ref: "courseName"
+  },
+  course: { 
+    type:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref: "courseName"
+       }
+    
   },
   instructor: { 
     type: mongoose.Schema.Types.ObjectId,
@@ -36,12 +42,12 @@ const ClassSchema = new mongoose.Schema({
 
     
   },
-  recordingProcessed:{
-    type:Number,
-    min: [0, "Processed must be at least 0%"], // Minimum value
-    max: [100, "Processed must not exceed 100%"], // Maximum value
-    default: 0 // Default value
-  }
+  // recordingProcessed:{
+  //   type:Number,
+  //   min: [0, "Processed must be at least 0%"], // Minimum value
+  //   max: [100, "Processed must not exceed 100%"], // Maximum value
+  //   default: 0 // Default value
+  // }
 //   maxCapacity: { 
 //     type: Number, 
 //     required: true 

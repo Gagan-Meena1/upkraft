@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import { type } from 'os';
 
-const courseName = new mongoose.Schema({
+const courseNameSchema = new mongoose.Schema({
   title: { 
     type: String, 
     required: true 
@@ -21,7 +22,19 @@ const courseName = new mongoose.Schema({
   description: { 
     type: String, 
   },
-  
+  duration: { 
+    type: String, 
+  },
+  price:{
+    type:Number
+  },
+  curriculum:{
+    type:[{
+      sessionNo:String,
+      topic: String,
+      tangibleOutcome:String
+    }]
+  }
 }, {
   timestamps: true
 });

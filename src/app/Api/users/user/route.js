@@ -19,19 +19,32 @@ export async function GET(request) {
 
     const userId = decodedToken.id;
     console.log("User ID:", userId);
+    console.log("User ID:", request);
 
     // Fix database query - Ensure user is found
     const user = await User.findOne({ _id: userId });
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+    user.age?user.age=user.age:user.age=22;
+    user.address?user.address=user.address:user.address="mnb";
+    user.contact?user.contact=user.contact:user.contact="999999999";
 
-    return NextResponse.json({ 
+    const respo= NextResponse.json({ 
       _id: user._id, 
       name: user.username, 
       email: user.email,  // Fix: use `user.email`
-      category: user.category 
+      category: user.category ,
+      age:user.age,
+      address:user.address,
+      contact:user.contact,
+      courses:user.courses,
+      createdAt: user.createdAt // ✅ Send createdAt in response
+
     });
+    console.log(respo.body);
+    return respo;
+    
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
