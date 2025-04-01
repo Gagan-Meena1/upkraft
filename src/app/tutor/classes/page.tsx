@@ -5,6 +5,9 @@ import { Calendar, Clock, X, Plus, ChevronLeft, ChevronRight, User, Video } from
 import Link from 'next/link';
 import { useRouter } from 'next/navigation'; // Use navigation for App Router
 import { useEffect } from 'react';
+import { useSearchParams } from 'next/navigation'; // Import this to access query params
+
+
 
 interface SessionForm {
   title: string;
@@ -13,11 +16,13 @@ interface SessionForm {
   endTime: string;
   date: string;
   video: File | null;
-  courseName: string; // Added instructor ID
 }
 
 export default function AddSessionPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+const courseId = searchParams.get('courseId') || '';
+console.log("courseId : ",courseId);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedSubCategory, setSelectedSubCategory] = useState('');
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -32,7 +37,6 @@ export default function AddSessionPage() {
     endTime: '10:30',
     date: '',
     video: null,
-    courseName: '', // Initialize instructor ID field
   });
   const [videoFileName, setVideoFileName] = useState<string>('');
 
@@ -119,7 +123,6 @@ export default function AddSessionPage() {
       formData.append('startTime', sessionForm.startTime);
       formData.append('endTime', sessionForm.endTime);
       formData.append('date', sessionForm.date);
-      formData.append('courseName', sessionForm.courseName); // Add instructor ID
       
       if (sessionForm.video) {
         formData.append('video', sessionForm.video);
@@ -148,7 +151,7 @@ export default function AddSessionPage() {
       
       // Success! 
       alert('Session created successfully!');
-      router.push('/tutor'); // Redirect to tutor dashboard
+      router.push(`/tutor/courses/${courseId}`); // Redirect to tutor dashboard
     } catch (error) {
       console.error('Error creating session:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to create session');
@@ -170,9 +173,12 @@ export default function AddSessionPage() {
         {/* Header with back button */}
         <header className="mb-8 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <Link href="/tutor" className="p-2 rounded-lg bg-blue-900 hover:bg-blue-500 transition-colors">
-              <ChevronLeft />
-            </Link>
+          <Link 
+  href={courseId ? `/tutor/courses/${courseId}` : "/tutor/courses"} 
+  className="p-2 rounded-lg bg-blue-900 hover:bg-blue-500 transition-colors"
+>
+  <ChevronLeft />
+</Link>
             <h1 className="text-3xl font-bold text-pink-200">Add New Session</h1>
           </div>
         </header>
@@ -300,25 +306,7 @@ export default function AddSessionPage() {
                     />
                   </div>
                   
-                  {/* Instructor ID Field */}
-                  <div>
-                    <label htmlFor="courseName" className="block text-blue-200 mb-1">
-                    courseName 
-                    </label>
-                    <div className="relative">
-                      <User size={18} className="absolute top-3 left-3 text-blue-400" />
-                      <input
-                        type="text"
-                        id="courseName"
-                        name="courseName"
-                        value={sessionForm.courseName}
-                        onChange={handleFormChange}
-                        className="w-full pl-10 pr-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-                        placeholder="Enter courseName"
-                        required
-                      />
-                    </div>
-                  </div>
+                  
                   
                   <div>
                     <label htmlFor="description" className="block text-blue-200 mb-1">

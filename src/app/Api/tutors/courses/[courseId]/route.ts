@@ -29,7 +29,7 @@ export async function GET(
 
     return NextResponse.json({ 
       courseId, 
-      courseDetails, 
+      courseDetails,
       classDetails,
       message: "Course ID successfully extracted" 
     });

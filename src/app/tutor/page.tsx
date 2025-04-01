@@ -1,146 +1,253 @@
-// components/Dashboard.jsx
 "use client"
-import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Plus, Clock, Users, FileText } from 'lucide-react';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User } from "lucide-react";
+
+interface UserData {
+  _id: string;
+  name: string;
+  email: string;
+  category: string;
+  age: number;
+  address: string;
+  contact: string;
+  courses: any[];
+  createdAt: string;
+}
+
+interface ClassData {
+  _id: string;
+  title: string;
+  course: string;
+  instructor: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  recording: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ApiResponse {
+  message: string;
+  classData: ClassData[];
+}
 
 export default function Dashboard() {
-  const [showAllClasses, setShowAllClasses] = useState(false);
-  
-  // Sample data for demonstration
-  const username = "Sarah Johnson";
-  const hoursCount = 187;
-  const todayClasses = [
-    { id: 1, title: "Advanced Mathematics", time: "10:00 AM - 11:30 AM", students: 24, room: "Room 102" },
-    { id: 2, title: "Physics Fundamentals", time: "1:00 PM - 2:30 PM", students: 18, room: "Lab A" },
-    { id: 3, title: "Computer Science", time: "3:00 PM - 4:30 PM", students: 22, room: "Tech Hub" },
-  ];
-  
-  const pastClasses = [
-    { id: 4, title: "Chemistry Lab", time: "March 11, 2025 (2:00 PM - 3:30 PM)", students: 15, room: "Lab B" },
-    { id: 5, title: "English Literature", time: "March 10, 2025 (11:00 AM - 12:30 PM)", students: 28, room: "Room 205" },
-    { id: 6, title: "World History", time: "March 9, 2025 (9:00 AM - 10:30 AM)", students: 26, room: "Room 304" },
-    { id: 7, title: "Biology", time: "March 8, 2025 (1:00 PM - 2:30 PM)", students: 20, room: "Lab C" },
-    { id: 8, title: "Art Workshop", time: "March 7, 2025 (3:00 PM - 5:00 PM)", students: 16, room: "Art Studio" },
-  ];
-  
-  const displayClasses = showAllClasses ? [...todayClasses, ...pastClasses] : todayClasses;
-  
-  return (
-    <div className="min-h-screen bg-gray-500 text-gray-100 p-6">
-      <div className="max-w-6xl mx-auto">
-        {/* Header section */}
-        <header className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-pink-200">Teacher Dashboard</h1>
-            <p className="text-blue-100">Welcome back, {username}</p>
-          </div>
-          <Link href="/tutor/classes">
-            <button className="bg-gray-600 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
-              <Plus size={20} />
-              Add New Session
-            </button>
-          </Link>
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [classData, setClassData] = useState<ClassData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activePage, setActivePage] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-          <Link href="/tutor/create-course">
-          <button className="bg-gray-600 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
-          <Plus size={20} />
-            Create Course
-          </button>
-          </Link>
+  const classesPerPage = 3;
+  const totalPages = Math.ceil(classData.length / classesPerPage);
 
-          <Link href="/tutor/courses">
-          <button className="bg-gray-600 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
-          <Plus size={20} />
-            My Courses
-          </button>
-          </Link>
-        </header>
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch user data
+        const userResponse = await fetch("/Api/users/user");
+        const userData = await userResponse.json();
         
-        {/* Stats section */}
-        <div className="mb-8">
-          <div className="bg-gray-600 rounded-xl p-6 shadow-lg backdrop-blur-sm bg-opacity-80">
-            <div className="flex flex-col md:flex-row gap-6">
-              <div className="flex-1 bg-gray-700 rounded-lg p-4 shadow-md">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="bg-pink-400 p-2 rounded-md">
-                    <Clock size={24} className="text-blue-50" />
-                  </div>
-                  <span className="text-blue-50 font-medium">Total Hours Taught</span>
-                </div>
-                <div className="text-4xl font-bold text-pink-200">{hoursCount}</div>
-              </div>
-              
-              <div className="flex-1 bg-gray-700 rounded-lg p-4 shadow-md">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="bg-blue-400 p-2 rounded-md">
-                    <Users size={24} className="text-pink-50" />
-                  </div>
-                  <span className="text-pink-50 font-medium">Today's Classes</span>
-                </div>
-                <div className="text-4xl font-bold text-blue-200">{todayClasses.length}</div>
-              </div>
-            </div>
+        // Fetch classes data
+        const classesResponse = await fetch("/Api/classes");
+        const classesData: ApiResponse = await classesResponse.json();
+        
+        // Sort classes by startTime
+        const sortedClasses = classesData.classData.sort((a, b) => 
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+        
+        setUserData(userData);
+        setClassData(sortedClasses);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const handleNextPage = () => {
+    if (activePage < totalPages - 1) {
+      setActivePage(activePage + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (activePage > 0) {
+      setActivePage(activePage - 1);
+    }
+  };
+
+  const currentClasses = classData.slice(
+    activePage * classesPerPage,
+    (activePage + 1) * classesPerPage
+  );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
+      {/* Sidebar */}
+      <div className={`bg-white border-r border-gray-200 h-screen ${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex flex-col sticky top-0`}>
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <div className={`font-extrabold text-l text-orange-600 ${!sidebarOpen && 'hidden'}`}>
+          <img src="logo.png" alt="" className="w-36 h-auto" />
           </div>
+          <button 
+            onClick={() => setSidebarOpen(!sidebarOpen)} 
+            className="p-1 rounded-lg hover:bg-gray-100"
+          >
+            {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+          </button>
         </div>
         
-        {/* Classes section */}
-        <div className="bg-gray-600 rounded-xl p-6 shadow-lg mb-6 backdrop-blur-sm bg-opacity-80">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-pink-200">Classes</h2>
-            <button 
-              onClick={() => setShowAllClasses(!showAllClasses)}
-              className="flex items-center gap-1 text-blue-200 hover:text-blue-100"
-            >
-              {showAllClasses ? 'Show Less' : 'View All'}
-              {showAllClasses ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </button>
+        {/* User Profile */}
+        <div className="p-4 border-b border-gray-200 flex items-center">
+          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+            <User size={20} />
           </div>
-          
-          <div className="space-y-4">
-            {displayClasses.map((cls) => (
-              <div key={cls.id} className="bg-gray-700 rounded-lg p-4 hover:from-blue-500 hover:to-purple-500 transition-colors shadow-md">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-semibold text-pink-200">{cls.title}</h3>
-                    <p className="text-blue-200">{cls.time}</p>
-                    <div className="mt-2 flex gap-4">
-                      <span className="text-pink-100 text-sm">{cls.students} Students</span>
-                      <span className="text-blue-100 text-sm">{cls.room}</span>
+          {sidebarOpen && (
+            <div className="ml-3 overflow-hidden">
+              <p className="font-medium truncate">{userData?.name}</p>
+              <p className="text-sm text-gray-500 truncate">{userData?.category}</p>
+            </div>
+          )}
+        </div>
+        
+        {/* Navigation Links */}
+        <nav className="flex-1 px-2 py-4">
+          <Link href="tutor/allStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+            <Users size={20} />
+            {sidebarOpen && <span className="ml-3">Students</span>}
+          </Link>
+          <Link href="tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+            <BookOpen size={20} />
+            {sidebarOpen && <span className="ml-3">My Courses</span>}
+          </Link>
+          <Link href="tutor/create-course" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <PlusCircle size={20} />
+            {sidebarOpen && <span className="ml-3">Create Course</span>}
+          </Link>
+          <Link href="tutor/myStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <User size={20} />
+            {sidebarOpen && <span className="ml-3">My Students</span>}
+          </Link>
+        </nav>
+        
+        {/* Profile Link */}
+        <div className="p-4 border-t border-gray-200">
+          <Link href="#profile" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <User size={20} />
+            {sidebarOpen && <span className="ml-3">Profile</span>}
+          </Link>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 min-h-screen">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 p-6 sticky top-0 z-10">
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        </header>
+
+        {/* Content Area */}
+        <main className="p-6">
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">Upcoming Classes</h2>
+              <div className="flex gap-2">
+                <button 
+                  onClick={handlePrevPage}
+                  disabled={activePage === 0}
+                  className={`p-2 rounded-lg ${activePage === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  onClick={handleNextPage}
+                  disabled={activePage === totalPages - 1 || totalPages === 0}
+                  className={`p-2 rounded-lg ${activePage === totalPages - 1 || totalPages === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+
+            {currentClasses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {currentClasses.map((classItem) => (
+                  <div key={classItem._id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">{classItem.title}</h3>
+                      <div className="bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-xs font-medium">
+                        {classItem.recording ? 'Recorded' : 'Upcoming'}
+                      </div>
+                    </div>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{classItem.description}</p>
+                    <div className="flex items-center text-gray-500 text-sm mb-2">
+                      <Calendar size={16} className="mr-2" />
+                      <span>{formatDate(classItem.startTime)}</span>
+                    </div>
+                    <div className="flex justify-between text-gray-500 text-sm">
+                      <span>{formatTime(classItem.startTime)}</span>
+                      <span>to</span>
+                      <span>{formatTime(classItem.endTime)}</span>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2">
-                    <Link href={`/tutor/studentFeedback/${cls.id}`}>
-                      <button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-500 hover:to-blue-500 p-2 rounded-md shadow-sm flex items-center gap-2 text-white whitespace-nowrap px-4">
-                        <FileText size={18} className="text-pink-100" />
-                        <span>Student Feedback</span>
-                      </button>
-                    </Link>
-                    <button className="bg-gradient-to-r from-pink-600 to-blue-600 hover:from-pink-500 hover:to-blue-500 p-2 rounded-md shadow-sm">
-                      <Plus size={18} className="text-pink-100" />
-                    </button>
-                  </div>
-                </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+                <p className="text-gray-500">No classes available</p>
+              </div>
+            )}
+
+            {/* Pagination Indicator */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-6 space-x-2">
+                {Array.from({ length: totalPages }).map((_, index) => (
+                  <button
+                    key={index}
+                    className={`w-3 h-3 rounded-full transition-all ${
+                      activePage === index ? 'bg-gray-900 w-6' : 'bg-gray-300'
+                    }`}
+                    onClick={() => setActivePage(index)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-        
-        {/* Add Session CTA (Highlighted as requested) */}
-        <div className="bg-gradient-to-r from-pink-500 to-blue-500 rounded-xl p-6 shadow-lg">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-50 mb-2">Ready to add a new session?</h2>
-              <p className="text-pink-100">Schedule your next class and manage your teaching hours efficiently.</p>
-            </div>
-            <Link href="/tutor/classes">
-              <button className="bg-gray-600 px-6 py-3 rounded-lg flex items-center gap-2 font-semibold transition-all shadow-lg hover:from-pink-400 hover:to-blue-400">
-                <Plus size={20} />
-                Add New Session
-              </button>
-            </Link>
-          </div>
-        </div>
+        </main>
       </div>
     </div>
   );

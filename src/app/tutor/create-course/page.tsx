@@ -75,7 +75,7 @@ export default function CreateCoursePage(){
       setCurriculum([{ sessionNo: 1, topic: '' ,tangibleOutcome:''}]);
 
       // Optional: Redirect to dashboard or course list
-      router.push('/tutor');
+      router.push('/tutor/courses');
 
     } catch (error) {
 //       // Handle errors

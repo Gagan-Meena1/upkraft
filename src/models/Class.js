@@ -5,17 +5,15 @@ const ClassSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
-  sessionNo:{
-    type:Number,
-    required:true
-  },
+  // sessionNo:{
+  //   type:Number,
+  //   required:true
+  // },
   course: { 
-    type:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref: "courseName"
-       }
-    
-  },
+    type:mongoose.Schema.Types.ObjectId,
+    ref: "courseName"
+       
+    },
   instructor: { 
     type: mongoose.Schema.Types.ObjectId,
     ref: "users"

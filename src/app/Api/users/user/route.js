@@ -26,9 +26,9 @@ export async function GET(request) {
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-    user.age?user.age=user.age:user.age=22;
-    user.address?user.address=user.address:user.address="mnb";
-    user.contact?user.contact=user.contact:user.contact="999999999";
+    user.age?user.age=user.age:user.age=18;
+    user.address?user.address=user.address:user.address="";
+    user.contact?user.contact=user.contact:user.contact="";
 
     const respo= NextResponse.json({ 
       _id: user._id, 

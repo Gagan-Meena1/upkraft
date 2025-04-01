@@ -102,7 +102,7 @@ export async function GET(request: NextRequest) {
       // });
   
       // Simulated successful course creation
-      // console.log(courses);
+      console.log(courses);
       
       // console.log("22222222222222222222222222");
   
