@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import User from "@/models/userModel";
+import Class from "@/models/Class";
 import { connect } from "@/dbConnection/dbConfic";
 import jwt from "jsonwebtoken";  // Ensure jwt is imported
+import courseName from "@/models/courseName";
 
 export async function GET(request) {
   try {
@@ -22,29 +24,25 @@ export async function GET(request) {
     console.log("User ID:", request);
 
     // Fix database query - Ensure user is found
-    const user = await User.findOne({ _id: userId });
+    const user = await User.findOne({ _id: userId }).select("-password");
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+    const courseDetails = await courseName.find({ _id: { $in: user.courses } });
+    const classDetails = await Class.find({ _id: { $in: courseName.class } });
     user.age?user.age=user.age:user.age=18;
     user.address?user.address=user.address:user.address="";
     user.contact?user.contact=user.contact:user.contact="";
 
-    const respo= NextResponse.json({ 
-      _id: user._id, 
-      name: user.username, 
-      email: user.email,  // Fix: use `user.email`
-      category: user.category ,
-      age:user.age,
-      address:user.address,
-      contact:user.contact,
-      courses:user.courses,
-      createdAt: user.createdAt // ✅ Send createdAt in response
-
-    });
-    console.log(respo.body);
-    return respo;
     
+    console.log("user : ",user);
+    console.log("courses : ",courseDetails);
+  return NextResponse.json({
+        success: true,
+        message: `Sent user successfully `,
+        user,
+        courseDetails
+      });    
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

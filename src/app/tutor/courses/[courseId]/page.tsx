@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Clock, BookOpen, MessageCircle, Video, Upload } from 'lucide-react';
+import { ChevronLeft, Clock, BookOpen, MessageCircle, Video, Upload, FileText } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
 
@@ -213,7 +213,7 @@ export default function CourseDetailsPage() {
         {/* Class Sessions */}
         <section>
           <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            Course Sessions
+            Course Classes
           </h2>
           
           <div className="space-y-6">
@@ -279,14 +279,21 @@ export default function CourseDetailsPage() {
                           Recording
                         </a>
                       )}
-                      
-                      <Link 
+                        {/* Add the new Assignment button */}
+                  <Link 
+                    href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+                    className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors flex items-center text-sm"
+                  >
+                    <FileText className="mr-1" size={16} />
+                    Assignment
+                  </Link>
+                      {/* <Link 
                         href={`/tutor/studentFeedback?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
                         className="px-2 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors flex items-center text-sm"
                       >
                         <MessageCircle className="mr-1" size={16} />
                         Feedback
-                      </Link>
+                      </Link> */}
                     </div>
                   </div>
                 </div>

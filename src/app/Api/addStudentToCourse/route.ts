@@ -1,13 +1,10 @@
 // Import required modules
 import { NextRequest, NextResponse } from "next/server";
-import fs from 'fs';
-import path from 'path';
+import jwt  from "jsonwebtoken";
+
 import { connect } from "@/dbConnection/dbConfic";
-import Class from "@/models/Class"; 
 import User from "@/models/userModel";
-import courseName from "@/models/courseName";
-import { writeFile, mkdir } from 'fs/promises';
-import { log } from "console";
+
 
 // Connect to database
 connect();
@@ -24,7 +21,11 @@ export async function POST(req: NextRequest, { params }: { params: Record<string
      const { userId } = requestData;
      const studentId=userId;
      console.log("requestData : ",requestData);
-     
+     const token = req.cookies.get("token")?.value;
+             const decodedToken = token ? jwt.decode(token) : null;
+             const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+             console.log("decodedToken : ",decodedToken);
+             console.log("instructorId : ",instructorId);
      
     
     console.log("11111111111111111111111111111111111111111111111111111111111111");
@@ -51,7 +52,12 @@ export async function POST(req: NextRequest, { params }: { params: Record<string
       // $addToSet ensures no duplicates
       const updatedUser = await User.findByIdAndUpdate(
         studentId,
-        { $addToSet: { courses: courseId } },
+        { 
+          $addToSet: { 
+            courses: courseId,
+            // instructorId: instructorId 
+          } 
+        },
         { new: true }
       );
   

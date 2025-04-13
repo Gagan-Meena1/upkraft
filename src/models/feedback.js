@@ -5,9 +5,14 @@ const feedbackSchema = new mongoose.Schema({
   attendance: { 
     type: Number, 
   },
-  instructorId:{
+  userId:{
     type:mongoose.Schema.Types.ObjectId,
     ref:"users",
+    required:true
+  },
+  classId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"Class",
     required:true
   },
   

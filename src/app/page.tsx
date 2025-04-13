@@ -52,17 +52,37 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
+      {/* Font imports */}
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Overpass:wght@300;400;500;600;700&display=swap');
+        
+        h1, h2, h3, .heading-font {
+          font-family: 'Syne', sans-serif;
+          font-size: 25px;
+          color: #ff7518;
+           font-weight: 700;
+        }
+        
+        p, .body-font {
+          font-family: 'Overpass', sans-serif;
+          font-size: 15px;
+        }
+      `}</style>
+
       {/* Navigation */}
       <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
         <div className="font-extrabold text-2xl text-gray-800">
-        <img src="logo.png" alt="" className="w-36 h-auto" /></div>        <div className="flex space-x-4">
+          <img src="logo.png" alt="" className="w-36 h-auto" />
+        </div>
+        <div className="flex space-x-4">
           <Link href="/signup">
-            <button className="px-6 py-2 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition">
+            <button className="px-6 py-2 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition body-font">
               Sign Up
             </button>
           </Link>
           <Link href="/login">
-            <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition">
+            <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition body-font">
               Login
             </button>
           </Link>
@@ -71,21 +91,21 @@ export default function Home() {
 
       {/* Hero Section */}
       <div className="w-full flex flex-col justify-center items-center text-center px-8 py-24 md:py-32">
-        <h1 className="text-5xl md:text-6xl font-extrabold mb-6 text-orange-600">Welcome to UPKRAFT</h1>
-        <p className="text-lg max-w-2xl text-gray-700 mb-10">
+        <h1 className="heading-font text-5xl md:text-6xl font-extrabold mb-6">Welcome to UpKraft</h1>
+        <p className="body-font max-w-2xl text-gray-700 mb-10">
           Unified full-stack AI-driven Tech platform elevating after-school program experience
           through quality, transparency, and outcome-driven focus to create leaders of tomorrow.
         </p>
         <Link href="/login">
-      <button className="px-8 py-3 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition">
-        Get Started
-      </button>
-    </Link>
+          <button className="px-8 py-3 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition body-font">
+            Get Started
+          </button>
+        </Link>
       </div>
 
       {/* Features Section */}
       <div className="w-full flex flex-col items-center bg-white py-24 px-8">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-900">Why Choose UPKRAFT</h2>
+        <h2 className="heading-font text-3xl md:text-4xl font-bold text-center mb-12">Why Choose UpKraft</h2>
         
         {/* Feature Cards Slider */}
         <div className="w-full max-w-6xl relative">
@@ -99,8 +119,8 @@ export default function Home() {
                 key={index} 
                 className={`flex-shrink-0 w-full max-w-sm bg-gray-50 p-8 rounded-xl shadow-sm border border-gray-100 snap-center transition-all duration-300 ${activeCard === index ? 'scale-105' : 'scale-100'}`}
               >
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <h3 className="heading-font font-semibold mb-4">{feature.title}</h3>
+                <p className="body-font text-gray-600">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -136,28 +156,28 @@ export default function Home() {
 
       {/* Call to Action */}
       <div className="w-full bg-gray-900 text-gray-50 py-24 px-8 flex flex-col items-center text-center">
-        <h2 className="text-3xl font-bold mb-6">Ready to transform your learning journey?</h2>
-        <p className="text-lg text-gray-300 max-w-2xl mb-10">
-          Join thousands of students who have already discovered their potential with UPKRAFT's innovative platform.
+        <h2 className="heading-font text-3xl font-bold mb-6" style={{ color: '#df7861' }}>Ready to transform your learning journey?</h2>
+        <p className="body-font text-gray-300 max-w-2xl mb-10">
+          Join thousands of students who have already discovered their potential with UpKraft's innovative platform.
         </p>
         <Link href="/signup">
-      <button className="px-8 py-3 bg-gray-50 text-gray-900 font-medium rounded-lg hover:bg-gray-200 transition">
-        Get Started
-      </button>
-    </Link>
+          <button className="px-8 py-3 bg-gray-50 text-gray-900 font-medium rounded-lg hover:bg-gray-200 transition body-font">
+            Get Started
+          </button>
+        </Link>
       </div>
 
       {/* Footer */}
       <footer className="w-full bg-gray-50 py-12 px-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
-          <div className="font-bold text-xl text-gray-900 mb-6 md:mb-0">UPKRAFT</div>
+          <div className="font-bold text-xl heading-font mb-6 md:mb-0" style={{ color: '#df7861' }}>UpKraft</div>
           <div className="flex space-x-8 text-gray-600">
-            <a href="#" className="hover:text-gray-900">About</a>
-            <a href="#" className="hover:text-gray-900">Features</a>
-            <a href="#" className="hover:text-gray-900">Pricing</a>
-            <a href="#" className="hover:text-gray-900">Contact</a>
+            <a href="#" className="hover:text-gray-900 body-font">About</a>
+            <a href="#" className="hover:text-gray-900 body-font">Features</a>
+            <a href="#" className="hover:text-gray-900 body-font">Pricing</a>
+            <a href="#" className="hover:text-gray-900 body-font">Contact</a>
           </div>
-          <div className="mt-6 md:mt-0 text-gray-500">© 2025 UPKRAFT. All rights reserved.</div>
+          <div className="mt-6 md:mt-0 text-gray-500 body-font">© 2025 UpKraft. All rights reserved.</div>
         </div>
       </footer>
     </div>

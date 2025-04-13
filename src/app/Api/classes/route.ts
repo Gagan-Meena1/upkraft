@@ -7,6 +7,8 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { log } from 'console';
 import jwt from 'jsonwebtoken'
+import courseName from '@/models/courseName';
+import User from '@/models/userModel';
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
 await connect();
 export async function POST(request: NextRequest) {
@@ -103,11 +105,17 @@ export async function POST(request: NextRequest) {
       recordingProcessed: videoPath ? 0 : null,
     });
     
-    await newClass.save();
+    const savednewClass=await newClass.save();
     console.log("333333333333333333333333333333333333333333333333333333333333");
-    
-
+    const course=await courseName.findById(courseId);
+    await courseName.findByIdAndUpdate(courseId,{$addToSet:{class:savednewClass._id}})
+    // await User.findByIdAndUpdate(courseId,{$addToSet:{class:savednewClass._id}})
+    await User.updateMany(
+      { courses: courseId },
+      { $addToSet: { classes: savednewClass._id } }
+    );
     console.log(newClass);
+
     return NextResponse.json({
       message: 'Session created successfully',
       classData: newClass
@@ -128,6 +136,8 @@ export async function GET(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+    console.log("decodedToken : ",decodedToken);
+    console.log("instructorId : ",instructorId);
     
     const classes=await Class.find({instructor:instructorId});
     

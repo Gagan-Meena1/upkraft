@@ -35,7 +35,7 @@ export async function GET(request:NextRequest) {
     }
     
     // Get the course IDs from the user
-    const courseIds = await courseName.find({instructorId : instructorId});
+    const courseIds = user.courses;
     
     // Check if user has any courses
     if (!courseIds || courseIds.length === 0) {

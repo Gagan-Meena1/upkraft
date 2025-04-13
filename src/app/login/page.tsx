@@ -50,59 +50,57 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-pink-300 to-blue-400">
-      <div className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">{loading ? "Processing..." : "Login"}</h1>
-        <p className="text-gray-600 mb-6">Welcome back! Please log in to continue.</p>
-
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 className="text-3xl font-bold text-orange-500 mb-2">{loading ? "Processing..." : "Login"}</h1>
+        <p className="text-gray-500 mb-8 text-sm">Welcome back! Please log in to continue.</p>
+        
         {/* Email Input */}
-        <div className="mb-4 text-left">
-          <label className="block mb-1 text-gray-700 font-medium">Email</label>
+        <div className="mb-5">
+          <label className="block mb-2 text-gray-700 text-sm font-medium">Email</label>
           <input
-            className="w-full p-3 rounded-lg bg-white border border-gray-300 text-black focus:ring-2 focus:ring-pink-500"
+            className="w-full p-3 rounded-md bg-gray-50 border border-gray-200 text-gray-800 focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all"
             type="email"
             value={user.email}
             onChange={(e) => setUser({ ...user, email: e.target.value })}
             placeholder="Enter your email"
           />
         </div>
-
+        
         {/* Password Input */}
-        <div className="mb-6 text-left">
-          <label className="block mb-1 text-gray-700 font-medium">Password</label>
+        <div className="mb-6">
+          <label className="block mb-2 text-gray-700 text-sm font-medium">Password</label>
           <input
-            className="w-full p-3 rounded-lg bg-white border border-gray-300 text-black focus:ring-2 focus:ring-pink-500"
+            className="w-full p-3 rounded-md bg-gray-50 border border-gray-200 text-gray-800 focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all"
             type="password"
             value={user.password}
             onChange={(e) => setUser({ ...user, password: e.target.value })}
             placeholder="Enter your password"
           />
         </div>
-
+        
         {/* Login Button */}
         <button
           onClick={onLogin}
-          className={`w-full py-3 rounded-lg font-semibold text-white transition-all ${
-            loading ? "bg-gray-400 cursor-not-allowed" : "bg-pink-600 hover:bg-pink-700"
+          className={`w-full py-3 rounded-md font-medium text-white transition-all ${
+            loading ? "bg-gray-400 cursor-not-allowed" : "bg-orange-500 hover:bg-orange-600"
           }`}
           disabled={loading}
         >
           {loading ? "Logging in..." : "Login"}
         </button>
-
+        
         {/* Signup & Forgot Password Links */}
-        <div className="mt-4">
+        <div className="mt-6 flex justify-between text-sm">
           <p className="text-gray-600">
             Don't have an account?{" "}
-            <Link href="/signup" className="text-pink-700 font-semibold hover:underline">
+            <Link href="/signup" className="text-orange-500 font-medium hover:text-orange-600">
               Sign Up
             </Link>
           </p>
-          <p className="text-gray-600 mt-2">
-            <Link href="/forgot-password" className="text-pink-700 font-semibold hover:underline">
-              Forgot Password?
-            </Link>
-          </p>
+          <Link href="/forgot-password" className="text-orange-500 font-medium hover:text-orange-600">
+            Forgot Password?
+          </Link>
         </div>
       </div>
     </div>

@@ -44,8 +44,7 @@ export default function SignupPage() {
   }, [user, category]);
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
-      {/* Navigation */}
+<div className="min-h-screen w-full flex flex-col text-gray-900" style={{ backgroundColor: "#fffafaff" }}>      {/* Navigation */}
       <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
         <div className="font-extrabold text-2xl text-gray-800">
           <img src="logo.png" alt="" className="w-36 h-auto" />

@@ -33,12 +33,13 @@ export async function POST(request: NextRequest) {
         instructorId:instructorId,
         duration: courseData.duration,
         price: courseData.price,
-        curriculum: courseData.curriculum
+        curriculum: courseData.curriculum,
+        category: courseData.category
     });
         console.log(newCourse);
         const savednewCourse=await newCourse.save();
         const courses=await courseName.find({instructorId})
-
+        await User.findByIdAndUpdate(instructorId,{$addToSet:{courses:savednewCourse._id}},{new:true})
     // TODO: Replace with your actual database or service call
     // For example, if using Prisma:
     // const newCourse = await prisma.course.create({

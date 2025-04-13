@@ -30,6 +30,7 @@ interface CourseDetailsData {
     description: string;
     duration: string;
     price: number;
+    category: string;
     curriculum: Curriculum[];
   };
   classDetails: Class[];
@@ -84,60 +85,19 @@ export default function CourseDetailsPage() {
       fetchCourseDetails();
     }
   }, [params.courseId]);
+  
 
-//   // Handle file upload
-//   const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-//     if (!event.target.files || event.target.files.length === 0) {
-//       return;
-//     }
+  const categoryRoutes = {
+    "Music": "/tutor/singleStudentFeedback",
+    "Dance": "/tutor/singleStudentFeedback/dance",
+    "Drawing": "/tutor/singleStudentFeedback/drawing"
+  };
 
-//     const file = event.target.files[0];
-//     const formData = new FormData();
-//     formData.append('video', file);
-//     formData.append('classId', classId);
-
-//     try {
-//       setUploadLoading(prev => ({ ...prev, [classId]: true }));
-      
-//       const response = await axios.post('/Api/classes/update', formData, {
-//         params: { classId },
-//         headers: {
-//           'Content-Type': 'multipart/form-data',
-//         },
-//       });
-
-//       if (response.status === 200) {
-//         // Update the local state to reflect the new recording URL
-//         setCourseData(prevData => {
-//           if (!prevData) return null;
-          
-//           const updatedClasses = prevData.classDetails.map(cls => {
-//             if (cls._id === classId) {
-//               return { ...cls, recording: response.data.recordingUrl };
-//             }
-//             return cls;
-//           });
-          
-//           return {
-//             ...prevData,
-//             classDetails: updatedClasses
-//           };
-//         });
-//       }
-//     } catch (err) {
-//       console.error('Error uploading video:', err);
-//       alert('Failed to upload video. Please try again.');
-//     } finally {
-//       setUploadLoading(prev => ({ ...prev, [classId]: false }));
-//     }
-//   };
-
-  // Trigger file input click
-//   const triggerFileInput = (classId: string) => {
-//     if (fileInputRefs.current[classId]) {
-//       fileInputRefs.current[classId]?.click();
-//     }
-//   };
+  const viewPerformanceRoutes = {
+    "Music": "/tutor/viewPerformance",
+    "Dance": "/tutor/viewPerformance/dance",
+    "Drawing": "/tutor/viewPerformance/drawing"
+  };
 
   // Loading state
   if (loading) {
@@ -173,21 +133,26 @@ export default function CourseDetailsPage() {
       <div className="max-w-4xl mx-auto">
         {/* Header with Back Button */}
         <header className="mb-8 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Link 
-              href="/tutor/studentDetails" 
-              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors shadow-md"
-            >
-              <ChevronLeft className="text-gray-700" />
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-800">
-              {courseData.courseDetails.title}
-            </h1>
-          </div>
-          <div className="mt-4">
-           
-          </div>
-        </header>
+      <div className="flex items-center space-x-4">
+        <Link
+          href={`/tutor/studentDetails?studentId=${new URLSearchParams(window.location.search).get('studentId')}`}
+          className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors shadow-md"
+        >
+          <ChevronLeft className="text-gray-700" />
+        </Link>
+        <h1 className="text-3xl font-bold text-gray-800">
+          {courseData.courseDetails.title}
+        </h1>
+      </div>
+      <div className="mt-4">
+        <Link
+          href={`${viewPerformanceRoutes[courseData.courseDetails.category as keyof typeof viewPerformanceRoutes] || "/tutor/viewperformance"}?courseId=${courseData.courseDetails._id}&studentId=${new URLSearchParams(window.location.search).get('studentId')}`}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-md"
+        >
+          View Performance 
+        </Link>
+      </div>
+    </header>
   
         {/* Course Overview */}
         <section className="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -263,7 +228,7 @@ export default function CourseDetailsPage() {
                       )} */}
                       
                       <Link 
-                        href={`/tutor/singleStudentFeedback?classId=${classSession._id}&courseId=${courseData.courseDetails._id}&studentId=${new URLSearchParams(window.location.search).get('studentId')}`}
+                        href={`${categoryRoutes[courseData.courseDetails.category as keyof typeof categoryRoutes] || "/tutor/singleStudentFeedback"}?classId=${classSession._id}&courseId=${courseData.courseDetails._id}&studentId=${new URLSearchParams(window.location.search).get('studentId')}`}
                         className="px-2 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors flex items-center text-sm"
                       >
                         <MessageCircle className="mr-1" size={16} />

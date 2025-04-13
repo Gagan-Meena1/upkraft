@@ -1,245 +1,163 @@
-"use client";
-
+"use client"
 import React, { useState, useEffect } from 'react';
-import { Pencil, Plus } from 'lucide-react';
 import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import DashboardLayout from '@/app/components/DashboardLayout';
 
 
-// Define the type for user data
-interface UserData {
+interface Course {
   _id: string;
-  name: string;
+  title: string;
+  description: string;
+  duration: string;
+  price: number;
+  instructorId: string;
+  curriculum: any[];
+  class: any[];
+}
+
+interface User {
+  _id: string;
+  username: string;
+  age: number;
+  address: string;
+  contact: string;
   email: string;
-  category?: string;
-  age?: number;
-  address?: string;
-  contact?: string;
-  courses?: string[];
-  createdAt: string;
+  category: string;
+  courses: string[]; // Array of course IDs
+  isVerified: boolean;
+  isAdmin: boolean;
+  classes: any[];
 }
 
-// Define the type for editable fields
-interface EditableField {
-  key: keyof UserData;
-  label: string;
-  type: 'text' | 'number' | 'email';
-}
-
-export default function StudentProfilePage() {
-    const router = useRouter();
-
-  // State for user data and editing
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [editingField, setEditingField] = useState<keyof UserData | null>(null);
-  const [editValue, setEditValue] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+const UserProfilePage: React.FC = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedSections, setExpandedSections] = useState<{[key: string]: boolean}>({
-    personalInfo: true,
-    contactInfo: true,
-    accountInfo: true  // Add this line
 
-  });
-
-  // Editable fields configuration
-  const editableFields: EditableField[] = [
-    { key: 'age', label: 'Age', type: 'number' },
-    { key: 'address', label: 'Address', type: 'text' },
-    { key: 'contact', label: 'Contact', type: 'text' },
-  ];
-
-  // Fetch user data
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get('/Api/users/user', { withCredentials: true });
-        // if (!response) {
-        //   throw new Error('Failed to fetch user data');
-        // }
-        setUserData(response.data);
-        console.log("11111111");
+        const response = await fetch('/Api/users/user');
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        const data = await response.json();
         
-        console.log(response.data);// comsoling data
-        console.log(response.data);
-        console.log("222222222");
+        // Check the structure of the response and handle accordingly
+        if (data.user && data.courseDetails) {
+          setUser(data.user);
+          setCourses(data.courseDetails);
+        } else if (data.courseDetails) {
+          // If only courses are present
+          setCourses(data.courseDetails);
+        } else if (data.user) {
+          // If only user is present
+          setUser(data.user);
+        } else {
+          // Fallback case - maybe the entire data object is the user
+          setUser(data);
+        }
         
-        
-        
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-        setError('Failed to load profile data');
-        setIsLoading(false);
+        console.log("Fetched data:", data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUserData();
   }, []);
 
-  // Handle field editing
-  const handleEditField = (field: keyof UserData) => {
-    setEditingField(field);
-    setEditValue(userData?.[field]?.toString() || '');
-  };
-
-  // Toggle section expansion
-  const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  // Render loading state
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
-        <p className="text-2xl text-gray-700">Loading profile...</p>
-      </div>
-    );
-  }
-
-  // Render error state
-  if (error || !userData) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-100">
-        <p className="text-2xl text-red-600">{error || 'Unable to load profile data'}</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">Error: {error}</div>;
+  if (!user) return <div className="min-h-screen flex items-center justify-center">No user data available</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-0">
-      <div className="max-w-xxl mx-auto bg-white   overflow-hidden">
-        {/* Profile Header - Updated with Dashboard Button */}
-        <div className="bg-orange-400 text-white p-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-4xl font-bold">{userData.name}</h1>
-            <p className="text-xl text-blue-100 mt-2">{userData.email}</p>
-          </div>
-          <button 
-            onClick={() => router.push('/student')}
-            className="bg-orange-400 hover:bg-orange-500 text-white font-bold py-2 px-4 rounded-lg transition-colors"
-          >
-            Go to Dashboard
-          </button>
-        </div>
-        {/* Profile Content */}
-        <div className="p-8 space-y-8">
-          {/* Personal Information Section */}
-          <div className="bg-gray-100 rounded-xl">
-            <div 
-              onClick={() => toggleSection('personalInfo')} 
-              className="flex justify-between items-center p-6 cursor-pointer hover:bg-gray-200 transition-colors"
-            >
-              <h2 className="text-2xl font-semibold text-gray-800">Personal Information</h2>
-              <span className="text-gray-600">
-                {expandedSections.personalInfo ? '▼' : '►'}
-              </span>
-            </div>
-            
-            {expandedSections.personalInfo && (
-              <div className="p-6 pt-0 space-y-4">
-                {editableFields.map((field) => (
-                  <div key={field.key} className="grid grid-cols-3 gap-4 items-center">
-                    <label className="text-lg font-medium text-gray-700">{field.label}</label>
-                    {editingField === field.key ? (
-                      <div className="col-span-2 flex space-x-2">
-                        <input
-                          type={field.type}
-                          value={editValue}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEditValue(e.target.value)}
-                          className="w-full px-3 py-2 border-2 border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        />
-                        <button 
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                        >
-                          Save
-                        </button>
-                        <button 
-                          onClick={() => setEditingField(null)} 
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="col-span-2 flex justify-between items-center">
-                        <p className="text-lg text-gray-800">
-                          {userData[field.key]?.toString() || 'Not provided'}
-                        </p>
-                        <button 
-                          onClick={() => handleEditField(field.key)} 
-                          className="text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          {userData[field.key] ? '✏️' : '➕'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+    <DashboardLayout userData={user || undefined} userType="student">
 
-          {/* Courses Section */}
-          <div className="bg-gray-100 rounded-xl">
-            <div 
-              onClick={() => toggleSection('courseInfo')} 
-              className="flex justify-between items-center p-6 cursor-pointer hover:bg-gray-200 transition-colors"
-            >
-              <h2 className="text-2xl font-semibold text-gray-800">Courses</h2>
-              <span className="text-gray-600">
-                {expandedSections.courseInfo ? '▼' : '►'}
-              </span>
-            </div>
-            
-            {expandedSections.courseInfo && (
-              <div className="p-6 pt-0">
-                {userData.courses && userData.courses.length > 0 ? (
-                  <ul className="space-y-2">
-                    {userData.courses.map((course, index) => (
-                      <li 
-                        key={index} 
-                        className="bg-white p-4 rounded-lg shadow-sm text-lg text-gray-800"
-                      >
-                        {course}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500 text-lg">No courses enrolled</p>
-                )}
-              </div>
-            )}
-          </div>
+    <div className="w-full bg-gray-50 ">
+    {/* Header Section */}
+    <div className="text-center mb-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white p-8 rounded-lg shadow-md">
+  <h1 className="text-3xl font-bold ">User Profile</h1>
+  <p className="mt-3  max-w-md mx-auto">Your personal information and enrolled courses at a glance</p>
+</div>
 
-          {/* Account Information Section */}
-          <div className="bg-gray-100 rounded-xl">
-            <div 
-              onClick={() => toggleSection('accountInfo')} 
-              className="flex justify-between items-center p-6 cursor-pointer hover:bg-gray-200 transition-colors"
-            >
-              <h2 className="text-2xl font-semibold text-gray-800">Account Information</h2>
-              <span className="text-gray-600">
-                {expandedSections.accountInfo ? '▼' : '►'}
-              </span>
-            </div>
+        {/* User Info Card */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden mb-2">
+          <div className="p-6">
+            <h2 className="text-xl font-semibold text-orange-500 mb-4">Personal Information</h2>
             
-            {expandedSections.accountInfo && (
-              <div className="p-6 pt-0 space-y-4">
-                <div className="grid grid-cols-3 gap-4 items-center">
-                  <label className="text-lg font-medium text-gray-700">Account Created</label>
-                  <p className="col-span-2 text-lg text-gray-800">
-                    {new Date(userData.createdAt).toLocaleDateString()}
-                  </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Username</p>
+                  <p className="text-lg text-gray-800">{user.username || "Not provided"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Email</p>
+                  <p className="text-lg text-gray-800">{user.email || "Not provided"}</p>
                 </div>
               </div>
-            )}
+              
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Age</p>
+                  <p className="text-lg text-gray-800">{user.age || "Not provided"}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Address</p>
+                  <p className="text-lg text-gray-800">{user.address || "Not provided"}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6">
+              <p className="text-sm font-medium text-gray-500">Category</p>
+              <div className="mt-1">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
+                  {user.category}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Courses Section */}
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="p-6">
+            <h2 className="text-xl font-semibold text-orange-500 mb-4">Enrolled Courses</h2>
+            
+            <div className="space-y-6">
+              {courses && courses.length > 0 ? (
+                courses.map((course) => (
+                  <div key={course._id} className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900">{course.title}</h3>
+                        <p className="mt-1 text-sm text-gray-600">{course.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-900">${course.price}</p>
+                        <p className="text-xs text-gray-500">Duration: {course.duration}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500">No courses enrolled</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    
+    </DashboardLayout>
+
   );
-}
+};
+
+export default UserProfilePage;

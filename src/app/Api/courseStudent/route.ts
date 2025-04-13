@@ -1,13 +1,11 @@
 // Import required modules
 import { NextRequest, NextResponse } from "next/server";
-import fs from 'fs';
-import path from 'path';
+
 import { connect } from "@/dbConnection/dbConfic";
 import Class from "@/models/Class"; // Assuming you have a Class model
 import courseName from "@/models/courseName";
 import User from "@/models/userModel";
-import { writeFile, mkdir } from 'fs/promises';
-import { getServerSession } from "next-auth/next"; // Added import for getServerSession
+
 
 // Connect to database
 connect();
@@ -50,7 +48,7 @@ export async function GET(req: NextRequest, { params }: { params: Record<string,
 //   { $push: { courses: courseId } }
 // );
 
- const usersSameCourse=await User.find({courses:courseId});
+ const usersSameCourse=await User.find({courses:courseId,category:"Student"});
     // console.log(usersSameCourse);
     const filteredUsers = usersSameCourse.map(user => {
         return {

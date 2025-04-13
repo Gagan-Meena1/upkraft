@@ -32,7 +32,7 @@ interface StudentData {
 }
 
 interface FeedbackFormData {
-  attendance: number;
+  // attendance: number;
   rhythm: number;
   theoretical: number;
   understanding: number;
@@ -50,7 +50,7 @@ const StudentFeedbackPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [feedbackData, setFeedbackData] = useState<FeedbackFormData>({
-    attendance: 5,
+    // attendance: 5,
     rhythm: 5,
     theoretical: 5,
     understanding: 5,
@@ -131,22 +131,29 @@ const StudentFeedbackPage = () => {
       });
       
       // Example submission code:
-      // const response = await fetch('/api/submit-feedback', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     studentId: studentData?.studentId,
-      //     courseId: studentData?.courses?._id,
-      //     classId: studentData?.class?._id,
-      //     ...feedbackData
-      //   })
-      // });
+      const response = await fetch(`/Api/studentFeedback?studentId=${studentData?.studentId}&courseId=${studentData?.courses._id}&classId=${studentData?.class._id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: studentData?.studentId,
+          courseId: studentData?.courses?._id,
+          classId: studentData?.class?._id,
+          ...feedbackData
+        })
+      });
       
       // Add a small delay to simulate processing (optional)
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+       // Check if the request was successful
+    const result = await response.json();
+    
+    if (result.success) {
       // Navigate to the course details page after submission
       window.location.href = `/tutor/courseDetailsForFeedback/${studentData?.courses._id}?studentId=${studentData?.studentId}`;
+    } else {
+      // Handle API error
+      throw new Error(result.message || 'Failed to submit feedback');
+    }
     } catch (error) {
       console.error('Error submitting feedback:', error);
       // If there's an error, re-enable the button
@@ -186,7 +193,7 @@ const StudentFeedbackPage = () => {
               <h1 className="text-2xl font-bold">Student Performance Evaluation</h1>
               
               <Link 
-                href={`/tutor/courseDetailsForFeedback/${studentData.courses._id}`}
+                href={`/tutor/courseDetailsForFeedback/${studentData.courses._id}?studentId=${studentData.studentId}`}
                 className="px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors flex items-center text-sm"
               >
                 <ArrowLeft className="mr-1" size={16} />
@@ -226,20 +233,7 @@ const StudentFeedbackPage = () => {
                 {/* Performance Metrics */}
                 <div className="grid gap-6 md:grid-cols-2">
                   {/* Attendance */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <label className="text-sm font-medium text-gray-700">Attendance</label>
-                      <span className="text-orange-500 font-medium">{feedbackData.attendance}/10</span>
-                    </div>
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max="10"
-                      value={feedbackData.attendance}
-                      onChange={(e) => handleSliderChange('attendance', e)}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
+             
                   
                   {/* Rhythm */}
                   <div className="space-y-2">
@@ -325,7 +319,7 @@ const StudentFeedbackPage = () => {
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <label className="text-sm font-medium text-gray-700">Assignment</label>
-                      <span className="text-orange-500 font-medium">{feedbackData.assignment}/10</span>
+                      <span className="text-orange-500 font-med     ium">{feedbackData.assignment}/10</span>
                     </div>
                     <input 
                       type="range" 

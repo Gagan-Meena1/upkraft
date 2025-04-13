@@ -4,7 +4,7 @@ const userSchema= new mongoose.Schema({
     username: {
         type:String,
         required : [true , "Please provide a username"],
-        unique:[true , "username is not unique"]
+        // unique:[true , "username is not unique"]
     },
     age: {
         type:Number,
@@ -21,12 +21,19 @@ const userSchema= new mongoose.Schema({
     email: {
         type:String,
         required : [true , "Please provide a email"],
-        unique:[true , "username is not unique"]
+        unique:[true , "email is not unique"]
     },
     password: {
         type:String,
         required : [true , "Please provide a password"],
     },
+    instructorId:{type:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:"users"
+        }
+    ]
+},
     category:{
         type:String,
         required:[true,"please state your role"]

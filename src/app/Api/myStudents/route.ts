@@ -16,8 +16,14 @@ export async function GET(request: NextRequest) {
     console.log(instructorId );
     
     const courses=await courseName.find({instructorId:instructorId});
-    const users = await User.find({courses: { $in: courses} });
-       if(!users) {
+    
+    const users = await User.find({
+      category: "Student", // Only return students
+      $or: [
+        { courses: { $in: courses } }, // Students with at least one course from the list
+        { instructorId: instructorId }   // Students with the instructor ID
+      ]
+    });       if(!users) {
       console.error('Error finding users:');
     }
    console.log(users);

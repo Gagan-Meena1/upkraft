@@ -146,10 +146,19 @@ export default function Dashboard() {
         
         {/* Navigation Links */}
         <nav className="flex-1 px-2 py-4">
-          <Link href="tutor/allStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+        <Link href="tutor/profile" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+            <User size={20} />
+            {sidebarOpen && <span className="ml-3">Profile</span>}
+          </Link>
+          <Link href="tutor/createStudent" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+            <
+              PlusCircle size={20} />
+            {sidebarOpen && <span className="ml-3">New Student</span>}
+          </Link>
+          {/* <Link href="tutor/allStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
             <Users size={20} />
             {sidebarOpen && <span className="ml-3">Students</span>}
-          </Link>
+          </Link> */}
           <Link href="tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
             <BookOpen size={20} />
             {sidebarOpen && <span className="ml-3">My Courses</span>}

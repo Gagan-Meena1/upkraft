@@ -18,6 +18,10 @@ const ClassSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "users"
   },
+  feedbackId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"feedback"
+  },
   description: { 
     type: String, 
     required: true 

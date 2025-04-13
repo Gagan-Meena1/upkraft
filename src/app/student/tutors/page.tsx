@@ -1,153 +1,195 @@
 "use client";
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, DollarSign, Video, Menu, X, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { MapPin, Briefcase, GraduationCap, Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import axios from "axios";
+import DashboardLayout from '@/app/components/DashboardLayout'; // Adjust the path as needed
 
-// Tutor interface for type safety
-interface Tutor {
-  id: string;
-  name: string;
-  category: string;
-  experience: number;
-  age: number;
-  city: string;
-  mode: 'Online' | 'Offline' | 'Hybrid';
-  qualification: string;
-  subjects: string[];
-  hourlyRate: number;
+interface SidebarItemProps {
+  title: string;
+  icon: React.ReactNode;
+  route: string;
+  collapsed: boolean;
 }
 
-// Example tutors data (will be replaced with API data later)
-const exampleTutors: Tutor[] = [
-  {
-    id: '1',
-    name: 'Dr. Sarah Johnson',
-    category: 'Mathematics',
-    experience: 8,
-    age: 35,
-    city: 'New York',
-    mode: 'Online',
-    qualification: 'PhD in Mathematics',
-    subjects: ['Algebra', 'Calculus', 'Statistics'],
-    hourlyRate: 50
-  },
-  {
-    id: '2',
-    name: 'Michael Chen',
-    category: 'Computer Science',
-    experience: 6,
-    age: 29,
-    city: 'San Francisco',
-    mode: 'Hybrid',
-    qualification: 'Master in Computer Science',
-    subjects: ['Programming', 'Web Development', 'Machine Learning'],
-    hourlyRate: 65
-  },
-  {
-    id: '3',
-    name: 'Emma Rodriguez',
-    category: 'Languages',
-    experience: 10,
-    age: 42,
-    city: 'Chicago',
-    mode: 'Offline',
-    qualification: 'MA in Linguistics',
-    subjects: ['English', 'Spanish', 'Translation Studies'],
-    hourlyRate: 45
-  }
-];
+interface Tutor {
+  _id: string;
+  username: string;
+  email: string;
+  contact: string;
+  expertise?: string[];
+  rating?: number;
+  bio?: string;
+}
 
-export default function TutorsDashboard() {
+const SidebarItem: React.FC<SidebarItemProps> = ({ 
+  title, 
+  icon, 
+  route,
+  collapsed
+}) => {
   const router = useRouter();
-  
-  // State to track which specific tutor is expanded
-  const [expandedTutorId, setExpandedTutorId] = useState<string | null>(null);
 
-  const toggleTutorDetails = (tutorId: string) => {
-    // If the clicked tutor is already expanded, collapse it
-    // Otherwise, expand the clicked tutor
-    setExpandedTutorId(prevId => prevId === tutorId ? null : tutorId);
+  const handleClick = () => {
+    router.push(`/student/${route}`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-300 to-gray-100 p-6">
-      {/* Header with Navigation */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-4xl font-bold text-orange-500">Our Tutors</h1>
-        <button 
-          onClick={() => router.push('/student')}
-          className="hover:bg-gray-100 text-orange-500 font-bold py-2 px-4 rounded-lg transition-colors flex items-center gap-2"
-        >
-          Back to Dashboard
-        </button>
-      </div>
-
-      {/* Tutors Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {exampleTutors.map((tutor) => (
-          <div 
-            key={tutor.id} 
-            className="bg-white shadow-lg rounded-xl overflow-hidden transform transition-all duration-300 hover:scale-105"
-          >
-            {/* Tutor Card Header */}
-            <div 
-              onClick={() => toggleTutorDetails(tutor.id)}
-              className="p-6 bg-gray-500 text-white flex justify-between items-center cursor-pointer hover:bg-orange-500 transition-colors"
-            >
-              <div>
-                <h2 className="text-2xl font-bold">{tutor.name}</h2>
-                <p className="text-white">{tutor.category}</p>
-              </div>
-              {expandedTutorId === tutor.id ? <ChevronUp /> : <ChevronDown />}
-            </div>
-
-            {/* Expandable Tutor Details */}
-            {expandedTutorId === tutor.id && (
-              <div className="p-6 space-y-4 bg-blue-50">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <Clock className="text-blue-500" size={20} />
-                    <span>{tutor.experience} Years Experience</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <MapPin className="text-blue-500" size={20} />
-                    <span>{tutor.city}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <GraduationCap className="text-blue-500" size={20} />
-                    <span>{tutor.qualification}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <Briefcase className="text-blue-500" size={20} />
-                    <span>{tutor.mode} Classes</span>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-blue-700 mb-2">Subjects</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {tutor.subjects.map((subject) => (
-                      <span 
-                        key={subject} 
-                        className="bg-blue-200 text-blue-800 px-3 py-1 rounded-full text-sm"
-                      >
-                        {subject}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <p className="text-xl font-bold text-blue-700">
-                    ${tutor.hourlyRate}/hour
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+    <div 
+      className={`cursor-pointer hover:bg-gray-200 transition-colors duration-200 rounded-lg my-1 ${collapsed ? 'py-3 px-3' : 'py-2 px-4'}`}
+      onClick={handleClick}
+    >
+      <div className={`flex items-center ${collapsed ? 'justify-center' : ''}`}>
+        <div className={`${collapsed ? 'text-gray-700' : 'text-gray-700'}`}>
+          {icon}
+        </div>
+        {!collapsed && <h3 className="text-md font-medium text-gray-700 ml-3 whitespace-nowrap">{title}</h3>}
       </div>
     </div>
   );
+};
+
+export default function TutorsPage() {
+  const router = useRouter();
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [userData, setUserData] = useState<any | null>(null);
+
+  // Define sidebar items array
+  const sidebarItems = [
+    { title: "Home", icon: <Home size={20} className="text-gray-700" />, route: "/" },
+    { title: "Student Profile", icon: <User size={20} className="text-gray-700" />, route: "profile" },
+    { title: "Tutors Profile", icon: <Users size={20} className="text-gray-700" />, route: "tutors" },
+    { title: "Performance", icon: <TrendingUp size={20} className="text-gray-700" />, route: "performance" },
+    { title: "Class Quality", icon: <Video size={20} className="text-gray-700" />, route: "class-quality" },
+    { title: "Payment Summary", icon: <DollarSign size={20} className="text-gray-700" />, route: "payments" },
+    { title: "My Classes", icon: <Calendar size={20} className="text-gray-700" />, route: "classes" },
+    { title: "Feedback", icon: <MessageSquare size={20} className="text-gray-700" />, route: "feedback" }
+  ];
+
+  useEffect(() => {
+    const fetchTutors = async () => {
+      try {
+        setIsLoading(true);
+        const response = await axios.get('/Api/student/tutors');
+        if (response.data.success) {
+          setTutors(response.data.tutors);
+          console.log("response.data.tutors : ",response.data.tutors);
+          
+        } else {
+          setError('Failed to fetch tutors');
+        }
+      } catch (err) {
+        setError('Error connecting to server');
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    const fetchUserData = async () => {
+      try {
+        const response = await axios.get("/Api/users/user");
+        if (response.data && response.data.user) {
+          setUserData(response.data.user);
+        }
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+      }
+    };
+    
+    fetchTutors();
+    fetchUserData();
+  }, []);
+
+  const handleProfileClick = () => {
+    router.push('/student/profile');
+  };
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-50 to-white">
+        <div className="text-2xl font-light text-gray-800">Loading tutors...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-50 to-white">
+        <div className="text-2xl text-red-500">{error}</div>
+      </div>
+    );
+  }
+const tutorContent=(
+  <>
+      {/* Main Content */}
+          {/* Page Header */}
+          <div className="bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-xl shadow-md p-6 mb-6">
+          <h2 className="text-2xl font-bold">Tutors Directory</h2>
+          <p className="mt-1 opacity-90">Browse our expert tutors to find the perfect match for your learning needs</p>
+        </div>
+
+          
+        {/* Tutors Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {tutors.map((tutor) => (
+            <div key={tutor._id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mr-4">
+                  <User size={24} className="text-orange-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">{tutor.username}</h3>
+                  <p className="text-sm text-gray-600">Tutor</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2 mb-4">
+                <div className="flex">
+                  <span className="text-sm text-gray-500 w-20">Email:</span>
+                  <span className="text-sm text-gray-500">{tutor.email}</span>
+                </div>
+                <div className="flex">
+                  <span className="text-sm text-gray-500 w-20">Contact:</span>
+                  <span className="text-sm text-gray-500">{tutor.contact || 'Not available'}</span>
+                </div>
+              </div>
+              
+              <Link href={`/student/tutorProfile?tutorId=${tutor._id}`}>
+                  <button className="w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
+                    View Profile
+                  </button>
+                </Link>
+            </div>
+          ))}
+
+          {tutors.length === 0 && (
+            <div className="col-span-full text-center py-12">
+              <div className="text-gray-500">No tutors found</div>
+            </div>
+          )}
+        </div></>
+)
+return (
+  <DashboardLayout userData={userData} userType="student">
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        {tutorContent}
+      </div>
+    </div>
+  </DashboardLayout>
+);
 }
