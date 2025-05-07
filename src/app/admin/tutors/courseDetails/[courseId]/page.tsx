@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, Clock, BookOpen, MessageCircle, Video, Upload } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import axios from 'axios';
+import { useSearchParams } from "next/navigation";
 
 // TypeScript interfaces for type safety
 interface Curriculum {
@@ -37,13 +37,28 @@ interface CourseDetailsData {
 }
 
 export default function CourseDetailsPage() {
+  const searchParams = useSearchParams();
   const [courseData, setCourseData] = useState<CourseDetailsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
+  const [studentId, setStudentId] = useState('');
+  const [tutorId, setTutorId] = useState('');
   const params = useParams();
 
+  useEffect(() => {
+    const studentIdParam = searchParams.get('studentId');
+    const tutorIdParam = searchParams.get('tutorId');
+    if (studentIdParam) {
+      setStudentId(studentIdParam);
+    }
+    
+    if (tutorIdParam) {
+      setTutorId(tutorIdParam);
+    }
+
+  }, [searchParams]);
   // Helper function to format date and time
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -94,9 +109,9 @@ export default function CourseDetailsPage() {
   };
 
   const viewPerformanceRoutes = {
-    "Music": "/tutor/viewPerformance",
-    "Dance": "/tutor/viewPerformance/dance",
-    "Drawing": "/tutor/viewPerformance/drawing"
+    "Music": "/admin/tutors/viewPerformance",
+    "Dance": "/admin/tutors/viewPerformance/dance",
+    "Drawing": "/admin/tutors/viewPerformance/drawing"
   };
 
   // Loading state
@@ -118,7 +133,7 @@ export default function CourseDetailsPage() {
           </div>
           <p className="text-gray-700 mb-6">{error}</p>
           <Link 
-            href="/tutor" 
+            href="/admin" 
             className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors"
           >
             Return to Home
@@ -135,7 +150,7 @@ export default function CourseDetailsPage() {
         <header className="mb-8 flex justify-between items-center">
       <div className="flex items-center space-x-4">
         <Link
-          href={`/tutor/studentDetails?studentId=${new URLSearchParams(window.location.search).get('studentId')}`}
+          href={`/admin/tutors/studentDetails?studentId=${studentId}&tutorId=${tutorId}`}
           className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors shadow-md"
         >
           <ChevronLeft className="text-gray-700" />
@@ -146,7 +161,7 @@ export default function CourseDetailsPage() {
       </div>
       <div className="mt-4">
         <Link
-          href={`${viewPerformanceRoutes[courseData.courseDetails.category as keyof typeof viewPerformanceRoutes] || "/tutor/viewPerformance"}?courseId=${courseData.courseDetails._id}&studentId=${new URLSearchParams(window.location.search).get('studentId')}`}
+          href={`${viewPerformanceRoutes[courseData.courseDetails.category as keyof typeof viewPerformanceRoutes] || "/admin/tutors/viewPerformance"}?courseId=${courseData.courseDetails._id}&studentId=${studentId}&tutorId=${tutorId}`}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-md"
         >
           View Performance 

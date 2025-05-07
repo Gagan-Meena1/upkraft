@@ -114,9 +114,15 @@ const Sidebar: React.FC<SidebarProps> = ({ userType }) => {
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
-            title="Users" 
+            title="Students" 
             icon={<Users size={20} className="text-gray-700" />}
-            route="admin/users"
+            route="admin/students"
+            collapsed={sidebarCollapsed}
+          />
+          <SidebarItem 
+            title="Tutors" 
+            icon={<Users size={20} className="text-gray-700" />}
+            route="admin/tutors"
             collapsed={sidebarCollapsed}
           />
           {/* Add more admin menu items as needed */}

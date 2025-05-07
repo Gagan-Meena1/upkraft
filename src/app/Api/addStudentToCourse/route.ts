@@ -18,8 +18,8 @@ export async function POST(req: NextRequest, { params }: { params: Record<string
      // Extract data from request body
      const requestData = await req.json();
      const { courseId } = requestData;
-     const { userId } = requestData;
-     const studentId=userId;
+     const { studentId } = requestData;
+     const {tutorId}=requestData;
      console.log("requestData : ",requestData);
      const token = req.cookies.get("token")?.value;
              const decodedToken = token ? jwt.decode(token) : null;
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest, { params }: { params: Record<string
         { 
           $addToSet: { 
             courses: courseId,
-            // instructorId: instructorId 
+             instructorId: tutorId 
           } 
         },
         { new: true }

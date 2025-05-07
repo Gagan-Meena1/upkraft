@@ -19,13 +19,28 @@ export default function TutorCoursesPage() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>("");
+  const [studentId, setStudentId] = useState<string>("");
+  const [tutorId, setTutorId] = useState<string>("");
+
+  
+
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
+        const urlParams = new URLSearchParams(window.location.search);
+      const studentId = urlParams.get('studentId'); //
+      const tutorId = urlParams.get('tutorId'); //
+      setStudentId(`${studentId}`);
+      setTutorId(`${tutorId}`);
         console.log("Fetching courses from API...");
         
-        const response = await axios.get('/Api/tutors/courses');
+        const response = await axios.get('/Api/tutors/courses', {
+          params: {
+            studentId: studentId,
+            tutorId: tutorId
+          }
+        });
         console.log("API response:", response.data);
         
         // Check the structure of the response and extract courses properly
@@ -83,11 +98,11 @@ export default function TutorCoursesPage() {
   const handleAddStudentToCourse = async (courseId: string) => {
     try {
       // You might want to add loading state for this specific course
-      const urlParams = new URLSearchParams(window.location.search);
-      const userId = urlParams.get('userid'); //
+      
       const response = await axios.post('/Api/addStudentToCourse', {
         courseId: courseId,
-        userId:userId
+        studentId:studentId,
+        tutorId:tutorId
         // Add any other required data for your API, such as studentId
       });
       
@@ -133,9 +148,10 @@ export default function TutorCoursesPage() {
           <img src="/logo.png" alt="UPKRAFT" className="w-36 h-auto" />
         </div>
         <div className="flex space-x-4">
-          <Link href="/tutor/allStudents">
+          <Link
+           href={`/admin/students/tutors?studentId=${studentId}&tutorId=${tutorId}`}>
             <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition">
-              Back to Students
+              Back 
             </button>
           </Link>
         </div>
@@ -198,7 +214,7 @@ export default function TutorCoursesPage() {
                   {filteredCourses.map((course) => (
                     <div 
                       key={course._id} 
-                      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-px"
+                      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl scale:125 hover:translate-y-px"
                     >
                       <div className="bg-gray-900 h-3"></div>
                       <div className="p-6">

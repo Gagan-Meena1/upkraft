@@ -1,19 +1,24 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
-import Class from '@/models/Class';
 import courseName from '@/models/courseName';
 import User from '@/models/userModel';
-import { log } from 'console';
 import jwt from 'jsonwebtoken'
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
 await connect();
 export async function GET(request: NextRequest) {
   try {
-
-    const token = request.cookies.get("token")?.value;
-    const decodedToken = token ? jwt.decode(token) : null;
-    const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-    console.log(instructorId );
+    const url = new URL(request.url);
+    const tutorId = url.searchParams.get('tutorId');
+    console.log("tutorId : ",tutorId);
+    
+    let instructorId;
+        if (tutorId) {
+          instructorId = tutorId;
+        } else {
+          const token = request.cookies.get("token")?.value;
+          const decodedToken = token ? jwt.decode(token) : null;
+          instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+        }
     
     const courses=await courseName.find({instructorId:instructorId});
     

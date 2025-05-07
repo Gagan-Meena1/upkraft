@@ -27,7 +27,8 @@ const userSchema= new mongoose.Schema({
         type:String,
         required : [true , "Please provide a password"],
     },
-    instructorId:{type:[
+    instructorId:{
+        type:[
         {
             type:mongoose.Schema.Types.ObjectId,
             ref:"users"

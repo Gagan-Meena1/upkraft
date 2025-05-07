@@ -1,22 +1,64 @@
 "use client";
 import Link from "next/link";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
+
+// Define interface for user data
+interface UserData {
+  email: string;
+  password: string;
+  username: string;
+}
 
 export default function SignupPage() {
   const router = useRouter();
-  const [user, setUser] = React.useState({
+  const [user, setUser] = useState<UserData>({
     email: "",
     password: "",
     username: "",
   });
-  const [category, setCategory] = React.useState("");
-  const [buttonDisabled, setButtonDisabled] = React.useState(false);
-  const [loading, setLoading] = React.useState(false);
+  const [category, setCategory] = useState<string>("");
+  const [buttonDisabled, setButtonDisabled] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [emailError, setEmailError] = useState<string>("");
 
-  const onSignup = async () => {
+  // List of authorized admin email addresses
+  const authorizedAdminEmails: string[] = [
+    "admin@upkraft.com",
+    "admin@example.com",
+    "superadmin@upkraft.com"
+  ];
+  
+  // Alternative: Use domains instead of specific emails
+  const authorizedAdminDomains: string[] = ["upkraft.com", "admin.upkraft.org"];
+
+  // Validate if the email is authorized for admin role
+  const isAuthorizedAdminEmail = (email: string): boolean => {
+    // Option 1: Check against specific email addresses
+    if (authorizedAdminEmails.includes(email.toLowerCase())) {
+      return true;
+    }
+    
+    // Option 2: Check against authorized domains
+    const emailParts = email.split('@');
+    const emailDomain = emailParts[1]?.toLowerCase();
+    if (emailDomain && authorizedAdminDomains.includes(emailDomain)) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  const onSignup = async (): Promise<void> => {
+    // Check if admin role is selected but email is not authorized
+    if (category === "Admin" && !isAuthorizedAdminEmail(user.email)) {
+      setEmailError("You are not authorized to register as an admin with this email.");
+      toast.error("Unauthorized email for admin registration");
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await axios.post("/Api/signup", {
@@ -24,27 +66,63 @@ export default function SignupPage() {
         category,
       });
       console.log("Signup success", response.data);
+      toast.success("Registration successful!");
       router.push("/login");
-    } catch (error: any) {
-      console.log("Signup failed", error.message);
-      toast.error(error.message);
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      console.log("Signup failed", axiosError.message);
+      toast.error(axiosError.message || "Signup failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRoleClick = (role: string) => {
+  const handleRoleClick = (role: string): void => {
     setCategory(role);
+    // Clear email error when changing roles
+    setEmailError("");
+    
+    // If switching to Admin, validate the current email
+    if (role === "Admin" && user.email) {
+      if (!isAuthorizedAdminEmail(user.email)) {
+        setEmailError("This email is not authorized for admin registration.");
+      }
+    }
+  };
+
+  // Validate email whenever it changes and admin is selected
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const newEmail = e.target.value;
+    setUser({ ...user, email: newEmail });
+    
+    if (category === "Admin" && newEmail) {
+      if (!isAuthorizedAdminEmail(newEmail)) {
+        setEmailError("This email is not authorized for admin registration.");
+      } else {
+        setEmailError("");
+      }
+    } else {
+      setEmailError("");
+    }
   };
 
   useEffect(() => {
-    setButtonDisabled(
-      !(user.email.length > 0 && user.password.length > 0 && user.username.length > 0 && category.length > 0)
-    );
+    const isValid = user.email.length > 0 && 
+                    user.password.length > 0 && 
+                    user.username.length > 0 && 
+                    category.length > 0;
+    
+    // Add additional validation for admin emails
+    if (category === "Admin" && !isAuthorizedAdminEmail(user.email)) {
+      setButtonDisabled(true);
+    } else {
+      setButtonDisabled(!isValid);
+    }
   }, [user, category]);
 
   return (
-<div className="min-h-screen w-full flex flex-col text-gray-900" style={{ backgroundColor: "#fffafaff" }}>      {/* Navigation */}
+    <div className="min-h-screen w-full flex flex-col text-gray-900" style={{ backgroundColor: "#fffafaff" }}>
+      {/* Navigation */}
       <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
         <div className="font-extrabold text-2xl text-gray-800">
           <img src="logo.png" alt="" className="w-36 h-auto" />
@@ -73,7 +151,7 @@ export default function SignupPage() {
           <div className="mb-6">
             <p className="text-gray-600 mb-3 text-sm font-medium">I am a:</p>
             <div className="flex justify-between gap-2">
-              {["Student", "Parent", "Tutor"].map((role) => (
+              {["Student", "Admin", "Tutor"].map((role) => (
                 <button
                   key={role}
                   onClick={() => handleRoleClick(role)}
@@ -87,6 +165,11 @@ export default function SignupPage() {
                 </button>
               ))}
             </div>
+            {category === "Admin" && (
+              <p className="text-xs text-gray-500 mt-2">
+                Note: Admin registration requires an authorized email address.
+              </p>
+            )}
           </div>
           
           <div className="space-y-4 mb-6">
@@ -94,21 +177,30 @@ export default function SignupPage() {
               className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-gray-900 focus:outline-none transition"
               type="text"
               value={user.username}
-              onChange={(e) => setUser({ ...user, username: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                setUser({ ...user, username: e.target.value })}
               placeholder="Username"
             />
-            <input
-              className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-gray-900 focus:outline-none transition"
-              type="email"
-              value={user.email}
-              onChange={(e) => setUser({ ...user, email: e.target.value })}
-              placeholder="Email"
-            />
+            <div className="relative">
+              <input
+                className={`w-full p-3 rounded-lg bg-gray-50 border ${
+                  emailError ? "border-red-500" : "border-gray-200"
+                } focus:ring-2 focus:ring-gray-900 focus:outline-none transition`}
+                type="email"
+                value={user.email}
+                onChange={handleEmailChange}
+                placeholder="Email"
+              />
+              {emailError && (
+                <p className="text-red-500 text-xs mt-1">{emailError}</p>
+              )}
+            </div>
             <input
               className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-gray-900 focus:outline-none transition"
               type="password"
               value={user.password}
-              onChange={(e) => setUser({ ...user, password: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                setUser({ ...user, password: e.target.value })}
               placeholder="Password"
             />
           </div>

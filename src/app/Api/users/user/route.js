@@ -41,7 +41,8 @@ export async function GET(request) {
         success: true,
         message: `Sent user successfully `,
         user,
-        courseDetails
+        courseDetails,
+        classDetails
       });    
   } catch (error) {
     console.error("Error:", error);

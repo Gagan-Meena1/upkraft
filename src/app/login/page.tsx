@@ -40,7 +40,10 @@ export default function LoginPage() {
         router.push("/student");
       } else if (userCategory === "Tutor") {
         router.push("/tutor");
-      }    
+      }
+     else if (userCategory === "Admin") {
+      router.push("/admin");
+    } 
     } catch (error: any) {
       console.log("Login failed", error.message);
       toast.error(error.message);

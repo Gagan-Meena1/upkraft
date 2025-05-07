@@ -2,25 +2,28 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
-interface Student {
+interface Tutor {
   _id: string;
   username: string;
   contact: string;
   email: string;
 }
 
-export default function AllStudents() {
-  const [students, setStudents] = useState<Student[]>([]);
+export default function AllTutors() {
+  const [Tutors, setTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const studentId = urlParams.get('studentId');
+
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchTutors = async () => {
       try {
-        console.log("Fetching students from API...");
+        console.log("Fetching Tutors from API...");
         
-        const response = await fetch("/Api/returnStudent");
+        const response = await fetch("/Api/admin/tutors");
         
         if (!response.ok) {
           throw new Error(`API request failed with status ${response.status}`);
@@ -30,37 +33,37 @@ export default function AllStudents() {
         console.log("API response:", data);
         
         // Extract the user array from the response
-        const studentsArray = data.user || [];
+        const TutorsArray = data.user || [];
         
-        if (!studentsArray.length) {
-          console.log("No students found in API response");
+        if (!TutorsArray.length) {
+          console.log("No Tutors found in API response");
         } else {
-          console.log(`Found ${studentsArray.length} students in API response`);
+          console.log(`Found ${TutorsArray.length} Tutors in API response`);
         }
         
-        // Map the response to our Student interface
-        const formattedData: Student[] = studentsArray.map((student: any) => ({
-          _id: student._id,
-          username: student.username,
-          contact: student.contact,
-          email: student.email
+        // Map the response to our Tutor interface
+        const formattedData: Tutor[] = TutorsArray.map((Tutor: any) => ({
+          _id: Tutor._id,
+          username: Tutor.username,
+          contact: Tutor.contact,
+          email: Tutor.email
         }));
         
-        setStudents(formattedData);
+        setTutors(formattedData);
         setIsLoading(false);
       } catch (error: any) {
-        console.error("Error fetching students:", error);
-        setError(`Failed to load students: ${error.message}`);
+        console.error("Error fetching Tutors:", error);
+        setError(`Failed to load Tutors: ${error.message}`);
         setIsLoading(false);
       }
     };
 
-    fetchStudents();
+    fetchTutors();
   }, []);
 
-  const filteredStudents = students.filter(student => 
-    student.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTutors = Tutors.filter(Tutor => 
+    Tutor.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    Tutor.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -71,9 +74,9 @@ export default function AllStudents() {
           <img src="/logo.png" alt="UPKRAFT" className="w-36 h-auto" />
         </div>
         <div className="flex space-x-4">
-          <Link href="/tutor">
+          <Link href="/admin/students">
             <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition">
-              Back to Home
+              Students
             </button>
           </Link>
         </div>
@@ -82,7 +85,7 @@ export default function AllStudents() {
       {/* Main Content */}
       <div className="flex-1 w-full max-w-6xl mx-auto px-8 py-12">
         <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-orange-600 mb-4 md:mb-0">Student Directory</h1>
+          <h1 className="text-3xl font-bold text-orange-600 mb-4 md:mb-0">Tutor Directory</h1>
           <div className="w-full md:w-auto">
             <div className="relative">
               <input
@@ -119,46 +122,46 @@ export default function AllStudents() {
           </div>
         ) : (
           <>
-            {filteredStudents.length === 0 ? (
+            {filteredTutors.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-                <p className="text-gray-500">No students found matching your search criteria.</p>
+                <p className="text-gray-500">No Tutors found matching your search criteria.</p>
               </div>
             ) : (
               <>
                 <div className="mb-4 text-sm text-gray-500">
-                  Showing {filteredStudents.length} {filteredStudents.length === 1 ? 'student' : 'students'}
+                  Showing {filteredTutors.length} {filteredTutors.length === 1 ? 'Tutor' : 'Tutors'}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredStudents.map((student) => (
+                  {filteredTutors.map((Tutor) => (
                     <div 
-                      key={student._id} 
+                      key={Tutor._id} 
                       className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md hover:translate-y-px"
                     >
                       <div className="bg-gray-900 h-3"></div>
                       <div className="p-6">
                         <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
                           <span className="text-orange-600 font-bold text-lg">
-                            {student.username.charAt(0).toUpperCase()}
+                            {Tutor.username.charAt(0).toUpperCase()}
                           </span>
                         </div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-2">{student.username}</h3>
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">{Tutor.username}</h3>
                         <div className="space-y-2 text-gray-600">
                           <div className="flex items-center">
                             <svg className="h-5 w-5 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
-                            <span>{student.email}</span>
+                            <span>{Tutor.email}</span>
                           </div>
                           <div className="flex items-center">
                             <svg className="h-5 w-5 mr-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                             </svg>
-                            <span>{student.contact}</span>
+                            <span>{Tutor.contact}</span>
                           </div>
                         </div>
                         <div className="mt-6">
                           <Link 
-                            href={`/tutor/addToCourse?userid=${student._id}`}
+                            href={`/tutor/addToCourse?studentId=${studentId}&tutorId=${Tutor._id}`}
                             className="w-full inline-flex justify-center items-center px-4 py-2 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition"
                           >
                             <svg 
@@ -174,7 +177,7 @@ export default function AllStudents() {
                                 d="M12 6v6m0 0v6m0-6h6m-6 0H6" 
                               />
                             </svg>
-                            Add to Course
+                            Assign Course
                           </Link>
                         </div>
                       </div>
