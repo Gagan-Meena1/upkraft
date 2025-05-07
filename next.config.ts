@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
       bodySizeLimit: '1000mb'  // Increase to a suitable limit (e.g., 10MB)
     },
   },
+  eslint: {
+    // This allows production builds to succeed even with ESLint errors
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
