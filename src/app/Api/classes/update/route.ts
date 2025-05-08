@@ -5,7 +5,6 @@ import path from 'path';
 import { connect } from "@/dbConnection/dbConfic";
 import Class from "@/models/Class"; // Assuming you have a Class model
 import { writeFile, mkdir } from 'fs/promises';
-import { getServerSession } from "next-auth/next"; // Added import for getServerSession
 
 // Connect to database
 connect();
@@ -21,18 +20,13 @@ async function ensureDirectoryExists(directory: string) {
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: Record<string, string> }) {
+// In App Router, route handlers should not accept the params argument directly
+export async function POST(req: NextRequest) {
   try {
-    // Authenticate user (optional, but recommended)
-    // const session = await getServerSession(authOptions);
-    // if (!session || session.user.role !== "tutor") {
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    // }
-    
     // Get the class ID from query parameters
     const url = new URL(req.url);
     const classId = url.searchParams.get("classId");
-        
+    
     if (!classId) {
       return NextResponse.json({ error: "Class ID is required" }, { status: 400 });
     }
@@ -46,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Record<string
     // Get the form data (multipart/form-data)
     const formData = await req.formData();
     const videoFile = formData.get("video") as File | null;
-        
+    
     if (!videoFile) {
       return NextResponse.json({ error: "No video file provided" }, { status: 400 });
     }
@@ -63,7 +57,7 @@ export async function POST(req: NextRequest, { params }: { params: Record<string
     // Create a unique filename
     const uniqueFilename = `${classId}-${Date.now()}${path.extname(videoFile.name)}`;
     const filePath = path.join(uploadDir, uniqueFilename);
-        
+    
     // Convert the file to an array buffer and write to disk
     const bytes = await videoFile.arrayBuffer();
     const buffer = Buffer.from(bytes);
