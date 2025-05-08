@@ -3,20 +3,16 @@ import { connect } from '@/dbConnection/dbConfic';
 import courseName from "@/models/courseName";
 import Class from "@/models/Class";
 
-interface RouteParams {
-  params: {
-    courseId: string;
-  };
-}
-
+// Type assertion approach using generic Next.js types
 export async function GET(
   request: NextRequest,
-  context: RouteParams
+  // This approach uses type assertion but keeps the type safety
+  { params }: { params: Record<string, string> }
 ) {
   await connect(); // Ensure database connection
 
   try {
-    const courseId = context.params.courseId;
+    const courseId = params.courseId;
     console.log("courseId:", courseId);
 
     if (!courseId) {

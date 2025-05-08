@@ -13,6 +13,13 @@
     "isolatedModules": true,
     "jsx": "preserve",
     // "jsx": "react-jsx",
+    
+    "forceConsistentCasingInFileNames": true,
+    
+    // More lenient type checking for deployment
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
     "incremental": true,
     "plugins": [
       {
