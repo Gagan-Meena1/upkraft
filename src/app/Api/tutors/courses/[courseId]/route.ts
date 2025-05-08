@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
 import courseName from "@/models/courseName";
-import User from "@/models/userModel"
-import Class from "@/models/Class"
+import Class from "@/models/Class";
 
+interface RouteParams {
+  params: {
+    courseId: string;
+  };
+}
 
 export async function GET(
-  request: NextRequest, 
-  { params }: { params: { courseId: string } } // Correct destructuring
+  request: NextRequest,
+  context: RouteParams
 ) {
   await connect(); // Ensure database connection
 
   try {
-    const courseId = params.courseId; // Correct way to access params
+    const courseId = context.params.courseId;
     console.log("courseId:", courseId);
 
     if (!courseId) {
@@ -21,7 +25,7 @@ export async function GET(
 
     // Fetch course details
     const courseDetails = await courseName.findById(courseId);
-    const classDetails=await Class.find({course:courseId});
+    const classDetails = await Class.find({ course: courseId });
 
     if (!courseDetails) {
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
