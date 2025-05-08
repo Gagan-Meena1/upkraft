@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import User from "@/models/userModel";
 import { connect } from "@/dbConnection/dbConfic";
 
-export async function GET(req: NextRequest, { params }: { params: Record<string, string> })  {
+export async function GET(req: NextRequest)  {
   try {
     await connect();
  
