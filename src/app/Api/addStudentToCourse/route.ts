@@ -10,7 +10,7 @@ connect();
 
 
 
-export async function POST(req: NextRequest, { params }: { params: Record<string, string> },res:NextResponse) {
+export async function POST(req: NextRequest,res:NextResponse) {
   try {
    
     

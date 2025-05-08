@@ -11,7 +11,7 @@ import User from "@/models/userModel";
 connect();
 
 
-export async function GET(req: NextRequest, { params }: { params: Record<string, string> }) {
+export async function GET(req: NextRequest ) {
   try {
     // Authenticate user (optional, but recommended)
     // const session = await getServerSession(authOptions);

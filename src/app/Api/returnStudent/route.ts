@@ -3,7 +3,7 @@ import User from "@/models/userModel";
 import { connect } from "@/dbConnection/dbConfic";
 import jwt from "jsonwebtoken";  // Ensure jwt is imported
 
-export async function GET(req: NextRequest, { params }: { params: Record<string, string> })  {
+export async function GET(req: NextRequest)  {
   try {
     await connect();
  
