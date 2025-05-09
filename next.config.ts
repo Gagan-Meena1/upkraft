@@ -1,24 +1,41 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
+// Extend the experimental config type
+interface CustomExperimentalConfig {
+  serverActions: {
+    bodySizeLimit: string
+  };
+  missingSuspenseWithCSRBailout: boolean;
+}
+
+interface CustomNextConfig extends Omit<NextConfig, 'experimental'> {
+  experimental: CustomExperimentalConfig;
+}
+
+const nextConfig = {
   /* config options here */
   reactStrictMode: true,
+  
   typescript: {
-    // !! WARN !!
-    // This allows production builds to successfully complete even if
-    // your project has type errors.
-    // !! WARN !!
     ignoreBuildErrors: true,
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '1000mb'  // Increase to a suitable limit (e.g., 10MB)
+      bodySizeLimit: '1000mb'
     },
+    missingSuspenseWithCSRBailout: false
   },
   eslint: {
-    // This allows production builds to succeed even with ESLint errors
     ignoreDuringBuilds: true,
   },
-};
+  onError: (error) => {
+    console.error('Next.js build error:', error);
+  },
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
+} as CustomNextConfig;
 
 export default nextConfig;

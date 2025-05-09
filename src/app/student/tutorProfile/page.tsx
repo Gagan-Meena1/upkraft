@@ -1,11 +1,10 @@
 "use client"
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';  // For Next.js
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-
 
 interface Curriculum {
   _id: string;
@@ -34,7 +33,6 @@ interface Tutor {
   email: string;
   category: string;
   courses: any[];
-  // Missing fields from requirements
   education?: string;
   city?: string;
   skills?: string;
@@ -49,9 +47,19 @@ interface Tutor {
   aboutMyself?: string;
 }
 
-const TutorProfilePage = () => {
-    const searchParams = useSearchParams();
-const tutorId = searchParams?.get('tutorId');
+// Loading component for suspense fallback
+function LoadingComponent() {
+  return (
+    <div className="flex justify-center items-center min-h-screen bg-gray-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+    </div>
+  );
+}
+
+// SearchParamsWrapper component to handle the useSearchParams hook
+function TutorProfileContent() {
+  const searchParams = useSearchParams();
+  const tutorId = searchParams?.get('tutorId');
   const [tutor, setTutor] = useState<Tutor | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,8 +79,13 @@ const tutorId = searchParams?.get('tutorId');
       }
     };
 
-    fetchTutorInfo();
-  }, []);
+    if (tutorId) {
+      fetchTutorInfo();
+    } else {
+      setError('Tutor ID is missing');
+      setLoading(false);
+    }
+  }, [tutorId]);
 
   if (loading) {
     return (
@@ -105,13 +118,13 @@ const tutorId = searchParams?.get('tutorId');
         <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
           {/* Header Section */}
           <div className="bg-gradient-to-r from-orange-400 to-orange-500 p-8">
-          <Link
-  href='/student/tutors'
-  className="mr-4 p-2 rounded-full bg-gray-200 hover:bg-gray-100 transition-colors"
-  aria-label="Go back"
->
-  <ArrowLeft className="text-white bg-gray-800 rounded-xl" size={24} />
-</Link>
+            <Link
+              href='/student/tutors'
+              className="mr-4 p-2 rounded-full bg-gray-200 hover:bg-gray-100 transition-colors"
+              aria-label="Go back"
+            >
+              <ArrowLeft className="text-white bg-gray-800 rounded-xl" size={24} />
+            </Link>
             <div className="flex flex-col md:flex-row items-center">
               <div className="relative mb-6 md:mb-0 md:mr-8">
                 {tutor.profileImage ? (
@@ -134,15 +147,9 @@ const tutorId = searchParams?.get('tutorId');
                 <h1 className="text-4xl font-bold text-white mb-2">{tutor.username}</h1>
                 <div className="flex flex-col md:flex-row items-center md:items-start space-y-1 md:space-y-0 md:space-x-4">
                   <p className="text-white bg-gray-500 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center">
-                    {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg> */}
                     {tutor.email}
                   </p>
                   <p className="text-white bg-gray-500 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center">
-                    {/* <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                    </svg> */}
                     {tutor.contact}
                   </p>
                 </div>
@@ -309,6 +316,15 @@ const tutorId = searchParams?.get('tutorId');
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+const TutorProfilePage = () => {
+  return (
+    <Suspense fallback={<LoadingComponent />}>
+      <TutorProfileContent />
+    </Suspense>
   );
 };
 
