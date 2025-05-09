@@ -6,6 +6,13 @@ import axios from "axios";
 import DashboardLayout from '@/app/components/DashboardLayout';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
+import dynamic from 'next/dynamic';
+
+// Create a non-SSR version of the component
+const StudentFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(StudentDashboard),
+  { ssr: false }
+);
 interface UserData {
   _id?: string;
   username?: string;
@@ -23,7 +30,8 @@ interface UserData {
 }
 
 
-const StudentDashboard: React.FC = () => {
+
+const StudentDashboard=()=>{
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(true);
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -83,4 +91,7 @@ const StudentDashboard: React.FC = () => {
   );
 };
 
-export default StudentDashboard;
+// Export this as the default component
+export default function ViewPerformancePage() {
+  return <StudentFeedbackDashboardClient />;
+}

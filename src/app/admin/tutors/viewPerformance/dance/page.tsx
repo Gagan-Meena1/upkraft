@@ -1,4 +1,13 @@
 'use client';
+import dynamic from 'next/dynamic';
+
+// Create a non-SSR version of the component
+const StudentFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(StudentFeedbackDashboard),
+  { ssr: false }
+);
+
+
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -637,4 +646,7 @@ const StudentFeedbackDashboard = () => {
   );
 };
 
-export default StudentFeedbackDashboard;
+// Export this as the default component
+export default function ViewPerformancePage() {
+  return <StudentFeedbackDashboardClient />;
+}

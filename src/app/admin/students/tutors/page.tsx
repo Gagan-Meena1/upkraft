@@ -8,8 +8,16 @@ interface Tutor {
   contact: string;
   email: string;
 }
+import dynamic from 'next/dynamic';
 
-export default function AllTutors() {
+// Create a non-SSR version of the component
+const StudentFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(AllTutors),
+  { ssr: false }
+);
+
+
+ function AllTutors() {
   const [Tutors, setTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -199,4 +207,8 @@ export default function AllTutors() {
       </footer>
     </div>
   );
+}
+// Export this as the default component
+export default function ViewPerformancePage() {
+  return <StudentFeedbackDashboardClient />;
 }

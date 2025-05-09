@@ -26,8 +26,15 @@ interface StudentData {
   email: string;
   courses: CourseData[];
 }
+import dynamic from 'next/dynamic';
 
-export default function StudentDetails() {
+// Create a non-SSR version of the component
+const StudentFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(StudentDetails),
+  { ssr: false }
+);
+
+function StudentDetails() {
     const searchParams = useSearchParams();
     
   const [studentData, setStudentData] = useState<StudentData | null>(null);
@@ -170,4 +177,8 @@ const fetchData = async () => {
       </div>
     </div>
   );
+}
+// Export this as the default component
+export default function ViewPerformancePage() {
+  return <StudentFeedbackDashboardClient />;
 }

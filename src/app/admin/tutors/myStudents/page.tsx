@@ -3,6 +3,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
+import dynamic from 'next/dynamic';
+
+// Create a non-SSR version of the component
+const StudentFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(MyStudents),
+  { ssr: false }
+);
+
 
 interface Student {
   _id: string;
@@ -16,7 +24,7 @@ interface ApiResponse {
   filteredUsers: Student[];
 }
 
-export default function MyStudents() {
+ function MyStudents() {
 const searchParams = useSearchParams();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -158,4 +166,8 @@ const searchParams = useSearchParams();
       </footer>
     </div>
   );
+}
+// Export this as the default component
+export default function ViewPerformancePage() {
+  return <StudentFeedbackDashboardClient />;
 }

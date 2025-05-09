@@ -1,6 +1,14 @@
 "use client"
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import dynamic from 'next/dynamic';
+
+// Create a non-SSR version of the component
+const StudentFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(AllTutors),
+  { ssr: false }
+);
+
 
 interface Tutor {
   _id: string;
@@ -9,7 +17,7 @@ interface Tutor {
   email: string;
 }
 
-export default function AllTutors() {
+function AllTutors() {
   const [Tutors, setTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -191,4 +199,8 @@ export default function AllTutors() {
       </footer>
     </div>
   );
+}
+// Export this as the default component
+export default function ViewPerformancePage() {
+  return <StudentFeedbackDashboardClient />;
 }

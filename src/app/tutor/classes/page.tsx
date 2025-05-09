@@ -7,6 +7,13 @@ import { useRouter } from 'next/navigation'; // Use navigation for App Router
 import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation'; // Import this to access query params
 
+import dynamic from 'next/dynamic';
+
+// Create a non-SSR version of the component
+const StudentFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(AddSessionPage),
+  { ssr: false }
+);
 
 
 interface SessionForm {
@@ -17,8 +24,7 @@ interface SessionForm {
   date: string;
   video: File | null;
 }
-
-export default function AddSessionPage() {
+ function AddSessionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 const courseId = searchParams.get('courseId') || '';
@@ -417,4 +423,8 @@ console.log("courseId : ",courseId);
       </div>
     </div>
   );
+}
+// Export this as the default component
+export default function ViewPerformancePage() {
+  return <StudentFeedbackDashboardClient />;
 }

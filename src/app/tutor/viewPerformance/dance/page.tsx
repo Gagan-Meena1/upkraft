@@ -44,6 +44,14 @@ interface ClassInfo {
   performanceLevel: 'good' | 'medium' | 'poor';
   recommendedImprovement: string;
 }
+import dynamic from 'next/dynamic';
+
+// Create a non-SSR version of the component
+const StudentFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(StudentFeedbackDashboard),
+  { ssr: false }
+);
+
 
 const StudentFeedbackDashboard = () => {
   const router = useRouter();
@@ -636,4 +644,7 @@ const StudentFeedbackDashboard = () => {
   );
 };
 
-export default StudentFeedbackDashboard;
+// Export this as the default component
+export default function ViewPerformancePage() {
+  return <StudentFeedbackDashboardClient />;
+}
