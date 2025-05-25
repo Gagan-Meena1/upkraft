@@ -7,6 +7,7 @@ interface AddStudentFormData {
   username: string;
   email: string;
   password: string;
+  contact: string;
   category: string;
 }
 
@@ -15,11 +16,13 @@ const AddStudentPage = () => {
     username: "",
     email: "",
     password: "",
-    category: "Student", // Default category
+    contact: "",
+    category: "Student",
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
+  const [isSubmitSuccessful, setIsSubmitSuccessful] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -33,6 +36,7 @@ const AddStudentPage = () => {
     e.preventDefault();
     setIsLoading(true);
     setMessage({ text: "", type: "" });
+    setIsSubmitSuccessful(false);
 
     try {
       // Send data to API endpoint
@@ -46,28 +50,38 @@ const AddStudentPage = () => {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to add student');
+      // If API returns success: false, display the error message from API
+      if (!data.success) {
+        setMessage({
+          text: data.error || "Registration failed. Please try again.",
+          type: "error"
+        });
+        return;
       }
       
-      // Success response
+      // If we get here, API returned success: true
       setMessage({
         text: data.message || `Successfully added ${formData.username} as a new student`,
         type: "success",
       });
       
-      // Reset form
+      setIsSubmitSuccessful(true);
+      
+      // Reset form only on success
       setFormData({
         username: "",
         email: "",
         password: "",
+        contact: "",
         category: "Student",
       });
     } catch (error: any) {
+      // Handle network or JSON parsing errors
       setMessage({
-        text: error.message || "Failed to add student. Please try again.",
+        text: "Connection error. Please try again.",
         type: "error",
       });
+      setIsSubmitSuccessful(false);
     } finally {
       setIsLoading(false);
     }
@@ -79,11 +93,12 @@ const AddStudentPage = () => {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Header */}
           <div className="bg-orange-500 px-6 py-4">
-          <Link href="/tutor" className="inline-flex items-center text-gray-700 hover:text-orange-500 transition-colors  py-2 mb-4">
-                <ArrowLeft className="mr-2 h-5 w-5 bg-gray-200 rounded-xl" />
-          </Link>
-            <h1 className="text-2xl font-bold text-white-500">Add New Student</h1>
-            <p className="text-white-400 mt-1">Complete the form below to register a new student account</p>
+            <Link href="/tutor" className="inline-flex items-center text-white hover:text-gray-200 transition-colors py-2 mb-4">
+              <ArrowLeft className="mr-2 h-5 w-5" />
+              Back to Dashboard
+            </Link>
+            <h1 className="text-2xl font-bold text-white">Add New Student</h1>
+            <p className="text-white mt-1">Complete the form below to register a new student account</p>
           </div>
 
           {/* Form */}
@@ -132,6 +147,23 @@ const AddStudentPage = () => {
                 />
               </div>
 
+              {/* Contact Number Input */}
+              <div>
+                <label htmlFor="contact" className="block text-sm font-medium text-gray-700">
+                  Contact Number
+                </label>
+                <input
+                  type="tel"
+                  id="contact"
+                  name="contact"
+                  required
+                  value={formData.contact}
+                  onChange={handleChange}
+                  className="mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border"
+                  placeholder="Enter student's contact number"
+                />
+              </div>
+
               {/* Password Input */}
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
@@ -146,7 +178,7 @@ const AddStudentPage = () => {
                   onChange={handleChange}
                   className="mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border"
                   placeholder="Create a password"
-                  minLength={4}
+                  minLength={6}
                 />
                 <p className="mt-1 text-sm text-gray-500">Password must be at least 6 characters</p>
               </div>
@@ -180,12 +212,25 @@ const AddStudentPage = () => {
             </div>
           </form>
 
-          {/* Footer */}
-          <div className="bg-gray-50 px-6 py-4 text-right">
-            <p className="text-sm text-gray-600">
-              {/* <span className="text-orange-500 font-medium">Note:</span> Student will receive an email with login instructions */}
-            </p>
-          </div>
+          {/* Footer - Only show when submission was successful */}
+          {isSubmitSuccessful && (
+            <div className="bg-gray-50 px-6 py-4">
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-gray-600">
+                  <span className="text-green-600 font-medium">
+                    Student added successfully!
+                  </span>
+                </p>
+                
+                <Link
+                  href="/tutor"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+                >
+                  Return to Dashboard
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState ,useEffect} from 'react';
-import { Plus, Book, Clock, DollarSign, FileText, List, Tag } from 'lucide-react';
+import { Plus, Book, Clock, IndianRupee, FileText, List, Tag } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast, Toaster } from 'react-hot-toast';
@@ -188,7 +188,7 @@ export default function CreateCoursePage() {
             {/* Price */}
             <div className="bg-white p-4 rounded-lg border border-gray-200">
               <div className="flex items-center gap-3 mb-3">
-                <DollarSign className="text-orange-500" size={24} />
+                <IndianRupee className="text-orange-500" size={24} />
                 <label className="text-orange-500 font-semibold">Course Price</label>
               </div>
               <input 

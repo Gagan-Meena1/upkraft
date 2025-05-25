@@ -20,6 +20,7 @@ interface Class {
   startTime: string;
   endTime: string;
   recording: string | null;
+  performanceVideo: string | null;
 }
 
 interface CourseDetailsData {
@@ -59,6 +60,79 @@ export default function CourseDetailsPage() {
         minute: '2-digit' 
       })
     };
+  };
+
+  // Handle performance video upload
+  const handlePerformanceVideoUpload = async (classId: string, file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('video/')) {
+      alert('Please select a valid video file');
+      return;
+    }
+
+    // Validate file size (50MB limit)
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    if (file.size > maxSize) {
+      alert('File size must be less than 500MB');
+      return;
+    }
+
+    setUploadLoading(prev => ({ ...prev, [classId]: true }));
+
+    try {
+      const formData = new FormData();
+      formData.append('video', file);
+
+      const response = await axios.put(`/Api/classes/update?classId=${classId}`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log(`Upload Progress: ${percentCompleted}%`);
+          }
+        },
+      });
+
+      if (response.data.success) {
+        // Update the local state to reflect the uploaded video
+        setCourseData(prevData => {
+          if (!prevData) return prevData;
+          
+          return {
+            ...prevData,
+            classDetails: prevData.classDetails.map(classItem => 
+              classItem._id === classId 
+                ? { ...classItem, performanceVideo: response.data.performanceVideoUrl }
+                : classItem
+            )
+          };
+        });
+
+        alert('Performance video uploaded successfully!');
+      }
+    } catch (error) {
+      console.error('Error uploading performance video:', error);
+      if (axios.isAxiosError(error)) {
+        alert(`Upload failed: ${error.response?.data?.error || error.message}`);
+      } else {
+        alert('Upload failed. Please try again.');
+      }
+    } finally {
+      setUploadLoading(prev => ({ ...prev, [classId]: false }));
+      // Reset file input
+      if (fileInputRefs.current[classId]) {
+        fileInputRefs.current[classId]!.value = '';
+      }
+    }
+  };
+
+  // Trigger file input click
+  const triggerFileInput = (classId: string) => {
+    fileInputRefs.current[classId]?.click();
   };
 
   // Fetch course details
@@ -165,7 +239,6 @@ export default function CourseDetailsPage() {
             </div>
             <div className="text-gray-600">
               <span className="font-medium">Duration:</span> {courseData.courseDetails.duration}
-              <span className="ml-4 font-medium">Price:</span> ${courseData.courseDetails.price}
             </div>
           </div>
           <p className="text-gray-600">{courseData.courseDetails.description}</p>
@@ -195,6 +268,11 @@ export default function CourseDetailsPage() {
                       <div className="text-gray-600">
                         {startTime} - {endTime}
                       </div>
+                      {classSession.performanceVideo && (
+                        <div className="mt-2 text-green-600 text-sm font-medium">
+                          ✓ Performance Video Uploaded
+                        </div>
+                      )}
                     </div>
   
                     {/* Session Details */}
@@ -208,32 +286,68 @@ export default function CourseDetailsPage() {
                     </div>
   
                     {/* Actions */}
-                    <div className="col-span-1 flex justify-end space-x-4">
-                      {/* Hidden file input */}
-                     
-                      {/* Always show Upload Video button */}
-                     
-  
-                      {/* Show Recording button if available */}
-                      {/* {classSession.recording && (
-                        <a 
-                          href={classSession.recording} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors flex items-center text-sm"
-                        >
-                          <Video className="mr-1" size={16} />
-                          Recording
-                        </a>
-                      )} */}
-                      
+                    <div className="col-span-1 flex flex-col space-y-2">
+                      {/* Feedback Button */}
                       <Link 
                         href={`${categoryRoutes[courseData.courseDetails.category as keyof typeof categoryRoutes] || "/tutor/singleStudentFeedback"}?classId=${classSession._id}&courseId=${courseData.courseDetails._id}&studentId=${new URLSearchParams(window.location.search).get('studentId')}`}
-                        className="px-2 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors flex items-center text-sm"
+                        className="px-3 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors flex items-center justify-center text-sm"
                       >
                         <MessageCircle className="mr-1" size={16} />
                         Feedback
                       </Link>
+                      
+                      {/* Upload Performance Video Button */}
+                      <button
+                        onClick={() => triggerFileInput(classSession._id)}
+                        disabled={isUploading}
+                        className={`px-3 py-2 rounded-lg transition-colors flex items-center justify-center text-sm ${
+                          isUploading
+                            ? 'bg-gray-400 cursor-not-allowed'
+                            : classSession.performanceVideo
+                            ? 'bg-green-600 hover:bg-green-700'
+                            : 'bg-orange-500 hover:bg-orange-600'
+                        } text-white`}
+                      >
+                        {isUploading ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-1" size={16} />
+                            {classSession.performanceVideo ? 'Update Video' : 'Upload Video'}
+                          </>
+                        )}
+                      </button>
+                      
+                      {/* Hidden file input */}
+                      <input
+                        type="file"
+                        ref={(el) => {
+                          fileInputRefs.current[classSession._id] = el;
+                        }}                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handlePerformanceVideoUpload(classSession._id, file);
+                          }
+                        }}
+                        accept="video/*"
+                        style={{ display: 'none' }}
+                      />
+                      
+                      {/* View Performance Video Button (if video exists) */}
+                      {classSession.performanceVideo && (
+                        <a
+                          href={classSession.performanceVideo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors flex items-center justify-center text-sm"
+                        >
+                          <Video className="mr-1" size={16} />
+                          View Video
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>

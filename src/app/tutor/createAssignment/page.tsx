@@ -4,7 +4,6 @@ import { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { Upload, Calendar, Clock, ArrowLeft, FileText } from 'lucide-react';
-import DashboardLayout from '@/app/components/DashboardLayout';
 
 export default function CreateAssignment() {
   const router = useRouter();
@@ -45,7 +44,7 @@ export default function CreateAssignment() {
       }
       
       // Replace with your actual API endpoint
-      const response = await fetch('/Api/assignments/create', {
+      const response = await fetch(`/Api/assignment?classId=${classId}&courseId=${courseId}`, {
         method: 'POST',
         body: formData,
       });
@@ -56,7 +55,7 @@ export default function CreateAssignment() {
       
       // Redirect back to course page on success
       if (courseId) {
-        router.push(`/tutor/course/${courseId}`);
+        router.push(`/tutor/courses/${courseId}`);
       } else {
         router.back();
       }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Book, Clock, DollarSign, List } from 'lucide-react';
+import { Book, Clock, IndianRupee, List } from 'lucide-react';
 import Link from 'next/link';
 import { toast, Toaster } from 'react-hot-toast';
 import DashboardLayout from '@/app/components/DashboardLayout';
@@ -96,7 +96,11 @@ export default function TutorCoursesPage() {
       </div>
     );
   }
-
+  const viewPerformanceRoutes = {
+    "Music": "/student/performance/viewPerformance",
+    "Dance": "/student/performance/viewPerformance/dance",
+    "Drawing": "/student/performance/viewPerformance/drawing"
+  };
   const coursesContent = (
     <>
       <div className="mb-6">
@@ -128,7 +132,7 @@ export default function TutorCoursesPage() {
 
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
-                  <DollarSign className="text-orange-500" size={18} />
+                  <IndianRupee className="text-orange-500" size={18} />
                   <span className="text-gray-800 font-semibold">₹{course.price.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -138,7 +142,9 @@ export default function TutorCoursesPage() {
               </div>
 
               <div className="mt-4">
-                <Link href={`/student/performance/viewPerformance?courseId=${course._id}`}>
+                <Link 
+                // href={`/student/performance/viewPerformance?courseId=${course._id}&studentId=${userData._id}`}
+                href={`${viewPerformanceRoutes[course.category as keyof typeof viewPerformanceRoutes] || "/student/performance/viewPerformance"}?courseId=${course._id}&studentId=${userData._id}`}>
                   <button className="w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
                     View Performance
                   </button>

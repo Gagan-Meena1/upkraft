@@ -40,9 +40,7 @@ export async function GET(request:NextRequest) {
     
     console.log("classDetails : ",classDetails);
     
-    user.age?user.age=user.age:user.age=18;
-    user.address?user.address=user.address:user.address="";
-    user.contact?user.contact=user.contact:user.contact="";
+ 
 
     
     console.log("user : ",user);

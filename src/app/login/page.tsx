@@ -4,6 +4,7 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface User {
   email: string;
@@ -53,7 +54,37 @@ export default function LoginPage() {
   };
 
   return (
+    <>
+    {/* Navigation */}
+          <nav className="w-full py-2 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
+            <div className="font-extrabold text-2xl text-gray-800">
+              {/* <img src="logo.png" alt="" className="w-36 h-auto" /> */}
+              <Link href="/" className="cursor-pointer w-36 h-auto">
+              <Image 
+                src="/logo.png" // Make sure your logo is in the public folder
+                alt="UpKraft"
+                width={36}
+                height={36}
+                priority
+                className="object-contain w-36 h-auto" 
+              />
+            </Link>
+            </div>
+            <div className="flex space-x-4">
+              <Link href="/signup">
+                <button className="px-6 py-2 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition">
+                  Sign Up
+                </button>
+              </Link>
+              <Link href="/login">
+                <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition">
+                  Login
+                </button>
+              </Link>
+            </div>
+          </nav>
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
+     
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
         <h1 className="text-3xl font-bold text-orange-500 mb-2">{loading ? "Processing..." : "Login"}</h1>
         <p className="text-gray-500 mb-8 text-sm">Welcome back! Please log in to continue.</p>
@@ -107,5 +138,7 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+    </>
   );
+
 }

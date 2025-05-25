@@ -11,7 +11,7 @@ export async function POST(request : NextRequest ){
     try{
         
          const reqBody=await request.json();
-         const {username,email,password,category}=reqBody;
+         const {username,email,password,category,contact}=reqBody;
         //  validation
         console.log(reqBody);
 
@@ -21,18 +21,31 @@ export async function POST(request : NextRequest ){
         console.log("decodedToken : ",decodedToken);
         console.log("instructorId : ",instructorId);
 
-        const user = await User.findOne({email})
+      
+         // Check if user with the same email already exists
+        const userByEmail = await User.findOne({ email });
+        if (userByEmail) {
+            console.log("print 2");
 
-        if(user)
-        {
-            return NextResponse.json({error:"User already exists"})
+            return NextResponse.json({
+                error: "User with this email already exists",
+                success: false
+            });
+        }
+
+        // Check if user with the same username already exists
+        const userByUsername = await User.findOne({ username });
+        if (userByUsername) {
+            return NextResponse.json({
+                error: "Username already taken. Please choose a different username",
+                success: false
+            });
         }
 
         const salt = await bcryptjs.genSalt(10);
         const hashedPassword=await bcryptjs.hash(password,salt)
         const age = 1;
         const address = "";
-        const contact = "";
        const newUser= new User({
             username,
             email,

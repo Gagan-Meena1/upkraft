@@ -43,6 +43,8 @@ const StudentDashboard: React.FC = () => {
   const [classData, setClassData] = useState<ClassData[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+const [selectedCourseId, setSelectedCourseId] = useState<string>('');
 
   // const handleViewAllClasses = () => {
   //   router.push('/student/classes');
@@ -56,6 +58,7 @@ const StudentDashboard: React.FC = () => {
         
         if (response.data && response.data.user) {
           setUserData(response.data.user);
+          
         } else {
           setError("Invalid response format from server");
         }
@@ -70,6 +73,7 @@ const StudentDashboard: React.FC = () => {
     fetchUserData();
   }, []);
   
+
   useEffect(() => {
     const fetchClassData = async () => {
       try {
@@ -120,8 +124,11 @@ const StudentDashboard: React.FC = () => {
   }
 
   return (
-    <DashboardLayout userData={userData || undefined} userType="student">
-      {/* Welcome Banner */}
+<DashboardLayout 
+  userData={userData || undefined} 
+  userType="student"
+  studentId={userData?._id} // Pass the user ID here
+>      {/* Welcome Banner */}
       <div className="bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-xl shadow-md p-6 mb-6">
         <h2 className="text-2xl font-bold">Welcome, {userData?.username || 'Student'}!</h2>
         <p className="mt-1 opacity-90">Ready to continue your learning journey today?</p>

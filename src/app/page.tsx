@@ -79,7 +79,17 @@ export default function Home() {
       {/* Navigation */}
       <nav className="w-full py-2 px-8 flex justify-between items-center sticky top-0 bg-gray-200 backdrop-blur-md z-10">
         <div className="font-extrabold text-2xl text-gray-800">
-          <img src="logo.png" alt="UpKraft Logo" className="w-36 h-auto" />
+          {/* <img src="logo.png" alt="UpKraft Logo" className="w-36 h-auto" /> */}
+          <Link href="/" className="cursor-pointer w-36 h-auto">
+          <Image 
+            src="/logo.png" // Make sure your logo is in the public folder
+            alt="UpKraft"
+            width={36}
+            height={36}
+            priority
+            className="object-contain w-36 h-auto" 
+          />
+        </Link>
         </div>
         <div className="flex space-x-4">
           <Link href="/signup">
@@ -97,55 +107,60 @@ export default function Home() {
 
      {/* Hero Section */}
 {/* Hero Section with Illustrations */}
-<div className="w-full flex flex-col justify-center items-center text-center  md:py-20 pb-0 relative">
-  <div className="w-full max-w-6xl flex items-center justify-center relative">
+{/* Hero Section with Background Image Overlay */}
+<div className="w-full flex flex-col justify-center items-center text-center md:py-20 pb-0 relative">
   
+  {/* Background image overlay - this will be on top of everything */}
+  <div className="mt-1 absolute inset-0 bg-cover bg-center bg-no-repeat z-10" 
+       style={{ backgroundImage: "url('bg.png')" }}>
+  </div>
+  
+  <div className="w-full max-w-6xl flex items-center justify-center relative z-20">
     
     {/* Illustrations arranged around content */}
     <div className="absolute w-full h-full">
-      {/* Drummer - Top Center */}
       {/* Drummer - Top Left */}
-<div className="hidden md:block absolute left-1/3 transform -translate-x-1/2 -translate-y-full top-24">
-  <img
-    src="Drum1.png"
-    alt="Drum Set"
-    className="w-48 h-auto"
-  />
-</div>
+      {/* <div className="hidden md:block absolute left-1/3 transform -translate-x-1/2 -translate-y-full top-24 z-30">
+        <img
+          src="Drum1.png"
+          alt="Drum Set"
+          className="w-48 h-auto"
+        />
+      </div> */}
 
-{/* Piano Player - Top Right */}
-<div className="hidden md:block absolute right-1/3 transform translate-x-1/2 -translate-y-full top-24">
-  <img
-    src="P3.png"
-    alt="Piano Player"
-    className="w-48 h-auto"
-  />
-</div>
+      {/* Piano Player - Top Right */}
+      {/* <div className="hidden md:block absolute right-1/3 transform translate-x-1/2 -translate-y-full top-24 z-30">
+        <img
+          src="P3.png"
+          alt="Piano Player"
+          className="w-48 h-auto"
+        />
+      </div> */}
       
       {/* Guitarist - Left */}
-      <div className="hidden mt-10 md:block w-64 absolute left-24 top-1/2 transform -translate-y-1/2">
+      {/* <div className="hidden mt-10 md:block w-64 absolute left-24 top-1/2 transform -translate-y-1/2 z-30">
         <img 
           src="womenWithGuitar1.png" 
           alt="Guitarist" 
-          className="w-48 h-auto "
+          className="w-48 h-auto"
         />
-      </div>
+      </div> */}
       
       {/* Ballet Dancer - Right */}
-      <div className="hidden mt-10 md:block absolute right-24 top-1/2 transform -translate-y-1/2">
+      {/* <div className="hidden mt-10 md:block absolute right-24 top-1/2 transform -translate-y-1/2 z-30">
         <img 
           src="ballet1.png" 
           alt="Ballet Dancer" 
           className="w-48 h-auto"
         />
-      </div>
+      </div> */}
     </div>
     
     {/* Central content */}
-    <div className="mx-8 flex flex-col items-center z-10 pt-16 mt-20">
-      <h1 className="text-5xl md:text-6xl heading-font font-bold mb-6 text-orange-500">Welcome to UpKraft</h1>
+    <div className="mx-8 flex flex-col items-center z-30 pt-16 mt-20">
+      <h1 className="text-5xl md:text-6xl heading-font font-bold mb-6 text-orange-500"></h1>
       <div className="max-w-2xl text-center mb-10 body-font">
-        <p className="text-lg font-medium mb-2">
+        {/* <p className="text-lg font-medium mb-2">
           Unified full stack <span className="font-semibold body-font">AI Tech driven Super App elevating</span>
         </p>
         <p className="text-lg font-medium mb-2 body-font">
@@ -153,26 +168,26 @@ export default function Home() {
         </p>
         <p className="text-lg font-medium body-font">
           and outcome driven focus to create leaders of tomorrow
-        </p>
+        </p> */}
       </div>
-      <Link href="/signup">
-      <button
-        className="group/button relative inline-flex items-center justify-center overflow-hidden rounded-md bg-gray-800 backdrop-blur-lg px-6 py-2 text-base font-semibold text-white transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-xl hover:shadow-gray-600/50 border border-white/20"
-      >
-        <span className="text-lg">Get Started</span>
-        <div
-          className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-13deg)_translateX(-100%)] group-hover/button:duration-1000 group-hover/button:[transform:skew(-13deg)_translateX(100%)]"
+      {/* <Link href="/signup">
+        <button
+          className="group/button relative inline-flex items-center justify-center overflow-hidden rounded-md bg-gray-800 backdrop-blur-lg px-6 py-2 text-base font-semibold text-white transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-xl hover:shadow-gray-600/50 border border-white/20"
         >
-          <div className="relative h-full w-10 bg-white/20"></div>
-        </div>
-      </button>
-          </Link>
+          <span className="text-lg">Get Started</span>
+          <div
+            className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-13deg)_translateX(-100%)] group-hover/button:duration-1000 group-hover/button:[transform:skew(-13deg)_translateX(100%)]"
+          >
+            <div className="relative h-full w-10 bg-white/20"></div>
+          </div>
+        </button>
+      </Link> */}
     </div>
   </div>
   
   {/* Musical Notes Footer */}
-  <div className="w-full overflow-hidden mt-10 p-0 mb-0">
-    <div className="flex ">
+  <div className="w-full overflow-hidden mt-10 p-0 mb-0 relative z-20">
+    {/* <div className="flex">
       <div className="w-full">
         <img 
           src="musicalNotes.png" 
@@ -186,164 +201,190 @@ export default function Home() {
           alt="Musical Notes" 
           className="w-16 h-auto"
         />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
-        <img 
-          src="musicalNotes.png" 
-          alt="Musical Notes" 
-          className="w-16 h-auto"
-        />
-      </div><div className="w-full">
+      </div>
+      <div className="w-full">
         <img 
           src="musicalNotes.png" 
           alt="Musical Notes" 
           className="w-16 h-auto"
         />
       </div>
-    </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+      <div className="w-full">
+        <img 
+          src="musicalNotes.png" 
+          alt="Musical Notes" 
+          className="w-16 h-auto"
+        />
+      </div>
+    </div> */}
   </div>
 </div>
 

@@ -128,12 +128,12 @@ const StudentFeedbackDashboard = () => {
           
           // Calculate average score (excluding attendance)
           // Define weights for each category (in decimal form)
-          const rhythmWeight = 0.20;        // 20%
-          const theoreticalWeight = 0.15;   // 15%
-          const performanceWeight = 0.30;   // 30%
-          const earTrainingWeight = 0.10;   // 10%
-          const assignmentWeight = 0.15;    // 15%
-          const techniqueWeight = 0.10;     // 10%
+          const rhythmWeight = 1/6;        // 20%
+          const theoreticalWeight = 1/6;   // 15%
+          const performanceWeight = 1/6;   // 30%
+          const earTrainingWeight = 1/6;   // 10%
+          const assignmentWeight = 1/6;    // 15%
+          const techniqueWeight = 1/6;     // 10%
 
           // Calculate weighted score by multiplying each score by its weight
           const weightedScore = 

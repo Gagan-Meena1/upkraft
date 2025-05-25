@@ -32,11 +32,13 @@ export async function POST(request : NextRequest ){
        console.log("PRINT 4");
        if(!validPassword)
        {
+                console.log("PRINT 5");
+
         return NextResponse.json({error:"check your credentials"})
-        console.log("PRINT 5");
 
        }
-
+  console.log("Print 5.1");
+  
        const tokenData={
         id:user._id,
         username:user.username,

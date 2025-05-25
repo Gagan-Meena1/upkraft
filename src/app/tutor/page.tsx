@@ -1,7 +1,8 @@
 "use client"
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, BookMarkedIcon, BookCheck } from "lucide-react";
+import Image from "next/image";
 
 interface UserData {
   _id: string;
@@ -121,7 +122,17 @@ export default function Dashboard() {
       <div className={`bg-white border-r border-gray-200 h-screen ${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex flex-col sticky top-0`}>
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <div className={`font-extrabold text-l text-orange-600 ${!sidebarOpen && 'hidden'}`}>
-          <img src="logo.png" alt="" className="w-36 h-auto" />
+          {/* <img src="logo.png" alt="" className="w-36 h-auto" /> */}
+          <Link href="/" className="cursor-pointer w-36 h-auto">
+          <Image 
+            src="/logo.png" // Make sure your logo is in the public folder
+            alt="UpKraft"
+            width={36}
+            height={36}
+            priority
+            className="object-contain w-36 h-auto" 
+          />
+        </Link>
           </div>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)} 
@@ -170,6 +181,10 @@ export default function Dashboard() {
           <Link href="tutor/myStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
             <User size={20} />
             {sidebarOpen && <span className="ml-3">My Students</span>}
+          </Link>
+          <Link href="tutor/assignments" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+            <BookCheck size={20} />
+            {sidebarOpen && <span className="ml-3">Assignments</span>}
           </Link>
         </nav>
         

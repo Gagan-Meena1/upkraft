@@ -2,8 +2,9 @@
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import { toast } from "react-hot-toast";
+import Image from "next/image";
 
 // Define interface for user data
 interface UserData {
@@ -23,6 +24,7 @@ export default function SignupPage() {
   const [buttonDisabled, setButtonDisabled] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [emailError, setEmailError] = useState<string>("");
+  const [serverError, setServerError] = useState<string>("");
 
   // List of authorized admin email addresses
   const authorizedAdminEmails: string[] = [
@@ -52,6 +54,9 @@ export default function SignupPage() {
   };
 
   const onSignup = async (): Promise<void> => {
+    // Clear any previous server errors
+    setServerError("");
+    
     // Check if admin role is selected but email is not authorized
     if (category === "Admin" && !isAuthorizedAdminEmail(user.email)) {
       setEmailError("You are not authorized to register as an admin with this email.");
@@ -65,13 +70,31 @@ export default function SignupPage() {
         ...user,
         category,
       });
-      console.log("Signup success", response.data);
-      toast.success("Registration successful!");
-      router.push("/login");
-    } catch (error) {
-      const axiosError = error as AxiosError;
-      console.log("Signup failed", axiosError.message);
-      toast.error(axiosError.message || "Signup failed");
+      
+      // Check if the response has success flag
+      if (response.data.success) {
+        console.log("Signup success", response.data);
+        toast.success("Registration successful!");
+        router.push("/login");
+      } else {
+        // If the API returns a response but success is false
+        const errorMessage = response.data.error || "Registration failed. Please try again.";
+        setServerError(errorMessage);
+        toast.error(errorMessage);
+      }
+    } catch (error: any) {
+      console.log("Signup failed", error);
+      
+      // Handle errors from the API response
+      if (error.response && error.response.data) {
+        const errorMessage = error.response.data.error || "Registration failed. Please try again.";
+        setServerError(errorMessage);
+        toast.error(errorMessage);
+      } else {
+        // Handle network or other errors
+        setServerError(error.message || "An error occurred during registration");
+        toast.error(error.message || "Registration failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -104,6 +127,15 @@ export default function SignupPage() {
     } else {
       setEmailError("");
     }
+    
+    // Clear server error when user makes changes
+    if (serverError) setServerError("");
+  };
+  
+  // Clear server error when any user data changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, field: keyof UserData): void => {
+    setUser({ ...user, [field]: e.target.value });
+    if (serverError) setServerError("");
   };
 
   useEffect(() => {
@@ -125,7 +157,16 @@ export default function SignupPage() {
       {/* Navigation */}
       <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
         <div className="font-extrabold text-2xl text-gray-800">
-          <img src="logo.png" alt="" className="w-36 h-auto" />
+          <Link href="/" className="cursor-pointer w-36 h-auto">
+          <Image 
+            src="/logo.png" // Make sure your logo is in the public folder
+            alt="UpKraft"
+            width={36}
+            height={36}
+            priority
+            className="object-contain w-36 h-auto" 
+          />
+        </Link>
         </div>
         <div className="flex space-x-4">
           <Link href="/signup">
@@ -147,6 +188,12 @@ export default function SignupPage() {
           <h1 className="text-3xl font-bold text-center mb-8 text-orange-600">
             {loading ? "Processing..." : "Join UPKRAFT"}
           </h1>
+          
+          {serverError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600 text-sm">{serverError}</p>
+            </div>
+          )}
           
           <div className="mb-6">
             <p className="text-gray-600 mb-3 text-sm font-medium">I am a:</p>
@@ -174,17 +221,18 @@ export default function SignupPage() {
           
           <div className="space-y-4 mb-6">
             <input
-              className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-gray-900 focus:outline-none transition"
+              className={`w-full p-3 rounded-lg bg-gray-50 border ${
+                serverError && serverError.includes("username") ? "border-red-500" : "border-gray-200"
+              } focus:ring-2 focus:ring-gray-900 focus:outline-none transition`}
               type="text"
               value={user.username}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                setUser({ ...user, username: e.target.value })}
+              onChange={(e) => handleInputChange(e, "username")}
               placeholder="Username"
             />
             <div className="relative">
               <input
                 className={`w-full p-3 rounded-lg bg-gray-50 border ${
-                  emailError ? "border-red-500" : "border-gray-200"
+                  emailError || (serverError && serverError.includes("email")) ? "border-red-500" : "border-gray-200"
                 } focus:ring-2 focus:ring-gray-900 focus:outline-none transition`}
                 type="email"
                 value={user.email}
@@ -199,8 +247,7 @@ export default function SignupPage() {
               className="w-full p-3 rounded-lg bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-gray-900 focus:outline-none transition"
               type="password"
               value={user.password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
-                setUser({ ...user, password: e.target.value })}
+              onChange={(e) => handleInputChange(e, "password")}
               placeholder="Password"
             />
           </div>
@@ -208,11 +255,11 @@ export default function SignupPage() {
           <button
             onClick={onSignup}
             className={`w-full py-3 rounded-lg font-medium text-gray-50 transition-all ${
-              buttonDisabled 
+              buttonDisabled || loading
                 ? "bg-gray-400 cursor-not-allowed" 
                 : "bg-gray-900 hover:bg-gray-800"
             }`}
-            disabled={buttonDisabled}
+            disabled={buttonDisabled || loading}
           >
             {loading ? "Processing..." : "Sign Up"}
           </button>

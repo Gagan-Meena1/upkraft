@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Student {
   _id: string;
@@ -56,7 +57,17 @@ export default function MyStudents() {
       {/* Navigation */}
       <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
         <div className="font-extrabold text-2xl text-gray-800">
-        <img src="/logo.png" alt="UPKRAFT" className="w-36 h-auto" />
+        {/* <img src="/logo.png" alt="UPKRAFT" className="w-36 h-auto" /> */}
+         <Link href="/" className="cursor-pointer w-36 h-auto">
+                  <Image 
+                    src="/logo.png" // Make sure your logo is in the public folder
+                    alt="UpKraft"
+                    width={36}
+                    height={36}
+                    priority
+                    className="object-contain w-36 h-auto" 
+                  />
+                </Link>
         </div>
       </nav>
 
@@ -99,6 +110,7 @@ export default function MyStudents() {
                       <th className="px-6 py-4 text-left font-semibold text-gray-800">Name</th>
                       <th className="px-6 py-4 text-left font-semibold text-gray-800">Email</th>
                       <th className="px-6 py-4 text-left font-semibold text-gray-800">Contact</th>
+                      <th className="px-6 py-4 text-centre font-semibold text-gray-800">Add To</th>
                       <th className="px-6 py-4 text-right font-semibold text-gray-800">Actions</th>
                     </tr>
                   </thead>
@@ -111,6 +123,14 @@ export default function MyStudents() {
                         <td className="px-6 py-4 text-gray-900 font-medium">{student.username}</td>
                         <td className="px-6 py-4 text-gray-600">{student.email}</td>
                         <td className="px-6 py-4 text-gray-600">{student.contact}</td>
+                         <td className="px-6 py-4 text-right ">
+                        <Link 
+                        href={`/tutor/addToCourseTutor?studentId=${student._id}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                        Assign Course
+                        </Link>
+                        </td>
                         <td className="px-6 py-4 text-right">
                         <Link 
                         href={`/tutor/studentDetails?studentId=${student._id}`}

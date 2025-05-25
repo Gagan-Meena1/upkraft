@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, DollarSign, Video, Menu, X, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, Menu, X, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import axios from "axios";
 import DashboardLayout from '@/app/components/DashboardLayout'; // Adjust the path as needed
@@ -66,7 +66,7 @@ export default function TutorsPage() {
     { title: "Tutors Profile", icon: <Users size={20} className="text-gray-700" />, route: "tutors" },
     { title: "Performance", icon: <TrendingUp size={20} className="text-gray-700" />, route: "performance" },
     { title: "Class Quality", icon: <Video size={20} className="text-gray-700" />, route: "class-quality" },
-    { title: "Payment Summary", icon: <DollarSign size={20} className="text-gray-700" />, route: "payments" },
+    { title: "Payment Summary", icon: <IndianRupee size={20} className="text-gray-700" />, route: "payments" },
     { title: "My Classes", icon: <Calendar size={20} className="text-gray-700" />, route: "classes" },
     { title: "Feedback", icon: <MessageSquare size={20} className="text-gray-700" />, route: "feedback" }
   ];

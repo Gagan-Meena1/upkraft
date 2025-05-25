@@ -134,7 +134,7 @@ function TutorProfileContent() {
                       alt={tutor.username} 
                       width={144}
                       height={144}
-                      objectFit="cover"
+                      style={{ objectFit: 'cover', width: '100%', height: '100%' }}
                     />
                   </div>
                 ) : (
@@ -191,16 +191,16 @@ function TutorProfileContent() {
                 </div>
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Music Teaching Experience (years)</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1"> Teaching Experience (years)</h3>
                   <p className="text-lg text-gray-800">{tutor.experience || "Not specified"}</p>
                 </div>
               </div>
               
               <div className="space-y-4">
-                <div className="bg-gray-100 rounded-lg p-4">
+                {/* <div className="bg-gray-100 rounded-lg p-4">
                   <h3 className="text-sm font-medium text-gray-500 mb-1">Music Education / Degree</h3>
                   <p className="text-lg text-gray-800">{tutor.musicEducation || "Not specified"}</p>
-                </div>
+                </div> */}
                 
                 <div className="bg-gray-100 rounded-lg p-4">
                   <h3 className="text-sm font-medium text-gray-500 mb-1">Students Coached</h3>

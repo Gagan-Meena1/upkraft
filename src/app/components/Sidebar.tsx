@@ -1,7 +1,9 @@
 "use client";
 import React, { useState } from 'react';
-import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, DollarSign, Video, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { MdAssignment, MdAssignmentReturn } from 'react-icons/md';
+import { BiBulb } from 'react-icons/bi';
 
 interface SidebarItemProps {
   title: string;
@@ -12,6 +14,8 @@ interface SidebarItemProps {
 
 interface SidebarProps {
   userType: string; // 'student', 'admin', etc.
+  courseId?: string; // Optional courseId property
+  studentId?: string; // Optional courseId property
 }
 
 const SidebarItem: React.FC<SidebarItemProps> = ({ 
@@ -23,7 +27,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(`/${route}`);
+    router.push(route);
   };
 
   return (
@@ -41,7 +45,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   );
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ userType }) => {
+const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = '' }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 
   const toggleSidebarCollapse = () => {
@@ -56,51 +60,52 @@ const Sidebar: React.FC<SidebarProps> = ({ userType }) => {
           <SidebarItem 
             title="Home" 
             icon={<Home size={20} className="text-gray-700" />}
-            route="student"
+            route="/student"
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
             title="Student Profile" 
             icon={<User size={20} className="text-gray-700" />}
-            route="student/profile"
+            route="/student/profile"
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
             title="Tutors Profile" 
             icon={<Users size={20} className="text-gray-700" />}
-            route="student/tutors"
+            route="/student/tutors"
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
             title="Performance" 
             icon={<TrendingUp size={20} className="text-gray-700" />}
-            route="student/performance"
+            route={`/student/performance?studentId=${studentId}`}
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
-            title="Class Quality" 
-            icon={<Video size={20} className="text-gray-700" />}
-            route="student/class-quality"
+            title="Assignments" 
+            icon={<MdAssignment size={20} className="text-gray-700" />}
+            route="/student/assignments"
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
             title="Payment Summary" 
-            icon={<DollarSign size={20} className="text-gray-700" />}
-            route="student/payments"
+            icon={<IndianRupee size={20} className="text-gray-700" />}
+            route="/student/payments"
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
             title="My Courses" 
             icon={<Calendar size={20} className="text-gray-700" />}
-            route="student/courses"
+            route="/student/courses"
             collapsed={sidebarCollapsed}
           />
-          <SidebarItem 
-            title="Feedback" 
-            icon={<MessageSquare size={20} className="text-gray-700" />}
-            route="student/feedback"
+           <SidebarItem 
+            title="Talent Identification Centre" 
+            icon={<BiBulb size={20} className="text-gray-700" />}
+            route="/student/talent"
             collapsed={sidebarCollapsed}
           />
+          
         </>
       );
     } else if (userType === 'admin') {

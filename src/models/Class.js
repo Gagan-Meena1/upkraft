@@ -22,6 +22,10 @@ const ClassSchema = new mongoose.Schema({
     type:mongoose.Schema.Types.ObjectId,
     ref:"feedback"
   },
+  assignmentId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"Assignment"
+  },
   description: { 
     type: String, 
     required: true 
@@ -41,8 +45,9 @@ const ClassSchema = new mongoose.Schema({
 //   },
   recording:{
     type:String,
-
-    
+  },
+  performanceVideo:{
+    type:String,
   },
   // recordingProcessed:{
   //   type:Number,

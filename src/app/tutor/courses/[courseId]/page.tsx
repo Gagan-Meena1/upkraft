@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Clock, BookOpen, MessageCircle, Video, Upload, FileText } from 'lucide-react';
+import { ChevronLeft, Clock, BookOpen, MessageCircle, Video, Upload, FileText,IndianRupee } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
 
@@ -172,26 +172,33 @@ export default function CourseDetailsPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 p-6">
       <div className="max-w-4xl mx-auto">
         {/* Header with Back Button */}
-        <header className="mb-8 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Link 
-              href="/tutor/courses/" 
-              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors shadow-md"
-            >
-              <ChevronLeft className="text-gray-700" />
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-800">
-              {courseData.courseDetails.title}
-            </h1>
-          </div>
-          <div className="mt-4">
-            <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
-              <button className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg hover:from-purple-500 hover:to-blue-500 transition-colors">
-                Create Class
-              </button>
-            </Link>
-          </div>
-        </header>
+<header className="mb-8 flex justify-between items-center">
+  <div className="flex items-center space-x-4">
+    <Link 
+      href={`/tutor/courses`} 
+      className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors shadow-md"
+    >
+      <ChevronLeft className="text-gray-700" />
+    </Link>
+    <h1 className="text-3xl font-bold text-gray-800">
+      {courseData.courseDetails.title}
+    </h1>
+  </div>
+  <div className="flex items-center space-x-3">
+    <Link 
+      href={`/tutor/viewClassQuality?courseId=${courseData.courseDetails._id}`}
+      className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 inline-flex items-center text-sm font-medium shadow-md"
+    >
+      <MessageCircle className="mr-2" size={16} />
+      Class Quality
+    </Link>
+    <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
+      <button className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-md font-medium transition-colors shadow-md">
+        Create Class
+      </button>
+    </Link>
+  </div>
+</header>
   
         {/* Course Overview */}
         <section className="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -204,7 +211,7 @@ export default function CourseDetailsPage() {
             </div>
             <div className="text-gray-600">
               <span className="font-medium">Duration:</span> {courseData.courseDetails.duration}
-              <span className="ml-4 font-medium">Price:</span> ${courseData.courseDetails.price}
+              <span className="ml-4 font-medium">Price:</span> <IndianRupee className='text-xs scale-70 inline-block transform'/>{courseData.courseDetails.price} 
             </div>
           </div>
           <p className="text-gray-600">{courseData.courseDetails.description}</p>
@@ -287,13 +294,7 @@ export default function CourseDetailsPage() {
                     <FileText className="mr-1" size={16} />
                     Assignment
                   </Link>
-                      {/* <Link 
-                        href={`/tutor/studentFeedback?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-                        className="px-2 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors flex items-center text-sm"
-                      >
-                        <MessageCircle className="mr-1" size={16} />
-                        Feedback
-                      </Link> */}
+                      
                     </div>
                   </div>
                 </div>

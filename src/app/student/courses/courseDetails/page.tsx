@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
+import Link from 'next/link';
+
 import DashboardLayout from '@/app/components/DashboardLayout';
 
 interface ClassDetail {
@@ -11,6 +13,7 @@ interface ClassDetail {
   startTime: string;
   endTime: string;
   recording: string | null;
+  performanceVideo: string | null;
 }
 
 interface CourseDetail {
@@ -136,25 +139,33 @@ const CourseDetailsPage = () => {
       ) : (
         <div className="min-w-full mx-auto">
           {courseDetails && (
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-orange-500 mb-2">
-                {courseDetails.title}
-              </h1>
-              <div className="bg-gray-100 p-4 rounded-lg">
-                <p className="text-gray-700 mb-4">{courseDetails.description}</p>
-                <div className="flex flex-wrap gap-4">
-                  <div className="bg-white p-3 rounded-md shadow-sm">
-                    <span className="text-gray-500 text-sm">Duration</span>
-                    <p className="font-medium">{courseDetails.duration}</p>
-                  </div>
-                  <div className="bg-white p-3 rounded-md shadow-sm">
-                    <span className="text-gray-500 text-sm">Price</span>
-                    <p className="font-medium">${courseDetails.price}</p>
-                  </div>
-                </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-orange-500 mb-2">
+            {courseDetails.title}
+          </h1>
+          <div className="bg-gray-100 p-4 rounded-lg">
+            <p className="text-gray-700 mb-4">{courseDetails.description}</p>
+            <div className="flex flex-wrap gap-4">
+              <div className="bg-white p-3 rounded-md shadow-sm">
+                <span className="text-gray-500 text-sm">Duration</span>
+                <p className="font-medium text-black">{courseDetails.duration}</p>
+              </div>
+              <div className="bg-white p-3 rounded-md shadow-sm">
+                <span className="text-gray-500 text-sm">Price</span>
+                <p className="font-medium text-black">${courseDetails.price}</p>
               </div>
             </div>
-          )}
+          </div>
+          <div className="mt-4">
+            <Link 
+              href={`/student/classQuality?courseId=${courseId}`}
+              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 inline-flex items-center justify-center text-sm font-medium"
+            >
+              Class Quality
+            </Link>
+          </div>
+        </div>
+)}
 
           <h2 className="text-2xl font-bold text-orange-500 mb-4">Class Schedule</h2>
           
@@ -164,31 +175,57 @@ const CourseDetailsPage = () => {
             <div className="grid gap-4 md:grid-cols-2">
               {classDetails.map((classItem) => (
                 <div key={classItem._id} className="bg-gray-100 p-4 rounded-lg">
-                  <h3 className="text-lg font-medium text-orange-500">{classItem.title}</h3>
-                  <p className="text-gray-600 text-sm mb-2">{classItem.description}</p>
-                  <div className="mt-3">
-                    <div className="flex items-center text-gray-700">
-                      <span className="text-gray-500 w-24">Date:</span>
-                      <span>{formatDate(classItem.startTime)}</span>
-                    </div>
-                    <div className="flex items-center text-gray-700">
-                      <span className="text-gray-500 w-24">Time:</span>
-                      <span>{formatTime(classItem.startTime)} - {formatTime(classItem.endTime)}</span>
-                    </div>
-                    {classItem.recording && (
-                      <div className="mt-2">
-                        <a 
-                          href={classItem.recording} 
-                          className="text-orange-500 hover:underline flex items-center"
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                        >
-                          View Recording
-                        </a>
-                      </div>
-                    )}
-                  </div>
-                </div>
+  <h3 className="text-lg font-medium text-orange-500">{classItem.title}</h3>
+  <p className="text-gray-600 text-sm mb-2">{classItem.description}</p>
+  <div className="mt-3">
+    <div className="flex items-center text-gray-700">
+      <span className="text-gray-500 w-24">Date:</span>
+      <span>{formatDate(classItem.startTime)}</span>
+    </div>
+    <div className="flex items-center text-gray-700">
+      <span className="text-gray-500 w-24">Time:</span>
+      <span>{formatTime(classItem.startTime)} - {formatTime(classItem.endTime)}</span>
+    </div>
+    {/* {classItem.recording && (
+      <div className="mt-2">
+    <a 
+      href={classItem.recording} 
+      className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-md shadow-md hover:from-green-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center text-sm font-medium w-fit"
+      target="_blank" 
+      rel="noopener noreferrer"
+    >
+      View Recording
+    </a>
+  </div>
+    )} */}
+    
+    {/* New buttons section */}
+   <div className="mt-4 flex space-x-3">
+  {classItem.recording && (
+    <a 
+      href={classItem.recording} 
+      className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-md shadow-md hover:from-green-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
+      target="_blank" 
+      rel="noopener noreferrer"
+    >
+      View Recording
+    </a>
+  )}
+  {classItem.performanceVideo && (
+  <a 
+    href={classItem.performanceVideo} 
+    className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
+    target="_blank" 
+    rel="noopener noreferrer"
+  >
+    Performance Video
+  </a>
+)}
+  
+  
+            </div>
+              </div>
+            </div>
               ))}
             </div>
           )}

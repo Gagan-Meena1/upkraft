@@ -92,6 +92,11 @@ const UserProfilePage: React.FC = () => {
               Back
             </button>
           </Link>
+          <Link href={`/admin/Talent?studentId=${user._id}`}>
+            <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition">
+              Talent
+            </button>
+          </Link>
         </div>
 </div>
 

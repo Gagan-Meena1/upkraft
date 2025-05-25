@@ -1,6 +1,7 @@
 "use client"
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 interface Tutor {
   _id: string;
@@ -79,7 +80,17 @@ const StudentFeedbackDashboardClient = dynamic(
       {/* Navigation */}
       <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
         <div className="font-extrabold text-2xl text-gray-800">
-          <img src="/logo.png" alt="UPKRAFT" className="w-36 h-auto" />
+          {/* <img src="/logo.png" alt="UPKRAFT" className="w-36 h-auto" /> */}
+          <Link href="/" className="cursor-pointer w-36 h-auto">
+          <Image 
+            src="/logo.png" // Make sure your logo is in the public folder
+            alt="UpKraft"
+            width={36}
+            height={36}
+            priority
+            className="object-contain w-36 h-auto" 
+          />
+        </Link>
         </div>
         <div className="flex space-x-4">
           <Link href="/admin/students">
