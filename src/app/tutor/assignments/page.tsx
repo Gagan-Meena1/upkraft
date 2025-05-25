@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Head from 'next/head';
 import { FileText, Calendar, Clock, ArrowLeft, ChevronRight, AlertCircle, Download, Check } from 'lucide-react';
@@ -16,7 +16,27 @@ interface Assignment {
   createdAt: string;
 }
 
-export default function AssignmentsList() {
+// Loading component for Suspense fallback
+function AssignmentsLoading() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-orange-500">Course Assignments</h1>
+          <p className="text-gray-500 mt-2">Loading...</p>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="flex justify-center items-center p-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Extract the main component logic
+function AssignmentsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -278,5 +298,14 @@ export default function AssignmentsList() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense wrapper
+export default function AssignmentsList() {
+  return (
+    <Suspense fallback={<AssignmentsLoading />}>
+      <AssignmentsContent />
+    </Suspense>
   );
 }
