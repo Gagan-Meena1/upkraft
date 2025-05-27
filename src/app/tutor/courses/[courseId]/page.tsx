@@ -185,13 +185,7 @@ export default function CourseDetailsPage() {
     </h1>
   </div>
   <div className="flex items-center space-x-3">
-    <Link 
-      href={`/tutor/viewClassQuality?courseId=${courseData.courseDetails._id}`}
-      className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 inline-flex items-center text-sm font-medium shadow-md"
-    >
-      <MessageCircle className="mr-2" size={16} />
-      Class Quality
-    </Link>
+  
     <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
       <button className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-md font-medium transition-colors shadow-md">
         Create Class

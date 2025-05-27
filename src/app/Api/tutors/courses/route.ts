@@ -107,3 +107,40 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+export async function DELETE(request: NextRequest) {
+  try {
+    await connect();
+    
+    const { searchParams } = new URL(request.url);
+    const courseId = searchParams.get('courseId');
+    
+    if (!courseId) {
+      return NextResponse.json(
+        { success: false, message: 'Course ID is required' },
+        { status: 400 }
+      );
+    }
+    
+    // Find and delete the course
+    const deletedCourse = await courseName.findByIdAndDelete(courseId);
+    
+    if (!deletedCourse) {
+      return NextResponse.json(
+        { success: false, message: 'Course not found' },
+        { status: 404 }
+      );
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Course is deleted'
+    });
+    
+  } catch (error) {
+    console.error('Error deleting course:', error);
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

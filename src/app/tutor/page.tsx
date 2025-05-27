@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, BookMarkedIcon, BookCheck } from "lucide-react";
 import Image from "next/image";
+import { PiNutBold } from "react-icons/pi";
 
 interface UserData {
   _id: string;
@@ -161,10 +162,10 @@ export default function Dashboard() {
             <User size={20} />
             {sidebarOpen && <span className="ml-3">Profile</span>}
           </Link>
-          <Link href="tutor/createStudent" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+          <Link href="tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
             <
-              PlusCircle size={20} />
-            {sidebarOpen && <span className="ml-3">New Student</span>}
+              PiNutBold size={20} />
+            {sidebarOpen && <span className="ml-3">Class Quality</span>}
           </Link>
           {/* <Link href="tutor/allStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
             <Users size={20} />

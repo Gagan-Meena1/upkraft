@@ -316,7 +316,7 @@ export default function CourseDetailsPage() {
                         ) : (
                           <>
                             <Upload className="mr-1" size={16} />
-                            {classSession.performanceVideo ? 'Update Video' : 'Upload Video'}
+                            {classSession.performanceVideo ? 'Update Video' : 'Performance Video'}
                           </>
                         )}
                       </button>

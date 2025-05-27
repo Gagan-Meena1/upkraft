@@ -4,6 +4,7 @@ import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, India
 import { useRouter } from 'next/navigation';
 import { MdAssignment, MdAssignmentReturn } from 'react-icons/md';
 import { BiBulb } from 'react-icons/bi';
+import { PiNutBold } from 'react-icons/pi';
 
 interface SidebarItemProps {
   title: string;
@@ -63,6 +64,12 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             route="/student"
             collapsed={sidebarCollapsed}
           />
+           <SidebarItem 
+            title="Talent Identification Centre" 
+            icon={<BiBulb size={20} className="text-gray-700" />}
+            route="/student/talent"
+            collapsed={sidebarCollapsed}
+          />
           <SidebarItem 
             title="Student Profile" 
             icon={<User size={20} className="text-gray-700" />}
@@ -76,9 +83,15 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
-            title="Performance" 
+            title="My Performance" 
             icon={<TrendingUp size={20} className="text-gray-700" />}
             route={`/student/performance?studentId=${studentId}`}
+            collapsed={sidebarCollapsed}
+          />
+          <SidebarItem 
+            title="Class Quality" 
+            icon={<PiNutBold size={20} className="text-gray-700" />}
+            route={`/student/courses?studentId=${studentId}`}
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
@@ -99,12 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             route="/student/courses"
             collapsed={sidebarCollapsed}
           />
-           <SidebarItem 
-            title="Talent Identification Centre" 
-            icon={<BiBulb size={20} className="text-gray-700" />}
-            route="/student/talent"
-            collapsed={sidebarCollapsed}
-          />
+          
           
         </>
       );

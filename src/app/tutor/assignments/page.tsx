@@ -14,6 +14,7 @@ interface Assignment {
   fileUrl?: string;
   fileName?: string;
   createdAt: string;
+  courseTitle:string
 }
 
 // Loading component for Suspense fallback
@@ -229,10 +230,10 @@ function AssignmentsContent() {
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
                           <h2 className={`text-xl font-semibold mb-2 group-hover:text-orange-500 ${
-                            assignment.status ? 'text-gray-500 line-through' : 'text-gray-800'
-                          }`}>
-                            {assignment.title}
-                          </h2>
+                          assignment.status ? 'text-gray-500 line-through' : 'text-gray-800'
+                        }`}>
+                          {assignment.courseTitle} - {assignment.title}
+                        </h2>
                           {assignment.status && (
                             <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
                               Completed

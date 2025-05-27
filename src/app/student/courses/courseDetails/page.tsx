@@ -157,12 +157,12 @@ const CourseDetailsPage = () => {
             </div>
           </div>
           <div className="mt-4">
-            <Link 
+            {/* <Link 
               href={`/student/classQuality?courseId=${courseId}`}
               className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 inline-flex items-center justify-center text-sm font-medium"
             >
               Class Quality
-            </Link>
+            </Link> */}
           </div>
         </div>
 )}

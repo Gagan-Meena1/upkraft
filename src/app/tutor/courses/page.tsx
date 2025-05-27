@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Book, Clock, IndianRupee, List } from 'lucide-react';
+import { Book, Clock, IndianRupee, List ,MessageCircle,Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { use } from 'react';
@@ -25,6 +25,8 @@ export default function TutorCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -55,8 +57,41 @@ export default function TutorCoursesPage() {
     };
   
     fetchCourses();
-  }, []);
+    // 3. Add this delete function after your fetchCourses function
+   
+      }, []);
+ const handleDeleteCourse = async (courseId: string) => {
+      if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+        return;
+      }
 
+      try {
+        setDeletingCourseId(courseId);
+        
+        const response = await fetch(`/Api/tutors/courses?courseId=${courseId}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete course');
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+          toast.success(data.message || 'Course deleted successfully');
+          // Remove the deleted course from the local state
+          setCourses(prevCourses => prevCourses.filter(course => course._id !== courseId));
+        } else {
+          throw new Error(data.message || 'Failed to delete course');
+        }
+      } catch (error) {
+        console.error('Error deleting course:', error);
+        toast.error(error instanceof Error ? error.message : 'Failed to delete course');
+      } finally {
+        setDeletingCourseId(null);
+      }
+    };
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-600 via-pink-400 to-pink-700 flex items-center justify-center">
@@ -129,13 +164,41 @@ export default function TutorCoursesPage() {
                   </div>
                 </div>
 
-                <div className="mt-4">
-                  <Link href={`/tutor/courses/${course._id}`}>
-                    <button className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg hover:from-purple-500 hover:to-blue-500 transition-colors">
-                      View Details
-                    </button>
-                  </Link>
-                </div>
+               <div className="mt-4 flex gap-25">
+  <Link 
+    href={`/tutor/viewClassQuality?courseId=${course._id}`}
+    className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 inline-flex items-center text-sm font-medium shadow-md"
+  >
+    <MessageCircle className="mr-2" size={16} />
+    Class Quality
+  </Link>
+  
+  <button
+    onClick={() => handleDeleteCourse(course._id)}
+    disabled={deletingCourseId === course._id}
+    className={` px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-md hover:from-red-600 hover:to-red-700 transition-all duration-300 inline-flex items-center text-sm font-medium shadow-md ${
+      deletingCourseId === course._id ? 'opacity-50 cursor-not-allowed' : ''
+    }`}
+  >
+    {deletingCourseId === course._id ? (
+      <>
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+        Deleting...
+      </>
+    ) : (
+      <>
+        <Trash2 className="mr-2" size={16} />
+        Delete
+      </>
+    )}
+  </button>
+</div>
+
+<Link href={`/tutor/courses/${course._id}`}>
+  <button className="w-full mt-2 bg-gray-700 text-white px-4 py-2 rounded-lg hover:from-purple-500 hover:to-blue-500 transition-colors">
+    View Details
+  </button>
+</Link>
               </div>
             ))}
           </div>

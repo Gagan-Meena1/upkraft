@@ -1,4 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
+import { NextApiRequest, NextApiResponse } from 'next';
 import { connect } from '@/dbConnection/dbConfic';
 import courseName from '@/models/courseName';
 import User from '@/models/userModel';
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
     });       if(!users) {
       console.error('Error finding users:');
     }
-   console.log(users);
+  //  console.log(users);
    
     const filteredUsers = users.map(user => {
         return {
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
    
     
 
-    console.log(filteredUsers);
+    // console.log(filteredUsers);
     return NextResponse.json({
       message: 'Session sent successfully',
       filteredUsers
@@ -59,3 +60,60 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Connect to database
+     await connect();
+
+    // Get the studentId from the URL search params
+    const { searchParams } = new URL(request.url);
+    const studentId = searchParams.get('studentId');
+
+    // Validate studentId
+    if (!studentId) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Student ID is required' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Find and delete the student
+    const deletedStudent = await User.findByIdAndDelete(studentId);
+
+    if (!deletedStudent) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Student not found' 
+        },
+        { status: 404 }
+      );
+    }
+
+    // Return success response
+    return NextResponse.json(
+      { 
+        success: true, 
+        message: 'Student removed successfully' 
+      },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    
+    return NextResponse.json(
+      { 
+        success: false, 
+        message: 'Internal server error. Failed to delete student.' 
+      },
+      { status: 500 }
+    );
+  }
+}
+
+

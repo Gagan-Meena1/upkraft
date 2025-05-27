@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, ExternalLink, HomeIcon, Edit, X, Camera } from "lucide-react";
 import Image from "next/image";
+import { BiBulb } from "react-icons/bi";
 
 interface CourseData {
   _id: string;
@@ -294,7 +295,14 @@ export default function StudentDetails() {
                       )}
                     </div>
                   </div>
-                  <div className="mt-4 md:mt-0">
+                  <div className="mt-4 md:mt-0 flex justify-between space-x-4">
+                    <Link 
+                      href={`/tutor/talent?studentId=${studentData.studentId}`}
+                      className="  flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
+                    >
+                      <BiBulb size={16} className="mr-2" />
+                      Talent
+                    </Link>
                     <button
                       onClick={handleEditClick}
                       className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
@@ -302,6 +310,7 @@ export default function StudentDetails() {
                       <Edit size={16} className="mr-2" />
                       Edit Profile
                     </button>
+                    
                   </div>
                 </div>
               </div>

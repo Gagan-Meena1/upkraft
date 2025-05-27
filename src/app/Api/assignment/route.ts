@@ -110,14 +110,14 @@ export async function POST(request: NextRequest) {
 // app/api/assignment/route.js
 
 
-export async function GET(request:NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     // Connect to MongoDB
     await connect();
 
     const token = request.cookies.get("token")?.value;
-          const decodedToken = token ? jwt.decode(token) : null;
-          const userId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+    const decodedToken = token ? jwt.decode(token) : null;
+    const userId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
 
     if (!userId) {
       return NextResponse.json(
@@ -134,7 +134,7 @@ export async function GET(request:NextRequest) {
         { status: 404 }
       );
     }
-    console.log("user.username : ",user.username);
+    console.log("user.username : ", user.username);
     
     // Get class IDs from user
     const classIds = user.classes || [];
@@ -154,22 +154,42 @@ export async function GET(request:NextRequest) {
       _id: { $in: assignmentIds }
     }).sort({ deadline: 1 }); // Sort by deadline ascending
     
-   
-   
-   
-      console.log("11111111111111111111111111111111111111111111111111111111111111111111111111");
+    // Step 4: Get unique course IDs from assignments
+    const courseIds = assignments
+      .map(assignment => assignment.courseId)
+      .filter(id => id !== null && id !== undefined);
     
-  
+    // Step 5: Find course details
+    const courses = await courseName.find({
+      _id: { $in: courseIds }
+    });
     
+    // Step 6: Create a course lookup map for efficient matching
+    const courseMap = courses.reduce((acc, course) => {
+      acc[course._id.toString()] = course;
+      return acc;
+    }, {});
     
-    console.log("assignments : ",assignments);
+    // Step 7: Add course details to assignments
+    const assignmentsWithCourseDetails = assignments.map(assignment => {
+      const courseDetails = courseMap[assignment.courseId?.toString()];
+      return {
+        ...assignment.toObject(),
+        courseTitle: courseDetails?.title || null,
+        courseCategory: courseDetails?.category || null,
+        courseDuration: courseDetails?.duration || null,
+        courseDescription: courseDetails?.description || null
+      };
+    });
+    
+    console.log("assignments with course details: ", assignmentsWithCourseDetails);
     
     return NextResponse.json({
       success: true,
-      assignments: assignments
+      assignments: assignmentsWithCourseDetails
     });
     
-  } catch (error:any) {
+  } catch (error: any) {
     console.error("Error fetching assignments:", error);
     
     // Handle JWT verification errors
