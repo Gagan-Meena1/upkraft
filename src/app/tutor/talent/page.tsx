@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { FileText, Download, User, Calendar, AlertCircle, Loader,ArrowLeft } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { FileText, Download, User, Calendar, AlertCircle, Loader, ArrowLeft } from 'lucide-react';
 
 const TalentDisplayPage = () => {
   const [talentData, setTalentData] = useState(null);
@@ -9,8 +9,8 @@ const TalentDisplayPage = () => {
   const [error, setError] = useState(null);
 
   const router = useRouter();
-  const urlParams = new URLSearchParams(window.location.search);
-  const studentId = urlParams.get('studentId');
+  const searchParams = useSearchParams();
+  const studentId = searchParams.get('studentId');
 
   const fetchTalentData = async () => {
     try {
@@ -31,9 +31,12 @@ const TalentDisplayPage = () => {
       setLoading(false);
     }
   };
+
   useEffect(() => {
-  fetchTalentData();
-}, []);
+    if (studentId) {
+      fetchTalentData();
+    }
+  }, [studentId]);
 
   const handleFileDownload = () => {
     if (talentData?.fileUrl) {
@@ -96,16 +99,16 @@ const TalentDisplayPage = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-  <div className="flex items-center space-x-4">
-    <button 
-  onClick={() => router.push(`/tutor/studentDetails?studentId=${studentId}`)}
-  className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors duration-200"
->
-  <ArrowLeft className="w-6 h-6 text-gray-600" />
-</button>
-    <h1 className="text-4xl font-bold text-orange-600">Talent Assessment</h1>
-  </div>
-</div>
+          <div className="flex items-center space-x-4">
+            <button 
+              onClick={() => router.push(`/tutor/studentDetails?studentId=${studentId}`)}
+              className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors duration-200"
+            >
+              <ArrowLeft className="w-6 h-6 text-gray-600" />
+            </button>
+            <h1 className="text-4xl font-bold text-orange-600">Talent Assessment</h1>
+          </div>
+        </div>
 
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
@@ -182,7 +185,7 @@ const TalentDisplayPage = () => {
                     </p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
-                  
+                    {/* Additional metadata can go here */}
                   </div>
                 </div>
               </div>
