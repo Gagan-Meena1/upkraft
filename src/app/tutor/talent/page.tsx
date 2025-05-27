@@ -1,9 +1,10 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FileText, Download, User, Calendar, AlertCircle, Loader, ArrowLeft } from 'lucide-react';
 
-const TalentDisplayPage = () => {
+// Separate component that uses useSearchParams
+const TalentDisplayContent = () => {
   const [talentData, setTalentData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -201,6 +202,25 @@ const TalentDisplayPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Loading component for Suspense fallback
+const TalentDisplayLoading = () => (
+  <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="text-center">
+      <Loader className="w-12 h-12 text-orange-500 animate-spin mx-auto mb-4" />
+      <p className="text-gray-600 text-lg">Loading talent data...</p>
+    </div>
+  </div>
+);
+
+// Main component wrapped with Suspense
+const TalentDisplayPage = () => {
+  return (
+    <Suspense fallback={<TalentDisplayLoading />}>
+      <TalentDisplayContent />
+    </Suspense>
   );
 };
 
