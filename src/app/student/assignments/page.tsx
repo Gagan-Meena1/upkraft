@@ -48,6 +48,7 @@ function AssignmentsContent() {
   const [error, setError] = useState<string | null>(null);
   const [courseTitle, setCourseTitle] = useState('My Course');
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'due' | 'completed'>('due');
   
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -89,6 +90,18 @@ function AssignmentsContent() {
     fetchAssignments();
   }, [courseId]);
   
+  // Filter assignments based on active tab
+  const filteredAssignments = assignments.filter(assignment => {
+    if (activeTab === 'due') {
+      return !assignment.status; // Show assignments that are not completed
+    } else {
+      return assignment.status; // Show completed assignments
+    }
+  });
+
+  // Count assignments for each category
+  const dueCount = assignments.filter(a => !a.status).length;
+  const completedCount = assignments.filter(a => a.status).length;
  
   // Function to format date in a readable way
   const formatDate = (dateString: string) => {
@@ -139,6 +152,50 @@ function AssignmentsContent() {
           <h1 className="text-3xl font-bold text-orange-500">Course Assignments</h1>
           <p className="text-gray-500 mt-2">{courseTitle}</p>
         </div>
+
+        {/* Toggle Buttons */}
+        <div className="mb-8">
+          <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
+            <button
+              onClick={() => setActiveTab('due')}
+              className={`px-6 py-3 rounded-md font-medium transition-all duration-300 flex items-center gap-2 ${
+                activeTab === 'due'
+                  ? 'bg-orange-500 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Due Assignments
+              {dueCount > 0 && (
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  activeTab === 'due' 
+                    ? 'bg-white bg-opacity-20 text-white' 
+                    : 'bg-orange-100 text-orange-600'
+                }`}>
+                  {dueCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('completed')}
+              className={`px-6 py-3 rounded-md font-medium transition-all duration-300 flex items-center gap-2 ${
+                activeTab === 'completed'
+                  ? 'bg-orange-500 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Completed
+              {completedCount > 0 && (
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  activeTab === 'completed' 
+                    ? 'bg-gray-800 bg-opacity-20 text-white' 
+                    : 'bg-green-100 text-green-600'
+                }`}>
+                  {completedCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
         
         {/* Main content */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -152,20 +209,25 @@ function AssignmentsContent() {
               <h2 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Assignments</h2>
               <p className="text-gray-500">{error}</p>
             </div>
-          ) : assignments.length === 0 ? (
+          ) : filteredAssignments.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-16 text-center">
               <FileText size={48} className="text-orange-400 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">No Assignments Yet</h2>
-              <p className="text-gray-500">There are no assignments for this course yet.</p>
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                {activeTab === 'due' ? 'No Due Assignments' : 'No Completed Assignments'}
+              </h2>
+              <p className="text-gray-500">
+                {activeTab === 'due' 
+                  ? 'Great! You have no pending assignments.' 
+                  : 'You haven\'t completed any assignments yet.'
+                }
+              </p>
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {assignments.map((assignment) => (
+              {filteredAssignments.map((assignment) => (
                 <div key={assignment._id} className="p-6 hover:bg-gray-50 transition-colors duration-150">
                   <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
-                    
-                      
                       <div className="flex-1">
                         <div className="flex items-center gap-3">
                           <h2 className={`text-xl font-semibold mb-2 group-hover:text-orange-500 ${
@@ -174,7 +236,8 @@ function AssignmentsContent() {
                             {assignment.title}
                           </h2>
                           {assignment.status && (
-                            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full flex items-center gap-1">
+                              <Check size={12} />
                               Completed
                             </span>
                           )}
