@@ -82,12 +82,19 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             route="/student/tutors"
             collapsed={sidebarCollapsed}
           />
+           <SidebarItem 
+            title="My Courses" 
+            icon={<Calendar size={20} className="text-gray-700" />}
+            route="/student/courses"
+            collapsed={sidebarCollapsed}
+          />
           <SidebarItem 
             title="My Performance" 
             icon={<TrendingUp size={20} className="text-gray-700" />}
             route={`/student/performance?studentId=${studentId}`}
             collapsed={sidebarCollapsed}
           />
+
           <SidebarItem 
             title="Class Quality" 
             icon={<PiNutBold size={20} className="text-gray-700" />}
@@ -107,11 +114,12 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
-            title="My Courses" 
-            icon={<Calendar size={20} className="text-gray-700" />}
-            route="/student/courses"
+            title="UpKraft AI" 
+            icon={<IndianRupee size={20} className="text-gray-700" />}
+            route="/student/ai"
             collapsed={sidebarCollapsed}
           />
+         
           
           
         </>
