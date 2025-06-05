@@ -66,34 +66,33 @@ export default function SignupPage() {
 
     try {
       setLoading(true);
-      const response = await axios.post("/Api/signup", {
-        ...user,
-        category,
+      console.log("[Signup Page] Sending verification link to:", user.email);
+      
+      // First, send the magic link
+      const magicLinkResponse = await axios.post("/Api/signup/send-magic-link", {
+        email: user.email,
+        username: user.username,
+        category: category
       });
-      
-      // Check if the response has success flag
-      if (response.data.success) {
-        console.log("Signup success", response.data);
-        toast.success("Registration successful!");
-        router.push("/login");
-      } else {
-        // If the API returns a response but success is false
-        const errorMessage = response.data.error || "Registration failed. Please try again.";
-        setServerError(errorMessage);
-        toast.error(errorMessage);
+
+      if (magicLinkResponse.data.success) {
+        console.log("[Signup Page] Verification link sent successfully");
+        toast.success("Verification link sent! Please check your email.");
+        // Show a success message in the UI
+        setServerError(""); // Clear any existing errors
+        return;
       }
+
     } catch (error: any) {
-      console.log("Signup failed", error);
+      console.error("[Signup Page] Magic link sending failed:", error);
       
-      // Handle errors from the API response
       if (error.response && error.response.data) {
-        const errorMessage = error.response.data.error || "Registration failed. Please try again.";
+        const errorMessage = error.response.data.error || "Failed to send verification email.";
         setServerError(errorMessage);
         toast.error(errorMessage);
       } else {
-        // Handle network or other errors
-        setServerError(error.message || "An error occurred during registration");
-        toast.error(error.message || "Registration failed");
+        setServerError(error.message || "An error occurred while sending verification email");
+        toast.error(error.message || "Failed to send verification email");
       }
     } finally {
       setLoading(false);
@@ -261,7 +260,7 @@ export default function SignupPage() {
             }`}
             disabled={buttonDisabled || loading}
           >
-            {loading ? "Processing..." : "Sign Up"}
+            {loading ? "Processing..." : "Send Verification Link"}
           </button>
           
           <p className="text-center mt-6 text-gray-600">
