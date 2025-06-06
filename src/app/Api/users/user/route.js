@@ -20,8 +20,8 @@ export async function GET(request) {
     }
 
     const userId = decodedToken.id;
-    console.log("User ID:", userId);
-    console.log("User ID:", request);
+    // console.log("User ID:", userId);
+    // console.log("User ID:", request);
 
     // Fix database query - Ensure user is found
     const user = await User.findOne({ _id: userId }).select("-password");
@@ -35,8 +35,8 @@ export async function GET(request) {
     user.contact?user.contact=user.contact:user.contact="";
 
     
-    console.log("user : ",user);
-    console.log("courses : ",courseDetails);
+    // console.log("user : ",user);
+    // console.log("courses : ",courseDetails);
   return NextResponse.json({
         success: true,
         message: `Sent user successfully `,

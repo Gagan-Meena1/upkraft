@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle ,Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { MdAssignment, MdAssignmentReturn } from 'react-icons/md';
 import { BiBulb } from 'react-icons/bi';
@@ -107,7 +107,8 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             route="/student/assignments"
             collapsed={sidebarCollapsed}
           />
-          <SidebarItem 
+           
+          {/* <SidebarItem 
             title="Payment Summary" 
             icon={<IndianRupee size={20} className="text-gray-700" />}
             route="/student/payments"
@@ -118,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             icon={<IndianRupee size={20} className="text-gray-700" />}
             route="/student/ai"
             collapsed={sidebarCollapsed}
-          />
+          /> */}
          
           
           
@@ -144,6 +145,12 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             title="Tutors" 
             icon={<Users size={20} className="text-gray-700" />}
             route="admin/tutors"
+            collapsed={sidebarCollapsed}
+          />
+          <SidebarItem 
+            title="Approval Requests" 
+            icon={<CheckCircle  size={20} className="text-gray-700" />}
+            route="/admin/approvalRequest"
             collapsed={sidebarCollapsed}
           />
           {/* Add more admin menu items as needed */}
