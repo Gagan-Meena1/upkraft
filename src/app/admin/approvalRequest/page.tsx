@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { User, CheckCircle, XCircle, Clock, UserCheck, ArrowLeft } from 'lucide-react';
+import { User, CheckCircle, XCircle, Clock, UserCheck, ArrowLeft ,Trash} from 'lucide-react';
 
 interface Tutor {
   _id: string;
@@ -101,6 +101,37 @@ const TutorManagement = () => {
     } catch (error) {
       console.error('Error rejecting tutor:', error);
       alert('Failed to reject tutor');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+// Remove verified tutor
+  const removeVerifiedTutor = async (userId: string) => {
+    if (!confirm('Are you sure you want to remove this verified tutor? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setActionLoading(userId);
+      const response = await fetch('/Api/verifyingUser', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert('Verified tutor removed successfully!');
+        fetchTutors(); // Refresh data
+      } else {
+        alert('Error removing tutor: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error removing tutor:', error);
+      alert('Failed to remove tutor');
     } finally {
       setActionLoading(null);
     }
@@ -257,34 +288,50 @@ const TutorManagement = () => {
             </div>
           )}
 
-          {activeTab === 'approved' && (
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Approved Tutors</h2>
-              {tutorData?.verifiedTutors.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">No approved tutors</p>
-              ) : (
-                <div className="space-y-4">
-                  {tutorData?.verifiedTutors.map((tutor) => (
-                    <div key={tutor._id} className="border border-gray-200 rounded-lg p-4 bg-green-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-medium text-gray-900">{tutor.name}</h3>
-                          <p className="text-sm text-gray-600">{tutor.email}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Category: {tutor.category} | ID: {tutor._id}
-                          </p>
-                        </div>
-                        <div className="flex items-center">
-                          <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
-                          <span className="text-sm font-medium text-green-600">Verified</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+         {activeTab === 'approved' && (
+  <div className="p-6">
+    <h2 className="text-lg font-semibold text-gray-900 mb-4">Approved Tutors</h2>
+    {tutorData?.verifiedTutors.length === 0 ? (
+      <p className="text-gray-500 text-center py-8">No approved tutors</p>
+    ) : (
+      <div className="space-y-4">
+        {tutorData?.verifiedTutors.map((tutor) => (
+          <div key={tutor._id} className="border border-gray-200 rounded-lg p-4 bg-green-50">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h3 className="text-lg font-medium text-gray-900">{tutor.name}</h3>
+                <p className="text-sm text-gray-600">{tutor.email}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Category: {tutor.category} | ID: {tutor._id}
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                  <span className="text-sm font-medium text-green-600">Verified</span>
                 </div>
-              )}
+                <button
+                  onClick={() => removeVerifiedTutor(tutor._id)}
+                  disabled={actionLoading === tutor._id}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                >
+                  {actionLoading === tutor._id ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    <>
+                      <Trash className="h-4 w-4 mr-2" />
+                      Remove
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+)}
         </div>
       </div>
     </div>

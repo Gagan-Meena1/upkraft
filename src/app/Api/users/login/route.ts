@@ -55,6 +55,7 @@ export async function POST(request : NextRequest ){
           id: user._id,
           email: user.email,
           category: user.category, // Student, Tutor, etc.
+          isVerified: user.isVerified, // Include verification status
         },
       });
 

@@ -6,7 +6,7 @@ console.log("[Mailer] Module initialized");
 
 interface EmailParams {
   email: string;
-  emailType: "VERIFY" | "RESET" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION";
+  emailType: "VERIFY" | "RESET" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION"|"REQUEST_APPROVVED";
   userId?: string;
   username?: string;
   category?: string;
@@ -117,6 +117,41 @@ export const sendEmail = async ({ email, emailType, userId, username, category }
           </div>
         `
       };
+    }
+    else if (emailType === "REQUEST_APPROVVED") {
+      // Email to user confirming their request
+      mailOptions = {
+        from: 'ankitsuthar8607@gmail.com',
+        to: email,
+        subject: 'Welcome to UpKraft - Request Approved',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f8f6; min-height: 100vh;">
+            <h1 style="color: #ff8c00; text-align: center;">Welcome to UpKraft!</h1>
+            <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <p style="font-size: 16px; color: #333;">Hi ${username},</p>
+              <p style="font-size: 16px; color: #333;">
+                Welcome to UpKraft! Thank you for your interest in joining our platform as a ${category}.
+              </p>
+              <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="font-size: 16px; color: #155724; margin: 0;">
+                  <strong>✅ Your request has been APPROVED by the admin.</strong>
+                </p>
+              </div>
+              <p style="font-size: 16px; color: #333;">
+                You will be able to login with your mail ID and Password. 
+              </p>
+              <p style="font-size: 16px; color: #333;">
+                Thank you for choosing UpKraft!
+              </p>
+            </div>
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+              <p style="color: #888; font-size: 12px;">
+                © 2024 UpKraft. All rights reserved.
+              </p>
+            </div>
+          </div>
+        `
+      };
     } else {
       // Regular verification email (existing code)
       mailOptions = {
@@ -127,7 +162,7 @@ export const sendEmail = async ({ email, emailType, userId, username, category }
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f8f6; min-height: 100vh;">
             <h1 style="color: #ff8c00; text-align: center;">Welcome to UpKraft!</h1>
             <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-              <p style="font-size: 16px; color: #333;">Please verify your email address by clicking the link below:</p>
+              <p style="font-size: 16px; color: #333;">The admin has approved your request. Please verify your email address by clicking the link below:</p>
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${process.env.DOMAIN}/verifyemail?token=${hashedToken}"
                    style="background-color: #ff8c00; 

@@ -2,6 +2,8 @@
 import User from "@/models/userModel";
 import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
+import { sendEmail } from "@/helper/mailer";
+
 
 // GET - Fetch all Tutors separated by verification status
 export async function GET(request: NextRequest) {
@@ -58,6 +60,14 @@ export async function PUT(request: NextRequest) {
     }
 
     user.isVerified = true;
+    // sending email to the user for confirmation
+    await sendEmail({
+            email:user.email,
+            emailType: "REQUEST_APPROVVED",
+            username:user.username,
+            category:user.category,
+          }); 
+
     await user.save();
 
     return NextResponse.json(

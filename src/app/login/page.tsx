@@ -5,10 +5,13 @@ import React, { useState } from "react";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { MdError } from "react-icons/md"; // Add this import
+
 
 interface User {
   email: string;
   password: string;
+  isVerified?: boolean; // Optional, based on your requirements
 }
 
 interface ApiResponse {
@@ -24,34 +27,47 @@ export default function LoginPage() {
     password: "",
   });
   const [loading, setLoading] = React.useState<boolean>(false);
+  const [notApproved, setNotApproved] = useState<boolean>(false); // Add this state
 
-  const onLogin = async () => {
-    try {
-      setLoading(true);
-      console.log("called onlogin");
-      
-      const response = await axios.post<ApiResponse>("/Api/users/login", user);
-      console.log("Login success", response.data);
-      toast.success("Login successful");
-      const userCategory = response.data.user.category; // Get category from response
-      console.log(userCategory);
-      
-      // Navigate user based on category
-      if (userCategory === "Student") {
-        router.push("/student");
-      } else if (userCategory === "Tutor") {
-        router.push("/tutor");
-      }
-     else if (userCategory === "Admin") {
-      router.push("/admin");
-    } 
-    } catch (error: any) {
-      console.log("Login failed", error.message);
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
+
+ const onLogin = async () => {
+  try {
+    setLoading(true);
+    setNotApproved(false); // Reset the state
+    console.log("called onlogin");
+    
+    const response = await axios.post<ApiResponse>("/Api/users/login", user);
+    console.log("Login success", response.data);
+    
+    const userCategory = response.data.user.category;
+    const isVerified = response.data.user.isVerified;
+    
+    console.log(userCategory, isVerified);
+    
+    // Check verification status first
+    if ((userCategory === "Tutor" || userCategory === "Admin") && !isVerified) {
+      setNotApproved(true); // Show permanent message
+      toast.error("Admin has not approved your request yet");
+      return; // Don't proceed with navigation
     }
-  };
+    
+    // Navigate user based on category (only for verified users)
+    toast.success("Login successful");
+    if (userCategory === "Student") {
+      router.push("/student");
+    } else if (userCategory === "Tutor") {
+      router.push("/tutor");
+    } else if (userCategory === "Admin") {
+      router.push("/admin");
+    }
+    
+  } catch (error: any) {
+    console.log("Login failed", error.message);
+    toast.error(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <>
@@ -89,6 +105,25 @@ export default function LoginPage() {
         <h1 className="text-3xl font-bold text-orange-500 mb-2">{loading ? "Processing..." : "Login"}</h1>
         <p className="text-gray-500 mb-8 text-sm">Welcome back! Please log in to continue.</p>
         
+          {/*  APPROVED MESSAGE HERE  */}
+  {notApproved && (
+    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+      <div className="flex items-center">
+        <div className="flex-shrink-0">
+          <MdError className="h-5 w-5 text-red-400" />
+        </div>
+        <div className="ml-3">
+          <p className="text-sm font-medium text-red-800">
+            Admin has not approved your request yet
+          </p>
+          <p className="text-xs text-red-600 mt-1">
+            Please wait for admin approval before accessing your account.
+          </p>
+        </div>
+      </div>
+    </div>
+  )}
+  
         {/* Email Input */}
         <div className="mb-5">
           <label className="block mb-2 text-gray-700 text-sm font-medium">Email</label>

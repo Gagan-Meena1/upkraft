@@ -66,6 +66,13 @@ export default function SignupPage() {
 
     try {
       setLoading(true);
+      //  saving the user data to the database
+      const userData = await axios.post("/Api/signup", {
+        email: user.email,
+        username: user.username,
+        category: category,
+        password: user.password
+      });
       console.log("[Signup Page] Sending verification link to:", user.email);
       
       // First, send the magic link
