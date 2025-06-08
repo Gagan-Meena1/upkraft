@@ -178,7 +178,7 @@ export default function Dashboard() {
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <div className={`font-extrabold text-l text-orange-600 ${!sidebarOpen && 'hidden'}`}>
           {/* <img src="logo.png" alt="" className="w-36 h-auto" /> */}
-          <Link href="/" className="cursor-pointer w-36 h-auto">
+          <Link href="/tutor" className="cursor-pointer w-36 h-auto">
           <Image 
             src="/logo.png" // Make sure your logo is in the public folder
             alt="UpKraft"

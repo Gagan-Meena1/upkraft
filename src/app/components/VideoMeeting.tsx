@@ -17,22 +17,63 @@ function VideoMeeting({ url, onLeave }: VideoMeetingProps) {
   const dailyRef = useRef<any>(null);
   const mountedRef = useRef(false);
 
-  const cleanup = useCallback(async () => {
-    console.log('[VideoMeeting] Cleanup called');
-    if (dailyRef.current) {
-      try {
-        console.log('[VideoMeeting] Cleaning up previous Daily.co instance...');
-        await dailyRef.current.leave();
-        await dailyRef.current.destroy();
-      } catch (error) {
-        console.error('[VideoMeeting] Cleanup error:', error);
-      }
-      dailyRef.current = null;
-      setCallObject(null);
+  // Replace your cleanup function in VideoMeeting component with this:
+
+const cleanup = useCallback(async () => {
+  console.log('[VideoMeeting] AGGRESSIVE CLEANUP INITIATED');
+  
+  // IMMEDIATELY remove all iframes - don't wait for Daily.co
+  document.querySelectorAll('iframe').forEach(el => {
+    console.log('[VideoMeeting] Force removing iframe:', el.src);
+    el.remove();
+  });
+  
+  // Remove Daily.co specific elements
+  document.querySelectorAll('[data-daily-js], [data-daily], .daily-js-frame').forEach(el => {
+    console.log('[VideoMeeting] Removing Daily element');
+    el.remove();
+  });
+  
+  // Reset body and html styles
+  document.body.style.overflow = '';
+  document.body.style.position = '';
+  document.documentElement.style.overflow = '';
+  
+  // Clean up Daily.co instance (but don't wait for it)
+  if (dailyRef.current) {
+    try {
+      console.log('[VideoMeeting] Destroying Daily.co instance...');
+      // Fire and forget - don't await
+      dailyRef.current.leave().catch(() => {});
+      dailyRef.current.destroy().catch(() => {});
+    } catch (error) {
+      console.error('[VideoMeeting] Daily cleanup error:', error);
     }
-    // Remove any lingering iframes
-    document.querySelectorAll('iframe[title*="daily"]').forEach(el => el.remove());
-  }, []);
+    dailyRef.current = null;
+    setCallObject(null);
+  }
+  
+  console.log('[VideoMeeting] AGGRESSIVE CLEANUP COMPLETED');
+}, []);
+
+// Also add this to your useEffect in VideoMeeting:
+useEffect(() => {
+  // ... your existing code ...
+
+  // Add this extra cleanup for page navigation
+  const handleBeforeUnload = () => {
+    console.log('[VideoMeeting] Page unloading - emergency cleanup');
+    // Immediate iframe removal
+    document.querySelectorAll('iframe').forEach(el => el.remove());
+  };
+  
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  
+  return () => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    cleanup();
+  };
+}, [url, cleanup, onLeave]);
 
   useEffect(() => {
     if (mountedRef.current) {

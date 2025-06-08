@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
     console.log("333333333333333333333333333333333333333333333333333333333333");
     
 
-    console.log(classes);
+    // console.log(classes);
     return NextResponse.json({
       message: 'Session sent successfully',
       classData: classes
