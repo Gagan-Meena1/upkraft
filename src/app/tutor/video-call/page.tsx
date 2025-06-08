@@ -1,10 +1,20 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import VideoMeeting from '@/app/components/VideoMeeting';
 
-export default function VideoCallPage() {
+// Loading component
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="text-white">Loading...</div>
+    </div>
+  );
+}
+
+// Separate component that uses useSearchParams
+function VideoCallContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [meetingUrl, setMeetingUrl] = useState<string>('');
@@ -155,16 +165,21 @@ export default function VideoCallPage() {
   };
 
   if (!meetingUrl) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
     <div className="min-h-screen bg-gray-900">
       <VideoMeeting url={meetingUrl} onLeave={handleLeave} />
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function VideoCallPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <VideoCallContent />
+    </Suspense>
   );
 }
