@@ -1,0 +1,205 @@
+'use client';
+
+import { useCallback, useEffect, useState, useRef } from 'react';
+import dynamic from 'next/dynamic';
+
+interface VideoMeetingProps {
+  url: string;
+  onLeave?: () => void;
+}
+
+function VideoMeeting({ url, onLeave }: VideoMeetingProps) {
+  const [callObject, setCallObject] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<string>('Waiting to initialize...');
+  const initializingRef = useRef(false);
+  const dailyRef = useRef<any>(null);
+  const mountedRef = useRef(false);
+
+  const cleanup = useCallback(async () => {
+    console.log('[VideoMeeting] Cleanup called');
+    if (dailyRef.current) {
+      try {
+        console.log('[VideoMeeting] Cleaning up previous Daily.co instance...');
+        await dailyRef.current.leave();
+        await dailyRef.current.destroy();
+      } catch (error) {
+        console.error('[VideoMeeting] Cleanup error:', error);
+      }
+      dailyRef.current = null;
+      setCallObject(null);
+    }
+    // Remove any lingering iframes
+    document.querySelectorAll('iframe[title*="daily"]').forEach(el => el.remove());
+  }, []);
+
+  useEffect(() => {
+    if (mountedRef.current) {
+      return;
+    }
+    mountedRef.current = true;
+
+    const init = async () => {
+      if (!url || initializingRef.current) {
+        return;
+      }
+
+      try {
+        console.log('[VideoMeeting] Starting initialization with URL:', url);
+        initializingRef.current = true;
+        setIsLoading(true);
+        setError(null);
+
+        // Clean up any existing instances first
+        await cleanup();
+
+        const { default: Daily } = await import('@daily-co/daily-js');
+        
+        const callFrame = Daily.createFrame({
+          url,
+          showLeaveButton: false,
+          showFullscreenButton: true,
+          iframeStyle: {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            border: '0',
+            zIndex: '10',
+          }
+        });
+
+        callFrame
+          .on('loading', () => {
+            console.log('[VideoMeeting] Loading...');
+            setConnectionStatus('Loading video call...');
+          })
+          .on('loaded', () => {
+            console.log('[VideoMeeting] Loaded');
+            setConnectionStatus('Video call loaded, joining...');
+          })
+          .on('joining-meeting', () => {
+            console.log('[VideoMeeting] Joining meeting...');
+            setConnectionStatus('Joining meeting...');
+          })
+          .on('joined-meeting', () => {
+            console.log('[VideoMeeting] Joined meeting');
+            setConnectionStatus('Connected!');
+            setCallObject(callFrame);
+            setIsLoading(false);
+          })
+          .on('left-meeting', () => {
+            console.log('[VideoMeeting] Left meeting');
+            cleanup();
+            onLeave?.();
+          })
+          .on('error', (e: any) => {
+            console.error('[VideoMeeting] Error:', e);
+            setError(`Video call error: ${e?.errorMsg || 'Unknown error'}`);
+          });
+
+        dailyRef.current = callFrame;
+
+        console.log('[VideoMeeting] Joining with URL:', url);
+        try {
+          await callFrame.join();
+          console.log('[VideoMeeting] Join call initiated');
+        } catch (joinError) {
+          console.error('[VideoMeeting] Join error:', joinError);
+          throw joinError;
+        }
+
+      } catch (err: any) {
+        console.error('[VideoMeeting] Error:', err);
+        setError(`Failed to initialize: ${err.message}`);
+        setIsLoading(false);
+        initializingRef.current = false;
+        cleanup();
+      }
+    };
+
+    init();
+
+    // Cleanup on unmount
+    return () => {
+      cleanup();
+    };
+  }, [url, cleanup, onLeave]);
+
+  // Add an effect to handle visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        cleanup();
+        onLeave?.();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [cleanup, onLeave]);
+
+  if (error) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-900">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="text-xl font-semibold mb-4">Error</div>
+          <div className="text-red-600 mb-4">{error}</div>
+          <button
+            onClick={() => {
+              cleanup();
+              onLeave?.();
+            }}
+            className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Leave
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!callObject) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-900">
+        <div className="text-center p-4">
+          <div className="text-white text-xl mb-4">
+            {isLoading ? 'Connecting to video call...' : 'Initializing video call...'}
+          </div>
+          <div className="text-gray-400 mb-2">{connectionStatus}</div>
+          <div className="text-gray-500 text-sm break-all max-w-md">{url}</div>
+          <button
+            onClick={() => {
+              cleanup();
+              onLeave?.();
+            }}
+            className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed top-4 left-4 z-20">
+      <button
+        onClick={() => {
+          cleanup();
+          onLeave?.();
+        }}
+        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-lg"
+      >
+        Leave Meeting
+      </button>
+    </div>
+  );
+}
+
+export default dynamic(() => Promise.resolve(VideoMeeting), { ssr: false }); 
