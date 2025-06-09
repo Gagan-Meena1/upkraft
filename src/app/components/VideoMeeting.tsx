@@ -176,20 +176,20 @@ useEffect(() => {
   }, [url, cleanup, onLeave]);
 
   // Add an effect to handle visibility changes
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        cleanup();
-        onLeave?.();
-      }
-    };
+  // useEffect(() => {
+  //   const handleVisibilityChange = () => {
+  //     if (document.hidden) {
+  //       cleanup();
+  //       onLeave?.();
+  //     }
+  //   };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+  //   document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [cleanup, onLeave]);
+  //   return () => {
+  //     document.removeEventListener('visibilitychange', handleVisibilityChange);
+  //   };
+  // }, [cleanup, onLeave]);
 
   if (error) {
     return (
@@ -234,19 +234,19 @@ useEffect(() => {
     );
   }
 
-  return (
-    <div className="fixed top-4 left-4 z-20">
-      <button
-        onClick={() => {
-          cleanup();
-          onLeave?.();
-        }}
-        className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-lg"
-      >
-        Leave Meeting
-      </button>
-    </div>
-  );
+return (
+  <div className="fixed bottom-4 right-4 z-20">
+    <button
+      onClick={() => {
+        cleanup();
+        onLeave?.();
+      }}
+      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-lg"
+    >
+      Leave Meeting
+    </button>
+  </div>
+);
 }
 
 export default dynamic(() => Promise.resolve(VideoMeeting), { ssr: false }); 

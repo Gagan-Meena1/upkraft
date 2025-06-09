@@ -92,16 +92,16 @@ function VideoCallContent() {
       nuclearCleanup();
     };
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        console.log('[VideoCallPage] VISIBILITY CHANGE - Tab hidden');
-        nuclearCleanup();
-        // Force navigation after cleanup
-        setTimeout(() => {
-          router.back();
-        }, 100);
-      }
-    };
+    // const handleVisibilityChange = () => {
+    //   if (document.hidden) {
+    //     console.log('[VideoCallPage] VISIBILITY CHANGE - Tab hidden');
+    //     nuclearCleanup();
+    //     // Force navigation after cleanup
+    //     setTimeout(() => {
+    //       router.back();
+    //     }, 100);
+    //   }
+    // };
 
     // MOST IMPORTANT: Intercept popstate (back button/swipe)
     const handlePopState = (event) => {
@@ -122,7 +122,7 @@ function VideoCallContent() {
     window.addEventListener('unload', handleUnload, { capture: true });
     window.addEventListener('pagehide', handlePageHide, { capture: true });
     window.addEventListener('popstate', handlePopState, { capture: true });
-    document.addEventListener('visibilitychange', handleVisibilityChange, { capture: true });
+    // document.addEventListener('visibilitychange', handleVisibilityChange, { capture: true });
 
     // EXTRA: Watch for URL changes (Next.js routing)
     const originalPushState = history.pushState;
@@ -150,7 +150,7 @@ function VideoCallContent() {
       window.removeEventListener('unload', handleUnload, { capture: true });
       window.removeEventListener('pagehide', handlePageHide, { capture: true });
       window.removeEventListener('popstate', handlePopState, { capture: true });
-      document.removeEventListener('visibilitychange', handleVisibilityChange, { capture: true });
+      // document.removeEventListener('visibilitychange', handleVisibilityChange, { capture: true });
       
       nuclearCleanup();
     };
