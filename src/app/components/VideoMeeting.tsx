@@ -5,10 +5,11 @@ import dynamic from 'next/dynamic';
 
 interface VideoMeetingProps {
   url: string;
+  token?: string;  
   onLeave?: () => void;
 }
 
-function VideoMeeting({ url, onLeave }: VideoMeetingProps) {
+function VideoMeeting({ url, token, onLeave }: VideoMeetingProps) {
   const [callObject, setCallObject] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -145,7 +146,12 @@ useEffect(() => {
 
         console.log('[VideoMeeting] Joining with URL:', url);
         try {
-          await callFrame.join();
+          const joinOptions: any = { url: url };
+          if (token) {
+            joinOptions.token = token;
+          }
+          
+          await callFrame.join(joinOptions);  
           console.log('[VideoMeeting] Join call initiated');
         } catch (joinError) {
           console.error('[VideoMeeting] Join error:', joinError);

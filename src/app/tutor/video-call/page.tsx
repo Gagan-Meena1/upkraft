@@ -71,7 +71,7 @@ function VideoCallContent() {
   useEffect(() => {
     const url = searchParams.get('url');
     if (!url) {
-      router.push('/tutor');
+      router.back();
       return;
     }
     setMeetingUrl(url);
@@ -98,7 +98,7 @@ function VideoCallContent() {
         nuclearCleanup();
         // Force navigation after cleanup
         setTimeout(() => {
-          router.push('/tutor');
+          router.back();
         }, 100);
       }
     };
@@ -160,7 +160,7 @@ function VideoCallContent() {
     console.log('[VideoCallPage] Leave button clicked');
     nuclearCleanup();
     setTimeout(() => {
-      router.push('/tutor');
+      router.back();
     }, 200);
   };
 

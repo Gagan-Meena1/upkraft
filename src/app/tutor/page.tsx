@@ -137,7 +137,7 @@ export default function Dashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ classId }),
+        body: JSON.stringify({ classId:classId , userId:userData._id, userRole:userData.category  }),
       });
 
       const data = await response.json();

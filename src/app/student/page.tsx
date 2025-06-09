@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import axios from "axios";
 import DashboardLayout from '@/app/components/DashboardLayout';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'react-hot-toast'; 
+
 
 interface UserData {
   _id?: string;
@@ -49,7 +51,32 @@ const [selectedCourseId, setSelectedCourseId] = useState<string>('');
   // const handleViewAllClasses = () => {
   //   router.push('/student/classes');
   // };
+const handleJoinMeeting = async (classId: string) => {
+    try {
+      console.log("[Meeting] Creating meeting for class:", classId);
+      const response = await fetch('/Api/meeting/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ classId:classId , userId:userData._id, userRole:userData.category  }),
+      });
 
+      const data = await response.json();
+      console.log("[Meeting] Server response:", data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create meeting');
+      }
+
+      // Redirect to video call page - adjust the path as needed for student
+      router.push(`/tutor/video-call?url=${encodeURIComponent(data.url)}`);
+    } catch (error: any) {
+      console.error('[Meeting] Error details:', error);
+      toast.error(error.message || 'Failed to join meeting. Please try again.');
+    }
+  };
+  // Fetch user data and class data on component mount
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -155,24 +182,35 @@ const [selectedCourseId, setSelectedCourseId] = useState<string>('');
         {classData
           .slice(currentSlide * 3, currentSlide * 3 + 3)
           .map((classItem) => (
-            <div key={classItem._id} className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">{classItem.title}</h3>
-                  <p className="mt-1 text-sm text-gray-600">{classItem.description}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    <Calendar size={14} className="inline-block mr-1" />
-                    {new Date(classItem.startTime).toLocaleDateString()}
-                  </p>
-                  <p className="text-sm text-gray-700">
-                    {new Date(classItem.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
-                    {new Date(classItem.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                  </p>
-                </div>
-              </div>
-            </div>
+          <div key={classItem._id} className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+  <div className="flex justify-between items-start">
+    <div>
+      <h3 className="text-lg font-medium text-gray-900">{classItem.title}</h3>
+      <p className="mt-1 text-sm text-gray-600">{classItem.description}</p>
+    </div>
+    <div className="text-right flex flex-col items-end gap-2">
+      <div>
+        <p className="text-sm font-medium text-gray-900">
+          <Calendar size={14} className="inline-block mr-1" />
+          {new Date(classItem.startTime).toLocaleDateString()}
+        </p>
+        <p className="text-sm text-gray-700">
+          {new Date(classItem.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+          {new Date(classItem.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+        </p>
+      </div>
+      {/* Join Button */}
+      {!classItem.recording && (
+        <button 
+          onClick={() => handleJoinMeeting(classItem._id)}
+          className="bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors"
+        >
+          Join
+        </button>
+      )}
+    </div>
+  </div>
+</div>
           ))}
       </div>
       
