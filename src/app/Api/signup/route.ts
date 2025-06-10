@@ -6,10 +6,12 @@ import { NextRequest,NextResponse } from 'next/server'
 import{sendEmail} from '@/helper/mailer'
 
 
-connect();
 export async function POST(request : NextRequest ){
     try{
-        
+        console.log("Request received at /signup route");
+        // Connect to the database
+        await connect();
+
          const reqBody=await request.json();
          const {username,email,password,category,contact}=reqBody;
         //  validation
