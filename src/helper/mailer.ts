@@ -6,7 +6,7 @@ console.log("[Mailer] Module initialized");
 
 interface EmailParams {
   email: string;
-  emailType: "VERIFY" | "RESET" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION"|"REQUEST_APPROVVED";
+  emailType: "VERIFY" | "RESET" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION"|"REQUEST_APPROVED";
   userId?: string;
   username?: string;
   category?: string;
@@ -118,7 +118,7 @@ export const sendEmail = async ({ email, emailType, userId, username, category }
         `
       };
     }
-    else if (emailType === "REQUEST_APPROVVED") {
+    else if (emailType === "REQUEST_APPROVED") {
       // Email to user confirming their request
       mailOptions = {
         from: 'ankitsuthar8607@gmail.com',
