@@ -2,6 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
+import Chat from './components/Chat';
 
 export default function Home() {
   const [activeCard, setActiveCard] = useState(0);
@@ -222,6 +223,10 @@ export default function Home() {
     </Link>
   </div>
 </div>
+
+      {/* Add Chat component */}
+      <Chat />
+
       {/* Footer */}
       <footer className="w-full bg-gray-50 py-12 px-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
