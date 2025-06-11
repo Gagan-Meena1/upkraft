@@ -551,7 +551,7 @@ const StudentFeedbackDashboard = () => {
       <header className="mb-8">
         <div className="flex items-center mb-2">
           <button 
-            onClick={() => router.push(`/student/performance?studentId=${studentId}`)} 
+            onClick={() => router.push(`/student/courses?studentId=${studentId}`)} 
             className="mr-4 p-2 rounded-full bg-gray-200 hover:bg-gray-100 transition-colors"
             aria-label="Go back"
           >

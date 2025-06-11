@@ -88,19 +88,19 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             route="/student/courses"
             collapsed={sidebarCollapsed}
           />
-          <SidebarItem 
+          {/* <SidebarItem 
             title="My Performance" 
             icon={<TrendingUp size={20} className="text-gray-700" />}
             route={`/student/performance?studentId=${studentId}`}
             collapsed={sidebarCollapsed}
-          />
+          /> */}
 
-          <SidebarItem 
+          {/* <SidebarItem 
             title="Class Quality" 
             icon={<PiNutBold size={20} className="text-gray-700" />}
             route={`/student/courses?studentId=${studentId}`}
             collapsed={sidebarCollapsed}
-          />
+          /> */}
           <SidebarItem 
             title="Assignments" 
             icon={<MdAssignment size={20} className="text-gray-700" />}

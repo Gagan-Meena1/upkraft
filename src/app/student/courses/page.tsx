@@ -12,6 +12,7 @@ interface Course {
   title: string;
   description: string;
   duration: string;
+  category: string;
   price: number;
   curriculum: {
     sessionNo: number;
@@ -78,6 +79,12 @@ export default function TutorCoursesPage() {
     fetchCourses();
   }, []);
 
+  const viewPerformanceRoutes = {
+    "Music": "/student/performance/viewPerformance",
+    "Dance": "/student/performance/viewPerformance/dance",
+    "Drawing": "/student/performance/viewPerformance/drawing"
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-white">
@@ -124,12 +131,16 @@ export default function TutorCoursesPage() {
                 </div>
               </div>
 
-              <p className="text-gray-600 mb-4 line-clamp-3">{course.description}</p>
-
+              <p 
+  className="text-gray-600 mb-4 truncate hover:truncate cursor-pointer transition-all duration-300" 
+  title={course.description}
+>
+  {course.description}
+</p>
               <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
                   <IndianRupee className="text-orange-500" size={18} />
-                  <span className="text-gray-800 font-semibold">₹{course.price.toFixed(2)}</span>
+                  <span className="text-gray-800 font-semibold">{course.price.toFixed(2)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <List className="text-orange-500" size={18} />
@@ -138,6 +149,12 @@ export default function TutorCoursesPage() {
               </div>
 
               <div className="mt-4">
+                <Link
+                 href={`${viewPerformanceRoutes[course.category as keyof typeof viewPerformanceRoutes] || "/student/performance/viewPerformance"}?courseId=${course._id}&studentId=${userData._id}`}>
+                  <button className="mb-2 w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
+                    View Performance
+                  </button>
+                </Link>
                 <Link href={`/student/classQuality?courseId=${course._id}`}>
                   <button className="w-full mb-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
                     Class Quality
