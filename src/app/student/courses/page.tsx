@@ -137,15 +137,20 @@ export default function TutorCoursesPage() {
                 </div>
               </div>
 
-              <div className="mt-4">
-                <Link href={`/student/classQuality?courseId=${course._id}`}>
-                  <button className="w-full mb-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
+              <div className="mt-4 flex flex-col gap-2">
+                <Link href={`/student/performance/viewPerformance?courseId=${course._id}&studentId=${userData?._id}`} className="block">
+                  <button className="w-full bg-orange-500 text-white px-4 py-1.5 rounded-xl hover:bg-orange-600 transition-all duration-300 text-base font-medium">
+                    View Performance
+                  </button>
+                </Link>
+                <Link href={`/student/classQuality/viewQuality?courseId=${course._id}&studentId=${userData?._id}`} className="block">
+                  <button className="w-full bg-orange-500 text-white px-4 py-1.5 rounded-xl hover:bg-orange-600 transition-all duration-300 text-base font-medium">
                     Class Quality
                   </button>
                 </Link>
-                <Link href={`/student/courses/courseDetails?courseId=${course._id}`}>
-                  <button className="w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
-                    View Details
+                <Link href={`/student/courses/courseDetails?courseId=${course._id}`} className="block">
+                  <button className="w-full bg-white text-orange-500 border border-orange-500 px-4 py-1.5 rounded-xl hover:bg-orange-50 transition-all duration-300 text-base font-medium">
+                    Course Details
                   </button>
                 </Link>
               </div>

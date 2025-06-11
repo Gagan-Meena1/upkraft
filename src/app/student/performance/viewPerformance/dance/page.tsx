@@ -75,20 +75,22 @@ const StudentFeedbackDashboard = () => {
 
       try {
         setIsLoading(true);
-        const response = await fetch(`/Api/studentFeedbackForTutor/dance?courseId=${courseId}&studentId=${studentId}`);
+        const response = await fetch(`/Api/studentFeedback/dance?courseId=${courseId}&studentId=${studentId}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch feedback data');
         }
         
         const result = await response.json();
+        console.log("Dance feedback data:", result);
         
         if (!result.success) {
           throw new Error(result.message || 'Failed to fetch feedback data');
         }
         
         // Process the data - group by classId, keeping only the latest feedback for each
-        const groupedByClassId: Record<string, FeedbackItem> = result.data.reduce((acc: Record<string, FeedbackItem>, item: FeedbackItem) => {
+        const feedbackItems = result.data || [];
+        const groupedByClassId: Record<string, FeedbackItem> = feedbackItems.reduce((acc: Record<string, FeedbackItem>, item: FeedbackItem) => {
           // If this is the first entry for this classId, add it
           if (!acc[item.classId]) {
             acc[item.classId] = item;

@@ -29,7 +29,13 @@ export async function GET(request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
     const courseDetails = await courseName.find({ _id: { $in: user.courses } });
-    const classDetails = await Class.find({ _id: { $in: courseName.class } });
+    console.log("Found courses:", courseDetails.map(c => ({ id: c._id, title: c.title, classes: c.class })));
+    
+    const classIds = courseDetails.flatMap(course => course.class || []);
+    console.log("Extracted class IDs:", classIds);
+    
+    const classDetails = await Class.find({ _id: { $in: classIds } });
+    console.log("Found classes:", classDetails.map(c => ({ id: c._id, title: c.title })));
     user.age?user.age=user.age:user.age=18;
     user.address?user.address=user.address:user.address="";
     user.contact?user.contact=user.contact:user.contact="";
