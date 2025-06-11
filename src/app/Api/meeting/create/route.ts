@@ -49,18 +49,27 @@ export async function POST(request: NextRequest) {
           name: roomName,
           privacy: "public", // Keep as public but use meeting tokens for access control
           properties: {
-            exp: Math.round(Date.now() / 1000) + 86400, // Room expires in 24 hours
+            exp: Math.round(Date.now() / 1000) + 86400,
             enable_chat: true,
             enable_screenshare: true,
-            start_audio_off: false, // Changed to false for better UX
-            start_video_off: false, // Changed to false for better UX
+            enable_recording: "cloud", // This is correct for cloud recording
+            start_audio_off: false,
+            start_video_off: false,
             max_participants: 20,
             enable_knocking: false,
-            enable_prejoin_ui: false, // Disable prejoin to avoid conflicts
-            // Add these properties for better multi-user support
+            enable_prejoin_ui: false,
             enable_network_ui: true,
             enable_people_ui: true,
             owner_only_broadcast: false,
+            // IMPORTANT: Add these for recording to work properly
+            start_cloud_recording: false, // Don't auto-start, let tutor control it
+            cloud_recording_config: {
+              // Optional: configure recording settings
+              recording_type: "cloud",
+              layout: {
+                preset: "default"
+              }
+            }
           },
         }),
       });
@@ -100,7 +109,7 @@ export async function POST(request: NextRequest) {
       throw new Error("Meeting URL not received from Daily.co");
     }
 
-    // Create a meeting token for this user (IMPORTANT for multi-user support)
+    // Create a meeting token for this user (IMPORTANT for multi-user support and recording)
     console.log("[Meeting API] Creating meeting token for user...");
     const tokenResponse = await fetch("https://api.daily.co/v1/meeting-tokens", {
       method: "POST",
@@ -111,14 +120,23 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         properties: {
           room_name: roomName,
-          user_name: `${userRole}-${userId}`, // Include role in username
-          exp: Math.round(Date.now() / 1000) + 86400, // Token expires in 24 hours
-          is_owner: userRole === 'tutor', // Only tutors are owners
-          // Add user-specific permissions
+          user_name: `${userRole}-${userId}`,
+          exp: Math.round(Date.now() / 1000) + 86400,
+          is_owner: userRole === 'Tutor',
+          // CRITICAL: These recording permissions must be set in the token
+          enable_recording: true, // Allow recording capability
+          start_cloud_recording: userRole === 'Tutor', // Only tutors can start recording
+          // Alternative approach - use 'recording' instead of 'enable_recording'
+          recording: userRole === 'Tutor' ? 'cloud' : false,
           enable_screenshare: true,
-          enable_recording: userRole === 'tutor',
           start_audio_off: false,
           start_video_off: false,
+          // Additional permissions that may help
+          permissions: {
+            canAdmin: userRole === 'Tutor',
+            hasPresence: true,
+            canSend: true
+          }
         },
       }),
     });
@@ -126,7 +144,46 @@ export async function POST(request: NextRequest) {
     if (!tokenResponse.ok) {
       const tokenError = await tokenResponse.json();
       console.error("[Meeting API] Token creation error:", tokenError);
-      // Continue without token if it fails - room will still work
+      
+      // Try a simpler token creation approach if the first one fails
+      console.log("[Meeting API] Trying simpler token creation...");
+      const simpleTokenResponse = await fetch("https://api.daily.co/v1/meeting-tokens", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.DAILY_API_KEY}`,
+        },
+        body: JSON.stringify({
+          properties: {
+            room_name: roomName,
+            user_name: `${userRole}-${userId}`,
+            exp: Math.round(Date.now() / 1000) + 86400,
+            is_owner: userRole === 'Tutor',
+            // Simplified recording permission
+            ...(userRole === 'Tutor' && { 
+              enable_recording: 'cloud',
+              recording: 'cloud'
+            })
+          },
+        }),
+      });
+      
+      if (simpleTokenResponse.ok) {
+        const simpleTokenData = await simpleTokenResponse.json();
+        console.log("[Meeting API] Simple token created successfully");
+        return NextResponse.json({
+          success: true,
+          url: roomUrl,
+          roomName: roomName,
+          token: simpleTokenData.token,
+          message: roomExists ? "Joined existing room" : "Created new room",
+          userRole: userRole,
+          userId: userId
+        });
+      } else {
+        // Continue without token if both attempts fail
+        console.warn("[Meeting API] Both token creation attempts failed, continuing without token");
+      }
     }
 
     const tokenData = tokenResponse.ok ? await tokenResponse.json() : null;

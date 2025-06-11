@@ -53,16 +53,18 @@ const effectiveCourseId = courseId || '';
               {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
             <h1 className="text-2xl font-bold text-orange-500">
-              <Link href="/" className="cursor-pointer w-36 h-auto">
-                <Image
-                  src="/logo.png" // Make sure your logo is in the public folder
-                  alt="UpKraft"
-                  width={36}
-                  height={36}
-                  priority
-                  className="object-contain w-36 h-auto"
-                />
-              </Link>
+             <div className="text-2xl font-bold text-orange-500">
+               <Link href={`/${userType}`} className="cursor-pointer">
+              <Image 
+                src="/logo.png"
+                alt="UpKraft"
+                width={288} // Use 2x the display size for crisp rendering
+                height={72}  // Adjust based on your logo's actual aspect ratio
+                priority
+                className="object-contain w-36 h-auto" 
+              />
+            </Link>
+            </div>
             </h1>
           </div>
           

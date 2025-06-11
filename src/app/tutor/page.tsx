@@ -81,7 +81,7 @@ export default function Dashboard() {
           new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         );
         
-        setUserData(userData);
+        setUserData(userData.user);
         setClassData(sortedClasses);
         setLoading(false);
       } catch (error) {
@@ -139,7 +139,10 @@ export default function Dashboard() {
         },
         body: JSON.stringify({ classId:classId , userId:userData._id, userRole:userData.category  }),
       });
-
+      console.log("userData:", userData);
+      console.log("[printing for debugging] userData:", userData);
+      
+      
       const data = await response.json();
       console.log("[Meeting] Server response:", data);
 
@@ -148,7 +151,7 @@ export default function Dashboard() {
       }
 
       // Instead of setting meeting state, redirect to video call page
-      router.push(`/tutor/video-call?url=${encodeURIComponent(data.url)}`);
+      router.push(`/tutor/video-call?url=${encodeURIComponent(data.url)}&userRole=${userData.category}`);
     } catch (error: any) {
       console.error('[Meeting] Error details:', error);
       toast.error(error.message || 'Failed to create meeting. Please try again.');
@@ -178,16 +181,16 @@ export default function Dashboard() {
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <div className={`font-extrabold text-l text-orange-600 ${!sidebarOpen && 'hidden'}`}>
           {/* <img src="logo.png" alt="" className="w-36 h-auto" /> */}
-          <Link href="/tutor" className="cursor-pointer w-36 h-auto">
-          <Image 
-            src="/logo.png" // Make sure your logo is in the public folder
-            alt="UpKraft"
-            width={36}
-            height={36}
-            priority
-            className="object-contain w-36 h-auto" 
-          />
-        </Link>
+           <Link href="/tutor" className="cursor-pointer">
+                        <Image 
+                          src="/logo.png"
+                          alt="UpKraft"
+                          width={288} // Use 2x the display size for crisp rendering
+                          height={72}  // Adjust based on your logo's actual aspect ratio
+                          priority
+                          className="object-contain w-36 h-auto" 
+                        />
+                      </Link>
           </div>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)} 

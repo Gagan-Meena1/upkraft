@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 import DashboardLayout from '@/app/components/DashboardLayout';
+import Image from 'next/image';
 
 interface Course {
   _id: string;
@@ -91,10 +92,19 @@ const UserProfilePage: React.FC = () => {
   return (
     <div className="flex">
       {/* Sidebar */}
-      <div className={`bg-orange-400 text-white fixed h-full transition-all duration-300 ease-in-out z-20 ${isSidebarOpen ? 'w-64' : 'w-20'}`}>
+      <div className={`bg-white text-gray-700 fixed h-full transition-all duration-300 ease-in-out z-20 ${isSidebarOpen ? 'w-64' : 'w-20'}`}>
         <div className="p-4 flex items-center justify-between">
-          <div className={`font-extrabold text-xl ${isSidebarOpen ? 'block' : 'hidden'}`}>
-            UPKRAFT
+          <div className={` font-extrabold text-xl ${isSidebarOpen ? 'block' : 'hidden'}`}>
+           <Link href="/admin" className="cursor-pointer">
+                                   <Image 
+                                     src="/logo.png"
+                                     alt="UpKraft"
+                                     width={288} // Use 2x the display size for crisp rendering
+                                     height={72}  // Adjust based on your logo's actual aspect ratio
+                                     priority
+                                     className="object-contain w-36 h-auto" 
+                                   />
+                                 </Link>
           </div>
           <button 
             onClick={toggleSidebar} 
@@ -115,11 +125,11 @@ const UserProfilePage: React.FC = () => {
           </button>
         </div>
         
-        <div className="mt-8">
+        <div className="mt-8 text-gray-900">
           <ul className="space-y-2 px-4">
             <li>
               <Link href={`/admin/tutors/create-course?tutorId=${tutorId}`}>
-                <div className="flex items-center p-3 text-white hover:bg-orange-600 rounded-lg transition cursor-pointer">
+                <div className="flex items-center p-3 text-gray-600 hover:bg-orange-600 rounded-lg transition cursor-pointer">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                   </svg>
@@ -131,7 +141,7 @@ const UserProfilePage: React.FC = () => {
            
             <li>
               <Link href={`/admin/tutors/myStudents?tutorId=${tutorId}`}>
-                <div className="flex items-center p-3 text-white hover:bg-orange-600 rounded-lg transition cursor-pointer">
+                <div className="flex items-center p-3 text-gray-600 hover:bg-orange-600 rounded-lg transition cursor-pointer">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
@@ -141,7 +151,7 @@ const UserProfilePage: React.FC = () => {
             </li>
             <li>
               <Link href={`/admin/tutors/classQuality?tutorId=${tutorId}`}>
-                <div className="flex items-center p-3 text-white hover:bg-orange-600 rounded-lg transition cursor-pointer">
+                <div className="flex items-center p-3 text-gray-600 hover:bg-orange-600 rounded-lg transition cursor-pointer">
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
@@ -226,7 +236,7 @@ const UserProfilePage: React.FC = () => {
                           <p className="mt-1 text-sm text-gray-600">{course.description}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium text-gray-900">${course.price}</p>
+                          <p className="text-sm font-medium text-gray-900">{course.price} INR</p>
                           <p className="text-xs text-gray-500">Duration: {course.duration}</p>
                         </div>
                       </div>

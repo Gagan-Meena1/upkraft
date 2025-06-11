@@ -189,16 +189,16 @@ export default function StudentDetails() {
       <div className={`bg-white border-r border-gray-200 h-screen ${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex flex-col sticky top-0`}>
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <div className={`font-extrabold text-l text-orange-600 ${!sidebarOpen && 'hidden'}`}>
-            <Link href="/" className="cursor-pointer w-36 h-auto">
-          <Image 
-            src="/logo.png"
-            alt="UpKraft"
-            width={36}
-            height={36}
-            priority
-            className="object-contain w-36 h-auto" 
-          />
-        </Link>
+             <Link href="/tutor" className="cursor-pointer">
+                                     <Image 
+                                       src="/logo.png"
+                                       alt="UpKraft"
+                                       width={288} // Use 2x the display size for crisp rendering
+                                       height={72}  // Adjust based on your logo's actual aspect ratio
+                                       priority
+                                       className="object-contain w-36 h-auto" 
+                                     />
+                                   </Link>
           </div>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)} 

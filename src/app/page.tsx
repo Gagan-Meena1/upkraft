@@ -80,16 +80,16 @@ export default function Home() {
       <nav className="w-full py-2 px-8 flex justify-between items-center sticky top-0 bg-gray-200 backdrop-blur-md z-10">
         <div className="font-extrabold text-2xl text-gray-800">
           {/* <img src="logo.png" alt="UpKraft Logo" className="w-36 h-auto" /> */}
-          <Link href="/" className="cursor-pointer w-36 h-auto">
-          <Image 
-            src="/logo.png" // Make sure your logo is in the public folder
-            alt="UpKraft"
-            width={36}
-            height={36}
-            priority
-            className="object-contain w-36 h-auto" 
-          />
-        </Link>
+          <Link href="/" className="cursor-pointer">
+            <Image 
+              src="/logo.png"
+              alt="UpKraft"
+              width={288} // Use 2x the display size for crisp rendering
+              height={72}  // Adjust based on your logo's actual aspect ratio
+              priority
+              className="object-contain w-36 h-auto" 
+            />
+          </Link>
         </div>
         <div className="flex space-x-4">
           <Link href="/signup">
@@ -226,8 +226,16 @@ export default function Home() {
       <footer className="w-full bg-gray-50 py-12 px-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
           <div className="mb-6 md:mb-0">
-            <img src="logo.png" alt="UpKraft Logo" className="mb-2" />
-            {/* <div className="font-bold text-xl heading-font" style={{ color: '#df7861' }}>UpKraft</div> */}
+          <Link href="/" className="cursor-pointer">
+            <Image 
+              src="/logo.png"
+              alt="UpKraft"
+              width={288} // Use 2x the display size for crisp rendering
+              height={72}  // Adjust based on your logo's actual aspect ratio
+              priority
+              className="object-contain w-36 h-auto" 
+            />
+          </Link>            {/* <div className="font-bold text-xl heading-font" style={{ color: '#df7861' }}>UpKraft</div> */}
           </div>
           <div className="flex space-x-8 text-gray-600">
             <a href="#" className="hover:text-gray-900 body-font">About</a>

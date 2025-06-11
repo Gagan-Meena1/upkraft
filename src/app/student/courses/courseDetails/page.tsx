@@ -56,6 +56,7 @@ const CourseDetailsPage = () => {
   const [classQualityData, setClassQualityData] = useState<ClassQuality[]>([]);
   const [userData, setUserData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'schedule' | 'curriculum'>('schedule');
+  const [classScheduleTab, setClassScheduleTab] = useState<'upcoming' | 'recorded'>('upcoming');
   const [selectedClassQuality, setSelectedClassQuality] = useState<ClassQuality | null>(null);
   const [showQualityModal, setShowQualityModal] = useState(false);
 
@@ -157,6 +158,35 @@ const CourseDetailsPage = () => {
   const closeQualityModal = () => {
     setShowQualityModal(false);
     setSelectedClassQuality(null);
+  };
+
+  // Function to check if a class is in the past
+  const isClassPast = (endTime: string): boolean => {
+    const classEndTime = new Date(endTime);
+    const currentTime = new Date();
+    return classEndTime < currentTime;
+  };
+
+  // Function to separate classes into upcoming and recorded
+  const separateClasses = () => {
+    const upcomingClasses: ClassDetail[] = [];
+    const recordedClasses: ClassDetail[] = [];
+
+    classDetails.forEach(classItem => {
+      if (isClassPast(classItem.endTime)) {
+        recordedClasses.push(classItem);
+      } else {
+        upcomingClasses.push(classItem);
+      }
+    });
+
+    // Sort upcoming classes by start time (earliest first)
+    upcomingClasses.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    
+    // Sort recorded classes by start time (latest first)
+    recordedClasses.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
+    return { upcomingClasses, recordedClasses };
   };
 
   const formatDate = (dateString: string) => {
@@ -346,6 +376,90 @@ const CourseDetailsPage = () => {
       </div>
     );
   };
+
+  // Function to render class items
+  const renderClassItems = (classes: ClassDetail[]) => {
+    if (classes.length === 0) {
+      return (
+        <div className="text-center py-8">
+          <p className="text-gray-500">
+            {classScheduleTab === 'upcoming' ? 'No upcoming classes' : 'No recorded classes'}
+          </p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {classes.map((classItem) => {
+          const classQuality = getClassQuality(classItem._id);
+          const isPast = isClassPast(classItem.endTime);
+          
+          return (
+            <div 
+              key={classItem._id} 
+              className="border-b pb-4 last:border-b-0"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="font-semibold text-gray-800 mb-1">
+                    {classItem.title}
+                    
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    <div className="mb-1">
+                      <span className="font-medium">Date:</span> {formatDate(classItem.startTime)}
+                    </div>
+                    <div>
+                      <span className="font-medium">Time:</span> {formatTime(classItem.startTime)} - {formatTime(classItem.endTime)}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex space-x-3 ml-4">
+                  {classItem.recording && isPast && (
+                    <a 
+                      href={classItem.recording} 
+                      className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-md shadow-md hover:from-green-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      View Recording
+                    </a>
+                  )}
+                  {classItem.performanceVideo && isPast && (
+                    <a 
+                      href={classItem.performanceVideo} 
+                      className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      Performance Video
+                    </a>
+                  )}
+                  {classQuality && isPast && (
+                    <button
+                      onClick={() => openQualityModal(classItem._id)}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-md shadow-md hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
+                    >
+                      View Quality Score
+                    </button>
+                  )}
+                  {isPast && (
+                    <Link 
+                      href={`/student/singleFeedback/${courseDetails?.category}?classId=${classItem._id}&studentId=${userData?._id}`}
+                      className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
+                    >
+                      View Feedback
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
   
   const pageContent = (
     <>
@@ -385,7 +499,7 @@ const CourseDetailsPage = () => {
             </div>
           )}
 
-          {/* Toggle Buttons */}
+          {/* Main Toggle Buttons */}
           <div className="mb-8">
             <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
               <button
@@ -412,73 +526,37 @@ const CourseDetailsPage = () => {
           </div>
 
           {/* Class Schedule Section */}
-          {activeTab === 'schedule' && classDetails && classDetails.length > 0 && (
+          {activeTab === 'schedule' && (
             <section className="mt-8">
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="space-y-4">
-                  {classDetails.map((classItem) => {
-                    const classQuality = getClassQuality(classItem._id);
-                    
-                    return (
-                      <div 
-                        key={classItem._id} 
-                        className="border-b pb-4 last:border-b-0"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="font-semibold text-gray-800 mb-1">
-                              {classItem.title}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              <div className="mb-1">
-                                <span className="font-medium">Date:</span> {formatDate(classItem.startTime)}
-                              </div>
-                              <div>
-                                <span className="font-medium">Time:</span> {formatTime(classItem.startTime)} - {formatTime(classItem.endTime)}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex space-x-3 ml-4">
-                            {classItem.recording && (
-                              <a 
-                                href={classItem.recording} 
-                                className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-md shadow-md hover:from-green-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                              >
-                                View Recording
-                              </a>
-                            )}
-                            {classItem.performanceVideo && (
-                              <a 
-                                href={classItem.performanceVideo} 
-                                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                              >
-                                Performance Video
-                              </a>
-                            )}
-                            {classQuality && (
-                              <button
-                                onClick={() => openQualityModal(classItem._id)}
-                                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-md shadow-md hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
-                              >
-                                View Quality Score
-                              </button>
-                            )}
-                            <Link 
-                              href={`/student/singleFeedback/${courseDetails.category}?classId=${classItem._id}&studentId=${userData?._id}`}
-                              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
-                            >
-                              View Feedback
-                           </Link>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+              {/* Class Schedule Sub-tabs */}
+              <div className="mb-6">
+                <div className="flex bg-gray-100 p-1 rounded-lg w-fit text-md">
+                  <button
+                    onClick={() => setClassScheduleTab('upcoming')}
+                    className={`px-3 py-2 rounded-md font-medium text-sm transition-all duration-300 ${
+                      classScheduleTab === 'upcoming'
+                        ? 'bg-blue-500 text-white shadow-md'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Upcoming Classes ({separateClasses().upcomingClasses.length})
+                  </button>
+                  <button
+                    onClick={() => setClassScheduleTab('recorded')}
+                    className={`px-3 py-2 rounded-md font-medium text-sm transition-all duration-300 ${
+                      classScheduleTab === 'recorded'
+                        ? 'bg-blue-500 text-white shadow-md'
+                        : 'text-gray-600 hover:text-gray-800'
+                    }`}
+                  >
+                    Recorded Classes ({separateClasses().recordedClasses.length})
+                  </button>
                 </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                {classScheduleTab === 'upcoming' && renderClassItems(separateClasses().upcomingClasses)}
+                {classScheduleTab === 'recorded' && renderClassItems(separateClasses().recordedClasses)}
               </div>
             </section>
           )}
@@ -510,13 +588,7 @@ const CourseDetailsPage = () => {
             </section>
           )}
 
-          {/* Show message if no data available for active tab */}
-          {activeTab === 'schedule' && (!classDetails || classDetails.length === 0) && (
-            <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-              <p className="text-gray-500">No class schedule available</p>
-            </div>
-          )}
-
+          {/* Show message if no curriculum available */}
           {activeTab === 'curriculum' && (!courseDetails?.curriculum || courseDetails.curriculum.length === 0) && (
             <div className="bg-white rounded-xl shadow-lg p-6 text-center">
               <p className="text-gray-500">No curriculum available</p>

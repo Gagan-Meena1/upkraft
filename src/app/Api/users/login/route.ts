@@ -9,18 +9,19 @@ connect()
 
 export async function POST(request : NextRequest ){
     try{
-      console.log("PRINT 0");
         const reqBody=await request.json();
          const {email,password}=reqBody;
-        //  validation
-        console.log(reqBody);
-        console.log("PRINT 1");
+        const emailLowerCase = email.toLowerCase();
 
 
-        const user=await User.findOne({email});
-        console.log("PRINT 2");
+        const user = await User.findOne({
+          $or: [
+            { email: email },
+            { emailLowerCase: emailLowerCase }
+          ]
+        });
+        
         if(!user){
-          console.log("PRINT 3");
             return NextResponse.json({error:"User does not exists"})
            
         }
@@ -29,25 +30,25 @@ export async function POST(request : NextRequest ){
         
 
        const validPassword=await bcryptjs.compare(password,user.password);
-       console.log("PRINT 4");
        if(!validPassword)
        {
-                console.log("PRINT 5");
-
-        return NextResponse.json({error:"check your credentials"})
+          console.log("[Invalid Password]");
+          return NextResponse.json({error:"check your credentials"})
 
        }
-  console.log("Print 5.1");
-  
+
+       console.log("[Valid Password]");
+       
        const tokenData={
         id:user._id,
         username:user.username,
         email:user.email,
         category:user.category
        }
-       console.log("PRINT 6");
+
+        // Generate JWT token
       const token=await jwt.sign(tokenData,process.env.TOKEN_SECRET!,{expiresIn:'1d'});
-      console.log("PRINT 7");
+      console.log("[Token generated]");
       const response=NextResponse.json({
         message: "Login successful",
         token, // Send token if using authentication
@@ -62,12 +63,13 @@ export async function POST(request : NextRequest ){
       response.cookies.set("token",token,{
         httpOnly:true
       })
-       console.log("PRINT 8");
-      return response
+
+       console.log("[Login successful]");
+       return response
 
     }
     catch(error:any){
-      console.log("PRINT 9");
+      console.log("[Error during login]");
       console.log(error.message);
       
         return NextResponse.json({error:error.message})

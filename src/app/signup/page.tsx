@@ -68,16 +68,16 @@ export default function SignupPage() {
       setLoading(true);
       //  saving the user data to the database
       const userData = await axios.post("/Api/signup", {
-        email: user.email,
+        email: user.email.toLowerCase(),
         username: user.username,
         category: category,
         password: user.password
       });
-      console.log("[Signup Page] Sending verification link to:", user.email);
+      console.log("[Signup Page] Sending verification link to:", user.email.toLowerCase());
       
       // First, send the magic link
       const magicLinkResponse = await axios.post("/Api/signup/send-magic-link", {
-        email: user.email,
+        email: user.email.toLowerCase(),
         username: user.username,
         category: category
       });
@@ -163,16 +163,16 @@ export default function SignupPage() {
       {/* Navigation */}
       <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
         <div className="font-extrabold text-2xl text-gray-800">
-          <Link href="/" className="cursor-pointer w-36 h-auto">
-          <Image 
-            src="/logo.png" // Make sure your logo is in the public folder
-            alt="UpKraft"
-            width={36}
-            height={36}
-            priority
-            className="object-contain w-36 h-auto" 
-          />
-        </Link>
+           <Link href="/" className="cursor-pointer">
+              <Image 
+                src="/logo.png"
+                alt="UpKraft"
+                width={288} // Use 2x the display size for crisp rendering
+                height={72}  // Adjust based on your logo's actual aspect ratio
+                priority
+                className="object-contain w-36 h-auto" 
+              />
+            </Link>
         </div>
         <div className="flex space-x-4">
           <Link href="/signup">

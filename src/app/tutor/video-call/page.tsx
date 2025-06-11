@@ -170,8 +170,11 @@ function VideoCallContent() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <VideoMeeting url={meetingUrl} onLeave={handleLeave} />
-    </div>
+<VideoMeeting 
+  url={meetingUrl} 
+  userRole={searchParams.get('userRole')} 
+  onLeave={handleLeave} 
+/>    </div>
   );
 }
 

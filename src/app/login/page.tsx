@@ -75,12 +75,12 @@ export default function LoginPage() {
           <nav className="w-full py-2 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
             <div className="font-extrabold text-2xl text-gray-800">
               {/* <img src="logo.png" alt="" className="w-36 h-auto" /> */}
-              <Link href="/" className="cursor-pointer w-36 h-auto">
+               <Link href="/" className="cursor-pointer">
               <Image 
-                src="/logo.png" // Make sure your logo is in the public folder
+                src="/logo.png"
                 alt="UpKraft"
-                width={36}
-                height={36}
+                width={288} // Use 2x the display size for crisp rendering
+                height={72}  // Adjust based on your logo's actual aspect ratio
                 priority
                 className="object-contain w-36 h-auto" 
               />
