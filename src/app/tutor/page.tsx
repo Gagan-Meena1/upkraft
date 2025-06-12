@@ -206,11 +206,11 @@ export default function Dashboard() {
             <User size={20} />
             {sidebarOpen && <span className="ml-3">Profile</span>}
           </Link>
-          <Link href="tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+          {/* <Link href="tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
             <
               PiNutBold size={20} />
             {sidebarOpen && <span className="ml-3">Class Quality</span>}
-          </Link>
+          </Link> */}
           {/* <Link href="tutor/allStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
             <Users size={20} />
             {sidebarOpen && <span className="ml-3">Students</span>}
