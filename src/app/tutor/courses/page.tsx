@@ -94,16 +94,16 @@ export default function TutorCoursesPage() {
     };
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-pink-400 to-pink-700 flex items-center justify-center">
-        <div className="text-white text-2xl animate-pulse">Loading courses...</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-pink-400 to-pink-700 flex items-center justify-center">
-        <div className="bg-white/30 backdrop-blur-lg p-8 rounded-xl text-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl p-8 text-center shadow-md border border-gray-100">
           <h2 className="text-2xl text-red-600 mb-4">Error</h2>
           <p className="text-gray-800">{error}</p>
         </div>
@@ -112,27 +112,29 @@ export default function TutorCoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-300 via-pink-400 to-pink-700 text-gray-800 p-6">
+    <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
       <Toaster />
       
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
-          <h1 className=" text-4xl font-bold text-black drop-shadow-md">My Courses</h1>
-          <Link href="/tutor/create-course">
-            <button className="bg-gray-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:from-pink-500 hover:to-blue-500 transition-colors">
-              <Book size={24} /> Create New Course
-            </button>
-          </Link>
-          <Link href="/tutor">
-            <button className="bg-gray-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:from-pink-500 hover:to-blue-500 transition-colors">
-              <Book size={24} /> Back to dashboard
-            </button>
-          </Link>
+          <h1 className="text-3xl font-bold text-orange-500">My Courses</h1>
+          <div className="flex gap-4">
+            <Link href="/tutor/create-course">
+              <button className="bg-orange-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-orange-600 transition-colors">
+                <Book size={24} /> Create New Course
+              </button>
+            </Link>
+            <Link href="/tutor">
+              <button className="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-gray-300 transition-colors">
+                <Book size={24} /> Back to dashboard
+              </button>
+            </Link>
+          </div>
         </div>
        
 
         {courses.length === 0 ? (
-          <div className="bg-white/30 backdrop-blur-lg rounded-xl p-8 text-center">
+          <div className="bg-white rounded-xl p-8 text-center shadow-md border border-gray-100">
             <h2 className="text-2xl text-gray-800 mb-4">No Courses Available</h2>
             <p className="text-gray-700">Start creating your first course!</p>
           </div>
@@ -141,25 +143,25 @@ export default function TutorCoursesPage() {
             {courses.map((course) => (
               <div 
                 key={course._id} 
-                className="bg-white/30 backdrop-blur-lg rounded-xl shadow-lg p-6 transform transition-all hover:scale-105 hover:shadow-2xl"
+                className="bg-white rounded-xl shadow-md p-6 border border-gray-100 transform transition-all hover:shadow-lg"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-2xl font-bold text-gray-800">{course.title}</h2>
+                  <h2 className="text-xl font-bold text-gray-800">{course.title}</h2>
                   <div className="flex items-center gap-2">
-                    <Clock className="text-green-600" size={20} />
+                    <Clock className="text-orange-500" size={20} />
                     <span className="text-gray-700">{course.duration}</span>
                   </div>
                 </div>
 
-                <p className="text-gray-700 mb-4 line-clamp-3">{course.description}</p>
+                <p className="text-gray-600 mb-4 line-clamp-3">{course.description}</p>
 
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-yellow-600 font-bold text-lg">₹</span>
+                    <span className="text-orange-500 font-bold text-lg">₹</span>
                     <span className="text-gray-800 font-semibold">{course.price.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <List className="text-purple-600" size={20} />
+                    <List className="text-orange-500" size={20} />
                     <span className="text-gray-700">{course.curriculum.length} Sessions</span>
                   </div>
                 </div>
