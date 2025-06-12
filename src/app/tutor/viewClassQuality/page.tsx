@@ -9,7 +9,7 @@ const ClassQualityDashboardClient = dynamic(
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   LineChart,
@@ -25,6 +25,7 @@ import {
   Cell,
   Sector
 } from 'recharts';
+import Link from 'next/link';
 
 interface ClassQualityItem {
   _id: string;
@@ -461,19 +462,17 @@ const ClassQualityDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <header className="mb-8">
-        <div className="flex items-center mb-2">
-          <button 
-            onClick={() => router.back()} 
-            className="mr-4 p-2 rounded-full bg-gray-200 hover:bg-gray-100 transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="text-orange-500" size={24} />
-          </button>
-          <h1 className="text-3xl font-bold text-orange-500">Class Quality Dashboard</h1>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 w-full">
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Link href="/tutor/courses" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ChevronLeft className="h-6 w-6 text-gray-600" />
+            </Link>
+            <h1 className="text-2xl font-semibold text-gray-800">Class Quality Dashboard</h1>
+          </div>
         </div>
-        <p className="text-gray-600">Track class quality metrics across different sessions</p>
-      </header>
+      </div>
 
       {/* Overall Course Performance */}
       <section className="mb-10">

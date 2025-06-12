@@ -46,13 +46,16 @@ export default function StudentFeedbackPage() {
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
       {/* Navigation */}
-      <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
-  <div className="flex items-center gap-4">
- 
-    <div className="font-extrabold text-2xl text-gray-800">UPKRAFT</div>
-  </div>
-  <div className="text-xl font-semibold text-orange-600">Student Feedback</div>
-</nav>
+      <div className="bg-white border-b border-gray-200 w-full">
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Link href={`/tutor/courses/${courseId}`} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ChevronLeft className="h-6 w-6 text-gray-600" />
+            </Link>
+            <h1 className="text-2xl font-semibold text-gray-800">Student Feedback</h1>
+          </div>
+        </div>
+      </div>
       {/* Main Content */}
       <div className="flex-1 w-full max-w-full mx-auto px-8 py-12">
         

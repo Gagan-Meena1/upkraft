@@ -3,7 +3,8 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Head from 'next/head';
-import { FileText, Calendar, Clock, ArrowLeft, ChevronRight, AlertCircle, Download, Check } from 'lucide-react';
+import { FileText, Calendar, Clock, ChevronLeft, AlertCircle, Download, Check } from 'lucide-react';
+import Link from 'next/link';
 
 interface Assignment {
   _id: string;
@@ -179,20 +180,25 @@ function AssignmentsContent() {
         <title>Assignments | {courseTitle}</title>
       </Head>
       
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 w-full">
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => router.back()}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ChevronLeft className="h-6 w-6 text-gray-600" />
+            </button>
+            <h1 className="text-2xl font-semibold text-gray-800">Assignments</h1>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Navigation */}
-        <button 
-          onClick={() => router.back()} 
-          className="flex items-center text-gray-600 hover:text-orange-500 transition-colors duration-200 mb-6"
-        >
-          <ArrowLeft size={20} className="mr-2" />
-          <span className="font-medium">Back</span>
-        </button>
-        
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-orange-500">Course Assignments</h1>
-          <p className="text-gray-500 mt-2">{courseTitle}</p>
+        {/* Course Title */}
+        <div className="mb-6">
+          <h2 className="text-xl text-gray-600">{courseTitle}</h2>
         </div>
 
         {/* Toggle Buttons */}

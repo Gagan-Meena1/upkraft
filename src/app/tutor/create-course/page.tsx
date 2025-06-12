@@ -1,8 +1,12 @@
 "use client";
 
-import React, { useState } from 'react';
-import { IndianRupee,Plus, Book, Clock, FileText, List, Tag } from 'lucide-react';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
+import type { IconProps } from 'lucide-react';
+import { IndianRupee, Plus, Book, Clock, FileText, List, Tag, ChevronLeft } from 'lucide-react';
+import type { LinkProps } from 'next/link';
 import Link from 'next/link';
+import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context';
 import { useRouter } from 'next/navigation';
 import { toast, Toaster } from 'react-hot-toast';
 
@@ -12,102 +16,94 @@ interface CurriculumSession {
   tangibleOutcome: string;
 }
 
-export default function CreateCoursePage() {
+export default function CreateCourse() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [duration, setDuration] = useState('');
   const [price, setPrice] = useState('');
-  const [category, setCategory] = useState('');
   const [curriculum, setCurriculum] = useState<CurriculumSession[]>([
     { sessionNo: 1, topic: '', tangibleOutcome: '' }
   ]);
 
   const addCurriculumSession = () => {
     setCurriculum([
-      ...curriculum, 
-      { sessionNo: curriculum.length + 1, topic: '', tangibleOutcome: '' }
+      ...curriculum,
+      {
+        sessionNo: curriculum.length + 1,
+        topic: '',
+        tangibleOutcome: ''
+      }
     ]);
   };
 
-  const updateCurriculumSession = (index: number, field: 'topic' | 'tangibleOutcome', value: string) => {
-    const newCurriculum = [...curriculum];
-    newCurriculum[index][field] = value;
-    setCurriculum(newCurriculum);
+  const updateCurriculumSession = (index: number, field: keyof CurriculumSession, value: string) => {
+    const updatedCurriculum = [...curriculum];
+    updatedCurriculum[index] = {
+      ...updatedCurriculum[index],
+      [field]: value
+    };
+    setCurriculum(updatedCurriculum);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/Api/tutors/courses', {
+      const response = await fetch('/api/classes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           title,
+          category,
           description,
           duration,
           price: parseFloat(price),
-          category, // Added category to be sent to backend
           curriculum
-        })
+        }),
       });
 
       if (!response.ok) {
-        // Handle non-200 responses
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create course');
+        throw new Error('Failed to create course');
       }
 
-      // Show success toast
-      toast.success('Course created successfully!', {
-        duration: 3000,
-        position: 'top-right'
-      });
-
-      // Reset form and redirect
-      setIsSubmitting(false);
-      setTitle('');
-      setDescription('');
-      setDuration('');
-      setPrice('');
-      setCategory('');
-      setCurriculum([{ sessionNo: 1, topic: '', tangibleOutcome: '' }]);
-
-      // Optional: Redirect to dashboard or course list
+      toast.success('Course created successfully!');
       router.push('/tutor/courses');
-
     } catch (error) {
-      // Handle errors
-      console.error('Course creation error:', error);
-      toast.error(error instanceof Error ? error.message : 'An unexpected error occurred', {
-        duration: 3000,
-        position: 'top-right'
-      });
+      toast.error('Failed to create course. Please try again.');
+      console.error('Error creating course:', error);
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 text-gray-800 ">
-      {/* Add Toaster component for notifications */}
+    <div className="min-h-screen bg-gray-50 text-gray-800">
       <Toaster />
-
-      <div className="w-full mx-auto bg-white rounded-xl shadow-lg p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-orange-500">Create New Course</h1>
-          <Link href="/tutor">
-            <button className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-300 transition-colors">
-              Back to Dashboard
+      
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 w-full">
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => router.back()}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ChevronLeft className="h-6 w-6 text-gray-600" />
             </button>
-          </Link>
+            <h1 className="text-2xl font-semibold text-gray-800">Create New Course</h1>
+          </div>
         </div>
-        
-        <form onSubmit={handleSubmit} className="space-y-6">
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg p-8 space-y-6">
           {/* Course Title */}
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="flex items-center gap-3 mb-3">
@@ -124,7 +120,7 @@ export default function CreateCoursePage() {
             />
           </div>
 
-          {/* Course Category - New Dropdown */}
+          {/* Course Category */}
           <div className="bg-white p-4 rounded-lg border border-gray-200">
             <div className="flex items-center gap-3 mb-3">
               <Tag className="text-orange-500" size={24} />

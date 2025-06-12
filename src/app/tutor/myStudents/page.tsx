@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MdDelete } from "react-icons/md";
+import { ChevronLeft } from "lucide-react";
 
 interface Student {
   _id: string;
@@ -93,21 +94,16 @@ export default function MyStudents() {
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
       {/* Navigation */}
-      <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
-        <div className="font-extrabold text-2xl text-gray-800">
-        {/* <img src="/logo.png" alt="UPKRAFT" className="w-36 h-auto" /> */}
-          <Link href="/tutor" className="cursor-pointer">
-                                  <Image 
-                                    src="/logo.png"
-                                    alt="UpKraft"
-                                    width={288} // Use 2x the display size for crisp rendering
-                                    height={72}  // Adjust based on your logo's actual aspect ratio
-                                    priority
-                                    className="object-contain w-36 h-auto" 
-                                  />
-                                </Link>
+      <div className="bg-white border-b border-gray-200 w-full">
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Link href="/tutor" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ChevronLeft className="h-6 w-6 text-gray-600" />
+            </Link>
+            <h1 className="text-2xl font-semibold text-gray-800">My Students</h1>
+          </div>
         </div>
-      </nav>
+      </div>
 
       {/* Main Content */}
       <div className="flex-1 w-full max-w-6xl mx-auto px-8 py-12">

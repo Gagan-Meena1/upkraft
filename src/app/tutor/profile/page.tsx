@@ -2,8 +2,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import Image from 'next/image';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface Curriculum {
   _id: string;
@@ -182,6 +183,18 @@ const handleSaveChanges = async () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 w-full">
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-4">
+            <Link href="/tutor" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ChevronLeft className="h-6 w-6 text-gray-600" />
+            </Link>
+            <h1 className="text-2xl font-semibold text-gray-800">My Profile</h1>
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 py-8">
         {/* Profile Card */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8 relative">
@@ -196,52 +209,42 @@ const handleSaveChanges = async () => {
             </svg>
           </button>
           
-       {/* Header Section */}
-<div className="bg-gradient-to-r from-orange-400 to-orange-500 p-8">
-  <div className="container mx-auto">
-    <div className="flex items-center mb-4">
-      <button 
-        onClick={() => router.back()} 
-        className="mr-4 px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-100 transition-colors flex items-center"
-        aria-label="Go back"
-      >
-        <ArrowLeft className="text-orange-500 mr-1" size={20} />
-        <span className="text-black font-medium">Back</span>
-      </button>
-    </div>
-    <div className="flex flex-col md:flex-row items-center">
-      <div className="relative mb-6 md:mb-0 md:mr-8">
-        {tutor.profileImage ? (
-        <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-white shadow-md">
-          <Image 
-            src={tutor.profileImage} 
-            alt={tutor.username} 
-            width={144}
-            height={144}
-            className="w-full h-full object-cover"
-            priority
-          />
-        </div>
-      ) : (
-        <div className="w-36 h-36 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-md">
-          <span className="text-5xl font-light text-orange-500">{tutor.username.charAt(0).toUpperCase()}</span>
-        </div>
-      )}
-      </div>
-      <div className="text-center md:text-left">
-        <h1 className="text-4xl font-bold text-white mb-2">{tutor.username}</h1>
-        <div className="flex flex-col md:flex-row items-center md:items-start space-y-2 md:space-y-0 md:space-x-4">
-          <p className="text-gray-800 bg-gray-300 bg-opacity-30 px-4 py-2 rounded-md text-base font-medium w-full md:w-auto text-center md:text-left">
-            📧 {tutor.email}
-          </p>
-          <p className="text-gray-800 bg-gray-300 bg-opacity-30 px-4 py-2 rounded-md text-base font-medium w-full md:w-auto text-center md:text-left">
-            📞 {tutor.contact}
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+          {/* Header Section */}
+          <div className="bg-gradient-to-r from-orange-400 to-orange-500 p-8">
+            <div className="container mx-auto">
+              <div className="flex flex-col md:flex-row items-center">
+                <div className="relative mb-6 md:mb-0 md:mr-8">
+                  {tutor.profileImage ? (
+                    <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-white shadow-md">
+                      <Image 
+                        src={tutor.profileImage} 
+                        alt={tutor.username} 
+                        width={144}
+                        height={144}
+                        className="w-full h-full object-cover"
+                        priority
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-36 h-36 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-md">
+                      <span className="text-5xl font-light text-orange-500">{tutor.username.charAt(0).toUpperCase()}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-center md:text-left flex-1">
+                  <h1 className="text-4xl font-bold text-white mb-2">{tutor.username}</h1>
+                  <div className="flex flex-col md:flex-row items-center md:items-start space-y-2 md:space-y-0 md:space-x-4">
+                    <p className="text-gray-800 bg-gray-300 bg-opacity-30 px-4 py-2 rounded-md text-base font-medium w-full md:w-auto text-center md:text-left">
+                      📧 {tutor.email}
+                    </p>
+                    <p className="text-gray-800 bg-gray-300 bg-opacity-30 px-4 py-2 rounded-md text-base font-medium w-full md:w-auto text-center md:text-left">
+                      📞 {tutor.contact}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Main Content */}
           <div className="p-8">
