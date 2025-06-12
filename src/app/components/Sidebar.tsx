@@ -157,9 +157,7 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
         </>
       );
     }
-    // Add more user types as needed
-    
-    // Default menu items
+    // Default menu items for tutor
     return (
       <>
         <SidebarItem 
