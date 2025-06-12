@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Book, Clock, IndianRupee, List ,MessageCircle,Trash2 } from 'lucide-react';
+import { Book, Clock, IndianRupee, List ,MessageCircle,Trash2, ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { use } from 'react';
@@ -112,27 +112,30 @@ export default function TutorCoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
+    <div className="min-h-screen bg-gray-50 text-gray-800">
       <Toaster />
       
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-orange-500">My Courses</h1>
-          <div className="flex gap-4">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Link href="/tutor" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <ChevronLeft className="h-6 w-6 text-gray-600" />
+              </Link>
+              <h1 className="text-2xl font-semibold text-gray-800">My Courses</h1>
+            </div>
             <Link href="/tutor/create-course">
-              <button className="bg-orange-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-orange-600 transition-colors">
-                <Book size={24} /> Create New Course
-              </button>
-            </Link>
-            <Link href="/tutor">
-              <button className="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-gray-300 transition-colors">
-                <Book size={24} /> Back to dashboard
+              <button className="bg-orange-500 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 hover:bg-orange-600 transition-colors">
+                <Book size={20} /> Create New Course
               </button>
             </Link>
           </div>
         </div>
-       
+      </div>
 
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
         {courses.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center shadow-md border border-gray-100">
             <h2 className="text-2xl text-gray-800 mb-4">No Courses Available</h2>
@@ -146,61 +149,61 @@ export default function TutorCoursesPage() {
                 className="bg-white rounded-xl shadow-md p-6 border border-gray-100 transform transition-all hover:shadow-lg"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-xl font-bold text-gray-800">{course.title}</h2>
-                  <div className="flex items-center gap-2">
-                    <Clock className="text-orange-500" size={20} />
-                    <span className="text-gray-700">{course.duration}</span>
+                  <h2 className="text-xl font-bold text-gray-800 truncate max-w-[70%]">{course.title}</h2>
+                  <div className="flex items-center gap-1 text-gray-600 shrink-0">
+                    <Clock className="text-orange-500 h-4 w-4" />
+                    <span className="text-sm">{course.duration}</span>
                   </div>
                 </div>
 
-                <p className="text-gray-600 mb-4 line-clamp-3">{course.description}</p>
+                <p className="text-gray-600 mb-4 truncate">{course.description}</p>
 
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-2">
                     <span className="text-orange-500 font-bold text-lg">₹</span>
                     <span className="text-gray-800 font-semibold">{course.price.toFixed(2)}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <List className="text-orange-500" size={20} />
-                    <span className="text-gray-700">{course.curriculum.length} Sessions</span>
+                  <div className="flex items-center gap-1">
+                    <List className="text-orange-500 h-4 w-4" />
+                    <span className="text-sm text-gray-600">{course.curriculum.length} Sessions</span>
                   </div>
                 </div>
 
-               <div className="mt-4 flex gap-25">
-  <Link 
-    href={`/tutor/viewClassQuality?courseId=${course._id}`}
-    className="px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 inline-flex items-center text-sm font-medium shadow-md"
-  >
-    <MessageCircle className="mr-2" size={16} />
-    Class Quality
-  </Link>
-  
-  <button
-    onClick={() => handleDeleteCourse(course._id)}
-    disabled={deletingCourseId === course._id}
-    className={` px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-md hover:from-red-600 hover:to-red-700 transition-all duration-300 inline-flex items-center text-sm font-medium shadow-md ${
-      deletingCourseId === course._id ? 'opacity-50 cursor-not-allowed' : ''
-    }`}
-  >
-    {deletingCourseId === course._id ? (
-      <>
-        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-        Deleting...
-      </>
-    ) : (
-      <>
-        <Trash2 className="mr-2" size={16} />
-        Delete
-      </>
-    )}
-  </button>
-</div>
+               <div className="mt-4 flex items-center gap-2 mb-2">
+                <Link 
+                  href={`/tutor/viewClassQuality?courseId=${course._id}`}
+                  className="flex-1 whitespace-nowrap px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors inline-flex items-center justify-center gap-2 text-sm font-medium"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Class Quality
+                </Link>
+                
+                <button
+                  onClick={() => handleDeleteCourse(course._id)}
+                  disabled={deletingCourseId === course._id}
+                  className={`flex-1 whitespace-nowrap px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2 text-sm font-medium ${
+                    deletingCourseId === course._id ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {deletingCourseId === course._id ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </div>
 
-<Link href={`/tutor/courses/${course._id}`}>
-  <button className="w-full mt-2 bg-gray-700 text-white px-4 py-2 rounded-lg hover:from-purple-500 hover:to-blue-500 transition-colors">
-    View Details
-  </button>
-</Link>
+              <Link href={`/tutor/courses/${course._id}`}>
+                <button className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors">
+                  View Details
+                </button>
+              </Link>
               </div>
             ))}
           </div>
