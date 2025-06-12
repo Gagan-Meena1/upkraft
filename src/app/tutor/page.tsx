@@ -200,19 +200,6 @@ export default function Dashboard() {
           </button>
         </div>
         
-        {/* User Profile */}
-        <div className="p-4 border-b border-gray-200 flex items-center">
-          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
-            <User size={20} />
-          </div>
-          {sidebarOpen && (
-            <div className="ml-3 overflow-hidden">
-              <p className="font-medium truncate">{userData?.name}</p>
-              <p className="text-sm text-gray-500 truncate">{userData?.category}</p>
-            </div>
-          )}
-        </div>
-        
         {/* Navigation Links */}
         <nav className="flex-1 px-2 py-4">
         <Link href="tutor/profile" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
@@ -245,14 +232,6 @@ export default function Dashboard() {
             {sidebarOpen && <span className="ml-3">Assignments</span>}
           </Link>
         </nav>
-        
-        {/* Profile Link */}
-        <div className="p-4 border-t border-gray-200">
-          <Link href="#profile" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-            <User size={20} />
-            {sidebarOpen && <span className="ml-3">Profile</span>}
-          </Link>
-        </div>
       </div>
 
       {/* Main Content */}
