@@ -39,8 +39,7 @@ export async function GET(request:NextRequest) {
 
   const classDetails = await Class.find({
     instructor: { $in: instructorIds },
-    // Add any additional filters here
-    // For example: startTime: { $gte: new Date() } // Only future classes
+ 
   })
   .sort({ startTime: 1 })
 
@@ -50,7 +49,7 @@ export async function GET(request:NextRequest) {
     user.contact?user.contact=user.contact:user.contact="";
 
     
-    console.log("user : ",classDetails);
+    // console.log("user : ",classDetails);
     // console.log("courses : ",courseDetails);
     return NextResponse.json({
         success: true,

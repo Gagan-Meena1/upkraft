@@ -207,7 +207,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// app/api/assignment/route.js - Add this PUT method to your existing file
 
 export async function PUT(request: NextRequest) {
   try {
