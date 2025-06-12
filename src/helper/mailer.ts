@@ -6,13 +6,14 @@ console.log("[Mailer] Module initialized");
 
 interface EmailParams {
   email: string;
-  emailType: "VERIFY" | "RESET" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION"|"REQUEST_APPROVED";
+  emailType: "VERIFY" | "RESET" | "RESET_PASSWORD" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION"|"REQUEST_APPROVED";
   userId?: string;
   username?: string;
   category?: string;
+  resetToken?: string;
 }
 
-export const sendEmail = async ({ email, emailType, userId, username, category }: EmailParams) => {
+export const sendEmail = async ({ email, emailType, userId, username, category, resetToken }: EmailParams) => {
   console.log(`[Mailer] Sending ${emailType} email to: ${email}`);
   
   try {
@@ -50,7 +51,48 @@ export const sendEmail = async ({ email, emailType, userId, username, category }
     console.log("[Mailer] Preparing email content");
     let mailOptions;
 
-    if (emailType === "ADMIN_APPROVAL") {
+    if (emailType === "RESET_PASSWORD") {
+      mailOptions = {
+        from: 'ankitsuthar8607@gmail.com',
+        to: email,
+        subject: 'Reset Your UpKraft Password',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f8f6; min-height: 100vh;">
+            <h1 style="color: #ff8c00; text-align: center;">Reset Your Password</h1>
+            <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <p style="font-size: 16px; color: #333;">You requested to reset your password. Click the link below to set a new password:</p>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${process.env.DOMAIN}/reset-password?token=${resetToken}"
+                   style="background-color: #ff8c00; 
+                          color: white; 
+                          padding: 12px 24px; 
+                          text-decoration: none; 
+                          border-radius: 5px;
+                          font-weight: bold;
+                          display: inline-block;">
+                  Reset Password
+                </a>
+              </div>
+              <p style="color: #666; font-size: 14px;">
+                Or copy and paste this link in your browser:<br>
+                <a href="${process.env.DOMAIN}/reset-password?token=${resetToken}" style="color: #ff8c00; word-break: break-all;">
+                  ${process.env.DOMAIN}/reset-password?token=${resetToken}
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px;">
+                This link will expire in 10 minutes for security reasons.<br>
+                If you didn't request this password reset, please ignore this email.
+              </p>
+            </div>
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+              <p style="color: #888; font-size: 12px;">
+                © 2024 UpKraft. All rights reserved.
+              </p>
+            </div>
+          </div>
+        `
+      };
+    } else if (emailType === "ADMIN_APPROVAL") {
       // Email to admin for approval
       mailOptions = {
         from: 'ankitsuthar8607@gmail.com',

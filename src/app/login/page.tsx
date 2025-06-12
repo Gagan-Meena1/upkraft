@@ -15,8 +15,14 @@ interface User {
 }
 
 interface ApiResponse {
-  user: {
+  message?: string;
+  error?: string;
+  token?: string;
+  user?: {
+    id: string;
+    email: string;
     category: string;
+    isVerified: boolean;
   };
 }
 
@@ -37,12 +43,24 @@ export default function LoginPage() {
     console.log("called onlogin");
     
     const response = await axios.post<ApiResponse>("/Api/users/login", user);
-    console.log("Login success", response.data);
+    console.log("Login response", response.data);
     
+    // If we get an error in the response, show it and return early
+    if ('error' in response.data) {
+      toast.error(response.data.error || 'Login failed');
+      return;
+    }
+
+    // Make sure we have the success case data
+    if (!response.data.user?.category || !response.data.token) {
+      toast.error("Invalid response from server");
+      return;
+    }
+
     const userCategory = response.data.user.category;
     const isVerified = response.data.user.isVerified;
     
-    console.log(userCategory, isVerified);
+    console.log("User category and verification:", userCategory, isVerified);
     
     // Check verification status first
     if ((userCategory === "Tutor" || userCategory === "Admin") && !isVerified) {
@@ -62,8 +80,13 @@ export default function LoginPage() {
     }
     
   } catch (error: any) {
-    console.log("Login failed", error.message);
-    toast.error(error.message);
+    console.log("Login failed", error.response?.data?.error || error.message);
+    // If we have a specific error message from the API, use it
+    if (error.response?.data?.error) {
+      toast.error(error.response.data.error);
+    } else {
+      toast.error("Login failed. Please check your credentials.");
+    }
   } finally {
     setLoading(false);
   }
