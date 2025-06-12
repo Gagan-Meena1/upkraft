@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MdAssignment, MdAssignmentReturn } from 'react-icons/md';
 import { BiBulb } from 'react-icons/bi';
 import { PiNutBold } from 'react-icons/pi';
+import { toast } from 'react-hot-toast';
 
 interface SidebarItemProps {
   title: string;
@@ -48,9 +49,25 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
 
 const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = '' }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const router = useRouter();
 
   const toggleSidebarCollapse = () => {
     setSidebarCollapsed(!sidebarCollapsed);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/Api/users/logout');
+      if (response.ok) {
+        toast.success('Logged out successfully');
+        router.push('/login');
+      } else {
+        toast.error('Failed to logout');
+      }
+    } catch (error) {
+      toast.error('Error during logout');
+      console.error('Logout error:', error);
+    }
   };
 
   // Define different menu items based on user type
@@ -177,8 +194,9 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
       min-h-screen 
       transition-all duration-300 ease-in-out
       pt-4
+      flex flex-col
     `}>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col flex-grow">
         <div className="px-4 pb-4 flex justify-end">
           <button 
             onClick={toggleSidebarCollapse} 
@@ -188,8 +206,36 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
           </button>
         </div>
         
-        <div className="space-y-1 px-2">
+        <div className="space-y-1 px-2 flex-grow">
           {getMenuItems()}
+        </div>
+
+        {/* Logout Button */}
+        <div className="px-2 py-4 border-t border-gray-200 mt-auto">
+          <div 
+            className={`cursor-pointer hover:bg-gray-200 transition-colors duration-200 rounded-lg ${sidebarCollapsed ? 'py-3 px-3' : 'py-2 px-4'}`}
+            onClick={handleLogout}
+          >
+            <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="20" 
+                height="20" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="text-gray-700"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              {!sidebarCollapsed && <h3 className="text-md font-medium text-gray-700 ml-3 whitespace-nowrap">Logout</h3>}
+            </div>
+          </div>
         </div>
       </div>
     </aside>
