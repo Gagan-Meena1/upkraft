@@ -87,10 +87,7 @@ const StudentFeedbackDashboard = () => {
         }
         
         const result = await response.json();
-        console.log("11111111111111111111111111111111111111111111111111111111111");
-        
         console.log("result : ",result);
-        
         
         if (!result.success) {
           throw new Error(result.message || 'Failed to fetch feedback data');
@@ -547,140 +544,144 @@ const StudentFeedbackDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <header className="mb-8">
-        <div className="flex items-center mb-2">
-          <button 
-            onClick={() => router.push(`/student/courses?studentId=${studentId}`)} 
-            className="mr-4 p-2 rounded-full bg-gray-200 hover:bg-gray-100 transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="text-orange-500" size={24} />
-          </button>
-          <h1 className="text-3xl font-bold text-orange-500">Your Performance Dashboard</h1>
-        </div>
-        <p className="text-gray-600">Track your progress across different sessions and skills</p>
-      </header>
-        {/* Add this before the "Overall Skill Performance" section */}
-<section className="mb-10">
-  <h2 className="text-2xl font-semibold text-orange-500 mb-4">Overall Course Performance</h2>
-  
-  <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6 mb-6">
-    {averageSkillScores.overall !== undefined && (
-      <div>
-        <h3 className="text-xl font-semibold text-gray-800 mb-3 text-center">Overall Performance Score</h3>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                activeIndex={0}
-                activeShape={renderActiveShape}
-                data={[{ name: 'Overall', value: averageSkillScores.overall }]}
-                cx="50%"
-                cy="50%"
-                startAngle={180}
-                endAngle={0}
-                innerRadius={80}
-                outerRadius={100}
-                paddingAngle={5}
-                dataKey="value"
-                stroke="none"
-              >
-                <Cell fill={getScoreColor(averageSkillScores.overall)} />
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="mt-4 text-center">
-          <p className="text-lg font-bold">
-            <span className={`${getScoreColor(averageSkillScores.overall) === '#4CAF50' ? 'text-green-600' : 
-              getScoreColor(averageSkillScores.overall) === '#FF9800' ? 'text-orange-500' : 'text-red-500'}`}>
-              {averageSkillScores.overall}/10
-            </span>
-          </p>
-          <p className="text-gray-600 mt-2">
-            Average performance across all {feedbackData.length} session{feedbackData.length !== 1 ? 's' : ''}
-          </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 w-full">
+        <div className="px-6 py-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => router.push(`/student/courses?studentId=${studentId}`)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <ArrowLeft className="h-6 w-6 text-gray-600" />
+            </button>
+            <h1 className="text-2xl font-semibold text-gray-800">Performance Dashboard</h1>
+          </div>
         </div>
       </div>
-    )}
-  </div>
-</section>
-      
-      {/* Scorometers section */}
-      <section className="mb-10">
-        <h2 className="text-2xl font-semibold text-orange-500 mb-4">Overall Skill Performance</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {fields.map(field => renderGaugeChart(field))}
-        </div>
-      </section>
-      
-      {/* Individual field graphs */}
-      <section className="mb-10">
-        <h2 className="text-2xl font-semibold text-orange-500 mb-4">Individual Skills Progress</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {fields.map(field => renderFieldGraph(field))}
-        </div>
-      </section>
-      
-      {/* Feedback table section */}
-      <section>
-        <h2 className="text-2xl font-semibold text-orange-500 mb-4">Session Feedback Summary</h2>
-        
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Session No.
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tutor Score
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Performance
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Recommended Improvement
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {feedbackData.map((session) => (
-                  <tr key={session.sessionNo} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {session.sessionNo}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {session.averageScore}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-sm leading-5 font-semibold rounded-full ${getPerformanceColor(session.performanceLevel)}`}>
-                        {session.performanceLevel.charAt(0).toUpperCase() + session.performanceLevel.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {session.personalFeedback}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-      
-      {/* Personal Feedback Section */}
-      {feedbackData.length > 0 && feedbackData[feedbackData.length - 1].personalFeedback && (
-        <section className="mt-8">
-          <h2 className="text-2xl font-semibold text-orange-500 mb-4">Latest Personal Feedback</h2>
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <p className="text-gray-700">{feedbackData[feedbackData.length - 1].personalFeedback}</p>
+
+      <div className="p-6">
+        {/* Overall Course Performance Section */}
+        <section className="mb-10">
+          <h2 className="text-2xl font-semibold text-orange-500 mb-4">Overall Course Performance</h2>
+          
+          <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6 mb-6">
+            {averageSkillScores.overall !== undefined && (
+              <div>
+                <h3 className="text-xl font-semibold text-gray-800 mb-3 text-center">Overall Performance Score</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        activeIndex={0}
+                        activeShape={renderActiveShape}
+                        data={[{ name: 'Overall', value: averageSkillScores.overall }]}
+                        cx="50%"
+                        cy="50%"
+                        startAngle={180}
+                        endAngle={0}
+                        innerRadius={80}
+                        outerRadius={100}
+                        paddingAngle={5}
+                        dataKey="value"
+                        stroke="none"
+                      >
+                        <Cell fill={getScoreColor(averageSkillScores.overall)} />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="text-lg font-bold">
+                    <span className={`${getScoreColor(averageSkillScores.overall) === '#4CAF50' ? 'text-green-600' : 
+                      getScoreColor(averageSkillScores.overall) === '#FF9800' ? 'text-orange-500' : 'text-red-500'}`}>
+                      {averageSkillScores.overall}/10
+                    </span>
+                  </p>
+                  <p className="text-gray-600 mt-2">
+                    Average performance across all {feedbackData.length} session{feedbackData.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </section>
-      )}
+        
+        {/* Scorometers section */}
+        <section className="mb-10">
+          <h2 className="text-2xl font-semibold text-orange-500 mb-4">Overall Skill Performance</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {fields.map(field => renderGaugeChart(field))}
+          </div>
+        </section>
+        
+        {/* Individual field graphs */}
+        <section className="mb-10">
+          <h2 className="text-2xl font-semibold text-orange-500 mb-4">Individual Skills Progress</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {fields.map(field => renderFieldGraph(field))}
+          </div>
+        </section>
+        
+        {/* Feedback table section */}
+        <section>
+          <h2 className="text-2xl font-semibold text-orange-500 mb-4">Session Feedback Summary</h2>
+          
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Session No.
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tutor Score
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Performance
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Recommended Improvement
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {feedbackData.map((session) => (
+                    <tr key={session.sessionNo} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {session.sessionNo}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {session.averageScore}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-sm leading-5 font-semibold rounded-full ${getPerformanceColor(session.performanceLevel)}`}>
+                          {session.performanceLevel.charAt(0).toUpperCase() + session.performanceLevel.slice(1)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {session.personalFeedback}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        
+        {/* Personal Feedback Section */}
+        {feedbackData.length > 0 && feedbackData[feedbackData.length - 1].personalFeedback && (
+          <section className="mt-8">
+            <h2 className="text-2xl font-semibold text-orange-500 mb-4">Latest Personal Feedback</h2>
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <p className="text-gray-700">{feedbackData[feedbackData.length - 1].personalFeedback}</p>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 };
