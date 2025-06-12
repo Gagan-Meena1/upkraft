@@ -1,10 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 
 interface Message {
   text: string;
   isUser: boolean;
   timestamp: Date;
 }
+
+// Function to clean up markdown characters if we don't want to render them
+const cleanMarkdown = (text: string) => {
+  return text.replace(/\*/g, ''); // Remove asterisks
+};
 
 export default function Chat() {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,30 +42,56 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with your actual API endpoint
-      const response = await fetch('/api/chat', {
+      setIsLoading(true);
+      const response = await fetch('https://n8n.srv823938.hstgr.cloud/webhook/5a1ffea2-c470-4b02-86f8-6d7e8fd4de91', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify({ message: inputMessage }),
+        body: JSON.stringify({ 
+          user_question: inputMessage 
+        }),
       });
 
-      const data = await response.json();
+      console.log("API Response Status:", response.status);
+      
+      if (!response.ok) {
+        // Log the technical error for debugging
+        console.error(`API Error: ${response.status} ${response.statusText}`);
+        throw new Error("Sorry, I'm temporarily unavailable. Please try asking your question again in a moment.");
+      }
+
+      let data;
+      try {
+        data = await response.json();
+        console.log("API Response Data:", data);
+      } catch (parseError) {
+        console.error("Error parsing response:", parseError);
+        throw new Error("I apologize, but I'm having trouble understanding the response. Please try again.");
+      }
       
       // Add bot response
       const botMessage: Message = {
-        text: data.response || "I'm sorry, I couldn't process that request.",
+        text: Array.isArray(data) && data[0]?.output 
+          ? cleanMarkdown(data[0].output)
+          : data?.response 
+            ? cleanMarkdown(data?.response)
+            : "I apologize, but I'm having trouble processing your request. Could you please try asking in a different way?",
         isUser: false,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
-      // Add error message
+      // Log the technical error for debugging
+      console.error('Error in chat:', error);
+      
+      // Show user-friendly error message
       const errorMessage: Message = {
-        text: "Sorry, there was an error processing your message.",
+        text: error instanceof Error 
+          ? error.message 
+          : "I apologize, but I'm temporarily unable to respond. Please try again in a moment.",
         isUser: false,
         timestamp: new Date(),
       };
@@ -104,13 +135,20 @@ export default function Chat() {
                 className={`mb-4 ${message.isUser ? 'text-right' : 'text-left'}`}
               >
                 <div
-                  className={`inline-block p-3 rounded-lg ${
+                  className={`inline-block p-3 rounded-lg whitespace-pre-wrap ${
                     message.isUser
                       ? 'bg-orange-500 text-white'
                       : 'bg-gray-100 text-gray-800'
                   }`}
+                  style={{ maxWidth: '80%' }}
                 >
-                  {message.text}
+                  {message.text.split(/(\d+\.\s)/).map((part, i) => {
+                    // If it's a numbered point (e.g., "1. "), add a line break before it
+                    if (part.match(/^\d+\.\s$/)) {
+                      return <React.Fragment key={i}>{'\n'}{part}</React.Fragment>;
+                    }
+                    return part;
+                  })}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
                   {message.timestamp.toLocaleTimeString()}
