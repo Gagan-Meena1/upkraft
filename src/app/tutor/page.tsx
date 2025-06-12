@@ -180,17 +180,16 @@ export default function Dashboard() {
       <div className={`bg-white border-r border-gray-200 h-screen ${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex flex-col sticky top-0`}>
         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <div className={`font-extrabold text-l text-orange-600 ${!sidebarOpen && 'hidden'}`}>
-          {/* <img src="logo.png" alt="" className="w-36 h-auto" /> */}
-           <Link href="/tutor" className="cursor-pointer">
-                        <Image 
-                          src="/logo.png"
-                          alt="UpKraft"
-                          width={288} // Use 2x the display size for crisp rendering
-                          height={72}  // Adjust based on your logo's actual aspect ratio
-                          priority
-                          className="object-contain w-36 h-auto" 
-                        />
-                      </Link>
+            <Link href="/tutor" className="cursor-pointer">
+              <Image 
+                src="/logo.png"
+                alt="UpKraft"
+                width={288}
+                height={72}
+                priority
+                className="object-contain w-36 h-auto" 
+              />
+            </Link>
           </div>
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)} 
@@ -201,37 +200,58 @@ export default function Dashboard() {
         </div>
         
         {/* Navigation Links */}
-        <nav className="flex-1 px-2 py-4">
-        <Link href="tutor/profile" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
-            <User size={20} />
-            {sidebarOpen && <span className="ml-3">Profile</span>}
-          </Link>
-          {/* <Link href="tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
-            <
-              PiNutBold size={20} />
-            {sidebarOpen && <span className="ml-3">Class Quality</span>}
-          </Link> */}
-          {/* <Link href="tutor/allStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
-            <Users size={20} />
-            {sidebarOpen && <span className="ml-3">Students</span>}
-          </Link> */}
-          <Link href="tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
-            <BookOpen size={20} />
-            {sidebarOpen && <span className="ml-3">My Courses</span>}
-          </Link>
-          <Link href="tutor/create-course" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-            <PlusCircle size={20} />
-            {sidebarOpen && <span className="ml-3">Create Course</span>}
-          </Link>
-          <Link href="tutor/myStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-            <User size={20} />
-            {sidebarOpen && <span className="ml-3">My Students</span>}
-          </Link>
-          <Link href="tutor/assignments" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-            <BookCheck size={20} />
-            {sidebarOpen && <span className="ml-3">Assignments</span>}
-          </Link>
-        </nav>
+        <div className="flex flex-col h-full">
+          <nav className="flex-1 px-2 py-4">
+            <Link href="tutor/profile" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+              <User size={20} />
+              {sidebarOpen && <span className="ml-3">Profile</span>}
+            </Link>
+            <Link href="tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+              <BookOpen size={20} />
+              {sidebarOpen && <span className="ml-3">My Courses</span>}
+            </Link>
+            <Link href="tutor/create-course" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+              <PlusCircle size={20} />
+              {sidebarOpen && <span className="ml-3">Create Course</span>}
+            </Link>
+            <Link href="tutor/myStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+              <User size={20} />
+              {sidebarOpen && <span className="ml-3">My Students</span>}
+            </Link>
+            <Link href="tutor/assignments" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+              <BookCheck size={20} />
+              {sidebarOpen && <span className="ml-3">Assignments</span>}
+            </Link>
+          </nav>
+          
+          {/* Logout button fixed at bottom */}
+          <div className="px-2 py-3 border-t border-gray-200">
+            <button 
+              onClick={async () => {
+                try {
+                  const response = await fetch('/Api/users/logout');
+                  if (response.ok) {
+                    toast.success('Logged out successfully');
+                    router.push('/login');
+                  } else {
+                    toast.error('Failed to logout');
+                  }
+                } catch (error) {
+                  toast.error('Error during logout');
+                  console.error('Logout error:', error);
+                }
+              }}
+              className="flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              {sidebarOpen && <span className="ml-3">Logout</span>}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
