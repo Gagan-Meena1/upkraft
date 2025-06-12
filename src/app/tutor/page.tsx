@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, BookMarkedIcon, BookCheck } from "lucide-react";
+import { LogOut,ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, BookMarkedIcon, BookCheck } from "lucide-react";
 import Image from "next/image";
 import { PiNutBold } from "react-icons/pi";
 import dynamic from 'next/dynamic';
@@ -222,10 +222,30 @@ export default function Dashboard() {
               <BookCheck size={20} />
               {sidebarOpen && <span className="ml-3">Assignments</span>}
             </Link>
+            <button 
+              onClick={async () => {
+                try {
+                  const response = await fetch('/Api/users/logout');
+                  if (response.ok) {
+                    toast.success('Logged out successfully');
+                    router.push('/login');
+                  } else {
+                    toast.error('Failed to logout');
+                  }
+                } catch (error) {
+                  toast.error('Error during logout');
+                  console.error('Logout error:', error);
+                }
+              }}
+              className="flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+            >
+              <LogOut size={20} />
+              {sidebarOpen && <span className="ml-3">Logout</span>}
+            </button>
           </nav>
           
           {/* Logout button fixed at bottom */}
-          <div className="px-2 py-3 border-t border-gray-200">
+          {/* <div className="px-2 py-3 border-t border-gray-200">
             <button 
               onClick={async () => {
                 try {
@@ -250,7 +270,7 @@ export default function Dashboard() {
               </svg>
               {sidebarOpen && <span className="ml-3">Logout</span>}
             </button>
-          </div>
+          </div> */}
         </div>
       </div>
 

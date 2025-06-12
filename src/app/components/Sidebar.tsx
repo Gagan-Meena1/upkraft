@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { CheckCircle ,Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CheckCircle ,Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { MdAssignment, MdAssignmentReturn } from 'react-icons/md';
 import { BiBulb } from 'react-icons/bi';
@@ -10,8 +10,9 @@ import { toast } from 'react-hot-toast';
 interface SidebarItemProps {
   title: string;
   icon: React.ReactNode;
-  route: string;
+  route?: string;
   collapsed: boolean;
+  onClick?: () => void;
 }
 
 interface SidebarProps {
@@ -24,12 +25,17 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   title, 
   icon, 
   route,
-  collapsed
+  collapsed,
+  onClick
 }) => {
   const router = useRouter();
 
   const handleClick = () => {
-    router.push(route);
+    if (onClick) {
+      onClick();
+    } else if (route) {
+      router.push(route);
+    }
   };
 
   return (
@@ -105,41 +111,18 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             route="/student/courses"
             collapsed={sidebarCollapsed}
           />
-          {/* <SidebarItem 
-            title="My Performance" 
-            icon={<TrendingUp size={20} className="text-gray-700" />}
-            route={`/student/performance?studentId=${studentId}`}
-            collapsed={sidebarCollapsed}
-          /> */}
-
-          {/* <SidebarItem 
-            title="Class Quality" 
-            icon={<PiNutBold size={20} className="text-gray-700" />}
-            route={`/student/courses?studentId=${studentId}`}
-            collapsed={sidebarCollapsed}
-          /> */}
           <SidebarItem 
             title="Assignments" 
             icon={<MdAssignment size={20} className="text-gray-700" />}
             route="/student/assignments"
             collapsed={sidebarCollapsed}
           />
-           
-          {/* <SidebarItem 
-            title="Payment Summary" 
-            icon={<IndianRupee size={20} className="text-gray-700" />}
-            route="/student/payments"
-            collapsed={sidebarCollapsed}
-          />
           <SidebarItem 
-            title="UpKraft AI" 
-            icon={<IndianRupee size={20} className="text-gray-700" />}
-            route="/student/ai"
+            title="Logout" 
+            icon={<LogOut size={20} className="text-gray-700" />}
             collapsed={sidebarCollapsed}
-          /> */}
-         
-          
-          
+            onClick={handleLogout}
+          />
         </>
       );
     } else if (userType === 'admin') {
@@ -170,7 +153,12 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             route="/admin/approvalRequest"
             collapsed={sidebarCollapsed}
           />
-          {/* Add more admin menu items as needed */}
+          <SidebarItem 
+            title="Logout" 
+            icon={<LogOut size={20} className="text-gray-700" />}
+            collapsed={sidebarCollapsed}
+            onClick={handleLogout}
+          />
         </>
       );
     }
@@ -182,6 +170,12 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
           icon={<Home size={20} className="text-gray-700" />}
           route=""
           collapsed={sidebarCollapsed}
+        />
+        <SidebarItem 
+          title="Logout" 
+          icon={<LogOut size={20} className="text-gray-700" />}
+          collapsed={sidebarCollapsed}
+          onClick={handleLogout}
         />
       </>
     );
@@ -208,34 +202,6 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
         
         <div className="space-y-1 px-2 flex-grow">
           {getMenuItems()}
-        </div>
-
-        {/* Logout Button */}
-        <div className="px-2 py-4 border-t border-gray-200 mt-auto">
-          <div 
-            className={`cursor-pointer hover:bg-gray-200 transition-colors duration-200 rounded-lg ${sidebarCollapsed ? 'py-3 px-3' : 'py-2 px-4'}`}
-            onClick={handleLogout}
-          >
-            <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : ''}`}>
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                className="text-gray-700"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              {!sidebarCollapsed && <h3 className="text-md font-medium text-gray-700 ml-3 whitespace-nowrap">Logout</h3>}
-            </div>
-          </div>
         </div>
       </div>
     </aside>

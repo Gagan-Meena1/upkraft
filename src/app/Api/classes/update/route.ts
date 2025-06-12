@@ -7,7 +7,7 @@ import Class from "@/models/Class"; // Assuming you have a Class model
 import { writeFile, mkdir } from 'fs/promises';
 
 // Connect to database
-connect();
+ connect();
 
 // Function to ensure directory exists
 async function ensureDirectoryExists(directory: string) {
@@ -107,7 +107,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "File must be a video" }, { status: 400 });
     }
     
-    // Check file size (50MB limit)
+    // Check file size (500MB limit)
     const maxSize = 500 * 1024 * 1024; // 500MB
     if (videoFile.size > maxSize) {
       return NextResponse.json({ error: "File size must be less than 50MB" }, { status: 400 });
