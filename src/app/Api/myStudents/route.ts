@@ -43,13 +43,17 @@ export async function GET(request: NextRequest) {
           // Add any other fields you want to include
         };
       });
-   
+
+    // Count the number of filtered users
+       const userCount = filteredUsers.length;
+
     
 
     // console.log(filteredUsers);
     return NextResponse.json({
       message: 'Session sent successfully',
-      filteredUsers
+      filteredUsers,
+      userCount
     }, { status: 201 });
     
   } catch (error) {

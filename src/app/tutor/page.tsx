@@ -1,7 +1,7 @@
 "use client"
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { LogOut,ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, BookMarkedIcon, BookCheck } from "lucide-react";
+import { LogOut,ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, BookMarkedIcon, BookCheck, CheckCircle, Clock, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { PiNutBold } from "react-icons/pi";
 import dynamic from 'next/dynamic';
@@ -38,6 +38,21 @@ interface ClassData {
   updatedAt: string;
 }
 
+interface AssignmentData {
+  _id: string;
+  title: string;
+  description: string;
+  deadline: string;
+  courseId: string;
+  courseTitle?: string;
+  courseCategory?: string;
+  courseDuration?: string;
+  courseDescription?: string;
+  status?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface ApiResponse {
   message: string;
   classData: ClassData[];
@@ -49,10 +64,140 @@ interface MeetingState {
   classId: string | null;
 }
 
+interface StudentsResponse {
+  userCount: number;
+  filteredUsers: any[];
+}
+
+// Progress Box Components
+const ClassProgressBox = ({ completedClasses, totalClasses }: { completedClasses: number; totalClasses: number }) => {
+  const progressPercentage = totalClasses > 0 ? (completedClasses / totalClasses) * 100 : 0;
+  
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 w-1/3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Class Progress</h3>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle size={20} className="text-green-500" />
+              <span className="text-sm text-gray-600">
+                Completed: <span className="font-medium text-green-600">{completedClasses}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock size={20} className="text-orange-500" />
+              <span className="text-sm text-gray-600">
+                Total: <span className="font-medium text-gray-900">{totalClasses}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="text-right">
+          <div className="text-2xl font-bold text-orange-500">
+            {completedClasses}/{totalClasses}
+          </div>
+          <div className="text-sm text-gray-500">
+            {progressPercentage.toFixed(0)}% Complete
+          </div>
+        </div>
+      </div>
+      
+      {/* Progress Bar */}
+      <div className="mt-4">
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-gradient-to-r from-orange-500 to-orange-400 h-2 rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progressPercentage}%` }}
+          ></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const AssignmentProgressBox = ({ incompleteAssignments, totalAssignments }: { incompleteAssignments: number; totalAssignments: number }) => {
+  const completedAssignments = totalAssignments - incompleteAssignments;
+  const progressPercentage = totalAssignments > 0 ? (completedAssignments / totalAssignments) * 100 : 0;
+  
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 w-1/3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Assignment Progress</h3>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle size={20} className="text-green-500" />
+              <span className="text-sm text-gray-600">
+                Completed: <span className="font-medium text-green-600">{completedAssignments}</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <AlertCircle size={20} className="text-red-500" />
+              <span className="text-sm text-gray-600">
+                Pending: <span className="font-medium text-red-600">{incompleteAssignments}</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="text-right">
+          <div className="text-2xl font-bold text-orange-500">
+            {completedAssignments}/{totalAssignments}
+          </div>
+          <div className="text-sm text-gray-500">
+            {progressPercentage.toFixed(0)}% Complete
+          </div>
+        </div>
+      </div>
+      
+      {/* Progress Bar */}
+      <div className="mt-4">
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div 
+            className="bg-gradient-to-r from-green-500 to-green-400 h-2 rounded-full transition-all duration-500 ease-out"
+            style={{ width: `${progressPercentage}%` }}
+          ></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const StudentsCountBox = ({ studentCount }: { studentCount: number }) => {
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 w-1/3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">My Students</h3>
+          <div className="flex items-center gap-2">
+            <Users size={20} className="text-blue-500" />
+            <span className="text-sm text-gray-600">
+              Total Students: <span className="font-medium text-blue-600">{studentCount}</span>
+            </span>
+          </div>
+        </div>
+        
+        <div className="text-right">
+          <div className="text-3xl font-bold text-blue-500">
+            {studentCount}
+          </div>
+          <div className="text-sm text-gray-500">
+            Active Students
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [classData, setClassData] = useState<ClassData[]>([]);
+  const [assignmentData, setAssignmentData] = useState<AssignmentData[]>([]);
+  const [studentCount, setStudentCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -76,6 +221,14 @@ export default function Dashboard() {
         const classesResponse = await fetch("/Api/classes");
         const classesData: ApiResponse = await classesResponse.json();
         
+        // Fetch students count
+        const studentsResponse = await fetch("/Api/myStudents");
+        const studentsData: StudentsResponse = await studentsResponse.json();
+        
+        // Fetch assignments data
+        const assignmentResponse = await fetch("/Api/assignment");
+        const assignmentResponseData = await assignmentResponse.json();
+        
         // Sort classes by startTime
         const sortedClasses = classesData.classData.sort((a, b) => 
           new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
@@ -83,6 +236,13 @@ export default function Dashboard() {
         
         setUserData(userData.user);
         setClassData(sortedClasses);
+        setStudentCount(studentsData.userCount || 0);
+        
+        // Set assignment data if available
+        if (assignmentResponseData?.assignments) {
+          setAssignmentData(assignmentResponseData.assignments);
+        }
+        
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -174,6 +334,14 @@ export default function Dashboard() {
     );
   }
 
+  // Calculate progress data
+  const totalClasses = classData.length;
+  const completedClasses = classData.filter(classItem => classItem.recording).length;
+  
+  // Calculate assignment progress
+  const totalAssignments = assignmentData.length;
+  const incompleteAssignments = assignmentData.filter(assignment => !assignment.status).length;
+
   return (
     <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
       {/* Sidebar */}
@@ -243,34 +411,6 @@ export default function Dashboard() {
               {sidebarOpen && <span className="ml-3">Logout</span>}
             </button>
           </nav>
-          
-          {/* Logout button fixed at bottom */}
-          {/* <div className="px-2 py-3 border-t border-gray-200">
-            <button 
-              onClick={async () => {
-                try {
-                  const response = await fetch('/Api/users/logout');
-                  if (response.ok) {
-                    toast.success('Logged out successfully');
-                    router.push('/login');
-                  } else {
-                    toast.error('Failed to logout');
-                  }
-                } catch (error) {
-                  toast.error('Error during logout');
-                  console.error('Logout error:', error);
-                }
-              }}
-              className="flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-              {sidebarOpen && <span className="ml-3">Logout</span>}
-            </button>
-          </div> */}
         </div>
       </div>
 
@@ -289,6 +429,25 @@ export default function Dashboard() {
 
             {/* Content Area */}
             <main className="p-6">
+              {/* Progress Boxes */}
+              <div className="flex gap-6 mb-8">
+                {totalClasses > 0 && (
+                  <ClassProgressBox 
+                    completedClasses={completedClasses} 
+                    totalClasses={totalClasses} 
+                  />
+                )}
+                
+                {totalAssignments > 0 && (
+                  <AssignmentProgressBox 
+                    incompleteAssignments={incompleteAssignments} 
+                    totalAssignments={totalAssignments} 
+                  />
+                )}
+                
+                <StudentsCountBox studentCount={studentCount} />
+              </div>
+
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-xl font-semibold text-gray-900">Upcoming Classes</h2>
