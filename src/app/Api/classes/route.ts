@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       course:courseId,
       startTime: startDateTime,
       endTime: endDateTime,
-      instructor: instructorId, // Set this based on your auth solution
+      instructor: instructorId, // 
       recording: videoPath,
       recordingProcessed: videoPath ? 0 : null,
     });
@@ -141,27 +141,6 @@ export async function GET(request: NextRequest) {
     
     const classes=await Class.find({instructor:instructorId});
     
-   
-      
-    
-    // Create a new Class document
-    console.log("222222222222222222222222222222222222222222222222222");
-    
-    // const newClass = new Class({
-    //   title,
-    //   description,
-    //   course:courseId,
-    //   startTime: startDateTime,
-    //   endTime: endDateTime,
-    //   instructor: instructorId, // Set this based on your auth solution
-    //   recording: videoPath,
-    //   recordingProcessed: videoPath ? 0 : null,
-    // });
-    
-    // await newClass.save();
-    console.log("333333333333333333333333333333333333333333333333333333333333");
-    
-
     // console.log(classes);
     return NextResponse.json({
       message: 'Session sent successfully',

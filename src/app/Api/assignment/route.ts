@@ -182,7 +182,7 @@ export async function GET(request: NextRequest) {
       };
     });
     
-    console.log("assignments with course details: ", assignmentsWithCourseDetails);
+    // console.log("assignments with course details: ", assignmentsWithCourseDetails);
     
     return NextResponse.json({
       success: true,

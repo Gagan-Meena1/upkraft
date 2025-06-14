@@ -367,6 +367,8 @@ const StudentDashboard: React.FC = () => {
 
         if (classResponse.data?.classDetails) {
           setClassData(classResponse.data.classDetails);
+          console.log("classData:", classResponse.data.classDetails);
+          
         }
 
         if (assignmentResponse.data?.assignments) {

@@ -112,6 +112,12 @@ const Sidebar: React.FC<SidebarProps> = ({ userType, studentId = '', courseId = 
             collapsed={sidebarCollapsed}
           />
           <SidebarItem 
+            title="Performance Video" 
+            icon={<Video size={20} className="text-gray-700" />}
+            route="/student/performanceVideo"
+            collapsed={sidebarCollapsed}
+          />
+          <SidebarItem 
             title="Assignments" 
             icon={<MdAssignment size={20} className="text-gray-700" />}
             route="/student/assignments"

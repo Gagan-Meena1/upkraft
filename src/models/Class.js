@@ -38,39 +38,12 @@ const ClassSchema = new mongoose.Schema({
     type: Date, 
     required: true 
   },
-//   daysOfWeek: { 
-//     type: [String], 
-//     // required: true,
-//     enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] 
-//   },
-  recording:{
-    type:String,
-  },
-  performanceVideo:{
-    type:String,
-  },
-  // recordingProcessed:{
-  //   type:Number,
-  //   min: [0, "Processed must be at least 0%"], // Minimum value
-  //   max: [100, "Processed must not exceed 100%"], // Maximum value
-  //   default: 0 // Default value
-  // }
-//   maxCapacity: { 
-//     type: Number, 
-//     required: true 
-//   },
-//   currentEnrollment: { 
-//     type: Number, 
-//     default: 0 
-//   },
-//   location: { 
-//     type: String, 
-//     required: true 
-//   },
-//   color: { 
-//     type: String, 
-//     default: '#3498db' 
-//   }
+
+  recordingFileId: String,        // GridFS file ID
+  recordingFileName: String,      // Original filename
+  performanceVideoFileId: String, // GridFS file ID
+  performanceVideoFileName: String, // Original filename
+  
 }, {
   timestamps: true
 });

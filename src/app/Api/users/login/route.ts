@@ -10,17 +10,22 @@ connect()
 export async function POST(request : NextRequest ){
     try{
         const reqBody=await request.json();
-         const {email,password}=reqBody;
+        const {email,password}=reqBody;
+
+
+        console.log("email : " , email);
+         
         const emailLowerCase = email.toLowerCase();
 
-
+        console.log("email : " ,email)
         const user = await User.findOne({
           $or: [
             { email: email },
-            { emailLowerCase: emailLowerCase }
+            { email: emailLowerCase }
           ]
         });
         
+        console.log("User found", user);
         if(!user){
             return NextResponse.json({error:"User does not exists"})
            

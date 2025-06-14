@@ -29,8 +29,7 @@ interface SessionForm {
   const searchParams = useSearchParams();
 const courseId = searchParams.get('courseId') || '';
 console.log("courseId : ",courseId);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedSubCategory, setSelectedSubCategory] = useState('');
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -107,14 +106,6 @@ console.log("courseId : ",courseId);
     setSessionForm({...sessionForm, [name]: value});
   };
   
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      setSessionForm({...sessionForm, video: file});
-      setVideoFileName(file.name);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,14 +125,7 @@ console.log("courseId : ",courseId);
         formData.append('video', sessionForm.video);
       }
       
-      // Add category and subcategory if selected
-      if (selectedCategory) {
-        formData.append('category', selectedCategory);
-      }
-      if (selectedSubCategory) {
-        formData.append('subCategory', selectedSubCategory);
-      }
-      
+  
       // Submit to the API
       const response = await fetch('/Api/classes', {
         method: 'POST',
@@ -188,41 +172,7 @@ console.log("courseId : ",courseId);
             <h1 className="text-3xl font-bold text-pink-200">Add New Session</h1>
           </div>
         </header>
-        <div className="grid grid-cols-2 gap-6 mb-8">
-          {/* Category Dropdown */}
-          <div className="relative">
-            <label className="block text-pink-200 mb-2 font-medium">Category</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-blue-900/50 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-            >
-              <option value="">Select Category</option>
-              <option value="math">Mathematics</option>
-              <option value="science">Science</option>
-              <option value="language">Languages</option>
-              <option value="history">History</option>
-            </select>
-          </div>
-
-          {/* Sub-category Dropdown */}
-          <div className="relative">
-            <label className="block text-pink-200 mb-2 font-medium">Sub-category</label>
-            <select
-              value={selectedSubCategory}
-              onChange={(e) => setSelectedSubCategory(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-blue-900/50 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
-            >
-              <option value="">Select Sub-category</option>
-              <option value="algebra">Algebra</option>
-              <option value="calculus">Calculus</option>
-              <option value="physics">Physics</option>
-              <option value="chemistry">Chemistry</option>
-              <option value="english">English</option>
-              <option value="spanish">Spanish</option>
-            </select>
-          </div>
-        </div>
+        
         {/* Calendar container */}
         <div className="bg-gradient-to-r from-blue-700 to-pink-800 rounded-xl p-6 shadow-lg">
           {/* Calendar header */}
@@ -368,7 +318,7 @@ console.log("courseId : ",courseId);
                   </div>
                   
                   {/* Video Upload Field */}
-                  <div>
+                  {/* <div>
                     <label htmlFor="video" className="block text-blue-200 mb-1">
                       Upload Video
                     </label>
@@ -399,7 +349,7 @@ console.log("courseId : ",courseId);
                         <p className="text-blue-200 text-sm mt-1">Selected: {videoFileName}</p>
                       )}
                     </div>
-                  </div>
+                  </div> */}
                   
                   {/* Error message display */}
                   {errorMessage && (

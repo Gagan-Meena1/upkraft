@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import User from "@/models/userModel";
 import Class from "@/models/Class";
 import { connect } from "@/dbConnection/dbConfic";
-import jwt from "jsonwebtoken";  // Ensure jwt is imported
+import jwt from "jsonwebtoken";
 import courseName from "@/models/courseName";
 
 export async function GET(request) {
@@ -20,30 +20,38 @@ export async function GET(request) {
     }
 
     const userId = decodedToken.id;
-    // console.log("User ID:", userId);
-    // console.log("User ID:", request);
 
-    // Fix database query - Ensure user is found
+    // Find user
     const user = await User.findOne({ _id: userId }).select("-password");
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-    const courseDetails = await courseName.find({ _id: { $in: user.courses } });
-    const classDetails = await Class.find({ _id: { $in: courseName.class } });
-    user.age?user.age=user.age:user.age=18;
-    user.address?user.address=user.address:user.address="";
-    user.contact?user.contact=user.contact:user.contact="";
 
+    // Get course details for the user's enrolled courses
+    const courseDetails = await courseName.find({ _id: { $in: user.courses } });
     
-    // console.log("user : ",user);
-    // console.log("courses : ",courseDetails);
-  return NextResponse.json({
-        success: true,
-        message: `Sent user successfully `,
-        user,
-        courseDetails,
-        classDetails
-      });    
+    // Extract all class IDs from the courses
+    const classIds = courseDetails.reduce((acc, course) => {
+      return acc.concat(course.class || []);
+    }, []);
+
+    console.log("Extracted class IDs:", classIds);
+
+    // Find class details using the extracted class IDs
+    const classDetails = await Class.find({ _id: { $in: classIds } });
+
+    // console.log("user:", user);
+    // console.log("courseDetails:", courseDetails);
+    // console.log("classDetails:", classDetails);
+
+    return NextResponse.json({
+      success: true,
+      message: `Sent user successfully`,
+      user,
+      courseDetails,
+      classDetails
+    });
+
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
