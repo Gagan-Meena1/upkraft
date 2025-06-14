@@ -210,7 +210,7 @@ export default function Home() {
   
   {/* Content - with relative positioning to stay above background */}
   <div className="relative z-10 flex flex-col items-center text-center">
-    <h2 className="heading-font text-3xl font-bold mb-6" style={{ color: '#df7861' }}>
+    <h2 className="heading-font text-3xl font-bold mb-6 text-orange-600" >
       Ready to transform your learning journey?
     </h2>
     <p className="body-font text-gray-900 max-w-2xl mb-10">
@@ -223,6 +223,112 @@ export default function Home() {
     </Link>
   </div>
 </div>
+
+{/* Exclusive Benefits for Tutors */}
+      <div className="w-full text-gray-900 py-24 px-8 flex flex-col items-center text-center relative overflow-hidden">
+        {/* Background Image with Opacity */}
+        <div 
+          className="absolute inset-0 bg-cover bg-no-repeat"
+          style={{
+            backgroundImage: 'url("/bg1.png")',
+            opacity: 0.7
+          }}
+        />
+        {/* Optional: Dark overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/10" />
+        
+        {/* Content - with relative positioning to stay above background */}
+        <div className="relative z-10 flex flex-col items-center text-center max-w-4xl">
+          <h2 className="heading-font text-3xl font-bold mb-8 text-orange-600" >
+            Exclusive Benefits for Tutors
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 w-full">
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <h3 className="heading-font font-semibold mb-3 text-gray-900">Enroll New Students</h3>
+              <p className="body-font text-gray-700">Enroll new students from Platform</p>
+            </div>
+            
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <h3 className="heading-font font-semibold mb-3 text-gray-900">Digital Administration</h3>
+              <p className="body-font text-gray-700">Digitalize Entire Administrative Tutor Tasks</p>
+            </div>
+            
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <h3 className="heading-font font-semibold mb-3 text-gray-900">AI Quality Metrics</h3>
+              <p className="body-font text-gray-700">AI Enabled Class Quality Metrics, Personalized Insights into Teaching Methodology</p>
+            </div>
+            
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <h3 className="heading-font font-semibold mb-3 text-gray-900">AI Tutor Support</h3>
+              <p className="body-font text-gray-700">AI Tutor driving engagement with students to practice</p>
+            </div>
+          </div>
+          
+          <a href="https://your-typeform-link-for-tutors.com" target="_blank" rel="noopener noreferrer">
+            <button className="px-8 py-3 bg-gray-50 text-gray-900 font-medium rounded-lg hover:bg-gray-200 transition body-font shadow-lg">
+              Express Interest
+            </button>
+          </a>
+        </div>
+      </div>
+
+      {/* Exclusive Benefits for Customers */}
+      <div className="w-full text-gray-900 py-24 px-8 flex flex-col items-center text-center relative overflow-hidden">
+        {/* Background Image with Opacity */}
+        <div 
+          className="absolute inset-0 bg-cover bg-no-repeat"
+          style={{
+            backgroundImage: 'url("/bg1.png")',
+            opacity: 0.7,
+            transform: 'scaleX(-1)'
+          }}
+        />
+        {/* Optional: Dark overlay for better text readability */}
+        <div className="absolute inset-0 bg-black/10" />
+        
+        {/* Content - with relative positioning to stay above background */}
+        <div className="relative z-10 flex flex-col items-center text-center max-w-4xl">
+          <h2 className="heading-font text-3xl font-bold mb-8 text-orange-600" >
+            Exclusive Benefits for Customers
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 w-full">
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <h3 className="heading-font font-semibold mb-3 text-gray-900">Quality Tutor Discovery</h3>
+              <p className="body-font text-gray-700">Seamless Quality Tutor Discovery</p>
+            </div>
+            
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <h3 className="heading-font font-semibold mb-3 text-gray-900">Talent Assessment</h3>
+              <p className="body-font text-gray-700">1-1 Counsellor Session to identify Talent Areas</p>
+            </div>
+            
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <h3 className="heading-font font-semibold mb-3 text-gray-900">Performance Dashboard</h3>
+              <p className="body-font text-gray-700">Curriculum Visibility with Performance Dashboards</p>
+            </div>
+            
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
+              <h3 className="heading-font font-semibold mb-3 text-gray-900">AI Engagement Support</h3>
+              <p className="body-font text-gray-700">AI Tutor support on Engagement and Practice in between classes</p>
+            </div>
+            
+            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200 md:col-span-2">
+              <h3 className="heading-font font-semibold mb-3 text-gray-900">Quality Insights</h3>
+              <p className="body-font text-gray-700">AI driven class quality Insights ensuring high tutor delivery standards</p>
+            </div>
+          </div>
+          
+          <a href="https://your-typeform-link-for-customers.com" target="_blank" rel="noopener noreferrer">
+            <button className="px-8 py-3 bg-gray-50 text-gray-900 font-medium rounded-lg hover:bg-gray-200 transition body-font shadow-lg">
+              Express Interest
+            </button>
+          </a>
+        </div>
+      </div>
+
+      
 
       {/* Add Chat component */}
       <Chat />
