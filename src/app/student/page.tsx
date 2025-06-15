@@ -345,7 +345,7 @@ const StudentDashboard: React.FC = () => {
         throw new Error(data.error || 'Failed to create meeting');
       }
 
-      router.push(`/tutor/video-call?url=${encodeURIComponent(data.url)}`);
+      router.push(`/student/video-call?url=${encodeURIComponent(data.url)}&userRole=${userData?.category || 'Student'}&token=${encodeURIComponent(data.token)}`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to join meeting. Please try again.');
     }
