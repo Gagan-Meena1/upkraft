@@ -25,18 +25,18 @@ function VideoCallContent() {
     if (isCleaningUp.current) return;
     isCleaningUp.current = true;
     
-    console.log('[VideoCallPage] NUCLEAR CLEANUP INITIATED');
+    console.log('[StudentVideoCallPage] NUCLEAR CLEANUP INITIATED');
     
     try {
       // 1. Remove ALL iframes (not just Daily.co ones)
       document.querySelectorAll('iframe').forEach(el => {
-        console.log('[VideoCallPage] Removing iframe:', el.src);
+        console.log('[StudentVideoCallPage] Removing iframe:', el.src);
         el.remove();
       });
       
       // 2. Remove Daily.co specific elements
       document.querySelectorAll('[data-daily-js], [data-daily], .daily-js-frame').forEach(el => {
-        console.log('[VideoCallPage] Removing Daily element');
+        console.log('[StudentVideoCallPage] Removing Daily element');
         el.remove();
       });
       
@@ -48,7 +48,7 @@ function VideoCallContent() {
       // 4. Clear any fixed/absolute positioned elements that might be Daily.co
       document.querySelectorAll('div[style*="position: fixed"], div[style*="position: absolute"]').forEach(el => {
         if (el.innerHTML.includes('daily') || el.style.zIndex === '10' || el.style.zIndex === '9999') {
-          console.log('[VideoCallPage] Removing suspicious fixed element');
+          console.log('[StudentVideoCallPage] Removing suspicious fixed element');
           el.remove();
         }
       });
@@ -58,9 +58,9 @@ function VideoCallContent() {
       document.body.style.position = '';
       document.documentElement.style.overflow = '';
       
-      console.log('[VideoCallPage] NUCLEAR CLEANUP COMPLETED');
+      console.log('[StudentVideoCallPage] NUCLEAR CLEANUP COMPLETED');
     } catch (error) {
-      console.error('[VideoCallPage] Cleanup error:', error);
+      console.error('[StudentVideoCallPage] Cleanup error:', error);
     }
     
     setTimeout(() => {
@@ -78,34 +78,22 @@ function VideoCallContent() {
 
     // Intercept ALL navigation attempts
     const handleBeforeUnload = (event) => {
-      console.log('[VideoCallPage] BEFORE UNLOAD - Swipe detected!');
+      console.log('[StudentVideoCallPage] BEFORE UNLOAD - Swipe detected!');
       nuclearCleanup();
     };
 
     const handleUnload = (event) => {
-      console.log('[VideoCallPage] UNLOAD - Cleaning up');
+      console.log('[StudentVideoCallPage] UNLOAD - Cleaning up');
       nuclearCleanup();
     };
 
     const handlePageHide = (event) => {
-      console.log('[VideoCallPage] PAGE HIDE - Mobile swipe back');
+      console.log('[StudentVideoCallPage] PAGE HIDE - Mobile swipe back');
       nuclearCleanup();
     };
 
-    // const handleVisibilityChange = () => {
-    //   if (document.hidden) {
-    //     console.log('[VideoCallPage] VISIBILITY CHANGE - Tab hidden');
-    //     nuclearCleanup();
-    //     // Force navigation after cleanup
-    //     setTimeout(() => {
-    //       router.back();
-    //     }, 100);
-    //   }
-    // };
-
-    // MOST IMPORTANT: Intercept popstate (back button/swipe)
     const handlePopState = (event) => {
-      console.log('[VideoCallPage] POPSTATE - Back navigation detected');
+      console.log('[StudentVideoCallPage] POPSTATE - Back navigation detected');
       event.preventDefault();
       event.stopPropagation();
       
@@ -122,7 +110,6 @@ function VideoCallContent() {
     window.addEventListener('unload', handleUnload, { capture: true });
     window.addEventListener('pagehide', handlePageHide, { capture: true });
     window.addEventListener('popstate', handlePopState, { capture: true });
-    // document.addEventListener('visibilitychange', handleVisibilityChange, { capture: true });
 
     // EXTRA: Watch for URL changes (Next.js routing)
     const originalPushState = history.pushState;
@@ -139,7 +126,7 @@ function VideoCallContent() {
     };
 
     return () => {
-      console.log('[VideoCallPage] Component unmounting - Final cleanup');
+      console.log('[StudentVideoCallPage] Component unmounting - Final cleanup');
       
       // Restore original history methods
       history.pushState = originalPushState;
@@ -150,14 +137,13 @@ function VideoCallContent() {
       window.removeEventListener('unload', handleUnload, { capture: true });
       window.removeEventListener('pagehide', handlePageHide, { capture: true });
       window.removeEventListener('popstate', handlePopState, { capture: true });
-      // document.removeEventListener('visibilitychange', handleVisibilityChange, { capture: true });
       
       nuclearCleanup();
     };
   }, [searchParams, router, nuclearCleanup]);
 
   const handleLeave = () => {
-    console.log('[VideoCallPage] Leave button clicked');
+    console.log('[StudentVideoCallPage] Leave button clicked');
     nuclearCleanup();
     setTimeout(() => {
       router.back();
@@ -169,9 +155,10 @@ function VideoCallContent() {
   }
 
   // Log the values being passed to VideoMeeting
-  console.log('[VideoCallPage] Rendering VideoMeeting with:', {
+  const userRole = searchParams.get('userRole') || 'Student';
+  console.log('[StudentVideoCallPage] Rendering VideoMeeting with:', {
     meetingUrl,
-    userRole: searchParams.get('userRole'),
+    userRole,
     token: searchParams.get('token')
   });
 
@@ -179,7 +166,7 @@ function VideoCallContent() {
     <div className="min-h-screen bg-gray-900">
       <VideoMeeting 
         url={meetingUrl} 
-        userRole={searchParams.get('userRole')} 
+        userRole={userRole} 
         token={searchParams.get('token')}
         onLeave={handleLeave} 
       />
@@ -188,10 +175,10 @@ function VideoCallContent() {
 }
 
 // Main component with Suspense boundary
-export default function VideoCallPage() {
+export default function StudentVideoCallPage() {
   return (
     <Suspense fallback={<LoadingSpinner />}>
       <VideoCallContent />
     </Suspense>
   );
-}
+} 

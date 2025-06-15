@@ -48,6 +48,14 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
     if (dailyRef.current) {
       try {
         console.log('[VideoMeeting] Destroying Daily.co instance...');
+        // Stop recording if it's active
+        if (isRecording) {
+          try {
+            await dailyRef.current.stopRecording();
+          } catch (error) {
+            console.warn('[VideoMeeting] Error stopping recording during cleanup:', error);
+          }
+        }
         // Fire and forget - don't await
         dailyRef.current.leave().catch(() => {});
         dailyRef.current.destroy().catch(() => {});
@@ -56,23 +64,39 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
       }
       dailyRef.current = null;
       setCallObject(null);
+      setIsRecording(false);
+      setDebugInfo(null);
     }
     
     console.log('[VideoMeeting] AGGRESSIVE CLEANUP COMPLETED');
-  }, []);
+  }, [isRecording]);
 
   // Enhanced recording functions with better debugging
   const checkRecordingCapability = useCallback(async () => {
-    if (!dailyRef.current) return false;
+    if (!dailyRef.current) {
+      console.log('[VideoMeeting] No Daily instance available for recording check');
+      return false;
+    }
     
     try {
-      // Get meeting session info
-      const meetingSession = dailyRef.current.meetingSession();
+      // First check if we're still in a meeting
+      const meetingState = dailyRef.current.meetingState();
+      if (meetingState !== 'joined-meeting') {
+        console.log('[VideoMeeting] Not in active meeting, state:', meetingState);
+        return false;
+      }
+
+      // Get participants info
       const participants = dailyRef.current.participants();
+      if (!participants || !participants.local) {
+        console.log('[VideoMeeting] No participants info available');
+        return false;
+      }
+
       const localParticipant = participants.local;
       
       console.log('[VideoMeeting] Recording capability check:', {
-        meetingSession,
+        meetingState,
         localParticipant: {
           user_name: localParticipant?.user_name,
           owner: localParticipant?.owner,
@@ -83,7 +107,7 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
       });
       
       setDebugInfo({
-        meetingSession,
+        meetingState,
         localParticipant,
         userRole,
         hasToken: !!token

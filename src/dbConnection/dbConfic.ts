@@ -38,7 +38,6 @@ export async function connect() {
       heartbeatFrequencyMS: 5000,       // Check server every 5 seconds
       
       // Performance Settings
-      bufferMaxEntries: 0,
       bufferCommands: false,
       
       // Reliability Settings
@@ -49,8 +48,6 @@ export async function connect() {
       // Additional stability settings
       maxConnecting: 2,             // Limit concurrent connections
       family: 4,                    // Force IPv4
-      keepAlive: true,
-      keepAliveInitialDelay: 300000, // 5 minutes
       
       // Auth settings
       authSource: 'admin',

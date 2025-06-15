@@ -47,12 +47,12 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           name: roomName,
-          privacy: "public", // Keep as public but use meeting tokens for access control
+          privacy: "public",
           properties: {
             exp: Math.round(Date.now() / 1000) + 86400,
             enable_chat: true,
             enable_screenshare: true,
-            enable_recording: "cloud", // This is correct for cloud recording
+            enable_recording: "cloud",
             start_audio_off: false,
             start_video_off: false,
             max_participants: 20,
@@ -61,15 +61,7 @@ export async function POST(request: NextRequest) {
             enable_network_ui: true,
             enable_people_ui: true,
             owner_only_broadcast: false,
-            // IMPORTANT: Add these for recording to work properly
-            start_cloud_recording: false, // Don't auto-start, let tutor control it
-            cloud_recording_config: {
-              // Optional: configure recording settings
-              recording_type: "cloud",
-              layout: {
-                preset: "default"
-              }
-            }
+            lang: "en"
           },
         }),
       });
@@ -109,7 +101,7 @@ export async function POST(request: NextRequest) {
       throw new Error("Meeting URL not received from Daily.co");
     }
 
-    // Create a meeting token for this user (IMPORTANT for multi-user support and recording)
+    // Create a meeting token for this user
     console.log("[Meeting API] Creating meeting token for user...");
     const tokenResponse = await fetch("https://api.daily.co/v1/meeting-tokens", {
       method: "POST",
@@ -123,19 +115,16 @@ export async function POST(request: NextRequest) {
           user_name: `${userRole}-${userId}`,
           exp: Math.round(Date.now() / 1000) + 86400,
           is_owner: userRole === 'Tutor',
-          // CRITICAL: These recording permissions must be set in the token
-          enable_recording: true, // Allow recording capability
-          start_cloud_recording: userRole === 'Tutor', // Only tutors can start recording
-          // Alternative approach - use 'recording' instead of 'enable_recording'
-          recording: userRole === 'Tutor' ? 'cloud' : false,
+          enable_recording: userRole === 'Tutor' ? "cloud" : false,
           enable_screenshare: true,
           start_audio_off: false,
           start_video_off: false,
-          // Additional permissions that may help
           permissions: {
-            canAdmin: userRole === 'Tutor',
             hasPresence: true,
-            canSend: true
+            canSend: true,
+            ...(userRole === 'Tutor' && {
+              canAdmin: true
+            })
           }
         },
       }),
@@ -159,11 +148,7 @@ export async function POST(request: NextRequest) {
             user_name: `${userRole}-${userId}`,
             exp: Math.round(Date.now() / 1000) + 86400,
             is_owner: userRole === 'Tutor',
-            // Simplified recording permission
-            ...(userRole === 'Tutor' && { 
-              enable_recording: 'cloud',
-              recording: 'cloud'
-            })
+            enable_recording: userRole === 'Tutor' ? "cloud" : false
           },
         }),
       });
@@ -200,17 +185,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("[Meeting API] Error details:", {
-      message: error.message,
-      stack: error.stack,
-      response: error.response?.data
-    });
-        
+    console.error("[Meeting API] Error:", error);
     return NextResponse.json(
-      {
-        error: error.message || "Failed to create meeting",
-        details: error.stack
-      },
+      { error: error.message || "Failed to create/join meeting", details: error.toString() },
       { status: 500 }
     );
   }
