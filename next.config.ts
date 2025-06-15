@@ -1,11 +1,22 @@
 import type { NextConfig } from "next";
-
 // Extend the experimental config type
 interface CustomExperimentalConfig {
   serverActions: {
     bodySizeLimit: string
   };
   missingSuspenseWithCSRBailout: boolean;
+}
+
+module.exports = {
+  api: {
+    bodyParser: {
+      sizeLimit: '500mb',
+    },
+    responseLimit: false,
+  },
+  experimental: {
+    serverTimeout: 600000, // 10 minutes for large uploads
+  }
 }
 
 interface CustomNextConfig extends Omit<NextConfig, 'experimental'> {

@@ -225,108 +225,175 @@ export default function Home() {
 </div>
 
 {/* Exclusive Benefits for Tutors */}
-      <div className="w-full text-gray-900 py-24 px-8 flex flex-col items-center text-center relative overflow-hidden">
-        {/* Background Image with Opacity */}
-        <div 
-          className="absolute inset-0 bg-cover bg-no-repeat"
-          style={{
-            backgroundImage: 'url("/bg1.png")',
-            opacity: 0.7
-          }}
-        />
-        {/* Optional: Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/10" />
-        
-        {/* Content - with relative positioning to stay above background */}
-        <div className="relative z-10 flex flex-col items-center text-center max-w-4xl">
-          <h2 className="heading-font text-3xl font-bold mb-8 text-orange-600" >
-            Exclusive Benefits for Tutors
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 w-full">
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-              <h3 className="heading-font font-semibold mb-3 text-gray-900">Enroll New Students</h3>
-              <p className="body-font text-gray-700">Enroll new students from Platform</p>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-              <h3 className="heading-font font-semibold mb-3 text-gray-900">Digital Administration</h3>
-              <p className="body-font text-gray-700">Digitalize Entire Administrative Tutor Tasks</p>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-              <h3 className="heading-font font-semibold mb-3 text-gray-900">AI Quality Metrics</h3>
-              <p className="body-font text-gray-700">AI Enabled Class Quality Metrics, Personalized Insights into Teaching Methodology</p>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-              <h3 className="heading-font font-semibold mb-3 text-gray-900">AI Tutor Support</h3>
-              <p className="body-font text-gray-700">AI Tutor driving engagement with students to practice</p>
-            </div>
+<div className="w-full flex flex-col lg:flex-row items-center relative overflow-hidden py-16 lg:py-0 lg:min-h-screen">
+  {/* Orange Semi-circle Background - Horizontal */}
+  <div className="absolute left-0 top-0 w-full h-full overflow-hidden">
+    <div 
+      className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-48 bg-orange-500 rounded-full opacity-15"
+      style={{ transform: 'translate(-50%, -50%) scale(3)' }}
+    />
+  </div>
+  
+  {/* Left Half - Image */}
+  <div className="w-full lg:w-1/2 h-64 lg:h-screen relative flex items-center justify-center mb-8 lg:mb-0">
+    <div 
+      className="w-full max-w-md lg:w-4/5 h-full lg:h-4/5 bg-cover bg-center bg-no-repeat rounded-2xl shadow-2xl"
+      style={{
+        backgroundImage: 'url("/tutor.png")',
+      }}
+    />
+  </div>
+  
+  {/* Right Half - Content */}
+  <div className="w-full lg:w-1/2 px-8 lg:px-12 relative z-10">
+    <div className="max-w-lg mx-auto lg:mx-0">
+      <h2 className="heading-font text-3xl lg:text-4xl font-bold mb-12 text-orange-600">
+        Exclusive Benefits for Tutors
+      </h2>
+      
+      <div className="space-y-6">
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span className="text-orange-600 text-lg">👥</span>
           </div>
-          
-          <a href="https://your-typeform-link-for-tutors.com" target="_blank" rel="noopener noreferrer">
-            <button className="px-8 py-3 bg-gray-50 text-gray-900 font-medium rounded-lg hover:bg-gray-200 transition body-font shadow-lg">
-              Express Interest
-            </button>
-          </a>
+          <div>
+            <h3 className="font-semibold mb-2 text-gray-900 text-lg">Enroll New Students</h3>
+            <p className="body-font text-gray-700">Enroll new students from Platform</p>
+          </div>
+        </div>
+        
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span className="text-orange-600 text-lg">💼</span>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2 text-gray-900 text-lg">Digital Administration</h3>
+            <p className="body-font text-gray-700">Digitalize Entire Administrative Tutor Tasks</p>
+          </div>
+        </div>
+        
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span className="text-orange-600 text-lg">📊</span>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2 text-gray-900 text-lg">AI Quality Metrics</h3>
+            <p className="body-font text-gray-700">AI Enabled Class Quality Metrics, Personalized Insights into Teaching Methodology</p>
+          </div>
+        </div>
+        
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span className="text-orange-600 text-lg">🤖</span>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2 text-gray-900 text-lg">AI Tutor Support</h3>
+            <p className="body-font text-gray-700">AI Tutor driving engagement with students to practice</p>
+          </div>
         </div>
       </div>
+      
+      <div className="mt-12">
+        <a href="https://your-typeform-link-for-tutors.com" target="_blank" rel="noopener noreferrer">
+          <button className="px-8 py-4 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition body-font shadow-lg">
+            Express Interest
+          </button>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
 
-      {/* Exclusive Benefits for Customers */}
-      <div className="w-full text-gray-900 py-24 px-8 flex flex-col items-center text-center relative overflow-hidden">
-        {/* Background Image with Opacity */}
-        <div 
-          className="absolute inset-0 bg-cover bg-no-repeat"
-          style={{
-            backgroundImage: 'url("/bg1.png")',
-            opacity: 0.7,
-            transform: 'scaleX(-1)'
-          }}
-        />
-        {/* Optional: Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/10" />
-        
-        {/* Content - with relative positioning to stay above background */}
-        <div className="relative z-10 flex flex-col items-center text-center max-w-4xl">
-          <h2 className="heading-font text-3xl font-bold mb-8 text-orange-600" >
-            Exclusive Benefits for Customers
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10 w-full">
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-              <h3 className="heading-font font-semibold mb-3 text-gray-900">Quality Tutor Discovery</h3>
-              <p className="body-font text-gray-700">Seamless Quality Tutor Discovery</p>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-              <h3 className="heading-font font-semibold mb-3 text-gray-900">Talent Assessment</h3>
-              <p className="body-font text-gray-700">1-1 Counsellor Session to identify Talent Areas</p>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-              <h3 className="heading-font font-semibold mb-3 text-gray-900">Performance Dashboard</h3>
-              <p className="body-font text-gray-700">Curriculum Visibility with Performance Dashboards</p>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200">
-              <h3 className="heading-font font-semibold mb-3 text-gray-900">AI Engagement Support</h3>
-              <p className="body-font text-gray-700">AI Tutor support on Engagement and Practice in between classes</p>
-            </div>
-            
-            <div className="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-gray-200 md:col-span-2">
-              <h3 className="heading-font font-semibold mb-3 text-gray-900">Quality Insights</h3>
-              <p className="body-font text-gray-700">AI driven class quality Insights ensuring high tutor delivery standards</p>
-            </div>
+{/* Exclusive Benefits for Customers */}
+<div className="w-full flex flex-col lg:flex-row-reverse items-center relative overflow-hidden py-16 lg:py-0 lg:min-h-screen bg-gray-50">
+  {/* Orange Semi-circle Background - Horizontal */}
+  <div className="absolute left-0 top-0 w-full h-full overflow-hidden">
+    <div 
+      className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-48 bg-orange-500 rounded-full opacity-15"
+      style={{ transform: 'translate(-50%, -50%) scale(3)' }}
+    />
+  </div>
+  
+  {/* Right Half - Image */}
+  <div className="w-full lg:w-1/2 h-64 lg:h-screen relative flex items-center justify-center mb-8 lg:mb-0">
+    <div 
+      className="w-full max-w-md lg:w-4/5 h-full lg:h-4/5 bg-cover bg-center bg-no-repeat rounded-2xl shadow-2xl"
+      style={{
+        backgroundImage: 'url("/parents.jpg")',
+        transform: 'scaleX(-1)'
+      }}
+    />
+  </div>
+  
+  {/* Left Half - Content */}
+  <div className="w-full lg:w-1/2 px-8 lg:px-12 relative z-10">
+    <div className="max-w-lg mx-auto lg:mx-0">
+      <h2 className="heading-font text-3xl lg:text-4xl font-bold mb-12 text-orange-600">
+        Exclusive Benefits for Customers
+      </h2>
+      
+      <div className="space-y-6">
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span className="text-orange-600 text-lg">🔍</span>
           </div>
-          
-          <a href="https://your-typeform-link-for-customers.com" target="_blank" rel="noopener noreferrer">
-            <button className="px-8 py-3 bg-gray-50 text-gray-900 font-medium rounded-lg hover:bg-gray-200 transition body-font shadow-lg">
-              Express Interest
-            </button>
-          </a>
+          <div>
+            <h3 className="font-semibold mb-2 text-gray-900 text-lg">Quality Tutor Discovery</h3>
+            <p className="body-font text-gray-700">Seamless Quality Tutor Discovery</p>
+          </div>
+        </div>
+        
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span className="text-orange-600 text-lg">🎯</span>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2 text-gray-900 text-lg">Talent Assessment</h3>
+            <p className="body-font text-gray-700">1-1 Counsellor Session to identify Talent Areas</p>
+          </div>
+        </div>
+        
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span className="text-orange-600 text-lg">📈</span>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2 text-gray-900 text-lg">Performance Dashboard</h3>
+            <p className="body-font text-gray-700">Curriculum Visibility with Performance Dashboards</p>
+          </div>
+        </div>
+        
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span className="text-orange-600 text-lg">🎓</span>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2 text-gray-900 text-lg">AI Engagement Support</h3>
+            <p className="body-font text-gray-700">AI Tutor support on Engagement and Practice in between classes</p>
+          </div>
+        </div>
+        
+        <div className="flex items-start space-x-4">
+          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+            <span className="text-orange-600 text-lg">⭐</span>
+          </div>
+          <div>
+            <h3 className="font-semibold mb-2 text-gray-900 text-lg">Quality Insights</h3>
+            <p className="body-font text-gray-700">AI driven class quality Insights ensuring high tutor delivery standards</p>
+          </div>
         </div>
       </div>
+      
+      <div className="mt-12">
+        <a href="https://your-typeform-link-for-customers.com" target="_blank" rel="noopener noreferrer">
+          <button className="px-8 py-4 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition body-font shadow-lg">
+            Express Interest
+          </button>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
 
       
 

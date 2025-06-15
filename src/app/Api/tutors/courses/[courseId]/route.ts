@@ -12,7 +12,7 @@ export async function GET(
   await connect(); // Ensure database connection
 
   try {
-    const courseId = params.courseId;
+    const courseId = await params.courseId;
     console.log("courseId:", courseId);
 
     if (!courseId) {
