@@ -168,13 +168,22 @@ function VideoCallContent() {
     return <LoadingSpinner />;
   }
 
+  // Log the values being passed to VideoMeeting
+  console.log('[VideoCallPage] Rendering VideoMeeting with:', {
+    meetingUrl,
+    userRole: searchParams.get('userRole'),
+    token: searchParams.get('token')
+  });
+
   return (
     <div className="min-h-screen bg-gray-900">
-<VideoMeeting 
-  url={meetingUrl} 
-  userRole={searchParams.get('userRole')} 
-  onLeave={handleLeave} 
-/>    </div>
+      <VideoMeeting 
+        url={meetingUrl} 
+        userRole={searchParams.get('userRole')} 
+        token={searchParams.get('token')}
+        onLeave={handleLeave} 
+      />
+    </div>
   );
 }
 
