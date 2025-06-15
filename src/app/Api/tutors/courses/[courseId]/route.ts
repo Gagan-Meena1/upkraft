@@ -4,15 +4,12 @@ import courseName from "@/models/courseName";
 import Class from "@/models/Class";
 
 // Type assertion approach using generic Next.js types
-export async function GET(
-  request: NextRequest,
-  // This approach uses type assertion but keeps the type safety
-  { params }: { params: Record<string, string> }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ courseId: string }> }) {
+
   await connect(); // Ensure database connection
 
   try {
-    const courseId = await params.courseId;
+    const {courseId} = await params;
     console.log("courseId:", courseId);
 
     if (!courseId) {
