@@ -11,7 +11,7 @@ export default function Home() {
  const features = [
   {
     title: "Scientific Talent Assessment",
-    description: "Discover your musical DNA through AI-powered 1-on-1 counseling sessions that scientifically identify your natural talent areas and optimal learning pathways.",
+    description: "Discover your musical DNA through AI-powered 1-on-1 counseling sessions that scientifically identify your natural talent areas and optimal learning pathways .",
     icon: "🎯"
   },
   {
