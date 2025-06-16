@@ -55,7 +55,7 @@ async function ensureConnection(): Promise<void> {
   }
 
   // Establish new connection with timeout options
-  await mongoose.connect(process.env.MONGODB_URI!, MONGO_OPTIONS);
+  await mongoose.connect(process.env.MONGO_URL!, MONGO_OPTIONS);
   
   // Verify connection
   await mongoose.connection.db!.admin().ping();
@@ -79,7 +79,7 @@ async function getGridFSBucket(): Promise<GridFSBucket> {
       
       // Create GridFS bucket with optimized settings for large files
       return new GridFSBucket(mongoose.connection.db, {
-        bucketName: 'videos',
+        bucketName: 'videos_bucket',
         chunkSizeBytes: 1024 * 1024, // 1MB chunks for better network handling
         writeConcern: { w: 'majority', j: true, wtimeout: 30000 }
       });
@@ -242,7 +242,7 @@ async function uploadWithRetry(
           // Wait a moment for any pending operations
           await sleep(1000);
           
-          const filesCollection = mongoose.connection.db!.collection('videos.files');
+          const filesCollection = mongoose.connection.db!.collection('videos_bucket.files');
           const fileExists = await filesCollection.findOne({ _id: uploadStream.id });
           
           if (fileExists) {
@@ -324,9 +324,18 @@ export async function POST(req: NextRequest) {
     // Parse and validate form data
     const formData = await req.formData();
     const videoFile = formData.get("video") as File | null;
+    const videoType = formData.get("videoType") as string || "recording"; // Default to recording
     
     if (!videoFile) {
       return NextResponse.json({ error: "No video file provided" }, { status: 400 });
+    }
+    
+    // Validate video type
+    if (!["recording", "performance"].includes(videoType)) {
+      return NextResponse.json({ 
+        error: "Invalid video type",
+        details: "Video type must be either 'recording' or 'performance'"
+      }, { status: 400 });
     }
     
     // Enhanced file validation
@@ -353,18 +362,20 @@ export async function POST(req: NextRequest) {
     }
     
     console.log(`File validated: ${videoFile.name} (${Math.round(videoFile.size / 1024 / 1024)}MB, ${videoFile.type})`);
+    console.log(`Video type: ${videoType}`);
     
     // Get GridFS bucket with enhanced error handling
     const bucket = await getGridFSBucket();
     
-    // Background cleanup of existing recording
-    if (classRecord.recordingFileId) {
+    // Background cleanup of existing video based on type
+    const existingFileId = videoType === "recording" ? classRecord.recording : classRecord.performanceVideo;
+    if (existingFileId) {
       setImmediate(async () => {
         try {
-          await bucket.delete(new ObjectId(classRecord.recordingFileId));
-          console.log(`Previous recording deleted: ${classRecord.recordingFileId}`);
+          await bucket.delete(new ObjectId(existingFileId));
+          console.log(`Previous ${videoType} deleted: ${existingFileId}`);
         } catch (error) {
-          console.warn("Could not delete existing recording:", error);
+          console.warn(`Could not delete existing ${videoType}:`, error);
         }
       });
     }
@@ -372,7 +383,7 @@ export async function POST(req: NextRequest) {
     // Generate unique filename with timestamp
     const timestamp = Date.now();
     const sanitizedName = videoFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const uniqueFilename = `recording-${classId}-${timestamp}-${sanitizedName}`;
+    const uniqueFilename = `${videoType}-${classId}-${timestamp}-${sanitizedName}`;
     
     console.log(`Starting upload with filename: ${uniqueFilename}`);
     
@@ -383,25 +394,33 @@ export async function POST(req: NextRequest) {
       mimeType: videoFile.type,
       uploadDate: new Date(),
       fileSize: videoFile.size,
-      fileType: 'recording',
+      fileType: videoType,
       version: '2.0'
     });
     
-    // Update database record with retry
+    // Update database record with retry based on video type
     try {
+      const updateFields: any = {};
+      
+      if (videoType === "recording") {
+        updateFields.recording = new ObjectId(fileId);
+        updateFields.recordingFileName = uniqueFilename;
+      } else if (videoType === "performance") {
+        updateFields.performanceVideo = new ObjectId(fileId);
+        updateFields.performanceVideoFileName = uniqueFilename;
+      }
+      
       await Class.findByIdAndUpdate(
         classId,
-        {
-          recordingFileId: fileId,
-          recordingFileName: uniqueFilename,
-          recordingUploadDate: new Date()
-        },
+        updateFields,
         { new: true }
       );
+      
+      console.log(`Database updated successfully for ${videoType} video`);
     } catch (updateError) {
       console.error('Database update failed:', updateError);
       // Upload succeeded but DB update failed - log but don't fail the request
-      console.warn('Upload completed but could not update class record');
+      console.warn(`Upload completed but could not update class record for ${videoType}`);
     }
     
     const duration = Date.now() - startTime;
@@ -411,9 +430,10 @@ export async function POST(req: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      message: "Recording uploaded successfully to GridFS",
+      message: `${videoType.charAt(0).toUpperCase() + videoType.slice(1)} uploaded successfully to GridFS`,
       fileId: fileId,
       fileName: uniqueFilename,
+      videoType: videoType,
       fileSize: `${Math.round(videoFile.size / 1024 / 1024)}MB`,
       uploadTime: `${durationSeconds}s`,
       uploadSpeed: `${Math.round((videoFile.size / 1024 / 1024) / (duration / 1000))}MB/s`

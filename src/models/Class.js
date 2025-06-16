@@ -39,9 +39,16 @@ const ClassSchema = new mongoose.Schema({
     required: true 
   },
 
-  recordingFileId: String,        // GridFS file ID
+  recording:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "GridFSFile" // Reference to GridFS file
+
+  }  ,
   recordingFileName: String,      // Original filename
-  performanceVideoFileId: String, // GridFS file ID
+  performanceVideo:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "GridFSFile" // Reference to GridFS file
+  }, 
   performanceVideoFileName: String, // Original filename
   
 }, {
