@@ -38,7 +38,7 @@ export async function connect() {
       heartbeatFrequencyMS: 5000,       // Check server every 5 seconds
       
       // Performance Settings
-      bufferCommands: false,
+      bufferCommands: true,
       
       // Reliability Settings
       retryWrites: true,
