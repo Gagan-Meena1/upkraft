@@ -164,7 +164,7 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
       console.error('[VideoMeeting] Recording failed:', error);
       const errorMsg = error.message || error.toString();
       
-      // Enhanced error handling with specific messages
+      // Enhanced error handling
       let userFriendlyError = errorMsg;
       if (errorMsg.includes('not enabled')) {
         userFriendlyError = 'Recording is not enabled for this meeting. Please check your permissions.';
