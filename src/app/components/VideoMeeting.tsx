@@ -71,42 +71,91 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
     }
   }, [userRole, token]);
 
-  const cleanup = useCallback(async () => {
-    console.log('[VideoMeeting] AGGRESSIVE CLEANUP INITIATED');
-    
-    // IMMEDIATELY remove all iframes - don't wait for Daily.co
-    document.querySelectorAll('iframe').forEach(el => {
-      console.log('[VideoMeeting] Force removing iframe:', el.src);
-      el.remove();
+  const startRecording = useCallback(async () => {
+    console.log('[VideoMeeting] Starting recording...', { 
+      dailyRef: !!dailyRef.current, 
+      userRole 
     });
     
-    // Remove Daily.co specific elements
-    document.querySelectorAll('[data-daily-js], [data-daily], .daily-js-frame').forEach(el => {
-      console.log('[VideoMeeting] Removing Daily element');
-      el.remove();
-    });
-    
-    // Reset body and html styles
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.documentElement.style.overflow = '';
-    
-    // Clean up Daily.co instance (but don't wait for it)
-    if (dailyRef.current) {
-      try {
-        console.log('[VideoMeeting] Destroying Daily.co instance...');
-        // Fire and forget - don't await
-        dailyRef.current.leave().catch(() => {});
-        dailyRef.current.destroy().catch(() => {});
-      } catch (error) {
-        console.error('[VideoMeeting] Daily cleanup error:', error);
-      }
-      dailyRef.current = null;
-      setCallObject(null);
-      setDebugInfo(null);
+    if (!dailyRef.current) {
+      console.error('[VideoMeeting] No Daily instance available');
+      setRecordingError('Video call not connected');
+      return;
     }
     
-    console.log('[VideoMeeting] AGGRESSIVE CLEANUP COMPLETED');
+    try {
+      setRecordingError(null);
+      
+      // Check recording capability first
+      await checkRecordingCapability();
+      
+      console.log('[VideoMeeting] Attempting to start cloud recording...');
+      
+      // Try different recording methods
+      let result;
+      
+      // Method 1: Try with explicit cloud recording
+      try {
+        result = await dailyRef.current.startRecording({
+          type: 'cloud'
+        });
+        console.log('[VideoMeeting] Cloud recording started with type:', result);
+      } catch (cloudError) {
+        console.log('[VideoMeeting] Cloud recording with type failed, trying simple method...', cloudError);
+        
+        // Method 2: Try simple startRecording
+        result = await dailyRef.current.startRecording();
+        console.log('[VideoMeeting] Simple recording started:', result);
+      }
+      
+      setIsRecording(true);
+      setRecordingError(null);
+      
+    } catch (error: any) {
+      console.error('[VideoMeeting] Recording failed:', error);
+      const errorMsg = error.message || error.toString();
+      
+      // Enhanced error handling with specific messages
+      let userFriendlyError = errorMsg;
+      if (errorMsg.includes('not enabled')) {
+        userFriendlyError = 'Recording is not enabled for this meeting. Please check your permissions.';
+      } else if (errorMsg.includes('permission')) {
+        userFriendlyError = 'You do not have permission to record this meeting.';
+      } else if (errorMsg.includes('already recording')) {
+        userFriendlyError = 'Recording is already in progress.';
+        setIsRecording(true);
+        return;
+      }
+      
+      setRecordingError(userFriendlyError);
+      alert(`Recording failed: ${userFriendlyError}`);
+    }
+  }, [userRole, checkRecordingCapability]);
+
+  const stopRecording = useCallback(async () => {
+    console.log('[VideoMeeting] Stopping recording...');
+    
+    if (!dailyRef.current) {
+      console.error('[VideoMeeting] No Daily instance available');
+      return;
+    }
+    
+    try {
+      setRecordingError(null);
+      
+      console.log('[VideoMeeting] Calling Daily stopRecording...');
+      const result = await dailyRef.current.stopRecording();
+      console.log('[VideoMeeting] Recording stopped successfully:', result);
+      
+      setIsRecording(false);
+      
+    } catch (error: any) {
+      console.error('[VideoMeeting] Stop recording failed:', error);
+      const errorMsg = error.message || error.toString();
+      setRecordingError(`Failed to stop recording: ${errorMsg}`);
+      
+      alert(`Stop recording failed: ${errorMsg}`);
+    }
   }, []);
 
   useEffect(() => {
