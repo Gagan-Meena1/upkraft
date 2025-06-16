@@ -16,13 +16,60 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
   const [callObject, setCallObject] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingError, setRecordingError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<string>('Waiting to initialize...');
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const initializingRef = useRef(false);
   const dailyRef = useRef<any>(null);
   const mountedRef = useRef(false);
+
+  // Check debug info capability
+  const checkDebugInfo = useCallback(async () => {
+    if (!dailyRef.current) {
+      console.log('[VideoMeeting] No Daily instance available for debug check');
+      return false;
+    }
+    
+    try {
+      // First check if we're still in a meeting
+      const meetingState = dailyRef.current.meetingState();
+      if (meetingState !== 'joined-meeting') {
+        console.log('[VideoMeeting] Not in active meeting, state:', meetingState);
+        return false;
+      }
+
+      // Get participants info
+      const participants = dailyRef.current.participants();
+      if (!participants || !participants.local) {
+        console.log('[VideoMeeting] No participants info available');
+        return false;
+      }
+
+      const localParticipant = participants.local;
+      
+      console.log('[VideoMeeting] Debug info check:', {
+        meetingState,
+        localParticipant: {
+          user_name: localParticipant?.user_name,
+          owner: localParticipant?.owner,
+          permissions: localParticipant?.permissions
+        },
+        userRole,
+        hasToken: !!token
+      });
+      
+      setDebugInfo({
+        meetingState,
+        localParticipant,
+        userRole,
+        hasToken: !!token
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('[VideoMeeting] Error checking debug info:', error);
+      return false;
+    }
+  }, [userRole, token]);
 
   const cleanup = useCallback(async () => {
     console.log('[VideoMeeting] AGGRESSIVE CLEANUP INITIATED');
@@ -48,14 +95,6 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
     if (dailyRef.current) {
       try {
         console.log('[VideoMeeting] Destroying Daily.co instance...');
-        // Stop recording if it's active
-        if (isRecording) {
-          try {
-            await dailyRef.current.stopRecording();
-          } catch (error) {
-            console.warn('[VideoMeeting] Error stopping recording during cleanup:', error);
-          }
-        }
         // Fire and forget - don't await
         dailyRef.current.leave().catch(() => {});
         dailyRef.current.destroy().catch(() => {});
@@ -64,147 +103,10 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
       }
       dailyRef.current = null;
       setCallObject(null);
-      setIsRecording(false);
       setDebugInfo(null);
     }
     
     console.log('[VideoMeeting] AGGRESSIVE CLEANUP COMPLETED');
-  }, [isRecording]);
-
-  // Enhanced recording functions with better debugging
-  const checkRecordingCapability = useCallback(async () => {
-    if (!dailyRef.current) {
-      console.log('[VideoMeeting] No Daily instance available for recording check');
-      return false;
-    }
-    
-    try {
-      // First check if we're still in a meeting
-      const meetingState = dailyRef.current.meetingState();
-      if (meetingState !== 'joined-meeting') {
-        console.log('[VideoMeeting] Not in active meeting, state:', meetingState);
-        return false;
-      }
-
-      // Get participants info
-      const participants = dailyRef.current.participants();
-      if (!participants || !participants.local) {
-        console.log('[VideoMeeting] No participants info available');
-        return false;
-      }
-
-      const localParticipant = participants.local;
-      
-      console.log('[VideoMeeting] Recording capability check:', {
-        meetingState,
-        localParticipant: {
-          user_name: localParticipant?.user_name,
-          owner: localParticipant?.owner,
-          permissions: localParticipant?.permissions
-        },
-        userRole,
-        hasToken: !!token
-      });
-      
-      setDebugInfo({
-        meetingState,
-        localParticipant,
-        userRole,
-        hasToken: !!token
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('[VideoMeeting] Error checking recording capability:', error);
-      return false;
-    }
-  }, [userRole, token]);
-
-  const startRecording = useCallback(async () => {
-    console.log('[VideoMeeting] Starting recording...', { 
-      dailyRef: !!dailyRef.current, 
-      userRole 
-    });
-    
-    if (!dailyRef.current) {
-      console.error('[VideoMeeting] No Daily instance available');
-      setRecordingError('Video call not connected');
-      return;
-    }
-    
-    try {
-      setRecordingError(null);
-      
-      // Check recording capability first
-      await checkRecordingCapability();
-      
-      console.log('[VideoMeeting] Attempting to start cloud recording...');
-      
-      // Try different recording methods
-      let result;
-      
-      // Method 1: Try with explicit cloud recording
-      try {
-        result = await dailyRef.current.startRecording({
-          type: 'cloud'
-        });
-        console.log('[VideoMeeting] Cloud recording started with type:', result);
-      } catch (cloudError) {
-        console.log('[VideoMeeting] Cloud recording with type failed, trying simple method...', cloudError);
-        
-        // Method 2: Try simple startRecording
-        result = await dailyRef.current.startRecording();
-        console.log('[VideoMeeting] Simple recording started:', result);
-      }
-      
-      setIsRecording(true);
-      setRecordingError(null);
-      
-    } catch (error: any) {
-      console.error('[VideoMeeting] Recording failed:', error);
-      const errorMsg = error.message || error.toString();
-      
-      // Enhanced error handling with specific messages
-      let userFriendlyError = errorMsg;
-      if (errorMsg.includes('not enabled')) {
-        userFriendlyError = 'Recording is not enabled for this meeting. Please check your permissions.';
-      } else if (errorMsg.includes('permission')) {
-        userFriendlyError = 'You do not have permission to record this meeting.';
-      } else if (errorMsg.includes('already recording')) {
-        userFriendlyError = 'Recording is already in progress.';
-        setIsRecording(true);
-        return;
-      }
-      
-      setRecordingError(userFriendlyError);
-      alert(`Recording failed: ${userFriendlyError}`);
-    }
-  }, [userRole, checkRecordingCapability]);
-
-  const stopRecording = useCallback(async () => {
-    console.log('[VideoMeeting] Stopping recording...');
-    
-    if (!dailyRef.current) {
-      console.error('[VideoMeeting] No Daily instance available');
-      return;
-    }
-    
-    try {
-      setRecordingError(null);
-      
-      console.log('[VideoMeeting] Calling Daily stopRecording...');
-      const result = await dailyRef.current.stopRecording();
-      console.log('[VideoMeeting] Recording stopped successfully:', result);
-      
-      setIsRecording(false);
-      
-    } catch (error: any) {
-      console.error('[VideoMeeting] Stop recording failed:', error);
-      const errorMsg = error.message || error.toString();
-      setRecordingError(`Failed to stop recording: ${errorMsg}`);
-      
-      alert(`Stop recording failed: ${errorMsg}`);
-    }
   }, []);
 
   useEffect(() => {
@@ -231,7 +133,7 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
         
         const callFrame = Daily.createFrame({
           url,
-          showLeaveButton: false,
+          showLeaveButton: true, // Enable Daily.co's native leave button
           showFullscreenButton: true,
           iframeStyle: {
             position: 'fixed',
@@ -263,27 +165,13 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
             setCallObject(callFrame);
             setIsLoading(false);
             
-            // Check recording capability after joining
+            // Check debug info after joining
             setTimeout(() => {
-              checkRecordingCapability();
+              checkDebugInfo();
             }, 2000);
           })
-          .on('recording-started', (event) => {
-            console.log('[VideoMeeting] Recording started event:', event);
-            setIsRecording(true);
-            setRecordingError(null);
-          })
-          .on('recording-stopped', (event) => {
-            console.log('[VideoMeeting] Recording stopped event:', event);
-            setIsRecording(false);
-          })
-          .on('recording-error', (event: any) => {
-            console.error('[VideoMeeting] Recording error event:', event);
-            setRecordingError(`Recording error: ${event.errorMsg}`);
-            setIsRecording(false);
-          })
           .on('left-meeting', () => {
-            console.log('[VideoMeeting] Left meeting');
+            console.log('[VideoMeeting] Left meeting via Daily.co leave button');
             cleanup();
             onLeave?.();
           })
@@ -332,7 +220,7 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       cleanup();
     };
-  }, [url, cleanup, onLeave, checkRecordingCapability]);
+  }, [url, cleanup, onLeave, checkDebugInfo]);
 
   if (error) {
     return (
@@ -377,6 +265,7 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
     );
   }
 
+  // Return the debug panel for tutors, otherwise just the video call interface
   return (
     <>
       {/* Debug info panel - only show for tutors */}
@@ -388,52 +277,6 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
           <div>User: {debugInfo.localParticipant?.user_name}</div>
         </div>
       )}
-      
-      {/* Error message */}
-      {recordingError && (
-        <div className="fixed top-4 right-4 bg-red-600 text-white p-3 rounded max-w-sm text-sm z-30">
-          {recordingError}
-          <button 
-            onClick={() => setRecordingError(null)}
-            className="ml-2 text-red-200 hover:text-white"
-          >
-            ✕
-          </button>
-        </div>
-      )}
-      
-      {/* Control buttons */}
-      <div className="fixed bottom-4 right-4 z-20 flex gap-2">
-        {userRole?.toLowerCase() === 'tutor' && (
-          <>
-            <button
-              onClick={checkRecordingCapability}
-              className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors shadow-lg text-sm"
-            >
-              Check Recording
-            </button>
-            <button
-              onClick={isRecording ? stopRecording : startRecording}
-              className={`px-4 py-2 rounded-lg transition-colors shadow-lg ${
-                isRecording 
-                  ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {isRecording ? '⏹️ Stop Recording' : '🔴 Start Recording'}
-            </button>
-          </>
-        )}
-        <button
-          onClick={() => {
-            cleanup();
-            onLeave?.();
-          }}
-          className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-lg"
-        >
-          Leave Meeting
-        </button>
-      </div>
     </>
   );
 }
