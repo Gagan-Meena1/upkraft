@@ -17,6 +17,8 @@ export async function POST(request : NextRequest ){
         //  validation
         console.log(reqBody);
 
+        const normalizedEmail = email.toLowerCase();
+
         const token = request.cookies.get("token")?.value;
         const decodedToken = token ? jwt.decode(token) : null;
         const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
@@ -25,7 +27,7 @@ export async function POST(request : NextRequest ){
 
       
          // Check if user with the same email already exists
-        const userByEmail = await User.findOne({ email });
+        const userByEmail = await User.findOne({ email: { $regex: `^${normalizedEmail}$`, $options: 'i' } });
         if (userByEmail) {
             console.log("print 2");
 
@@ -50,7 +52,7 @@ export async function POST(request : NextRequest ){
         const address = "";
        const newUser= new User({
             username,
-            email,
+            email: normalizedEmail,
             password:hashedPassword,
             category,
             age,

@@ -19,10 +19,7 @@ export async function POST(request : NextRequest ){
 
         console.log("email : " ,email)
         const user = await User.findOne({
-          $or: [
-            { email: email },
-            { email: emailLowerCase }
-          ]
+          email: { $regex: `^${email}$`, $options: 'i' }
         });
         
         console.log("User found", user);
