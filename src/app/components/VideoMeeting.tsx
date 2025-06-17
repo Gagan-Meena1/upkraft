@@ -264,21 +264,6 @@ function VideoMeeting({ url, token, userRole, onLeave }: VideoMeetingProps) {
       </div>
     );
   }
-
-  // Return the debug panel for tutors, otherwise just the video call interface
-  return (
-    <>
-      {/* Debug info panel - only show for tutors */}
-      {userRole?.toLowerCase() === 'tutor' && debugInfo && (
-        <div className="fixed top-4 left-4 bg-black bg-opacity-75 text-white p-2 rounded text-xs max-w-xs z-30">
-          <div>Role: {userRole}</div>
-          <div>Token: {token ? 'Yes' : 'No'}</div>
-          <div>Owner: {debugInfo.localParticipant?.owner ? 'Yes' : 'No'}</div>
-          <div>User: {debugInfo.localParticipant?.user_name}</div>
-        </div>
-      )}
-    </>
-  );
 }
 
 export default dynamic(() => Promise.resolve(VideoMeeting), { ssr: false });

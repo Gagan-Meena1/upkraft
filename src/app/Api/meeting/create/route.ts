@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
             exp: Math.round(Date.now() / 1000) + 86400,
             enable_chat: true,
             enable_screenshare: true,
-            enable_recording: "cloud",
+            enable_recording: "local",
             start_audio_off: false,
             start_video_off: false,
             max_participants: 20,
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
           user_name: `${userRole}-${userId}`,
           exp: Math.round(Date.now() / 1000) + 86400,
           is_owner: userRole === 'Tutor',
-          enable_recording: userRole === 'Tutor' ? "cloud" : false,
+          enable_recording: userRole === 'Tutor' ? "local" : false,
           enable_screenshare: true,
           start_audio_off: false,
           start_video_off: false,
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
             user_name: `${userRole}-${userId}`,
             exp: Math.round(Date.now() / 1000) + 86400,
             is_owner: userRole === 'Tutor',
-            enable_recording: userRole === 'Tutor' ? "cloud" : false
+            enable_recording: userRole === 'Tutor' ? "local" : false
           },
         }),
       });
