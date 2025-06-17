@@ -374,7 +374,7 @@ export default function Home() {
                   <span className="text-[#ff8d57] text-lg">📈</span>
                 </div>
                 <div>
-                  <h3 className="heading-tertiary text-lg mb-2">Performance Dashboard</h3>
+                  <h3 className="heading-tertiary text-lg mb-2">Competition Ready</h3>
                   <p className="body-text">Curriculum Visibility with Performance Dashboards</p>
                 </div>
               </div>
@@ -416,7 +416,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <h2 className="heading-primary text-4xl lg:text-5xl mb-6">
             <span>Ready to Transform Your </span>
-            <span className="accent">Musical Journey</span>
+            <span className="accent">Extracurricular Journey</span>
             <span>?</span>
           </h2>
           <p className="body-text text-lg lg:text-xl mb-12 max-w-3xl mx-auto leading-relaxed">

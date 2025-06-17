@@ -124,7 +124,7 @@ export default function Chat() {
         <div className="absolute bottom-16 right-0 w-80 bg-white rounded-lg shadow-xl border border-gray-200">
           {/* Chat Header */}
           <div className="bg-orange-500 p-4 rounded-t-lg">
-            <h3 className="font-bold text-xl" style={{ color: '#ffffff' }}>Chat Support</h3>
+            <h3 className="font-bold text-xl" style={{ color: '#ffffff' }}>AI Chat Support</h3>
           </div>
 
           {/* Messages Container */}
