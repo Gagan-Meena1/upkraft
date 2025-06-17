@@ -106,17 +106,35 @@ export default function Chat() {
       {/* Chat Icon */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-orange-500 hover:bg-orange-600 text-white rounded-full p-4 shadow-lg transition-all duration-200 ease-in-out"
+        className="relative bg-orange-500 hover:bg-orange-600 text-white rounded-full p-4 shadow-lg transition-all duration-200 ease-in-out ai-chat-icon"
+        aria-label="Open AI Chat Support"
       >
-        {isOpen ? (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-          </svg>
-        )}
+        {/* AI Chat Icon with Glow and Badge */}
+        <span className="absolute -top-1 -right-1 bg-white text-orange-500 text-xs font-bold rounded-full px-2 py-0.5 shadow-md border border-orange-500 z-10" style={{letterSpacing: '1px'}}>AI</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 40 40"
+          fill="none"
+          className="w-8 h-8"
+        >
+          {/* Chat bubble */}
+          <ellipse cx="20" cy="22" rx="15" ry="12" fill="#fff" stroke="#fb923c" strokeWidth="2.5" />
+          <path d="M12 32c0-2 2-2 4-2h8c2 0 4 0 4 2v2c0 1-1 2-2 2H14c-1 0-2-1-2-2v-2z" fill="#fb923c" opacity="0.15" />
+          {/* Robot face */}
+          <g>
+            {/* Antenna */}
+            <rect x="18.7" y="8" width="2.6" height="6" rx="1.3" fill="#fb923c" />
+            <circle cx="20" cy="7" r="1.3" fill="#fb923c" />
+            {/* Face outline */}
+            <ellipse cx="20" cy="20" rx="7" ry="6" fill="#fff" stroke="#fb923c" strokeWidth="1.5" />
+            {/* Eyes */}
+            <circle cx="17.5" cy="20" r="1.2" fill="#fb923c" />
+            <circle cx="22.5" cy="20" r="1.2" fill="#fb923c" />
+            {/* Smile */}
+            <path d="M18 23c1.2 1 2.8 1 4 0" stroke="#fb923c" strokeWidth="1.1" strokeLinecap="round" fill="none" />
+          </g>
+        </svg>
+        {/* Glow effect handled by CSS below */}
       </button>
 
       {/* Chat Interface */}
@@ -210,6 +228,19 @@ export default function Chat() {
         @keyframes bounce {
           0%, 80%, 100% { transform: scale(0); }
           40% { transform: scale(1); }
+        }
+        /* AI Chat Icon Glow */
+        .ai-chat-icon {
+          box-shadow: 0 0 0 0 #fb923c, 0 0 16px 4px #fb923c44;
+          animation: ai-glow 2s infinite alternate;
+        }
+        @keyframes ai-glow {
+          0% {
+            box-shadow: 0 0 0 0 #fb923c, 0 0 16px 4px #fb923c44;
+          }
+          100% {
+            box-shadow: 0 0 0 4px #fb923c55, 0 0 32px 8px #fb923c66;
+          }
         }
       `}</style>
     </div>
