@@ -3,10 +3,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import Chat from './components/Chat';
+import ExpressInterestModal from './components/ExpressInterestModal';
+import CustomerInterestModal from './components/CustomerInterestModal';
 
 export default function Home() {
   const [activeCard, setActiveCard] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
 
  const features = [
   {
@@ -305,11 +309,13 @@ export default function Home() {
             </div>
             
             <div className="mt-12">
-              <a href="https://your-typeform-link-for-tutors.com" target="_blank" rel="noopener noreferrer">
-                <button className="px-8 py-4 bg-[#ff8d57] text-white font-medium rounded-lg hover:bg-orange-700 transition body-text-semibold shadow-lg">
-                  Express Interest
-                </button>
-              </a>
+              <button
+                className="px-8 py-4 bg-[#ff8d57] text-white font-medium rounded-lg hover:bg-orange-700 transition body-text-semibold shadow-lg"
+                onClick={() => setIsModalOpen(true)}
+              >
+                Express Interest
+              </button>
+              <ExpressInterestModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
             </div>
           </div>
         </div>
@@ -401,11 +407,13 @@ export default function Home() {
             </div>
             
             <div className="mt-12">
-              <a href="https://your-typeform-link-for-customers.com" target="_blank" rel="noopener noreferrer">
-                <button className="px-8 py-4 bg-[#ff8d57] text-white font-medium rounded-lg hover:bg-orange-700 transition body-text-semibold shadow-lg">
-                  Express Interest
-                </button>
-              </a>
+              <button
+                className="px-8 py-4 bg-[#ff8d57] text-white font-medium rounded-lg hover:bg-orange-700 transition body-text-semibold shadow-lg"
+                onClick={() => setIsCustomerModalOpen(true)}
+              >
+                Express Interest
+              </button>
+              <CustomerInterestModal isOpen={isCustomerModalOpen} onClose={() => setIsCustomerModalOpen(false)} />
             </div>
           </div>
         </div>
