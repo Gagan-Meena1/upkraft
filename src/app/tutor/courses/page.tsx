@@ -175,7 +175,7 @@ export default function TutorCoursesPage() {
                   className="flex-1 whitespace-nowrap px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors inline-flex items-center justify-center gap-2 text-sm font-medium"
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Class Quality
+                  Course Quality
                 </Link>
                 
                 <button
