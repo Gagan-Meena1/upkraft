@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Clock, BookOpen, MessageCircle, Video, Upload, FileText, IndianRupee } from 'lucide-react';
+import { ChevronLeft, Clock, BookOpen, MessageCircle, Video, Upload, FileText, IndianRupee, BarChart3 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
 
@@ -291,6 +291,17 @@ export default function CourseDetailsPage() {
                         onChange={(e) => handleFileChange(classSession._id, e)}
                       />
 
+                      {/* Class Quality button */}
+                      {classSession.recording && (
+                        <Link 
+                          href={`/tutor/classQuality/${classSession._id}`}
+                          className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center text-sm"
+                        >
+                          <BarChart3 className="mr-1" size={16} />
+                          Class Quality
+                        </Link>
+                      )}
+
                       {/* Upload Recording button */}
                       <button
                         onClick={() => triggerFileInput(classSession._id)}
@@ -304,20 +315,6 @@ export default function CourseDetailsPage() {
                         <Upload className="mr-1" size={16} />
                         {isUploading ? 'Uploading...' : (classSession.recording ? 'Replace Recording' : 'Upload Recording')}
                       </button>
-
-                      {/* Watch Recording button */}
-                      {classSession.recording && (
-                        <a 
-                          href={`/Api/videos/${classSession.recording}`} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center text-sm"
-                          title={classSession.recordingFileName || 'Watch Recording'}
-                        >
-                          <Video className="mr-1" size={16} />
-                          Watch Recording
-                        </a>
-                      )}
 
                       {/* Assignment Button */}
                       <Link 
