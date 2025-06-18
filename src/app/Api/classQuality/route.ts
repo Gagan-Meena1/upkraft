@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { connect } from '@/dbConnection/dbConfic';
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,5 +54,60 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const classId = searchParams.get('classId');
+
+    console.log('GET API called with classId:', classId);
+
+    if (!classId) {
+      return NextResponse.json(
+        { error: 'classId parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    await connect();
+
+    // Import the Class model since evaluation data is stored in the Class collection
+    const { default: Class } = await import('@/models/Class');
+
+    // Find the class document by its _id
+    const classData = await Class.findById(classId);
+    
+    if (!classData) {
+      return NextResponse.json(
+        { error: 'Class not found.' },
+        { status: 404 }
+      );
+    }
+
+    // Convert to plain object to avoid Mongoose issues
+    const classObj = classData.toObject();
+
+    // Check if evaluation data exists using the plain object
+    if (!classObj.evaluation) {
+      return NextResponse.json(
+        { 
+          error: 'Class quality analysis not found. The recording may still be processing.',
+          isProcessing: true 
+        },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(classObj.evaluation);
+
+  } catch (error: any) {
+    console.error('GET - Error fetching class quality data:', error);
+    
+    return NextResponse.json(
+      { error: 'An error occurred while fetching class quality data.' },
+      { status: 500 }
+    );
   }
 } 

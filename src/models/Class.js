@@ -51,6 +51,24 @@ const ClassSchema = new mongoose.Schema({
   }, 
   performanceVideoFileName: String, // Original filename
   
+  // Class Quality Evaluation Data
+  evaluation: {
+    session_focus_clarity_score: Number,
+    session_focus_clarity_score_justification: String,
+    content_delivery_score: Number,
+    content_delivery_justification: String,
+    student_engagement_score: Number,
+    student_engagement_justification: String,
+    student_progress_score: Number,
+    student_progress_justification: String,
+    key_performance_score: Number,
+    key_performance_justification: String,
+    communication_score: Number,
+    communication_justification: String,
+    overall_quality_score: Number,
+    overall_quality_justification: String
+  }
+  
 }, {
   timestamps: true
 });

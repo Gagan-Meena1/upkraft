@@ -37,20 +37,16 @@ export default function ClassQualityPage() {
     setError(null);
     
     try {
-      const response = await axios.post(
-        `/Api/classQuality?item_id=${params.classId}`,
-        {},
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
+      const response = await axios.get(`/Api/classQuality?classId=${params.classId}`);
       setQualityData(response.data);
     } catch (err: any) {
       console.error('Error fetching class quality:', err);
-      setError(err.response?.data?.error || 'Failed to fetch class quality data. Please try again.');
+      
+      if (err.response?.status === 404) {
+        setError('Class quality analysis not found. The recording may still be processing. Please try again later.');
+      } else {
+        setError(err.response?.data?.error || 'Failed to fetch class quality data. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -135,7 +131,7 @@ export default function ClassQualityPage() {
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors shadow-md flex items-center space-x-2"
             >
               <BarChart3 className="w-5 h-5" />
-              <span>Retry Analysis</span>
+              <span>Reload Results</span>
             </button>
           )}
         </header>
@@ -145,15 +141,15 @@ export default function ClassQualityPage() {
           <div className="bg-white rounded-xl shadow-lg p-12 text-center">
             <Loader2 className="w-16 h-16 text-purple-600 mx-auto mb-4 animate-spin" />
             <h3 className="text-2xl font-semibold text-gray-800 mb-2">
-              Analyzing Class Quality
+              Loading Class Quality
             </h3>
             <p className="text-gray-600 mb-4">
-              Our AI is reviewing the class recording and evaluating teaching effectiveness...
+              Fetching the class quality analysis results...
             </p>
             <div className="bg-gray-200 rounded-full h-2 w-64 mx-auto">
               <div className="bg-purple-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
             </div>
-            <p className="text-sm text-gray-500 mt-4">This may take a few moments</p>
+            <p className="text-sm text-gray-500 mt-4">This should only take a moment</p>
           </div>
         )}
 
