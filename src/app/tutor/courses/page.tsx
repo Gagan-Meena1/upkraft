@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Book, Clock, IndianRupee, List ,MessageCircle,Trash2, ChevronLeft } from 'lucide-react';
+import { Book, Clock, IndianRupee, List ,MessageCircle,Trash2, ChevronLeft, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { use } from 'react';
@@ -171,10 +171,10 @@ export default function TutorCoursesPage() {
 
                <div className="mt-4 flex items-center gap-2 mb-2">
                 <Link 
-                  href={`/tutor/viewClassQuality?courseId=${course._id}`}
+                  href={`/tutor/courseQuality?courseId=${course._id}`}
                   className="flex-1 whitespace-nowrap px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors inline-flex items-center justify-center gap-2 text-sm font-medium"
                 >
-                  <MessageCircle className="h-4 w-4" />
+                  <BarChart3 className="h-4 w-4" />
                   Course Quality
                 </Link>
                 
