@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, BarChart3, Star, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { ChevronLeft, BarChart3, Star, Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 
 interface ClassQualityData {
@@ -167,7 +167,7 @@ export default function ClassQualityPage() {
         )}
 
         {/* Overall Score Card */}
-        {qualityData && !loading && (
+        {qualityData && !loading && qualityData.overall_quality_score !== undefined && qualityData.overall_quality_score !== null && (
           <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">Overall Quality Score</h2>
@@ -190,7 +190,7 @@ export default function ClassQualityPage() {
                 ))}
               </div>
               <p className="text-gray-600 max-w-2xl mx-auto">
-                {qualityData.overall_quality_justification}
+                {qualityData.overall_quality_justification || 'No justification available'}
               </p>
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function ClassQualityPage() {
         {/* Quality Metrics Grid */}
         {qualityData && !loading && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {qualityMetrics.map((metric, index) => (
+            {qualityMetrics.filter(metric => metric.score !== undefined && metric.score !== null).map((metric, index) => (
               <div key={index} className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center space-x-3">
@@ -231,10 +231,35 @@ export default function ClassQualityPage() {
                 </div>
                 
                 <p className="text-gray-600 leading-relaxed">
-                  {metric.justification}
+                  {metric.justification || 'No justification available'}
                 </p>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* No Data Message */}
+        {qualityData && !loading && (!qualityData.overall_quality_score && qualityMetrics.filter(m => m.score !== undefined && m.score !== null).length === 0) && (
+          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-purple-50 flex items-center justify-center">
+              <BarChart3 className="w-8 h-8 text-purple-600" />
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+              Waiting for Video Upload
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto mb-2">
+              The class recording is yet to be uploaded. Once the video is uploaded, we'll analyze it and provide detailed quality insights.
+            </p>
+            <p className="text-sm text-gray-500">
+              You'll be able to view the analysis here after the video upload is complete.
+            </p>
+            <button
+              onClick={fetchClassQuality}
+              className="mt-6 px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors shadow-md flex items-center space-x-2 mx-auto"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Check Status</span>
+            </button>
           </div>
         )}
       </div>

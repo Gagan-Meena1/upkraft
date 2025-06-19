@@ -93,20 +93,41 @@ export async function GET(request: NextRequest) {
     if (!classObj.evaluation) {
       return NextResponse.json(
         { 
-          error: 'Class quality analysis not found. The recording may still be processing.',
-          isProcessing: true 
+          error: 'Video upload is in progress. Analysis will be available once the recording is fully processed.',
+          isProcessing: true,
+          hasEvaluation: false
         },
-        { status: 404 }
+        { status: 202 } // 202 Accepted - request is being processed
       );
     }
 
-    return NextResponse.json(classObj.evaluation);
+    // Check if evaluation data is complete (has at least overall_quality_score)
+    if (!classObj.evaluation.overall_quality_score && classObj.evaluation.overall_quality_score !== 0) {
+      return NextResponse.json(
+        { 
+          error: 'Analysis is still being processed. Please try again in a few moments.',
+          isProcessing: true,
+          hasEvaluation: false
+        },
+        { status: 202 }
+      );
+    }
+
+    return NextResponse.json({
+      ...classObj.evaluation,
+      hasEvaluation: true,
+      isProcessing: false
+    });
 
   } catch (error: any) {
     console.error('GET - Error fetching class quality data:', error);
     
     return NextResponse.json(
-      { error: 'An error occurred while fetching class quality data.' },
+      { 
+        error: 'An error occurred while fetching class quality data.',
+        isProcessing: false,
+        hasEvaluation: false
+      },
       { status: 500 }
     );
   }
