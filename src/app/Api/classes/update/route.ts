@@ -287,7 +287,7 @@ async function uploadWithRetry(
   throw new Error(`Upload failed after ${RETRY_CONFIG.maxRetries + 1} attempts: ${lastError?.message}`);
 }
 
-// Enhanced POST endpoint with better error handling
+// Enhanced POST endpoint with chunked upload support
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   
@@ -304,13 +304,27 @@ export async function POST(req: NextRequest) {
     
     console.log(`Processing upload for class: ${classId}`);
     
-    // Verify class exists (with connection retry)
+    // Get chunk information from headers
+    const formData = await req.formData();
+    const chunkIndex = parseInt(formData.get("chunkIndex") as string);
+    const totalChunks = parseInt(formData.get("totalChunks") as string);
+    const uploadId = formData.get("uploadId") as string;
+    const originalFileName = formData.get("originalFileName") as string;
+    const mimeType = formData.get("mimeType") as string;
+    const videoFile = formData.get("video") as File;
+    const videoType = formData.get("videoType") as string;
+
+    if (!videoFile) {
+      return NextResponse.json({ error: "No video chunk provided" }, { status: 400 });
+    }
+
+    // Verify class exists
     let classRecord;
     try {
       await ensureConnection();
       classRecord = await Class.findById(classId);
     } catch (dbError) {
-      console.error('Database connection error during class lookup:', dbError);
+      console.error('Database connection error:', dbError);
       return NextResponse.json({ 
         error: "Database connection failed",
         details: "Could not verify class record"
@@ -320,153 +334,107 @@ export async function POST(req: NextRequest) {
     if (!classRecord) {
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
-    
-    // Parse and validate form data
-    const formData = await req.formData();
-    const videoFile = formData.get("video") as File | null;
-    const videoType = formData.get("videoType") as string || "recording"; // Default to recording
-    
-    if (!videoFile) {
-      return NextResponse.json({ error: "No video file provided" }, { status: 400 });
-    }
-    
-    // Validate video type
-    if (!["recording", "performance"].includes(videoType)) {
-      return NextResponse.json({ 
-        error: "Invalid video type",
-        details: "Video type must be either 'recording' or 'performance'"
-      }, { status: 400 });
-    }
-    
-    // Enhanced file validation
-    if (!videoFile.type.startsWith("video/")) {
-      return NextResponse.json({ 
-        error: "Invalid file type",
-        details: "File must be a video format"
-      }, { status: 400 });
-    }
-    
-    const maxSize = 500 * 1024 * 1024; // 500MB
-    if (videoFile.size > maxSize) {
-      return NextResponse.json({ 
-        error: "File too large",
-        details: `File size (${Math.round(videoFile.size / 1024 / 1024)}MB) exceeds limit (500MB)`
-      }, { status: 400 });
-    }
-    
-    if (videoFile.size === 0) {
-      return NextResponse.json({ 
-        error: "Empty file",
-        details: "Uploaded file appears to be empty"
-      }, { status: 400 });
-    }
-    
-    console.log(`File validated: ${videoFile.name} (${Math.round(videoFile.size / 1024 / 1024)}MB, ${videoFile.type})`);
-    console.log(`Video type: ${videoType}`);
-    
-    // Get GridFS bucket with enhanced error handling
+
+    // Get GridFS bucket
     const bucket = await getGridFSBucket();
     
-    // Background cleanup of existing video based on type
-    const existingFileId = videoType === "recording" ? classRecord.recording : classRecord.performanceVideo;
-    if (existingFileId) {
-      setImmediate(async () => {
-        try {
-          await bucket.delete(new ObjectId(existingFileId));
-          console.log(`Previous ${videoType} deleted: ${existingFileId}`);
-        } catch (error) {
-          console.warn(`Could not delete existing ${videoType}:`, error);
+    // For the first chunk, start a new upload
+    if (chunkIndex === 0) {
+      // Clean up any existing incomplete uploads for this uploadId
+      try {
+        const filesCollection = mongoose.connection.db!.collection('videos_bucket.files');
+        const chunksCollection = mongoose.connection.db!.collection('videos_bucket.chunks');
+        
+        const existingFile = await filesCollection.findOne({ 
+          'metadata.uploadId': uploadId,
+          'metadata.incomplete': true 
+        });
+        
+        if (existingFile) {
+          await chunksCollection.deleteMany({ files_id: existingFile._id });
+          await filesCollection.deleteOne({ _id: existingFile._id });
+        }
+      } catch (error) {
+        console.warn('Cleanup warning:', error);
+      }
+    }
+
+    // Create unique filename
+    const timestamp = Date.now();
+    const uniqueFilename = `${videoType}-${classId}-${timestamp}-${originalFileName}`;
+
+    // Upload the chunk
+    try {
+      const uploadStream = bucket.openUploadStream(uniqueFilename, {
+        metadata: {
+          classId,
+          originalName: originalFileName,
+          mimeType,
+          uploadDate: new Date(),
+          uploadId,
+          chunkIndex,
+          totalChunks,
+          incomplete: true
         }
       });
-    }
-    
-    // Generate unique filename with timestamp
-    const timestamp = Date.now();
-    const sanitizedName = videoFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const uniqueFilename = `${videoType}-${classId}-${timestamp}-${sanitizedName}`;
-    
-    console.log(`Starting upload with filename: ${uniqueFilename}`);
-    
-    // Perform upload with comprehensive retry logic
-    const fileId = await uploadWithRetry(bucket, videoFile, uniqueFilename, {
-      classId: classId,
-      originalName: videoFile.name,
-      mimeType: videoFile.type,
-      uploadDate: new Date(),
-      fileSize: videoFile.size,
-      fileType: videoType,
-      version: '2.0'
-    });
-    
-    // Update database record with retry based on video type
-    try {
-      const updateFields: any = {};
-      
-      if (videoType === "recording") {
-        updateFields.recording = new ObjectId(fileId);
-        updateFields.recordingFileName = uniqueFilename;
-      } else if (videoType === "performance") {
-        updateFields.performanceVideo = new ObjectId(fileId);
-        updateFields.performanceVideoFileName = uniqueFilename;
+
+      const buffer = Buffer.from(await videoFile.arrayBuffer());
+      uploadStream.write(buffer);
+      uploadStream.end();
+
+      await new Promise((resolve, reject) => {
+        uploadStream.on('finish', resolve);
+        uploadStream.on('error', reject);
+      });
+
+      // If this is the last chunk, finalize the upload
+      if (chunkIndex === totalChunks - 1) {
+        // Update metadata to mark as complete
+        const filesCollection = mongoose.connection.db!.collection('videos_bucket.files');
+        await filesCollection.updateOne(
+          { 'metadata.uploadId': uploadId },
+          { $set: { 'metadata.incomplete': false } }
+        );
+
+        // Update class record
+        const updateFields: any = {};
+        if (videoType === "recording") {
+          updateFields.recording = uploadStream.id;
+          updateFields.recordingFileName = uniqueFilename;
+        } else if (videoType === "performance") {
+          updateFields.performanceVideo = uploadStream.id;
+          updateFields.performanceVideoFileName = uniqueFilename;
+        }
+
+        await Class.findByIdAndUpdate(classId, updateFields, { new: true });
+
+        return NextResponse.json({
+          success: true,
+          message: `${videoType} uploaded successfully`,
+          fileId: uploadStream.id.toString(),
+          fileName: uniqueFilename
+        });
       }
-      
-      await Class.findByIdAndUpdate(
-        classId,
-        updateFields,
-        { new: true }
-      );
-      
-      console.log(`Database updated successfully for ${videoType} video`);
-    } catch (updateError) {
-      console.error('Database update failed:', updateError);
-      // Upload succeeded but DB update failed - log but don't fail the request
-      console.warn(`Upload completed but could not update class record for ${videoType}`);
+
+      // For intermediate chunks, just return success
+      return NextResponse.json({
+        success: true,
+        message: `Chunk ${chunkIndex + 1}/${totalChunks} uploaded successfully`
+      });
+
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      return NextResponse.json({ 
+        error: "Upload failed", 
+        details: error.message 
+      }, { status: 500 });
     }
-    
-    const duration = Date.now() - startTime;
-    const durationSeconds = Math.round(duration / 1000);
-    
-    console.log(`=== Upload completed successfully in ${durationSeconds}s ===`);
-    
-    return NextResponse.json({
-      success: true,
-      message: `${videoType.charAt(0).toUpperCase() + videoType.slice(1)} uploaded successfully to GridFS`,
-      fileId: fileId,
-      fileName: uniqueFilename,
-      videoType: videoType,
-      fileSize: `${Math.round(videoFile.size / 1024 / 1024)}MB`,
-      uploadTime: `${durationSeconds}s`,
-      uploadSpeed: `${Math.round((videoFile.size / 1024 / 1024) / (duration / 1000))}MB/s`
-    });
-    
+
   } catch (error: any) {
-    const duration = Date.now() - startTime;
-    const durationSeconds = Math.round(duration / 1000);
-    
-    console.error(`=== Upload failed after ${durationSeconds}s ===`);
-    console.error('Error details:', error);
-    
-    // Categorize error types for better client handling
-    let statusCode = 500;
-    let errorCategory = 'unknown';
-    
-    if (error.message.includes('timeout') || error.message.includes('timed out')) {
-      statusCode = 408;
-      errorCategory = 'timeout';
-    } else if (error.message.includes('connection') || error.message.includes('network')) {
-      statusCode = 503;
-      errorCategory = 'network';
-    } else if (error.message.includes('File') || error.message.includes('size')) {
-      statusCode = 400;
-      errorCategory = 'validation';
-    }
-    
+    console.error("Error in upload handler:", error);
     return NextResponse.json({ 
-      error: "Upload failed",
-      category: errorCategory,
-      details: error.message,
-      duration: `${durationSeconds}s`,
-      retryable: statusCode >= 500
-    }, { status: statusCode });
+      error: "Internal server error", 
+      details: error.message 
+    }, { status: 500 });
   }
 }

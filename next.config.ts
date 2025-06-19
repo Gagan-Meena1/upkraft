@@ -16,9 +16,9 @@ const nextConfig = {
   // API configuration
   api: {
     bodyParser: {
-      sizeLimit: '500mb',
+      sizeLimit: '1000mb',
     },
-    responseLimit: false,
+    responseLimit: '1000mb',
   },
   
   // Experimental features
@@ -27,7 +27,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '1000mb'
     },
-    missingSuspenseWithCSRBailout: false
+    missingSuspenseWithCSRBailout: false,
+    largePageDataBytes: 512 * 1000000, // Increase page data limit
   },
   
   // Logging configuration
@@ -40,6 +41,16 @@ const nextConfig = {
   // Error handling
   onError: (error) => {
     console.error('Next.js build error:', error);
+  },
+
+  // Additional configuration for large files
+  webpack: (config) => {
+    config.performance = {
+      ...config.performance,
+      maxAssetSize: 512 * 1000000,
+      maxEntrypointSize: 512 * 1000000,
+    };
+    return config;
   },
 };
 

@@ -86,6 +86,20 @@ export default function CourseDetailsPage() {
     }
   }, [params.courseId]);
 
+  // Function to split file into chunks
+  const createChunks = (file: File, chunkSize: number = 1024 * 1024 * 4) => { // 4MB chunks
+    const chunks = [];
+    let start = 0;
+    
+    while (start < file.size) {
+      const end = Math.min(start + chunkSize, file.size);
+      chunks.push(file.slice(start, end));
+      start = end;
+    }
+    
+    return chunks;
+  };
+
   // Handle file upload
   const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) {
@@ -107,49 +121,73 @@ export default function CourseDetailsPage() {
       return;
     }
 
-    const formData = new FormData();
-    formData.append('video', file);
-    formData.append('videoType', 'recording'); // Set to recording type
-
     try {
       setUploadLoading(prev => ({ ...prev, [classId]: true }));
       
-      // API call
-      const response = await axios.post(`/Api/classes/update?classId=${classId}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentComplete = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log(`Recording upload progress: ${percentComplete}%`);
-          }
-        },
-      });
+      // Split file into chunks
+      const chunks = createChunks(file);
+      const totalChunks = chunks.length;
+      let uploadedChunks = 0;
+      let uploadId = Date.now().toString(); // Unique identifier for this upload
 
-      if (response.status === 200 && response.data.success) {
-        // Update the local state
-        setCourseData(prevData => {
-          if (!prevData) return null;
-          
-          const updatedClasses = prevData.classDetails.map(cls => {
-            if (cls._id === classId) {
-              return { 
-                ...cls, 
-                recording: response.data.fileId,
-                recordingFileName: response.data.fileName
-              };
+      // Upload each chunk
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const formData = new FormData();
+        formData.append('video', chunk, file.name);
+        formData.append('videoType', 'recording');
+        formData.append('chunkIndex', i.toString());
+        formData.append('totalChunks', totalChunks.toString());
+        formData.append('uploadId', uploadId);
+        formData.append('originalFileName', file.name);
+        formData.append('mimeType', file.type);
+
+        const response = await axios.post(`/Api/classes/update?classId=${classId}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'Accept': 'application/json',
+            'X-Chunk-Index': i.toString(),
+            'X-Total-Chunks': totalChunks.toString(),
+            'X-Upload-ID': uploadId
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const chunkProgress = progressEvent.loaded / progressEvent.total;
+              const totalProgress = ((uploadedChunks + chunkProgress) / totalChunks) * 100;
+              console.log(`Recording upload progress: ${Math.round(totalProgress)}%`);
             }
-            return cls;
-          });
-          
-          return {
-            ...prevData,
-            classDetails: updatedClasses
-          };
+          },
         });
 
-        alert('Recording uploaded successfully!');
+        if (response.status === 200) {
+          uploadedChunks++;
+          
+          // If this was the last chunk and we got a success response
+          if (uploadedChunks === totalChunks && response.data.success) {
+            // Update the local state
+            setCourseData(prevData => {
+              if (!prevData) return null;
+              
+              const updatedClasses = prevData.classDetails.map(cls => {
+                if (cls._id === classId) {
+                  return { 
+                    ...cls, 
+                    recording: response.data.fileId,
+                    recordingFileName: response.data.fileName
+                  };
+                }
+                return cls;
+              });
+              
+              return {
+                ...prevData,
+                classDetails: updatedClasses
+              };
+            });
+
+            alert('Recording uploaded successfully!');
+          }
+        }
       }
     } catch (err: any) {
       console.error('Error uploading recording:', err);
