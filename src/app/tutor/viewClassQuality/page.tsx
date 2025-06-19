@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChevronLeft, BarChart3, Star, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -19,7 +19,27 @@ interface CourseQualityData {
   justification: string;
 }
 
-export default function CourseQualityPage() {
+export default function ViewClassQualityPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+            <Loader2 className="w-16 h-16 text-purple-600 mx-auto mb-4 animate-spin" />
+            <h3 className="text-2xl font-semibold text-gray-800 mb-2">
+              Loading Class Quality
+            </h3>
+            <p className="text-gray-600">Please wait...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <ViewClassQualityContent />
+    </Suspense>
+  );
+}
+
+function ViewClassQualityContent() {
   const [qualityData, setQualityData] = useState<CourseQualityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
