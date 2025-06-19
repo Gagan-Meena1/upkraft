@@ -1,12 +1,12 @@
 {
   "functions": {
-    "api/**/*": {
+    "src/app/Api/**/*": {
       "maxDuration": 60
     }
   },
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/Api/(.*)",
       "headers": {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type",
