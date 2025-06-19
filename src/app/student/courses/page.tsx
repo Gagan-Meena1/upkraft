@@ -155,9 +155,9 @@ export default function TutorCoursesPage() {
                     View Performance
                   </button>
                 </Link>
-                <Link href={`/student/classQuality?courseId=${course._id}`}>
+                <Link href={`/student/courseQuality?courseId=${course._id}`}>
                   <button className="w-full mb-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
-                    Class Quality
+                    Course Quality
                   </button>
                 </Link>
                 <Link href={`/student/courses/courseDetails?courseId=${course._id}`}>

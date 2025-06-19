@@ -249,31 +249,97 @@ const ClassQualityDashboard = () => {
     
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="text-orange-500 text-xl">Loading class quality data...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <header className="mb-8 flex items-center">
+            <button 
+              onClick={() => router.back()}
+              className="p-2 rounded-full bg-white hover:bg-gray-50 transition-colors shadow-md mr-4"
+            >
+              <ArrowLeft className="text-gray-700" />
+            </button>
+            <h1 className="text-3xl font-bold text-gray-800">
+              Class Quality Analysis
+            </h1>
+          </header>
+
+          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+            <div className="w-16 h-16 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <h3 className="text-2xl font-semibold text-gray-800 mb-2">
+              Loading Class Quality Data
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Analyzing performance across all classes...
+            </p>
+            <div className="bg-gray-200 rounded-full h-2 w-64 mx-auto">
+              <div className="bg-purple-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+            </div>
+            <p className="text-sm text-gray-500 mt-4">This should only take a moment</p>
+          </div>
+        </div>
       </div>
     );
   }
   
-  if (error) {
+  if (error || feedbackData.length === 0) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="text-red-500 text-xl">Error: {error}</div>
-      </div>
-    );
-  }
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+        <div className="max-w-6xl mx-auto">
+          <header className="mb-8 flex items-center">
+            <button 
+              onClick={() => router.back()}
+              className="p-2 rounded-full bg-white hover:bg-gray-50 transition-colors shadow-md mr-4"
+            >
+              <ArrowLeft className="text-gray-700" />
+            </button>
+            <h1 className="text-3xl font-bold text-gray-800">
+              Class Quality Analysis
+            </h1>
+          </header>
 
-  if (feedbackData.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-          <button 
-            onClick={() => router.back()} 
-            className="mr-4 p-2 rounded-full bg-gray-200 hover:bg-gray-100 transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="text-orange-500" size={24} />
-          </button>
-        <div className="text-gray-500 text-xl">No class quality data available for this course.</div>
+          <div className="bg-white rounded-xl shadow-lg p-16 text-center max-w-2xl mx-auto">
+            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg 
+                className="w-10 h-10 text-gray-400" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" 
+                />
+              </svg>
+            </div>
+            <h3 className="text-2xl font-semibold text-gray-800 mb-3">
+              No Quality Data Available
+            </h3>
+            <p className="text-gray-600 mb-8">
+              {error || "No class quality data is available yet. Data will appear here once classes are evaluated."}
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-purple-600 hover:bg-purple-700 text-white rounded-lg py-3 px-6 font-medium transition-colors inline-flex items-center gap-2 mx-auto"
+            >
+              <svg 
+                className="w-5 h-5" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                />
+              </svg>
+              <span>Refresh Data</span>
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
