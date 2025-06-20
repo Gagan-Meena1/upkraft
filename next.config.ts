@@ -13,21 +13,11 @@ const nextConfig = {
   // React strict mode
   reactStrictMode: true,
   
-  // API configuration
-  api: {
-    bodyParser: {
-      sizeLimit: '1000mb',
-    },
-    responseLimit: '1000mb',
-  },
-  
   // Experimental features
   experimental: {
-    serverTimeout: 600000, // 10 minutes for large uploads
     serverActions: {
       bodySizeLimit: '1000mb'
     },
-    missingSuspenseWithCSRBailout: false,
     largePageDataBytes: 512 * 1000000, // Increase page data limit
   },
   
@@ -36,11 +26,6 @@ const nextConfig = {
     fetches: {
       fullUrl: true,
     },
-  },
-  
-  // Error handling
-  onError: (error) => {
-    console.error('Next.js build error:', error);
   },
 
   // Additional configuration for large files
