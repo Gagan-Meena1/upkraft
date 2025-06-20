@@ -1,8 +1,8 @@
 {
   "functions": {
     "src/app/Api/**/*": {
-      "maxDuration": 10,
-      "memory": 1024
+      "maxDuration": 60,
+      "memory": 3008
     }
   },
   "headers": [
@@ -24,5 +24,8 @@
       ]
     }
   ],
-  "regions": ["iad1"]
+  "regions": ["iad1"],
+  "limits": {
+    "bodySize": "500mb"
+  }
 } 
