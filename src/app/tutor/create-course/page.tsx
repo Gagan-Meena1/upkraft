@@ -53,7 +53,7 @@ export default function CreateCourse() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/Api/classes', {
+      const response = await fetch('/Api/tutors/courses', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
