@@ -136,8 +136,8 @@ const CourseDetailsPage = () => {
         try {
           console.log('Starting video evaluation...');
           await axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`);
-          console.log('Evaluation process started');
-          toast.success('Video evaluation started');
+          console.log('Evaluation generated successfully');
+          toast.success('Video evaluation generated successfully');
         } catch (evalError) {
           console.error('Evaluation failed:', evalError.message);
           toast.error('Failed to start video evaluation');

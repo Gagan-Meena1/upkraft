@@ -23,11 +23,11 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    console.log('Evaluation triggered successfully');
+    console.log('Evaluation generated successfully');
 
     return NextResponse.json({
       success: true,
-      message: 'Video evaluation started successfully'
+      message: 'Video evaluation generated successfully'
     });
 
   } catch (error: any) {
