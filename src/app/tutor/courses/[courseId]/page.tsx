@@ -3,10 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3 } from 'lucide-react';
-import { useParams } from 'next/navigation';
-import axios from 'axios';
+import { useParams, useRouter } from 'next/navigation';
+import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
 
 // TypeScript interfaces for type safety
 interface Curriculum {
@@ -92,70 +91,77 @@ const CourseDetailsPage = () => {
     if (!event.target.files || event.target.files.length === 0) return;
 
     const file = event.target.files[0];
+    console.log("File selected:", { name: file.name, size: file.size, type: file.type });
     const maxSize = 800 * 1024 * 1024; // 800MB
     if (file.size > maxSize) {
-      toast.error('File size must be less than 800MB');
-      return;
+        toast.error('File size must be less than 800MB');
+        return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
+    setUploadLoading((prev) => ({ ...prev, [classId]: true }));
+    console.log(`[${classId}] Starting upload process...`);
 
     try {
-      setUploadLoading(prev => ({ ...prev, [classId]: true }));
-      
-      console.log('Starting file upload...');
-      console.log('File details:', {
-        name: file.name,
-        size: Math.round(file.size / (1024 * 1024)) + 'MB',
-        type: file.type
-      });
-      
-      const uploadResponse = await axios.post(
-        `/Api/proxy/upload-recording?item_id=${classId}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Accept': 'application/json'
-          },
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              console.log('Upload progress:', progress + '%');
-            }
-          }
-        }
-      );
+        // 1. Get presigned URL from your new API route
+        console.log(`[${classId}] Requesting presigned URL...`);
+        const presignedUrlResponse = await axios.post('/Api/upload/presigned-url', {
+            fileName: file.name,
+            fileType: file.type,
+            classId: classId,
+        });
 
-      if (uploadResponse.data.upload?.success || uploadResponse.data.upload?.message?.includes('successfully')) {
-        console.log('Upload completed successfully');
-        toast.success('Video uploaded successfully');
-        setUploadLoading(prev => ({ ...prev, [classId]: false }));
+        const { uploadUrl, key } = presignedUrlResponse.data;
+        console.log(`[${classId}] Presigned URL received. Key: ${key} and uploadUrl: ${uploadUrl}`);
 
+        // 2. Upload file directly to S3 using the presigned URL
+        console.log(`[${classId}] Starting direct upload to S3...`);
+        await axios.put(uploadUrl, file, {
+            headers: {
+                'Content-Type': file.type,
+            },
+            onUploadProgress: (progressEvent) => {
+                if (progressEvent.total) {
+                    const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    console.log(`Upload progress: ${progress}%`);
+                }
+            },
+        });
+
+        toast.success('Video uploaded successfully!');
+        console.log(`[${classId}] Direct upload to S3 completed.`);
+        return;
+
+        // 3. Notify your backend that the upload is complete.
+        console.log(`[${classId}] Notifying backend to update class with key: ${key}`);
+        await axios.post('/Api/classes/update', { classId, recordingKey: key });
+        
+        toast.success('Class recording updated.');
+        console.log(`[${classId}] Backend notification complete.`);
+
+        // 4. Trigger the evaluation process
         try {
-          console.log('Starting video evaluation...');
-          await axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`);
-          console.log('Evaluation generated successfully');
-          toast.success('Video evaluation generated successfully');
+            console.log(`[${classId}] Starting video evaluation...`);
+            await axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`);
+            toast.success('Video evaluation has been initiated.');
+            console.log(`[${classId}] Video evaluation triggered.`);
         } catch (evalError) {
-          console.error('Evaluation failed:', evalError.message);
-          toast.error('Failed to start video evaluation');
+            const error = evalError as AxiosError;
+            console.error(`[${classId}] Failed to start evaluation:`, error.message);
+            toast.error('Failed to start video evaluation.');
         }
 
         router.refresh();
-      } else {
-        console.error('Upload failed:', uploadResponse.data);
-        toast.error('Failed to process video');
-      }
-
-    } catch (error) {
-      console.error('Upload error:', error.message);
-      toast.error('Failed to upload recording');
-      setUploadLoading(prev => ({ ...prev, [classId]: false }));
+    } catch (err) {
+        const error = err as AxiosError<{ error: string }>;
+        console.error(`[${classId}] Upload process failed:`, error.message);
+        toast.error(error.response?.data?.error || 'Failed to upload recording.');
     } finally {
-      const inputRef = fileInputRefs.current[classId];
-      if (inputRef) inputRef.value = '';
+        setUploadLoading((prev) => ({ ...prev, [classId]: false }));
+        console.log(`[${classId}] Upload process finished.`);
+        const inputRef = fileInputRefs.current[classId];
+        if (inputRef) {
+            inputRef.value = '';
+        }
     }
   };
 
