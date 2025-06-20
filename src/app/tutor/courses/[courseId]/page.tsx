@@ -2,9 +2,11 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Clock, BookOpen, MessageCircle, Video, Upload, FileText, IndianRupee, BarChart3 } from 'lucide-react';
+import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 // TypeScript interfaces for type safety
 interface Curriculum {
@@ -19,9 +21,7 @@ interface Class {
   description: string;
   startTime: string;
   endTime: string;
-  // GridFS fields for recording
-  recording?: string; // ObjectId reference to GridFS file
-  recordingFileName?: string;
+  recording?: string;
 }
 
 interface CourseDetailsData {
@@ -37,13 +37,14 @@ interface CourseDetailsData {
   classDetails: Class[];
 }
 
-export default function CourseDetailsPage() {
+const CourseDetailsPage = () => {
   const [courseData, setCourseData] = useState<CourseDetailsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
   const params = useParams();
+  const router = useRouter();
 
   // Helper function to format date and time
   const formatDateTime = (dateString: string) => {
@@ -86,129 +87,86 @@ export default function CourseDetailsPage() {
     }
   }, [params.courseId]);
 
-  // Function to split file into chunks
-  const createChunks = (file: File, chunkSize: number = 1024 * 1024 * 4) => { // 4MB chunks
-    const chunks = [];
-    let start = 0;
-    
-    while (start < file.size) {
-      const end = Math.min(start + chunkSize, file.size);
-      chunks.push(file.slice(start, end));
-      start = end;
-    }
-    
-    return chunks;
-  };
-
   // Handle file upload
   const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) {
-      return;
-    }
+    if (!event.target.files || event.target.files.length === 0) return;
 
     const file = event.target.files[0];
-    
-    // Validate file size (500MB limit)
-    const maxSize = 500 * 1024 * 1024; // 500MB
+    const maxSize = 800 * 1024 * 1024; // 800MB
     if (file.size > maxSize) {
-      alert('File size must be less than 500MB');
+      toast.error('File size must be less than 800MB');
       return;
     }
 
-    // Validate file type
-    if (!file.type.startsWith('video/')) {
-      alert('Please select a valid video file');
-      return;
-    }
+    const formData = new FormData();
+    formData.append('file', file);
 
     try {
       setUploadLoading(prev => ({ ...prev, [classId]: true }));
       
-      // Split file into chunks
-      const chunks = createChunks(file);
-      const totalChunks = chunks.length;
-      let uploadedChunks = 0;
-      let uploadId = Date.now().toString(); // Unique identifier for this upload
-
-      // Upload each chunk
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        const formData = new FormData();
-        formData.append('video', chunk, file.name);
-        formData.append('videoType', 'recording');
-        formData.append('chunkIndex', i.toString());
-        formData.append('totalChunks', totalChunks.toString());
-        formData.append('uploadId', uploadId);
-        formData.append('originalFileName', file.name);
-        formData.append('mimeType', file.type);
-
-        const response = await axios.post(`/Api/classes/update?classId=${classId}`, formData, {
+      console.log('Starting file upload...');
+      console.log('File details:', {
+        name: file.name,
+        size: Math.round(file.size / (1024 * 1024)) + 'MB',
+        type: file.type
+      });
+      
+      const uploadResponse = await axios.post(
+        `/Api/proxy/upload-recording?item_id=${classId}`,
+        formData,
+        {
           headers: {
             'Content-Type': 'multipart/form-data',
-            'Accept': 'application/json',
-            'X-Chunk-Index': i.toString(),
-            'X-Total-Chunks': totalChunks.toString(),
-            'X-Upload-ID': uploadId
+            'Accept': 'application/json'
           },
           onUploadProgress: (progressEvent) => {
             if (progressEvent.total) {
-              const chunkProgress = progressEvent.loaded / progressEvent.total;
-              const totalProgress = ((uploadedChunks + chunkProgress) / totalChunks) * 100;
-              console.log(`Recording upload progress: ${Math.round(totalProgress)}%`);
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              console.log('Upload progress:', progress + '%');
             }
-          },
-        });
-
-        if (response.status === 200) {
-          uploadedChunks++;
-          
-          // If this was the last chunk and we got a success response
-          if (uploadedChunks === totalChunks && response.data.success) {
-            // Update the local state
-            setCourseData(prevData => {
-              if (!prevData) return null;
-              
-              const updatedClasses = prevData.classDetails.map(cls => {
-                if (cls._id === classId) {
-                  return { 
-                    ...cls, 
-                    recording: response.data.fileId,
-                    recordingFileName: response.data.fileName
-                  };
-                }
-                return cls;
-              });
-              
-              return {
-                ...prevData,
-                classDetails: updatedClasses
-              };
-            });
-
-            alert('Recording uploaded successfully!');
           }
         }
+      );
+
+      if (uploadResponse.data.upload?.success || uploadResponse.data.upload?.message?.includes('successfully')) {
+        console.log('Upload completed successfully');
+        toast.success('Video uploaded successfully');
+        setUploadLoading(prev => ({ ...prev, [classId]: false }));
+
+        try {
+          console.log('Starting video evaluation...');
+          await axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`);
+          console.log('Evaluation process started');
+          toast.success('Video evaluation started');
+        } catch (evalError) {
+          console.error('Evaluation failed:', evalError.message);
+          toast.error('Failed to start video evaluation');
+        }
+
+        router.refresh();
+      } else {
+        console.error('Upload failed:', uploadResponse.data);
+        toast.error('Failed to process video');
       }
-    } catch (err: any) {
-      console.error('Error uploading recording:', err);
-      const errorMessage = err.response?.data?.error || 'Failed to upload recording. Please try again.';
-      alert(errorMessage);
-    } finally {
+
+    } catch (error) {
+      console.error('Upload error:', error.message);
+      toast.error('Failed to upload recording');
       setUploadLoading(prev => ({ ...prev, [classId]: false }));
-      // Reset file input
+    } finally {
       const inputRef = fileInputRefs.current[classId];
-      if (inputRef) {
-        inputRef.value = '';
-      }
+      if (inputRef) inputRef.value = '';
     }
   };
 
-  // Trigger file input click
   const triggerFileInput = (classId: string) => {
     const inputRef = fileInputRefs.current[classId];
-    if (inputRef) {
-      inputRef.click();
-    }
+    if (inputRef) inputRef.click();
+  };
+
+  const getButtonText = (classSession: Class, isUploading: boolean) => {
+    if (isUploading) return 'Uploading...';
+    return classSession.recording ? 'Replace Recording' : 'Upload Recording';
   };
 
   // Loading state
@@ -345,13 +303,12 @@ export default function CourseDetailsPage() {
                         onClick={() => triggerFileInput(classSession._id)}
                         disabled={isUploading}
                         className={`px-2 py-1 ${
-                          isUploading 
-                            ? 'bg-gray-400 cursor-not-allowed' 
+                          isUploading ? 'bg-gray-400 cursor-not-allowed' 
                             : 'bg-green-500 hover:bg-green-600'
                         } text-white rounded-lg transition-colors flex items-center text-sm`}
                       >
                         <Upload className="mr-1" size={16} />
-                        {isUploading ? 'Uploading...' : (classSession.recording ? 'Replace Recording' : 'Upload Recording')}
+                        {getButtonText(classSession, isUploading)}
                       </button>
 
                       {/* Assignment Button */}
@@ -403,3 +360,5 @@ export default function CourseDetailsPage() {
     </div>
   );
 }
+
+export default CourseDetailsPage;
