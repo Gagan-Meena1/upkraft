@@ -3,10 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3 } from 'lucide-react';
-import { useParams } from 'next/navigation';
-import axios from 'axios';
+import { useParams, useRouter } from 'next/navigation';
+import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
 
 // TypeScript interfaces for type safety
 interface Curriculum {
@@ -21,7 +20,7 @@ interface Class {
   description: string;
   startTime: string;
   endTime: string;
-  recording?: string;
+  recordingUrl?: string;
 }
 
 interface CourseDetailsData {
@@ -89,73 +88,82 @@ const CourseDetailsPage = () => {
 
   // Handle file upload
   const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
-
-    const file = event.target.files[0];
-    const maxSize = 800 * 1024 * 1024; // 800MB
-    if (file.size > maxSize) {
-      toast.error('File size must be less than 800MB');
-      return;
+    if (!event.target.files || event.target.files.length === 0) {
+        return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
+    const file = event.target.files[0];
+    console.log("File selected:", { name: file.name, size: file.size, type: file.type });
+    const maxSize = 800 * 1024 * 1024; // 800MB
+    if (file.size > maxSize) {
+        toast.error('File size must be less than 800MB');
+        return;
+    }
+
+    setUploadLoading((prev) => ({ ...prev, [classId]: true }));
+    console.log(`[${classId}] Starting upload process...`);
 
     try {
-      setUploadLoading(prev => ({ ...prev, [classId]: true }));
-      
-      console.log('Starting file upload...');
-      console.log('File details:', {
-        name: file.name,
-        size: Math.round(file.size / (1024 * 1024)) + 'MB',
-        type: file.type
-      });
-      
-      const uploadResponse = await axios.post(
-        `/Api/proxy/upload-recording?item_id=${classId}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Accept': 'application/json'
-          },
-          onUploadProgress: (progressEvent) => {
-            if (progressEvent.total) {
-              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-              console.log('Upload progress:', progress + '%');
-            }
-          }
-        }
-      );
+        // 1. Get presigned URL
+        console.log(`[${classId}] Requesting presigned URL...`);
+        const presignedUrlResponse = await axios.post('/Api/upload/presigned-url', {
+            fileName: file.name,
+            fileType: file.type,
+            classId: classId,
+        });
 
-      if (uploadResponse.data.upload?.success || uploadResponse.data.upload?.message?.includes('successfully')) {
-        console.log('Upload completed successfully');
-        toast.success('Video uploaded successfully');
-        setUploadLoading(prev => ({ ...prev, [classId]: false }));
+        const { publicUrl } = presignedUrlResponse.data;
+        console.log(`[${classId}] Public URL: ${publicUrl}`);
 
-        try {
-          console.log('Starting video evaluation...');
-          await axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`);
-          console.log('Evaluation generated successfully');
-          toast.success('Video evaluation generated successfully');
-        } catch (evalError) {
-          console.error('Evaluation failed:', evalError.message);
-          toast.error('Failed to start video evaluation');
-        }
+        // 2. Upload file directly to S3
+        console.log(`[${classId}] Starting direct upload to S3...`);
+        await axios.put(presignedUrlResponse.data.uploadUrl, file, {
+            headers: { 'Content-Type': file.type },
+            onUploadProgress: (progressEvent) => {
+                if (progressEvent.total) {
+                    const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    console.log(`Upload progress: ${progress}%`);
+                }
+            },
+        });
+
+        toast.success('Recording uploaded successfully!');
+        console.log(`[${classId}] Direct upload to S3 completed.`);
+
+        // 3. save the public URL in mongoDB
+        console.log(`[${classId}] Notifying mongoDB to update class with public URL: ${publicUrl}`);
+        await axios.post('/Api/classes/update', { classId, recordingUrl: publicUrl });
+        
+        console.log(`[${classId}] recordingUrl updated in mongoDB.`);
+
+        // 4. Trigger background processing
+        toast('Video evaluation and performance video generation have started.');
+
+        // Trigger evaluation process (fire-and-forget)
+        axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`)
+          .catch((evalError) => {
+            console.error(`[${classId}] Failed to start evaluation:`, evalError.message);
+            // We don't show a toast here as the component might be unmounted.
+          });
+        
+        // Trigger highlight generation process (fire-and-forget)
+        axios.post(`/Api/proxy/generate-highlights?item_id=${classId}`)
+          .catch((highlightError) => {
+            console.error(`[${classId}] Failed to start highlight generation:`, highlightError.message);
+          });
 
         router.refresh();
-      } else {
-        console.error('Upload failed:', uploadResponse.data);
-        toast.error('Failed to process video');
-      }
-
-    } catch (error) {
-      console.error('Upload error:', error.message);
-      toast.error('Failed to upload recording');
-      setUploadLoading(prev => ({ ...prev, [classId]: false }));
+    } catch (err) {
+        const error = err as AxiosError<{ error: string }>;
+        console.error(`[${classId}] Upload process failed:`, error.message);
+        toast.error(error.response?.data?.error || 'Failed to upload recording.');
     } finally {
-      const inputRef = fileInputRefs.current[classId];
-      if (inputRef) inputRef.value = '';
+        setUploadLoading((prev) => ({ ...prev, [classId]: false }));
+        console.log(`[${classId}] Upload process finished.`);
+        const inputRef = fileInputRefs.current[classId];
+        if (inputRef) {
+            inputRef.value = '';
+        }
     }
   };
 
@@ -166,7 +174,7 @@ const CourseDetailsPage = () => {
 
   const getButtonText = (classSession: Class, isUploading: boolean) => {
     if (isUploading) return 'Uploading...';
-    return classSession.recording ? 'Replace Recording' : 'Upload Recording';
+    return classSession.recordingUrl ? 'Replace Recording' : 'Upload Recording';
   };
 
   // Loading state
@@ -288,7 +296,7 @@ const CourseDetailsPage = () => {
                       />
 
                       {/* Class Quality button */}
-                      {classSession.recording && (
+                      {classSession.recordingUrl && (
                         <Link 
                           href={`/tutor/classQuality/${classSession._id}`}
                           className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center text-sm"

@@ -42,10 +42,17 @@ interface ClassData {
   instructor: number;
   startTime: string;
   endTime: string;
+  performanceVideo?: string;
   performanceVideoFileId?: string;
   feedbackId: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface VideoCardProps {
+  classItem: ClassData;
+  courseTitle: string;
+  onPlayVideo: (videoUrl: string, title: string) => void;
 }
 
 // Components
@@ -65,15 +72,11 @@ const VideoCard = ({
   classItem, 
   courseTitle, 
   onPlayVideo 
-}: { 
-  classItem: ClassData; 
-  courseTitle: string;
-  onPlayVideo: (videoUrl: string, title: string) => void;
-}) => {
+}: VideoCardProps) => {
   const [thumbnailError, setThumbnailError] = useState(false);
   
-  // Construct the video URL using your GridFS API
-  const videoUrl = `/Api/videos/${classItem.performanceVideoFileId}`;
+  // Use the direct S3 URL for efficiency
+  const videoUrl = classItem.performanceVideo || '';
   
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:scale-105">
@@ -217,7 +220,7 @@ const VideoGallery: React.FC = () => {
         if (response.data?.classDetails) {
           // Filter classes to only include those with performance videos
           const classesWithVideos = response.data.classDetails.filter((classItem: ClassData) => 
-            classItem.performanceVideoFileId && classItem.performanceVideoFileId.trim() !== ''
+            classItem.performanceVideo && classItem.performanceVideo.trim() !== ''
           );
           setClassData(classesWithVideos);
         }

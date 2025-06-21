@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
     const url = new URL(req.url);
     const itemId = url.searchParams.get('item_id');
     
-    console.log('=== Starting video evaluation ===');
+    console.log('=== Starting video highlights generation ===');
     console.log('Class ID:', itemId);
     
     if (!itemId) {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     const response = await axios.post(
-      `http://62.72.59.204:8001/evaluate-video?item_id=${itemId}`,
+      `http://62.72.59.204:8001/generate-highlights?item_id=${itemId}`,
       '',
       {
         headers: {
@@ -23,17 +23,17 @@ export async function POST(req: NextRequest) {
       }
     );
 
-    console.log('Class quality analysis is done: ', response.data);
+    console.log('Video highlights generated: ', response.data);
 
     return NextResponse.json({
       success: true,
-      message: 'Video evaluation generated successfully'
+      message: 'Video highlights generated successfully'
     });
 
   } catch (error: any) {
     return NextResponse.json(
       { 
-        error: 'Failed to start video evaluation',
+        error: 'Failed to generate video highlights',
         details: error.response?.data || error.message
       },
       { status: error.response?.status || 500 }
