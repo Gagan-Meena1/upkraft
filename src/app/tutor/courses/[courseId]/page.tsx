@@ -20,7 +20,7 @@ interface Class {
   description: string;
   startTime: string;
   endTime: string;
-  recording?: string;
+  recordingUrl?: string;
 }
 
 interface CourseDetailsData {
@@ -88,7 +88,9 @@ const CourseDetailsPage = () => {
 
   // Handle file upload
   const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
+    if (!event.target.files || event.target.files.length === 0) {
+        return;
+    }
 
     const file = event.target.files[0];
     console.log("File selected:", { name: file.name, size: file.size, type: file.type });
@@ -102,7 +104,7 @@ const CourseDetailsPage = () => {
     console.log(`[${classId}] Starting upload process...`);
 
     try {
-        // 1. Get presigned URL from your new API route
+        // 1. Get presigned URL
         console.log(`[${classId}] Requesting presigned URL...`);
         const presignedUrlResponse = await axios.post('/Api/upload/presigned-url', {
             fileName: file.name,
@@ -110,15 +112,13 @@ const CourseDetailsPage = () => {
             classId: classId,
         });
 
-        const { uploadUrl, key } = presignedUrlResponse.data;
-        console.log(`[${classId}] Presigned URL received. Key: ${key} and uploadUrl: ${uploadUrl}`);
+        const { publicUrl } = presignedUrlResponse.data;
+        console.log(`[${classId}] Public URL: ${publicUrl}`);
 
-        // 2. Upload file directly to S3 using the presigned URL
+        // 2. Upload file directly to S3
         console.log(`[${classId}] Starting direct upload to S3...`);
-        await axios.put(uploadUrl, file, {
-            headers: {
-                'Content-Type': file.type,
-            },
+        await axios.put(presignedUrlResponse.data.uploadUrl, file, {
+            headers: { 'Content-Type': file.type },
             onUploadProgress: (progressEvent) => {
                 if (progressEvent.total) {
                     const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
@@ -127,28 +127,30 @@ const CourseDetailsPage = () => {
             },
         });
 
-        toast.success('Video uploaded successfully!');
+        toast.success('Recording uploaded successfully!');
         console.log(`[${classId}] Direct upload to S3 completed.`);
-        return;
 
-        // 3. Notify your backend that the upload is complete.
-        console.log(`[${classId}] Notifying backend to update class with key: ${key}`);
-        await axios.post('/Api/classes/update', { classId, recordingKey: key });
+        // 3. save the public URL in mongoDB
+        console.log(`[${classId}] Notifying mongoDB to update class with public URL: ${publicUrl}`);
+        await axios.post('/Api/classes/update', { classId, recordingUrl: publicUrl });
         
-        toast.success('Class recording updated.');
-        console.log(`[${classId}] Backend notification complete.`);
+        console.log(`[${classId}] recordingUrl updated in mongoDB.`);
 
-        // 4. Trigger the evaluation process
-        try {
-            console.log(`[${classId}] Starting video evaluation...`);
-            await axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`);
-            toast.success('Video evaluation has been initiated.');
-            console.log(`[${classId}] Video evaluation triggered.`);
-        } catch (evalError) {
-            const error = evalError as AxiosError;
-            console.error(`[${classId}] Failed to start evaluation:`, error.message);
-            toast.error('Failed to start video evaluation.');
-        }
+        // 4. Trigger background processing
+        toast('Video evaluation and performance video generation have started.');
+
+        // Trigger evaluation process (fire-and-forget)
+        axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`)
+          .catch((evalError) => {
+            console.error(`[${classId}] Failed to start evaluation:`, evalError.message);
+            // We don't show a toast here as the component might be unmounted.
+          });
+        
+        // Trigger highlight generation process (fire-and-forget)
+        axios.post(`/Api/proxy/generate-highlights?item_id=${classId}`)
+          .catch((highlightError) => {
+            console.error(`[${classId}] Failed to start highlight generation:`, highlightError.message);
+          });
 
         router.refresh();
     } catch (err) {
@@ -172,7 +174,7 @@ const CourseDetailsPage = () => {
 
   const getButtonText = (classSession: Class, isUploading: boolean) => {
     if (isUploading) return 'Uploading...';
-    return classSession.recording ? 'Replace Recording' : 'Upload Recording';
+    return classSession.recordingUrl ? 'Replace Recording' : 'Upload Recording';
   };
 
   // Loading state
@@ -294,7 +296,7 @@ const CourseDetailsPage = () => {
                       />
 
                       {/* Class Quality button */}
-                      {classSession.recording && (
+                      {classSession.recordingUrl && (
                         <Link 
                           href={`/tutor/classQuality/${classSession._id}`}
                           className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center text-sm"

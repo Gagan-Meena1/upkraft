@@ -42,9 +42,14 @@ const ClassSchema = new mongoose.Schema({
   recording:{
     type: mongoose.Schema.Types.ObjectId,
     ref: "GridFSFile" // Reference to GridFS file
-
   }  ,
   recordingFileName: String,      // Original filename
+
+  recordingUrl: {
+    type: String, // Storing the public S3 URL
+    required: false, // Or true, if a recording is always expected
+  },
+
   performanceVideo:{
     type: mongoose.Schema.Types.ObjectId,
     ref: "GridFSFile" // Reference to GridFS file

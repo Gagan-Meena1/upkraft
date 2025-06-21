@@ -36,14 +36,16 @@ export async function POST(req: NextRequest) {
     const uploadUrl = await getSignedUrl(
         s3Client,
         putObjectCommand,
-        { expiresIn: 600 } // 10 minutes
+        { expiresIn: 300 } // 5 minutes
     );
 
-    console.log("INFO: Successfully generated presigned URL (v3).");
+    const publicUrl = `https://${process.env.AWS_S3_BUCKET_NAME_CUSTOM}.s3.${process.env.AWS_REGION_CUSTOM}.amazonaws.com/${key}`;
+    console.log("INFO: Successfully generated presigned URL and public URL (v3).");
 
     return NextResponse.json({ 
         uploadUrl,
-        key: key 
+        key: key,
+        publicUrl: publicUrl
     });
 
   } catch (error) {

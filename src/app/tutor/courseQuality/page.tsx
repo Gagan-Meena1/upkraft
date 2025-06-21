@@ -176,7 +176,7 @@ function CourseQualityContent() {
               No Quality Data Available
             </h3>
             <p className="text-gray-600 mb-8">
-              {error || "No evaluated classes found for this course yet. Quality scores will appear here once classes are evaluated."}
+              {error || "No evaluated classes found for this course yet. Quality scores will appear here once classes recording is uploaded."}
             </p>
             {qualityData?.total_classes > 0 && (
               <div className="bg-gray-50 rounded-lg py-3 px-6 inline-flex items-center gap-2 text-gray-600 mb-8">
