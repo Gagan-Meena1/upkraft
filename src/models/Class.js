@@ -50,10 +50,9 @@ const ClassSchema = new mongoose.Schema({
     required: false, // Or true, if a recording is always expected
   },
 
-  performanceVideo:{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "GridFSFile" // Reference to GridFS file
-  }, 
+  performanceVideo: {
+    type: String, // Public S3 URL for the performance video
+  },
   performanceVideoFileName: String, // Original filename
   
   // Class Quality Evaluation Data
