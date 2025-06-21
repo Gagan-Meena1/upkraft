@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
 import Link from 'next/link';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, X } from 'lucide-react';
 
 import DashboardLayout from '@/app/components/DashboardLayout';
 
@@ -32,6 +32,25 @@ interface CourseDetail {
   }>;
 }
 
+const VideoModal = ({ videoUrl, onClose }: { videoUrl: string, onClose: () => void }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+    <div className="relative bg-black rounded-lg overflow-hidden shadow-xl max-w-4xl w-full">
+      <button
+        onClick={onClose}
+        className="absolute top-2 right-2 text-white bg-gray-800 bg-opacity-50 rounded-full p-1 hover:bg-opacity-75 transition-colors z-10"
+        aria-label="Close video player"
+      >
+        <X size={24} />
+      </button>
+      <div className="aspect-video">
+        <video src={videoUrl} controls autoPlay className="w-full h-full">
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+  </div>
+);
+
 const CourseDetailsPage = () => {
   const [courseId, setCourseId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,6 +60,7 @@ const CourseDetailsPage = () => {
   const [userData, setUserData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'schedule' | 'curriculum'>('schedule');
   const [classScheduleTab, setClassScheduleTab] = useState<'upcoming' | 'recorded'>('upcoming');
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
 
   // Extract courseId from URL query parameters
   useEffect(() => {
@@ -198,14 +218,12 @@ const CourseDetailsPage = () => {
                     </Link>
                   )}
                   {classItem.performanceVideo && isPast && (
-                    <a 
-                      href={classItem.performanceVideo} 
+                    <button 
+                      onClick={() => setSelectedVideo(classItem.performanceVideo)}
                       className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
-                      target="_blank" 
-                      rel="noopener noreferrer"
                     >
                       Performance Video
-                    </a>
+                    </button>
                   )}
                   {isPast && (
                     <Link 
@@ -245,6 +263,9 @@ const CourseDetailsPage = () => {
         </div>
       ) : (
         <div className="min-w-full mx-auto">
+          {selectedVideo && (
+            <VideoModal videoUrl={selectedVideo} onClose={() => setSelectedVideo(null)} />
+          )}
           {courseDetails && (
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-orange-500 mb-2">
