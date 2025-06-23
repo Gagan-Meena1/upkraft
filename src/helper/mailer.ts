@@ -6,14 +6,16 @@ console.log("[Mailer] Module initialized");
 
 interface EmailParams {
   email: string;
-  emailType: "VERIFY" | "RESET" | "RESET_PASSWORD" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION"|"REQUEST_APPROVED";
+  emailType: "VERIFY" | "RESET" | "RESET_PASSWORD" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION" | "REQUEST_APPROVED" | "STUDENT_INVITATION";
   userId?: string;
   username?: string;
   category?: string;
   resetToken?: string;
+  tutorName?: string;
+  courseName?: string;
 }
 
-export const sendEmail = async ({ email, emailType, userId, username, category, resetToken }: EmailParams) => {
+export const sendEmail = async ({ email, emailType, userId, username, category, resetToken, tutorName, courseName }: EmailParams) => {
   console.log(`[Mailer] Sending ${emailType} email to: ${email}`);
   
   try {
@@ -51,7 +53,51 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
     console.log("[Mailer] Preparing email content");
     let mailOptions;
 
-    if (emailType === "RESET_PASSWORD") {
+    if (emailType === "STUDENT_INVITATION") {
+      mailOptions = {
+        from: 'ankitsuthar8607@gmail.com',
+        to: email,
+        subject: 'Welcome to UpKraft - Course Invitation',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f8f6; min-height: 100vh;">
+            <h1 style="color: #ff8c00; text-align: center;">Welcome to UpKraft!</h1>
+            <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <p style="font-size: 16px; color: #333;">Hi ${username},</p>
+              <p style="font-size: 16px; color: #333;">
+                ${tutorName} has invited you to join their course "${courseName}" on UpKraft.
+              </p>
+              <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p style="font-size: 16px; color: #333; margin: 0;">
+                  <strong>Your Login Credentials:</strong><br>
+                  Email: ${email}<br>
+                  Password: ${resetToken}
+                </p>
+              </div>
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${process.env.DOMAIN}/login"
+                   style="background-color: #ff8c00; 
+                          color: white; 
+                          padding: 12px 24px; 
+                          text-decoration: none; 
+                          border-radius: 5px;
+                          font-weight: bold;
+                          display: inline-block;">
+                  Login to Your Account
+                </a>
+              </div>
+              <p style="font-size: 16px; color: #333;">
+                We recommend changing your password after your first login.
+              </p>
+            </div>
+            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+              <p style="color: #888; font-size: 12px;">
+                © 2024 UpKraft. All rights reserved.
+              </p>
+            </div>
+          </div>
+        `
+      };
+    } else if (emailType === "RESET_PASSWORD") {
       mailOptions = {
         from: 'ankitsuthar8607@gmail.com',
         to: email,

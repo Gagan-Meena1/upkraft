@@ -46,7 +46,10 @@ const AddStudentPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          emailType: 'STUDENT_INVITATION'
+        }),
       });
 
       const data = await response.json();
@@ -64,7 +67,7 @@ const AddStudentPage = () => {
       
       // If we get here, API returned success: true
       setMessage({
-        text: data.message || `Successfully added ${formData.username} as a new student`,
+        text: data.message || `Successfully added ${formData.username} as a new student. An invitation email has been sent.`,
         type: "success",
       });
       console.log(`[CreateStudent] Successfully created new student: ${formData.username}`);
