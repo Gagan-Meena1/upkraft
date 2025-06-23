@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { IconProps } from 'lucide-react';
 import { IndianRupee, Plus, Book, Clock, FileText, List, Tag, ChevronLeft } from 'lucide-react';
 import type { LinkProps } from 'next/link';
@@ -27,6 +27,40 @@ export default function CreateCourse() {
   const [curriculum, setCurriculum] = useState<CurriculumSession[]>([
     { sessionNo: 1, topic: '', tangibleOutcome: '' }
   ]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [courseId, setCourseId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const edit = searchParams.get('edit');
+    const id = searchParams.get('courseId');
+    
+    if (edit === 'true' && id) {
+      setIsEditing(true);
+      setCourseId(id);
+      fetchCourseDetails(id);
+    }
+  }, []);
+
+  const fetchCourseDetails = async (id: string) => {
+    try {
+      const response = await fetch(`/Api/tutors/courses/${id}`);
+      if (!response.ok) throw new Error('Failed to fetch course details');
+      
+      const data = await response.json();
+      const course = data.courseDetails;
+      
+      setTitle(course.title);
+      setCategory(course.category);
+      setDescription(course.description);
+      setDuration(course.duration);
+      setPrice(course.price.toString());
+      setCurriculum(course.curriculum);
+    } catch (error) {
+      console.error('Error fetching course details:', error);
+      toast.error('Failed to load course details');
+    }
+  };
 
   const addCurriculumSession = () => {
     setCurriculum([
@@ -53,8 +87,11 @@ export default function CreateCourse() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/Api/tutors/courses', {
-        method: 'POST',
+      const endpoint = isEditing ? `/Api/tutors/courses/${courseId}` : '/Api/tutors/courses';
+      const method = isEditing ? 'PUT' : 'POST';
+      
+      const response = await fetch(endpoint, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -69,14 +106,14 @@ export default function CreateCourse() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create course');
+        throw new Error(isEditing ? 'Failed to update course' : 'Failed to create course');
       }
 
-      toast.success('Course created successfully!');
+      toast.success(isEditing ? 'Course updated successfully!' : 'Course created successfully!');
       router.push('/tutor/courses');
     } catch (error) {
-      toast.error('Failed to create course. Please try again.');
-      console.error('Error creating course:', error);
+      toast.error(error instanceof Error ? error.message : 'An error occurred');
+      console.error('Error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -96,7 +133,9 @@ export default function CreateCourse() {
             >
               <ChevronLeft className="h-6 w-6 text-gray-600" />
             </button>
-            <h1 className="text-2xl font-semibold text-gray-800">Create New Course</h1>
+            <h1 className="text-2xl font-semibold text-gray-800">
+              {isEditing ? 'Edit Course' : 'Create New Course'}
+            </h1>
           </div>
         </div>
       </div>
@@ -242,7 +281,9 @@ export default function CreateCourse() {
               className={`bg-orange-500 text-white px-8 py-3 rounded-lg text-lg font-semibold 
                 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600 transition-colors'}`}
             >
-              {isSubmitting ? 'Creating...' : 'Create Course'}
+              {isSubmitting 
+                ? (isEditing ? 'Updating...' : 'Creating...') 
+                : (isEditing ? 'Update Course' : 'Create Course')}
             </button>
           </div>
         </form>

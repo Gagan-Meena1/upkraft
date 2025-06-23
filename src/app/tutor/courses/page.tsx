@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Book, Clock, IndianRupee, List ,MessageCircle,Trash2, ChevronLeft, BarChart3 } from 'lucide-react';
+import { Book, Clock, IndianRupee, List, MessageCircle, Trash2, ChevronLeft, BarChart3, Pencil, Edit, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { use } from 'react';
@@ -160,50 +160,38 @@ export default function TutorCoursesPage() {
 
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-orange-500 font-bold text-lg">₹</span>
+                    <IndianRupee className="text-orange-500" size={18} />
                     <span className="text-gray-800 font-semibold">{course.price.toFixed(2)}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <List className="text-orange-500 h-4 w-4" />
-                    <span className="text-sm text-gray-600">{course.curriculum.length} Sessions</span>
+                  <div className="flex items-center gap-2">
+                    <List className="text-orange-500" size={18} />
+                    <span className="text-gray-700">{course.curriculum.length} Sessions</span>
                   </div>
                 </div>
 
-               <div className="mt-4 flex items-center gap-2 mb-2">
-                <Link 
-                  href={`/tutor/courseQuality?courseId=${course._id}`}
-                  className="flex-1 whitespace-nowrap px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors inline-flex items-center justify-center gap-2 text-sm font-medium"
-                >
-                  <BarChart3 className="h-4 w-4" />
-                  Course Quality
-                </Link>
-                
-                <button
-                  onClick={() => handleDeleteCourse(course._id)}
-                  disabled={deletingCourseId === course._id}
-                  className={`flex-1 whitespace-nowrap px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors inline-flex items-center justify-center gap-2 text-sm font-medium ${
-                    deletingCourseId === course._id ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {deletingCourseId === course._id ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </>
-                  )}
-                </button>
-              </div>
+                <div className="mt-4 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Link href={`/tutor/create-course?edit=true&courseId=${course._id}`}>
+                      <button className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
+                        <Edit size={18} />
+                        Edit
+                      </button>
+                    </Link>
+                    <Link href={`/tutor/courseQuality/${course._id}`}>
+                      <button className="w-full bg-white border border-orange-200 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
+                        <BarChart3 size={18} />
+                        Quality
+                      </button>
+                    </Link>
+                  </div>
 
-              <Link href={`/tutor/courses/${course._id}`}>
-                <button className="w-full bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors">
-                  View Details
-                </button>
-              </Link>
+                  <Link href={`/tutor/courses/${course._id}`} className="block">
+                    <button className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
+                      <Eye size={18} />
+                      View Details
+                    </button>
+                  </Link>
+                </div>
               </div>
             ))}
           </div>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3 } from 'lucide-react';
+import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2 } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
@@ -177,6 +177,29 @@ const CourseDetailsPage = () => {
     return classSession.recordingUrl ? 'Replace Recording' : 'Upload Recording';
   };
 
+  // Add delete course handler
+  const handleDeleteCourse = async () => {
+    if (!window.confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/Api/tutors/courses?courseId=${params.courseId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete course');
+      }
+
+      toast.success('Course deleted successfully');
+      router.push('/tutor/courses');
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      toast.error('Failed to delete course');
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -224,10 +247,18 @@ const CourseDetailsPage = () => {
           </div>
           <div className="flex items-center space-x-3">
             <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
-              <button className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-md font-medium transition-colors shadow-md">
+              <button className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-md font-medium transition-colors shadow-md flex items-center gap-2">
+                <Upload size={18} />
                 Create Class
               </button>
             </Link>
+            <button 
+              onClick={handleDeleteCourse}
+              className="border border-gray-300 bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 shadow-sm"
+            >
+              <Trash2 size={18} />
+              Delete Course
+            </button>
           </div>
         </header>
   
