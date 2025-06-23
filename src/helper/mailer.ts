@@ -228,6 +228,9 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
               <p style="font-size: 16px; color: #333;">
                 You will be able to login with your mail ID and Password. 
               </p>
+              <div style="text-align: center; margin: 25px 0;">
+                <a href="${process.env.DOMAIN}/login" style="background-color: #ff8c00; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Login to UpKraft</a>
+              </div>
               <p style="font-size: 16px; color: #333;">
                 Thank you for choosing UpKraft!
               </p>

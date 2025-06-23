@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest) {
     // sending email to the user for confirmation
     await sendEmail({
             email:user.email,
-            emailType: "REQUEST_APPROVVED",
+            emailType: "REQUEST_APPROVED",
             username:user.username,
             category:user.category,
           }); 
