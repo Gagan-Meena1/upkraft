@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Reject a Tutor (delete from database)
+// DELETE - Reject Tutor (delete from database)
 export async function DELETE(request: NextRequest) {
   try {
     await connect();
