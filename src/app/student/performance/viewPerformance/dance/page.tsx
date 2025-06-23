@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   LineChart,
@@ -313,6 +313,32 @@ const StudentFeedbackDashboard = () => {
     return `${(score * 10).toFixed(0)}%`;
   };
 
+  // Add helper functions for the new design
+  const getStarRating = (score: number) => {
+    const fullStars = Math.floor(score / 2);
+    const stars = [];
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(<span key={i} className="text-yellow-400 text-3xl">★</span>);
+      } else {
+        stars.push(<span key={i} className="text-gray-300 text-3xl">★</span>);
+      }
+    }
+    return stars;
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 8) return 'text-green-500';
+    if (score >= 6) return 'text-orange-500';
+    return 'text-red-500';
+  };
+
+  const getProgressBarColor = (score: number) => {
+    if (score >= 8) return 'bg-green-500';
+    if (score >= 6) return 'bg-orange-500';
+    return 'bg-red-500';
+  };
+
   // Define fields and their colors for individual graphs
   const fields = [
     { key: 'technique', name: 'Technique', color: '#82ca9d' },
@@ -321,105 +347,6 @@ const StudentFeedbackDashboard = () => {
     { key: 'performance', name: 'Performance', color: '#9467bd' },
     { key: 'effort', name: 'Effort', color: '#e377c2' }
   ];
-
-  // Function to get color based on score
-  const getScoreColor = (score: number) => {
-    if (score >= 7) return '#4CAF50';  // Green for good
-    if (score >= 5) return '#FF9800';  // Orange for medium
-    return '#F44336';                  // Red for poor
-  };
-
-  // Custom active shape for gauge chart
-  const renderActiveShape = (props: any) => {
-    const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props;
-    
-    return (
-      <g>
-        <text x={cx} y={cy + 30} dy={8} textAnchor="middle" fill={getScoreColor(value)}>
-          <tspan x={cx} dy="0" fontSize="24" fontWeight="bold">{value}</tspan>
-          <tspan x={cx} dy="20" fontSize="12" fill="#666">/10</tspan>
-        </text>
-        <Sector
-          cx={cx}
-          cy={cy}
-          startAngle={180}
-          endAngle={0}
-          innerRadius={outerRadius}
-          outerRadius={outerRadius + 20}
-          fill="#e0e0e0"
-        />
-       <Sector
-          cx={cx}
-          cy={cy}
-          startAngle={180}
-          endAngle={180 - (180 * value / 10)}
-          innerRadius={outerRadius}
-          outerRadius={outerRadius + 20}
-          fill={getScoreColor(value)}
-        />
-        {/* Add a needle pointer */}
-        <line
-          x1={cx}
-          y1={cy}
-          x2={cx + (outerRadius + 25) * Math.cos(Math.PI * (180 - (180 * value / 10)) / 180)}
-          y2={cy - (outerRadius + 25) * Math.sin(Math.PI * (180 - (180 * value / 10)) / 180)}
-          stroke={getScoreColor(value)}
-          strokeWidth={3}
-        />
-        <circle
-          cx={cx}
-          cy={cy}
-          r={6}
-          fill={getScoreColor(value)}
-          stroke="none"
-        />
-        {/* Add tick marks for scale */}
-        <text x={cx - outerRadius + 15} y={cy -1} textAnchor="end" fontSize="11" fill="#666">0</text>
-        <text x={cx} y={cy - outerRadius +20} textAnchor="middle" fontSize="11" fill="#666">5</text>
-        <text x={cx + outerRadius - 25} y={cy} textAnchor="start" fontSize="11" fill="#666">10</text>
-      </g>
-    );
-  };
-
-  // Function to render gauge chart for average skill scores
-  const renderGaugeChart = (field: any) => {
-    const score = averageSkillScores[field.key] || 0;
-    const data = [{ name: field.name, value: score }];
-    
-    return (
-      <div key={field.key} className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center">{field.name}</h3>
-        <div className="h-52">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                activeIndex={0}
-                activeShape={renderActiveShape}
-                data={data}
-                cx="50%"
-                cy="50%"
-                startAngle={180}
-                endAngle={0}
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-                stroke="none"
-              >
-                <Cell fill={getScoreColor(score)} />
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="mt-2 text-center">
-          <span className={`font-medium ${getScoreColor(score) === '#4CAF50' ? 'text-green-600' : 
-            getScoreColor(score) === '#FF9800' ? 'text-orange-500' : 'text-red-500'}`}>
-            Average: {score}/10
-          </span>
-        </div>
-      </div>
-    );
-  };
 
   // Function to render individual field graphs with comparison
   const renderFieldGraph = (field: any) => {
@@ -523,72 +450,70 @@ const StudentFeedbackDashboard = () => {
 
       <div className="p-6">
         {/* Overall Course Performance Section */}
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-orange-500 mb-4">Overall Course Performance</h2>
+        <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
+          <h2 className="text-2xl font-semibold text-center text-gray-900 mb-4">Overall Dance Performance</h2>
           
-          <div className="max-w-md mx-auto bg-white rounded-lg shadow-md p-6 mb-6">
-            {averageSkillScores.overall !== undefined && (
-              <div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-3 text-center">Overall Performance Score</h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        activeIndex={0}
-                        activeShape={renderActiveShape}
-                        data={[{ name: 'Overall', value: averageSkillScores.overall }]}
-                        cx="50%"
-                        cy="50%"
-                        startAngle={180}
-                        endAngle={0}
-                        innerRadius={80}
-                        outerRadius={100}
-                        paddingAngle={5}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        <Cell fill={getScoreColor(averageSkillScores.overall)} />
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="flex items-baseline">
+              <span className={`text-6xl font-bold ${getScoreColor(averageSkillScores.overall || 0)}`}>
+                {averageSkillScores.overall?.toFixed(1)}
+              </span>
+              <span className="text-2xl text-gray-500 ml-2">/10</span>
+            </div>
+            
+            <div className="flex justify-center space-x-1">
+              {getStarRating(averageSkillScores.overall || 0)}
+            </div>
+            
+            <p className="text-gray-600 text-center mt-4">
+              This performance score is based on {feedbackData.length} evaluated dance classes.
+            </p>
+            
+            <div className="flex justify-center gap-8 text-sm text-gray-500 mt-2">
+              <div>Total Classes: {feedbackData.length}</div>
+              <div>Evaluated Classes: {feedbackData.length}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Performance Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {fields.map(field => (
+            <div key={field.key} className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-gray-500" />
+                  <h3 className="text-lg font-medium text-gray-900">{field.name}</h3>
                 </div>
-                <div className="mt-4 text-center">
-                  <p className="text-lg font-bold">
-                    <span className={`${getScoreColor(averageSkillScores.overall) === '#4CAF50' ? 'text-green-600' : 
-                      getScoreColor(averageSkillScores.overall) === '#FF9800' ? 'text-orange-500' : 'text-red-500'}`}>
-                      {averageSkillScores.overall}/10
-                    </span>
-                  </p>
-                  <p className="text-gray-600 mt-2">
-                    Average performance across all {feedbackData.length} session{feedbackData.length !== 1 ? 's' : ''}
-                  </p>
+                <div className="flex items-baseline">
+                  <span className={`text-xl font-semibold ${getScoreColor(averageSkillScores[field.key] || 0)}`}>
+                    {averageSkillScores[field.key]?.toFixed(1)}
+                  </span>
+                  <span className="text-sm text-gray-500 ml-1">/10</span>
                 </div>
               </div>
-            )}
-          </div>
-        </section>
-        
-        {/* Scorometers section */}
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-orange-500 mb-4">Overall Skill Performance</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {fields.map(field => renderGaugeChart(field))}
-          </div>
-        </section>
-        
+              
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full ${getProgressBarColor(averageSkillScores[field.key] || 0)}`}
+                  style={{ width: `${(averageSkillScores[field.key] || 0) * 10}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Individual field graphs */}
-        <section className="mb-10">
-          <h2 className="text-2xl font-semibold text-orange-500 mb-4">Individual Skills Progress</h2>
+        <section className="mt-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Performance Trends</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {fields.map(field => renderFieldGraph(field))}
           </div>
         </section>
         
         {/* Feedback table section */}
-        <section>
-          <h2 className="text-2xl font-semibold text-orange-500 mb-4">Session Feedback Summary</h2>
-          
+        <section className="mt-8">
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Session Feedback Summary</h2>
           <div className="bg-white rounded-lg shadow-md overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -598,10 +523,10 @@ const StudentFeedbackDashboard = () => {
                       Session No.
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Tutor Score
+                      Overall Score
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Performance
+                      Performance Level
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Personal Feedback
@@ -615,7 +540,7 @@ const StudentFeedbackDashboard = () => {
                         {session.sessionNo}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {session.averageScore}
+                        {session.averageScore.toFixed(1)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 inline-flex text-sm leading-5 font-semibold rounded-full ${getPerformanceColor(session.performanceLevel)}`}>
@@ -636,7 +561,7 @@ const StudentFeedbackDashboard = () => {
         {/* Personal Feedback Section */}
         {feedbackData.length > 0 && feedbackData[feedbackData.length - 1].personalFeedback && (
           <section className="mt-8">
-            <h2 className="text-2xl font-semibold text-orange-500 mb-4">Latest Personal Feedback</h2>
+            <h2 className="text-2xl font-semibold text-gray-900 mb-6">Latest Personal Feedback</h2>
             <div className="bg-white rounded-lg shadow-md p-6">
               <p className="text-gray-700">{feedbackData[feedbackData.length - 1].personalFeedback}</p>
             </div>

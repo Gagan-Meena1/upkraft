@@ -37,6 +37,7 @@ const AddStudentPage = () => {
     setIsLoading(true);
     setMessage({ text: "", type: "" });
     setIsSubmitSuccessful(false);
+    console.log("[CreateStudent] Form submission started.", { formData });
 
     try {
       // Send data to API endpoint
@@ -49,6 +50,7 @@ const AddStudentPage = () => {
       });
 
       const data = await response.json();
+      console.log("[CreateStudent] Received response from /Api/signup.", { responseData: data });
 
       // If API returns success: false, display the error message from API
       if (!data.success) {
@@ -56,6 +58,7 @@ const AddStudentPage = () => {
           text: data.error || "Registration failed. Please try again.",
           type: "error"
         });
+        console.error("[CreateStudent] API returned an error.", { error: data.error, formData });
         return;
       }
       
@@ -64,6 +67,7 @@ const AddStudentPage = () => {
         text: data.message || `Successfully added ${formData.username} as a new student`,
         type: "success",
       });
+      console.log(`[CreateStudent] Successfully created new student: ${formData.username}`);
       
       setIsSubmitSuccessful(true);
       
@@ -81,6 +85,7 @@ const AddStudentPage = () => {
         text: "Connection error. Please try again.",
         type: "error",
       });
+      console.error("[CreateStudent] An exception occurred during form submission.", { error, formData });
       setIsSubmitSuccessful(false);
     } finally {
       setIsLoading(false);

@@ -7,17 +7,18 @@ import jwt from 'jsonwebtoken';
 
 export async function GET(request: NextRequest) {
     try {
+        console.log("[API/studentFeedbackForTutor] Received GET request.");
         await connect();
         
         const url = new URL(request.url);
         const courseId = url.searchParams.get("courseId");
         const studentId = url.searchParams.get("studentId");
-        console.log("courseId : ", courseId);
-        console.log("studentId : ", studentId);
+        console.log("[API/studentFeedbackForTutor] Parsed query params:", { courseId, studentId });
         
         // Get token and verify instructor
         const token = request.cookies.get("token")?.value;
         if (!token) {
+            console.warn("[API/studentFeedbackForTutor] Authentication token not found.");
             return NextResponse.json({
                 success: false,
                 error: 'Authentication required'
@@ -28,6 +29,7 @@ export async function GET(request: NextRequest) {
         const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
         
         if (!instructorId) {
+            console.warn("[API/studentFeedbackForTutor] Invalid authentication token, instructorId not found.");
             return NextResponse.json({
                 success: false,
                 error: 'Invalid authentication token'
@@ -36,6 +38,7 @@ export async function GET(request: NextRequest) {
         
         // Validate required parameters
         if (!courseId) {
+            console.warn("[API/studentFeedbackForTutor] Course ID is required but not provided.");
             return NextResponse.json({
                 success: false,
                 error: 'Course ID is required'
@@ -43,14 +46,17 @@ export async function GET(request: NextRequest) {
         }
         
         // First, find all classes that belong to the specified course
+        console.log("[API/studentFeedbackForTutor] Finding classes for courseId:", courseId);
         const classes = await Class.find({ course: courseId }).exec();
         
         if (!classes || classes.length === 0) {
+            console.warn("[API/studentFeedbackForTutor] No classes found for courseId:", courseId);
             return NextResponse.json({
                 success: false,
                 error: 'No classes found for the specified course'
             }, { status: 404 });
         }
+        console.log(`[API/studentFeedbackForTutor] Found ${classes.length} classes.`);
         
         // Extract class IDs
         const classIds = classes.map(cls => cls._id);
@@ -62,22 +68,28 @@ export async function GET(request: NextRequest) {
         if (studentId) {
             query.userId = studentId;
         }
+        console.log("[API/studentFeedbackForTutor] Constructed feedback query:", query);
         
         // Find feedback for specific student if studentId is provided
         const feedbackData = await feedback.find(query).exec();
+        console.log(`[API/studentFeedbackForTutor] Found ${feedbackData.length} feedback documents for the student.`);
         
         // Get feedback for all students in these classes
         const feedbackAllStudent = await feedback.find({ classId: { $in: classIds } }).exec();
+        console.log(`[API/studentFeedbackForTutor] Found ${feedbackAllStudent.length} total feedback documents for the course.`);
         
-        return NextResponse.json({
+        const responsePayload = {
             success: true,
             count: feedbackData.length,
             data: feedbackData,
             feedbackAllStudent
-        }, { status: 200 });
+        };
+        console.log("[API/studentFeedbackForTutor] Sending successful response.");
+        
+        return NextResponse.json(responsePayload, { status: 200 });
         
     } catch (error: any) {
-        console.error('Error fetching feedback:', error);
+        console.error('[API/studentFeedbackForTutor] An error occurred:', { errorMessage: error.message, stack: error.stack });
         return NextResponse.json({
             success: false,
             message: error.message || 'Failed to fetch feedback',
