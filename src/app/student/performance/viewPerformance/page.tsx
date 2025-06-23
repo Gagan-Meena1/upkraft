@@ -82,6 +82,13 @@ const StudentFeedbackDashboard = () => {
         setIsLoading(true);
         const response = await fetch(`/Api/studentFeedbackForTutor?courseId=${courseId}&studentId=${studentId}`);
         
+        // Handle 404 specifically for no classes case
+        if (response.status === 404) {
+          setFeedbackData([]);
+          setIsLoading(false);
+          return;
+        }
+        
         if (!response.ok) {
           throw new Error('Failed to fetch feedback data');
         }
@@ -304,8 +311,25 @@ const StudentFeedbackDashboard = () => {
 
   if (feedbackData.length === 0) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="text-gray-500 text-xl">No feedback data available for this course.</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-lg w-full text-center">
+          <div className="mb-6">
+            <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BarChart3 className="h-12 w-12 text-orange-500" />
+            </div>
+            <h2 className="text-2xl font-semibold text-gray-800 mb-3">No feedback is available for this course</h2>
+            <p className="text-gray-600 mb-6">
+              No feedback is available for this course yet. Your performance metrics will appear here after your first class evaluation.
+            </p>
+          </div>
+          <button
+            onClick={() => router.push(`/student/courses?studentId=${studentId}`)}
+            className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Courses
+          </button>
+        </div>
       </div>
     );
   }
