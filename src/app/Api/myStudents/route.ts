@@ -8,59 +8,90 @@ import jwt from 'jsonwebtoken'
 await connect();
 export async function GET(request: NextRequest) {
   try {
+    // Get tutor ID from token first
+    const token = request.cookies.get("token")?.value;
+    const decodedToken = token ? jwt.decode(token) : null;
+    let tutorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+
+    // Override with query param if provided
     const url = new URL(request.url);
-    const tutorId = url.searchParams.get('tutorId');
-    console.log("tutorId : ",tutorId);
+    const tutorIdParam = url.searchParams.get('tutorId');
+    if (tutorIdParam) {
+      tutorId = tutorIdParam;
+    }
+
+    const email = url.searchParams.get('email');
+    console.log("tutorId:", tutorId);
+    console.log("email:", email);
+
+    if (!tutorId) {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Unauthorized - Please log in again" 
+      }, { status: 401 });
+    }
+
+    // If email is provided, check for existing student
+    if (email) {
+      const user = await User.findOne({
+        email: { $regex: `^${email}$`, $options: 'i' },
+        category: "Student"
+      }).select('username email contact instructorId');
+
+      // Check if student is already in tutor's list
+      const isAlreadyAdded = user?.instructorId?.includes(tutorId);
+
+      return NextResponse.json({
+        success: true,
+        user: user ? {
+          username: user.username,
+          email: user.email,
+          contact: user.contact,
+          isAlreadyAdded
+        } : null
+      });
+    }
+
+    // Get tutor's courses
+    const courses = await courseName.find({ instructorId: tutorId });
     
-    let instructorId;
-        if (tutorId) {
-          instructorId = tutorId;
-        } else {
-          const token = request.cookies.get("token")?.value;
-          const decodedToken = token ? jwt.decode(token) : null;
-          instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-        }
-    
-    const courses=await courseName.find({instructorId:instructorId});
-    
+    // Get students
     const users = await User.find({
       category: "Student", // Only return students
       $or: [
         { courses: { $in: courses } }, // Students with at least one course from the list
-        { instructorId: instructorId }   // Students with the instructor ID
+        { instructorId: tutorId }   // Students with the instructor ID
       ]
-    });       if(!users) {
-      console.error('Error finding users:');
-    }
-  //  console.log(users);
-   
-    const filteredUsers = users.map(user => {
-        return {
-          _id: user._id,
-          username: user.username,
-          email: user.email,
-          contact: user.contact
-          // Add any other fields you want to include
-        };
+    });
+
+    if (!users) {
+      return NextResponse.json({ 
+        success: true,
+        message: 'No students found',
+        filteredUsers: [],
+        userCount: 0
       });
+    }
+   
+    const filteredUsers = users.map(user => ({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      contact: user.contact
+    }));
 
-    // Count the number of filtered users
-       const userCount = filteredUsers.length;
-
-    
-
-    // console.log(filteredUsers);
     return NextResponse.json({
-      message: 'Session sent successfully',
+      success: true,
+      message: filteredUsers.length > 0 ? 'Students fetched successfully' : 'No students found',
       filteredUsers,
-      userCount
-    }, { status: 201 });
+      userCount: filteredUsers.length
+    });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Server error:', error);
     return NextResponse.json({ 
-      message: 'Server error', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Failed to fetch students. Please try again.' 
     }, { status: 500 });
   }
 }
@@ -117,6 +148,75 @@ export async function DELETE(request: NextRequest) {
       },
       { status: 500 }
     );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await connect();
+
+    // Get tutor ID from token
+    const token = request.cookies.get("token")?.value;
+    const decodedToken = token ? jwt.decode(token) : null;
+    const tutorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+
+    if (!tutorId) {
+      console.log("tutorId not found");
+      return NextResponse.json({ 
+        success: false, 
+        error: "Unauthorized - Tutor not found" 
+      }, { status: 401 });
+    }
+
+    // Get student email from request body
+    const { email } = await request.json();
+    
+    // Find the student
+    const student = await User.findOne({ 
+      email: { $regex: `^${email}$`, $options: 'i' } 
+    });
+
+    if (!student) {
+      console.log("student not found");
+      return NextResponse.json({ 
+        success: false, 
+        error: "Student not found" 
+      }, { status: 404 });
+    }
+
+    // Check if tutor is already in student's instructorId array
+    if (student.instructorId?.includes(tutorId)) {
+      console.log("student is already in your list");
+      return NextResponse.json({
+        success: false,
+        error: "Student is already in your list"
+      });
+    }
+
+    // Add tutor to student's instructorId array
+    await User.findByIdAndUpdate(
+      student._id,
+      { $push: { instructorId: tutorId } },
+      { new: true }
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Student added to your list successfully",
+      student: {
+        _id: student._id,
+        username: student.username,
+        email: student.email,
+        contact: student.contact
+      }
+    });
+
+  } catch (error: any) {
+    console.error("Error adding student:", error);
+    return NextResponse.json({ 
+      success: false, 
+      error: error.message || "Failed to add student" 
+    }, { status: 500 });
   }
 }
 

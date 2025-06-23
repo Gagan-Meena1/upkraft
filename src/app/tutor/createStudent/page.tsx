@@ -1,5 +1,5 @@
 "use client"
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
@@ -23,13 +23,79 @@ const AddStudentPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
   const [isSubmitSuccessful, setIsSubmitSuccessful] = useState(false);
+  const [existingStudent, setExistingStudent] = useState<{ exists: boolean; username?: string }>({ exists: false });
+
+  // Check if student exists when email changes
+  useEffect(() => {
+    const checkExistingStudent = async () => {
+      if (!formData.email || !formData.email.includes('@')) return;
+
+      try {
+        // Check if student exists using myStudents API
+        const response = await fetch(`/Api/myStudents?email=${encodeURIComponent(formData.email)}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+
+        const data = await response.json();
+        console.log("[CreateStudent] Checking existing student:", data);
+
+        if (data.user) {
+          setExistingStudent({ exists: true });
+          // Pre-fill the form with existing student data
+          setFormData(prev => ({
+            ...prev,
+            username: data.user.username || "",
+            contact: data.user.contact || "",
+            password: "" // Clear password as it's not needed for existing students
+          }));
+          
+          if (data.user.isAlreadyAdded) {
+            setMessage({
+              text: "This student is already in your students list.",
+              type: "error"
+            });
+          } else {
+            setMessage({
+              text: "Student already exists. They will be added to your students list.",
+              type: "info"
+            });
+          }
+        } else {
+          setExistingStudent({ exists: false });
+          setMessage({ text: "", type: "" });
+        }
+      } catch (error) {
+        console.error("[CreateStudent] Error checking existing student:", error);
+      }
+    };
+
+    const debounceTimer = setTimeout(checkExistingStudent, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [formData.email]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    if (name === 'email') {
+      // Reset form except for the new email
+      setFormData(prev => ({
+        username: "",
+        email: value,
+        password: "",
+        contact: "",
+        category: "Student",
+      }));
+      setExistingStudent({ exists: false });
+      setMessage({ text: "", type: "" });
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -37,44 +103,43 @@ const AddStudentPage = () => {
     setIsLoading(true);
     setMessage({ text: "", type: "" });
     setIsSubmitSuccessful(false);
-    console.log("[CreateStudent] Form submission started.", { formData });
+    console.log("[CreateStudent] Form submission started.", { formData, existingStudent });
 
     try {
-      // Send data to API endpoint
-      const response = await fetch('/Api/signup', {
+      let endpoint = existingStudent.exists ? '/Api/myStudents' : '/Api/signup';
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...formData,
-          emailType: 'STUDENT_INVITATION'
+          emailType: existingStudent.exists ? 'STUDENT_INVITATION_EXISTING' : 'STUDENT_INVITATION'
         }),
       });
 
       const data = await response.json();
-      console.log("[CreateStudent] Received response from /Api/signup.", { responseData: data });
+      console.log("[CreateStudent] API Response:", { endpoint, data });
 
-      // If API returns success: false, display the error message from API
       if (!data.success) {
         setMessage({
-          text: data.error || "Registration failed. Please try again.",
+          text: data.error || "Failed to add student. Please try again.",
           type: "error"
         });
-        console.error("[CreateStudent] API returned an error.", { error: data.error, formData });
         return;
       }
-      
-      // If we get here, API returned success: true
+
       setMessage({
-        text: data.message || `Successfully added ${formData.username} as a new student. An invitation email has been sent.`,
+        text: existingStudent.exists 
+          ? `${formData.username} has been added to your students list.`
+          : `Successfully added ${formData.username} as a new student. An invitation email has been sent.`,
         type: "success",
       });
-      console.log(`[CreateStudent] Successfully created new student: ${formData.username}`);
       
       setIsSubmitSuccessful(true);
       
-      // Reset form only on success
+      // Reset form
       setFormData({
         username: "",
         email: "",
@@ -82,14 +147,13 @@ const AddStudentPage = () => {
         contact: "",
         category: "Student",
       });
+      setExistingStudent({ exists: false });
     } catch (error: any) {
-      // Handle network or JSON parsing errors
       setMessage({
         text: "Connection error. Please try again.",
         type: "error",
       });
-      console.error("[CreateStudent] An exception occurred during form submission.", { error, formData });
-      setIsSubmitSuccessful(false);
+      console.error("[CreateStudent] Error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +178,9 @@ const AddStudentPage = () => {
             {message.text && (
               <div
                 className={`p-4 rounded-md ${
-                  message.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+                  message.type === "success" ? "bg-green-50 text-green-800" : 
+                  message.type === "error" ? "bg-red-50 text-red-800" :
+                  "bg-blue-50 text-blue-800"
                 }`}
               >
                 {message.text}
@@ -122,23 +188,7 @@ const AddStudentPage = () => {
             )}
 
             <div className="space-y-6">
-              <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  id="username"
-                  name="username"
-                  required
-                  value={formData.username}
-                  onChange={handleChange}
-                  className="mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border"
-                  placeholder="Enter student's full name"
-                />
-              </div>
-
-              {/* Email Input */}
+              {/* Email Input - Always enabled */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email
@@ -155,7 +205,27 @@ const AddStudentPage = () => {
                 />
               </div>
 
-              {/* Contact Number Input */}
+              {/* Full Name Input - Disabled if student exists */}
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  required
+                  value={formData.username}
+                  onChange={handleChange}
+                  disabled={existingStudent.exists}
+                  className={`mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border ${
+                    existingStudent.exists ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
+                  placeholder="Enter student's full name"
+                />
+              </div>
+
+              {/* Contact Number Input - Disabled if student exists */}
               <div>
                 <label htmlFor="contact" className="block text-sm font-medium text-gray-700">
                   Contact Number
@@ -167,29 +237,34 @@ const AddStudentPage = () => {
                   required
                   value={formData.contact}
                   onChange={handleChange}
-                  className="mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border"
+                  disabled={existingStudent.exists}
+                  className={`mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border ${
+                    existingStudent.exists ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                   placeholder="Enter student's contact number"
                 />
               </div>
 
-              {/* Password Input */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  required
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border"
-                  placeholder="Create a password"
-                  minLength={6}
-                />
-                <p className="mt-1 text-sm text-gray-500">Password must be at least 6 characters</p>
-              </div>
+              {/* Password Input - Only shown for new students */}
+              {!existingStudent.exists && (
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required={!existingStudent.exists}
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border"
+                    placeholder="Create a password"
+                    minLength={6}
+                  />
+                  <p className="mt-1 text-sm text-gray-500">Password must be at least 6 characters</p>
+                </div>
+              )}
 
               {/* Category (Disabled, always Student) */}
               <div>
@@ -215,7 +290,7 @@ const AddStudentPage = () => {
                 disabled={isLoading}
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? "Adding Student..." : "Add Student"}
+                {isLoading ? "Processing..." : existingStudent.exists ? "Add to My Students" : "Add New Student"}
               </button>
             </div>
           </form>
@@ -226,7 +301,7 @@ const AddStudentPage = () => {
               <div className="flex justify-between items-center">
                 <p className="text-sm text-gray-600">
                   <span className="text-green-600 font-medium">
-                    Student added successfully!
+                    {existingStudent.exists ? "Student added to your list!" : "Student added successfully!"}
                   </span>
                 </p>
                 

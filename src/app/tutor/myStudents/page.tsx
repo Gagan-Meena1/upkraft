@@ -127,20 +127,46 @@ export default function MyStudents() {
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
           </div>
         ) : error ? (
-          <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200">
-            <p>{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-2 underline text-red-800"
-            >
-              Try again
-            </button>
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md w-full text-center">
+              <svg className="mx-auto h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 className="mt-4 text-lg font-medium text-red-800">Failed to Load Students</h3>
+              <p className="mt-2 text-sm text-red-600">{error}</p>
+              <button
+                onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  fetchStudents();
+                }}
+                className="mt-4 px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         ) : (
           <div className="bg-white shadow-md rounded-xl overflow-hidden border border-gray-100">
             {students.length === 0 ? (
-              <div className="p-12 text-center text-gray-600">
-                <p>No students found. Add students to see them listed here.</p>
+              <div className="flex flex-col items-center justify-center py-16 px-4">
+                <div className="text-center">
+                  <svg className="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                  <h3 className="mt-4 text-lg font-medium text-gray-900">No Students Yet</h3>
+                  <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
+                    You haven't added any students to your list. Start by adding your first student to begin managing your classes.
+                  </p>
+                  <Link href="/tutor/createStudent">
+                    <button className="mt-6 px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors inline-flex items-center">
+                      <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Add Your First Student
+                    </button>
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="overflow-x-auto">
