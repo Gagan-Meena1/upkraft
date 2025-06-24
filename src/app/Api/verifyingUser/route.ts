@@ -12,8 +12,15 @@ export async function GET(request: NextRequest) {
     
     // Execute both queries in parallel for better performance
     const [verifiedTutors, unverifiedTutors] = await Promise.all([
-      User.find({ category: "Tutor", isVerified: true }),
-      User.find({ category: "Tutor", isVerified: { $ne: true } })
+    User.find({ 
+        category: { $in: ["Tutor", "Admin"] }, 
+        isVerified: true 
+      }),
+
+      User.find({ 
+        category: { $in: ["Tutor", "Admin"] }, 
+        isVerified: { $ne: true } 
+      })
     ]);
 console.log("Verified Tutors:", verifiedTutors.length);
 console.log("Unverified Tutors:", unverifiedTutors.length);
@@ -55,9 +62,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (user.category !== "Tutor") {
-      return NextResponse.json({ error: "User is not a Tutor" }, { status: 400 });
-    }
+   
 
     user.isVerified = true;
     // sending email to the user for confirmation

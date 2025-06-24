@@ -26,43 +26,9 @@ export default function SignupPage() {
   const [emailError, setEmailError] = useState<string>("");
   const [serverError, setServerError] = useState<string>("");
 
-  // List of authorized admin email addresses
-  const authorizedAdminEmails: string[] = [
-    "admin@upkraft.com",
-    "admin@example.com",
-    "superadmin@upkraft.com"
-  ];
-  
-  // Alternative: Use domains instead of specific emails
-  const authorizedAdminDomains: string[] = ["upkraft.com", "admin.upkraft.org"];
-
-  // Validate if the email is authorized for admin role
-  const isAuthorizedAdminEmail = (email: string): boolean => {
-    // Option 1: Check against specific email addresses
-    if (authorizedAdminEmails.includes(email.toLowerCase())) {
-      return true;
-    }
-    
-    // Option 2: Check against authorized domains
-    const emailParts = email.split('@');
-    const emailDomain = emailParts[1]?.toLowerCase();
-    if (emailDomain && authorizedAdminDomains.includes(emailDomain)) {
-      return true;
-    }
-    
-    return false;
-  };
-
   const onSignup = async (): Promise<void> => {
     // Clear any previous server errors
     setServerError("");
-    
-    // Check if admin role is selected but email is not authorized
-    if (category === "Admin" && !isAuthorizedAdminEmail(user.email)) {
-      setEmailError("You are not authorized to register as an admin with this email.");
-      toast.error("Unauthorized email for admin registration");
-      return;
-    }
 
     try {
       setLoading(true);
@@ -110,29 +76,14 @@ export default function SignupPage() {
     setCategory(role);
     // Clear email error when changing roles
     setEmailError("");
-    
-    // If switching to Admin, validate the current email
-    if (role === "Admin" && user.email) {
-      if (!isAuthorizedAdminEmail(user.email)) {
-        setEmailError("This email is not authorized for admin registration.");
-      }
-    }
   };
 
-  // Validate email whenever it changes and admin is selected
+  // Handle email change
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const newEmail = e.target.value;
     setUser({ ...user, email: newEmail });
     
-    if (category === "Admin" && newEmail) {
-      if (!isAuthorizedAdminEmail(newEmail)) {
-        setEmailError("This email is not authorized for admin registration.");
-      } else {
-        setEmailError("");
-      }
-    } else {
-      setEmailError("");
-    }
+    setEmailError("");
     
     // Clear server error when user makes changes
     if (serverError) setServerError("");
@@ -150,12 +101,7 @@ export default function SignupPage() {
                     user.username.length > 0 && 
                     category.length > 0;
     
-    // Add additional validation for admin emails
-    if (category === "Admin" && !isAuthorizedAdminEmail(user.email)) {
-      setButtonDisabled(true);
-    } else {
-      setButtonDisabled(!isValid);
-    }
+    setButtonDisabled(!isValid);
   }, [user, category]);
 
   return (
@@ -218,11 +164,6 @@ export default function SignupPage() {
                 </button>
               ))}
             </div>
-            {category === "Admin" && (
-              <p className="text-xs text-gray-500 mt-2">
-                Note: Admin registration requires an authorized email address.
-              </p>
-            )}
           </div>
           
           <div className="space-y-4 mb-6">

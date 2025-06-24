@@ -61,7 +61,7 @@ const TutorManagement = () => {
       const result = await response.json();
 
       if (response.ok) {
-        alert('Tutor approved successfully!');
+        alert('User approved successfully!');
         fetchTutors(); // Refresh data
       } else {
         alert('Error approving tutor: ' + result.error);
