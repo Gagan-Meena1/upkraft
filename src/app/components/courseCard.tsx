@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, IndianRupee, Users, ArrowRight } from 'lucide-react';
+import { Clock, IndianRupee, Users, ArrowRight ,BarChart3,Eye} from 'lucide-react';
 import Link from 'next/link';
 
 interface Course {
@@ -81,18 +81,18 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, userData, viewPerforman
 
         {/* Action Buttons */}
         <div className="space-y-3">
-          
-
           <div className="grid grid-cols-2 gap-3">
-            <Link href={`/student/courseQuality?courseId=${course._id}`}>
-              <button className="w-full px-4 py-2.5 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-xl transition-colors font-medium text-sm border border-orange-200 hover:border-orange-300 cursor-pointer">
-                Quality
-              </button>
-            </Link>
             <Link href={`/student/courses/courseDetails?courseId=${course._id}`}>
-              <button className="w-full px-4 py-2.5 text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors font-medium text-sm border border-gray-200 hover:border-gray-300 cursor-pointer">
+            <button className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
+                <Eye size={18} />
                 Details
-              </button>
+                </button>
+            </Link>
+            <Link href={`/student/courseQuality?courseId=${course._id}`}>
+              <button className="w-full bg-white border border-orange-200 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
+                <BarChart3 size={18} />
+                Quality
+            </button>
             </Link>
           </div>
            <Link
@@ -108,7 +108,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, userData, viewPerforman
       </div>
 
       {/* Subtle hover effect overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/0 to-orange-600/0 group-hover:from-orange-500/5 group-hover:to-orange-600/10 transition-all duration-300 pointer-events-none rounded-2xl" />
+      <div className="absolute inset-0   transition-all duration-300 pointer-events-none rounded-2xl" />
     </div>
   );
 };
