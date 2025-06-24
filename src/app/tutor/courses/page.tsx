@@ -177,7 +177,7 @@ export default function TutorCoursesPage() {
                         Edit
                       </button>
                     </Link>
-                    <Link href={`/tutor/courseQuality/${course._id}`}>
+                    <Link href={`/tutor/courseQuality?courseId=${course._id}`}>
                       <button className="w-full bg-white border border-orange-200 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
                         <BarChart3 size={18} />
                         Quality
