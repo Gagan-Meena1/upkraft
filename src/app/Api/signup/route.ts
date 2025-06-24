@@ -33,15 +33,6 @@ export async function POST(request : NextRequest ){
             });
         }
 
-        // Check if user with the same username already exists
-        const userByUsername = await User.findOne({ username });
-        if (userByUsername) {
-            console.warn("[API/signup] Username already taken.", { username });
-            return NextResponse.json({
-                error: "Username already taken. Please choose a different username",
-                success: false
-            });
-        }
 
         const salt = await bcryptjs.genSalt(10);
         const hashedPassword = await bcryptjs.hash(password, salt);

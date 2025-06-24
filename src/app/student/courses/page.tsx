@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Book, Clock, IndianRupee, List } from 'lucide-react';
 import Link from 'next/link';
 import { toast, Toaster } from 'react-hot-toast';
+import CourseCard from '@/app/components/courseCard';
 import DashboardLayout from '@/app/components/DashboardLayout';
 
 // Define the Course interface based on your mongoose schema
@@ -119,54 +120,12 @@ export default function TutorCoursesPage() {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses.map((course) => (
-            <div 
-              key={course._id} 
-              className="bg-white rounded-xl shadow-md p-6 border border-gray-100 transform transition-all hover:shadow-lg"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <h2 className="text-xl font-bold text-gray-800">{course.title}</h2>
-                <div className="flex items-center gap-2">
-                  <Clock className="text-orange-500" size={18} />
-                  <span className="text-gray-700">{course.duration}</span>
-                </div>
-              </div>
-
-              <p 
-  className="text-gray-600 mb-4 truncate hover:truncate cursor-pointer transition-all duration-300" 
-  title={course.description}
->
-  {course.description}
-</p>
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <IndianRupee className="text-orange-500" size={18} />
-                  <span className="text-gray-800 font-semibold">{course.price.toFixed(2)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <List className="text-orange-500" size={18} />
-                  <span className="text-gray-700">{course.curriculum.length} Sessions</span>
-                </div>
-              </div>
-
-              <div className="mt-4">
-                <Link
-                 href={`${viewPerformanceRoutes[course.category as keyof typeof viewPerformanceRoutes] || "/student/performance/viewPerformance"}?courseId=${course._id}&studentId=${userData._id}`}>
-                  <button className="mb-2 w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
-                    View Performance
-                  </button>
-                </Link>
-                <Link href={`/student/courseQuality?courseId=${course._id}`}>
-                  <button className="w-full mb-2 bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
-                    Course Quality
-                  </button>
-                </Link>
-                <Link href={`/student/courses/courseDetails?courseId=${course._id}`}>
-                  <button className="w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
-                    View Details
-                  </button>
-                </Link>
-              </div>
-            </div>
+            <CourseCard 
+    key={course._id}
+    course={course}
+    userData={userData}
+    viewPerformanceRoutes={viewPerformanceRoutes}
+  />
           ))}
         </div>
       )}
