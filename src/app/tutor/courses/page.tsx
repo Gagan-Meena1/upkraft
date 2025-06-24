@@ -149,14 +149,19 @@ export default function TutorCoursesPage() {
                 className="bg-white rounded-xl shadow-md p-6 border border-gray-100 transform transition-all hover:shadow-lg"
               >
                 <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-xl font-bold text-gray-800 truncate max-w-[70%]">{course.title}</h2>
+                  <h2 className="text-xl font-bold text-gray-800 truncate max-w-[70%] " title={course.title}>{course.title}</h2>
                   <div className="flex items-center gap-1 text-gray-600 shrink-0">
                     <Clock className="text-orange-500 h-4 w-4" />
                     <span className="text-sm">{course.duration}</span>
                   </div>
                 </div>
 
-                <p className="text-gray-600 mb-4 truncate">{course.description}</p>
+                <p 
+                  className="text-gray-600 mb-4 truncate cursor-help" 
+                  title={course.description}
+                >
+                  {course.description}
+                </p>
 
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center gap-2">
