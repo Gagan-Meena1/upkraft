@@ -1,9 +1,11 @@
 "use client"
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, ExternalLink, HomeIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, ExternalLink, HomeIcon,LogOut,BookCheck } from "lucide-react";
 import Image from "next/image";
 import { BiBulb } from "react-icons/bi";
+import { toast } from 'react-hot-toast';
+
 
 interface CourseData {
   _id: string;
@@ -87,28 +89,48 @@ export default function StudentDetails() {
         </div>
         
         {/* Navigation Links */}
-        <nav className="flex-1 px-2 py-4">
-          <Link href="/tutor" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
-            <HomeIcon size={20} />
-            {sidebarOpen && <span className="ml-3">Home</span>}
-          </Link>
-          <Link href="/tutor/allStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
-            <Users size={20} />
-            {sidebarOpen && <span className="ml-3">Students</span>}
-          </Link>
-          <Link href="/tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
-            <BookOpen size={20} />
-            {sidebarOpen && <span className="ml-3">My Courses</span>}
-          </Link>
-          <Link href="/tutor/create-course" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
-            <PlusCircle size={20} />
-            {sidebarOpen && <span className="ml-3">Create Course</span>}
-          </Link>
-          <Link href="/tutor/myStudents" className="flex items-center p-2 rounded-lg bg-gray-100 text-orange-600 transition-all">
-            <User size={20} />
-            {sidebarOpen && <span className="ml-3">My Students</span>}
-          </Link>
-        </nav>
+         <nav className="flex-1 px-2 py-4">
+                    <Link href="tutor/profile" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+                      <User size={20} />
+                      {sidebarOpen && <span className="ml-3">Profile</span>}
+                    </Link>
+                    <Link href="tutor/courses" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all">
+                      <BookOpen size={20} />
+                      {sidebarOpen && <span className="ml-3">My Courses</span>}
+                    </Link>
+                    <Link href="tutor/create-course" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                      <PlusCircle size={20} />
+                      {sidebarOpen && <span className="ml-3">Create Course</span>}
+                    </Link>
+                    <Link href="tutor/myStudents" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                      <User size={20} />
+                      {sidebarOpen && <span className="ml-3">My Students</span>}
+                    </Link>
+                    <Link href="tutor/assignments" className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
+                      <BookCheck size={20} />
+                      {sidebarOpen && <span className="ml-3">Assignments</span>}
+                    </Link>
+                    <button 
+                      onClick={async () => {
+                        try {
+                          const response = await fetch('/Api/users/logout');
+                          if (response.ok) {
+                            toast.success('Logged out successfully');
+                            router.push('/login');
+                          } else {
+                            toast.error('Failed to logout');
+                          }
+                        } catch (error) {
+                          toast.error('Error during logout');
+                          console.error('Logout error:', error);
+                        }
+                      }}
+                      className="flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+                    >
+                      <LogOut size={20} />
+                      {sidebarOpen && <span className="ml-3">Logout</span>}
+                    </button>
+                  </nav>
         
         {/* Profile Link */}
         <div className="p-4 border-t border-gray-200">

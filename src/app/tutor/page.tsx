@@ -210,6 +210,14 @@ export default function Dashboard() {
   const classesPerPage = 3;
   const totalPages = Math.ceil(classData.length / classesPerPage);
 
+   const filterFutureClasses = (classes: ClassData[]) => {
+  const now = new Date();
+  return classes.filter(classItem => {
+    const classStartTime = new Date(classItem.startTime);
+    return classStartTime > now;
+  });
+};
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -234,8 +242,10 @@ export default function Dashboard() {
           new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         );
         
+        const futureClasses = filterFutureClasses(sortedClasses);
+        
+        setClassData(futureClasses);
         setUserData(userData.user);
-        setClassData(sortedClasses);
         setStudentCount(studentsData.userCount || 0);
         
         // Set assignment data if available
@@ -253,6 +263,8 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
+ 
+  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
