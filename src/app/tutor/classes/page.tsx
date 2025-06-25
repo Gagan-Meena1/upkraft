@@ -89,6 +89,14 @@ console.log("courseId : ",courseId);
     if (!day) return;
     
     const dateString = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+     const selectedDate = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+    
+    if (selectedDate < today) {
+      alert('Cannot create sessions for past dates');
+      return;
+    }
     setSelectedDate(dateString);
     setSessionForm({...sessionForm, date: dateString});
     setShowForm(true);
@@ -101,9 +109,36 @@ console.log("courseId : ",courseId);
     setErrorMessage('');
   };
 
+   const validateDateTime = (date: string, startTime: string, endTime: string) => {
+    if (!date || !startTime || !endTime) return '';
+    
+    const startDateTime = new Date(`${date}T${startTime}`);
+    const endDateTime = new Date(`${date}T${endTime}`);
+    const currentDateTime = new Date();
+    
+    if (startDateTime <= currentDateTime) {
+      return 'Start time cannot be in the past';
+    }
+    
+    if (endDateTime <= startDateTime) {
+      return 'End time must be after start time';
+    }
+    
+    return '';
+  };
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setSessionForm({...sessionForm, [name]: value});
+ const updatedForm = {...sessionForm, [name]: value};
+  setSessionForm(updatedForm);    
+    // Validate time if start time, end time, or date changes
+  if (name === 'startTime' || name === 'endTime') {
+    const validationError = validateDateTime(
+      updatedForm.date, 
+      updatedForm.startTime, 
+      updatedForm.endTime
+    );
+    setErrorMessage(validationError);
+  }
   };
   
 
@@ -113,6 +148,21 @@ console.log("courseId : ",courseId);
     setErrorMessage('');
     
     try {
+      // Validate date and time
+    const sessionDateTime = new Date(`${sessionForm.date}T${sessionForm.startTime}`);
+    const currentDateTime = new Date();
+    
+    if (sessionDateTime <= currentDateTime) {
+      throw new Error('Cannot create sessions for past date and time');
+    }
+    
+    // Validate end time is after start time
+    const startDateTime = new Date(`${sessionForm.date}T${sessionForm.startTime}`);
+    const endDateTime = new Date(`${sessionForm.date}T${sessionForm.endTime}`);
+    
+    if (endDateTime <= startDateTime) {
+      throw new Error('End time must be after start time');
+    }
       // Create form data for submission including the file
       const formData = new FormData();
       formData.append('title', sessionForm.title);
@@ -207,24 +257,40 @@ console.log("courseId : ",courseId);
             ))}
             
             {/* Calendar days */}
-            {calendarDays.map((day, index) => (
-              <div 
-                key={index} 
-                className={`relative p-4 rounded-lg ${
-                  day ? 'bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-500 hover:to-purple-500 cursor-pointer' : 'opacity-0'
-                }`}
-                onClick={() => day && handleDateClick(day)}
-              >
-                {day && (
-                  <>
-                    <span className="font-medium">{day}</span>
-                    <button className="absolute bottom-2 right-2 w-6 h-6 bg-pink-500 hover:bg-pink-400 rounded-full flex items-center justify-center text-white">
-                      <Plus size={16} />
-                    </button>
-                  </>
-                )}
-              </div>
-            ))}
+            {calendarDays.map((day, index) => {
+              const isToday = day && 
+                currentMonth.getFullYear() === new Date().getFullYear() &&
+                currentMonth.getMonth() === new Date().getMonth() &&
+                day === new Date().getDate();
+              
+              const isPastDate = day && 
+                new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day) < new Date(new Date().setHours(0, 0, 0, 0));
+              
+              return (
+                <div 
+                  key={index} 
+                  className={`relative p-4 rounded-lg ${
+                    day 
+                      ? isPastDate 
+                        ? 'bg-gray-600 opacity-50 cursor-not-allowed' 
+                        : 'bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-500 hover:to-purple-500 cursor-pointer'
+                      : 'opacity-0'
+                  }`}
+                  onClick={() => day && !isPastDate && handleDateClick(day)}
+                >
+                  {day && (
+                    <>
+                      <span className={`font-medium ${isPastDate ? 'text-gray-400' : ''}`}>{day}</span>
+                      {!isPastDate && (
+                        <button className="absolute bottom-2 right-2 w-6 h-6 bg-pink-500 hover:bg-pink-400 rounded-full flex items-center justify-center text-white">
+                          <Plus size={16} />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
         
