@@ -3,7 +3,7 @@
 import type { FormEvent } from 'react';
 import { useState, useEffect } from 'react';
 import type { IconProps } from 'lucide-react';
-import { IndianRupee, Plus, Book, Clock, FileText, List, Tag, ChevronLeft } from 'lucide-react';
+import { IndianRupee, Plus, Book, Clock, FileText, List, Tag, ChevronLeft, X } from 'lucide-react';
 import type { LinkProps } from 'next/link';
 import Link from 'next/link';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context';
@@ -71,6 +71,23 @@ export default function CreateCourse() {
         tangibleOutcome: ''
       }
     ]);
+  };
+
+  const removeCurriculumSession = (indexToRemove: number) => {
+    if (curriculum.length <= 1) {
+      toast.error('At least one session is required');
+      return;
+    }
+    
+    const updatedCurriculum = curriculum
+      .filter((_, index) => index !== indexToRemove)
+      .map((session, index) => ({
+        ...session,
+        sessionNo: index + 1
+      }));
+    
+    setCurriculum(updatedCurriculum);
+    toast.success('Session removed successfully');
   };
 
   const updateCurriculumSession = (index: number, field: keyof CurriculumSession, value: string) => {
@@ -246,12 +263,12 @@ export default function CreateCourse() {
               </button>
             </div>
             {curriculum.map((session, index) => (
-              <div key={session.sessionNo} className="flex gap-4 mb-3">
+              <div key={session.sessionNo} className="flex gap-4 mb-3 items-start">
                 <input 
                   type="number"
                   value={session.sessionNo}
                   readOnly
-                  className="w-20 bg-gray-50 text-center text-gray-800 p-2 rounded-lg border border-gray-200"
+                  className="w-20 bg-gray-50 text-center text-gray-800 p-2 rounded-lg border border-gray-200 mt-1"
                 />
                 <input 
                   type="text"
@@ -269,6 +286,16 @@ export default function CreateCourse() {
                   className="flex-1 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
                   required
                 />
+                {curriculum.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeCurriculumSession(index)}
+                    className="bg-red-100 text-red-500 p-2 rounded-lg hover:bg-red-200 transition-colors mt-1"
+                    title="Remove this session"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
