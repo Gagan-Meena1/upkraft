@@ -35,7 +35,7 @@ export async function GET(request) {
       return acc.concat(course.class || []);
     }, []);
 
-    console.log("Extracted class IDs:", classIds);
+    // console.log("Extracted class IDs:", classIds);
 
     // Find class details using the extracted class IDs
     const classDetails = await Class.find({ _id: { $in: classIds } });

@@ -167,6 +167,13 @@ const AssignmentProgressBox = ({ incompleteAssignments, totalAssignments }: { in
   );
 };
 
+const filterFutureClasses = (classes: ClassData[]) => {
+  const now = new Date();
+  return classes.filter(classItem => {
+    const classStartTime = new Date(classItem.startTime);
+    return classStartTime > now;
+  });
+};
 const ClassCard = ({ 
   classItem, 
   onJoinMeeting 
@@ -389,7 +396,7 @@ const StudentDashboard: React.FC = () => {
   if (error) return <ErrorDisplay message={error} />;
 
   // Filter upcoming classes (no recording)
-  const upcomingClasses = classData?.filter(classItem => !classItem.recording) || [];
+const upcomingClasses = classData ? filterFutureClasses(classData) : [];
   
   // Filter incomplete assignments (assuming no status field means incomplete)
   const incompleteAssignments = assignmentData?.filter(assignment => !assignment.status) || [];
