@@ -1,4 +1,4 @@
-// app/api/tutor/create/route.ts
+// app/api/tutors/courses/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import jwt  from 'jsonwebtoken';
 import courseName from "@/models/courseName";
@@ -8,7 +8,7 @@ import User from "@/models/userModel"
 export async function POST(request: NextRequest) {
   try {
     // Parse the incoming JSON body
-    connect();
+    await connect();
     const courseData = await request.json();
     const url = new URL(request.url);
     const studentId = url.searchParams.get('studentId');

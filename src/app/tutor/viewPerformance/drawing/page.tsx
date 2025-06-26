@@ -22,11 +22,11 @@ interface FeedbackItem {
   _id: string;
   userId: string;
   classId: string;
-  technique: string | number;
-  musicality: string | number;
-  retention: string | number;
-  performance: string | number;
-  effort: string | number;
+  observationalSkills: string | number;
+  lineQuality: string | number;
+  proportionPerspective: string | number;
+  valueShading: string | number;
+  compositionCreativity: string | number;
   personalFeedback: string;
   createdAt: string;
   updatedAt: string;
@@ -34,26 +34,26 @@ interface FeedbackItem {
 
 interface ClassInfo {
   sessionNo: number;
-  technique: number;
-  musicality: number;
-  retention: number;
-  performance: number;
-  effort: number;
+  observationalSkills: number;
+  lineQuality: number;
+  proportionPerspective: number;
+  valueShading: number;
+  compositionCreativity: number;
   personalFeedback: string;
   averageScore: number;
   performanceLevel: 'good' | 'medium' | 'poor';
   recommendedImprovement: string;
 }
+
 import dynamic from 'next/dynamic';
 
 // Create a non-SSR version of the component
-const StudentFeedbackDashboardClient = dynamic(
-  () => Promise.resolve(StudentFeedbackDashboard),
+const DrawingFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(DrawingFeedbackDashboard),
   { ssr: false }
 );
 
-
-const StudentFeedbackDashboard = () => {
+const DrawingFeedbackDashboard = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const courseId = searchParams.get('courseId');
@@ -75,7 +75,7 @@ const StudentFeedbackDashboard = () => {
 
       try {
         setIsLoading(true);
-        const response = await fetch(`/Api/studentFeedbackForTutor/dance?courseId=${courseId}&studentId=${studentId}`);
+        const response = await fetch(`/Api/studentFeedbackForTutor/drawing?courseId=${courseId}&studentId=${studentId}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch feedback data');
@@ -108,27 +108,27 @@ const StudentFeedbackDashboard = () => {
         // Process the data
         const processedData: ClassInfo[] = Object.values(groupedByClassId).map((item: FeedbackItem, index: number) => {
           // Parse string values to numbers if necessary
-          const technique = typeof item.technique === 'string' ? parseFloat(item.technique) : item.technique;
-          const musicality = typeof item.musicality === 'string' ? parseFloat(item.musicality) : item.musicality;
-          const retention = typeof item.retention === 'string' ? parseFloat(item.retention) : item.retention;
-          const performance = typeof item.performance === 'string' ? parseFloat(item.performance) : item.performance;
-          const effort = typeof item.effort === 'string' ? parseFloat(item.effort) : item.effort;
+          const observationalSkills = typeof item.observationalSkills === 'string' ? parseFloat(item.observationalSkills) : item.observationalSkills;
+          const lineQuality = typeof item.lineQuality === 'string' ? parseFloat(item.lineQuality) : item.lineQuality;
+          const proportionPerspective = typeof item.proportionPerspective === 'string' ? parseFloat(item.proportionPerspective) : item.proportionPerspective;
+          const valueShading = typeof item.valueShading === 'string' ? parseFloat(item.valueShading) : item.valueShading;
+          const compositionCreativity = typeof item.compositionCreativity === 'string' ? parseFloat(item.compositionCreativity) : item.compositionCreativity;
           
           // Calculate average score
           // Define weights for each category (in decimal form)
-          const techniqueWeight = 0.20;    // 20%
-          const musicalityWeight = 0.20;   // 20%
-          const retentionWeight = 0.20;    // 20%
-          const performanceWeight = 0.20;  // 20%
-          const effortWeight = 0.20;       // 20%
+          const observationalSkillsWeight = 0.20;    // 20%
+          const lineQualityWeight = 0.20;            // 20%
+          const proportionPerspectiveWeight = 0.20;  // 20%
+          const valueShadingWeight = 0.20;           // 20%
+          const compositionCreativityWeight = 0.20;  // 20%
 
           // Calculate weighted score by multiplying each score by its weight
           const weightedScore = 
-              (technique * techniqueWeight) +
-              (musicality * musicalityWeight) +
-              (retention * retentionWeight) +
-              (performance * performanceWeight) +
-              (effort * effortWeight);
+              (observationalSkills * observationalSkillsWeight) +
+              (lineQuality * lineQualityWeight) +
+              (proportionPerspective * proportionPerspectiveWeight) +
+              (valueShading * valueShadingWeight) +
+              (compositionCreativity * compositionCreativityWeight);
 
           // Store the weighted average score with 2 decimal places
           const averageScore = +weightedScore.toFixed(2);
@@ -139,33 +139,33 @@ const StudentFeedbackDashboard = () => {
           
           if (averageScore >= 7) {
             performanceLevel = 'good';
-            recommendedImprovement = 'Continue with current progress. Focus on advanced techniques.';
+            recommendedImprovement = 'Continue with current progress. Focus on advanced drawing techniques.';
           } else if (averageScore >= 5) {
             performanceLevel = 'medium';
             
             // Find the lowest scoring area
             const scores = {
-              'technique': technique,
-              'musicality': musicality,
-              'retention': retention,
-              'performance': performance,
-              'effort': effort
+              'observational skills': observationalSkills,
+              'line quality': lineQuality,
+              'proportion & perspective': proportionPerspective,
+              'value & shading': valueShading,
+              'composition & creativity': compositionCreativity
             };
             
             const lowestArea = Object.entries(scores).reduce((a, b) => a[1] < b[1] ? a : b)[0];
             recommendedImprovement = `Work on improving your ${lowestArea}.`;
           } else {
             performanceLevel = 'poor';
-            recommendedImprovement = 'Schedule additional practice sessions. Focus on fundamentals.';
+            recommendedImprovement = 'Schedule additional practice sessions. Focus on drawing fundamentals.';
           }
           
           return {
             sessionNo: index + 1, // Assuming sessions are ordered in the API response
-            technique,
-            musicality,
-            retention,
-            performance,
-            effort,
+            observationalSkills,
+            lineQuality,
+            proportionPerspective,
+            valueShading,
+            compositionCreativity,
             personalFeedback: item.personalFeedback,
             averageScore,
             performanceLevel,
@@ -181,29 +181,29 @@ const StudentFeedbackDashboard = () => {
         // Calculate average skills scores
         if (processedData.length > 0) {
           const skillTotals = {
-            technique: 0,
-            musicality: 0,
-            retention: 0,
-            performance: 0,
-            effort: 0
+            observationalSkills: 0,
+            lineQuality: 0,
+            proportionPerspective: 0,
+            valueShading: 0,
+            compositionCreativity: 0
           };
           
           processedData.forEach(session => {
-            skillTotals.technique += session.technique;
-            skillTotals.musicality += session.musicality;
-            skillTotals.retention += session.retention;
-            skillTotals.performance += session.performance;
-            skillTotals.effort += session.effort;
+            skillTotals.observationalSkills += session.observationalSkills;
+            skillTotals.lineQuality += session.lineQuality;
+            skillTotals.proportionPerspective += session.proportionPerspective;
+            skillTotals.valueShading += session.valueShading;
+            skillTotals.compositionCreativity += session.compositionCreativity;
           });
           
           const sessionCount = processedData.length;
           
           setAverageSkillScores({
-            technique: +(skillTotals.technique / sessionCount).toFixed(2),
-            musicality: +(skillTotals.musicality / sessionCount).toFixed(2),
-            retention: +(skillTotals.retention / sessionCount).toFixed(2),
-            performance: +(skillTotals.performance / sessionCount).toFixed(2),
-            effort: +(skillTotals.effort / sessionCount).toFixed(2)
+            observationalSkills: +(skillTotals.observationalSkills / sessionCount).toFixed(2),
+            lineQuality: +(skillTotals.lineQuality / sessionCount).toFixed(2),
+            proportionPerspective: +(skillTotals.proportionPerspective / sessionCount).toFixed(2),
+            valueShading: +(skillTotals.valueShading / sessionCount).toFixed(2),
+            compositionCreativity: +(skillTotals.compositionCreativity / sessionCount).toFixed(2)
           });
         }
         
@@ -245,11 +245,11 @@ const StudentFeedbackDashboard = () => {
             const topScores = {
               sessionNo,
               classId,
-              technique: Math.max(...feedbacks.map((f: any) => parseFloat(f.technique) || 0)),
-              musicality: Math.max(...feedbacks.map((f: any) => parseFloat(f.musicality) || 0)),
-              retention: Math.max(...feedbacks.map((f: any) => parseFloat(f.retention) || 0)),
-              performance: Math.max(...feedbacks.map((f: any) => parseFloat(f.performance) || 0)),
-              effort: Math.max(...feedbacks.map((f: any) => parseFloat(f.effort) || 0))
+              observationalSkills: Math.max(...feedbacks.map((f: any) => parseFloat(f.observationalSkills) || 0)),
+              lineQuality: Math.max(...feedbacks.map((f: any) => parseFloat(f.lineQuality) || 0)),
+              proportionPerspective: Math.max(...feedbacks.map((f: any) => parseFloat(f.proportionPerspective) || 0)),
+              valueShading: Math.max(...feedbacks.map((f: any) => parseFloat(f.valueShading) || 0)),
+              compositionCreativity: Math.max(...feedbacks.map((f: any) => parseFloat(f.compositionCreativity) || 0))
             };
             
             topScoresBySession.push(topScores);
@@ -315,14 +315,14 @@ const StudentFeedbackDashboard = () => {
 
   // Define fields and their colors for individual graphs
   const fields = [
-    { key: 'technique', name: 'Technique', color: '#82ca9d' },
-    { key: 'musicality', name: 'Musicality', color: '#ff7300' },
-    { key: 'retention', name: 'Retention', color: '#ff4466' },
-    { key: 'performance', name: 'Performance', color: '#9467bd' },
-    { key: 'effort', name: 'Effort', color: '#e377c2' }
+    { key: 'observationalSkills', name: 'Observational Skills', color: '#82ca9d' },
+    { key: 'lineQuality', name: 'Line Quality', color: '#ff7300' },
+    { key: 'proportionPerspective', name: 'Proportion & Perspective', color: '#ff4466' },
+    { key: 'valueShading', name: 'Value & Shading', color: '#9467bd' },
+    { key: 'compositionCreativity', name: 'Composition & Creativity', color: '#e377c2' }
   ];
 
-  // Add star rating and progress bar helpers from student dashboard
+  // Add star rating and progress bar helpers
   const getStarRating = (score: number) => {
     const fullStars = Math.floor(score / 2);
     const stars = [];
@@ -347,7 +347,6 @@ const StudentFeedbackDashboard = () => {
     if (score >= 6) return 'bg-orange-500';
     return 'bg-red-500';
   };
-
 
   // Function to render individual field graphs with comparison
   const renderFieldGraph = (field: any) => {
@@ -443,12 +442,12 @@ const StudentFeedbackDashboard = () => {
           >
             <ArrowLeft className="text-orange-500" size={24} />
           </button>
-          <h1 className="text-3xl font-bold text-orange-500">Your Performance Dashboard</h1>
+          <h1 className="text-3xl font-bold text-orange-500">Your Drawing Performance Dashboard</h1>
         </div>
-        <p className="text-gray-600">Track your progress across different sessions and skills</p>
+        <p className="text-gray-600">Track your progress across different sessions and drawing skills</p>
       </header>
       
-      {/* New Overall Course Performance Section */}
+      {/* Overall Course Performance Section */}
       <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
         <h2 className="text-2xl font-semibold text-center text-gray-900 mb-4">Overall Course Performance</h2>
         <div className="flex flex-col items-center justify-center space-y-4">
@@ -471,13 +470,12 @@ const StudentFeedbackDashboard = () => {
         </div>
       </div>
 
-      {/* New Performance Metrics Grid */}
+      {/* Performance Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         {fields.map(field => (
           <div key={field.key} className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                {/* You can use an icon here if desired */}
                 <h3 className="text-lg font-medium text-gray-900">{field.name}</h3>
               </div>
               <div className="flex items-baseline">
@@ -567,6 +565,6 @@ const StudentFeedbackDashboard = () => {
 };
 
 // Export this as the default component
-export default function ViewPerformancePage() {
-  return <StudentFeedbackDashboardClient />;
+export default function DrawingPerformancePage() {
+  return <DrawingFeedbackDashboardClient />;
 }
