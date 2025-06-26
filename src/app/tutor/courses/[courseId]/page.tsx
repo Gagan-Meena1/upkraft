@@ -41,6 +41,7 @@ const CourseDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});
+  const [activeTab, setActiveTab] = useState<'classes' | 'curriculum'>('classes');
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
   const params = useParams();
   const router = useRouter();
@@ -203,8 +204,8 @@ const CourseDetailsPage = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 flex items-center justify-center">
-        <div className="text-2xl font-semibold text-gray-700">Loading Course Details...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 flex items-center justify-center p-4">
+        <div className="text-lg sm:text-2xl font-semibold text-gray-700 text-center">Loading Course Details...</div>
       </div>
     );
   }
@@ -212,15 +213,15 @@ const CourseDetailsPage = () => {
   // Error state
   if (error || !courseData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-xl shadow-lg text-center">
-          <div className="text-2xl font-semibold text-red-600 mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 flex items-center justify-center p-4">
+        <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg text-center max-w-md w-full">
+          <div className="text-xl sm:text-2xl font-semibold text-red-600 mb-4">
             Error Loading Course
           </div>
-          <p className="text-gray-700 mb-6">{error}</p>
+          <p className="text-gray-700 mb-6 text-sm sm:text-base">{error}</p>
           <Link 
             href="/tutor" 
-            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors"
+            className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors text-sm sm:text-base"
           >
             Return to Home
           </Link>
@@ -230,167 +231,284 @@ const CourseDetailsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 p-3 sm:p-6">
+      <div className="max-w-6xl mx-auto">
         {/* Header with Back Button */}
-        <header className="mb-8 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Link 
-              href={`/tutor/courses`} 
-              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors shadow-md"
-            >
-              <ChevronLeft className="text-gray-700" />
-            </Link>
-            <h1 className="text-3xl font-bold text-gray-800">
-              {courseData.courseDetails.title}
-            </h1>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
-              <button className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-2 rounded-md font-medium transition-colors shadow-md flex items-center gap-2">
-                <Upload size={18} />
-                Create Class
+        <header className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <Link 
+                href={`/tutor/courses`} 
+                className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors shadow-md flex-shrink-0"
+              >
+                <ChevronLeft className="text-gray-700 w-5 h-5 sm:w-6 sm:h-6" />
+              </Link>
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 break-words">
+                {courseData.courseDetails.title}
+              </h1>
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+              <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
+                <button className="w-full sm:w-auto bg-gray-700 hover:bg-gray-800 text-white px-3 sm:px-4 py-2 rounded-md font-medium transition-colors shadow-md flex items-center justify-center gap-2 text-sm sm:text-base">
+                  <Upload size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  Create Class
+                </button>
+              </Link>
+              <button 
+                onClick={handleDeleteCourse}
+                className="w-full sm:w-auto border border-gray-300 bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 px-3 sm:px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-sm text-sm sm:text-base"
+              >
+                <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+                Delete Course
               </button>
-            </Link>
-            <button 
-              onClick={handleDeleteCourse}
-              className="border border-gray-300 bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 shadow-sm"
-            >
-              <Trash2 size={18} />
-              Delete Course
-            </button>
+            </div>
           </div>
         </header>
   
         {/* Course Overview */}
-        <section className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="flex justify-between items-center mb-4">
+        <section className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
             <div>
-              <h2 className="text-xl font-semibold text-gray-800 flex items-center">
-                <BookOpen className="mr-2 text-gray-600" />
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center">
+                <BookOpen className="mr-2 text-gray-600 w-5 h-5 sm:w-6 sm:h-6" />
                 Course Overview
               </h2>
             </div>
-            <div className="text-gray-600">
-              <span className="font-medium">Duration:</span> {courseData.courseDetails.duration}
-              <span className="ml-4 font-medium">Price:</span> <IndianRupee className='text-xs scale-70 inline-block transform'/>{courseData.courseDetails.price} 
+            <div className="text-gray-600 text-sm sm:text-base">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <span><span className="font-medium">Duration:</span> {courseData.courseDetails.duration}</span>
+                <span><span className="font-medium">Price:</span> <IndianRupee className='text-xs scale-70 inline-block transform'/>{courseData.courseDetails.price}</span>
+              </div>
             </div>
           </div>
-          <p className="text-gray-600">{courseData.courseDetails.description}</p>
+          <p className="text-gray-600 text-sm sm:text-base leading-relaxed">{courseData.courseDetails.description}</p>
         </section>
-  
-        {/* Class Sessions */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">
-            Course Classes
-          </h2>
-          
-          <div className="space-y-6">
-            {courseData.classDetails.map((classSession) => {
-              const { date, time: startTime } = formatDateTime(classSession.startTime);
-              const { time: endTime } = formatDateTime(classSession.endTime);
-              const isUploading = uploadLoading[classSession._id] || false;
 
-              return (
-                <div 
-                  key={classSession._id} 
-                  className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow"
-                >
-                  <div className="p-6 grid grid-cols-3 gap-6 items-center">
-                    {/* Date and Time */}
-                    <div className="col-span-1 bg-gray-100 rounded-lg p-4 text-center">
-                      <div className="text-xl font-bold text-gray-800">{date}</div>
-                      <div className="text-gray-600">
-                        {startTime} - {endTime}
+        {/* Tab Navigation */}
+        <div className="mb-6">
+          <div className="flex bg-white rounded-lg shadow-md p-1 max-w-md mx-auto sm:mx-0">
+            <button
+              onClick={() => setActiveTab('classes')}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 text-sm sm:text-base ${
+                activeTab === 'classes'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Classes
+            </button>
+            <button
+              onClick={() => setActiveTab('curriculum')}
+              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 text-sm sm:text-base ${
+                activeTab === 'curriculum'
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              Curriculum
+            </button>
+          </div>
+        </div>
+  
+        {/* Classes Section */}
+        {activeTab === 'classes' && (
+          <section>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
+              Course Classes
+            </h2>
+            
+            <div className="space-y-4 sm:space-y-6">
+              {courseData.classDetails.map((classSession) => {
+                const { date, time: startTime } = formatDateTime(classSession.startTime);
+                const { time: endTime } = formatDateTime(classSession.endTime);
+                const isUploading = uploadLoading[classSession._id] || false;
+
+                return (
+                  <div 
+                    key={classSession._id} 
+                    className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow"
+                  >
+                    <div className="p-4 sm:p-6">
+                      {/* Mobile Layout */}
+                      <div className="block lg:hidden space-y-4">
+                        {/* Date and Time */}
+                        <div className="bg-gray-100 rounded-lg p-3 text-center">
+                          <div className="text-sm font-bold text-gray-800">{date}</div>
+                          <div className="text-xs text-gray-600">
+                            {startTime} - {endTime}
+                          </div>
+                        </div>
+
+                        {/* Session Details */}
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                            {classSession.title}
+                          </h3>
+                          <p className="text-gray-600 text-sm leading-relaxed">
+                            {classSession.description}
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex flex-col gap-2">
+                          {/* Hidden file input */}
+                          <input
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            ref={el => { fileInputRefs.current[classSession._id] = el; }}
+                            onChange={(e) => handleFileChange(classSession._id, e)}
+                          />
+
+                          <div className="flex gap-2">
+                            {/* Class Quality button */}
+                            {classSession.recordingUrl && (
+                              <Link 
+                                href={`/tutor/classQuality/${classSession._id}`}
+                                className="flex-1 px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
+                              >
+                                <BarChart3 className="mr-1" size={14} />
+                                Quality
+                              </Link>
+                            )}
+
+                            {/* Upload Recording button */}
+                            <button
+                              onClick={() => triggerFileInput(classSession._id)}
+                              disabled={isUploading}
+                              className={`flex-1 px-3 py-2 ${
+                                isUploading ? 'bg-gray-400 cursor-not-allowed' 
+                                  : 'bg-green-500 hover:bg-green-600'
+                              } text-white rounded-lg transition-colors flex items-center justify-center text-xs`}
+                            >
+                              <Upload className="mr-1" size={14} />
+                              {getButtonText(classSession, isUploading)}
+                            </button>
+                          </div>
+
+                          {/* Assignment Button */}
+                          <Link 
+                            href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+                            className="w-full px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
+                          >
+                            <FileText className="mr-1" size={14} />
+                            Assignment
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Desktop Layout */}
+                      <div className="hidden lg:grid lg:grid-cols-3 lg:gap-6 lg:items-center">
+                        {/* Date and Time */}
+                        <div className="col-span-1 bg-gray-100 rounded-lg p-4 text-center">
+                          <div className="text-xl font-bold text-gray-800">{date}</div>
+                          <div className="text-gray-600">
+                            {startTime} - {endTime}
+                          </div>
+                        </div>
+
+                        {/* Session Details */}
+                        <div className="col-span-1">
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                            {classSession.title}
+                          </h3>
+                          <p className="text-gray-600">
+                            {classSession.description}
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="col-span-1 flex justify-end space-x-4">
+                          {/* Hidden file input */}
+                          <input
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            ref={el => { fileInputRefs.current[classSession._id] = el; }}
+                            onChange={(e) => handleFileChange(classSession._id, e)}
+                          />
+
+                          {/* Class Quality button */}
+                          {classSession.recordingUrl && (
+                            <Link 
+                              href={`/tutor/classQuality/${classSession._id}`}
+                              className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center text-sm"
+                            >
+                              <BarChart3 className="mr-1" size={16} />
+                              Class Quality
+                            </Link>
+                          )}
+
+                          {/* Upload Recording button */}
+                          <button
+                            onClick={() => triggerFileInput(classSession._id)}
+                            disabled={isUploading}
+                            className={`px-2 py-1 ${
+                              isUploading ? 'bg-gray-400 cursor-not-allowed' 
+                                : 'bg-green-500 hover:bg-green-600'
+                            } text-white rounded-lg transition-colors flex items-center text-sm`}
+                          >
+                            <Upload className="mr-1" size={16} />
+                            {getButtonText(classSession, isUploading)}
+                          </button>
+
+                          {/* Assignment Button */}
+                          <Link 
+                            href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+                            className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors flex items-center text-sm"
+                          >
+                            <FileText className="mr-1" size={16} />
+                            Assignment
+                          </Link>
+                        </div>
                       </div>
                     </div>
-
-                    {/* Session Details */}
-                    <div className="col-span-1">
-                      <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                        {classSession.title}
-                      </h3>
-                      <p className="text-gray-600">
-                        {classSession.description}
-                      </p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="col-span-1 flex justify-end space-x-4">
-                      {/* Hidden file input */}
-                      <input
-                        type="file"
-                        accept="video/*"
-                        className="hidden"
-                        ref={el => { fileInputRefs.current[classSession._id] = el; }}
-                        onChange={(e) => handleFileChange(classSession._id, e)}
-                      />
-
-                      {/* Class Quality button */}
-                      {classSession.recordingUrl && (
-                        <Link 
-                          href={`/tutor/classQuality/${classSession._id}`}
-                          className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center text-sm"
-                        >
-                          <BarChart3 className="mr-1" size={16} />
-                          Class Quality
-                        </Link>
-                      )}
-
-                      {/* Upload Recording button */}
-                      <button
-                        onClick={() => triggerFileInput(classSession._id)}
-                        disabled={isUploading}
-                        className={`px-2 py-1 ${
-                          isUploading ? 'bg-gray-400 cursor-not-allowed' 
-                            : 'bg-green-500 hover:bg-green-600'
-                        } text-white rounded-lg transition-colors flex items-center text-sm`}
-                      >
-                        <Upload className="mr-1" size={16} />
-                        {getButtonText(classSession, isUploading)}
-                      </button>
-
-                      {/* Assignment Button */}
-                      <Link 
-                        href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-                        className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors flex items-center text-sm"
-                      >
-                        <FileText className="mr-1" size={16} />
-                        Assignment
-                      </Link>
-                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-  
-        {/* Curriculum */}
-        {courseData.courseDetails.curriculum && courseData.courseDetails.curriculum.length > 0 && (
-          <section className="mt-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Curriculum Section */}
+        {activeTab === 'curriculum' && courseData.courseDetails.curriculum && courseData.courseDetails.curriculum.length > 0 && (
+          <section>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
               Course Curriculum
             </h2>
-            <div className="bg-white rounded-xl shadow-lg p-6">
+            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
               <div className="space-y-4">
                 {courseData.courseDetails.curriculum.map((item) => (
                   <div 
                     key={item.sessionNo} 
                     className="border-b pb-4 last:border-b-0"
                   >
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="font-semibold text-gray-800">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-800 text-sm sm:text-base">
                           Session {item.sessionNo}: {item.topic}
                         </div>
-                        <div className="text-gray-600 mt-1">
+                        <div className="text-gray-600 mt-1 text-sm leading-relaxed">
                           {item.tangibleOutcome}
                         </div>
                       </div>
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Show message if no curriculum */}
+        {activeTab === 'curriculum' && (!courseData.courseDetails.curriculum || courseData.courseDetails.curriculum.length === 0) && (
+          <section>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
+              Course Curriculum
+            </h2>
+            <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+              <div className="text-gray-500">
+                No curriculum available for this course.
               </div>
             </div>
           </section>
