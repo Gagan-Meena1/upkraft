@@ -27,7 +27,6 @@ export default function TutorCoursesPage() {
   const [error, setError] = useState<string | null>(null);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
 
-
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -57,44 +56,44 @@ export default function TutorCoursesPage() {
     };
   
     fetchCourses();
-    // 3. Add this delete function after your fetchCourses function
-   
-      }, []);
- const handleDeleteCourse = async (courseId: string) => {
-      if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-        return;
+  }, []);
+
+  const handleDeleteCourse = async (courseId: string) => {
+    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingCourseId(courseId);
+      
+      const response = await fetch(`/Api/tutors/courses?courseId=${courseId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete course');
       }
 
-      try {
-        setDeletingCourseId(courseId);
-        
-        const response = await fetch(`/Api/tutors/courses?courseId=${courseId}`, {
-          method: 'DELETE',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to delete course');
-        }
-
-        const data = await response.json();
-        
-        if (data.success) {
-          toast.success(data.message || 'Course deleted successfully');
-          // Remove the deleted course from the local state
-          setCourses(prevCourses => prevCourses.filter(course => course._id !== courseId));
-        } else {
-          throw new Error(data.message || 'Failed to delete course');
-        }
-      } catch (error) {
-        console.error('Error deleting course:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to delete course');
-      } finally {
-        setDeletingCourseId(null);
+      const data = await response.json();
+      
+      if (data.success) {
+        toast.success(data.message || 'Course deleted successfully');
+        // Remove the deleted course from the local state
+        setCourses(prevCourses => prevCourses.filter(course => course._id !== courseId));
+      } else {
+        throw new Error(data.message || 'Failed to delete course');
       }
-    };
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete course');
+    } finally {
+      setDeletingCourseId(null);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
       </div>
     );
@@ -102,10 +101,10 @@ export default function TutorCoursesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-xl p-8 text-center shadow-md border border-gray-100">
-          <h2 className="text-2xl text-red-600 mb-4">Error</h2>
-          <p className="text-gray-800">{error}</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="bg-white rounded-xl p-6 sm:p-8 text-center shadow-md border border-gray-100 w-full max-w-md">
+          <h2 className="text-xl sm:text-2xl text-red-600 mb-4">Error</h2>
+          <p className="text-gray-800 text-sm sm:text-base">{error}</p>
         </div>
       </div>
     );
@@ -117,17 +116,19 @@ export default function TutorCoursesPage() {
       
       {/* Header */}
       <div className="bg-white border-b border-gray-200 w-full">
-        <div className="px-6 py-4">
-          <div className="flex justify-between items-center">
+        <div className="px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div className="flex items-center gap-4">
               <Link href="/tutor" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <ChevronLeft className="h-6 w-6 text-gray-600" />
               </Link>
-              <h1 className="text-2xl font-semibold text-gray-800">My Courses</h1>
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">My Courses</h1>
             </div>
-            <Link href="/tutor/create-course">
-              <button className="bg-orange-500 text-white px-6 py-2.5 rounded-lg flex items-center gap-2 hover:bg-orange-600 transition-colors">
-                <Book size={20} /> Create New Course
+            <Link href="/tutor/create-course" className="w-full sm:w-auto">
+              <button className="w-full sm:w-auto bg-orange-500 text-white px-4 sm:px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors text-sm sm:text-base">
+                <Book size={18} className="sm:size-5" /> 
+                <span className="hidden xs:inline">Create New Course</span>
+                <span className="xs:hidden">Create Course</span>
               </button>
             </Link>
           </div>
@@ -135,35 +136,43 @@ export default function TutorCoursesPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {courses.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center shadow-md border border-gray-100">
-            <h2 className="text-2xl text-gray-800 mb-4">No Courses Available</h2>
-            <p className="text-gray-700">Start creating your first course!</p>
+          <div className="bg-white rounded-xl p-6 sm:p-8 text-center shadow-md border border-gray-100">
+            <h2 className="text-xl sm:text-2xl text-gray-800 mb-4">No Courses Available</h2>
+            <p className="text-gray-700 text-sm sm:text-base">Start creating your first course!</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {courses.map((course) => (
               <div 
                 key={course._id} 
-                className="bg-white rounded-xl shadow-md p-6 border border-gray-100 transform transition-all hover:shadow-lg"
+                className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 transform transition-all hover:shadow-lg"
               >
-                <div className="flex justify-between items-start mb-4">
-                  <h2 className="text-xl font-bold text-gray-800 truncate max-w-[70%] " title={course.title}>{course.title}</h2>
-                  <div className="flex items-center gap-1 text-gray-600 shrink-0">
+                {/* Course Header */}
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-2">
+                  <h2 
+                    className="text-lg sm:text-xl font-bold text-gray-800 truncate sm:max-w-[70%]" 
+                    title={course.title}
+                  >
+                    {course.title}
+                  </h2>
+                  <div className="flex items-center gap-1 text-gray-600 shrink-0 self-start sm:self-auto">
                     <Clock className="text-orange-500 h-4 w-4" />
                     <span className="text-sm">{course.duration}</span>
                   </div>
                 </div>
 
+                {/* Course Description */}
                 <p 
-                  className="text-gray-600 mb-4 truncate cursor-help" 
+                  className="text-gray-600 mb-4 text-sm sm:text-base truncate cursor-help" 
                   title={course.description}
                 >
                   {course.description}
                 </p>
 
-                <div className="flex justify-between items-center mb-4">
+                {/* Price and Sessions */}
+                <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center sm:flex-row sm:justify-between sm:items-center mb-4 gap-2 sm:gap-0">
                   <div className="flex items-center gap-2">
                     <IndianRupee className="text-orange-500" size={18} />
                     <span className="text-gray-800 font-semibold">{course.price.toFixed(2)}</span>
@@ -174,26 +183,29 @@ export default function TutorCoursesPage() {
                   </div>
                 </div>
 
+                {/* Action Buttons */}
                 <div className="mt-4 space-y-2">
+                  {/* Top Row - Edit and Quality */}
                   <div className="grid grid-cols-2 gap-2">
                     <Link href={`/tutor/create-course?edit=true&courseId=${course._id}`}>
-                      <button className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
-                        <Edit size={18} />
-                        Edit
+                      <button className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 sm:px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-1.5 sm:gap-2 text-sm">
+                        <Edit size={16} className="sm:size-[18px]" />
+                        <span className="hidden xs:inline">Edit</span>
                       </button>
                     </Link>
                     <Link href={`/tutor/courseQuality?courseId=${course._id}`}>
-                      <button className="w-full bg-white border border-orange-200 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
-                        <BarChart3 size={18} />
-                        Quality
+                      <button className="w-full bg-white border border-orange-200 text-orange-600 hover:bg-orange-50 px-3 sm:px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-1.5 sm:gap-2 text-sm">
+                        <BarChart3 size={16} className="sm:size-[18px]" />
+                        <span className="hidden xs:inline">Quality</span>
                       </button>
                     </Link>
                   </div>
 
+                  {/* Bottom Row - View Details */}
                   <Link href={`/tutor/courses/${course._id}`} className="block">
                     <button className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
-                      <Eye size={18} />
-                      View Details
+                      <Eye size={16} className="sm:size-[18px]" />
+                      <span>View Details</span>
                     </button>
                   </Link>
                 </div>
