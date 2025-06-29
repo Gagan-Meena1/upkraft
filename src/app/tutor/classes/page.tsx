@@ -202,57 +202,60 @@ console.log("courseId : ",courseId);
 
   const calendarDays = generateCalendarDays();
   const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekdaysMobile = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // Shorter version for mobile
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June', 
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-300 to-pink-600 text-gray-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-300 to-pink-600 text-gray-100 p-3 sm:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header with back button */}
-        <header className="mb-8 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+        <header className="mb-6 sm:mb-8 flex justify-between items-center">
+          <div className="flex items-center gap-2 sm:gap-4">
           <Link 
   href={courseId ? `/tutor/courses/${courseId}` : "/tutor/courses"} 
   className="p-2 rounded-lg bg-blue-900 hover:bg-blue-500 transition-colors"
 >
-  <ChevronLeft />
+  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
 </Link>
-            <h1 className="text-3xl font-bold text-pink-200">Add New Session</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-pink-200">Add New Session</h1>
           </div>
         </header>
         
         {/* Calendar container */}
-        <div className="bg-gradient-to-r from-blue-700 to-pink-800 rounded-xl p-6 shadow-lg">
+        <div className="bg-gradient-to-r from-blue-700 to-pink-800 rounded-xl p-4 sm:p-6 shadow-lg">
           {/* Calendar header */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-semibold text-pink-100 flex items-center gap-2">
-              <Calendar size={24} />
-              {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+          <div className="flex justify-between items-center mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-pink-100 flex items-center gap-2">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
+              <span className="hidden sm:inline">{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
+              <span className="sm:hidden">{monthNames[currentMonth.getMonth()].substring(0, 3)} {currentMonth.getFullYear()}</span>
             </h2>
-            <div className="flex gap-2">
+            <div className="flex gap-1 sm:gap-2">
               <button 
                 onClick={handlePrevMonth}
-                className="p-2 rounded-lg bg-blue-600 hover:bg-blue-200 transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg bg-blue-600 hover:bg-blue-200 transition-colors"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <button 
                 onClick={handleNextMonth}
-                className="p-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors"
               >
-                <ChevronRight size={20} />
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>
           
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2">
             {/* Weekday headers */}
-            {weekdays.map(day => (
-              <div key={day} className="text-center py-2 font-medium text-blue-200">
-                {day}
+            {weekdays.map((day, index) => (
+              <div key={day} className="text-center py-1 sm:py-2 font-medium text-blue-200 text-xs sm:text-base">
+                <span className="hidden sm:inline">{day}</span>
+                <span className="sm:hidden">{weekdaysMobile[index]}</span>
               </div>
             ))}
             
@@ -269,7 +272,7 @@ console.log("courseId : ",courseId);
               return (
                 <div 
                   key={index} 
-                  className={`relative p-4 rounded-lg ${
+                  className={`relative p-2 sm:p-4 rounded-lg min-h-[3rem] sm:min-h-[4rem] ${
                     day 
                       ? isPastDate 
                         ? 'bg-gray-600 opacity-50 cursor-not-allowed' 
@@ -280,10 +283,10 @@ console.log("courseId : ",courseId);
                 >
                   {day && (
                     <>
-                      <span className={`font-medium ${isPastDate ? 'text-gray-400' : ''}`}>{day}</span>
+                      <span className={`font-medium text-sm sm:text-base ${isPastDate ? 'text-gray-400' : ''}`}>{day}</span>
                       {!isPastDate && (
-                        <button className="absolute bottom-2 right-2 w-6 h-6 bg-pink-500 hover:bg-pink-400 rounded-full flex items-center justify-center text-white">
-                          <Plus size={16} />
+                        <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-pink-500 hover:bg-pink-400 rounded-full flex items-center justify-center text-white">
+                          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       )}
                     </>
@@ -296,24 +299,25 @@ console.log("courseId : ",courseId);
         
         {/* Session Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10">
-            <div className="bg-gradient-to-r from-blue-800 to-purple-700 rounded-xl p-6 shadow-xl w-full max-w-lg">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold text-pink-200">
-                  Create Session for {selectedDate}
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 p-4">
+            <div className="bg-gradient-to-r from-blue-800 to-purple-700 rounded-xl p-4 sm:p-6 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-pink-200">
+                  <span className="hidden sm:inline">Create Session for {selectedDate}</span>
+                  <span className="sm:hidden">Create Session</span>
                 </h2>
                 <button 
                   onClick={handleCloseForm}
-                  className="text-gray-300 hover:text-white"
+                  className="text-gray-300 hover:text-white p-1"
                 >
-                  <X size={24} />
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
               
               <form onSubmit={handleSubmit}>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <div>
-                    <label htmlFor="title" className="block text-blue-200 mb-1">
+                    <label htmlFor="title" className="block text-blue-200 mb-1 text-sm sm:text-base">
                       Class Title
                     </label>
                     <input
@@ -322,7 +326,7 @@ console.log("courseId : ",courseId);
                       name="title"
                       value={sessionForm.title}
                       onChange={handleFormChange}
-                      className="w-full px-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
                       placeholder="e.g., Advanced Mathematics"
                       required
                     />
@@ -331,7 +335,7 @@ console.log("courseId : ",courseId);
                   
                   
                   <div>
-                    <label htmlFor="description" className="block text-blue-200 mb-1">
+                    <label htmlFor="description" className="block text-blue-200 mb-1 text-sm sm:text-base">
                       Description
                     </label>
                     <textarea
@@ -339,44 +343,44 @@ console.log("courseId : ",courseId);
                       name="description"
                       value={sessionForm.description}
                       onChange={handleFormChange}
-                      className="w-full px-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 h-24"
+                      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 h-20 sm:h-24 text-sm sm:text-base"
                       placeholder="Class description and notes..."
                       required
                     />
                   </div>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <label htmlFor="startTime" className="block text-blue-200 mb-1">
+                      <label htmlFor="startTime" className="block text-blue-200 mb-1 text-sm sm:text-base">
                         Start Time
                       </label>
                       <div className="relative">
-                        <Clock size={18} className="absolute top-3 left-3 text-blue-400" />
+                        <Clock className="absolute top-2.5 sm:top-3 left-3 text-blue-400 w-4 h-4 sm:w-5 sm:h-5" />
                         <input
                           type="time"
                           id="startTime"
                           name="startTime"
                           value={sessionForm.startTime}
                           onChange={handleFormChange}
-                          className="w-full pl-10 pr-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
                           required
                         />
                       </div>
                     </div>
                     
                     <div>
-                      <label htmlFor="endTime" className="block text-blue-200 mb-1">
+                      <label htmlFor="endTime" className="block text-blue-200 mb-1 text-sm sm:text-base">
                         End Time
                       </label>
                       <div className="relative">
-                        <Clock size={18} className="absolute top-3 left-3 text-blue-400" />
+                        <Clock className="absolute top-2.5 sm:top-3 left-3 text-blue-400 w-4 h-4 sm:w-5 sm:h-5" />
                         <input
                           type="time"
                           id="endTime"
                           name="endTime"
                           value={sessionForm.endTime}
                           onChange={handleFormChange}
-                          className="w-full pl-10 pr-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
                           required
                         />
                       </div>
@@ -419,14 +423,14 @@ console.log("courseId : ",courseId);
                   
                   {/* Error message display */}
                   {errorMessage && (
-                    <div className="bg-red-900 text-white p-3 rounded-lg">
+                    <div className="bg-red-900 text-white p-2 sm:p-3 rounded-lg text-sm sm:text-base">
                       {errorMessage}
                     </div>
                   )}
                   
                   <button
                     type="submit"
-                    className="w-full py-3 px-4 bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-400 hover:to-blue-400 rounded-lg font-semibold shadow-md transition-colors disabled:opacity-50"
+                    className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-400 hover:to-blue-400 rounded-lg font-semibold shadow-md transition-colors disabled:opacity-50 text-sm sm:text-base"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? 'Creating...' : 'Create Session'}

@@ -40,9 +40,7 @@ export async function GET(request) {
     // Find class details using the extracted class IDs
     const classDetails = await Class.find({ _id: { $in: classIds } });
 
-    // console.log("user:", user);
-    // console.log("courseDetails:", courseDetails);
-    // console.log("classDetails:", classDetails);
+   
 
     return NextResponse.json({
       success: true,
