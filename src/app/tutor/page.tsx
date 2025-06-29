@@ -53,20 +53,10 @@ interface AssignmentData {
   updatedAt: string;
 }
 
-interface ApiResponse {
-  message: string;
-  classData: ClassData[];
-}
-
 interface MeetingState {
   isActive: boolean;
   url: string | null;
   classId: string | null;
-}
-
-interface StudentsResponse {
-  userCount: number;
-  filteredUsers: any[];
 }
 
 // Progress Box Components
@@ -238,32 +228,32 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch user data
+        // Fetch all data from single endpoint
         const userResponse = await fetch("/Api/users/user");
         const userData = await userResponse.json();
         
-        // Fetch classes data
-        const classesResponse = await fetch("/Api/classes");
-        const classesData: ApiResponse = await classesResponse.json();
-        
-        // Fetch students count
-        const studentsResponse = await fetch("/Api/myStudents");
-        const studentsData: StudentsResponse = await studentsResponse.json();
-        
-        // Fetch assignments data
+        // Fetch assignments data (keeping this separate as it's not mentioned in the single API)
         const assignmentResponse = await fetch("/Api/assignment");
         const assignmentResponseData = await assignmentResponse.json();
         
-        // Sort classes by startTime
-        const sortedClasses = classesData.classData.sort((a, b) => 
-          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-        );
-        
-        const futureClasses = filterFutureClasses(sortedClasses);
-        
-        setClassData(futureClasses);
+        // Set user data
         setUserData(userData.user);
-        setStudentCount(studentsData.userCount || 0);
+        
+        // Set student count from the API response
+        setStudentCount(userData.studentCount || 0);
+        
+        // Set class data from classDetails in the response
+        if (userData.classDetails && userData.classDetails.length > 0) {
+          // Sort classes by startTime
+          const sortedClasses = userData.classDetails.sort((a: ClassData, b: ClassData) => 
+            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+          );
+          
+          const futureClasses = filterFutureClasses(sortedClasses);
+          setClassData(futureClasses);
+        } else {
+          setClassData([]);
+        }
         
         // Set assignment data if available
         if (assignmentResponseData?.assignments) {

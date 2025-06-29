@@ -29,7 +29,7 @@ export async function GET(request) {
 
     // Get course details for the user's enrolled courses
     const courseDetails = await courseName.find({ _id: { $in: user.courses } });
-    
+        
     // Extract all class IDs from the courses
     const classIds = courseDetails.reduce((acc, course) => {
       return acc.concat(course.class || []);
@@ -40,14 +40,19 @@ export async function GET(request) {
     // Find class details using the extracted class IDs
     const classDetails = await Class.find({ _id: { $in: classIds } });
 
-   
+    // Count students who have this user as their instructor
+    const studentCount = await User.countDocuments({
+      instructorId: userId,
+      category: "Student" // 
+    });
 
     return NextResponse.json({
       success: true,
       message: `Sent user successfully`,
       user,
       courseDetails,
-      classDetails
+      classDetails,
+      studentCount
     });
 
   } catch (error) {
