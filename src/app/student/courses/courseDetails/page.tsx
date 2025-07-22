@@ -33,14 +33,14 @@ interface CourseDetail {
 }
 
 const VideoModal = ({ videoUrl, onClose }: { videoUrl: string, onClose: () => void }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-    <div className="relative bg-black rounded-lg overflow-hidden shadow-xl max-w-4xl w-full">
+  <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4">
+    <div className="relative bg-black rounded-lg overflow-hidden shadow-xl max-w-4xl w-full mx-2 sm:mx-4">
       <button
         onClick={onClose}
         className="absolute top-2 right-2 text-white bg-gray-800 bg-opacity-50 rounded-full p-1 hover:bg-opacity-75 transition-colors z-10"
         aria-label="Close video player"
       >
-        <X size={24} />
+        <X size={20} className="sm:w-6 sm:h-6" />
       </button>
       <div className="aspect-video">
         <video src={videoUrl} controls autoPlay className="w-full h-full">
@@ -175,7 +175,7 @@ const CourseDetailsPage = () => {
     if (classes.length === 0) {
       return (
         <div className="text-center py-8">
-          <p className="text-gray-500">
+          <p className="text-gray-500 text-sm sm:text-base">
             {classScheduleTab === 'upcoming' ? 'No upcoming classes' : 'No recorded classes'}
           </p>
         </div>
@@ -183,23 +183,22 @@ const CourseDetailsPage = () => {
     }
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 sm:space-y-6">
         {classes.map((classItem) => {
           const isPast = isClassPast(classItem.endTime);
           
           return (
             <div 
               key={classItem._id} 
-              className="border-b pb-4 last:border-b-0"
+              className="border-b pb-4 sm:pb-6 last:border-b-0"
             >
-              <div className="flex justify-between items-start">
+              <div className="flex flex-col space-y-3 sm:space-y-4">
                 <div className="flex-1">
-                  <div className="font-semibold text-gray-800 mb-1">
+                  <div className="font-semibold text-gray-800 mb-2 text-sm sm:text-base">
                     {classItem.title}
-                    
                   </div>
-                  <div className="text-sm text-gray-500">
-                    <div className="mb-1">
+                  <div className="text-xs sm:text-sm text-gray-500 space-y-1">
+                    <div>
                       <span className="font-medium">Date:</span> {formatDate(classItem.startTime)}
                     </div>
                     <div>
@@ -207,33 +206,35 @@ const CourseDetailsPage = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex space-x-3 ml-4">
-                  {classItem.recording && isPast && (
-                    <Link 
-                      href={`/student/classQuality/${classItem._id}`}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-md shadow-md hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
-                    >
-                      <BarChart3 className="mr-1" size={16} />
-                      Class Quality
-                    </Link>
-                  )}
-                  {classItem.performanceVideo && isPast && (
-                    <button 
-                      onClick={() => setSelectedVideo(classItem.performanceVideo)}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
-                    >
-                      Performance Video
-                    </button>
-                  )}
-                  {isPast && (
+                
+                {/* Action buttons - responsive layout */}
+                {isPast && (
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    {classItem.recording && (
+                      <Link 
+                        href={`/student/classQuality/${classItem._id}`}
+                        className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-md shadow-md hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
+                      >
+                        <BarChart3 className="mr-1 w-3 h-3 sm:w-4 sm:h-4" />
+                        Class Quality
+                      </Link>
+                    )}
+                    {classItem.performanceVideo && (
+                      <button 
+                        onClick={() => setSelectedVideo(classItem.performanceVideo)}
+                        className="px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
+                      >
+                        Performance Video
+                      </button>
+                    )}
                     <Link 
                       href={`/student/singleFeedback/${courseDetails?.category}?classId=${classItem._id}&studentId=${userData?._id}`}
-                      className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center text-sm font-medium"
+                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
                     >
                       View Feedback
                     </Link>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -247,36 +248,38 @@ const CourseDetailsPage = () => {
       <Toaster />
       
       {loading ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-gray-600 text-lg">Loading course details...</p>
+        <div className="flex items-center justify-center min-h-screen px-4">
+          <p className="text-gray-600 text-base sm:text-lg text-center">Loading course details...</p>
         </div>
       ) : error ? (
-        <div className="max-w-4xl mx-auto bg-red-50 p-4 rounded-lg border border-red-200">
-          <h1 className="text-red-600 text-xl font-medium">Error Loading Course</h1>
-          <p className="text-red-500 mt-2">{error}</p>
+        <div className="mx-auto bg-red-50 p-4 rounded-lg border border-red-200">
+          <h1 className="text-red-600 text-lg sm:text-xl font-medium">Error Loading Course</h1>
+          <p className="text-red-500 mt-2 text-sm sm:text-base">{error}</p>
           <button 
             onClick={fetchCourseDetails} 
-            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm sm:text-base"
           >
             Try Again
           </button>
         </div>
       ) : (
-        <div className="min-w-full mx-auto">
+        <div className="w-full">
           {selectedVideo && (
             <VideoModal videoUrl={selectedVideo} onClose={() => setSelectedVideo(null)} />
           )}
+          
+          {/* Course Header */}
           {courseDetails && (
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-orange-500 mb-2">
+            <div className="mb-6 sm:mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold text-orange-500 mb-3 sm:mb-4">
                 {courseDetails.title}
               </h1>
-              <div className="bg-gray-100 p-4 rounded-lg">
-                <p className="text-gray-700 mb-4">{courseDetails.description}</p>
-                <div className="flex flex-wrap gap-4">
-                  <div className="bg-white p-3 rounded-md shadow-sm">
-                    <span className="text-gray-500 text-sm">Duration</span>
-                    <p className="font-medium text-black">{courseDetails.duration}</p>
+              <div className="bg-gray-100 p-4 sm:p-6 rounded-lg">
+                <p className="text-gray-700 mb-4 text-sm sm:text-base leading-relaxed">{courseDetails.description}</p>
+                <div className="flex flex-wrap gap-3 sm:gap-4">
+                  <div className="bg-white p-3 sm:p-4 rounded-md shadow-sm flex-1 min-w-0">
+                    <span className="text-gray-500 text-xs sm:text-sm block">Duration</span>
+                    <p className="font-medium text-black text-sm sm:text-base">{courseDetails.duration}</p>
                   </div>
                 </div>
               </div>
@@ -284,11 +287,11 @@ const CourseDetailsPage = () => {
           )}
 
           {/* Main Toggle Buttons */}
-          <div className="mb-8">
-            <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
+          <div className="mb-6 sm:mb-8">
+            <div className="flex bg-gray-100 p-1 rounded-lg w-full sm:w-fit overflow-hidden">
               <button
                 onClick={() => setActiveTab('schedule')}
-                className={`px-6 py-3 rounded-md font-medium transition-all duration-300 ${
+                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-300 text-sm sm:text-base ${
                   activeTab === 'schedule'
                     ? 'bg-orange-500 text-white shadow-md'
                     : 'text-gray-600 hover:text-gray-800'
@@ -298,7 +301,7 @@ const CourseDetailsPage = () => {
               </button>
               <button
                 onClick={() => setActiveTab('curriculum')}
-                className={`px-6 py-3 rounded-md font-medium transition-all duration-300 ${
+                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-300 text-sm sm:text-base ${
                   activeTab === 'curriculum'
                     ? 'bg-orange-500 text-white shadow-md'
                     : 'text-gray-600 hover:text-gray-800'
@@ -311,34 +314,38 @@ const CourseDetailsPage = () => {
 
           {/* Class Schedule Section */}
           {activeTab === 'schedule' && (
-            <section className="mt-8">
+            <section className="mt-6 sm:mt-8">
               {/* Class Schedule Sub-tabs */}
-              <div className="mb-6">
-                <div className="flex bg-gray-100 p-1 rounded-lg w-fit text-md">
+              <div className="mb-4 sm:mb-6">
+                <div className="flex bg-gray-100 p-1 rounded-lg w-full sm:w-fit overflow-hidden">
                   <button
                     onClick={() => setClassScheduleTab('upcoming')}
-                    className={`px-3 py-2 rounded-md font-medium text-sm transition-all duration-300 ${
+                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md font-medium text-xs sm:text-sm transition-all duration-300 ${
                       classScheduleTab === 'upcoming'
                         ? 'bg-blue-500 text-white shadow-md'
                         : 'text-gray-600 hover:text-gray-800'
                     }`}
                   >
-                    Upcoming Classes ({separateClasses().upcomingClasses.length})
+                    <span className="hidden sm:inline">Upcoming Classes </span>
+                    <span className="sm:hidden">Upcoming </span>
+                    ({separateClasses().upcomingClasses.length})
                   </button>
                   <button
                     onClick={() => setClassScheduleTab('recorded')}
-                    className={`px-3 py-2 rounded-md font-medium text-sm transition-all duration-300 ${
+                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md font-medium text-xs sm:text-sm transition-all duration-300 ${
                       classScheduleTab === 'recorded'
                         ? 'bg-blue-500 text-white shadow-md'
                         : 'text-gray-600 hover:text-gray-800'
                     }`}
                   >
-                    Recorded Classes ({separateClasses().recordedClasses.length})
+                    <span className="hidden sm:inline">Recorded Classes </span>
+                    <span className="sm:hidden">Recorded </span>
+                    ({separateClasses().recordedClasses.length})
                   </button>
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
                 {classScheduleTab === 'upcoming' && renderClassItems(separateClasses().upcomingClasses)}
                 {classScheduleTab === 'recorded' && renderClassItems(separateClasses().recordedClasses)}
               </div>
@@ -347,22 +354,20 @@ const CourseDetailsPage = () => {
 
           {/* Course Curriculum Section */}
           {activeTab === 'curriculum' && courseDetails && courseDetails.curriculum && courseDetails.curriculum.length > 0 && (
-            <section className="mt-8">
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <div className="space-y-4">
+            <section className="mt-6 sm:mt-8">
+              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                <div className="space-y-4 sm:space-y-6">
                   {courseDetails.curriculum.map((item) => (
                     <div 
                       key={item.sessionNo} 
-                      className="border-b pb-4 last:border-b-0"
+                      className="border-b pb-4 sm:pb-6 last:border-b-0"
                     >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <div className="font-semibold text-gray-800">
-                            Session {item.sessionNo}: {item.topic}
-                          </div>
-                          <div className="text-gray-600 mt-1">
-                            {item.tangibleOutcome}
-                          </div>
+                      <div className="space-y-2">
+                        <div className="font-semibold text-gray-800 text-sm sm:text-base">
+                          Session {item.sessionNo}: {item.topic}
+                        </div>
+                        <div className="text-gray-600 text-xs sm:text-sm leading-relaxed">
+                          {item.tangibleOutcome}
                         </div>
                       </div>
                     </div>
@@ -375,7 +380,7 @@ const CourseDetailsPage = () => {
           {/* Show message if no curriculum available */}
           {activeTab === 'curriculum' && (!courseDetails?.curriculum || courseDetails.curriculum.length === 0) && (
             <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-              <p className="text-gray-500">No curriculum available</p>
+              <p className="text-gray-500 text-sm sm:text-base">No curriculum available</p>
             </div>
           )}
         </div>
@@ -385,8 +390,10 @@ const CourseDetailsPage = () => {
 
   return (
     <DashboardLayout userData={userData} userType="student">
-      <div className="bg-gray-50 min-h-screen">
-        {pageContent}
+      <div className="bg-gray-50 min-h-screen p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          {pageContent}
+        </div>
       </div>
     </DashboardLayout>
   );

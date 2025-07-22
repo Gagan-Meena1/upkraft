@@ -22,42 +22,32 @@ export async function connect() {
   }
 
   try {
-    console.log('Establishing MongoDB connection to:', MONGO_URL.replace(/\/\/.*@/, '//***:***@'));
+    console.log('Establishing MongoDB connection...');
     
     connectionPromise = mongoose.connect(MONGO_URL, {
-      // Connection Pool Settings - Optimized for stability
-      maxPoolSize: 10,              // Reduced for better stability
+      // Timeout settings
+      serverSelectionTimeoutMS: 15000,  // 15 seconds
+      connectTimeoutMS: 15000,          // 15 seconds
+      socketTimeoutMS: 45000,           // 45 seconds
+      
+      // Connection Pool Settings
+      maxPoolSize: 10,
       minPoolSize: 2,
-      maxIdleTimeMS: 45000,         // 45 seconds
-      waitQueueTimeoutMS: 30000,    // Wait max 30s for connection from pool
-      
-      // Timeout Settings - More conservative for reliability
-      serverSelectionTimeoutMS: 20000,  // 20 seconds to find server
-      socketTimeoutMS: 120000,          // 2 minutes socket timeout
-      connectTimeoutMS: 20000,          // 20 seconds to establish connection
-      heartbeatFrequencyMS: 5000,       // Check server every 5 seconds
-      
-      // Performance Settings
-      bufferCommands: true,
+      maxIdleTimeMS: 30000,
       
       // Reliability Settings
       retryWrites: true,
       w: 'majority',
-      readPreference: 'primary',
       
-      // Additional stability settings
-      maxConnecting: 2,             // Limit concurrent connections
-      family: 4,                    // Force IPv4
-      
-      // Auth settings
-      authSource: 'admin',
+      // Buffer settings (use defaults)
+      bufferCommands: true,
     });
 
     const connection = await connectionPromise;
     isConnected = true;
     console.log('MongoDB connected successfully');
     
-    // Handle connection events
+    // Connection event handlers
     mongoose.connection.on('error', (error) => {
       console.error('MongoDB connection error:', error);
       isConnected = false;
@@ -75,20 +65,6 @@ export async function connect() {
       isConnected = true;
     });
 
-    // Handle connection timeout
-    mongoose.connection.on('timeout', () => {
-      console.log('MongoDB connection timeout');
-      isConnected = false;
-      connectionPromise = null;
-    });
-
-    // Handle server selection timeout
-    mongoose.connection.on('serverSelectionError', (error) => {
-      console.error('MongoDB server selection error:', error);
-      isConnected = false;
-      connectionPromise = null;
-    });
-
     return connection;
     
   } catch (error) {
@@ -104,17 +80,16 @@ export function isDBConnected(): boolean {
   return isConnected && mongoose.connection.readyState === 1;
 }
 
-// Function to force reconnection
-export async function forceReconnect() {
+// Graceful shutdown
+export async function disconnect() {
   try {
     if (mongoose.connection.readyState !== 0) {
       await mongoose.disconnect();
     }
     isConnected = false;
     connectionPromise = null;
-    return await connect();
+    console.log('MongoDB disconnected gracefully');
   } catch (error) {
-    console.error('Force reconnect failed:', error);
-    throw error;
+    console.error('Error during MongoDB disconnection:', error);
   }
 }

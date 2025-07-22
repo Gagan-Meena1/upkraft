@@ -257,7 +257,7 @@ const UserProfilePage: React.FC = () => {
                         <p className="mt-1 text-sm text-gray-600">{course.description}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">${course.price}</p>
+                        <p className="text-sm font-medium text-gray-900">{course.price}</p>
                         <p className="text-xs text-gray-500">Duration: {course.duration}</p>
                       </div>
                     </div>
