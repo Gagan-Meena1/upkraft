@@ -118,11 +118,7 @@ export default function MyStudents() {
                 <span className="mr-2">+</span> Add Student
               </button>
             </Link>
-            <Link href="/tutor" className="flex-1 sm:flex-none">
-              <button className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition flex items-center justify-center hover:cursor-grab">
-                <span className="mr-2">←</span> Back to Dashboard
-              </button>
-            </Link>
+           
           </div>
         </div>
 
