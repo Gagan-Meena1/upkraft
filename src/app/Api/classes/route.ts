@@ -171,3 +171,161 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+export async function PUT(request: NextRequest) {
+  try {
+    console.log("Updating class...");
+    
+    // Get classId from query parameters
+    const { searchParams } = new URL(request.url);
+    const classId = searchParams.get('classId');
+    
+    if (!classId) {
+      return NextResponse.json(
+        { error: 'Class ID is required' }, 
+        { status: 400 }
+      );
+    }
+
+    // Get instructor ID from token
+    const token = request.cookies.get("token")?.value;
+    const decodedToken = token ? jwt.decode(token) : null;
+    const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+    
+    if (!instructorId) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid token' }, 
+        { status: 401 }
+      );
+    }
+
+    // Find the class and verify ownership
+    const existingClass = await Class.findById(classId);
+    if (!existingClass) {
+      return NextResponse.json(
+        { error: 'Class not found' }, 
+        { status: 404 }
+      );
+    }
+
+    
+
+    // Parse the JSON body
+    const body = await request.json();
+    const { title, description, date, startTime, endTime, timezone } = body;
+    
+    console.log('Update data received:', { title, description, date, startTime, endTime, timezone });
+    
+    // Create dates without timezone conversion
+    const [year, month, day] = date.split('-').map(Number);
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
+    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+    
+    console.log('Updated DateTime objects:', {
+      startDateTime: startDateTime.toString(),
+      endDateTime: endDateTime.toString(),
+    });
+
+    // Update the class
+    const updatedClass = await Class.findByIdAndUpdate(
+      classId,
+      {
+        title,
+        description,
+        startTime: startDateTime,
+        endTime: endDateTime,
+      },
+      { new: true, runValidators: true }
+    );
+
+    console.log('Class updated successfully:', updatedClass);
+
+    return NextResponse.json({
+      message: 'Class updated successfully',
+      classData: updatedClass
+    }, { status: 200 });
+    
+  } catch (error) {
+    console.error('Server error while updating class:', error);
+    return NextResponse.json({ 
+      message: 'Server error', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
+  }
+}
+
+// DELETE - Delete existing class
+export async function DELETE(request: NextRequest) {
+  try {
+    console.log("Deleting class...");
+    
+    // Get classId from query parameters
+    const { searchParams } = new URL(request.url);
+    const classId = searchParams.get('classId');
+    
+    if (!classId) {
+      return NextResponse.json(
+        { error: 'Class ID is required' }, 
+        { status: 400 }
+      );
+    }
+
+    // Get instructor ID from token
+    const token = request.cookies.get("token")?.value;
+    const decodedToken = token ? jwt.decode(token) : null;
+    const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+    
+    if (!instructorId) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Invalid token' }, 
+        { status: 401 }
+      );
+    }
+
+    // Find the class and verify ownership
+    const existingClass = await Class.findById(classId);
+    if (!existingClass) {
+      return NextResponse.json(
+        { error: 'Class not found' }, 
+        { status: 404 }
+      );
+    }
+
+   
+
+    console.log('Found class to delete:', existingClass);
+
+    // Remove class reference from course
+    if (existingClass.course) {
+      await courseName.findByIdAndUpdate(
+        existingClass.course,
+        { $pull: { class: classId } }
+      );
+      console.log('Removed class reference from course');
+    }
+
+    // Remove class reference from users
+    await User.updateMany(
+      { classes: classId },
+      { $pull: { classes: classId } }
+    );
+    console.log('Removed class reference from users');
+
+    // Delete the class
+    await Class.findByIdAndDelete(classId);
+    console.log('Class deleted successfully');
+
+    return NextResponse.json({
+      message: 'Class deleted successfully'
+    }, { status: 200 });
+    
+  } catch (error) {
+    console.error('Server error while deleting class:', error);
+    return NextResponse.json({ 
+      message: 'Server error', 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    }, { status: 500 });
+  }
+}

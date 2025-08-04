@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2 } from 'lucide-react';
+import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2, Edit, X, Clock } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
@@ -36,12 +36,31 @@ interface CourseDetailsData {
   classDetails: Class[];
 }
 
+interface EditClassForm {
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  date: string;
+}
+
 const CourseDetailsPage = () => {
   const [courseData, setCourseData] = useState<CourseDetailsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});
   const [activeTab, setActiveTab] = useState<'classes' | 'curriculum'>('classes');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingClass, setEditingClass] = useState<Class | null>(null);
+  const [editForm, setEditForm] = useState<EditClassForm>({
+    title: '',
+    description: '',
+    startTime: '',
+    endTime: '',
+    date: ''
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [editError, setEditError] = useState('');
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
   const params = useParams();
   const router = useRouter();
@@ -61,6 +80,14 @@ const CourseDetailsPage = () => {
         minute: '2-digit' 
       })
     };
+  };
+
+  // Helper function to extract date and time for form inputs
+  const extractDateTimeForForm = (dateString: string) => {
+    const date = new Date(dateString);
+    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    const timeStr = date.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+    return { dateStr, timeStr };
   };
 
   // Fetch course details
@@ -86,6 +113,157 @@ const CourseDetailsPage = () => {
       fetchCourseDetails();
     }
   }, [params.courseId]);
+
+  // Handle edit class
+  const handleEditClass = (classSession: Class) => {
+    setEditingClass(classSession);
+    const startDateTime = extractDateTimeForForm(classSession.startTime);
+    const endDateTime = extractDateTimeForForm(classSession.endTime);
+    
+    setEditForm({
+      title: classSession.title,
+      description: classSession.description,
+      startTime: startDateTime.timeStr,
+      endTime: endDateTime.timeStr,
+      date: startDateTime.dateStr
+    });
+    setShowEditModal(true);
+    setEditError('');
+  };
+
+  // Handle form change for edit modal
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    const updatedForm = { ...editForm, [name]: value };
+    setEditForm(updatedForm);
+    
+    // Validate time if start time, end time, or date changes
+    if (name === 'startTime' || name === 'endTime') {
+      const validationError = validateDateTime(
+        updatedForm.date, 
+        updatedForm.startTime, 
+        updatedForm.endTime
+      );
+      setEditError(validationError);
+    }
+  };
+
+  // Validate date and time
+  const validateDateTime = (date: string, startTime: string, endTime: string) => {
+    if (!date || !startTime || !endTime) return '';
+    
+    const [year, month, day] = date.split('-').map(Number);
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
+    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+    const currentDateTime = new Date();
+    
+    if (startDateTime <= currentDateTime) {
+      return 'Start time cannot be in the past';
+    }
+    
+    if (endDateTime <= startDateTime) {
+      return 'End time must be after start time';
+    }
+    
+    return '';
+  };
+
+  // Handle update class
+  const handleUpdateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClass) return;
+    
+    setIsUpdating(true);
+    setEditError('');
+    
+    try {
+      // Validate date and time
+      const [year, month, day] = editForm.date.split('-').map(Number);
+      const [startHour, startMinute] = editForm.startTime.split(':').map(Number);
+      const [endHour, endMinute] = editForm.endTime.split(':').map(Number);
+      
+      const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
+      const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+      const currentDateTime = new Date();
+      
+      if (startDateTime <= currentDateTime) {
+        throw new Error('Cannot update class to past date and time');
+      }
+      
+      if (endDateTime <= startDateTime) {
+        throw new Error('End time must be after start time');
+      }
+
+      const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editForm.title,
+          description: editForm.description,
+          startTime: editForm.startTime,
+          endTime: editForm.endTime,
+          date: editForm.date,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update class');
+      }
+
+      toast.success('Class updated successfully!');
+      setShowEditModal(false);
+      setEditingClass(null);
+      
+      // Refresh the course data
+      const refreshResponse = await fetch(`/Api/tutors/courses/${params.courseId}`);
+      if (refreshResponse.ok) {
+        const refreshedData = await refreshResponse.json();
+        setCourseData(refreshedData);
+      }
+    } catch (error) {
+      console.error('Error updating class:', error);
+      setEditError(error instanceof Error ? error.message : 'Failed to update class');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Handle delete class
+  const handleDeleteClass = async (classId: string, classTitle: string) => {
+    if (!window.confirm(`Are you sure you want to delete the class "${classTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/Api/classes?classId=${classId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete class');
+      }
+
+      toast.success('Class deleted successfully!');
+      
+      // Refresh the course data
+      const refreshResponse = await fetch(`/Api/tutors/courses/${params.courseId}`);
+      if (refreshResponse.ok) {
+        const refreshedData = await refreshResponse.json();
+        setCourseData(refreshedData);
+      }
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete class');
+    }
+  };
 
   // Handle file upload
   const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,27 +508,52 @@ const CourseDetailsPage = () => {
                   >
                     <div className="p-4 sm:p-6">
                       {/* Mobile Layout */}
-                      <div className="block lg:hidden space-y-4">
-                        {/* Date and Time */}
-                        <div className="bg-gray-100 rounded-lg p-3 text-center">
-                          <div className="text-sm font-bold text-gray-800">{date}</div>
-                          <div className="text-xs text-gray-600">
-                            {startTime} - {endTime}
+                      <div className="block lg:hidden">
+                        <div className="flex gap-3">
+                          {/* Edit/Delete Icons on extreme left */}
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={() => handleEditClass(classSession)}
+                              className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors group relative"
+                              title="Edit class"
+                            >
+                              <Edit size={16} />
+                              
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClass(classSession._id, classSession.title)}
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors group relative"
+                              title="Delete class"
+                            >
+                              <Trash2 size={16} />
+                              
+                            </button>
+                          </div>
+
+                          {/* Content Area */}
+                          <div className="flex-1 space-y-4">
+                            {/* Date and Time */}
+                            <div className="bg-gray-100 rounded-lg p-3 text-center">
+                              <div className="text-sm font-bold text-gray-800">{date}</div>
+                              <div className="text-xs text-gray-600">
+                                {startTime} - {endTime}
+                              </div>
+                            </div>
+
+                            {/* Session Details */}
+                            <div>
+                              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                {classSession.title}
+                              </h3>
+                              <p className="text-gray-600 text-sm leading-relaxed">
+                                {classSession.description}
+                              </p>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Session Details */}
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                            {classSession.title}
-                          </h3>
-                          <p className="text-gray-600 text-sm leading-relaxed">
-                            {classSession.description}
-                          </p>
-                        </div>
-
                         {/* Actions */}
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2 ml-10">
                           {/* Hidden file input */}
                           <input
                             type="file"
@@ -398,68 +601,90 @@ const CourseDetailsPage = () => {
                       </div>
 
                       {/* Desktop Layout */}
-                      <div className="hidden lg:grid lg:grid-cols-3 lg:gap-6 lg:items-center">
-                        {/* Date and Time */}
-                        <div className="col-span-1 bg-gray-100 rounded-lg p-4 text-center">
-                          <div className="text-xl font-bold text-gray-800">{date}</div>
-                          <div className="text-gray-600">
-                            {startTime} - {endTime}
-                          </div>
-                        </div>
-
-                        {/* Session Details */}
-                        <div className="col-span-1">
-                          <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                            {classSession.title}
-                          </h3>
-                          <p className="text-gray-600">
-                            {classSession.description}
-                          </p>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="col-span-1 flex justify-end space-x-4">
-                          {/* Hidden file input */}
-                          <input
-                            type="file"
-                            accept="video/*"
-                            className="hidden"
-                            ref={el => { fileInputRefs.current[classSession._id] = el; }}
-                            onChange={(e) => handleFileChange(classSession._id, e)}
-                          />
-
-                          {/* Class Quality button */}
-                          {classSession.recordingUrl && (
-                            <Link 
-                              href={`/tutor/classQuality/${classSession._id}`}
-                              className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center text-sm"
+                      <div className="hidden lg:block">
+                        <div className="flex gap-6 items-center">
+                          {/* Edit/Delete Icons on extreme left */}
+                          <div className="flex flex-col gap-2">
+                            <button
+                              onClick={() => handleEditClass(classSession)}
+                              className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors group relative"
+                              title="Edit class"
                             >
-                              <BarChart3 className="mr-1" size={16} />
-                              Class Quality
+                              <Edit size={18} />
+                              
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClass(classSession._id, classSession.title)}
+                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors group relative"
+                              title="Delete class"
+                            >
+                              <Trash2 size={18} />
+                              
+                            </button>
+                          </div>
+
+                          {/* Date and Time */}
+                          <div className="bg-gray-100 rounded-lg p-4 text-center min-w-[200px]">
+                            <div className="text-xl font-bold text-gray-800">{date}</div>
+                            <div className="text-gray-600">
+                              {startTime} - {endTime}
+                            </div>
+                          </div>
+
+                          {/* Session Details */}
+                          <div className="flex-1">
+                            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                              {classSession.title}
+                            </h3>
+                            <p className="text-gray-600">
+                              {classSession.description}
+                            </p>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex justify-end space-x-4">
+                            {/* Hidden file input */}
+                            <input
+                              type="file"
+                              accept="video/*"
+                              className="hidden"
+                              ref={el => { fileInputRefs.current[classSession._id] = el; }}
+                              onChange={(e) => handleFileChange(classSession._id, e)}
+                            />
+
+                            {/* Class Quality button */}
+                            {classSession.recordingUrl && (
+                              <Link 
+                                href={`/tutor/classQuality/${classSession._id}`}
+                                className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center text-sm"
+                              >
+                                <BarChart3 className="mr-1" size={16} />
+                                Class Quality
+                              </Link>
+                            )}
+
+                            {/* Upload Recording button */}
+                            <button
+                              onClick={() => triggerFileInput(classSession._id)}
+                              disabled={isUploading}
+                              className={`px-2 py-1 ${
+                                isUploading ? 'bg-gray-400 cursor-not-allowed' 
+                                  : 'bg-green-500 hover:bg-green-600'
+                              } text-white rounded-lg transition-colors flex items-center text-sm`}
+                            >
+                              <Upload className="mr-1" size={16} />
+                              {getButtonText(classSession, isUploading)}
+                            </button>
+
+                            {/* Assignment Button */}
+                            <Link 
+                              href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+                              className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors flex items-center text-sm"
+                            >
+                              <FileText className="mr-1" size={16} />
+                              Assignment
                             </Link>
-                          )}
-
-                          {/* Upload Recording button */}
-                          <button
-                            onClick={() => triggerFileInput(classSession._id)}
-                            disabled={isUploading}
-                            className={`px-2 py-1 ${
-                              isUploading ? 'bg-gray-400 cursor-not-allowed' 
-                                : 'bg-green-500 hover:bg-green-600'
-                            } text-white rounded-lg transition-colors flex items-center text-sm`}
-                          >
-                            <Upload className="mr-1" size={16} />
-                            {getButtonText(classSession, isUploading)}
-                          </button>
-
-                          {/* Assignment Button */}
-                          <Link 
-                            href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-                            className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors flex items-center text-sm"
-                          >
-                            <FileText className="mr-1" size={16} />
-                            Assignment
-                          </Link>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -471,51 +696,171 @@ const CourseDetailsPage = () => {
         )}
 
         {/* Curriculum Section */}
-        {activeTab === 'curriculum' && courseData.courseDetails.curriculum && courseData.courseDetails.curriculum.length > 0 && (
+        {activeTab === 'curriculum' && (
           <section>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
               Course Curriculum
             </h2>
+            
             <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
-              <div className="space-y-4">
-                {courseData.courseDetails.curriculum.map((item) => (
-                  <div 
-                    key={item.sessionNo} 
-                    className="border-b pb-4 last:border-b-0"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-800 text-sm sm:text-base">
-                          Session {item.sessionNo}: {item.topic}
-                        </div>
-                        <div className="text-gray-600 mt-1 text-sm leading-relaxed">
-                          {item.tangibleOutcome}
-                        </div>
+              {courseData.courseDetails.curriculum && courseData.courseDetails.curriculum.length > 0 ? (
+                <div className="space-y-4">
+                  {courseData.courseDetails.curriculum.map((item, index) => (
+                    <div key={index} className="border-l-4 border-blue-500 pl-4 py-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                          Session {item.sessionNo}
+                        </span>
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          {item.topic}
+                        </h3>
                       </div>
+                      <p className="text-gray-600 mt-2 text-sm sm:text-base">
+                        <span className="font-medium">Outcome:</span> {item.tangibleOutcome}
+                      </p>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500 text-lg">No curriculum available</p>
+                  <p className="text-gray-400 text-sm">The curriculum for this course hasn't been set up yet.</p>
+                </div>
+              )}
             </div>
           </section>
         )}
 
-        {/* Show message if no curriculum */}
-        {activeTab === 'curriculum' && (!courseData.courseDetails.curriculum || courseData.courseDetails.curriculum.length === 0) && (
-          <section>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
-              Course Curriculum
-            </h2>
-            <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-              <div className="text-gray-500">
-                No curriculum available for this course.
+        {/* Edit Class Modal */}
+        {showEditModal && editingClass && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800">Edit Class</h3>
+                  <button
+                    onClick={() => setShowEditModal(false)}
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X size={20} className="text-gray-500" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleUpdateClass} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={editForm.title}
+                      onChange={handleEditFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      name="description"
+                      value={editForm.description}
+                      onChange={handleEditFormChange}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={editForm.date}
+                      onChange={handleEditFormChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Start Time
+                      </label>
+                      <input
+                        type="time"
+                        name="startTime"
+                        value={editForm.startTime}
+                        onChange={handleEditFormChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        End Time
+                      </label>
+                      <input
+                        type="time"
+                        name="endTime"
+                        value={editForm.endTime}
+                        onChange={handleEditFormChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {editError && (
+                    <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
+                      {editError}
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowEditModal(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isUpdating || !!editError}
+                      className={`flex-1 px-4 py-2 rounded-md transition-colors ${
+                        isUpdating || editError
+                          ? 'bg-gray-400 cursor-not-allowed text-white'
+                          : 'bg-blue-500 hover:bg-blue-600 text-white'
+                      }`}
+                    >
+                      {isUpdating ? (
+                        <div className="flex items-center justify-center">
+                          <Clock className="animate-spin mr-2" size={16} />
+                          Updating...
+                        </div>
+                      ) : (
+                        'Update Class'
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
-          </section>
+          </div>
         )}
       </div>
     </div>
   );
-}
+};
 
 export default CourseDetailsPage;
