@@ -15,7 +15,6 @@ const StudentFeedbackDashboardClient = dynamic(
   { ssr: false }
 );
 
-
 interface SessionForm {
   title: string;
   description: string;
@@ -24,11 +23,12 @@ interface SessionForm {
   date: string;
   video: File | null;
 }
- function AddSessionPage() {
+
+function AddSessionPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-const courseId = searchParams.get('courseId') || '';
-console.log("courseId : ",courseId);
+  const courseId = searchParams.get('courseId') || '';
+  console.log("courseId : ", courseId);
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
@@ -89,7 +89,7 @@ console.log("courseId : ",courseId);
     if (!day) return;
     
     const dateString = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-     const selectedDate = new Date(dateString);
+    const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
     
@@ -109,11 +109,17 @@ console.log("courseId : ",courseId);
     setErrorMessage('');
   };
 
-   const validateDateTime = (date: string, startTime: string, endTime: string) => {
+  // Fixed validateDateTime function to avoid timezone issues
+  const validateDateTime = (date: string, startTime: string, endTime: string) => {
     if (!date || !startTime || !endTime) return '';
     
-    const startDateTime = new Date(`${date}T${startTime}`);
-    const endDateTime = new Date(`${date}T${endTime}`);
+    // Create date objects without timezone conversion
+    const [year, month, day] = date.split('-').map(Number);
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
+    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
     const currentDateTime = new Date();
     
     if (startDateTime <= currentDateTime) {
@@ -126,21 +132,22 @@ console.log("courseId : ",courseId);
     
     return '';
   };
+
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
- const updatedForm = {...sessionForm, [name]: value};
-  setSessionForm(updatedForm);    
+    const updatedForm = {...sessionForm, [name]: value};
+    setSessionForm(updatedForm);    
+    
     // Validate time if start time, end time, or date changes
-  if (name === 'startTime' || name === 'endTime') {
-    const validationError = validateDateTime(
-      updatedForm.date, 
-      updatedForm.startTime, 
-      updatedForm.endTime
-    );
-    setErrorMessage(validationError);
-  }
+    if (name === 'startTime' || name === 'endTime') {
+      const validationError = validateDateTime(
+        updatedForm.date, 
+        updatedForm.startTime, 
+        updatedForm.endTime
+      );
+      setErrorMessage(validationError);
+    }
   };
-  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,34 +155,40 @@ console.log("courseId : ",courseId);
     setErrorMessage('');
     
     try {
-      // Validate date and time
-    const sessionDateTime = new Date(`${sessionForm.date}T${sessionForm.startTime}`);
-    const currentDateTime = new Date();
-    
-    if (sessionDateTime <= currentDateTime) {
-      throw new Error('Cannot create sessions for past date and time');
-    }
-    
-    // Validate end time is after start time
-    const startDateTime = new Date(`${sessionForm.date}T${sessionForm.startTime}`);
-    const endDateTime = new Date(`${sessionForm.date}T${sessionForm.endTime}`);
-    
-    if (endDateTime <= startDateTime) {
-      throw new Error('End time must be after start time');
-    }
+      // Fixed validation to avoid timezone issues
+      const [year, month, day] = sessionForm.date.split('-').map(Number);
+      const [startHour, startMinute] = sessionForm.startTime.split(':').map(Number);
+      const [endHour, endMinute] = sessionForm.endTime.split(':').map(Number);
+      
+      const sessionDateTime = new Date(year, month - 1, day, startHour, startMinute);
+      const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+      const currentDateTime = new Date();
+      
+      if (sessionDateTime <= currentDateTime) {
+        throw new Error('Cannot create sessions for past date and time');
+      }
+      
+      if (endDateTime <= sessionDateTime) {
+        throw new Error('End time must be after start time');
+      }
+
       // Create form data for submission including the file
       const formData = new FormData();
       formData.append('title', sessionForm.title);
       formData.append('description', sessionForm.description);
+      
+      // Send time values as strings to preserve the exact time selected
       formData.append('startTime', sessionForm.startTime);
       formData.append('endTime', sessionForm.endTime);
       formData.append('date', sessionForm.date);
+      
+      // Add timezone information to ensure server handles it correctly
+      formData.append('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
       
       if (sessionForm.video) {
         formData.append('video', sessionForm.video);
       }
       
-  
       // Submit to the API
       const response = await fetch('/Api/classes', {
         method: 'POST',
@@ -214,12 +227,12 @@ console.log("courseId : ",courseId);
         {/* Header with back button */}
         <header className="mb-6 sm:mb-8 flex justify-between items-center">
           <div className="flex items-center gap-2 sm:gap-4">
-          <Link 
-  href={courseId ? `/tutor/courses/${courseId}` : "/tutor/courses"} 
-  className="p-2 rounded-lg bg-blue-900 hover:bg-blue-500 transition-colors"
->
-  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-</Link>
+            <Link 
+              href={courseId ? `/tutor/courses/${courseId}` : "/tutor/courses"} 
+              className="p-2 rounded-lg bg-blue-900 hover:bg-blue-500 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            </Link>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-pink-200">Add New Session</h1>
           </div>
         </header>
@@ -332,8 +345,6 @@ console.log("courseId : ",courseId);
                     />
                   </div>
                   
-                  
-                  
                   <div>
                     <label htmlFor="description" className="block text-blue-200 mb-1 text-sm sm:text-base">
                       Description
@@ -387,40 +398,6 @@ console.log("courseId : ",courseId);
                     </div>
                   </div>
                   
-                  {/* Video Upload Field */}
-                  {/* <div>
-                    <label htmlFor="video" className="block text-blue-200 mb-1">
-                      Upload Video
-                    </label>
-                    <div className="relative">
-                      <Video size={18} className="absolute top-3 left-3 text-blue-400" />
-                      <input
-                        type="file"
-                        id="video"
-                        name="video"
-                        accept="video/*"
-                        onChange={handleVideoUpload}
-                        className="hidden" // Hide the default file input
-                      />
-                      <div className="flex">
-                        <div 
-                          className="w-full pl-10 pr-4 py-2 rounded-l-lg bg-blue-900 border border-blue-700 text-white overflow-hidden whitespace-nowrap overflow-ellipsis"
-                        >
-                          {videoFileName || "No file selected"}
-                        </div>
-                        <label 
-                          htmlFor="video" 
-                          className="cursor-pointer bg-pink-600 hover:bg-pink-500 px-4 py-2 rounded-r-lg text-white flex items-center"
-                        >
-                          Browse
-                        </label>
-                      </div>
-                      {videoFileName && (
-                        <p className="text-blue-200 text-sm mt-1">Selected: {videoFileName}</p>
-                      )}
-                    </div>
-                  </div> */}
-                  
                   {/* Error message display */}
                   {errorMessage && (
                     <div className="bg-red-900 text-white p-2 sm:p-3 rounded-lg text-sm sm:text-base">
@@ -444,6 +421,7 @@ console.log("courseId : ",courseId);
     </div>
   );
 }
+
 // Export this as the default component
 export default function ViewPerformancePage() {
   return <StudentFeedbackDashboardClient />;

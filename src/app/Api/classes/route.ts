@@ -10,7 +10,9 @@ import jwt from 'jsonwebtoken'
 import courseName from '@/models/courseName';
 import User from '@/models/userModel';
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
+
 await connect();
+
 export async function POST(request: NextRequest) {
   try {
     console.log("1111111111111111111111111111111111111111111111111111111111111111111");
@@ -40,16 +42,12 @@ export async function POST(request: NextRequest) {
       );
     }
   
-    
     const uploadDir = path.join(process.cwd(), 'public/uploads');
     
     // Ensure upload directory exists
     if (!existsSync(uploadDir)) {
       await mkdir(uploadDir, { recursive: true });
     }
-    
-    // Get session (if using next-auth)
-    // const session = await getServerSession();
     
     // Parse the FormData in App Router
     const formData = await request.formData();
@@ -60,16 +58,30 @@ export async function POST(request: NextRequest) {
     const date = formData.get('date') as string;
     const startTime = formData.get('startTime') as string;
     const endTime = formData.get('endTime') as string;
-    // const courseName = formData.get('courseName') as string;
+    const timezone = formData.get('timezone') as string; // Get timezone from frontend
     
-    // Format dates
-    const startDateTime = new Date(`${date}T${startTime}`);
-    const endDateTime = new Date(`${date}T${endTime}`);
+    console.log('Received data:', { title, description, date, startTime, endTime, timezone });
+    
+    // FIXED: Create dates without timezone conversion
+    // Parse the date and time components separately
+    const [year, month, day] = date.split('-').map(Number);
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    
+    // Create Date objects in local time (no timezone conversion)
+    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
+    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+    
+    console.log('Created DateTime objects:', {
+      startDateTime: startDateTime.toString(),
+      endDateTime: endDateTime.toString(),
+      startDateTimeISO: startDateTime.toISOString(),
+      endDateTimeISO: endDateTime.toISOString()
+    });
 
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-    
     
     // Handle video upload
     let videoPath = null;
@@ -97,23 +109,27 @@ export async function POST(request: NextRequest) {
     const newClass = new Class({
       title,
       description,
-      course:courseId,
+      course: courseId,
       startTime: startDateTime,
       endTime: endDateTime,
-      instructor: instructorId, // 
+      instructor: instructorId,
       recording: videoPath,
       recordingProcessed: videoPath ? 0 : null,
     });
     
-    const savednewClass=await newClass.save();
+    const savednewClass = await newClass.save();
     console.log("333333333333333333333333333333333333333333333333333333333333");
-    const course=await courseName.findById(courseId);
-    await courseName.findByIdAndUpdate(courseId,{$addToSet:{class:savednewClass._id}})
-    // await User.findByIdAndUpdate(courseId,{$addToSet:{class:savednewClass._id}})
+    console.log('Saved class:', savednewClass);
+    
+    const course = await courseName.findById(courseId);
+    await courseName.findByIdAndUpdate(courseId, {$addToSet: {class: savednewClass._id}});
+    
+    // Update users enrolled in this course
     await User.updateMany(
       { courses: courseId },
       { $addToSet: { classes: savednewClass._id } }
     );
+    
     console.log(newClass);
 
     return NextResponse.json({
