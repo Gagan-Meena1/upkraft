@@ -207,26 +207,38 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    
-
     // Parse the JSON body
     const body = await request.json();
-    const { title, description, date, startTime, endTime, timezone } = body;
+    const { title, description, startTime, endTime, timezone } = body;
     
-    console.log('Update data received:', { title, description, date, startTime, endTime, timezone });
+    console.log('Update data received:', { title, description, startTime, endTime, timezone });
     
-    // Create dates without timezone conversion
-    const [year, month, day] = date.split('-').map(Number);
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
-    
-    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
-    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+    // Convert the datetime strings directly to Date objects without timezone conversion
+    // The frontend sends strings like "2025-01-15T14:30:00"
+    const startDateTime = new Date(startTime);
+    const endDateTime = new Date(endTime);
     
     console.log('Updated DateTime objects:', {
       startDateTime: startDateTime.toString(),
       endDateTime: endDateTime.toString(),
     });
+
+    // Validate that end time is after start time
+    if (endDateTime <= startDateTime) {
+      return NextResponse.json(
+        { error: 'End time must be after start time' }, 
+        { status: 400 }
+      );
+    }
+
+    // Validate that start time is not in the past
+    const currentTime = new Date();
+    if (startDateTime <= currentTime) {
+      return NextResponse.json(
+        { error: 'Start time cannot be in the past' }, 
+        { status: 400 }
+      );
+    }
 
     // Update the class
     const updatedClass = await Class.findByIdAndUpdate(

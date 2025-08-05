@@ -197,6 +197,10 @@ const CourseDetailsPage = () => {
         throw new Error('End time must be after start time');
       }
 
+      // Combine date and time into proper ISO datetime strings
+      const startDateTimeString = `${editForm.date}T${editForm.startTime}:00`;
+      const endDateTimeString = `${editForm.date}T${editForm.endTime}:00`;
+
       const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
         method: 'PUT',
         headers: {
@@ -205,9 +209,8 @@ const CourseDetailsPage = () => {
         body: JSON.stringify({
           title: editForm.title,
           description: editForm.description,
-          startTime: editForm.startTime,
-          endTime: editForm.endTime,
-          date: editForm.date,
+          startTime: startDateTimeString,
+          endTime: endDateTimeString,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         }),
       });
@@ -508,7 +511,7 @@ const CourseDetailsPage = () => {
                   >
                     <div className="p-4 sm:p-6">
                       {/* Mobile Layout */}
-                      <div className="block lg:hidden">
+                      <div className="block lg:hidden text-gray-800">
                         <div className="flex gap-3">
                           {/* Edit/Delete Icons on extreme left */}
                           <div className="flex flex-col gap-2">
@@ -526,7 +529,7 @@ const CourseDetailsPage = () => {
                               title="Delete class"
                             >
                               <Trash2 size={16} />
-                              
+                             
                             </button>
                           </div>
 
@@ -611,7 +614,7 @@ const CourseDetailsPage = () => {
                               title="Edit class"
                             >
                               <Edit size={18} />
-                              
+                             
                             </button>
                             <button
                               onClick={() => handleDeleteClass(classSession._id, classSession.title)}
