@@ -207,17 +207,15 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { title, description, date, startTime, endTime } = body;
     
-    console.log('Update data received:', { title, description, date, startTime, endTime });
+    console.log('RECEIVED:', { title, description, date, startTime, endTime });
 
-    // Validate required fields
     if (!title || !description || !date || !startTime || !endTime) {
       return NextResponse.json(
-        { error: 'All fields are required: title, description, date, startTime, endTime' },
+        { error: 'All fields are required' },
         { status: 400 }
       );
     }
 
-    // Simple validation - just check if end time is after start time
     if (endTime <= startTime) {
       return NextResponse.json(
         { error: 'End time must be after start time' },
@@ -225,28 +223,34 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Convert to Date objects for schema compatibility
+    // Create Date objects using LOCAL timezone - NO UTC conversion
     const [year, month, day] = date.split('-').map(Number);
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
 
-    // Create Date objects (this will store in MongoDB as Date type)
-    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
-    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+    // Create Date objects in LOCAL time zone
+    const startDateTime = new Date(year, month - 1, day, startHour, startMinute, 0, 0);
+    const endDateTime = new Date(year, month - 1, day, endHour, endMinute, 0, 0);
 
-    // Update the class
+    console.log('STORING AS DATE OBJECTS:', {
+      startDateTime: startDateTime,
+      endDateTime: endDateTime,
+      startDateTimeString: startDateTime.toString(),
+      endDateTimeString: endDateTime.toString()
+    });
+
     const updatedClass = await Class.findByIdAndUpdate(
       classId,
       {
         title,
         description,
-        startTime: startDateTime,  // Store as Date object
-        endTime: endDateTime,      // Store as Date object
+        startTime: startDateTime,  // Store as Date object in local time
+        endTime: endDateTime,      // Store as Date object in local time
       },
       { new: true, runValidators: true }
     );
 
-    console.log('Class updated successfully');
+    console.log('STORED SUCCESSFULLY');
 
     return NextResponse.json({
       message: 'Class updated successfully',
@@ -254,7 +258,7 @@ export async function PUT(request: NextRequest) {
     }, { status: 200 });
     
   } catch (error) {
-    console.error('Server error while updating class:', error);
+    console.error('Server error:', error);
     return NextResponse.json({
       message: 'Server error',
       error: error instanceof Error ? error.message : 'Unknown error'

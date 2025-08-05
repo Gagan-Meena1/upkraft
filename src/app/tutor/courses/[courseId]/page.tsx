@@ -69,7 +69,7 @@ const CourseDetailsPage = () => {
 const formatDateTime = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
-  // Format without timezone issues
+  // Use LOCAL time methods - NO UTC methods
   const year = date.getFullYear();
   const month = date.getMonth();
   const day = date.getDate();
@@ -83,21 +83,21 @@ const formatDateTime = (dateTimeString: string) => {
   const weekday = weekdays[date.getDay()];
   const monthName = months[month];
   
-  // Format time
   const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
   
   return {
     date: `${weekday}, ${monthName} ${day}, ${year}`,
-    time: timeStr
+    time: timeStr  // Exact stored time: "14:30"
   };
 };
 
+
   // Helper function to extract date and time for form inputs
- const extractDateTimeForForm = (dateTimeString: string) => {
-  // Handle MongoDB Date format: "2024-01-15T09:00:00.000Z"
+const extractDateTimeForForm = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
-  // Extract components without timezone conversion
+  // Use getFullYear, getMonth, getDate, getHours, getMinutes
+  // These methods return LOCAL time values, not UTC
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
@@ -105,10 +105,11 @@ const formatDateTime = (dateTimeString: string) => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   
   return { 
-    dateStr: `${year}-${month}-${day}`,  // "2024-01-15"
-    timeStr: `${hours}:${minutes}`       // "14:30"
+    dateStr: `${year}-${month}-${day}`,  // Exact: "2024-01-15"
+    timeStr: `${hours}:${minutes}`       // Exact: "14:30"
   };
 };
+
 
 
   // Fetch course details
@@ -137,20 +138,22 @@ const formatDateTime = (dateTimeString: string) => {
 
   // Handle edit class
   const handleEditClass = (classSession: Class) => {
-    setEditingClass(classSession);
-    const startDateTime = extractDateTimeForForm(classSession.startTime);
-    const endDateTime = extractDateTimeForForm(classSession.endTime);
-    
-    setEditForm({
-      title: classSession.title,
-      description: classSession.description,
-      startTime: startDateTime.timeStr,
-      endTime: endDateTime.timeStr,
-      date: startDateTime.dateStr
-    });
-    setShowEditModal(true);
-    setEditError('');
-  };
+  setEditingClass(classSession);
+  
+  // Extract EXACT values from stored Date objects
+  const startDateTime = extractDateTimeForForm(classSession.startTime);
+  const endDateTime = extractDateTimeForForm(classSession.endTime);
+  
+  setEditForm({
+    title: classSession.title,
+    description: classSession.description,
+    startTime: startDateTime.timeStr,  // Exact: "14:30"
+    endTime: endDateTime.timeStr,      // Exact: "16:00"
+    date: startDateTime.dateStr        // Exact: "2024-01-15"
+  });
+  setShowEditModal(true);
+  setEditError('');
+};
 
   // Handle form change for edit modal
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -201,12 +204,16 @@ const handleUpdateClass = async (e: React.FormEvent) => {
   setEditError('');
   
   try {
-    // Simple validation - just check if end time is after start time
     if (editForm.endTime <= editForm.startTime) {
       throw new Error('End time must be after start time');
     }
 
-    // Send exactly what user entered - no datetime conversion
+    console.log('SENDING EXACT VALUES:', {
+      date: editForm.date,        // "2024-01-15"
+      startTime: editForm.startTime, // "14:30"
+      endTime: editForm.endTime,     // "16:00"
+    });
+
     const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
       method: 'PUT',
       headers: {
@@ -215,9 +222,9 @@ const handleUpdateClass = async (e: React.FormEvent) => {
       body: JSON.stringify({
         title: editForm.title,
         description: editForm.description,
-        date: editForm.date,           // Send as-is: "2024-01-15"
-        startTime: editForm.startTime, // Send as-is: "14:30"
-        endTime: editForm.endTime,     // Send as-is: "16:00"
+        date: editForm.date,        // Send exact: "2024-01-15"
+        startTime: editForm.startTime, // Send exact: "14:30"
+        endTime: editForm.endTime,     // Send exact: "16:00"
       }),
     });
 
@@ -230,7 +237,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
     setShowEditModal(false);
     setEditingClass(null);
     
-    // Refresh the course data
+    // Refresh data
     const refreshResponse = await fetch(`/Api/tutors/courses/${params.courseId}`);
     if (refreshResponse.ok) {
       const refreshedData = await refreshResponse.json();
