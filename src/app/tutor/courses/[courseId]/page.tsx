@@ -180,21 +180,12 @@ const handleUpdateClass = async (e: React.FormEvent) => {
   setEditError('');
   
   try {
-    // Validate date and time
-    const [year, month, day] = editForm.date.split('-').map(Number);
-    const [startHour, startMinute] = editForm.startTime.split(':').map(Number);
-    const [endHour, endMinute] = editForm.endTime.split(':').map(Number);
-    
-    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
-    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
-    const currentDateTime = new Date();
-    
-    // Validation checks
-    if (endDateTime <= startDateTime) {
+    // Simple validation - just check if end time is after start time
+    if (editForm.endTime <= editForm.startTime) {
       throw new Error('End time must be after start time');
     }
 
-    // Send separate date, startTime, and endTime fields to match backend expectations
+    // Send exactly what user entered - no datetime conversion
     const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
       method: 'PUT',
       headers: {
@@ -203,10 +194,9 @@ const handleUpdateClass = async (e: React.FormEvent) => {
       body: JSON.stringify({
         title: editForm.title,
         description: editForm.description,
-        date: editForm.date,           // Send separate date field
-        startTime: editForm.startTime, // Send separate startTime field  
-        endTime: editForm.endTime,     // Send separate endTime field
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        date: editForm.date,           // Send as-is: "2024-01-15"
+        startTime: editForm.startTime, // Send as-is: "14:30"
+        endTime: editForm.endTime,     // Send as-is: "16:00"
       }),
     });
 
