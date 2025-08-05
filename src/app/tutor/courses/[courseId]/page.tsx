@@ -66,29 +66,41 @@ const CourseDetailsPage = () => {
   const router = useRouter();
 
   // Helper function to format date and time
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
+const formatDateTime = (dateTimeString: string) => {
+    // Simple formatting without timezone conversion
+    const [dateStr, timeStr] = dateTimeString.split('T');
+    const timeOnly = timeStr ? timeStr.substring(0, 5) : '';
+    
+    // Format date manually to avoid timezone issues
+    const [year, month, day] = dateStr.split('-');
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    
+    // Create date without timezone conversion
+    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const weekday = weekdays[dateObj.getDay()];
+    const monthName = months[parseInt(month) - 1];
+    
     return {
-      date: date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }),
-      time: date.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      })
+      date: `${weekday}, ${monthName} ${parseInt(day)}, ${year}`,
+      time: timeOnly  // Display exactly as stored: "14:30"
     };
   };
 
   // Helper function to extract date and time for form inputs
-  const extractDateTimeForForm = (dateString: string) => {
-    const date = new Date(dateString);
-    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
-    const timeStr = date.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
-    return { dateStr, timeStr };
+  const extractDateTimeForForm = (dateTimeString: string) => {
+    // If you have a datetime string like "2024-01-15T14:30:00"
+    // Just split it to get the parts
+    const [dateStr, timeStr] = dateTimeString.split('T');
+    const timeOnly = timeStr ? timeStr.substring(0, 5) : ''; // Remove seconds if present
+    
+    return { 
+      dateStr: dateStr,     // "2024-01-15"
+      timeStr: timeOnly     // "14:30"
+    };
   };
+
 
   // Fetch course details
   useEffect(() => {

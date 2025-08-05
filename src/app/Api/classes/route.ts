@@ -175,7 +175,6 @@ export async function PUT(request: NextRequest) {
   try {
     console.log("Updating class...");
     
-    // Get classId from query parameters
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get('classId');
     
@@ -186,7 +185,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Get instructor ID from token
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
@@ -198,7 +196,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Find the class 
     const existingClass = await Class.findById(classId);
     if (!existingClass) {
       return NextResponse.json(
@@ -207,13 +204,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    
-
-    // Parse the JSON body - expecting separate date and time fields like the frontend sends
     const body = await request.json();
-    const { title, description, date, startTime, endTime, timezone } = body;
+    const { title, description, date, startTime, endTime } = body;
     
-    console.log('Update data received:', { title, description, date, startTime, endTime, timezone });
+    console.log('Update data received:', { title, description, date, startTime, endTime });
 
     // Validate required fields
     if (!title || !description || !date || !startTime || !endTime) {
@@ -223,79 +217,40 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Helper function to parse date string and return date components
-    const parseDateString = (dateString: string) => {
-      const [year, month, day] = dateString.split('-').map(Number);
-      return { year, month: month - 1, day }; // month is 0-indexed for Date constructor
-    };
-
-    // Parse date and time components
-    const { year, month, day } = parseDateString(date);
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
-
-    // Create datetime objects using local timezone to avoid conversion issues
-    const startDateTime = new Date(year, month, day, startHour, startMinute);
-    const endDateTime = new Date(year, month, day, endHour, endMinute);
-    
-    console.log('Parsed DateTime objects:', {
-      startDateTime: startDateTime.toString(),
-      endDateTime: endDateTime.toString(),
-      originalDate: date,
-      originalStartTime: startTime,
-      originalEndTime: endTime
-    });
-
-    // Validate that end time is after start time
-    if (endDateTime <= startDateTime) {
+    // Simple validation - just check if end time is after start time
+    if (endTime <= startTime) {
       return NextResponse.json(
         { error: 'End time must be after start time' },
         { status: 400 }
       );
     }
 
-    // Validate that start time is not in the past
-    const currentTime = new Date();
-    // if (startDateTime <= currentTime) {
-    //   return NextResponse.json(
-    //     { error: 'Start time cannot be in the past' },
-    //     { status: 400 }
-    //   );
-    // }
+    // Store exactly what was received - no conversions
+    // Combine date and time into simple datetime strings for storage
+    const startDateTimeString = `${date}T${startTime}:00`;
+    const endDateTimeString = `${date}T${endTime}:00`;
 
-    // Update the class
+    // Update the class - store the raw datetime strings
     const updatedClass = await Class.findByIdAndUpdate(
       classId,
       {
         title,
         description,
-        startTime: startDateTime,
-        endTime: endDateTime,
-        // Optionally store the original date/time strings for reference
-        originalDate: date,
-        originalStartTime: startTime,
-        originalEndTime: endTime,
-        timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+        startTime: startDateTimeString,  // Store as: "2024-01-15T14:30:00"
+        endTime: endDateTimeString,      // Store as: "2024-01-15T16:00:00"
+        // Store the original components for easy retrieval
+        date: date,           // Store: "2024-01-15"
+        startTimeOnly: startTime,  // Store: "14:30"
+        endTimeOnly: endTime,      // Store: "16:00"
       },
       { new: true, runValidators: true }
     );
 
-    console.log('Class updated successfully:', updatedClass);
-
-    // Return the updated class with formatted date/time for frontend consistency
-    const responseData = {
-      ...updatedClass.toObject(),
-      // Add formatted date/time fields that match frontend expectations
-      formattedDate: date,
-      formattedStartTime: startTime,
-      formattedEndTime: endTime,
-      startDateTime: startDateTime.toISOString(),
-      endDateTime: endDateTime.toISOString()
-    };
+    console.log('Class updated successfully - stored exactly as received');
 
     return NextResponse.json({
       message: 'Class updated successfully',
-      classData: responseData
+      classData: updatedClass
     }, { status: 200 });
     
   } catch (error) {
@@ -306,6 +261,7 @@ export async function PUT(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
 
 // DELETE - Delete existing class
 export async function DELETE(request: NextRequest) {
