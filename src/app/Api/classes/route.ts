@@ -225,28 +225,28 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Store exactly what was received - no conversions
-    // Combine date and time into simple datetime strings for storage
-    const startDateTimeString = `${date}T${startTime}:00`;
-    const endDateTimeString = `${date}T${endTime}:00`;
+    // Convert to Date objects for schema compatibility
+    const [year, month, day] = date.split('-').map(Number);
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
 
-    // Update the class - store the raw datetime strings
+    // Create Date objects (this will store in MongoDB as Date type)
+    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
+    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+
+    // Update the class
     const updatedClass = await Class.findByIdAndUpdate(
       classId,
       {
         title,
         description,
-        startTime: startDateTimeString,  // Store as: "2024-01-15T14:30:00"
-        endTime: endDateTimeString,      // Store as: "2024-01-15T16:00:00"
-        // Store the original components for easy retrieval
-        date: date,           // Store: "2024-01-15"
-        startTimeOnly: startTime,  // Store: "14:30"
-        endTimeOnly: endTime,      // Store: "16:00"
+        startTime: startDateTime,  // Store as Date object
+        endTime: endDateTime,      // Store as Date object
       },
       { new: true, runValidators: true }
     );
 
-    console.log('Class updated successfully - stored exactly as received');
+    console.log('Class updated successfully');
 
     return NextResponse.json({
       message: 'Class updated successfully',

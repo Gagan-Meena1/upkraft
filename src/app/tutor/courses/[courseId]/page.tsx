@@ -67,39 +67,48 @@ const CourseDetailsPage = () => {
 
   // Helper function to format date and time
 const formatDateTime = (dateTimeString: string) => {
-    // Simple formatting without timezone conversion
-    const [dateStr, timeStr] = dateTimeString.split('T');
-    const timeOnly = timeStr ? timeStr.substring(0, 5) : '';
-    
-    // Format date manually to avoid timezone issues
-    const [year, month, day] = dateStr.split('-');
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                    'July', 'August', 'September', 'October', 'November', 'December'];
-    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    
-    // Create date without timezone conversion
-    const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-    const weekday = weekdays[dateObj.getDay()];
-    const monthName = months[parseInt(month) - 1];
-    
-    return {
-      date: `${weekday}, ${monthName} ${parseInt(day)}, ${year}`,
-      time: timeOnly  // Display exactly as stored: "14:30"
-    };
+  const date = new Date(dateTimeString);
+  
+  // Format without timezone issues
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                  'July', 'August', 'September', 'October', 'November', 'December'];
+  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  
+  const weekday = weekdays[date.getDay()];
+  const monthName = months[month];
+  
+  // Format time
+  const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  
+  return {
+    date: `${weekday}, ${monthName} ${day}, ${year}`,
+    time: timeStr
   };
+};
 
   // Helper function to extract date and time for form inputs
-  const extractDateTimeForForm = (dateTimeString: string) => {
-    // If you have a datetime string like "2024-01-15T14:30:00"
-    // Just split it to get the parts
-    const [dateStr, timeStr] = dateTimeString.split('T');
-    const timeOnly = timeStr ? timeStr.substring(0, 5) : ''; // Remove seconds if present
-    
-    return { 
-      dateStr: dateStr,     // "2024-01-15"
-      timeStr: timeOnly     // "14:30"
-    };
+ const extractDateTimeForForm = (dateTimeString: string) => {
+  // Handle MongoDB Date format: "2024-01-15T09:00:00.000Z"
+  const date = new Date(dateTimeString);
+  
+  // Extract components without timezone conversion
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  
+  return { 
+    dateStr: `${year}-${month}-${day}`,  // "2024-01-15"
+    timeStr: `${hours}:${minutes}`       // "14:30"
   };
+};
 
 
   // Fetch course details
