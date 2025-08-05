@@ -160,9 +160,9 @@ const CourseDetailsPage = () => {
     const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
     const currentDateTime = new Date();
     
-    if (startDateTime <= currentDateTime) {
-      return 'Start time cannot be in the past';
-    }
+    // if (startDateTime <= currentDateTime) {
+    //   return 'Start time cannot be in the past';
+    // }
     
     if (endDateTime <= startDateTime) {
       return 'End time must be after start time';
@@ -172,72 +172,66 @@ const CourseDetailsPage = () => {
   };
 
   // Handle update class
-  const handleUpdateClass = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingClass) return;
+const handleUpdateClass = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!editingClass) return;
+  
+  setIsUpdating(true);
+  setEditError('');
+  
+  try {
+    // Validate date and time
+    const [year, month, day] = editForm.date.split('-').map(Number);
+    const [startHour, startMinute] = editForm.startTime.split(':').map(Number);
+    const [endHour, endMinute] = editForm.endTime.split(':').map(Number);
     
-    setIsUpdating(true);
-    setEditError('');
+    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
+    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+    const currentDateTime = new Date();
     
-    try {
-      // Validate date and time
-      const [year, month, day] = editForm.date.split('-').map(Number);
-      const [startHour, startMinute] = editForm.startTime.split(':').map(Number);
-      const [endHour, endMinute] = editForm.endTime.split(':').map(Number);
-      
-      const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
-      const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
-      const currentDateTime = new Date();
-      
-      if (startDateTime <= currentDateTime) {
-        throw new Error('Cannot update class to past date and time');
-      }
-      
-      if (endDateTime <= startDateTime) {
-        throw new Error('End time must be after start time');
-      }
-
-      // Combine date and time into proper ISO datetime strings
-      const startDateTimeString = `${editForm.date}T${editForm.startTime}:00`;
-      const endDateTimeString = `${editForm.date}T${editForm.endTime}:00`;
-
-      const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: editForm.title,
-          description: editForm.description,
-          startTime: startDateTimeString,
-          endTime: endDateTimeString,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update class');
-      }
-
-      toast.success('Class updated successfully!');
-      setShowEditModal(false);
-      setEditingClass(null);
-      
-      // Refresh the course data
-      const refreshResponse = await fetch(`/Api/tutors/courses/${params.courseId}`);
-      if (refreshResponse.ok) {
-        const refreshedData = await refreshResponse.json();
-        setCourseData(refreshedData);
-      }
-    } catch (error) {
-      console.error('Error updating class:', error);
-      setEditError(error instanceof Error ? error.message : 'Failed to update class');
-    } finally {
-      setIsUpdating(false);
+    // Validation checks
+    if (endDateTime <= startDateTime) {
+      throw new Error('End time must be after start time');
     }
-  };
 
+    // Send separate date, startTime, and endTime fields to match backend expectations
+    const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: editForm.title,
+        description: editForm.description,
+        date: editForm.date,           // Send separate date field
+        startTime: editForm.startTime, // Send separate startTime field  
+        endTime: editForm.endTime,     // Send separate endTime field
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update class');
+    }
+
+    toast.success('Class updated successfully!');
+    setShowEditModal(false);
+    setEditingClass(null);
+    
+    // Refresh the course data
+    const refreshResponse = await fetch(`/Api/tutors/courses/${params.courseId}`);
+    if (refreshResponse.ok) {
+      const refreshedData = await refreshResponse.json();
+      setCourseData(refreshedData);
+    }
+  } catch (error) {
+    console.error('Error updating class:', error);
+    setEditError(error instanceof Error ? error.message : 'Failed to update class');
+  } finally {
+    setIsUpdating(false);
+  }
+};
   // Handle delete class
   const handleDeleteClass = async (classId: string, classTitle: string) => {
     if (!window.confirm(`Are you sure you want to delete the class "${classTitle}"? This action cannot be undone.`)) {

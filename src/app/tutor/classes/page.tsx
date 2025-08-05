@@ -3,10 +3,9 @@
 import React, { useState } from 'react';
 import { Calendar, Clock, X, Plus, ChevronLeft, ChevronRight, User, Video } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation'; // Use navigation for App Router
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { useSearchParams } from 'next/navigation'; // Import this to access query params
-
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 // Create a non-SSR version of the component
@@ -43,7 +42,25 @@ function AddSessionPage() {
     date: '',
     video: null,
   });
-  const [videoFileName, setVideoFileName] = useState<string>('');
+
+  // Helper function to format date as YYYY-MM-DD without timezone issues
+  const formatDateToString = (year: number, month: number, day: number): string => {
+    return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  };
+
+  // Helper function to parse date string and return date components
+  const parseDateString = (dateString: string) => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return { year, month: month - 1, day }; // month is 0-indexed for Date constructor
+  };
+
+  // Helper function to check if a date is in the past (without time consideration)
+  const isDateInPast = (year: number, month: number, day: number): boolean => {
+    const today = new Date();
+    const compareDate = new Date(year, month, day);
+    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return compareDate < todayDate;
+  };
 
   // Generate calendar days for current month view
   const generateCalendarDays = () => {
@@ -88,15 +105,16 @@ function AddSessionPage() {
   const handleDateClick = (day: number) => {
     if (!day) return;
     
-    const dateString = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const selectedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
     
-    if (selectedDate < today) {
+    // Check if date is in the past
+    if (isDateInPast(year, month, day)) {
       alert('Cannot create sessions for past dates');
       return;
     }
+    
+    const dateString = formatDateToString(year, month, day);
     setSelectedDate(dateString);
     setSessionForm({...sessionForm, date: dateString});
     setShowForm(true);
@@ -105,27 +123,37 @@ function AddSessionPage() {
   const handleCloseForm = () => {
     setShowForm(false);
     setSelectedDate(null);
-    setVideoFileName('');
     setErrorMessage('');
+    // Reset form
+    setSessionForm({
+      title: '',
+      description: '',
+      startTime: '09:00',
+      endTime: '10:30',
+      date: '',
+      video: null,
+    });
   };
 
   // Fixed validateDateTime function to avoid timezone issues
   const validateDateTime = (date: string, startTime: string, endTime: string) => {
     if (!date || !startTime || !endTime) return '';
     
-    // Create date objects without timezone conversion
-    const [year, month, day] = date.split('-').map(Number);
+    const { year, month, day } = parseDateString(date);
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
     
-    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
-    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+    // Create date objects using local timezone
+    const startDateTime = new Date(year, month, day, startHour, startMinute);
+    const endDateTime = new Date(year, month, day, endHour, endMinute);
     const currentDateTime = new Date();
     
+    // Check if start time is in the past
     if (startDateTime <= currentDateTime) {
       return 'Start time cannot be in the past';
     }
     
+    // Check if end time is after start time
     if (endDateTime <= startDateTime) {
       return 'End time must be after start time';
     }
@@ -155,15 +183,17 @@ function AddSessionPage() {
     setErrorMessage('');
     
     try {
-      // Fixed validation to avoid timezone issues
-      const [year, month, day] = sessionForm.date.split('-').map(Number);
+      // Parse date and time components
+      const { year, month, day } = parseDateString(sessionForm.date);
       const [startHour, startMinute] = sessionForm.startTime.split(':').map(Number);
       const [endHour, endMinute] = sessionForm.endTime.split(':').map(Number);
       
-      const sessionDateTime = new Date(year, month - 1, day, startHour, startMinute);
-      const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+      // Create datetime objects for validation
+      const sessionDateTime = new Date(year, month, day, startHour, startMinute);
+      const endDateTime = new Date(year, month, day, endHour, endMinute);
       const currentDateTime = new Date();
       
+      // Validation checks
       if (sessionDateTime <= currentDateTime) {
         throw new Error('Cannot create sessions for past date and time');
       }
@@ -172,17 +202,17 @@ function AddSessionPage() {
         throw new Error('End time must be after start time');
       }
 
-      // Create form data for submission including the file
+      // Create form data for submission
       const formData = new FormData();
       formData.append('title', sessionForm.title);
       formData.append('description', sessionForm.description);
       
-      // Send time values as strings to preserve the exact time selected
-      formData.append('startTime', sessionForm.startTime);
-      formData.append('endTime', sessionForm.endTime);
-      formData.append('date', sessionForm.date);
+      // Send date and time as separate values to maintain precision
+      formData.append('date', sessionForm.date); // YYYY-MM-DD format
+      formData.append('startTime', sessionForm.startTime); // HH:MM format
+      formData.append('endTime', sessionForm.endTime); // HH:MM format
       
-      // Add timezone information to ensure server handles it correctly
+      // Add timezone information
       formData.append('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone);
       
       if (sessionForm.video) {
@@ -193,7 +223,6 @@ function AddSessionPage() {
       const response = await fetch('/Api/classes', {
         method: 'POST',
         body: formData,
-        // Don't set Content-Type header - it's automatically set with the correct boundary
       });
       
       const data = await response.json();
@@ -204,7 +233,7 @@ function AddSessionPage() {
       
       // Success! 
       alert('Session created successfully!');
-      router.push(`/tutor/courses/${courseId}`); // Redirect to tutor dashboard
+      router.push(`/tutor/courses/${courseId}`);
     } catch (error) {
       console.error('Error creating session:', error);
       setErrorMessage(error instanceof Error ? error.message : 'Failed to create session');
@@ -215,7 +244,7 @@ function AddSessionPage() {
 
   const calendarDays = generateCalendarDays();
   const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const weekdaysMobile = ['S', 'M', 'T', 'W', 'T', 'F', 'S']; // Shorter version for mobile
+  const weekdaysMobile = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June', 
     'July', 'August', 'September', 'October', 'November', 'December'
@@ -274,13 +303,15 @@ function AddSessionPage() {
             
             {/* Calendar days */}
             {calendarDays.map((day, index) => {
+              const year = currentMonth.getFullYear();
+              const month = currentMonth.getMonth();
+              
               const isToday = day && 
-                currentMonth.getFullYear() === new Date().getFullYear() &&
-                currentMonth.getMonth() === new Date().getMonth() &&
+                year === new Date().getFullYear() &&
+                month === new Date().getMonth() &&
                 day === new Date().getDate();
               
-              const isPastDate = day && 
-                new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day) < new Date(new Date().setHours(0, 0, 0, 0));
+              const isPastDate = day && isDateInPast(year, month, day);
               
               return (
                 <div 
@@ -296,7 +327,9 @@ function AddSessionPage() {
                 >
                   {day && (
                     <>
-                      <span className={`font-medium text-sm sm:text-base ${isPastDate ? 'text-gray-400' : ''}`}>{day}</span>
+                      <span className={`font-medium text-sm sm:text-base ${isPastDate ? 'text-gray-400' : ''} ${isToday ? 'text-yellow-300 font-bold' : ''}`}>
+                        {day}
+                      </span>
                       {!isPastDate && (
                         <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-pink-500 hover:bg-pink-400 rounded-full flex items-center justify-center text-white">
                           <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -398,6 +431,12 @@ function AddSessionPage() {
                     </div>
                   </div>
                   
+                  {/* Display selected date for confirmation */}
+                  <div className="bg-blue-900 p-3 rounded-lg">
+                    <span className="text-blue-200 text-sm">Selected Date: </span>
+                    <span className="text-white font-medium">{selectedDate}</span>
+                  </div>
+                  
                   {/* Error message display */}
                   {errorMessage && (
                     <div className="bg-red-900 text-white p-2 sm:p-3 rounded-lg text-sm sm:text-base">
@@ -408,7 +447,7 @@ function AddSessionPage() {
                   <button
                     type="submit"
                     className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-400 hover:to-blue-400 rounded-lg font-semibold shadow-md transition-colors disabled:opacity-50 text-sm sm:text-base"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !!errorMessage}
                   >
                     {isSubmitting ? 'Creating...' : 'Create Session'}
                   </button>

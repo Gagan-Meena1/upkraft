@@ -181,7 +181,7 @@ export async function PUT(request: NextRequest) {
     
     if (!classId) {
       return NextResponse.json(
-        { error: 'Class ID is required' }, 
+        { error: 'Class ID is required' },
         { status: 400 }
       );
     }
@@ -193,52 +193,75 @@ export async function PUT(request: NextRequest) {
     
     if (!instructorId) {
       return NextResponse.json(
-        { error: 'Unauthorized - Invalid token' }, 
+        { error: 'Unauthorized - Invalid token' },
         { status: 401 }
       );
     }
 
-    // Find the class and verify ownership
+    // Find the class 
     const existingClass = await Class.findById(classId);
     if (!existingClass) {
       return NextResponse.json(
-        { error: 'Class not found' }, 
+        { error: 'Class not found' },
         { status: 404 }
       );
     }
 
-    // Parse the JSON body
+    
+
+    // Parse the JSON body - expecting separate date and time fields like the frontend sends
     const body = await request.json();
-    const { title, description, startTime, endTime, timezone } = body;
+    const { title, description, date, startTime, endTime, timezone } = body;
     
-    console.log('Update data received:', { title, description, startTime, endTime, timezone });
+    console.log('Update data received:', { title, description, date, startTime, endTime, timezone });
+
+    // Validate required fields
+    if (!title || !description || !date || !startTime || !endTime) {
+      return NextResponse.json(
+        { error: 'All fields are required: title, description, date, startTime, endTime' },
+        { status: 400 }
+      );
+    }
+
+    // Helper function to parse date string and return date components
+    const parseDateString = (dateString: string) => {
+      const [year, month, day] = dateString.split('-').map(Number);
+      return { year, month: month - 1, day }; // month is 0-indexed for Date constructor
+    };
+
+    // Parse date and time components
+    const { year, month, day } = parseDateString(date);
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+
+    // Create datetime objects using local timezone to avoid conversion issues
+    const startDateTime = new Date(year, month, day, startHour, startMinute);
+    const endDateTime = new Date(year, month, day, endHour, endMinute);
     
-    // Convert the datetime strings directly to Date objects without timezone conversion
-    // The frontend sends strings like "2025-01-15T14:30:00"
-    const startDateTime = new Date(startTime);
-    const endDateTime = new Date(endTime);
-    
-    console.log('Updated DateTime objects:', {
+    console.log('Parsed DateTime objects:', {
       startDateTime: startDateTime.toString(),
       endDateTime: endDateTime.toString(),
+      originalDate: date,
+      originalStartTime: startTime,
+      originalEndTime: endTime
     });
 
     // Validate that end time is after start time
     if (endDateTime <= startDateTime) {
       return NextResponse.json(
-        { error: 'End time must be after start time' }, 
+        { error: 'End time must be after start time' },
         { status: 400 }
       );
     }
 
     // Validate that start time is not in the past
     const currentTime = new Date();
-    if (startDateTime <= currentTime) {
-      return NextResponse.json(
-        { error: 'Start time cannot be in the past' }, 
-        { status: 400 }
-      );
-    }
+    // if (startDateTime <= currentTime) {
+    //   return NextResponse.json(
+    //     { error: 'Start time cannot be in the past' },
+    //     { status: 400 }
+    //   );
+    // }
 
     // Update the class
     const updatedClass = await Class.findByIdAndUpdate(
@@ -248,22 +271,38 @@ export async function PUT(request: NextRequest) {
         description,
         startTime: startDateTime,
         endTime: endDateTime,
+        // Optionally store the original date/time strings for reference
+        originalDate: date,
+        originalStartTime: startTime,
+        originalEndTime: endTime,
+        timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
       },
       { new: true, runValidators: true }
     );
 
     console.log('Class updated successfully:', updatedClass);
 
+    // Return the updated class with formatted date/time for frontend consistency
+    const responseData = {
+      ...updatedClass.toObject(),
+      // Add formatted date/time fields that match frontend expectations
+      formattedDate: date,
+      formattedStartTime: startTime,
+      formattedEndTime: endTime,
+      startDateTime: startDateTime.toISOString(),
+      endDateTime: endDateTime.toISOString()
+    };
+
     return NextResponse.json({
       message: 'Class updated successfully',
-      classData: updatedClass
+      classData: responseData
     }, { status: 200 });
     
   } catch (error) {
     console.error('Server error while updating class:', error);
-    return NextResponse.json({ 
-      message: 'Server error', 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+    return NextResponse.json({
+      message: 'Server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
