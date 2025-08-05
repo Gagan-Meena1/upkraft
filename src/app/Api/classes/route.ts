@@ -223,20 +223,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Create Date objects using LOCAL timezone - NO UTC conversion
+    // FORCE UTC CREATION - This ensures same time regardless of server timezone
     const [year, month, day] = date.split('-').map(Number);
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const [endHour, endMinute] = endTime.split(':').map(Number);
 
-    // Create Date objects in LOCAL time zone
-    const startDateTime = new Date(year, month - 1, day, startHour, startMinute, 0, 0);
-    const endDateTime = new Date(year, month - 1, day, endHour, endMinute, 0, 0);
+    // Create Date objects in UTC timezone - same time everywhere
+    const startDateTime = new Date(Date.UTC(year, month - 1, day, startHour, startMinute, 0, 0));
+    const endDateTime = new Date(Date.UTC(year, month - 1, day, endHour, endMinute, 0, 0));
 
-    console.log('STORING AS DATE OBJECTS:', {
-      startDateTime: startDateTime,
-      endDateTime: endDateTime,
-      startDateTimeString: startDateTime.toString(),
-      endDateTimeString: endDateTime.toString()
+    console.log('STORING IN UTC:', {
+      inputTime: `${startTime} - ${endTime}`,
+      storedStartUTC: startDateTime.toISOString(),
+      storedEndUTC: endDateTime.toISOString(),
+      // Verify what time will be retrieved
+      retrievedStart: `${String(startDateTime.getUTCHours()).padStart(2, '0')}:${String(startDateTime.getUTCMinutes()).padStart(2, '0')}`,
+      retrievedEnd: `${String(endDateTime.getUTCHours()).padStart(2, '0')}:${String(endDateTime.getUTCMinutes()).padStart(2, '0')}`
     });
 
     const updatedClass = await Class.findByIdAndUpdate(
@@ -244,13 +246,13 @@ export async function PUT(request: NextRequest) {
       {
         title,
         description,
-        startTime: startDateTime,  // Store as Date object in local time
-        endTime: endDateTime,      // Store as Date object in local time
+        startTime: startDateTime,  // Store in UTC
+        endTime: endDateTime,      // Store in UTC
       },
       { new: true, runValidators: true }
     );
 
-    console.log('STORED SUCCESSFULLY');
+    console.log('STORED SUCCESSFULLY IN UTC');
 
     return NextResponse.json({
       message: 'Class updated successfully',

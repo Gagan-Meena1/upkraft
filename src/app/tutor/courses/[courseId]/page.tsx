@@ -69,21 +69,29 @@ const CourseDetailsPage = () => {
 const formatDateTime = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
-  // Use LOCAL time methods - NO UTC methods
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
+  // Use UTC methods to get the EXACT stored time
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  const hours = date.getUTCHours();
+  const minutes = date.getUTCMinutes();
   
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 
                   'July', 'August', 'September', 'October', 'November', 'December'];
-  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   
-  const weekday = weekdays[date.getDay()];
+  // For weekday, create a date object in UTC
+  const utcDate = new Date(Date.UTC(year, month, day));
+  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const weekday = weekdays[utcDate.getUTCDay()];
   const monthName = months[month];
   
   const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  
+  console.log('DISPLAYING FROM UTC:', {
+    originalString: dateTimeString,
+    displayTime: timeStr,
+    displayDate: `${weekday}, ${monthName} ${day}, ${year}`
+  });
   
   return {
     date: `${weekday}, ${monthName} ${day}, ${year}`,
@@ -96,13 +104,18 @@ const formatDateTime = (dateTimeString: string) => {
 const extractDateTimeForForm = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
-  // Use getFullYear, getMonth, getDate, getHours, getMinutes
-  // These methods return LOCAL time values, not UTC
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
+  // Use UTC methods to get the EXACT stored time
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  
+  console.log('EXTRACTING FROM UTC:', {
+    originalString: dateTimeString,
+    extractedTime: `${hours}:${minutes}`,
+    extractedDate: `${year}-${month}-${day}`
+  });
   
   return { 
     dateStr: `${year}-${month}-${day}`,  // Exact: "2024-01-15"
@@ -137,12 +150,18 @@ const extractDateTimeForForm = (dateTimeString: string) => {
   }, [params.courseId]);
 
   // Handle edit class
-  const handleEditClass = (classSession: Class) => {
+const handleEditClass = (classSession: Class) => {
   setEditingClass(classSession);
   
-  // Extract EXACT values from stored Date objects
+  // Extract EXACT values using UTC methods
   const startDateTime = extractDateTimeForForm(classSession.startTime);
   const endDateTime = extractDateTimeForForm(classSession.endTime);
+  
+  console.log('EDITING CLASS - EXTRACTED VALUES:', {
+    startTime: startDateTime.timeStr,
+    endTime: endDateTime.timeStr,
+    date: startDateTime.dateStr
+  });
   
   setEditForm({
     title: classSession.title,
@@ -154,6 +173,7 @@ const extractDateTimeForForm = (dateTimeString: string) => {
   setShowEditModal(true);
   setEditError('');
 };
+
 
   // Handle form change for edit modal
   const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -208,7 +228,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
       throw new Error('End time must be after start time');
     }
 
-    console.log('SENDING EXACT VALUES:', {
+    console.log('UPDATING CLASS - SENDING VALUES:', {
       date: editForm.date,        // "2024-01-15"
       startTime: editForm.startTime, // "14:30"
       endTime: editForm.endTime,     // "16:00"
