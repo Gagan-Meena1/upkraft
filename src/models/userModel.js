@@ -100,6 +100,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    certified: {
+        type: String,
+        default: ""
+    },
     forgotPasswordToken: String,
     forgotPasswordTokenExpiry: Date,
     verifyToken: String,
