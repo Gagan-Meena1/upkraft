@@ -14,7 +14,7 @@ const VideoMeeting = dynamic(() => import('../components/VideoMeeting'), {
 
 interface UserData {
   _id: string;
-  name: string;
+  username: string;
   email: string;
   category: string;
   age: number;
@@ -22,6 +22,7 @@ interface UserData {
   contact: string;
   courses: any[];
   createdAt: string;
+  certified: string; 
 }
 
 interface ClassData {
@@ -35,6 +36,7 @@ interface ClassData {
   recording: string | null;
   createdAt: string;
   updatedAt: string;
+  feedbackId:string;
 }
 
 interface CourseData {
@@ -98,6 +100,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [feedbackPendingCount, setFeedbackPendingCount] = useState<number>(0);
+  const [totalClassesCount, setTotalClassesCount] = useState<number>(0);
   const [meeting, setMeeting] = useState<MeetingState>({
     isActive: false,
     url: null,
@@ -127,53 +131,77 @@ export default function Dashboard() {
       return classStartTime > now;
     });
   };
+  const calculateFeedbackPendingCount = (classes: ClassData[]) => {
+  if (!classes || !Array.isArray(classes)) {
+    return 0;
+  }
+  
+  return classes.filter(classItem => {
+    // Check if feedbackId field exists but is empty/null/undefined
+    return !classItem.feedbackId || classItem.feedbackId === '';
+  }).length;
+};
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userResponse = await fetch("/Api/users/user");
-        const userData = await userResponse.json();
-        
-        const assignmentResponse = await fetch("/Api/assignment");
-        const assignmentResponseData = await assignmentResponse.json();
-        
-        setUserData(userData.user);
-        setStudentCount(userData.studentCount || 0);
-        
-        // Set course data (keeping original naming)
-        if (userData.courseDetails) {
-          setCourseData(userData.courseDetails);
-        }
-        
-        // Set the new course title map
-        if (userData.courseTitleMap) {
-          setCourseTitleMap(userData.courseTitleMap);
-        }
-        
-        if (userData.classDetails && userData.classDetails.length > 0) {
-          const sortedClasses = userData.classDetails.sort((a: ClassData, b: ClassData) => 
-            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-          );
-          
-          const futureClasses = filterFutureClasses(sortedClasses);
-          setClassData(futureClasses);
-        } else {
-          setClassData([]);
-        }
-        
-        if (assignmentResponseData?.assignments) {
-          setAssignmentData(assignmentResponseData.assignments);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setLoading(false);
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const userResponse = await fetch("/Api/users/user");
+      const userData = await userResponse.json();
+      
+      const assignmentResponse = await fetch("/Api/assignment");
+      const assignmentResponseData = await assignmentResponse.json();
+      
+      setUserData(userData.user);
+      setStudentCount(userData.studentCount || 0);
+      
+      // Set course data (keeping original naming)
+      if (userData.courseDetails) {
+        setCourseData(userData.courseDetails);
       }
-    };
-    
-    fetchData();
-  }, []);
+      
+      // Set the new course title map
+      if (userData.courseTitleMap) {
+        setCourseTitleMap(userData.courseTitleMap);
+      }
+      
+      // Add null checks here
+      if (userData.classDetails && Array.isArray(userData.classDetails) && userData.classDetails.length > 0) {
+        const sortedClasses = userData.classDetails.sort((a: ClassData, b: ClassData) => 
+          new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+        
+        const futureClasses = filterFutureClasses(sortedClasses);
+        setClassData(futureClasses);
+        
+        // Calculate feedback pending count for ALL classes (not just future ones)
+        const pendingCount = calculateFeedbackPendingCount(userData.classDetails);
+        setFeedbackPendingCount(pendingCount);
+        
+        // Set total classes count
+        setTotalClassesCount(userData.classDetails.length);
+      } else {
+        setClassData([]);
+        setFeedbackPendingCount(0);
+        setTotalClassesCount(0);
+      }
+      
+      if (assignmentResponseData?.assignments) {
+        setAssignmentData(assignmentResponseData.assignments);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      // Set default values on error
+      setClassData([]);
+      setFeedbackPendingCount(0);
+      setTotalClassesCount(0);
+      setLoading(false);
+    }
+  };
+  
+  fetchData();
+}, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -404,11 +432,11 @@ export default function Dashboard() {
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-[#FFC357] rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
-                    {getUserInitials(userData?.name)}
+                    {getUserInitials(userData?.username)}
                   </span>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{userData?.name || 'Loading...'}</p>
+                  <p className="text-sm font-medium text-gray-900">{userData?.username || 'Loading...'}</p>
                   <p className="text-xs text-gray-500">Tutor</p>
                 </div>
               </div>
@@ -433,7 +461,7 @@ export default function Dashboard() {
                         <div className="w-20 h-20 bg-[#FFC357] rounded-full flex items-center justify-center">
                           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
                             <span className="text-[#FFC357] font-bold text-lg">
-                              {getUserInitials(userData?.name)}
+                              {getUserInitials(userData?.username)}
                             </span>
                           </div>
                         </div>
@@ -441,7 +469,7 @@ export default function Dashboard() {
                           <span className="text-white text-sm">✓</span>
                         </div>
                       </div>
-                      <h4 className="text-xl font-semibold text-gray-900 mb-2">{userData?.name || 'Loading...'}</h4>
+                      <h4 className="text-xl font-semibold text-gray-900 mb-2">{userData?.username || 'Loading...'}</h4>
                       <p className="text-gray-600 mb-4">
                         {courseData.length > 0 ? `${courseData[0].category} Tutor` : 'Tutor'}
                       </p>
@@ -463,9 +491,9 @@ export default function Dashboard() {
                         <div className="flex flex-col items-center">
                           <div className="flex items-center space-x-1 mb-1">
                             <Star size={16} className="text-gray-400" />
-                            <span className="text-sm font-semibold text-gray-900">5.0</span>
+                            <span className="text-sm font-semibold text-gray-900">Yes</span>
                           </div>
-                          <span className="text-xs text-gray-500">Rating</span>
+                          <span className="text-xs text-gray-500">Upkraft Certified</span>
                         </div>
                       </div>
                     </div>
@@ -493,7 +521,6 @@ export default function Dashboard() {
 
                    {/* Image and Refer Card Column */}
 <div className="md:col-span-3">
-  {/* Image - Made larger and removed bottom padding */}
   <div className="p-1 pb-0 flex items-center justify-center h-40 md:h-48">
     <div className="w-32 -mb-7 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden flex items-center justify-center">
       <Image
@@ -591,36 +618,78 @@ export default function Dashboard() {
                 </div>
 
                 {/* Feedback Pending */}
-                <div className="col-span-12 lg:col-span-4">
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                      Feedback Pending
-                    </h3>
-                    
-                    <div className="flex items-center justify-center mb-4">
-                      <div className="relative w-32 h-32">
-                        <div className="w-32 h-32 border-8 border-gray-200 rounded-full flex items-center justify-center">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">12</div>
-                            <div className="text-xs text-gray-500">Feedback Pending</div>
-                          </div>
-                        </div>
-                        <div className="absolute top-0 left-0 w-32 h-32 border-8 border-red-500 rounded-full" style={{
-                          clipPath: 'polygon(50% 50%, 50% 0%, 83% 17%, 50% 50%)'
-                        }}></div>
-                      </div>
-                    </div>
+{/* Feedback Pending */}
+<div className="col-span-12 lg:col-span-4">
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+      Feedback Pending
+    </h3>
+    
+    {!loading ? (
+      <>
+        <div className="flex items-center justify-center mb-4">
+          <div className="relative w-32 h-32">
+            {/* Background circle */}
+            <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 36 36">
+              {/* Background circle */}
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#e5e7eb"
+                strokeWidth="2"
+              />
+              {/* Green circle (completed feedback) */}
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="2"
+                strokeDasharray={`${totalClassesCount > 0 ? ((totalClassesCount - feedbackPendingCount) / totalClassesCount) * 100 : 0}, 100`}
+              />
+              {/* Red circle (pending feedback) */}
+              <path
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#ef4444"
+                strokeWidth="2"
+                strokeDasharray={`${totalClassesCount > 0 ? (feedbackPendingCount / totalClassesCount) * 100 : 0}, 100`}
+                strokeDashoffset={`${totalClassesCount > 0 ? -((totalClassesCount - feedbackPendingCount) / totalClassesCount) * 100 : 0}`}
+              />
+            </svg>
+            
+            {/* Center content */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">{feedbackPendingCount}</div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                    <button className="w-full bg-[#6F09BA] text-white py-3 rounded-lg font-medium hover:bg-[#5A0799] transition-colors flex items-center justify-center space-x-2 mb-4">
-                      <span>Give Feedback</span>
-                      <ArrowRight size={16} />
-                    </button>
+        {/* Legend */}
+        <div className="flex items-center justify-center space-x-4 mb-4">
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <span className="text-xs text-gray-600">Pending ({feedbackPendingCount})</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+            <span className="text-xs text-gray-600">Complete ({totalClassesCount - feedbackPendingCount})</span>
+          </div>
+        </div>
 
-                    <div className="text-center">
-                      
-                    </div>
-                  </div>
-                </div>
+        <button className="w-full bg-[#6F09BA] text-white py-3 rounded-lg font-medium hover:bg-[#5A0799] transition-colors flex items-center justify-center space-x-2 mb-4">
+          <span>Give Feedback</span>
+          <ArrowRight size={16} />
+        </button>
+      </>
+    ) : (
+      <div className="flex items-center justify-center h-48">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    )}
+  </div>
+</div>
               </div>
 
              
