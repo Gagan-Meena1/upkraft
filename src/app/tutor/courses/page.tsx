@@ -1,13 +1,24 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Book, Clock, IndianRupee, List, MessageCircle, Trash2, ChevronLeft, BarChart3, Pencil, Edit, Eye } from 'lucide-react';
+import { Book, Clock, IndianRupee, List, MessageCircle, Trash2, ChevronLeft, BarChart3, Pencil, Edit, Eye, ChevronDown, Plus, ArrowRight, X, Search, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { use } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
 
-// Define the Course interface based on your mongoose schema
+// Sidebar Component
+const Sidebar = ({ userType }) => {
+  return (
+    <div className="w-64 bg-white shadow-lg border-r border-gray-200 min-h-screen">
+      <div className="p-6">
+        <h2 className="text-xl font-semibold text-gray-800">Navigation</h2>
+        {/* Add your sidebar content here */}
+      </div>
+    </div>
+  );
+};
+
+// Define the Course interface
 interface Course {
   _id: string;
   title: string;
@@ -19,6 +30,7 @@ interface Course {
     topic: string;
     tangibleOutcome: string;
   }[];
+  createdAt?: string;
 }
 
 export default function TutorCoursesPage() {
@@ -26,29 +38,39 @@ export default function TutorCoursesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
+  
+  // Filter and UI states
+  const [selectedFilter, setSelectedFilter] = useState("All Months");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    courseId: string | null;
+    courseName: string;
+  }>({
+    isOpen: false,
+    courseId: null,
+    courseName: "",
+  });
+
+  const filterOptions = ["January", "February", "March", "April", "May", "June", 
+                        "July", "August", "September", "October", "November", "December", "All Months"];
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/Api/tutors/courses'); // Use the correct route
-        
-        console.log('Response status:', response.status);
+        const response = await fetch('/Api/tutors/courses');
         
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Error response:', errorText);
           throw new Error(`Failed to fetch courses: ${errorText}`);
         }
   
         const data = await response.json();
-        // console.log('Courses data:', data);
-        
-        // Change this line to match the API response
-        setCourses(data.course); // Use 'course' instead of 'courses'
+        setCourses(data.course || []);
         setIsLoading(false);
       } catch (err) {
-        console.error('Detailed error fetching courses:', err);
+        console.error('Error fetching courses:', err);
         setError(err instanceof Error ? err.message : 'Unable to load courses');
         toast.error('Failed to load courses');
         setIsLoading(false);
@@ -58,15 +80,67 @@ export default function TutorCoursesPage() {
     fetchCourses();
   }, []);
 
-  const handleDeleteCourse = async (courseId: string) => {
-    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-      return;
+  // Helper function to get month from course creation date
+  const getCourseMonth = (course: Course) => {
+    if (course.createdAt) {
+      const date = new Date(course.createdAt);
+      return date.toLocaleString('default', { month: 'long' });
     }
+    // Fallback to current month if no creation date
+    return new Date().toLocaleString('default', { month: 'long' });
+  };
+
+  // Helper function to format date as "25 July" format
+  const getStartedFromDate = (course: Course) => {
+    if (course.createdAt) {
+      const date = new Date(course.createdAt);
+      return `${date.getDate()} ${date.toLocaleString('default', { month: 'long' })}`;
+    }
+    return "25 July"; // Fallback
+  };
+
+  // Filter courses based on selected month
+  const filteredCourses = selectedFilter === "All Months" 
+    ? courses 
+    : courses.filter((course) => getCourseMonth(course) === selectedFilter);
+
+  const handleFilterSelect = (filter: string) => {
+    setSelectedFilter(filter);
+    setIsDropdownOpen(false);
+  };
+
+  const handleAddCourse = () => {
+    // Navigate to create course page
+    window.location.href = '/tutor/create-course';
+  };
+
+  const handleClassQuality = (courseId: string) => {
+    window.location.href = `/tutor/courseQuality?courseId=${courseId}`;
+  };
+
+  const handleViewDetail = (courseId: string) => {
+    window.location.href = `/tutor/courses/${courseId}`;
+  };
+
+  const handleEdit = (courseId: string) => {
+    window.location.href = `/tutor/create-course?edit=true&courseId=${courseId}`;
+  };
+
+  const handleDeleteClick = (courseId: string, courseName: string) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      courseId,
+      courseName,
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmation.courseId) return;
 
     try {
-      setDeletingCourseId(courseId);
+      setDeletingCourseId(deleteConfirmation.courseId);
       
-      const response = await fetch(`/Api/tutors/courses?courseId=${courseId}`, {
+      const response = await fetch(`/Api/tutors/courses?courseId=${deleteConfirmation.courseId}`, {
         method: 'DELETE',
       });
 
@@ -78,8 +152,7 @@ export default function TutorCoursesPage() {
       
       if (data.success) {
         toast.success(data.message || 'Course deleted successfully');
-        // Remove the deleted course from the local state
-        setCourses(prevCourses => prevCourses.filter(course => course._id !== courseId));
+        setCourses(prevCourses => prevCourses.filter(course => course._id !== deleteConfirmation.courseId));
       } else {
         throw new Error(data.message || 'Failed to delete course');
       }
@@ -88,132 +161,262 @@ export default function TutorCoursesPage() {
       toast.error(error instanceof Error ? error.message : 'Failed to delete course');
     } finally {
       setDeletingCourseId(null);
+      setDeleteConfirmation({
+        isOpen: false,
+        courseId: null,
+        courseName: "",
+      });
     }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteConfirmation({
+      isOpen: false,
+      courseId: null,
+      courseName: "",
+    });
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar userType="tutor" />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#6F09BA]"></div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="bg-white rounded-xl p-6 sm:p-8 text-center shadow-md border border-gray-100 w-full max-w-md">
-          <h2 className="text-xl sm:text-2xl text-red-600 mb-4">Error</h2>
-          <p className="text-gray-800 text-sm sm:text-base">{error}</p>
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar userType="tutor" />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="bg-white rounded-xl p-6 sm:p-8 text-center shadow-md border border-gray-100 w-full max-w-md">
+            <h2 className="text-xl sm:text-2xl text-red-600 mb-4">Error</h2>
+            <p className="text-gray-800 text-sm sm:text-base">{error}</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-800">
+    <div className="flex min-h-screen bg-gray-50">
       <Toaster />
-      
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 w-full">
-        <div className="px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <Link href="/tutor" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <ChevronLeft className="h-6 w-6 text-gray-600" />
-              </Link>
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">My Courses</h1>
+      <Sidebar userType="tutor" />
+
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center flex-1 max-w-md">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search here"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6F09BA] focus:border-transparent"
+                />
+              </div>
             </div>
-            <Link href="/tutor/create-course" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto bg-orange-500 text-white px-4 sm:px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors text-sm sm:text-base">
-                <Book size={18} className="sm:size-5" /> 
-                <span className="hidden xs:inline">Create New Course</span>
-                <span className="xs:hidden">Create Course</span>
+
+            <div className="flex items-center space-x-4">
+              {/* Green K Circle */}
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-semibold">K</span>
+              </div>
+
+              <button className="p-2 text-gray-600 hover:text-[#6F09BA] transition-colors">
+                <Settings size={20} />
               </button>
-            </Link>
-          </div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {courses.length === 0 ? (
-          <div className="bg-white rounded-xl p-6 sm:p-8 text-center shadow-md border border-gray-100">
-            <h2 className="text-xl sm:text-2xl text-gray-800 mb-4">No Courses Available</h2>
-            <p className="text-gray-700 text-sm sm:text-base">Start creating your first course!</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {courses.map((course) => (
-              <div 
-                key={course._id} 
-                className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 transform transition-all hover:shadow-lg"
-              >
-                {/* Course Header */}
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-2">
-                  <h2 
-                    className="text-lg sm:text-xl font-bold text-gray-800 truncate sm:max-w-[70%]" 
-                    title={course.title}
-                  >
-                    {course.title}
-                  </h2>
-                  <div className="flex items-center gap-1 text-gray-600 shrink-0 self-start sm:self-auto">
-                    <Clock className="text-orange-500 h-4 w-4" />
-                    <span className="text-sm">{course.duration}</span>
-                  </div>
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-[#FFC357] rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold text-sm">TU</span>
                 </div>
-
-                {/* Course Description */}
-                <p 
-                  className="text-gray-600 mb-4 text-sm sm:text-base truncate cursor-help" 
-                  title={course.description}
-                >
-                  {course.description}
-                </p>
-
-                {/* Price and Sessions */}
-                <div className="flex flex-col xs:flex-row xs:justify-between xs:items-center sm:flex-row sm:justify-between sm:items-center mb-4 gap-2 sm:gap-0">
-                  <div className="flex items-center gap-2">
-                    <IndianRupee className="text-orange-500" size={18} />
-                    <span className="text-gray-800 font-semibold">{course.price.toFixed(2)}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <List className="text-orange-500" size={18} />
-                    <span className="text-gray-700">{course.curriculum.length} Sessions</span>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="mt-4 space-y-2">
-                  {/* Top Row - Edit and Quality */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link href={`/tutor/create-course?edit=true&courseId=${course._id}`}>
-                      <button className="w-full bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-3 sm:px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-1.5 sm:gap-2 text-sm">
-                        <Edit size={16} className="sm:size-[18px]" />
-                        <span className="hidden xs:inline">Edit</span>
-                      </button>
-                    </Link>
-                    <Link href={`/tutor/courseQuality?courseId=${course._id}`}>
-                      <button className="w-full bg-white border border-orange-200 text-orange-600 hover:bg-orange-50 px-3 sm:px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-1.5 sm:gap-2 text-sm">
-                        <BarChart3 size={16} className="sm:size-[18px]" />
-                        <span className="hidden xs:inline">Quality</span>
-                      </button>
-                    </Link>
-                  </div>
-
-                  {/* Bottom Row - View Details */}
-                  <Link href={`/tutor/courses/${course._id}`} className="block">
-                    <button className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
-                      <Eye size={16} className="sm:size-[18px]" />
-                      <span>View Details</span>
-                    </button>
-                  </Link>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Tutor User</p>
+                  <p className="text-xs text-gray-500">Tutor</p>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        )}
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6">
+          {/* Page Header */}
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-2xl font-semibold text-gray-900">My Courses</h1>
+
+            <div className="flex items-center space-x-4">
+              {/* Month Filter Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-none bg-white hover:bg-gray-50 transition-colors"
+                >
+                  <span className="text-gray-700">{selectedFilter}</span>
+                  <ChevronDown
+                    size={16}
+                    className={`text-gray-500 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+                    <div className="py-1">
+                      {filterOptions.map((option) => (
+                        <button
+                          key={option}
+                          onClick={() => handleFilterSelect(option)}
+                          className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                            selectedFilter === option ? "bg-[#6F09BA] text-white" : "text-gray-700"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Add Course Button */}
+              <button
+                onClick={handleAddCourse}
+                className="flex items-center space-x-2 px-4 py-2 bg-[#6F09BA] text-white rounded-none hover:bg-[#5A0799] transition-colors"
+              >
+                <Plus size={16} />
+                <span>Add Course</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Courses List */}
+          <div className="space-y-0">
+            {filteredCourses.length > 0 ? (
+              filteredCourses.map((course) => (
+                <div key={course._id} className="bg-white p-6 border-b border-gray-200">
+                  {/* Course Title with Actions */}
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900">{course.title}</h2>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => handleEdit(course._id)}
+                        className="p-1 text-blue-500 hover:text-blue-600 transition-colors"
+                        title="Edit Course"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClick(course._id, course.title)}
+                        className="p-1 text-red-500 hover:text-red-600 transition-colors"
+                        title="Delete Course"
+                        disabled={deletingCourseId === course._id}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Course Details */}
+                  <div className="flex flex-wrap items-center gap-6 mb-4 text-sm text-gray-600">
+                    <div>
+                      <span>Started From : </span>
+                      <span className="font-medium text-gray-900">{getStartedFromDate(course)}</span>
+                    </div>
+                    <div>
+                      <span>Duration : </span>
+                      <span className="font-medium text-gray-900">{course.duration}</span>
+                    </div>
+                    <div>
+                      <span>Fees : </span>
+                      <span className="font-medium text-gray-900">Rs {course.price}</span>
+                    </div>
+                    <div>
+                      <span>Sessions : </span>
+                      <span className="font-medium text-gray-900">{course.curriculum.length} Sessions</span>
+                    </div>
+                  </div>
+
+                  {/* Course Description */}
+                  <div className="mb-4">
+                    <p className="text-gray-600 text-sm">{course.description}</p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => handleClassQuality(course._id)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-[#6F09BA] text-white rounded-none hover:bg-[#5A0799] transition-colors"
+                    >
+                      <span>Class Quality</span>
+                      <ArrowRight size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleViewDetail(course._id)}
+                      className="flex items-center space-x-2 px-4 py-2 bg-[#6F09BA] text-white rounded-none hover:bg-[#5A0799] transition-colors"
+                    >
+                      <span>View Detail</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">No courses found for the selected filter.</p>
+                <p className="text-gray-400 text-sm mt-2">Try selecting a different month or add a new course.</p>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Delete Course</h3>
+              <button 
+                onClick={handleDeleteCancel} 
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete the course "{deleteConfirmation.courseName}"? This action cannot be
+              undone.
+            </p>
+
+            <div className="flex items-center justify-end space-x-3">
+              <button
+                onClick={handleDeleteCancel}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-none hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deletingCourseId === deleteConfirmation.courseId}
+                className="px-4 py-2 bg-red-500 text-white rounded-none hover:bg-red-600 transition-colors disabled:opacity-50"
+              >
+                {deletingCourseId === deleteConfirmation.courseId ? 'Deleting...' : 'Delete Course'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Backdrop for dropdown */}
+      {isDropdownOpen && <div className="fixed inset-0 z-0" onClick={() => setIsDropdownOpen(false)} />}
     </div>
   );
 }
