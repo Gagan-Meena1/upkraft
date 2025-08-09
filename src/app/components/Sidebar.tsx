@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { CheckCircle, Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { CheckCircle, Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, ChevronLeft, ChevronRight, LogOut, BarChart3, Music, Bot, CreditCard, Gift, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { MdAssignment, MdAssignmentReturn } from 'react-icons/md';
 import { BiBulb } from 'react-icons/bi';
@@ -52,7 +52,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   return (
     <div 
       className={`
-        cursor-pointer hover:bg-gray-100 active:bg-gray-200 
+        cursor-pointer hover:bg-white/10 active:bg-white/20 
         transition-colors duration-200 rounded-lg my-1
         ${collapsed && !isMobile ? 'py-3 px-3' : 'py-3 px-4'}
         ${isMobile ? 'py-4 px-4' : ''}
@@ -60,12 +60,12 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
       onClick={handleClick}
     >
       <div className={`flex items-center ${collapsed && !isMobile ? 'justify-center' : ''}`}>
-        <div className="text-gray-700 flex-shrink-0">
+        <div className="text-white flex-shrink-0">
           {icon}
         </div>
         {(!collapsed || isMobile) && (
           <h3 className={`
-            font-medium text-gray-700 ml-3 whitespace-nowrap
+            font-medium text-white ml-3 whitespace-nowrap
             ${isMobile ? 'text-base' : 'text-sm md:text-base'}
           `}>
             {title}
@@ -119,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <>
           <SidebarItem 
             title="Home" 
-            icon={<Home size={20} className="text-gray-700" />}
+            icon={<Home size={20} className="text-white" />}
             route="/student"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -127,7 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Talent Identification Centre" 
-            icon={<BiBulb size={20} className="text-gray-700" />}
+            icon={<BiBulb size={20} className="text-white" />}
             route="/student/talent"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -135,7 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Student Profile" 
-            icon={<User size={20} className="text-gray-700" />}
+            icon={<User size={20} className="text-white" />}
             route="/student/profile"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -143,7 +143,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Tutors Profile" 
-            icon={<Users size={20} className="text-gray-700" />}
+            icon={<Users size={20} className="text-white" />}
             route="/student/tutors"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -151,7 +151,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="My Courses" 
-            icon={<Calendar size={20} className="text-gray-700" />}
+            icon={<Calendar size={20} className="text-white" />}
             route="/student/courses"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -159,7 +159,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Performance Video" 
-            icon={<Video size={20} className="text-gray-700" />}
+            icon={<Video size={20} className="text-white" />}
             route="/student/performanceVideo"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -167,7 +167,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Assignments" 
-            icon={<MdAssignment size={20} className="text-gray-700" />}
+            icon={<MdAssignment size={20} className="text-white" />}
             route="/student/assignments"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -175,7 +175,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Logout" 
-            icon={<LogOut size={20} className="text-gray-700" />}
+            icon={<LogOut size={20} className="text-white" />}
             collapsed={sidebarCollapsed}
             onClick={handleLogout}
             isMobile={isMobile}
@@ -187,7 +187,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <>
           <SidebarItem 
             title="Dashboard" 
-            icon={<Home size={20} className="text-gray-700" />}
+            icon={<Home size={20} className="text-white" />}
             route="/admin"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -195,7 +195,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Students" 
-            icon={<Users size={20} className="text-gray-700" />}
+            icon={<Users size={20} className="text-white" />}
             route="/admin/students"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -203,7 +203,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Tutors" 
-            icon={<Users size={20} className="text-gray-700" />}
+            icon={<Users size={20} className="text-white" />}
             route="/admin/tutors"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -211,7 +211,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Approval Requests" 
-            icon={<CheckCircle size={20} className="text-gray-700" />}
+            icon={<CheckCircle size={20} className="text-white" />}
             route="/admin/approvalRequest"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
@@ -219,7 +219,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
           <SidebarItem 
             title="Logout" 
-            icon={<LogOut size={20} className="text-gray-700" />}
+            icon={<LogOut size={20} className="text-white" />}
             collapsed={sidebarCollapsed}
             onClick={handleLogout}
             isMobile={isMobile}
@@ -227,20 +227,118 @@ const Sidebar: React.FC<SidebarProps> = ({
         </>
       );
     }
-    // Default menu items for tutor
+    
+    // Tutor menu items matching the first sidebar
     return (
       <>
         <SidebarItem 
-          title="Home" 
-          icon={<Home size={20} className="text-gray-700" />}
+          title="Home"
+          icon={<Home size={20} className="text-white" />}
           route="/tutor"
           collapsed={sidebarCollapsed}
           onItemClick={onItemClick}
           isMobile={isMobile}
         />
         <SidebarItem 
+          title="My Students"
+          icon={<Users size={20} className="text-white" />}
+          route="/tutor/students"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="My Courses"
+          icon={<BookOpen size={20} className="text-white" />}
+          route="/tutor/courses"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="Calendar"
+          icon={<Calendar size={20} className="text-white" />}
+          route="/tutor/calendar"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="Assignment"
+          icon={<MdAssignment size={20} className="text-white" />}
+          route="/tutor/assignments"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="Student's"
+          icon={<User size={20} className="text-white" />}
+          route="/tutor/student-profiles"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="Tutor's"
+          icon={<Users size={20} className="text-white" />}
+          route="/tutor/tutor-profiles"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="Report & Analytics"
+          icon={<BarChart3 size={20} className="text-white" />}
+          route="/tutor/analytics"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="Music Library"
+          icon={<Music size={20} className="text-white" />}
+          route="/tutor/music-library"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="AI Music Coach"
+          icon={<Bot size={20} className="text-white" />}
+          route="/tutor/ai-coach"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="Payment Summary"
+          icon={<CreditCard size={20} className="text-white" />}
+          route="/tutor/payments"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="Refer & Earn"
+          icon={<Gift size={20} className="text-white" />}
+          route="/tutor/referrals"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <SidebarItem 
+          title="Settings"
+          icon={<Settings size={20} className="text-white" />}
+          route="/tutor/settings"
+          collapsed={sidebarCollapsed}
+          onItemClick={onItemClick}
+          isMobile={isMobile}
+        />
+        <div className="border-t border-white/20 my-4"></div>
+        <SidebarItem 
           title="Logout" 
-          icon={<LogOut size={20} className="text-gray-700" />}
+          icon={<LogOut size={20} className="text-white" />}
           collapsed={sidebarCollapsed}
           onClick={handleLogout}
           isMobile={isMobile}
@@ -252,19 +350,29 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <aside className={`
       ${sidebarCollapsed && !isMobile ? 'w-16' : isMobile ? 'w-full' : 'w-64'} 
-      bg-white
-      ${isMobile ? 'h-full' : 'min-h-screen shadow-sm'}
+      bg-gradient-to-br from-[#6F09BA] via-[#8B1FD1] to-[#4A0680]
+      ${isMobile ? 'h-full' : 'min-h-screen shadow-xl'}
       transition-all duration-300 ease-in-out
       ${isMobile ? 'pt-4' : 'pt-4'}
       flex flex-col
+      shadow-2xl
     `}>
       <div className="flex flex-col flex-grow">
+        {/* Logo */}
+        <div className={`px-4 pb-6 ${sidebarCollapsed && !isMobile ? 'px-3' : ''}`}>
+          <div className={`flex items-center ${sidebarCollapsed && !isMobile ? 'justify-center' : ''}`}>
+            <div className="text-white font-bold text-xl">
+              {(!sidebarCollapsed || isMobile) ? 'UPKRAFT' : 'UK'}
+            </div>
+          </div>
+        </div>
+
         {/* Collapse button - hidden on mobile */}
         {!isMobile && (
           <div className="px-4 pb-4 flex justify-end">
             <button 
               onClick={toggleSidebarCollapse} 
-              className="text-gray-500 hover:text-orange-500 transition-colors"
+              className="text-white/70 hover:text-white transition-colors"
             >
               {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
             </button>
@@ -273,8 +381,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Mobile header */}
         {isMobile && (
-          <div className="px-4 pb-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800 capitalize">
+          <div className="px-4 pb-4 border-b border-white/20">
+            <h2 className="text-lg font-semibold text-white capitalize">
               {userType} Menu
             </h2>
           </div>
@@ -286,8 +394,8 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Mobile footer */}
         {isMobile && (
-          <div className="px-4 pt-4 border-t border-gray-200 mt-4">
-            <p className="text-xs text-gray-500 text-center">
+          <div className="px-4 pt-4 border-t border-white/20 mt-4">
+            <p className="text-xs text-white/70 text-center">
               UpKraft Learning Platform
             </p>
           </div>

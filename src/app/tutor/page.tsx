@@ -1,9 +1,8 @@
 "use client"
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { LogOut,ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, BookMarkedIcon, BookCheck, CheckCircle, Clock, AlertCircle, Menu, X } from "lucide-react";
+import { LogOut, ChevronLeft, ChevronRight, Search, Settings, ArrowRight, Users, BookOpen, Star, Menu, X } from "lucide-react";
 import Image from "next/image";
-import { PiNutBold } from "react-icons/pi";
 import dynamic from 'next/dynamic';
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -38,6 +37,35 @@ interface ClassData {
   updatedAt: string;
 }
 
+interface CourseData {
+  _id: string;
+  title: string;
+  category: string;
+  description: string;
+  duration: string;
+  price: number;
+  curriculum: {
+    sessionNo: string;
+    topic: string;
+    tangibleOutcome: string;
+  }[];
+}
+
+interface CourseTitleMap {
+  [courseId: string]: {
+    title: string;
+    category: string;
+    description: string;
+    duration: string;
+    price: number;
+    curriculum: {
+      sessionNo: string;
+      topic: string;
+      tangibleOutcome: string;
+    }[];
+  };
+}
+
 interface AssignmentData {
   _id: string;
   title: string;
@@ -59,147 +87,22 @@ interface MeetingState {
   classId: string | null;
 }
 
-// Progress Box Components
-const ClassProgressBox = ({ completedClasses, totalClasses }: { completedClasses: number; totalClasses: number }) => {
-  const progressPercentage = totalClasses > 0 ? (completedClasses / totalClasses) * 100 : 0;
-  
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 flex-1 min-w-0">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div className="mb-3 sm:mb-0">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Class Progress</h3>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle size={18} className="text-green-500 flex-shrink-0" />
-              <span className="text-xs sm:text-sm text-gray-600">
-                Completed: <span className="font-medium text-green-600">{completedClasses}</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock size={18} className="text-orange-500 flex-shrink-0" />
-              <span className="text-xs sm:text-sm text-gray-600">
-                Total: <span className="font-medium text-gray-900">{totalClasses}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="text-left sm:text-right">
-          <div className="text-xl sm:text-2xl font-bold text-orange-500">
-            {completedClasses}/{totalClasses}
-          </div>
-          <div className="text-xs sm:text-sm text-gray-500">
-            {progressPercentage.toFixed(0)}% Complete
-          </div>
-        </div>
-      </div>
-      
-      {/* Progress Bar */}
-      <div className="mt-4">
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-gradient-to-r from-orange-500 to-orange-400 h-2 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progressPercentage}%` }}
-          ></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const AssignmentProgressBox = ({ incompleteAssignments, totalAssignments }: { incompleteAssignments: number; totalAssignments: number }) => {
-  const completedAssignments = totalAssignments - incompleteAssignments;
-  const progressPercentage = totalAssignments > 0 ? (completedAssignments / totalAssignments) * 100 : 0;
-  
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 flex-1 min-w-0">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div className="mb-3 sm:mb-0">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Assignment Progress</h3>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle size={18} className="text-green-500 flex-shrink-0" />
-              <span className="text-xs sm:text-sm text-gray-600">
-                Completed: <span className="font-medium text-green-600">{completedAssignments}</span>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <AlertCircle size={18} className="text-red-500 flex-shrink-0" />
-              <span className="text-xs sm:text-sm text-gray-600">
-                Pending: <span className="font-medium text-red-600">{incompleteAssignments}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="text-left sm:text-right">
-          <div className="text-xl sm:text-2xl font-bold text-orange-500">
-            {completedAssignments}/{totalAssignments}
-          </div>
-          <div className="text-xs sm:text-sm text-gray-500">
-            {progressPercentage.toFixed(0)}% Complete
-          </div>
-        </div>
-      </div>
-      
-      {/* Progress Bar */}
-      <div className="mt-4">
-        <div className="w-full bg-gray-200 rounded-full h-2">
-          <div 
-            className="bg-gradient-to-r from-green-500 to-green-400 h-2 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progressPercentage}%` }}
-          ></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const StudentsCountBox = ({ studentCount }: { studentCount: number }) => {
-  return (
-    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 flex-1 min-w-0">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div className="mb-3 sm:mb-0">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">My Students</h3>
-          <div className="flex items-center gap-2">
-            <Users size={18} className="text-blue-500 flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-gray-600">
-              Total Students: <span className="font-medium text-blue-600">{studentCount}</span>
-            </span>
-          </div>
-        </div>
-        
-        <div className="text-left sm:text-right">
-          <div className="text-2xl sm:text-3xl font-bold text-blue-500">
-            {studentCount}
-          </div>
-          <div className="text-xs sm:text-sm text-gray-500">
-            Active Students
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function Dashboard() {
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [classData, setClassData] = useState<ClassData[]>([]);
+  const [courseData, setCourseData] = useState<CourseData[]>([]);
+  const [courseTitleMap, setCourseTitleMap] = useState<CourseTitleMap>({});
   const [assignmentData, setAssignmentData] = useState<AssignmentData[]>([]);
   const [studentCount, setStudentCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [activePage, setActivePage] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Default to closed on mobile
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [meeting, setMeeting] = useState<MeetingState>({
     isActive: false,
     url: null,
     classId: null
   });
-
-  const classesPerPage = isMobile ? 1 : 3; // Show 1 class per page on mobile
-  const totalPages = Math.ceil(classData.length / classesPerPage);
 
   // Check if mobile
   useEffect(() => {
@@ -228,23 +131,26 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch all data from single endpoint
         const userResponse = await fetch("/Api/users/user");
         const userData = await userResponse.json();
         
-        // Fetch assignments data (keeping this separate as it's not mentioned in the single API)
         const assignmentResponse = await fetch("/Api/assignment");
         const assignmentResponseData = await assignmentResponse.json();
         
-        // Set user data
         setUserData(userData.user);
-        
-        // Set student count from the API response
         setStudentCount(userData.studentCount || 0);
         
-        // Set class data from classDetails in the response
+        // Set course data (keeping original naming)
+        if (userData.courseDetails) {
+          setCourseData(userData.courseDetails);
+        }
+        
+        // Set the new course title map
+        if (userData.courseTitleMap) {
+          setCourseTitleMap(userData.courseTitleMap);
+        }
+        
         if (userData.classDetails && userData.classDetails.length > 0) {
-          // Sort classes by startTime
           const sortedClasses = userData.classDetails.sort((a: ClassData, b: ClassData) => 
             new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
           );
@@ -255,7 +161,6 @@ export default function Dashboard() {
           setClassData([]);
         }
         
-        // Set assignment data if available
         if (assignmentResponseData?.assignments) {
           setAssignmentData(assignmentResponseData.assignments);
         }
@@ -273,48 +178,38 @@ export default function Dashboard() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      month: 'short'
     });
   };
 
- const formatTime = (dateString: string) => {
-  const utcDate = new Date(dateString);
-  // Treat the UTC time as if it were local time
-  const localDate = new Date(
-    utcDate.getUTCFullYear(),
-    utcDate.getUTCMonth(),
-    utcDate.getUTCDate(),
-    utcDate.getUTCHours(),
-    utcDate.getUTCMinutes(),
-    utcDate.getUTCSeconds()
-  );
-  
-  return localDate.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
-};
-
-  const handleNextPage = () => {
-    if (activePage < totalPages - 1) {
-      setActivePage(activePage + 1);
-    }
+  const formatTime = (dateString: string) => {
+    const utcDate = new Date(dateString);
+    const localDate = new Date(
+      utcDate.getUTCFullYear(),
+      utcDate.getUTCMonth(),
+      utcDate.getUTCDate(),
+      utcDate.getUTCHours(),
+      utcDate.getUTCMinutes(),
+      utcDate.getUTCSeconds()
+    );
+    
+    return localDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
-  const handlePrevPage = () => {
-    if (activePage > 0) {
-      setActivePage(activePage - 1);
-    }
+  // Helper function to get course name by course ID using the new map
+  const getCourseNameById = (courseId: string) => {
+    return courseTitleMap[courseId]?.title || courseId;
   };
 
-  const currentClasses = classData.slice(
-    activePage * classesPerPage,
-    (activePage + 1) * classesPerPage
-  );
+  // Helper function to get course details by course ID using the new map
+  const getCourseDetailsById = (courseId: string) => {
+    return courseTitleMap[courseId] || null;
+  };
 
   const handleJoinMeeting = async (classId: string) => {
     try {
@@ -324,10 +219,8 @@ export default function Dashboard() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ classId:classId , userId:userData._id, userRole:userData.category  }),
+        body: JSON.stringify({ classId: classId, userId: userData._id, userRole: userData.category }),
       });
-      console.log("userData:", userData);
-      console.log("[printing for debugging] userData:", userData);
       
       const data = await response.json();
       console.log("[Meeting] Server response:", data);
@@ -336,7 +229,6 @@ export default function Dashboard() {
         throw new Error(data.error || 'Failed to create meeting');
       }
 
-      // Instead of setting meeting state, redirect to video call page
       router.push(`/tutor/video-call?url=${encodeURIComponent(data.url)}&userRole=${userData.category}`);
     } catch (error: any) {
       console.error('[Meeting] Error details:', error);
@@ -364,16 +256,14 @@ export default function Dashboard() {
     );
   }
 
-  // Calculate progress data
-  const totalClasses = classData.length;
-  const completedClasses = classData.filter(classItem => classItem.recording).length;
-  
-  // Calculate assignment progress
-  const totalAssignments = assignmentData.length;
-  const incompleteAssignments = assignmentData.filter(assignment => !assignment.status).length;
+  // Get user initials for profile
+  const getUserInitials = (name: string | undefined) => {
+    if (!name) return 'SW';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
+    <div className="flex min-h-screen bg-gray-50">
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <div 
@@ -415,7 +305,6 @@ export default function Dashboard() {
           </button>
         </div>
         
-        {/* Navigation Links */}
         <div className="flex flex-col h-full">
           <nav className="flex-1 px-2 py-4">
             <Link 
@@ -423,7 +312,7 @@ export default function Dashboard() {
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
               onClick={() => isMobile && setSidebarOpen(false)}
             >
-              <User size={20} />
+              <Users size={20} />
               {(sidebarOpen || isMobile) && <span className="ml-3">Profile</span>}
             </Link>
             <Link 
@@ -439,7 +328,7 @@ export default function Dashboard() {
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
               onClick={() => isMobile && setSidebarOpen(false)}
             >
-              <PlusCircle size={20} />
+              <Users size={20} />
               {(sidebarOpen || isMobile) && <span className="ml-3">Create Course</span>}
             </Link>
             <Link 
@@ -447,7 +336,7 @@ export default function Dashboard() {
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
               onClick={() => isMobile && setSidebarOpen(false)}
             >
-              <User size={20} />
+              <Users size={20} />
               {(sidebarOpen || isMobile) && <span className="ml-3">My Students</span>}
             </Link>
             <Link 
@@ -455,7 +344,7 @@ export default function Dashboard() {
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
               onClick={() => isMobile && setSidebarOpen(false)}
             >
-              <BookCheck size={20} />
+              <BookOpen size={20} />
               {(sidebarOpen || isMobile) && <span className="ml-3">Assignments</span>}
             </Link>
             <button 
@@ -483,129 +372,261 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 min-h-screen">
-        {meeting.isActive && meeting.url ? (
-          <div className="p-4 sm:p-6">
-            <VideoMeeting url={meeting.url} onLeave={handleLeaveMeeting} />
-          </div>
-        ) : (
-          <>
-            {/* Header */}
-            <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center flex-1 max-w-md">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search here"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6F09BA] focus:border-transparent"
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-4">
               {isMobile && (
                 <button 
                   onClick={toggleSidebar}
                   className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
                 >
-                  <Menu size={24} />
+                  <Menu size={20} />
                 </button>
               )}
-            </header>
-
-            {/* Content Area */}
-            <main className="p-4 sm:p-6">
-              {/* Progress Boxes - Stack on mobile, row on desktop */}
-              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mb-6 sm:mb-8">
-                {totalClasses > 0 && (
-                  <ClassProgressBox 
-                    completedClasses={completedClasses} 
-                    totalClasses={totalClasses} 
-                  />
-                )}
-                
-                {totalAssignments > 0 && (
-                  <AssignmentProgressBox 
-                    incompleteAssignments={incompleteAssignments} 
-                    totalAssignments={totalAssignments} 
-                  />
-                )}
-                
-                <StudentsCountBox studentCount={studentCount} />
+              
+              <button className="p-2 text-gray-600 hover:text-[#6F09BA] transition-colors">
+                <Settings size={20} />
+              </button>
+              
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-[#FFC357] rounded-full flex items-center justify-center">
+                  <span className="text-white font-semibold text-sm">
+                    {getUserInitials(userData?.name)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{userData?.name || 'Loading...'}</p>
+                  <p className="text-xs text-gray-500">Tutor</p>
+                </div>
               </div>
+            </div>
+          </div>
+        </header>
 
-              {/* Upcoming Classes Section */}
-              <div className="mb-6 sm:mb-8">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 sm:mb-6 gap-4">
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Upcoming Classes</h2>
-                  <div className="flex gap-2 self-start sm:self-auto">
-                    <button 
-                      onClick={handlePrevPage}
-                      disabled={activePage === 0}
-                      className={`p-2 rounded-lg ${activePage === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
-                    >
-                      <ChevronLeft size={20} />
-                    </button>
-                    <button 
-                      onClick={handleNextPage}
-                      disabled={activePage === totalPages - 1 || totalPages === 0}
-                      className={`p-2 rounded-lg ${activePage === totalPages - 1 || totalPages === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
-                    >
-                      <ChevronRight size={20} />
-                    </button>
+        {/* Main Content */}
+        <main className="flex-1 p-4 md:p-6">
+          {meeting.isActive && meeting.url ? (
+            <VideoMeeting url={meeting.url} onLeave={handleLeaveMeeting} />
+          ) : (
+            <>
+              {/* Top Section - Adjusted Grid */}
+              <div className="grid grid-cols-12 gap-4 md:gap-6 mb-6">
+                {/* Profile Card - Made larger */}
+                <div className="col-span-12 lg:col-span-5 xl:col-span-4">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile</h3>
+                    <div className="flex flex-col items-center text-center">
+                      <div className="relative mb-4">
+                        <div className="w-20 h-20 bg-[#FFC357] rounded-full flex items-center justify-center">
+                          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+                            <span className="text-[#FFC357] font-bold text-lg">
+                              {getUserInitials(userData?.name)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                          <span className="text-white text-sm">✓</span>
+                        </div>
+                      </div>
+                      <h4 className="text-xl font-semibold text-gray-900 mb-2">{userData?.name || 'Loading...'}</h4>
+                      <p className="text-gray-600 mb-4">
+                        {courseData.length > 0 ? `${courseData[0].category} Tutor` : 'Tutor'}
+                      </p>
+                      <div className="flex items-center justify-center space-x-8">
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center space-x-1 mb-1">
+                            <Users size={16} className="text-gray-400" />
+                            <span className="text-sm font-semibold text-gray-900">{studentCount}</span>
+                          </div>
+                          <span className="text-xs text-gray-500">Students</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center space-x-1 mb-1">
+                            <BookOpen size={16} className="text-gray-400" />
+                            <span className="text-sm font-semibold text-gray-900">{courseData.length || 0}</span>
+                          </div>
+                          <span className="text-xs text-gray-500">Courses</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center space-x-1 mb-1">
+                            <Star size={16} className="text-gray-400" />
+                            <span className="text-sm font-semibold text-gray-900">5.0</span>
+                          </div>
+                          <span className="text-xs text-gray-500">Rating</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {currentClasses.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                    {currentClasses.map((classItem) => (
-                      <div key={classItem._id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6 hover:shadow-md transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 pr-2 flex-1">{classItem.title}</h3>
-                          <div className="bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap">
-                            {classItem.recording ? 'Recorded' : 'Upcoming'}
-                          </div>
-                        </div>
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{classItem.description}</p>
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end text-gray-500 text-sm gap-3">
-                          <div className="flex flex-col gap-2">
-                            <div className="flex items-center">
-                              <Calendar size={16} className="mr-2 flex-shrink-0" />
-                              <span className="text-xs sm:text-sm">{formatDate(classItem.startTime)}</span>
-                            </div>
-                            <div className="flex items-center text-xs sm:text-sm">
-                              <span>{formatTime(classItem.startTime)}</span>
-                              <span className="mx-2">to</span>
-                              <span>{formatTime(classItem.endTime)}</span>
-                            </div>
-                          </div>
-                          {!classItem.recording && (
-                            <button 
-                              onClick={() => handleJoinMeeting(classItem._id)}
-                              className="bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors w-full sm:w-auto"
-                            >
-                              Join
-                            </button>
-                          )}
-                        </div>
+                {/* Right Column - Image and Refer & Earn */}
+                <div className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 h-full">
+                    {/* Percentage Stats - Now more compact */}
+                    <div className="md:col-span-2 flex flex-row md:flex-col justify-between md:justify-center space-y-0 md:space-y-6 space-x-4 md:space-x-0">
+                      <div className="text-center bg-white rounded-lg p-3 border border-gray-200 flex-1 md:flex-none">
+                        <div className="text-2xl font-bold text-[#6F09BA] mb-1">15%</div>
+                        <p className="text-xs text-gray-600">Lesson Completion</p>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sm:p-8 text-center">
-                    <p className="text-gray-500">No classes available</p>
-                  </div>
-                )}
+                      <div className="text-center bg-white rounded-lg p-3 border border-gray-200 flex-1 md:flex-none">
+                        <div className="text-2xl font-bold text-[#6F09BA] mb-1">80%</div>
+                        <p className="text-xs text-gray-600">Session Engagement</p>
+                      </div>
+                      <div className="text-center bg-white rounded-lg p-3 border border-gray-200 flex-1 md:flex-none">
+                        <div className="text-2xl font-bold text-[#6F09BA] mb-1">95%</div>
+                        <p className="text-xs text-gray-600">Student Satisfaction</p>
+                      </div>
+                    </div>
 
-                {/* Pagination Indicator */}
-                {totalPages > 1 && (
-                  <div className="flex justify-center mt-6 space-x-2">
-                    {Array.from({ length: totalPages }).map((_, index) => (
-                      <button
-                        key={index}
-                        className={`w-3 h-3 rounded-full transition-all ${
-                          activePage === index ? 'bg-gray-900 w-6' : 'bg-gray-300'
-                        }`}
-                        onClick={() => setActivePage(index)}
-                      />
-                    ))}
+                   {/* Image and Refer Card Column */}
+<div className="md:col-span-3">
+  {/* Image - Made larger and removed bottom padding */}
+  <div className="p-1 pb-0 flex items-center justify-center h-40 md:h-48">
+    <div className="w-32 -mb-7 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden flex items-center justify-center">
+      <Image
+        src="/tutorDashboard.png"
+        alt="Tutor Dashboard"
+        width={160}
+        height={160}
+        className="w-full h-full object-cover rounded-lg"
+        priority
+      />
+    </div>
+  </div>
+
+  {/* Refer and Earn Card - Increased height and removed top margin */}
+  <div className="bg-gradient-to-br from-[#6F09BA] to-[#4A0680] rounded-xl p-4 text-white relative overflow-hidden h-32 md:h-36 mt-0">
+    <div className="relative z-10 h-full flex flex-col justify-center">
+      <h3 className="text-lg font-bold mb-1">Refer and Earn</h3>
+      <p className="text-xs text-white/90 mb-2 line-clamp-2">
+        Invite friends and earn exclusive rewards!
+      </p>
+      <button className="bg-[#FFC357] text-gray-900 px-3 py-1.5 rounded-lg font-medium hover:bg-[#FFB627] transition-colors flex items-center space-x-2 text-sm w-fit">
+        <span>Refer Now</span>
+        <ArrowRight size={14} />
+      </button>
+    </div>
+    <div className="absolute right-2 top-2 w-8 h-8 bg-white/10 rounded-full"></div>
+    <div className="absolute right-6 bottom-2 w-4 h-4 bg-white/5 rounded-full"></div>
+  </div>
+</div>
                   </div>
-                )}
+                </div>
               </div>
-            </main>
-          </>
-        )}
+
+              {/* Bottom Section */}
+              <div className="grid grid-cols-12 gap-4 md:gap-6">
+                {/* Upcoming Lessons */}
+                <div className="col-span-12 lg:col-span-8">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Upcoming Lessons</h3>
+                      <button className="text-[#6F09BA] text-sm font-medium hover:underline">
+                        View All
+                      </button>
+                    </div>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">Date</th>
+                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">Time</th>
+                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">Course</th>
+                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">Class Name</th>
+                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {classData.slice(0, 7).map((classItem, index) => (
+                            <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-3 px-2 text-sm text-gray-900">{formatDate(classItem.startTime)}</td>
+                              <td className="py-3 px-2 text-sm text-gray-600">
+                                {formatTime(classItem.startTime)} - {formatTime(classItem.endTime)}
+                              </td>
+                              <td className="py-3 px-2 text-sm text-gray-900">
+                                {/* Use the course title from courseTitleMap instead of course ID */}
+                                <div>
+                                  <div className="font-medium">{getCourseNameById(classItem.course)}</div>
+                                  {courseTitleMap[classItem.course]?.category && (
+                                    <div className="text-xs text-gray-500">{courseTitleMap[classItem.course].category}</div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="py-3 px-2 text-sm text-gray-600">{classItem.title}</td>
+                              <td className="py-3 px-2">
+                                <button 
+                                  onClick={() => handleJoinMeeting(classItem._id)}
+                                  className="bg-[#6F09BA] text-white px-3 py-1 rounded text-xs font-medium hover:bg-[#5A0799] transition-colors"
+                                >
+                                  Join
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                          {classData.length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="py-6 px-2 text-center text-gray-500">
+                                No upcoming lessons
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Feedback Pending */}
+                <div className="col-span-12 lg:col-span-4">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
+                      Feedback Pending
+                    </h3>
+                    
+                    <div className="flex items-center justify-center mb-4">
+                      <div className="relative w-32 h-32">
+                        <div className="w-32 h-32 border-8 border-gray-200 rounded-full flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="text-2xl font-bold text-gray-900">12</div>
+                            <div className="text-xs text-gray-500">Feedback Pending</div>
+                          </div>
+                        </div>
+                        <div className="absolute top-0 left-0 w-32 h-32 border-8 border-red-500 rounded-full" style={{
+                          clipPath: 'polygon(50% 50%, 50% 0%, 83% 17%, 50% 50%)'
+                        }}></div>
+                      </div>
+                    </div>
+
+                    <button className="w-full bg-[#6F09BA] text-white py-3 rounded-lg font-medium hover:bg-[#5A0799] transition-colors flex items-center justify-center space-x-2 mb-4">
+                      <span>Give Feedback</span>
+                      <ArrowRight size={16} />
+                    </button>
+
+                    <div className="text-center">
+                      
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+             
+            </>
+          )}
+        </main>
       </div>
     </div>
   );
