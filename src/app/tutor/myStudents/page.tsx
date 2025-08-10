@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Star, Info, Trash2, Plus } from "lucide-react";
 import StudentProfile from "./StudentProfile";
 import AddStudentModal from "./AddStudentModal";
@@ -7,145 +7,94 @@ import Performance from "./Performance";
 import { StarRating } from "./components/StarRating";
 
 interface Student {
-  id: number;
-  name: string;
-  location: string;
-  sessionScore: number;
-  assignmentPending: number;
-  rating: number;
-  avatar: string;
+  _id: string;
+  username: string;
+  email: string;
+  contact: string;
 }
 
-const students: Student[] = [
-  {
-    id: 1,
-    name: "Eunice Robel",
-    location: "China",
-    sessionScore: 5.6,
-    assignmentPending: 6,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 2,
-    name: "Arnold Hayes",
-    location: "Turkey",
-    sessionScore: 5.6,
-    assignmentPending: 4,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 3,
-    name: "Cesar Hill",
-    location: "Japan",
-    sessionScore: 5.6,
-    assignmentPending: 3,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 4,
-    name: "Valerie Quitzon",
-    location: "South Africa",
-    sessionScore: 5.6,
-    assignmentPending: 2,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 5,
-    name: "Shelley Lakin",
-    location: "Kenya",
-    sessionScore: 5.6,
-    assignmentPending: 5,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1102341/pexels-photo-1102341.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 6,
-    name: "Doris Walsh I",
-    location: "Barbados",
-    sessionScore: 5.6,
-    assignmentPending: 4,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 7,
-    name: "Philip Jerde",
-    location: "Egypt",
-    sessionScore: 5.6,
-    assignmentPending: 3,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 8,
-    name: "Ollie Heaney",
-    location: "France",
-    sessionScore: 5.6,
-    assignmentPending: 2,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 9,
-    name: "Tara Ratke",
-    location: "Belgium",
-    sessionScore: 5.6,
-    assignmentPending: 1,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 10,
-    name: "Shaun Block",
-    location: "Qatar",
-    sessionScore: 5.6,
-    assignmentPending: 5,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/936126/pexels-photo-936126.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 11,
-    name: "Elsie Bradtke",
-    location: "India",
-    sessionScore: 5.6,
-    assignmentPending: 3,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1239288/pexels-photo-1239288.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 12,
-    name: "Leigh Terry",
-    location: "Bahrain",
-    sessionScore: 5.6,
-    assignmentPending: 5,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1024311/pexels-photo-1024311.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-];
-
 const MyStudents: React.FC = () => {
-  const [students, setStudents] = React.useState<Student[]>(initialStudents);
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [selectedStudent, setSelectedStudent] = React.useState<Student | null>(
-    null
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isShowPerformance, setIsShowPerformance] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deletingStudents, setDeletingStudents] = useState<Set<string>>(
+    new Set()
   );
-  const [isShowPerformance, setIsShowPerformance] = React.useState(false);
+
+  const fetchStudents = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/Api/myStudents");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch students");
+      }
+
+      const data = await response.json();
+      console.log("API Response:", data);
+
+      if (data && data.filteredUsers) {
+        setStudents(data.filteredUsers);
+      } else {
+        console.error("filteredUsers not found in API response:", data);
+        setError("Invalid response format from server");
+      }
+
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching students:", err);
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteStudent = async (studentId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this student? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeletingStudents((prev) => new Set(prev).add(studentId));
+
+      const response = await fetch(`/Api/myStudents?studentId=${studentId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete student");
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove the student from the local state
+        setStudents((prev) =>
+          prev.filter((student) => student._id !== studentId)
+        );
+        alert(data.message || "Student removed successfully");
+      } else {
+        throw new Error(data.message || "Failed to delete student");
+      }
+    } catch (err) {
+      console.error("Error deleting student:", err);
+      alert(err instanceof Error ? err.message : "Failed to delete student");
+    } finally {
+      setDeletingStudents((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(studentId);
+        return newSet;
+      });
+    }
+  };
 
   const handleAddStudent = (newStudentData: {
     name: string;
@@ -155,13 +104,11 @@ const MyStudents: React.FC = () => {
     avatar: string;
   }) => {
     const newStudent: Student = {
-      id: students.length + 1,
-      name: newStudentData.name,
-      location: newStudentData.location,
-      sessionScore: 0,
-      assignmentPending: 0,
-      rating: 0,
-      avatar: newStudentData.avatar,
+      _id: Math.random().toString(36).substring(2, 15), // Generate a random ID for demo purposes
+      username: newStudentData.name,
+      email: newStudentData.email,
+      contact: newStudentData.contact,
+      // Add any other fields you need
     };
 
     setStudents((prev) => [...prev, newStudent]);
@@ -174,6 +121,11 @@ const MyStudents: React.FC = () => {
   const handleBackToList = () => {
     setSelectedStudent(null);
   };
+
+  useEffect(() => {
+    fetchStudents();
+  }, []);
+
   if (isShowPerformance) {
     return <Performance />;
   }
@@ -181,7 +133,6 @@ const MyStudents: React.FC = () => {
   if (selectedStudent) {
     return (
       <StudentProfile
-        student={selectedStudent}
         onBack={handleBackToList}
         setShowPerformance={setIsShowPerformance}
       />
@@ -230,31 +181,34 @@ const MyStudents: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-gray-100 divide-y-2 p-6">
-              {students.map((student) => (
+              {students.map((student, index) => (
                 <tr
-                  key={student.id}
+                  key={index}
                   className="hover:bg-gray-50 transition-colors duration-150"
                 >
                   <td className="py-4 px-6">
                     <div className="flex items-center space-x-3">
                       <img
-                        src={student.avatar}
-                        alt={student.name}
+                        src={
+                          "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150"
+                        }
+                        alt={student.username}
                         className="w-10 h-10 rounded-full object-cover border-2 border-gray-100"
                       />
                       <span className=" text-black text-[16px]">
-                        {student.name}
+                        {student.username}
                       </span>
                     </div>
                   </td>
                   <td className="py-4 px-6">
                     <span className="text-[#212121] text-[16px]">
-                      {student.location}
+                      {/* {student.location} */}
+                      China
                     </span>
                   </td>
                   <td className="py-4 px-6">
                     <span className="text-[#212121] font-semibold text-lg">
-                      {student.sessionScore}
+                      5.6
                       <span className="text-[#212121] text-[16px] font-normal">
                         /10
                       </span>
@@ -262,14 +216,14 @@ const MyStudents: React.FC = () => {
                   </td>
                   <td className="py-4 px-6">
                     <span className="text-[#212121] font-semibold text-lg">
-                      {student.assignmentPending}
+                      7
                       <span className="text-[#212121] text-[16px] font-normal">
                         /10
                       </span>
                     </span>
                   </td>
                   <td className="py-4 px-6">
-                    <StarRating rating={student.rating} />
+                    <StarRating rating={4} />
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center space-x-1">
@@ -284,11 +238,7 @@ const MyStudents: React.FC = () => {
                       <button
                         type="button"
                         aria-label="Delete Student"
-                        onClick={() =>
-                          setStudents((prev) =>
-                            prev.filter((s) => s.id !== student.id)
-                          )
-                        }
+                        onClick={() => handleDeleteStudent(student._id)}
                         className="p-2 text-[#E53935] hover:text-red-600 hover:bg-red-50 rounded-full transition-colors duration-200"
                       >
                         <Trash2 size={16} />
@@ -312,126 +262,4 @@ const MyStudents: React.FC = () => {
   );
 };
 
-const initialStudents: Student[] = [
-  {
-    id: 1,
-    name: "Eunice Robel",
-    location: "China",
-    sessionScore: 5.6,
-    assignmentPending: 6,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 2,
-    name: "Arnold Hayes",
-    location: "Turkey",
-    sessionScore: 5.6,
-    assignmentPending: 4,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 3,
-    name: "Cesar Hill",
-    location: "Japan",
-    sessionScore: 5.6,
-    assignmentPending: 3,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/2379004/pexels-photo-2379004.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 4,
-    name: "Valerie Quitzon",
-    location: "South Africa",
-    sessionScore: 5.6,
-    assignmentPending: 2,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1130626/pexels-photo-1130626.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 5,
-    name: "Shelley Lakin",
-    location: "Kenya",
-    sessionScore: 5.6,
-    assignmentPending: 5,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1102341/pexels-photo-1102341.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 6,
-    name: "Doris Walsh I",
-    location: "Barbados",
-    sessionScore: 5.6,
-    assignmentPending: 4,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 7,
-    name: "Philip Jerde",
-    location: "Egypt",
-    sessionScore: 5.6,
-    assignmentPending: 3,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1040880/pexels-photo-1040880.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 8,
-    name: "Ollie Heaney",
-    location: "France",
-    sessionScore: 5.6,
-    assignmentPending: 2,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 9,
-    name: "Tara Ratke",
-    location: "Belgium",
-    sessionScore: 5.6,
-    assignmentPending: 1,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 10,
-    name: "Shaun Block",
-    location: "Qatar",
-    sessionScore: 5.6,
-    assignmentPending: 5,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/936126/pexels-photo-936126.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 11,
-    name: "Elsie Bradtke",
-    location: "India",
-    sessionScore: 5.6,
-    assignmentPending: 3,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1239288/pexels-photo-1239288.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-  {
-    id: 12,
-    name: "Leigh Terry",
-    location: "Bahrain",
-    sessionScore: 5.6,
-    assignmentPending: 5,
-    rating: 2,
-    avatar:
-      "https://images.pexels.com/photos/1024311/pexels-photo-1024311.jpeg?auto=compress&cs=tinysrgb&w=150",
-  },
-];
 export default MyStudents;

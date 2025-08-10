@@ -2,15 +2,6 @@ import React from "react";
 import { ArrowLeft, ArrowUpRight, ExternalLink, Play } from "lucide-react";
 
 interface StudentProfileProps {
-  student: {
-    id: number;
-    name: string;
-    location: string;
-    sessionScore: number;
-    assignmentPending: number;
-    rating: number;
-    avatar: string;
-  };
   onBack: () => void;
   setShowPerformance: (show: boolean) => void;
 }
@@ -87,7 +78,6 @@ const CircularProgress: React.FC<{
 };
 
 const StudentProfile: React.FC<StudentProfileProps> = ({
-  student,
   onBack,
   setShowPerformance,
 }) => {
