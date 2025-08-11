@@ -118,16 +118,16 @@ function Performance() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                <th className="text-left py-3 px-4  text-black text-[16px] font-semibold">
                   Session Number
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                <th className="text-left py-3 px-4  text-black text-[16px] font-semibold">
                   Score
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                <th className="text-left py-3 px-4  text-black text-[16px] font-semibold">
                   Performance
                 </th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">
+                <th className="text-left py-3 px-4  text-black text-[16px] font-semibold">
                   Recommended Improvement
                 </th>
               </tr>
@@ -138,10 +138,10 @@ function Performance() {
                   key={index}
                   className="border-b border-gray-100 hover:bg-gray-50"
                 >
-                  <td className="py-3 px-4 text-gray-800">
+                  <td className="py-3 px-4 text-black">
                     Session - {session.session}
                   </td>
-                  <td className="py-3 px-4 font-medium text-gray-800">
+                  <td className="py-3 px-4 font-medium text-black">
                     {session.score}
                   </td>
                   <td className="py-3 px-4">
@@ -149,7 +149,7 @@ function Performance() {
                       {session.performance}
                     </span>
                   </td>
-                  <td className="py-3 px-4 text-gray-600 text-sm">
+                  <td className="py-3 px-4 text-black text-sm">
                     {session.recommendation}
                   </td>
                 </tr>

@@ -460,7 +460,7 @@ export default function Dashboard() {
 
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
+        {/* <header className="bg-white shadow-sm border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center flex-1 max-w-md">
               <div className="relative w-full">
@@ -510,7 +510,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </header>
+        </header> */}
 
         {/* Main Content */}
         <main className="flex-1 p-4 md:p-6">

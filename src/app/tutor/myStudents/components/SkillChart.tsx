@@ -59,10 +59,10 @@ const SkillChart: React.FC<SkillChartProps> = ({ title, data }) => {
   const topScores = data.map((d) => d.topScore);
 
   return (
-    <div className="">
+    <div className="relative">
       {/* Title */}
       <div className="px-6 py-4">
-        <h3 className="text-lg font-semibold text-gray-900 text-center">
+        <h3 className="text-lg font-semibold text-[#212121] text-center">
           {title}
         </h3>
       </div>
@@ -130,25 +130,25 @@ const SkillChart: React.FC<SkillChartProps> = ({ title, data }) => {
           {/* Areas */}
           <path
             d={createSmoothPath(topScores, true)}
-            fill="#FBBF24"
+            fill="#FFC357"
             fillOpacity={0.4}
           />
           <path
             d={createSmoothPath(yourScores, true)}
-            fill="#3B82F6"
+            fill="#3549F8"
             fillOpacity={0.4}
           />
 
           {/* Lines */}
           <path
             d={createSmoothPath(topScores)}
-            stroke="#FBBF24"
+            stroke="#FFC357"
             strokeWidth="3"
             fill="none"
           />
           <path
             d={createSmoothPath(yourScores)}
-            stroke="#3B82F6"
+            stroke="#3549F8"
             strokeWidth="3"
             fill="none"
           />
@@ -158,6 +158,11 @@ const SkillChart: React.FC<SkillChartProps> = ({ title, data }) => {
       {/* X-axis label */}
       <div className="text-center mt-2">
         <span className="text-sm text-gray-500">Score</span>
+      </div>
+
+      {/* Y-axis label */}
+      <div className="flex justify-center -rotate-90 absolute left-[15%] top-1/2 transform -translate-y-1/2">
+        <span className="text-sm text-gray-500">Session</span>
       </div>
 
       {/* Legend */}
