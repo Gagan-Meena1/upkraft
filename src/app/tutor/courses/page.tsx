@@ -223,7 +223,6 @@ export default function TutorCoursesPage() {
   if (isLoading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar userType="tutor" />
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#6F09BA]"></div>
         </div>

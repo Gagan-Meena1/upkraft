@@ -11,15 +11,17 @@ export default function TutorLayout({
 }) {
   return (
     <ClientLayout>
-      <div className="flex h-screen bg-gray-50">
-        {/* Sidebar */}
+      <div className="flex min-h-screen bg-gray-50">
+        {/* Sidebar - Fixed */}
         <Sidebar2 />
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Navbar */}
+        
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Navbar - Fixed at top */}
           <Navbar />
-          {/* Dashboard Content */}
-          <main className="flex-1 h-[calc(100vh-80px)] bg-[#FAF8F6] p-6">
+          
+          {/* Dashboard Content - Scrollable */}
+          <main className="flex-1 bg-[#FAF8F6] p-6 overflow-y-auto">
             {children}
           </main>
         </div>

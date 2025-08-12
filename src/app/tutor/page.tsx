@@ -33,6 +33,7 @@ interface UserData {
   courses: any[];
   createdAt: string;
   certified: string;
+  profileImage: string;
 }
 
 interface ClassData {
@@ -152,6 +153,11 @@ export default function Dashboard() {
     }).length;
   };
 
+  const SimpleLoader = () => (
+  <div className="flex justify-center items-center min-h-[400px]">
+    <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+  </div>
+);
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -219,33 +225,22 @@ export default function Dashboard() {
 
     fetchData();
   }, []);
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+  });
+};
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      day: "numeric",
-      month: "short",
-    });
-  };
-
-  const formatTime = (dateString: string) => {
-    const utcDate = new Date(dateString);
-    const localDate = new Date(
-      utcDate.getUTCFullYear(),
-      utcDate.getUTCMonth(),
-      utcDate.getUTCDate(),
-      utcDate.getUTCHours(),
-      utcDate.getUTCMinutes(),
-      utcDate.getUTCSeconds()
-    );
-
-    return localDate.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
-
+const formatTime = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
   // Helper function to get course name by course ID using the new map
   const getCourseNameById = (courseId: string) => {
     return courseTitleMap[courseId]?.title || courseId;
@@ -304,12 +299,8 @@ export default function Dashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
-      </div>
-    );
-  }
+  return <SimpleLoader />;
+}
 
   // Get user initials for profile
   const getUserInitials = (name: string | undefined) => {
@@ -527,18 +518,29 @@ export default function Dashboard() {
                       Profile
                     </h3>
                     <div className="flex flex-col items-center text-center">
-                      <div className="relative mb-4">
-                        <div className="w-20 h-20 bg-[#FFC357] rounded-full flex items-center justify-center">
-                          <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
-                            <span className="text-[#FFC357] font-bold text-lg">
-                              {getUserInitials(userData?.username)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                          <span className="text-white text-sm">✓</span>
-                        </div>
-                      </div>
+<div className="relative mb-4">
+  <div className="w-20 h-20 bg-[#FFC357] rounded-full flex items-center justify-center overflow-hidden">
+    {userData?.profileImage ? (
+      <Image 
+        src={userData.profileImage} 
+        alt={userData.username || 'Profile'} 
+        width={80}
+        height={80}
+        className="w-full h-full object-cover rounded-full"
+        priority
+      />
+    ) : (
+      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center">
+        <span className="text-[#FFC357] font-bold text-lg">
+          {getUserInitials(userData?.username)} {/* ✅ Fixed: pass username, not profileImage */}
+        </span>
+      </div>
+    )}
+  </div>
+  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+    <span className="text-white text-sm">✓</span>
+  </div>
+</div>
                       <h4 className="text-xl font-semibold text-gray-900 mb-2">
                         {userData?.username || "Loading..."}
                       </h4>
@@ -618,20 +620,20 @@ export default function Dashboard() {
                     {/* Image and Refer Card Column */}
                     <div className="md:col-span-3">
                       <div className="p-1 pb-0 flex items-center justify-center h-40 md:h-48">
-                        <div className="w-32 -mb-7 h-32 md:w-40 md:h-40 rounded-lg overflow-hidden flex items-center justify-center">
+                        <div className="w-80 -mb-7 h-32 md:w-60 md:h-40 rounded-lg overflow-hidden flex items-center justify-center">
                           <Image
                             src="/tutorDashboard.png"
                             alt="Tutor Dashboard"
                             width={160}
                             height={160}
-                            className="w-full h-full object-cover rounded-lg"
+                            className="w-full h-full object-cover rounded-lg ml-20"
                             priority
                           />
                         </div>
                       </div>
 
                       {/* Refer and Earn Card - Increased height and removed top margin */}
-                      <div className="bg-gradient-to-br from-[#6F09BA] to-[#4A0680] rounded-xl p-4 text-white relative overflow-hidden h-32 md:h-36 mt-0">
+                      <div className="bg-gradient-to-br from-[#6F09BA] to-[#4A0680] rounded-xl p-4 text-white relative overflow-hidden h-32 md:h-36 mt-0 w-4/5 ml-auto">
                         <div className="relative z-10 h-full flex flex-col justify-center">
                           <h3 className="text-lg font-bold mb-1">
                             Refer and Earn

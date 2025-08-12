@@ -76,28 +76,27 @@ const CourseDetailsPage = () => {
   };
 
   // Helper function to format date and time
-const formatDateTime = (dateTimeString: string) => {
+const formatDateTime = (dateTimeString) => {
   const date = new Date(dateTimeString);
   
-  // Use UTC methods to get the EXACT stored time
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth();
-  const day = date.getUTCDate();
-  const hours = date.getUTCHours();
-  const minutes = date.getUTCMinutes();
+  // Use local timezone methods instead of UTC methods
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
   
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 
                   'July', 'August', 'September', 'October', 'November', 'December'];
   
-  // For weekday, create a date object in UTC
-  const utcDate = new Date(Date.UTC(year, month, day));
+  // For weekday, use local date
   const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const weekday = weekdays[utcDate.getUTCDay()];
+  const weekday = weekdays[date.getDay()];
   const monthName = months[month];
   
   const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
   
-  console.log('DISPLAYING FROM UTC:', {
+  console.log('DISPLAYING IN LOCAL TIME:', {
     originalString: dateTimeString,
     displayTime: timeStr,
     displayDate: `${weekday}, ${monthName} ${day}, ${year}`
@@ -106,33 +105,32 @@ const formatDateTime = (dateTimeString: string) => {
   return {
     date: `${day}th ${monthName} ${year}`,
     day: weekday,
-    time: timeStr  // Exact stored time: "14:30"
+    time: timeStr
   };
 };
 
   // Helper function to extract date and time for form inputs
-const extractDateTimeForForm = (dateTimeString: string) => {
+const extractDateTimeForForm = (dateTimeString) => {
   const date = new Date(dateTimeString);
   
-  // Use UTC methods to get the EXACT stored time
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  const hours = String(date.getUTCHours()).padStart(2, '0');
-  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  // Use local timezone methods instead of UTC methods
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
   
-  console.log('EXTRACTING FROM UTC:', {
+  console.log('EXTRACTING IN LOCAL TIME:', {
     originalString: dateTimeString,
     extractedTime: `${hours}:${minutes}`,
     extractedDate: `${year}-${month}-${day}`
   });
   
   return { 
-    dateStr: `${year}-${month}-${day}`,  // Exact: "2024-01-15"
-    timeStr: `${hours}:${minutes}`       // Exact: "14:30"
+    dateStr: `${year}-${month}-${day}`,
+    timeStr: `${hours}:${minutes}`
   };
 };
-
   // Fetch course details
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -446,10 +444,9 @@ const handleUpdateClass = async () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#6B46C1] p-4 md:p-8">
       <div className="flex-1 rounded-xl bg-white shadow-lg overflow-hidden">
         {/* Header */}
-        <header className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-gray-200 gap-4 sm:gap-0">
+        {/* <header className="flex flex-col sm:flex-row items-center justify-between p-4 border-b border-gray-200 gap-4 sm:gap-0">
           <div className="flex items-center space-x-4 w-full sm:w-auto">
             <Link 
               href={`/tutor/courses`} 
@@ -483,7 +480,7 @@ const handleUpdateClass = async () => {
               </div>
             </div>
           </div>
-        </header>
+        </header> */}
 
         {/* Main Content Area */}
         <main className="p-4 md:p-6 lg:p-8 space-y-6">
@@ -514,8 +511,8 @@ const handleUpdateClass = async () => {
               <div className="flex flex-col gap-2 mt-4 md:mt-0">
                 <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
                   <button className="bg-[#4C1D95] hover:bg-[#3730A3] text-white px-6 py-2 rounded-none flex items-center gap-2 w-full shadow-lg hover:shadow-xl hover:shadow-purple-500/60 transition-all duration-300">
-  Add Session <Plus className="h-4 w-4" />
-</button>
+                       Add Class <Plus className="h-4 w-4" />
+                  </button>
                 </Link>
                 {/* <button 
                   onClick={handleDeleteCourse}
@@ -631,12 +628,12 @@ const handleUpdateClass = async () => {
                             <FileText className="h-4 w-4" /> Assignment
                           </Link>
                           
-                          <button
+                          {/* <button
                             onClick={() => handleDeleteClass(classSession._id, classSession.title)}
                             className=" text-red-600 hover:bg-red-200 border border-red-200 flex items-center gap-2 rounded-none px-4 py-2"
                           >
                             <X className="h-4 w-4" /> Remove
-                          </button>
+                          </button> */}
                         </div>
                       </div>
                     </div>
@@ -681,8 +678,8 @@ const handleUpdateClass = async () => {
 
         {/* Edit Class Modal */}
         {showEditModal && editingClass && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black  bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white  rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold text-gray-800">Edit Class</h3>
@@ -704,7 +701,7 @@ const handleUpdateClass = async () => {
                       name="title"
                       value={editForm.title}
                       onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
+                      className="w-full px-3 py-2 border text-gray-600 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
                       required
                     />
                   </div>
@@ -718,7 +715,7 @@ const handleUpdateClass = async () => {
                       value={editForm.description}
                       onChange={handleEditFormChange}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
+                      className="w-full px-3 py-2 border text-gray-600 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
                       required
                     />
                   </div>
@@ -732,7 +729,7 @@ const handleUpdateClass = async () => {
                       name="date"
                       value={editForm.date}
                       onChange={handleEditFormChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
+                      className="w-full px-3 py-2 border text-gray-600 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
                       required
                     />
                   </div>
@@ -747,7 +744,7 @@ const handleUpdateClass = async () => {
                         name="startTime"
                         value={editForm.startTime}
                         onChange={handleEditFormChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
+                        className="w-full px-3 py-2 border text-gray-600 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
                         required
                       />
                     </div>
@@ -761,7 +758,7 @@ const handleUpdateClass = async () => {
                         name="endTime"
                         value={editForm.endTime}
                         onChange={handleEditFormChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
+                        className="w-full px-3 py-2 border text-gray-600 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#6B46C1]"
                         required
                       />
                     </div>
@@ -805,7 +802,7 @@ const handleUpdateClass = async () => {
           </div>
         )}
       </div>
-    </div>
+    
   );
 };
 
