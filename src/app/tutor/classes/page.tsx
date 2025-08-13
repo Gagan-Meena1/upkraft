@@ -52,8 +52,8 @@ const Textarea = ({ className, ...props }) => (
 )
 
 export default function AddSessionPage() {
-  // Get courseId from URL params - EXACT same as original
-  const courseId = new URLSearchParams(window.location.search).get('courseId') || ''
+  // State for courseId - initialize as empty string and set in useEffect
+  const [courseId, setCourseId] = useState('')
   
   // EXACT same state structure
   const [currentMonth, setCurrentMonth] = useState(new Date())
@@ -69,6 +69,15 @@ export default function AddSessionPage() {
     date: '',
     video: null,
   })
+
+  // Safely get courseId from URL params only on client side
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const id = urlParams.get('courseId') || ''
+      setCourseId(id)
+    }
+  }, [])
 
   // EXACT same helper functions from original
   const formatDateToString = (year, month, day) => {
@@ -252,12 +261,21 @@ export default function AddSessionPage() {
       
       // Success! Navigate back exactly as original
       alert('Session created successfully!')
-      window.location.href = `/tutor/courses/${courseId}`
+      if (typeof window !== 'undefined') {
+        window.location.href = `/tutor/courses/${courseId}`
+      }
     } catch (error) {
       console.error('Error creating session:', error)
       setErrorMessage(error instanceof Error ? error.message : 'Failed to create session')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Safe navigation function
+  const handleBackNavigation = () => {
+    if (typeof window !== 'undefined') {
+      window.location.href = courseId ? `/tutor/courses/${courseId}` : "/tutor/courses"
     }
   }
 
@@ -275,7 +293,7 @@ export default function AddSessionPage() {
       <div className="mb-8">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => window.location.href = courseId ? `/tutor/courses/${courseId}` : "/tutor/courses"}
+            onClick={handleBackNavigation}
             className="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
