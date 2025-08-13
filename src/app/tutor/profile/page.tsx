@@ -44,6 +44,7 @@ interface Tutor {
   linkedInLink?: string;
   profileImage?: string;
   aboutMyself?: string;
+  level?: string; 
 }
 
 const TutorProfilePage = () => {

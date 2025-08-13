@@ -147,21 +147,55 @@ export async function POST(request: NextRequest) {
 }
 export async function GET(request: NextRequest) {
   try {
-    console.log("1111111111111111111111111111111111111111111111111111111111111111111");
+    console.log("Fetching classes data...");
 
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
-    const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-    console.log("decodedToken : ",decodedToken);
-    console.log("instructorId : ",instructorId);
+    let instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
     
-    const classes=await Class.find({instructor:instructorId});
+    // Check for userid query parameter
+    const { searchParams } = new URL(request.url);
+    const userIdFromQuery = searchParams.get('userid');
     
-    // console.log(classes);
+    // If userid query param exists, use it as the student ID
+    if (userIdFromQuery) {
+      instructorId = userIdFromQuery;
+      console.log("Using userid from query param:", userIdFromQuery);
+    }
+    
+    console.log("decodedToken : ", decodedToken);
+    console.log("Final instructorId : ", instructorId);
+
+    if (!instructorId) {
+      return NextResponse.json({
+        message: 'User ID not found',
+        error: 'No user ID provided'
+      }, { status: 400 });
+    }
+
+    // Find the user and populate the classes array with actual class details
+    const user = await User.findById(instructorId).populate({
+      path: 'classes',
+      model: 'Class' // Make sure this matches your Class model name
+    });
+
+    if (!user) {
+      return NextResponse.json({
+        message: 'User not found',
+        error: 'No user found with the provided ID'
+      }, { status: 404 });
+    }
+    
+    // Get the populated class data
+    const classData = user.classes || [];
+    
+    console.log("Found classes:", classData.length);
+    
     return NextResponse.json({
-      message: 'Session sent successfully',
-      classData: classes
-    }, { status: 201 });
+      message: 'Classes fetched successfully',
+      classData: classData,
+      totalClasses: classData.length
+    }, { status: 200 });
     
   } catch (error) {
     console.error('Server error:', error);
@@ -171,6 +205,7 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
 export async function PUT(request: NextRequest) {
   try {
     console.log("Updating class...");
