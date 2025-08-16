@@ -62,19 +62,7 @@ const Sidebar2 = () => {
         { label: "Create Assignment", href: "/tutor/assignment/create" },
       ],
     },
-    {
-      id: "students",
-      label: "Student's",
-      icon: GraduationCap,
-      href: "/tutor/students",
-    },
-    { id: "tutors", label: "Tutor's", icon: User, href: "/tutor/tutors" },
-    {
-      id: "reports",
-      label: "Report & Analytics",
-      icon: BarChart3,
-      href: "/tutor/reports",
-    },
+  
     {
       id: "music-library",
       label: "Music Library",

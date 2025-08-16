@@ -30,7 +30,7 @@ export async function GET(request:NextRequest) {
     
     // Find both users in parallel for efficiency
     const [student, instructor] = await Promise.all([
-      User.findById(studentId).select('username email courses profileImage'),
+      User.findById(studentId).select('username email courses profileImage contact city age'),
       User.findById(instructorId).select('courses')
     ]);
     
@@ -61,6 +61,9 @@ export async function GET(request:NextRequest) {
         username: student.username,
         email: student.email,
         profileImage:student.profileImage,
+        contact: student.contact,
+        city: student.city,
+        age: student.age,
         courses: []
       });
     }
@@ -75,6 +78,9 @@ export async function GET(request:NextRequest) {
       username: student.username,
       email: student.email,
       profileImage:student.profileImage,
+      contact: student.contact,
+      city: student.city,
+      age: student.age,
       courses: commonCourses
     });
     
