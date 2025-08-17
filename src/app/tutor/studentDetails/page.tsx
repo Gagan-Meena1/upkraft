@@ -17,6 +17,12 @@ interface CourseData {
     tangibleOutcome: string;
     _id: string;
   }[];
+  performanceScores?: {
+    userId: string;
+    score: number;
+    dateRecorded: string;
+    _id: string;
+  }[];
 }
 
 interface StudentData {
@@ -53,7 +59,25 @@ export default function StudentProfileMain() {
     fetchData();
   }, []);
 
-  const CircularProgress = ({ percentage, score, label, color = "purple" }) => {
+  // Function to get exact performance score from API (no calculations)
+  const getExactPerformanceScore = (course: CourseData) => {
+    if (!course.performanceScores || course.performanceScores.length === 0) {
+      return null;
+    }
+    
+    // Find the performance score for this student
+    const studentScore = course.performanceScores.find(
+      score => score.userId === studentData?.studentId
+    );
+    
+    return studentScore ? studentScore.score : null;
+  };
+
+  const CircularProgress = ({ score, label, color = "purple" }) => {
+    // Use exact score for display and percentage calculation
+    const displayScore = score !== null && score !== undefined ? score : 0;
+    const percentage = score !== null && score !== undefined ? score : 0; // Use score directly as percentage
+    
     const circumference = 2 * Math.PI * 45;
     const strokeDasharray = circumference;
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
@@ -97,7 +121,9 @@ export default function StudentProfileMain() {
             )}
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">{score}</div>
+            <div className="text-2xl font-bold text-purple-600">
+              {score !== null && score !== undefined ? `${displayScore}` : 'N/A'}
+            </div>
             <div className="text-xs text-gray-500 mt-1 opacity-50">{label}</div>
           </div>
         </div>
@@ -106,7 +132,9 @@ export default function StudentProfileMain() {
   };
 
   const OverallPerformanceCircle = ({ score }) => {
-    const percentage = (score / 10) * 100;
+    // Use exact score from API
+    const displayScore = score !== null && score !== undefined ? score : 0;
+    const percentage = score !== null && score !== undefined ? score : 0; // Use score directly as percentage
     const circumference = Math.PI * 35;
     const strokeDasharray = circumference;
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
@@ -133,11 +161,22 @@ export default function StudentProfileMain() {
         </svg>
         <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
           <div className="text-center">
-            <div className="text-3xl font-bold text-purple-600">{score}/10</div>
+            <div className="text-3xl font-bold text-purple-600">
+              {score !== null && score !== undefined ? `${displayScore}` : 'N/A'}
+            </div>
+            {score === null && (
+              <div className="text-xs text-gray-400 mt-1">No data</div>
+            )}
           </div>
         </div>
       </div>
     );
+  };
+
+  // Helper function to get the most recent course
+  const getMostRecentCourse = () => {
+    if (!studentData?.courses || studentData.courses.length === 0) return null;
+    return studentData.courses[0]; // Assuming first course is the most recent
   };
 
   if (loading) {
@@ -148,11 +187,10 @@ export default function StudentProfileMain() {
     );
   }
 
+  const mostRecentCourse = getMostRecentCourse();
+
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Header */}
-     
-
       {/* Main Content */}
       <div className="p-6 space-y-6">
         {studentData ? (
@@ -178,7 +216,7 @@ export default function StudentProfileMain() {
                     </div>
                   </div>
                   <h2 className="text-2xl font-semibold text-gray-900 mb-2">{studentData.username}</h2>
-                  <p className="text-lg font-medium text-gray-500">{studentData.city}</p>
+                  <p className="text-lg font-medium text-gray-500">{studentData.city || 'Not specified'}</p>
                 </div>
               </div>
 
@@ -210,19 +248,26 @@ export default function StudentProfileMain() {
               </div>
 
               {/* Fee Status */}
-              {/* <div className="bg-white rounded-2xl p-8 flex-1 max-w-md shadow-sm">
+              <div className="bg-white rounded-2xl p-8 flex-1 max-w-md shadow-sm">
                 <h3 className="text-base font-bold text-gray-900 mb-6 pb-4 border-b border-gray-200">Fee Status</h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500 text-base">Course :</span>
                     <span className="text-gray-900 font-medium text-base">
-                      {studentData.courses.title
-                      }
+                      {mostRecentCourse?.title || 'Piano Classes'}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500 text-base">Fee per class:</span>
-                    <span className="text-gray-900 font-medium text-base">Rs. 8000</span>
+                    <span className="text-gray-900 font-medium text-base">
+                      Rs. {mostRecentCourse?.price ? Math.round(mostRecentCourse.price / (mostRecentCourse.curriculum?.length || 12)).toLocaleString() : '8,000'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500 text-base">Total Course Fee:</span>
+                    <span className="text-gray-900 font-medium text-base">
+                      Rs. {mostRecentCourse?.price?.toLocaleString() || '40,000'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500 text-base">Last Paid :</span>
@@ -233,11 +278,11 @@ export default function StudentProfileMain() {
                     <span className="text-red-600 font-medium text-base">Yes</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-gray-500 text-base">Upcoming Payment Date :</span>
+                    <span className="text-gray-500 text-base">Next Payment Date :</span>
                     <span className="text-gray-900 font-medium text-base">24 Aug 2025</span>
                   </div>
                 </div>
-              </div> */}
+              </div>
             </div>
 
             {/* Courses Enrolled Section */}
@@ -247,46 +292,49 @@ export default function StudentProfileMain() {
               
               {studentData.courses.length > 0 ? (
                 <div className="space-y-8">
-                  {studentData.courses.map((course, index) => (
-                    <div key={course._id}>
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 pr-8">
-                          <h4 className="text-xl font-semibold text-purple-600 mb-4">{course.title}</h4>
-                          <p className="text-gray-900 mb-6 leading-relaxed">{course.description}</p>
-                          
-                          <div className="flex gap-8 mb-8">
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-500">Sessions :</span>
-                              <span className="text-gray-900 font-medium">{course.curriculum.length}</span>
+                  {studentData.courses.map((course, index) => {
+                    const courseScore = getExactPerformanceScore(course);
+                    return (
+                      <div key={course._id}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 pr-8">
+                            <h4 className="text-xl font-semibold text-purple-600 mb-4">{course.title}</h4>
+                            <p className="text-gray-900 mb-6 leading-relaxed">{course.description}</p>
+                            
+                            <div className="flex gap-8 mb-8">
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500">Sessions :</span>
+                                <span className="text-gray-900 font-medium">{course.curriculum.length}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500">Duration :</span>
+                                <span className="text-gray-900 font-medium">{course.duration}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500">Fee :</span>
+                                <span className="text-gray-900 font-medium">Rs {course.price.toLocaleString()}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-500">Duration :</span>
-                              <span className="text-gray-900 font-medium">{course.duration}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-500">Fee :</span>
-                              <span className="text-gray-900 font-medium">Rs {course.price.toLocaleString()}</span>
-                            </div>
+                            
+                            <Link 
+                              href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`}
+                              className="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded gap-2 hover:bg-purple-700 transition-colors"
+                            >
+                              <span>View Performance</span>
+                              <ArrowUpRight size={16} />
+                            </Link>
                           </div>
                           
-                          <Link 
-                            href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`}
-                            className="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded gap-2 hover:bg-purple-700 transition-colors"
-                          >
-                            <span>View Performance</span>
-                            <ArrowUpRight size={16} />
-                          </Link>
+                          {/* Course Performance Circle with Exact API Score */}
+                          <div className="flex-shrink-0 text-center">
+                            <h5 className="text-base font-semibold text-gray-900 mb-4">Course Performance Score</h5>
+                            <OverallPerformanceCircle score={courseScore} />
+                          </div>
                         </div>
-                        
-                        {/* Overall Performance Circle */}
-                        <div className="flex-shrink-0 text-center">
-                          <h5 className="text-base font-semibold text-gray-900 mb-4">Overall Course Performance</h5>
-                          <OverallPerformanceCircle score={7.6} />
-                        </div>
+                        {index < studentData.courses.length - 1 && <hr className="border-gray-200 my-8" />}
                       </div>
-                      {index < studentData.courses.length - 1 && <hr className="border-gray-200 my-8" />}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="flex justify-between items-start">
@@ -315,10 +363,10 @@ export default function StudentProfileMain() {
                     </button>
                   </div>
                   
-                  {/* Overall Performance Circle */}
+                  {/* Course Performance Circle */}
                   <div className="flex-shrink-0 text-center">
-                    <h5 className="text-base font-semibold text-gray-900 mb-4">Overall Course Performance</h5>
-                    <OverallPerformanceCircle score={7.6} />
+                    <h5 className="text-base font-semibold text-gray-900 mb-4">Course Performance Score</h5>
+                    <OverallPerformanceCircle score={null} />
                   </div>
                 </div>
               )}
@@ -326,52 +374,64 @@ export default function StudentProfileMain() {
 
             <hr className="border-gray-200" />
 
-            {/* Performance Metrics */}
+            {/* Performance Metrics - Show Individual Course Scores */}
             <div className="grid grid-cols-3 gap-8">
-              {/* Class Quality Score */}
-              <div className="text-center">
-                <h4 className="text-base font-semibold text-gray-900 mb-6">Class Quality Score</h4>
-                <div className="mb-6">
-                  <CircularProgress percentage={56} score="5.6/10" label="Excellent" />
-                </div>
-                <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto">
-                  <span>View Details</span>
-                  <ArrowUpRight size={16} />
-                </button>
-              </div>
-
-              {/* Assignments */}
-              <div className="text-center">
-                <h4 className="text-base font-semibold text-gray-900 mb-6">Assignments</h4>
-                <div className="mb-6">
-                  <CircularProgress percentage={60} score="6/10" label="Completed" />
-                </div>
-                <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto">
-                  <span>View Details</span>
-                  <ArrowUpRight size={16} />
-                </button>
-              </div>
-
-              {/* Latest Class Highlight */}
-              <div className="text-center">
-                <h4 className="text-base font-semibold text-gray-900 mb-6">Latest Class Highlight</h4>
-                <div className="relative rounded-2xl overflow-hidden mb-6 h-44">
-                  <img
-                    src="/api/placeholder/280/176"
-                    alt="Latest class"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
-                      <Play size={24} className="text-gray-800 ml-1" fill="currentColor" />
+              {studentData.courses.slice(0, 3).map((course, index) => {
+                const courseScore = getExactPerformanceScore(course);
+                return (
+                  <div key={course._id} className="text-center">
+                    <h4 className="text-base font-semibold text-gray-900 mb-6">{course.title}</h4>
+                    <div className="mb-6">
+                      <CircularProgress 
+                        score={courseScore} 
+                        label="Performance Score"
+                      />
                     </div>
+                    <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto">
+                      <span>View Details</span>
+                      <ArrowUpRight size={16} />
+                    </button>
                   </div>
-                </div>
-                <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto">
-                  <span>View More</span>
-                  <ArrowUpRight size={16} />
-                </button>
-              </div>
+                );
+              })}
+              
+              {/* If less than 3 courses, fill remaining slots */}
+              {studentData.courses.length < 3 && (
+                <>
+                  {/* Assignments */}
+                  <div className="text-center">
+                    <h4 className="text-base font-semibold text-gray-900 mb-6">Assignments</h4>
+                    <div className="mb-6">
+                      <CircularProgress score={60} label="Completed" />
+                    </div>
+                    <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto">
+                      <span>View Details</span>
+                      <ArrowUpRight size={16} />
+                    </button>
+                  </div>
+
+                  {/* Latest Class Highlight */}
+                  <div className="text-center">
+                    <h4 className="text-base font-semibold text-gray-900 mb-6">Latest Class Highlight</h4>
+                    <div className="relative rounded-2xl overflow-hidden mb-6 h-44">
+                      <img
+                        src="/api/placeholder/280/176"
+                        alt="Latest class"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                          <Play size={24} className="text-gray-800 ml-1" fill="currentColor" />
+                        </div>
+                      </div>
+                    </div>
+                    <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto">
+                      <span>View More</span>
+                      <ArrowUpRight size={16} />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </>
         ) : (

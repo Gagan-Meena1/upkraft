@@ -71,6 +71,33 @@ const StudentFeedbackDashboard = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [averageSkillScores, setAverageSkillScores] = useState<Record<string, number>>({});
+  // Function to store performance score in database
+const storePerformanceScore = async (courseId: string, studentId: string, overallScore: number) => {
+  try {
+    const response = await fetch('/Api/tutors/courses', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        action: 'updatePerformanceScore',
+        courseId: courseId,
+        studentId: studentId,
+        overallScore: overallScore
+      })
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('Performance score stored successfully:', result.data);
+    } else {
+      console.error('Failed to store performance score:', result.error);
+    }
+  } catch (error) {
+    console.error('Error storing performance score:', error);
+  }
+};
 
   useEffect(() => {
     const fetchFeedbackData = async () => {
@@ -229,13 +256,20 @@ const StudentFeedbackDashboard = () => {
         }
         // Calculate overall performance score (average of all session averages)
         if (processedData.length > 0) {
-          const overallScore = processedData.reduce((total, session) => total + session.averageScore, 0) / processedData.length;
-          // Store with 2 decimal places
-          setAverageSkillScores(prev => ({
-            ...prev,
-            overall: +overallScore.toFixed(2)
-          }));
+        const overallScore = processedData.reduce((total, session) => total + session.averageScore, 0) / processedData.length;
+        const finalOverallScore = +overallScore.toFixed(2);
+        
+        // Store with 2 decimal places
+        setAverageSkillScores(prev => ({
+          ...prev,
+          overall: finalOverallScore
+        }));
+
+        // Store the performance score in database
+        if (courseId && studentId && finalOverallScore) {
+          await storePerformanceScore(courseId, studentId, finalOverallScore);
         }
+      }
         // Process the all-student feedback data
       // Process the all-student feedback data
       if (result.feedbackAllStudent && Array.isArray(result.feedbackAllStudent)) {

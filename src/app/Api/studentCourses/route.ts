@@ -69,8 +69,7 @@ export async function GET(request:NextRequest) {
     }
     
     // Fetch the common courses
-    const commonCourses = await courseName.find({ _id: { $in: commonCourseIds } })
-      .select('title description duration price curriculum _id');
+    const commonCourses = await courseName.find({ _id: { $in: commonCourseIds } });
     
     return NextResponse.json({
       message: "Common courses retrieved successfully",

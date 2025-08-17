@@ -38,7 +38,23 @@ const courseNameSchema = new mongoose.Schema({
       topic: String,
       tangibleOutcome:String
     }]
-  }
+  },
+  performanceScores: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'users',
+      required: true
+    },
+    score: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    dateRecorded: {
+      type: Date,
+      default: Date.now
+    }
+  }]
 }, {
   timestamps: true
 });
