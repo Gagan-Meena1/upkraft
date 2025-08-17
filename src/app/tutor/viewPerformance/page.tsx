@@ -1,726 +1,364 @@
 'use client';
-// import dynamic from 'next/dynamic';
+import dynamic from 'next/dynamic';
 
-// // Create a non-SSR version of the component
-// const StudentFeedbackDashboardClient = dynamic(
-//   () => Promise.resolve(StudentFeedbackDashboard),
-//   { ssr: false }
-// );
+// Create a non-SSR version of the component
+const StudentFeedbackDashboardClient = dynamic(
+  () => Promise.resolve(StudentFeedbackDashboard),
+  { ssr: false }
+);
 
 
-// import React, { useEffect, useState } from 'react';
-// import { useSearchParams } from 'next/navigation';
-// import { ArrowLeft, BarChart3 } from 'lucide-react';
-// import { useRouter } from 'next/navigation';
-// import {
-//   LineChart,
-//   Line,
-//   XAxis,
-//   YAxis,
-//   CartesianGrid,
-//   Tooltip,
-//   Legend,
-//   ResponsiveContainer,
-//   PieChart,
-//   Pie,
-//   Cell,
-//   Sector
-// } from 'recharts';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowLeft, BarChart3 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Sector,
+  AreaChart,
+  Area
+} from 'recharts';
 
-// interface FeedbackItem {
-//   _id: string;
-//   userId: string;
-//   classId: string;
-//   attendance: number;
-//   rhythm: number;
-//   theoreticalUnderstanding: number;
-//   performance: number;
-//   earTraining: number;
-//   assignment: number;
-//   technique: number;
-//   personalFeedback: string;
-//   createdAt: string;
-// }
+interface FeedbackItem {
+  _id: string;
+  userId: string;
+  classId: string;
+  attendance: number;
+  rhythm: number;
+  theoreticalUnderstanding: number;
+  performance: number;
+  earTraining: number;
+  assignment: number;
+  technique: number;
+  personalFeedback: string;
+  createdAt: string;
+}
 
-// interface ClassInfo {
-//   sessionNo: number;
-//   attendance: number;
-//   rhythm: number;
-//   theoretical: number;
-//   understanding: number;
-//   performance: number;
-//   earTraining: number;
-//   assignment: number;
-//   technique: number;
-//   personalFeedback: string;
-//   averageScore: number;
-//   performanceLevel: 'good' | 'medium' | 'poor';
-//   recommendedImprovement: string;
-// }
+interface ClassInfo {
+  sessionNo: number;
+  attendance: number;
+  rhythm: number;
+  theoretical: number;
+  understanding: number;
+  performance: number;
+  earTraining: number;
+  assignment: number;
+  technique: number;
+  personalFeedback: string;
+  averageScore: number;
+  performanceLevel: 'good' | 'medium' | 'poor';
+  recommendedImprovement: string;
+}
 
-// const StudentFeedbackDashboard = () => {
-//   const router = useRouter();
-//   const searchParams = useSearchParams();
-//   const courseId = searchParams.get('courseId');
-//   const studentId = searchParams.get('studentId');
+const StudentFeedbackDashboard = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const courseId = searchParams.get('courseId');
+  const studentId = searchParams.get('studentId');
 
-//   const [allStudentsFeedbackData, setAllStudentsFeedbackData] = useState<any[]>([]);
-//   const [feedbackData, setFeedbackData] = useState<ClassInfo[]>([]);
-//   const [isLoading, setIsLoading] = useState<boolean>(true);
-//   const [error, setError] = useState<string | null>(null);
-//   const [averageSkillScores, setAverageSkillScores] = useState<Record<string, number>>({});
+  const [allStudentsFeedbackData, setAllStudentsFeedbackData] = useState<any[]>([]);
+  const [feedbackData, setFeedbackData] = useState<ClassInfo[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [averageSkillScores, setAverageSkillScores] = useState<Record<string, number>>({});
 
-//   useEffect(() => {
-//     const fetchFeedbackData = async () => {
-//       if (!courseId) {
-//         setError('Course ID is required');
-//         setIsLoading(false);
-//         return;
-//       }
+  useEffect(() => {
+    const fetchFeedbackData = async () => {
+      if (!courseId) {
+        setError('Course ID is required');
+        setIsLoading(false);
+        return;
+      }
 
-//       try {
-//         setIsLoading(true);
-//         const response = await fetch(`/Api/studentFeedbackForTutor?courseId=${courseId}&studentId=${studentId}`);
+      try {
+        setIsLoading(true);
+        const response = await fetch(`/Api/studentFeedbackForTutor?courseId=${courseId}&studentId=${studentId}`);
         
-//         if (!response.ok) {
-//           throw new Error('Failed to fetch feedback data');
-//         }
+        if (!response.ok) {
+          throw new Error('Failed to fetch feedback data');
+        }
         
-//         const result = await response.json();
+        const result = await response.json();
         
-//         console.log("result : ",result);
+        console.log("result : ",result);
         
         
-//         if (!result.success) {
-//           throw new Error(result.message || 'Failed to fetch feedback data');
-//         }
-//         // Process the data - group by classId, keeping only the latest feedback for each
-//         const groupedByClassId: Record<string, FeedbackItem> = result.data.reduce((acc: Record<string, FeedbackItem>, item: FeedbackItem) => {
-//           // If this is the first entry for this classId, add it
-//           if (!acc[item.classId]) {
-//             acc[item.classId] = item;
-//           } 
-//           // If we already have an entry for this classId, compare dates and keep the newest one
-//           else {
-//             const existingDate = new Date(acc[item.classId].createdAt);
-//             const newDate = new Date(item.createdAt);
+        if (!result.success) {
+          throw new Error(result.message || 'Failed to fetch feedback data');
+        }
+        // Process the data - group by classId, keeping only the latest feedback for each
+        const groupedByClassId: Record<string, FeedbackItem> = result.data.reduce((acc: Record<string, FeedbackItem>, item: FeedbackItem) => {
+          // If this is the first entry for this classId, add it
+          if (!acc[item.classId]) {
+            acc[item.classId] = item;
+          } 
+          // If we already have an entry for this classId, compare dates and keep the newest one
+          else {
+            const existingDate = new Date(acc[item.classId].createdAt);
+            const newDate = new Date(item.createdAt);
             
-//             if (newDate > existingDate) {
-//               acc[item.classId] = item;
-//             }
-//           }
-//           return acc;
-//         }, {});
-//         // Process the data
-//         const processedData: ClassInfo[] = Object.values(groupedByClassId).map((item: FeedbackItem, index: number) => {          // Parse string values to numbers if necessary
-//           const rhythm = typeof item.rhythm === 'string' ? parseFloat(item.rhythm) : item.rhythm;
-//           const theoreticalUnderstanding = typeof item.theoreticalUnderstanding === 'string' ? 
-//             parseFloat(item.theoreticalUnderstanding) : item.theoreticalUnderstanding;
-//           const performance = typeof item.performance === 'string' ? 
-//             parseFloat(item.performance) : item.performance;
-//           const earTraining = typeof item.earTraining === 'string' ? 
-//             parseFloat(item.earTraining) : item.earTraining;
-//           const assignment = typeof item.assignment === 'string' ? 
-//             parseFloat(item.assignment) : item.assignment;
-//           const technique = typeof item.technique === 'string' ? 
-//             parseFloat(item.technique) : item.technique;
+            if (newDate > existingDate) {
+              acc[item.classId] = item;
+            }
+          }
+          return acc;
+        }, {});
+        // Process the data
+        const processedData: ClassInfo[] = Object.values(groupedByClassId).map((item: FeedbackItem, index: number) => {          // Parse string values to numbers if necessary
+          const rhythm = typeof item.rhythm === 'string' ? parseFloat(item.rhythm) : item.rhythm;
+          const theoreticalUnderstanding = typeof item.theoreticalUnderstanding === 'string' ? 
+            parseFloat(item.theoreticalUnderstanding) : item.theoreticalUnderstanding;
+          const performance = typeof item.performance === 'string' ? 
+            parseFloat(item.performance) : item.performance;
+          const earTraining = typeof item.earTraining === 'string' ? 
+            parseFloat(item.earTraining) : item.earTraining;
+          const assignment = typeof item.assignment === 'string' ? 
+            parseFloat(item.assignment) : item.assignment;
+          const technique = typeof item.technique === 'string' ? 
+            parseFloat(item.technique) : item.technique;
           
-//           // Calculate average score (excluding attendance)
-//           // Define weights for each category (in decimal form)
-//           const rhythmWeight = 1/6;        // 20%
-//           const theoreticalWeight = 1/6;   // 15%
-//           const performanceWeight = 1/6;   // 30%
-//           const earTrainingWeight = 1/6;   // 10%
-//           const assignmentWeight = 1/6;    // 15%
-//           const techniqueWeight = 1/6;     // 10%
+          // Calculate average score (excluding attendance)
+          // Define weights for each category (in decimal form)
+          const rhythmWeight = 1/6;        // 20%
+          const theoreticalWeight = 1/6;   // 15%
+          const performanceWeight = 1/6;   // 30%
+          const earTrainingWeight = 1/6;   // 10%
+          const assignmentWeight = 1/6;    // 15%
+          const techniqueWeight = 1/6;     // 10%
 
-//           // Calculate weighted score by multiplying each score by its weight
-//           const weightedScore = 
-//               (rhythm * rhythmWeight) +
-//               (theoreticalUnderstanding * theoreticalWeight) +
-//               (performance * performanceWeight) +
-//               (earTraining * earTrainingWeight) +
-//               (assignment * assignmentWeight) +
-//               (technique * techniqueWeight);
+          // Calculate weighted score by multiplying each score by its weight
+          const weightedScore = 
+              (rhythm * rhythmWeight) +
+              (theoreticalUnderstanding * theoreticalWeight) +
+              (performance * performanceWeight) +
+              (earTraining * earTrainingWeight) +
+              (assignment * assignmentWeight) +
+              (technique * techniqueWeight);
 
-//           // Store the weighted average score with 2 decimal places
-//           const averageScore = +weightedScore.toFixed(2);
-//           // Determine performance level
-//           let performanceLevel: 'good' | 'medium' | 'poor';
-//           let recommendedImprovement = '';
+          // Store the weighted average score with 2 decimal places
+          const averageScore = +weightedScore.toFixed(2);
+          // Determine performance level
+          let performanceLevel: 'good' | 'medium' | 'poor';
+          let recommendedImprovement = '';
           
-//           if (averageScore >= 7) {
-//             performanceLevel = 'good';
-//             recommendedImprovement = 'Continue with current progress. Focus on advanced techniques.';
-//           } else if (averageScore >= 5) {
-//             performanceLevel = 'medium';
+          if (averageScore >= 7) {
+            performanceLevel = 'good';
+            recommendedImprovement = 'Continue with current progress. Focus on advanced techniques.';
+          } else if (averageScore >= 5) {
+            performanceLevel = 'medium';
             
-//             // Find the lowest scoring area
-//             const scores = {
-//               'rhythm': rhythm,
-//               'theoretical understanding': theoreticalUnderstanding,
-//               'performance': performance,
-//               'ear training': earTraining,
-//               'assignment completion': assignment,
-//               'technique': technique
-//             };
+            // Find the lowest scoring area
+            const scores = {
+              'rhythm': rhythm,
+              'theoretical understanding': theoreticalUnderstanding,
+              'performance': performance,
+              'ear training': earTraining,
+              'assignment completion': assignment,
+              'technique': technique
+            };
             
-//             const lowestArea = Object.entries(scores).reduce((a, b) => a[1] < b[1] ? a : b)[0];
-//             recommendedImprovement = `Work on improving your ${lowestArea}.`;
-//           } else {
-//             performanceLevel = 'poor';
-//             recommendedImprovement = 'Schedule additional practice sessions. Focus on fundamentals.';
-//           }
+            const lowestArea = Object.entries(scores).reduce((a, b) => a[1] < b[1] ? a : b)[0];
+            recommendedImprovement = `Work on improving your ${lowestArea}.`;
+          } else {
+            performanceLevel = 'poor';
+            recommendedImprovement = 'Schedule additional practice sessions. Focus on fundamentals.';
+          }
           
-//           return {
-//             sessionNo: index + 1, // Assuming sessions are ordered in the API response
-//             attendance: typeof item.attendance === 'string' ? parseFloat(item.attendance) : item.attendance,
-//             rhythm: rhythm,
-//             theoretical: theoreticalUnderstanding,
-//             understanding: theoreticalUnderstanding,
-//             performance: performance,
-//             earTraining: earTraining,
-//             assignment: assignment,
-//             technique: technique,
-//             personalFeedback: item.personalFeedback,
-//             averageScore,
-//             performanceLevel,
-//             recommendedImprovement
-//           };
-//         });
+          return {
+            sessionNo: index + 1, // Assuming sessions are ordered in the API response
+            attendance: typeof item.attendance === 'string' ? parseFloat(item.attendance) : item.attendance,
+            rhythm: rhythm,
+            theoretical: theoreticalUnderstanding,
+            understanding: theoreticalUnderstanding,
+            performance: performance,
+            earTraining: earTraining,
+            assignment: assignment,
+            technique: technique,
+            personalFeedback: item.personalFeedback,
+            averageScore,
+            performanceLevel,
+            recommendedImprovement
+          };
+        });
         
-//         // Sort by session number
-//         processedData.sort((a, b) => a.sessionNo - b.sessionNo);
+        // Sort by session number
+        processedData.sort((a, b) => a.sessionNo - b.sessionNo);
         
-//         setFeedbackData(processedData);
+        setFeedbackData(processedData);
 
-//         // Calculate average skills scores
-//         if (processedData.length > 0) {
-//           const skillTotals = {
-//             rhythm: 0,
-//             theoretical: 0,
-//             performance: 0,
-//             earTraining: 0,
-//             assignment: 0,
-//             technique: 0
-//           };
+        // Calculate average skills scores
+        if (processedData.length > 0) {
+          const skillTotals = {
+            rhythm: 0,
+            theoretical: 0,
+            performance: 0,
+            earTraining: 0,
+            assignment: 0,
+            technique: 0
+          };
           
-//           processedData.forEach(session => {
-//             skillTotals.rhythm += session.rhythm;
-//             skillTotals.theoretical += session.theoretical;
-//             skillTotals.performance += session.performance;
-//             skillTotals.earTraining += session.earTraining;
-//             skillTotals.assignment += session.assignment;
-//             skillTotals.technique += session.technique;
-//           });
+          processedData.forEach(session => {
+            skillTotals.rhythm += session.rhythm;
+            skillTotals.theoretical += session.theoretical;
+            skillTotals.performance += session.performance;
+            skillTotals.earTraining += session.earTraining;
+            skillTotals.assignment += session.assignment;
+            skillTotals.technique += session.technique;
+          });
           
-//           const sessionCount = processedData.length;
+          const sessionCount = processedData.length;
           
-//           setAverageSkillScores({
-//             rhythm: +(skillTotals.rhythm / sessionCount).toFixed(2),
-//             theoretical: +(skillTotals.theoretical / sessionCount).toFixed(2),
-//             performance: +(skillTotals.performance / sessionCount).toFixed(2),
-//             earTraining: +(skillTotals.earTraining / sessionCount).toFixed(2),
-//             assignment: +(skillTotals.assignment / sessionCount).toFixed(2),
-//             technique: +(skillTotals.technique / sessionCount).toFixed(2)
-//           });
-//         }
-//         // Calculate overall performance score (average of all session averages)
-//         if (processedData.length > 0) {
-//           const overallScore = processedData.reduce((total, session) => total + session.averageScore, 0) / processedData.length;
-//           // Store with 2 decimal places
-//           setAverageSkillScores(prev => ({
-//             ...prev,
-//             overall: +overallScore.toFixed(2)
-//           }));
-//         }
-//         // Process the all-student feedback data
-//       // Process the all-student feedback data
-//       if (result.feedbackAllStudent && Array.isArray(result.feedbackAllStudent)) {
-//         // Group by classId (which represents sessions)
-//         const groupedByClass: Record<string, FeedbackItem[]> = result.feedbackAllStudent.reduce((acc: Record<string, FeedbackItem[]>, item: FeedbackItem) => {
-//           if (!acc[item.classId]) {
-//             acc[item.classId] = [];
-//           }
-//           acc[item.classId].push(item);
-//           return acc;
-//         }, {});
+          setAverageSkillScores({
+            rhythm: +(skillTotals.rhythm / sessionCount).toFixed(2),
+            theoretical: +(skillTotals.theoretical / sessionCount).toFixed(2),
+            performance: +(skillTotals.performance / sessionCount).toFixed(2),
+            earTraining: +(skillTotals.earTraining / sessionCount).toFixed(2),
+            assignment: +(skillTotals.assignment / sessionCount).toFixed(2),
+            technique: +(skillTotals.technique / sessionCount).toFixed(2)
+          });
+        }
+        // Calculate overall performance score (average of all session averages)
+        if (processedData.length > 0) {
+          const overallScore = processedData.reduce((total, session) => total + session.averageScore, 0) / processedData.length;
+          // Store with 2 decimal places
+          setAverageSkillScores(prev => ({
+            ...prev,
+            overall: +overallScore.toFixed(2)
+          }));
+        }
+        // Process the all-student feedback data
+      // Process the all-student feedback data
+      if (result.feedbackAllStudent && Array.isArray(result.feedbackAllStudent)) {
+        // Group by classId (which represents sessions)
+        const groupedByClass: Record<string, FeedbackItem[]> = result.feedbackAllStudent.reduce((acc: Record<string, FeedbackItem[]>, item: FeedbackItem) => {
+          if (!acc[item.classId]) {
+            acc[item.classId] = [];
+          }
+          acc[item.classId].push(item);
+          return acc;
+        }, {});
           
-//           // For each class/session, find the top score for each metric
-//           const topScoresBySession: any[] = [];
+          // For each class/session, find the top score for each metric
+          const topScoresBySession: any[] = [];
           
-//           Object.entries(groupedByClass).forEach(([classId, feedbacks]: [string, FeedbackItem[]]) => {            // Find the matching session number from individual student data
-//             const matchingSession = processedData.find(item => 
-//               result.data.some((dataItem: FeedbackItem) => 
-//                 dataItem.classId === classId 
-//               )
-//             );
+          Object.entries(groupedByClass).forEach(([classId, feedbacks]: [string, FeedbackItem[]]) => {            // Find the matching session number from individual student data
+            const matchingSession = processedData.find(item => 
+              result.data.some((dataItem: FeedbackItem) => 
+                dataItem.classId === classId 
+              )
+            );
             
-//             const sessionNo = matchingSession ? matchingSession.sessionNo : topScoresBySession.length + 1;
+            const sessionNo = matchingSession ? matchingSession.sessionNo : topScoresBySession.length + 1;
             
-//             // Find top scores for each metric
-//             const topScores = {
-//               sessionNo,
-//               classId,
-//               rhythm: Math.max(...feedbacks.map((f: any) => parseFloat(f.rhythm) || 0)),
-//               theoretical: Math.max(...feedbacks.map((f: any) => parseFloat(f.theoreticalUnderstanding) || 0)),
-//               performance: Math.max(...feedbacks.map((f: any) => parseFloat(f.performance) || 0)),
-//               earTraining: Math.max(...feedbacks.map((f: any) => parseFloat(f.earTraining) || 0)),
-//               assignment: Math.max(...feedbacks.map((f: any) => parseFloat(f.assignment) || 0)),
-//               technique: Math.max(...feedbacks.map((f: any) => parseFloat(f.technique) || 0)),
-//             };
+            // Find top scores for each metric
+            const topScores = {
+              sessionNo,
+              classId,
+              rhythm: Math.max(...feedbacks.map((f: any) => parseFloat(f.rhythm) || 0)),
+              theoretical: Math.max(...feedbacks.map((f: any) => parseFloat(f.theoreticalUnderstanding) || 0)),
+              performance: Math.max(...feedbacks.map((f: any) => parseFloat(f.performance) || 0)),
+              earTraining: Math.max(...feedbacks.map((f: any) => parseFloat(f.earTraining) || 0)),
+              assignment: Math.max(...feedbacks.map((f: any) => parseFloat(f.assignment) || 0)),
+              technique: Math.max(...feedbacks.map((f: any) => parseFloat(f.technique) || 0)),
+            };
             
-//             topScoresBySession.push(topScores);
-//           });
+            topScoresBySession.push(topScores);
+          });
           
-//           // Sort by session number
-//           topScoresBySession.sort((a, b) => a.sessionNo - b.sessionNo);
+          // Sort by session number
+          topScoresBySession.sort((a, b) => a.sessionNo - b.sessionNo);
           
-//           setAllStudentsFeedbackData(topScoresBySession);
-//         }
-//       } catch (err) {
-//         setError(err instanceof Error ? err.message : 'An unknown error occurred');
-//       } finally {
-//         setIsLoading(false);
-//       }
-//     };
+          setAllStudentsFeedbackData(topScoresBySession);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-//     fetchFeedbackData();
-//   }, [courseId]);
+    fetchFeedbackData();
+  }, [courseId]);
     
-//   if (isLoading) {
-//     return (
-//       <div className="flex justify-center items-center h-screen bg-gray-50">
-//         <div className="text-orange-500 text-xl">Loading feedback data...</div>
-//       </div>
-//     );
-//   }
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <div className="text-orange-500 text-xl">Loading feedback data...</div>
+      </div>
+    );
+  }
   
-//   if (error) {
-//     return (
-//       <div className="flex justify-center items-center h-screen bg-gray-50">
-//         <div className="text-red-500 text-xl">Error: {error}</div>
-//       </div>
-//     );
-//   }
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <div className="text-red-500 text-xl">Error: {error}</div>
+      </div>
+    );
+  }
 
-//   if (feedbackData.length === 0) {
-//     return (
-//       <div className="flex justify-center items-center h-screen bg-gray-50">
-//         <div className="text-gray-500 text-xl">No feedback data available for this course.</div>
-//       </div>
-//     );
-//   }
+  if (feedbackData.length === 0) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <div className="text-gray-500 text-xl">No feedback data available for this course.</div>
+      </div>
+    );
+  }
 
-//   // Get performance colors for the table
-//   const getPerformanceColor = (level: string) => {
-//     switch (level) {
-//       case 'good':
-//         return 'text-green-600';
-//       case 'medium':
-//         return 'text-orange-500';
-//       case 'poor':
-//         return 'text-red-500';
-//       default:
-//         return '';
-//     }
-//   };
+  // Get performance colors for the table
+  const getPerformanceColor = (level: string) => {
+    switch (level) {
+      case 'good':
+        return 'text-green-500';
+      case 'medium':
+        return 'text-yellow-500';
+      case 'poor':
+        return 'text-red-500';
+      default:
+        return 'text-gray-500';
+    }
+  };
 
-//   // Format score as percentage
-//   const formatScore = (score: number) => {
-//     return `${(score * 10).toFixed(0)}%`;
-//   };
+  // Format score as percentage
+  const formatScore = (score: number) => {
+    return `${(score * 10).toFixed(0)}%`;
+  };
 
-//   // Define fields and their colors for individual graphs
-//   const fields = [
-//     { key: 'rhythm', name: 'Rhythm', color: '#82ca9d' },
-//     { key: 'theoretical', name: 'Theoretical Understanding', color: '#ff7300' },
-//     { key: 'performance', name: 'Performance', color: '#ff4466' },
-//     { key: 'earTraining', name: 'Ear Training', color: '#9467bd' },
-//     { key: 'assignment', name: 'Assignment Completion', color: '#8c564b' },
-//     { key: 'technique', name: 'Technique', color: '#e377c2' }
-//   ];
-
-//   // Add star rating and progress bar helpers from student dashboard
-//   const getStarRating = (score: number) => {
-//     const fullStars = Math.floor(score / 2);
-//     const stars = [];
-//     for (let i = 0; i < 5; i++) {
-//       if (i < fullStars) {
-//         stars.push(<span key={i} className="text-yellow-400 text-3xl">★</span>);
-//       } else {
-//         stars.push(<span key={i} className="text-gray-300 text-3xl">★</span>);
-//       }
-//     }
-//     return stars;
-//   };
-
-//   const getScoreColor = (score: number) => {
-//     if (score >= 8) return 'text-green-500';
-//     if (score >= 6) return 'text-orange-500';
-//     return 'text-red-500';
-//   };
-
-//   const getProgressBarColor = (score: number) => {
-//     if (score >= 8) return 'bg-green-500';
-//     if (score >= 6) return 'bg-orange-500';
-//     return 'bg-red-500';
-//   };
-
-//   // Custom active shape for gauge chart
-//   const renderActiveShape = (props: any) => {
-//     const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, payload, value } = props;
-    
-//     return (
-//       <g>
-//         <text x={cx} y={cy + 30} dy={8} textAnchor="middle" fill={getScoreColor(value)}>
-//           <tspan x={cx} dy="0" fontSize="24" fontWeight="bold">{value}</tspan>
-//           <tspan x={cx} dy="20" fontSize="12" fill="#666">/10</tspan>
-//         </text>
-//         {/* <Sector
-//           cx={cx}
-//           cy={cy}
-//           innerRadius={innerRadius}
-//           outerRadius={outerRadius}
-//           startAngle={startAngle}
-//           endAngle={endAngle}
-//           fill={fill}
-//         /> */}
-//         {/* <Sector
-//           cx={cx}
-//           cy={cy}
-//           startAngle={180}
-//           endAngle={0}
-//           innerRadius={outerRadius + 6}
-//           outerRadius={outerRadius + 10}
-//           fill="transparent"
-//           stroke="#e0e0e0"
-//         /> */}
-//         <Sector
-//           cx={cx}
-//           cy={cy}
-//           startAngle={180}
-//           endAngle={0}
-//           innerRadius={outerRadius }
-//           outerRadius={outerRadius + 20}
-//           fill="#e0e0e0"
-//         />
-//        <Sector
-//           cx={cx}
-//           cy={cy}
-//           startAngle={180}
-//           endAngle={180 - (180 * value / 10)}
-//           innerRadius={outerRadius }
-//           outerRadius={outerRadius + 20}
-//           fill={getScoreColor(value)}
-//         />
-//         {/* Add a needle pointer */}
-// <line
-//   x1={cx}
-//   y1={cy}
-//   x2={cx + (outerRadius + 25) * Math.cos(Math.PI * (180 - (180 * value / 10)) / 180)}
-//   y2={cy - (outerRadius + 25) * Math.sin(Math.PI * (180 - (180 * value / 10)) / 180)}
-//   stroke={getScoreColor(value)}
-//   strokeWidth={3}
-// />
-// <circle
-//   cx={cx}
-//   cy={cy}
-//   r={6}
-//   fill={getScoreColor(value)}
-//   stroke="none"
-// />
-//         {/* Add tick marks for scale */}
-//         <text x={cx - outerRadius + 15} y={cy -1} textAnchor="end" fontSize="11" fill="#666">0</text>
-//         <text x={cx} y={cy - outerRadius +20} textAnchor="middle" fontSize="11" fill="#666">5</text>
-//         <text x={cx + outerRadius - 25} y={cy } textAnchor="start" fontSize="11" fill="#666">10</text>
-//       </g>
-//     );
-//   };
-
-//   // Function to render gauge chart for average skill scores
-//   const renderGaugeChart = (field: any) => {
-//     const score = averageSkillScores[field.key] || 0;
-//     const data = [{ name: field.name, value: score }];
-    
-//     // Calculate angle based on score (0-10 scale)
-//     const angle = 180 - (180 * (score / 10));
-    
-//     return (
-//       <div key={field.key} className="bg-white rounded-lg shadow-md p-4 mb-6">
-//         <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center">{field.name}</h3>
-//         <div className="h-52">
-//           <ResponsiveContainer width="100%" height="100%">
-//             <PieChart>
-//               <Pie
-//                 activeIndex={0}
-//                 activeShape={renderActiveShape}
-//                 data={data}
-//                 cx="50%"
-//                 cy="50%"
-//                 startAngle={180}
-//                 endAngle={0}
-//                 innerRadius={60}
-//                 outerRadius={80}
-//                 paddingAngle={5}
-//                 dataKey="value"
-//                 stroke="none"
-//               >
-//                 <Cell fill={getScoreColor(score)} />
-//               </Pie>
-//             </PieChart>
-//           </ResponsiveContainer>
-//         </div>
-//         <div className="mt-2 text-center">
-//           <span className={`font-medium ${getScoreColor(score) === '#4CAF50' ? 'text-green-600' : 
-//             getScoreColor(score) === '#FF9800' ? 'text-orange-500' : 'text-red-500'}`}>
-//             Average: {score}/10
-//           </span>
-//         </div>
-//       </div>
-//     );
-//   };
-
-//   // Function to render individual field graphs with comparison
-//   const renderFieldGraph = (field: any) => {
-//     return (
-//       <div key={field.key} className="bg-white rounded-lg shadow-md p-4 mb-6">
-//         <h3 className="text-lg font-semibold text-gray-800 mb-3">{field.name}</h3>
-//         <div className="h-60">
-//           <ResponsiveContainer width="100%" height="100%">
-//             <LineChart 
-//               data={feedbackData}
-//               margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-//             >
-//               <CartesianGrid strokeDasharray="3 3" />
-//               <XAxis 
-//                 dataKey="sessionNo" 
-//                 label={{ value: 'Session Number', position: 'insideBottom', offset: -5 }}
-//                 padding={{ left: 10, right: 10 }}
-//                 tick={{ fontSize: 12 }}
-//               />
-//               <YAxis 
-//                 domain={[0, 10]} 
-//                 label={{ value: 'Score', angle: -90, position: 'insideLeft' }} 
-//               />
-//              <Tooltip 
-//                 formatter={(value, name) => {
-//                 if (name === "topScore") return [`${value}/10`, "Top Score"];
-//                   return [`${value}/10`, field.name];
-//                 }}
-//                 separator=": "
-//                 labelFormatter={(label) => `Session ${label}`}
-//                 contentStyle={{ padding: '8px' }}
-//               />
-//               <Legend 
-//                 layout="horizontal" 
-//                 verticalAlign="bottom" 
-//                 align="center"
-//                 wrapperStyle={{ paddingTop: 10, paddingLeft: 75}}
-//                 iconSize={10}
-//                 iconType="circle"
-//                 margin={{ top: 10 }}
-//               />
-              
-//               {/* Your score line */}
-//               <Line 
-//                 type="monotone" 
-//                 dataKey={field.key} 
-//                 stroke={field.color} 
-//                 name={field.name}
-//                 strokeWidth={2}
-//                 activeDot={{ r: 8 }} 
-//               />
-              
-//               {/* Top score line */}
-//               {allStudentsFeedbackData.length > 0 && (
-//                 <Line 
-//                   type="monotone" 
-//                   data={allStudentsFeedbackData}
-//                   dataKey={field.key} 
-//                   stroke="#228B22" 
-//                   name="topScore"
-//                   strokeWidth={2}
-//                   strokeDasharray="3 3"
-//                   dot={{ stroke: '#228B22', strokeWidth: 2, r: 4 }}
-//                 />
-//               )}
-//             </LineChart>
-//           </ResponsiveContainer>
-//         </div>
-        
-//         {/* Add a legend for comparison */}
-//         <div className="flex justify-center items-center mt-4 text-sm">
-//           <div className="flex items-center mr-8">
-//             <div className="w-4 h-4 mr-2" style={{ backgroundColor: field.color }}></div>
-//             <span className="text-gray-800">Your Score</span>
-//           </div>
-//           <div className="flex items-center">
-//             <div className="w-4 h-4 mr-2" style={{ backgroundColor: '#228B22' }}></div>
-//             <span className="text-gray-800">Top Score</span>
-//           </div>
-//         </div>
-//       </div>
-//     );
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-gray-50 p-6">
-//       <header className="mb-8">
-//         <div className="flex items-center mb-2">
-//           <button 
-//             onClick={() => router.push(`/tutor/courseDetailsForFeedback/${courseId}?studentId=${studentId}`)} 
-//             className="mr-4 p-2 rounded-full bg-gray-200 hover:bg-gray-100 transition-colors"
-//             aria-label="Go back"
-//           >
-//             <ArrowLeft className="text-orange-500" size={24} />
-//           </button>
-//           <h1 className="text-3xl font-bold text-orange-500">Your Performance Dashboard</h1>
-//         </div>
-//         <p className="text-gray-600">Track your progress across different sessions and skills</p>
-//       </header>
-
-//       {/* New Overall Course Performance Section */}
-//       <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
-//         <h2 className="text-2xl font-semibold text-center text-gray-900 mb-4">Overall Course Performance</h2>
-//         <div className="flex flex-col items-center justify-center space-y-4">
-//           <div className="flex items-baseline">
-//             <span className={`text-6xl font-bold ${getScoreColor(averageSkillScores.overall || 0)}`}>
-//               {averageSkillScores.overall?.toFixed(1)}
-//             </span>
-//             <span className="text-2xl text-gray-500 ml-2">/10</span>
-//           </div>
-//           <div className="flex justify-center space-x-1">
-//             {getStarRating(averageSkillScores.overall || 0)}
-//           </div>
-//           <p className="text-gray-600 text-center mt-4">
-//             This performance score is based on {feedbackData.length} evaluated classes.
-//           </p>
-//           <div className="flex justify-center gap-8 text-sm text-gray-500 mt-2">
-//             <div>Total Classes: {feedbackData.length}</div>
-//             <div>Evaluated Classes: {feedbackData.length}</div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* New Performance Metrics Grid */}
-//       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-//         {fields.map(field => (
-//           <div key={field.key} className="bg-white rounded-lg shadow-sm p-6">
-//             <div className="flex items-center justify-between mb-4">
-//               <div className="flex items-center gap-2">
-//                 <BarChart3 className="w-5 h-5 text-gray-500" />
-//                 <h3 className="text-lg font-medium text-gray-900">{field.name}</h3>
-//               </div>
-//               <div className="flex items-baseline">
-//                 <span className={`text-xl font-semibold ${getScoreColor(averageSkillScores[field.key] || 0)}`}>
-//                   {averageSkillScores[field.key]?.toFixed(1)}
-//                 </span>
-//                 <span className="text-sm text-gray-500 ml-1">/10</span>
-//               </div>
-//             </div>
-//             <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-//               <div 
-//                 className={`h-full ${getProgressBarColor(averageSkillScores[field.key] || 0)}`}
-//                 style={{ width: `${(averageSkillScores[field.key] || 0) * 10}%` }}
-//               />
-//             </div>
-//           </div>
-//         ))}
-//       </div>
-
-//       {/* Individual field graphs */}
-//       <section className="mb-10">
-//         <h2 className="text-2xl font-semibold text-orange-500 mb-4">Individual Skills Progress</h2>
-//         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-//           {fields.map(field => renderFieldGraph(field))}
-//         </div>
-//       </section>
-      
-//       {/* Feedback table section */}
-//       <section>
-//         <h2 className="text-2xl font-semibold text-orange-500 mb-4">Session Feedback Summary</h2>
-        
-//         <div className="bg-white rounded-lg shadow-md overflow-hidden">
-//           <div className="overflow-x-auto">
-//             <table className="min-w-full divide-y divide-gray-200">
-//               <thead className="bg-gray-100">
-//                 <tr>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-//                     Session No.
-//                   </th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-//                     Tutor Score
-//                   </th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-//                     Performance
-//                   </th>
-//                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-//                     Recommended Improvement
-//                   </th>
-//                 </tr>
-//               </thead>
-//               <tbody className="bg-white divide-y divide-gray-200">
-//                 {feedbackData.map((session) => (
-//                   <tr key={session.sessionNo} className="hover:bg-gray-50">
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-//                       {session.sessionNo}
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-//                       {session.averageScore}
-//                     </td>
-//                     <td className="px-6 py-4 whitespace-nowrap">
-//                       <span className={`px-2 inline-flex text-sm leading-5 font-semibold rounded-full ${getPerformanceColor(session.performanceLevel)}`}>
-//                         {session.performanceLevel.charAt(0).toUpperCase() + session.performanceLevel.slice(1)}
-//                       </span>
-//                     </td>
-//                     <td className="px-6 py-4 text-sm text-gray-500">
-//                       {session.personalFeedback}
-//                     </td>
-//                   </tr>
-//                 ))}
-//               </tbody>
-//             </table>
-//           </div>
-//         </div>
-//       </section>
-      
-//       {/* Personal Feedback Section */}
-//       {feedbackData.length > 0 && feedbackData[feedbackData.length - 1].personalFeedback && (
-//         <section className="mt-8">
-//           <h2 className="text-2xl font-semibold text-orange-500 mb-4">Latest Personal Feedback</h2>
-//           <div className="bg-white rounded-lg shadow-md p-6">
-//             <p className="text-gray-700">{feedbackData[feedbackData.length - 1].personalFeedback}</p>
-//           </div>
-//         </section>
-//       )}
-//     </div>
-//   );
-// };
-
-// // Export this as the default component
-// export default function ViewPerformancePage() {
-//   return <StudentFeedbackDashboardClient />;
-// }
-import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-
-const PerformanceDashboard = () => {
-  // Chart data for the skill progress charts
-  const chartData = [
-    { x: 0, yourScore: 2.5, topScore: 6.5 },
-    { x: 1, yourScore: 3, topScore: 7 },
-    { x: 2, yourScore: 3.8, topScore: 8.5 },
-    { x: 3, yourScore: 3.5, topScore: 8 },
-    { x: 4, yourScore: 4.2, topScore: 7.8 },
-    { x: 5, yourScore: 6.8, topScore: 7.5 },
-    { x: 6, yourScore: 7.8, topScore: 8 },
-    { x: 7, yourScore: 8, topScore: 7 },
-    { x: 8, yourScore: 7.2, topScore: 6.5 },
-    { x: 9, yourScore: 6, topScore: 6 },
-    { x: 10, yourScore: 5, topScore: 4.5 }
+  // Define fields and their colors for individual graphs
+  const fields = [
+    { key: 'rhythm', name: 'Rhythm', color: '#82ca9d' },
+    { key: 'theoretical', name: 'Theoretical Understanding', color: '#ff7300' },
+    { key: 'performance', name: 'Performance', color: '#ff4466' },
+    { key: 'earTraining', name: 'Ear Training', color: '#9467bd' },
+    { key: 'assignment', name: 'Assignment Completion', color: '#8c564b' },
+    { key: 'technique', name: 'Technique', color: '#e377c2' }
   ];
- const MetricCard = ({ title, value }) => (
+
+  // Get star rating
+  const getStarRating = (score: number) => {
+    const fullStars = Math.floor(score / 2);
+    const stars = [];
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(<span key={i} className="text-orange-400 text-lg">★</span>);
+      } else {
+        stars.push(<span key={i} className="text-gray-300 text-lg">☆</span>);
+      }
+    }
+    return stars;
+  };
+
+  // MetricCard component matching the second design
+  const MetricCard = ({ title, value }: { title: string; value: string }) => (
     <div className="flex flex-col">
       <div className="text-sm text-gray-700 mb-3">{title}</div>
       <div className="flex items-center justify-between">
@@ -731,88 +369,115 @@ const PerformanceDashboard = () => {
       </div>
     </div>
   );
-  const SkillChart = ({ title }) => (
-    <div className="bg-white">
-      <h4 className="text-sm font-medium text-gray-800 mb-4 text-center">{title}</h4>
-      <div className="h-48 relative">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 30, bottom: 40 }}>
-            <defs>
-              <linearGradient id={`topScoreGradient-${title}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#F4A460" stopOpacity={0.9}/>
-                <stop offset="50%" stopColor="#DEB887" stopOpacity={0.6}/>
-                <stop offset="100%" stopColor="#F5DEB3" stopOpacity={0.2}/>
-              </linearGradient>
-              <linearGradient id={`yourScoreGradient-${title}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#8A2BE2" stopOpacity={0.9}/>
-                <stop offset="50%" stopColor="#9370DB" stopOpacity={0.6}/>
-                <stop offset="100%" stopColor="#DDA0DD" stopOpacity={0.2}/>
-              </linearGradient>
-            </defs>
-            <XAxis 
-              dataKey="x"
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 10, fill: '#9CA3AF' }}
-              domain={[0, 10]}
-              type="number"
-              ticks={[0, 2, 4, 6, 8, 10]}
-            />
-            <YAxis 
-              domain={[0, 10]}
-              axisLine={false}
-              tickLine={false}
-              tick={{ fontSize: 10, fill: '#9CA3AF' }}
-              ticks={[0, 2, 4, 6, 8, 10]}
-            />
-            <Area
-              type="monotone"
-              dataKey="topScore"
-              stroke="#D2691E"
-              fill={`url(#topScoreGradient-${title})`}
-              strokeWidth={2}
-            />
-            <Area
-              type="monotone"
-              dataKey="yourScore"
-              stroke="#8A2BE2"
-              fill={`url(#yourScoreGradient-${title})`}
-              strokeWidth={2}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-        <div className="absolute bottom-0 left-0 right-0 text-center">
-          <div className="text-xs text-gray-500 mb-1">Score</div>
+
+  // Function to render individual field graphs with comparison (keeping original logic)
+  const renderFieldGraph = (field: any) => {
+    return (
+      <div key={field.key} className="bg-white">
+        <h4 className="text-sm font-medium text-gray-800 mb-4 text-center">{field.name}</h4>
+        <div className="h-48 relative">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart 
+              data={feedbackData}
+              margin={{ top: 10, right: 10, left: 30, bottom: 40 }}
+            >
+              <defs>
+                <linearGradient id={`topScoreGradient-${field.key}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#F4A460" stopOpacity={0.9}/>
+                  <stop offset="50%" stopColor="#DEB887" stopOpacity={0.6}/>
+                  <stop offset="100%" stopColor="#F5DEB3" stopOpacity={0.2}/>
+                </linearGradient>
+                <linearGradient id={`yourScoreGradient-${field.key}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#8A2BE2" stopOpacity={0.9}/>
+                  <stop offset="50%" stopColor="#9370DB" stopOpacity={0.6}/>
+                  <stop offset="100%" stopColor="#DDA0DD" stopOpacity={0.2}/>
+                </linearGradient>
+              </defs>
+              <XAxis 
+                dataKey="sessionNo" 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                padding={{ left: 10, right: 10 }}
+              />
+              <YAxis 
+                domain={[0, 10]} 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                ticks={[0, 2, 4, 6, 8, 10]}
+              />
+             <Tooltip 
+                formatter={(value, name) => {
+                if (name === "topScore") return [`${value}/10`, "Top Score"];
+                  return [`${value}/10`, field.name];
+                }}
+                separator=": "
+                labelFormatter={(label) => `Session ${label}`}
+                contentStyle={{ padding: '8px' }}
+              />
+              
+              {/* Your score area */}
+              <Area 
+                type="monotone" 
+                dataKey={field.key} 
+                stroke="#8A2BE2" 
+                fill={`url(#yourScoreGradient-${field.key})`}
+                strokeWidth={2}
+              />
+              
+              {/* Top score area */}
+              {allStudentsFeedbackData.length > 0 && (
+                <Area 
+                  type="monotone" 
+                  data={allStudentsFeedbackData}
+                  dataKey={field.key} 
+                  stroke="#D2691E" 
+                  fill={`url(#topScoreGradient-${field.key})`}
+                  strokeWidth={2}
+                />
+              )}
+            </AreaChart>
+          </ResponsiveContainer>
+          <div className="absolute bottom-0 left-0 right-0 text-center">
+            <div className="text-xs text-gray-500 mb-1">Session</div>
+          </div>
+          <div className="absolute left-0 top-0 bottom-8 flex items-center justify-center">
+            <div className="text-xs text-gray-500 transform -rotate-90 whitespace-nowrap">
+              Score
+            </div>
+          </div>
         </div>
-        <div className="absolute left-0 top-0 bottom-8 flex items-center justify-center">
-          <div className="text-xs text-gray-500 transform -rotate-90 whitespace-nowrap">
-            Session
+        
+        {/* Add a legend for comparison */}
+        <div className="flex justify-center gap-6 mt-4 text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-purple-600"></div>
+            <span className="text-gray-600">Your Score</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-yellow-600"></div>
+            <span className="text-gray-600">Top Score</span>
           </div>
         </div>
       </div>
-      <div className="flex justify-center gap-6 mt-4 text-xs">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-purple-600"></div>
-          <span className="text-gray-600">Your Score</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-yellow-600"></div>
-          <span className="text-gray-600">Top Score</span>
-        </div>
-      </div>
-    </div>
-  );
-
-  const sessionData = [
-    { session: 1, score: '5.33', performance: 'Medium', feedback: 'Great job keeping a steady tempo today', performanceColor: 'text-yellow-500' },
-    { session: 2, score: '4.67', performance: 'Poor', feedback: 'Work on smoother transitions between chords', performanceColor: 'text-red-500' },
-    { session: 3, score: '7.17', performance: 'Good', feedback: 'Your hand posture has really improved', performanceColor: 'text-green-500' },
-    { session: 4, score: '6.17', performance: 'Medium', feedback: 'Try practicing the left hand separately for accuracy', performanceColor: 'text-yellow-500' },
-    { session: 5, score: '4.53', performance: 'Poor', feedback: 'Excellent dynamics—your expression is growing', performanceColor: 'text-red-500' }
-  ];
+    );
+  };
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
+      {/* Header with back button */}
+      <div className="flex items-center mb-8">
+        <button 
+          onClick={() => router.push(`/tutor/courseDetailsForFeedback/${courseId}?studentId=${studentId}`)} 
+          className="mr-4 p-2 rounded-full bg-white hover:bg-gray-100 transition-colors shadow-sm"
+          aria-label="Go back"
+        >
+          <ArrowLeft className="text-gray-600" size={24} />
+        </button>
+        <h1 className="text-2xl font-semibold text-gray-800">Performance Dashboard</h1>
+      </div>
+
       {/* Overall Course Performance */}
       <div className="mb-8">
         <h1 className="text-xl font-semibold text-gray-800 mb-6">Overall Course Performance</h1>
@@ -821,26 +486,25 @@ const PerformanceDashboard = () => {
             {/* Main Score Card */}
             <div className="col-span-2">
               <div className="text-4xl font-bold text-purple-600 mb-2">
-                7.6<span className="text-lg text-gray-500 font-normal">/10</span>
+                {averageSkillScores.overall || 0}<span className="text-lg text-gray-500 font-normal">/10</span>
               </div>
               <div className="flex mb-4">
-                <span className="text-orange-400 text-lg">★★</span>
-                <span className="text-gray-300 text-lg">☆☆☆</span>
+                {getStarRating(averageSkillScores.overall || 0)}
               </div>
               <div className="text-sm text-gray-600 leading-relaxed">
                 This performance score is based<br />
-                on 5 evaluated classes.
+                on {feedbackData.length} evaluated classes.
               </div>
             </div>
             
             {/* Metric Cards Grid */}
             <div className="col-span-5 grid grid-cols-2 gap-x-16 gap-y-8">
-              <MetricCard title="Rhythm" value="6.2" />
-              <MetricCard title="Theoretical Understanding" value="4.6" />
-              <MetricCard title="Ear Training" value="3.2" />
-              <MetricCard title="Performance" value="5.6" />
-              <MetricCard title="Assignment Completion" value="4.2" />
-              <MetricCard title="Technique" value="6.8" />
+              <MetricCard title="Rhythm" value={averageSkillScores.rhythm?.toString() || "0"} />
+              <MetricCard title="Theoretical Understanding" value={averageSkillScores.theoretical?.toString() || "0"} />
+              <MetricCard title="Ear Training" value={averageSkillScores.earTraining?.toString() || "0"} />
+              <MetricCard title="Performance" value={averageSkillScores.performance?.toString() || "0"} />
+              <MetricCard title="Assignment Completion" value={averageSkillScores.assignment?.toString() || "0"} />
+              <MetricCard title="Technique" value={averageSkillScores.technique?.toString() || "0"} />
             </div>
           </div>
         </div>
@@ -851,7 +515,10 @@ const PerformanceDashboard = () => {
         <h2 className="text-xl font-semibold text-gray-800 mb-6">Latest Personal Feedback</h2>
         <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-100">
           <div className="text-gray-700 text-sm">
-            Session 3 class feedback
+            {feedbackData.length > 0 && feedbackData[feedbackData.length - 1].personalFeedback 
+              ? feedbackData[feedbackData.length - 1].personalFeedback
+              : "No personal feedback available yet."
+            }
           </div>
         </div>
       </div>
@@ -866,16 +533,18 @@ const PerformanceDashboard = () => {
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Session Number</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Score</th>
                 <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Performance</th>
-                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Recommended Improvement</th>
+                <th className="px-6 py-4 text-left text-sm font-medium text-gray-700">Personal Feedback</th>
               </tr>
             </thead>
             <tbody>
-              {sessionData.map((row, index) => (
-                <tr key={index} className={index < sessionData.length - 1 ? "border-b border-gray-100" : ""}>
-                  <td className="px-6 py-4 text-sm text-gray-900">Session - {row.session}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{row.score}</td>
-                  <td className={`px-6 py-4 text-sm font-medium ${row.performanceColor}`}>{row.performance}</td>
-                  <td className="px-6 py-4 text-sm text-gray-900">{row.feedback}</td>
+              {feedbackData.map((row, index) => (
+                <tr key={index} className={index < feedbackData.length - 1 ? "border-b border-gray-100" : ""}>
+                  <td className="px-6 py-4 text-sm text-gray-900">Session - {row.sessionNo}</td>
+                  <td className="px-6 py-4 text-sm text-gray-900">{row.averageScore}</td>
+                  <td className={`px-6 py-4 text-sm font-medium ${getPerformanceColor(row.performanceLevel)}`}>
+                    {row.performanceLevel.charAt(0).toUpperCase() + row.performanceLevel.slice(1)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-900">{row.personalFeedback || 'No feedback provided'}</td>
                 </tr>
               ))}
             </tbody>
@@ -888,12 +557,7 @@ const PerformanceDashboard = () => {
         <h2 className="text-xl font-semibold text-gray-800 mb-6">Individual Skills Progress</h2>
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
           <div className="grid grid-cols-3 gap-8">
-            <SkillChart title="Rhythm" />
-            <SkillChart title="Theoretical Understanding" />
-            <SkillChart title="Ear Training" />
-            <SkillChart title="Performance" />
-            <SkillChart title="Technique" />
-            <SkillChart title="Assignment Completion" />
+            {fields.map(field => renderFieldGraph(field))}
           </div>
           {/* Bottom border line */}
           <div className="mt-8 border-b border-gray-300"></div>
@@ -903,4 +567,7 @@ const PerformanceDashboard = () => {
   );
 };
 
-export default PerformanceDashboard;
+// Export this as the default component
+export default function ViewPerformancePage() {
+  return <StudentFeedbackDashboardClient />;
+}
