@@ -54,7 +54,11 @@ const courseNameSchema = new mongoose.Schema({
       type: Date,
       default: Date.now
     }
-  }]
+  }],
+  courseQuality:{
+    type:Number,
+    default:10
+  }
 }, {
   timestamps: true
 });

@@ -11,6 +11,7 @@ interface CourseData {
   description: string;
   duration: string;
   price: number;
+  courseQuality?: number;
   curriculum: {
     sessionNo: string;
     topic: string;
@@ -25,6 +26,26 @@ interface CourseData {
   }[];
 }
 
+interface AssignmentData {
+  _id: string;
+  title: string;
+  description: string;
+  deadline: string;
+  status: boolean;
+  fileUrl?: string;
+  fileName?: string;
+}
+
+interface ClassData {
+  _id: string;
+  title: string;
+  description: string;
+  performanceVideo?: string;
+  performanceVideoFileName?: string;
+  startTime: string;
+  endTime: string;
+}
+
 interface StudentData {
   message: string;
   studentId: string;
@@ -34,24 +55,59 @@ interface StudentData {
   age?: number;
   profileImage?: string;
   courses: CourseData[];
+  assignments?: AssignmentData[];
+}
+
+interface PerformanceData {
+  courseDetails: CourseData[];
+  classDetails: ClassData[];
 }
 
 export default function StudentProfileMain() {
   const [studentData, setStudentData] = useState<StudentData | null>(null);
+  const [performanceData, setPerformanceData] = useState<PerformanceData | null>(null);
+  const [assignmentData, setAssignmentData] = useState<AssignmentData[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // State for video playback
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
+  const [fullscreenVideo, setFullscreenVideo] = useState<string | null>(null);
+
+  // Function to handle video play in fullscreen
+  const handleVideoPlay = (videoUrl: string) => {
+    setFullscreenVideo(videoUrl);
+  };
+
+  // Function to close fullscreen video
+  const closeFullscreenVideo = () => {
+    setFullscreenVideo(null);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('studentId');
+        
+        // Fetch student data
         const response = await fetch(`/Api/studentCourses?studentId=${userId}`);
         const data = await response.json();
         setStudentData(data);
+
+        // Fetch performance data (course quality and performance videos)
+        const performanceResponse = await fetch(`/Api/users/user`);
+        const perfData = await performanceResponse.json();
+        setPerformanceData(perfData);
+
+        // Fetch assignment data
+        const assignmentResponse = await fetch(`/Api/assignment?userId=${userId}`);
+        const assignData = await assignmentResponse.json();
+        setAssignmentData(assignData.assignments || []);
+
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching student data:", error);
-        toast.error("Failed to load student data");
+        console.error("Error fetching data:", error);
+        toast.error("Failed to load data");
         setLoading(false);
       }
     };
@@ -73,14 +129,50 @@ export default function StudentProfileMain() {
     return studentScore ? studentScore.score : null;
   };
 
-  const CircularProgress = ({ score, label, color = "purple" }) => {
-    // Use exact score for display and percentage calculation
+  // Function to get course quality score
+  const getCourseQuality = () => {
+    if (!studentData?.courses || studentData.courses.length === 0) return null;
+    const mostRecentCourse = studentData.courses[0];
+    return performanceData?.courseDetails?.find(course => course._id === mostRecentCourse._id)?.courseQuality || mostRecentCourse.courseQuality || null;
+  };
+
+  // Function to calculate assignment completion percentage
+  const getAssignmentCompletion = () => {
+    if (!assignmentData || assignmentData.length === 0) return 0;
+    const completedAssignments = assignmentData.filter(assignment => assignment.status === true).length;
+    return Math.round((completedAssignments / assignmentData.length) * 100);
+  };
+
+  // Function to get latest performance video
+  const getLatestPerformanceVideo = () => {
+    if (!performanceData?.classDetails || performanceData.classDetails.length === 0) return null;
+    
+    // Find the most recent class with performance video
+    const classWithVideo = performanceData.classDetails
+      .filter(cls => cls.performanceVideo)
+      .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())[0];
+    
+    return classWithVideo;
+  };
+
+  const CircularProgress = ({ score, label, color = "purple", maxValue = 100 }) => {
+    // Calculate percentage based on score and maxValue
     const displayScore = score !== null && score !== undefined ? score : 0;
-    const percentage = score !== null && score !== undefined ? score : 0; // Use score directly as percentage
+    const percentage = score !== null && score !== undefined ? (score / maxValue) * 100 : 0;
     
     const circumference = 2 * Math.PI * 45;
     const strokeDasharray = circumference;
     const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+    // Format display text based on label type
+    const getDisplayText = () => {
+      if (label.includes('Completed') && score !== null) {
+        const total = assignmentData.length;
+        const completed = assignmentData.filter(a => a.status === true).length;
+        return `${completed}/${total}`;
+      }
+      return score !== null && score !== undefined ? `${displayScore}${maxValue === 10 ? '/10' : '%'}` : 'N/A';
+    };
 
     return (
       <div className="relative w-32 h-32 mx-auto">
@@ -97,7 +189,7 @@ export default function StudentProfileMain() {
             cx="50"
             cy="50"
             r="45"
-            stroke={color === "purple" ? "#6E09BD" : "#4301EA"}
+            stroke={color === "purple" ? "#6E09BD" : color === "orange" ? "#FFA500" : "#4301EA"}
             strokeWidth="5"
             fill="none"
             strokeDasharray={strokeDasharray}
@@ -122,7 +214,7 @@ export default function StudentProfileMain() {
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600">
-              {score !== null && score !== undefined ? `${displayScore}` : 'N/A'}
+              {getDisplayText()}
             </div>
             <div className="text-xs text-gray-500 mt-1 opacity-50">{label}</div>
           </div>
@@ -188,6 +280,7 @@ export default function StudentProfileMain() {
   }
 
   const mostRecentCourse = getMostRecentCourse();
+  const latestPerformanceVideo = getLatestPerformanceVideo();
 
   return (
     <div className="min-h-screen bg-stone-50">
@@ -316,13 +409,30 @@ export default function StudentProfileMain() {
                               </div>
                             </div>
                             
-                            <Link 
-                              href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`}
-                              className="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded gap-2 hover:bg-purple-700 transition-colors"
-                            >
-                              <span>View Performance</span>
-                              <ArrowUpRight size={16} />
-                            </Link>
+                            <div className="flex gap-4">
+                              <Link 
+                                href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`}
+                                className="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded gap-2 hover:bg-purple-700 transition-colors"
+                              >
+                                <span>View Performance</span>
+                                <ArrowUpRight size={16} />
+                              </Link>
+                              
+                              {/* New Button */}
+                              <button className="inline-flex items-center border border-purple-600 bg-white text-purple-600 px-6 py-3 rounded gap-2 hover:bg-purple-50 transition-colors">
+                                <span>Send Message</span>
+                                <ArrowUpRight size={16} />
+                              </button>
+                              
+                              {/* Session Summary Button */}
+                              <Link 
+                                href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`}
+                                className="inline-flex items-center border border-purple-600 bg-white text-purple-600 px-6 py-3 rounded gap-2 hover:bg-purple-50 transition-colors"
+                              >
+                                <span>Session Summary</span>
+                                <ArrowUpRight size={16} />
+                              </Link>
+                            </div>
                           </div>
                           
                           {/* Course Performance Circle with Exact API Score */}
@@ -357,10 +467,17 @@ export default function StudentProfileMain() {
                       </div>
                     </div>
                     
-                    <button className="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded gap-2 hover:bg-purple-700 transition-colors">
-                      <span>View Performance</span>
-                      <ArrowUpRight size={16} />
-                    </button>
+                    <div className="flex gap-4">
+                      <button className="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded gap-2 hover:bg-purple-700 transition-colors">
+                        <span>View Performance</span>
+                        <ArrowUpRight size={16} />
+                      </button>
+                      
+                      <button className="inline-flex items-center border border-purple-600 bg-white text-purple-600 px-6 py-3 rounded gap-2 hover:bg-purple-50 transition-colors">
+                        <span>Send Message</span>
+                        <ArrowUpRight size={16} />
+                      </button>
+                    </div>
                   </div>
                   
                   {/* Course Performance Circle */}
@@ -374,65 +491,121 @@ export default function StudentProfileMain() {
 
             <hr className="border-gray-200" />
 
-            {/* Performance Metrics - Show Individual Course Scores */}
+            {/* Updated Performance Metrics Section */}
             <div className="grid grid-cols-3 gap-8">
-              {studentData.courses.slice(0, 3).map((course, index) => {
-                const courseScore = getExactPerformanceScore(course);
-                return (
-                  <div key={course._id} className="text-center">
-                    <h4 className="text-base font-semibold text-gray-900 mb-6">{course.title}</h4>
-                    <div className="mb-6">
-                      <CircularProgress 
-                        score={courseScore} 
-                        label="Performance Score"
-                      />
-                    </div>
-                    <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto">
-                      <span>View Details</span>
-                      <ArrowUpRight size={16} />
-                    </button>
-                  </div>
-                );
-              })}
-              
-              {/* If less than 3 courses, fill remaining slots */}
-              {studentData.courses.length < 3 && (
-                <>
-                  {/* Assignments */}
-                  <div className="text-center">
-                    <h4 className="text-base font-semibold text-gray-900 mb-6">Assignments</h4>
-                    <div className="mb-6">
-                      <CircularProgress score={60} label="Completed" />
-                    </div>
-                    <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto">
-                      <span>View Details</span>
-                      <ArrowUpRight size={16} />
-                    </button>
-                  </div>
+              {/* Course Quality */}
+              <div className="text-center h-full flex flex-col">
+                <h4 className="text-base font-semibold text-gray-900 mb-6">Course Quality</h4>
+                <div className="mb-6 flex-grow flex items-center justify-center">
+                  <CircularProgress 
+                    score={getCourseQuality()} 
+                    label="Quality Score"
+                    color="purple"
+                    maxValue={10}
+                  />
+                </div>
+                <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto mt-auto">
+                  <span>View Details</span>
+                  <ArrowUpRight size={16} />
+                </button>
+              </div>
 
-                  {/* Latest Class Highlight */}
-                  <div className="text-center">
-                    <h4 className="text-base font-semibold text-gray-900 mb-6">Latest Class Highlight</h4>
-                    <div className="relative rounded-2xl overflow-hidden mb-6 h-44">
-                      <img
-                        src="/api/placeholder/280/176"
-                        alt="Latest class"
+              {/* Assignments */}
+              <div className="text-center h-full flex flex-col">
+                <h4 className="text-base font-semibold text-gray-900 mb-6">Assignments</h4>
+                <div className="mb-6 flex-grow flex items-center justify-center">
+                  <CircularProgress 
+                    score={getAssignmentCompletion()} 
+                    label="Completed" 
+                    color="orange"
+                    maxValue={100}
+                  />
+                </div>
+                <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto mt-auto">
+                  <span>View Details</span>
+                  <ArrowUpRight size={16} />
+                </button>
+              </div>
+
+              {/* Latest Performance Video */}
+              <div className="text-center h-full flex flex-col">
+                <h4 className="text-base font-semibold text-gray-900 mb-6">Latest Class Highlight</h4>
+                <div className="relative rounded-2xl overflow-hidden mb-6 h-44 flex-grow">
+                  {latestPerformanceVideo && latestPerformanceVideo.performanceVideo ? (
+                    <div 
+                      className="relative w-full h-full cursor-pointer group"
+                      onClick={() => handleVideoPlay(latestPerformanceVideo.performanceVideo!)}
+                    >
+                      <video
+                        src={latestPerformanceVideo.performanceVideo}
                         className="w-full h-full object-cover"
+                        muted
                       />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors">
                           <Play size={24} className="text-gray-800 ml-1" fill="currentColor" />
                         </div>
                       </div>
                     </div>
-                    <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto">
-                      <span>View More</span>
-                      <ArrowUpRight size={16} />
-                    </button>
-                  </div>
-                </>
-              )}
+                  ) : (
+                    <img
+                      src="/api/placeholder/280/176"
+                      alt="Latest class"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                  {latestPerformanceVideo && (
+                    <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs">
+                      {latestPerformanceVideo.title}
+                    </div>
+                  )}
+                </div>
+                <button className="border border-purple-600 text-purple-600 px-6 py-2 rounded flex items-center gap-2 hover:bg-purple-50 transition-colors mx-auto mt-auto">
+                  <span>View More</span>
+                  <ArrowUpRight size={16} />
+                </button>
+              </div>
             </div>
+
+            {/* Fullscreen Video Modal */}
+            {fullscreenVideo && (
+              <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
+                <div className="relative w-full h-full max-w-6xl max-h-[90vh] flex items-center justify-center">
+                  {/* Close button */}
+                  <button
+                    onClick={closeFullscreenVideo}
+                    className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+                  >
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  
+                  {/* Video player */}
+                  <video
+                    src={fullscreenVideo}
+                    className="w-full h-full object-contain"
+                    controls
+                    autoPlay
+                    onEnded={closeFullscreenVideo}
+                  />
+                  
+                  {/* Video title overlay */}
+                  {latestPerformanceVideo && (
+                    <div className="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white px-4 py-2 rounded">
+                      <h3 className="text-lg font-semibold">{latestPerformanceVideo.title}</h3>
+                      <p className="text-sm opacity-80">{latestPerformanceVideo.description}</p>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Click outside to close */}
+                <div 
+                  className="absolute inset-0 -z-10" 
+                  onClick={closeFullscreenVideo}
+                />
+              </div>
+            )}
           </>
         ) : (
           <div className="text-center py-12">

@@ -1,10 +1,8 @@
 // app/api/assignments/create/route.js
-import { NextResponse, NextRequest } from 'next/server';
-import { connect } from '@/dbConnection/dbConfic';
-import Assignment from '@/models/assignment';
+import { NextRequest, NextResponse } from 'next/server';
 import User from '@/models/userModel';
-import Class from '@/models/Class';
-import courseName from '@/models/courseName';
+import Assignment from '@/models/Assignment';
+import { connect } from '@/dbConnection/dbConfic';
 import { writeFile } from 'fs/promises';
 import path from 'path';
 import { mkdir } from 'fs/promises';
@@ -28,9 +26,9 @@ export async function POST(request: NextRequest) {
     const assignmentFile = formData.get('assignmentFile');
     
     // Validate required fields
-    console.log("classId : ", classId);
-    console.log("courseId : ", courseId);
-    console.log("11111111111111111111111111111111111111111111111111111");
+    // console.log("classId : ", classId);
+    // console.log("courseId : ", courseId);
+    // console.log("11111111111111111111111111111111111111111111111111111");
     
     if (!title || !description || !deadline || !classId || !courseId) {
       return NextResponse.json({
@@ -39,6 +37,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     console.log("2222222222222222222222222222222222222222222222222222222222");
+
+    // Find all  who have this courseId
+    const userWithCourse = await User.find({
+      courses: courseId 
+    }).select('_id');
+
+    const UserIds = userWithCourse.map(student => student._id);
+    
+    console.log("Found students with courseId:", UserIds.length);
     
     // Create assignment object (without file info initially)
     const assignmentData = {
@@ -47,6 +54,7 @@ export async function POST(request: NextRequest) {
       deadline: typeof deadline === 'string' ? new Date(deadline) : null,
       classId,
       courseId,
+      userId: UserIds, // Changed from userId to userIds array
     };
     console.log("333333333333333333333333333333333333333333333333333333333");
     
@@ -83,6 +91,15 @@ export async function POST(request: NextRequest) {
     const assignment = await Assignment.create(assignmentData);
     console.log("55555555555555555555555555555555555555555555555557");
     
+    // Update all users' assignment arrays with the new assignment ID
+    if (UserIds.length > 0) {
+      await User.updateMany(
+        { _id: { $in: UserIds } },
+        { $push: { assignment: assignment._id } }
+      );
+      console.log(`Assignment ID added to ${UserIds.length} students' assignment arrays`);
+    }
+    
     // Update the Class document with the assignment ID
     await Class.findByIdAndUpdate(
       classId,
@@ -93,7 +110,8 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      data: assignment
+      data: assignment,
+      studentsAssigned: UserIds.length
     }, { status: 201 });
     
   } catch (error: any) {
@@ -106,104 +124,59 @@ export async function POST(request: NextRequest) {
 }
 
 
-
 // app/api/assignment/route.js
-
 
 export async function GET(request: NextRequest) {
   try {
-    // Connect to MongoDB
-    await connect();
-
-    const token = request.cookies.get("token")?.value;
-    const decodedToken = token ? jwt.decode(token) : null;
-    const userId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-
+    // Extract user ID from URL query parameters
+    const url = new URL(request.url);
+    const userId = url.searchParams.get('userId');
+    
     if (!userId) {
-      return NextResponse.json(
-        { error: "Invalid token format" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
-
-    // Find user and their classes
-    const user = await User.findById(userId);
+    
+    // Validate user ID format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return NextResponse.json({ error: "Invalid user ID format" }, { status: 400 });
+    }
+    
+    // Find the user and get their assignment array
+    const user = await User.findById(userId).select('username email assignment');
+    
     if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-    console.log("user.username : ", user.username);
     
-    // Get class IDs from user
-    const classIds = user.classes || [];
+    // Check if user has any assignments
+    if (!user.assignment || user.assignment.length === 0) {
+      return NextResponse.json({
+        message: "No assignments found for this user",
+        userId: user._id,
+        username: user.username,
+        assignments: []
+      });
+    }
     
-    // Step 2: Find all classes and extract assignment IDs
-    const classes = await Class.find({
-      _id: { $in: classIds }
-    });
-    
-    // Extract assignment IDs from each class
-    const assignmentIds = classes
-      .map(classObj => classObj.assignmentId)
-      .filter(id => id !== null && id !== undefined);
-    
-    // Step 3: Find assignments using the extracted assignment IDs
+    // Find all assignments based on the assignment IDs in user's array
     const assignments = await Assignment.find({
-      _id: { $in: assignmentIds }
-    }).sort({ deadline: 1 }); // Sort by deadline ascending
-    
-    // Step 4: Get unique course IDs from assignments
-    const courseIds = assignments
-      .map(assignment => assignment.courseId)
-      .filter(id => id !== null && id !== undefined);
-    
-    // Step 5: Find course details
-    const courses = await courseName.find({
-      _id: { $in: courseIds }
-    });
-    
-    // Step 6: Create a course lookup map for efficient matching
-    const courseMap = courses.reduce((acc, course) => {
-      acc[course._id.toString()] = course;
-      return acc;
-    }, {});
-    
-    // Step 7: Add course details to assignments
-    const assignmentsWithCourseDetails = assignments.map(assignment => {
-      const courseDetails = courseMap[assignment.courseId?.toString()];
-      return {
-        ...assignment.toObject(),
-        courseTitle: courseDetails?.title || null,
-        courseCategory: courseDetails?.category || null,
-        courseDuration: courseDetails?.duration || null,
-        courseDescription: courseDetails?.description || null
-      };
-    });
-    
-    // console.log("assignments with course details: ", assignmentsWithCourseDetails);
+      _id: { $in: user.assignment }
+    })
+    .populate('classId', 'title description startTime endTime')
+    .populate('courseId', 'title category')
+    .sort({ deadline: 1 }); // Sort by deadline (earliest first)
     
     return NextResponse.json({
-      success: true,
-      assignments: assignmentsWithCourseDetails
+      message: "User assignments retrieved successfully",
+      userId: user._id,
+      username: user.username,
+      totalAssignments: assignments.length,
+      assignments: assignments
     });
     
   } catch (error: any) {
-    console.error("Error fetching assignments:", error);
-    
-    // Handle JWT verification errors
-    if (error.name === "JsonWebTokenError") {
-      return NextResponse.json(
-        { error: "Invalid token" },
-        { status: 401 }
-      );
-    }
-    
-    return NextResponse.json(
-      { error: error.message || "Failed to fetch assignments" },
-      { status: 500 }
-    );
+    console.error("Error fetching user assignments:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
