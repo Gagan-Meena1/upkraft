@@ -137,10 +137,8 @@ const Sidebar2 = () => {
           flex flex-col
           transition-all duration-300
           ${isMobile 
-            ? `w-64 transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`
-            : sidebarOpen 
-              ? "w-64" 
-              : "w-16"
+            ? (sidebarOpen ? "w-[240px] translate-x-0" : "-translate-x-full w-[240px]") 
+            : (sidebarOpen ? "w-[240px]" : "w-16")
           }
         `}
       >
@@ -153,7 +151,7 @@ const Sidebar2 = () => {
               width={288}
               height={72}
               priority
-              className={`object-contain w-36 h-auto transition-opacity duration-300 ${
+              className={`object-contain w-50 h-auto transition-opacity duration-300 ${
                 !isMobile && !sidebarOpen ? 'opacity-0' : 'opacity-100'
               }`}
             />
@@ -161,7 +159,7 @@ const Sidebar2 = () => {
         </div>
 
         {/* Navigation Menu - Scrollable */}
-        <nav className="flex-1 px-6 overflow-y-auto">
+        <nav className="w-[250px] h-[580px] gap-4 flex flex-col px-6 overflow-y-auto">
           <style jsx>{`
             nav::-webkit-scrollbar {
               width: 4px;
@@ -178,7 +176,7 @@ const Sidebar2 = () => {
             }
           `}</style>
           
-          <ul className="space-y-1 pb-4">
+          <ul className="space-y-1 pb-3 pt-3 pr-2">
             {menuItems.map((item) => (
               <li key={item.id}>
                 <Link
@@ -260,8 +258,8 @@ const Sidebar2 = () => {
               }
             }}
             className={`
-              w-full text-[#FFC357] text-[16px] flex items-center 
-              px-2 py-3 rounded-lg text-left transition-colors hover:bg-purple-500/50
+              w-full text-[#FFC357] text-[16px] flex items-center mt-90 
+              px-[8px] py-[10px] rounded-[8px] text-left transition-colors hover:bg-purple-500/50
               ${!isMobile && !sidebarOpen 
                 ? 'justify-center space-x-0' 
                 : 'space-x-3'

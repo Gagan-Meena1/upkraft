@@ -1,6 +1,5 @@
 "use client"
 import React, { useState, useEffect } from 'react';
-import { Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 const StudentCalendarView = () => {
   const [students, setStudents] = useState([]);
@@ -56,97 +55,75 @@ const StudentCalendarView = () => {
     loadData();
   }, []);
 
-  // Get days for current week
+  const cloneDate = (d) => new Date(d.getTime());
+
+  // Get days for current week (Mon - Sun)
   const getWeekDays = () => {
-    const startOfWeek = new Date(currentDate);
-    const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Start from Monday
+    const ref = cloneDate(currentDate);
+    const day = ref.getDay();
+    const diff = ref.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+    const startOfWeek = cloneDate(ref);
     startOfWeek.setDate(diff);
 
     const days = [];
     for (let i = 0; i < 7; i++) {
-      const day = new Date(startOfWeek);
-      day.setDate(startOfWeek.getDate() + i);
-      days.push(day);
+      const d = cloneDate(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      days.push(d);
     }
     return days;
   };
 
-  // Get classes for a specific student and date
   const getClassesForDate = (studentId, date) => {
     const studentClasses = allClasses.find(item => item.studentId === studentId);
     if (!studentClasses) return [];
 
     return studentClasses.classes.filter(classItem => {
+      if (!classItem.startTime) return false;
       const classDate = new Date(classItem.startTime);
       return classDate.toDateString() === date.toDateString();
     });
   };
 
-  // Navigate weeks
-  const navigateWeek = (direction) => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
-    setCurrentDate(newDate);
+  const changeDay = (deltaDays) => {
+    const d = cloneDate(currentDate);
+    d.setDate(d.getDate() + deltaDays);
+    setCurrentDate(d);
   };
 
-  // Format date for display
-  const formatDate = (date) => {
-    const today = new Date();
-    const isToday = date.toDateString() === today.toDateString();
-    
-    return {
-      dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      date: date.getDate(),
-      isToday
-    };
-  };
-
-  // Format time
   const formatTime = (startTime, endTime) => {
+    if (!startTime) return '';
     const start = new Date(startTime).toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     });
-    const end = new Date(endTime).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-    return `${start} - ${end}`;
+    const end = endTime
+      ? new Date(endTime).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
+      : '';
+    return end ? `${start} - ${end}` : start;
   };
 
-  // Get initials for avatar
   const getInitials = (name) => {
+    if (!name) return 'NA';
     return name
       .split(" ")
-      .map((n) => n[0])
+      .map((n) => n[0] || "")
       .join("")
       .toUpperCase()
       .substring(0, 2);
   };
 
-  // Get week range text
-  const getWeekRangeText = () => {
-    const days = getWeekDays();
-    const firstDay = days[0];
-    const lastDay = days[6];
-    
-    if (firstDay.getMonth() === lastDay.getMonth()) {
-      return `${firstDay.toLocaleDateString('en-US', { month: 'long' })} ${firstDay.getDate()} - ${lastDay.getDate()}, ${firstDay.getFullYear()}`;
-    } else {
-      return `${firstDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${lastDay.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}, ${firstDay.getFullYear()}`;
-    }
-  };
-
-  // Filter students based on search
-  const filteredStudents = students.filter(student =>
-    student.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const weekDays = getWeekDays();
+
+  const filteredStudents = students.filter(student =>
+    (student.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (student.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -159,191 +136,128 @@ const StudentCalendarView = () => {
     );
   }
 
+  // gridTemplateColumns: first column fixed 263px (your original), then 7 equal columns
+  const gridTemplate = { gridTemplateColumns: '263px repeat(7, minmax(0, 1fr))' };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-full mx-auto p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => navigateWeek('prev')}
-              className="p-3 border border-gray-300 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all rounded-xl shadow-sm"
-            >
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
-            </button>
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-gray-900 mb-1">
-                {getWeekRangeText()}
-              </h1>
-              <p className="text-sm text-gray-500 font-medium">Weekly Calendar View</p>
-            </div>
-            <button
-              onClick={() => navigateWeek('next')}
-              className="p-3 border border-gray-300 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all rounded-xl shadow-sm"
-            >
-              <ChevronRight className="h-5 w-5 text-gray-600" />
-            </button>
-          </div>
-          
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="search"
-              placeholder="Search Students..."
-              className="w-80 pl-12 pr-4 py-3 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white shadow-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+    <div className="w-[1647px] h-[936px] bg-white rounded-lg shadow-md p-6 mt-5">
+      {/* Top bar */}
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center gap-4 text-[20px] text-[#212121]">
+          <span onClick={() => changeDay(-1)} className="cursor-pointer select-none">{"<"}</span>
+          <span className="font-medium text-[20px] text-[#212121]">
+            {currentDate.toLocaleDateString("en-US", {
+              day: "2-digit",
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+            })}
+          </span>
+          <span onClick={() => changeDay(1)} className="cursor-pointer select-none">{">"}</span>
         </div>
 
-        {/* Calendar Grid */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-          {/* Header Row - Days */}
-          <div className="grid bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-200" style={{gridTemplateColumns: '300px repeat(7, 1fr)'}}>
-            <div className="px-6 py-5 font-bold text-gray-800 border-r border-gray-200 bg-white">
-              <div className="text-lg">Students</div>
-              <div className="text-xs text-gray-500 font-normal mt-1">
-                {filteredStudents.length} total
-              </div>
-            </div>
-            {weekDays.map((day, index) => {
-              const { dayName, date, isToday } = formatDate(day);
-              return (
-                <div 
-                  key={index} 
-                  className={`px-4 py-5 text-center border-r border-gray-200 last:border-r-0 transition-colors ${
-                    isToday ? 'bg-purple-100 border-purple-200' : ''
-                  }`}
-                >
-                  <div className={`font-bold text-sm ${isToday ? 'text-purple-700' : 'text-gray-700'}`}>
-                    {dayName.toUpperCase()}
-                  </div>
-                  <div className={`text-xl font-bold mt-2 ${
-                    isToday ? 'text-white bg-purple-500 rounded-full w-10 h-10 flex items-center justify-center mx-auto shadow-lg' : 'text-gray-900'
-                  }`}>
-                    {date}
-                  </div>
-                </div>
-              );
-            })}
+        <div className="flex gap-[10px]">
+          <select className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate">
+            <option className="truncate">Day</option>
+            <option className="truncate">Today</option>
+            <option className="truncate">Tomorrow</option>
+            <option className="truncate">Custom...</option>
+          </select>
+
+          <select className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate">
+            <option className="truncate">Week</option>
+            <option className="truncate">This Week</option>
+            <option className="truncate">Next Week</option>
+            <option className="truncate">Custom...</option>
+          </select>
+
+          <select className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate">
+            <option className="truncate">Month</option>
+            <option className="truncate">This Month</option>
+            <option className="truncate">Next Month</option>
+            <option className="truncate">Custom...</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Table-like grid: first column student info, next 7 columns days */}
+      <div className="mt-2 border border-gray-200 rounded">
+        {/* Header row - sticky */}
+        <div
+          className="grid items-stretch bg-white border-b"
+          style={gridTemplate}
+        >
+          {/* top-left cell: search (keeps your input styling) */}
+          <div className="p-3 border-r bg-white">
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              type="text"
+              placeholder="Search Students"
+              className="w-full h-[48px] px-4 rounded 
+                        border border-[#505050] 
+                        text-[14px] text-[#505050] 
+                        bg-[white] 
+                        font-inter font-normal"
+            />
           </div>
 
-          {/* Student Rows */}
-          <div className="divide-y divide-gray-100">
-            {filteredStudents.map((student, studentIndex) => (
-              <div key={student._id} className="grid min-h-[140px] hover:bg-gray-50/50 transition-colors" style={{gridTemplateColumns: '300px repeat(7, 1fr)'}}>
-                {/* Student Info */}
-                <div className="px-6 py-5 bg-gradient-to-r from-gray-50 to-white border-r border-gray-200 flex items-center">
-                  <div className="flex items-center gap-4 w-full">
-                    {/* Student Avatar */}
-                    <div className="relative flex-shrink-0">
-                      {student.profileImage ? (
-                        <img
-                          src={student.profileImage}
-                          alt={student.username}
-                          className="h-14 w-14 rounded-full object-cover shadow-lg ring-2 ring-white"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      <div 
-                        className={`h-14 w-14 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg ring-2 ring-white ${student.profileImage ? 'hidden' : 'flex'}`}
-                        style={{ display: student.profileImage ? 'none' : 'flex' }}
-                      >
-                        <span className="text-white font-bold text-lg">
-                          {getInitials(student.username)}
-                        </span>
-                      </div>
+          {weekDays.map((day, idx) => (
+            <div key={idx} className="p-3 text-center bg-[#F5F5F5] border-r last:border-r-0">
+              <div className="text-[16px] font-inter font-medium text-[#212121]">
+                {day.toLocaleDateString('en-US', { day: '2-digit', weekday: 'short' })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Body rows */}
+        <div className="max-h-[76vh] overflow-auto">
+          {filteredStudents.length === 0 ? (
+            <div className="p-6 text-[14px] text-[#9B9B9B]">No students to display</div>
+          ) : (
+            filteredStudents.map((student) => (
+              <div key={student._id} className="grid items-center border-b" style={gridTemplate}>
+                {/* student info cell */}
+                <div className="p-3 flex items-center gap-3 border-r min-h-[88px]">
+                  {student.avatar ? (
+                    <img src={student.avatar} alt={student.username} className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-sm font-medium">
+                      {getInitials(student.username)}
                     </div>
-                    
-                    {/* Student Details */}
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-gray-900 text-base">
-                        {student.username}
-                      </div>
-                      {/* <div className="text-sm text-gray-500 mt-1">
-                        {student.email}
-                      </div> */}
-                    </div>
+                  )}
+                  <div>
+                    <div className="text-[14px] text-[#212121] font-medium">{student.username}</div>
+                    <div className="text-[12px] text-[#9B9B9B]">Piano Student</div>
                   </div>
                 </div>
 
-                {/* Class Cells */}
-                {weekDays.map((day, dayIndex) => {
-                  const dayClasses = getClassesForDate(student._id, day);
-                  const { isToday } = formatDate(day);
-                  
+                {/* 7 day cells */}
+                {weekDays.map((day, idx) => {
+                  const classes = getClassesForDate(student._id, day);
                   return (
-                    <div 
-                      key={dayIndex} 
-                      className={`p-4 border-r border-gray-200 last:border-r-0 ${
-                        isToday ? 'bg-purple-50/30' : 'bg-white'
-                      }`}
-                    >
-                      <div className="space-y-3">
-                        {dayClasses.length > 0 ? (
-                          dayClasses.map((classItem, classIndex) => (
-                            <div 
-                              key={classIndex} 
-                              className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-0.5"
-                            >
-                              <div className="font-bold text-sm mb-2 leading-tight">
-                                {classItem.title}
-                              </div>
-                              <div className="text-xs opacity-90 font-medium mb-2">
-                                {formatTime(classItem.startTime, classItem.endTime)}
-                              </div>
-                              {classItem.description && (
-                                <div className="text-xs opacity-80 leading-relaxed">
-                                  {classItem.description.length > 50 
-                                    ? `${classItem.description.substring(0, 50)}...`
-                                    : classItem.description
-                                  }
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-8">
-                            <div className="text-gray-300 text-sm">No classes</div>
+                    <div key={idx} className="p-3 border-r last:border-r-0 min-h-[88px]">
+                      {classes.map((classItem, cIdx) => (
+                        <div
+                          key={classItem._id || cIdx}
+                          className="mb-2 p-2 bg-purple-50 border-l-4 border-purple-400 text-xs text-[#212121] rounded-md shadow-sm w-max"
+                        >
+                          <div className="font-medium text-[13px]">
+                            {classItem.title || 'Class'}
                           </div>
-                        )}
-                      </div>
+                          <div className="text-[11px] text-gray-600">
+                            {formatTime(classItem.startTime, classItem.endTime)}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   );
                 })}
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
-
-        {/* Empty state */}
-        {filteredStudents.length === 0 && !loading && (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="h-24 w-24 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                <Search className="h-10 w-10 text-gray-400" />
-              </div>
-              <div className="text-xl font-semibold text-gray-700 mb-2">No students found</div>
-              <div className="text-sm text-gray-500">Try adjusting your search terms or check back later</div>
-            </div>
-          </div>
-        )}
-
-        {/* Students count */}
-        {filteredStudents.length > 0 && (
-          <div className="mt-6 text-center">
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-white shadow-sm border border-gray-200">
-              <span className="text-sm font-medium text-gray-600">
-                Showing {filteredStudents.length} of {students.length} student{students.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

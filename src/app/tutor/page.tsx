@@ -118,6 +118,8 @@ export default function Dashboard() {
     url: null,
     classId: null,
   });
+  const [profileBorderColor, setProfileBorderColor] = useState<string>("#FFC55A"); // fallback gold
+
 
   // Check if mobile
   useEffect(() => {
@@ -134,6 +136,53 @@ export default function Dashboard() {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  useEffect(() => {
+  if (typeof window === "undefined") return; // ✅ Only run in browser
+  const src = userData?.profileImage;
+  if (!src) return;
+
+  const img = new window.Image(); // ✅ Use window.Image to be explicit
+  img.crossOrigin = "Anonymous";
+  img.src = src;
+
+  const handleLoad = () => {
+    try {
+      const w = 50, h = 50;
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      ctx.drawImage(img, 0, 0, w, h);
+      const imageData = ctx.getImageData(0, 0, w, h).data;
+
+      let r = 0, g = 0, b = 0, count = 0;
+      for (let i = 0; i < imageData.length; i += 4) {
+        const alpha = imageData[i + 3];
+        if (!alpha) continue;
+        r += imageData[i];
+        g += imageData[i + 1];
+        b += imageData[i + 2];
+        count++;
+      }
+
+      if (count > 0) {
+        r = Math.round(r / count);
+        g = Math.round(g / count);
+        b = Math.round(b / count);
+        setProfileBorderColor(`rgb(${r}, ${g}, ${b})`);
+      }
+    } catch (err) {
+      console.warn("Color sampling failed:", err);
+    }
+  };
+
+  img.addEventListener("load", handleLoad);
+  return () => img.removeEventListener("load", handleLoad);
+}, [userData?.profileImage]);
+
 
   const filterFutureClasses = (classes: ClassData[]) => {
     const now = new Date();
@@ -153,10 +202,14 @@ export default function Dashboard() {
     }).length;
   };
 
+  
+
   const SimpleLoader = () => (
   <div className="flex justify-center items-center min-h-[400px]">
     <div className="w-8 h-8 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
   </div>
+
+  
 );
   useEffect(() => {
     const fetchData = async () => {
@@ -313,7 +366,11 @@ const formatTime = (dateString: string) => {
       .slice(0, 2);
   };
 
+  
+
+
   return (
+    <div className="overflow-x-auto">
     <div className="flex min-h-screen bg-gray-50">
       {/* Mobile Overlay */}
       {/* {isMobile && sidebarOpen && (
@@ -512,14 +569,22 @@ const formatTime = (dateString: string) => {
               {/* Top Section - Adjusted Grid */}
               <div className="grid grid-cols-12 gap-4 md:gap-6 mb-6">
                 {/* Profile Card - Made larger */}
-                <div className="col-span-12 lg:col-span-5 xl:col-span-4">
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
+                <div className="col-span-12 lg:col-span-5 xl:col-span-4 p-6">
+                  <div className="absolute bg-white p-6"
+                    style={{
+                      width: "457px",
+                      height: "384px",
+                      top: "110px",
+                      left: "272px",
+                      borderRadius: "16px",
+                      border: `1px solid ${profileBorderColor}`,
+                    }}>
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">
                       Profile
                     </h3>
                     <div className="flex flex-col items-center text-center">
 <div className="relative mb-4">
-  <div className="w-20 h-20 bg-[#FFC357] rounded-full flex items-center justify-center overflow-hidden">
+  <div className="w-29 h-28 bg-[#FFC357] rounded-full flex items-center justify-center overflow-hidden -ml-40 mt-5">
     {userData?.profileImage ? (
       <Image 
         src={userData.profileImage} 
@@ -537,117 +602,174 @@ const formatTime = (dateString: string) => {
       </div>
     )}
   </div>
-  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+  <div className="absolute -bottom-1 -left-18 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
     <span className="text-white text-sm">✓</span>
   </div>
 </div>
-                      <h4 className="text-xl font-semibold text-gray-900 mb-2">
+                      <h4 className="w-[141.6px] h-[29px] text-[24px] font-medium font-inter text-[#000000] mb-2 -ml-50">
                         {userData?.username || "Loading..."}
                       </h4>
-                      <p className="text-gray-600 mb-4">
+                      <p className="text-gray-600 mb-4 -ml-50 w-[141.6px] h-[22px] text-[18px] font-medium font-inter">
                         {courseData.length > 0
                           ? `${courseData[0].category} Tutor`
                           : "Tutor"}
                       </p>
-                      <div className="flex items-center justify-center space-x-8">
-                        <div className="flex flex-col items-center">
-                          <div className="flex items-center space-x-1 mb-1">
-                            <Users size={16} className="text-gray-400" />
-                            <span className="text-sm font-semibold text-gray-900">
-                              {studentCount}
-                            </span>
+                      <div className="flex flex-col space-y-4 -mt-50 ml-40 ">
+                        <div className="w-[175px] h-[36px] flex items-center justify-between rounded-lg bg-[#F1ECF7] px-9 py-1.5 gap-2">
+                        {/* Students */}
+                          <div className="flex items-center gap-2">
+                            <Users size={16} className="text-[#7009BA]" />
+                            <span className="text-sm font-medium text-[#7009BA]">Students</span>
+                            <span className="text-sm font-semibold text-[#212121]">{studentCount}</span>
                           </div>
-                          <span className="text-xs text-gray-500">
-                            Students
-                          </span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <div className="flex items-center space-x-1 mb-1">
-                            <BookOpen size={16} className="text-gray-400" />
-                            <span className="text-sm font-semibold text-gray-900">
+
+                        <div className="w-[175px] h-[36px] flex items-center justify-between rounded-lg bg-[#F1ECF7] px-9 py-1.5 gap-2 mt-2">
+                        {/* Courses */}
+                          <div className="flex items-center gap-2">
+                            <BookOpen size={16} className="text-[#7009BA]" />
+                            <span className="text-sm font-medium text-[#7009BA]">Courses</span>
+                            <span className="text-sm font-semibold text-[#212121]">
                               {courseData.length || 0}
                             </span>
                           </div>
-                          <span className="text-xs text-gray-500">Courses</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                          <div className="flex items-center space-x-1 mb-1">
-                            <Star size={16} className="text-gray-400" />
-                            <span className="text-sm font-semibold text-gray-900">
-                              Yes
-                            </span>
+
+                        <div className="w-[175px] h-[36px] flex items-center justify-between rounded-lg bg-[#F1ECF7] px-2 py-1.5 gap-2 mt-2">
+                        {/* Certification */}
+                          <div className="flex items-center gap-2">
+                            <Star size={16} className="text-[#7009BA]" />
+                            <span className="text-sm font-medium text-[#7009BA]">Upkraft Certified</span>
+                            <span className="text-sm font-semibold text-[#212121]">Yes</span>
                           </div>
-                          <span className="text-xs text-gray-500">
-                            Upkraft Certified
-                          </span>
                         </div>
-                      </div>
+                      </div> 
                     </div>
                   </div>
                 </div>
 
                 {/* Right Column - Image and Refer & Earn */}
                 <div className="col-span-12 lg:col-span-7 xl:col-span-8 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 h-full">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
                     {/* Percentage Stats - Now more compact */}
-                    <div className="md:col-span-2 flex flex-row md:flex-col justify-between md:justify-center space-y-0 md:space-y-6 space-x-4 md:space-x-0">
-                      <div className="text-center bg-white rounded-lg p-3 border border-gray-200 flex-1 md:flex-none">
-                        <div className="text-2xl font-bold text-[#6F09BA] mb-1">
-                          15%
-                        </div>
-                        <p className="text-xs text-gray-600">
-                          Lesson Completion
-                        </p>
+                    <div className="md:col-span-1 flex flex-col justify-between w-[360px] h-[382px] gap-[18px] -ml-18 mt-2">
+                      <div className="w-[360px] h-[115px] text-center bg-white rounded-lg p-4 border border-gray-200 flex-1 flex flex-col items-center justify-center">
+                        <div className="w-[53px] h-[48px] text-[40px] text-2xl font-bold text-[#6F09BA] -ml-67 -mt-4">15%</div>
+                        <p className="text-sm text-gray-600 -ml-50 mt-1">Lesson Completion</p>
                       </div>
-                      <div className="text-center bg-white rounded-lg p-3 border border-gray-200 flex-1 md:flex-none">
-                        <div className="text-2xl font-bold text-[#6F09BA] mb-1">
-                          80%
-                        </div>
-                        <p className="text-xs text-gray-600">
-                          Session Engagement
-                        </p>
+
+                      <div className="w-[360px] h-[115px] text-center bg-white rounded-lg p-4 border border-gray-200 flex-1 flex flex-col items-center justify-center">
+                        <div className="w-[53px] h-[48px] text-[40px] text-2xl font-bold text-[#6F09BA] -ml-67 -mt-4">80%</div>
+                        <p className="text-sm text-gray-600 -ml-48 mt-1">Session Engagement</p>
                       </div>
-                      <div className="text-center bg-white rounded-lg p-3 border border-gray-200 flex-1 md:flex-none">
-                        <div className="text-2xl font-bold text-[#6F09BA] mb-1">
-                          95%
-                        </div>
-                        <p className="text-xs text-gray-600">
-                          Student Satisfaction
+
+                      <div className="w-[360px] h-[115px] text-center bg-white rounded-lg p-4 border border-gray-200 flex-1 flex flex-col items-center justify-center">
+                        <div className="w-[53px] h-[48px] text-[40px] text-2xl font-bold text-[#6F09BA] -ml-67 -mt-4">95%</div>
+                        <p className="text-sm text-gray-600 -ml-50 mt-1">Student Satisfaction</p>
+                      </div>
+                    </div>
+                    
+                    {/* Middle */}
+                    <div className="md:col-span-1 w-[360px] h-[384px] flex flex-col items-center justify-between py-4 bg-white rounded-lg shadow-sm -ml-8">
+                      {/* Overall Course Performance */}
+                      <div className="flex flex-col items-center">
+                        <p className="w-[190px] h-[60px] text-[#212121] mt-2 text-[16px] font-inter font-semibold text-center leading-tight">
+                          Overall Course Performance
                         </p>
+
+                        {/* SVG Gauge instead of conic-gradient */}
+                        <svg className="-mt-4" width="200" height="100" viewBox="0 0 120 60">
+                          {/* background arc (full half circle) */}
+                          <path
+                            d="M 10 60 A 50 50 0 0 1 110 60"
+                            stroke="#FFF7E8"
+                            strokeWidth="12"
+                            fill="none"
+                          />
+                            {/* progress arc (with round caps) */}
+                          <path
+                            d="M 10 60 A 50 50 0 0 1 110 60"
+                            stroke="#FFC357"
+                            strokeWidth="12"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeDasharray={Math.PI * 50}   // circumference of half circle
+                            strokeDashoffset={Math.PI * 50 * (1 - 7.6 / 10)}
+                          />
+                        </svg>
+
+                        <div className="text-[48px] font-bold text-purple-700 -mt-15">
+                          7.6<span className="text-gray-500 text-[25px] text-base">/10</span>
+                        </div>
+                      </div>
+                      {/* Overall Student Performance */}
+                      <div className="flex flex-col items-center">
+                        <p className="w-[190px] h-[60px] text-[#212121] -mt-40 text-[16px] font-inter font-semibold text-center leading-tight">
+                          Overall Student Performance
+                        </p>
+
+                        {/* SVG Gauge instead of conic-gradient */}
+                        <svg className="-mt-4" width="200" height="100" viewBox="0 0 120 60">
+                          {/* background arc (full half circle) */}
+                          <path
+                            d="M 10 60 A 50 50 0 0 1 110 60"
+                            stroke="#FFF7E8"
+                            strokeWidth="12"
+                            fill="none"
+                          />
+                            {/* progress arc (with round caps) */}
+                          <path
+                            d="M 10 60 A 50 50 0 0 1 110 60"
+                            stroke="#FFC357"
+                            strokeWidth="12"
+                            fill="none"
+                            strokeLinecap="round"
+                            strokeDasharray={Math.PI * 50}   // circumference of half circle
+                            strokeDashoffset={Math.PI * 50 * (1 - 6.6 / 10)}
+                          />
+                        </svg>
+
+                        <div className="text-[48px] font-bold text-purple-700 -mt-15">
+                          6.6<span className="text-gray-500 text-[25px] text-base">/10</span>
+                        </div>
                       </div>
                     </div>
 
+
+                    
+
                     {/* Image and Refer Card Column */}
-                    <div className="md:col-span-3">
+                    <div className="md:col-span-1">
                       <div className="p-1 pb-0 flex items-center justify-center h-40 md:h-48">
-                        <div className="w-80 -mb-7 h-32 md:w-60 md:h-40 rounded-lg overflow-hidden flex items-center justify-center">
+                        <div className="max-w-xs flex justify-end">
                           <Image
                             src="/tutorDashboard.png"
                             alt="Tutor Dashboard"
-                            width={160}
-                            height={160}
-                            className="w-full h-full object-cover rounded-lg ml-20"
+                            width={200}
+                            height={200}
+                            className="rounded-lg object-contain"
                             priority
                           />
                         </div>
                       </div>
 
                       {/* Refer and Earn Card - Increased height and removed top margin */}
-                      <div className="bg-gradient-to-br from-[#6F09BA] to-[#4A0680] rounded-xl p-4 text-white relative overflow-hidden h-32 md:h-36 mt-0 w-4/5 ml-auto">
-                        <div className="relative z-10 h-full flex flex-col justify-center">
-                          <h3 className="text-lg font-bold mb-1">
-                            Refer and Earn
-                          </h3>
-                          <p className="text-xs text-white/90 mb-2 line-clamp-2">
-                            Invite friends and earn exclusive rewards!
-                          </p>
-                          <button className="bg-[#FFC357] text-gray-900 px-3 py-1.5 rounded-lg font-medium hover:bg-[#FFB627] transition-colors flex items-center space-x-2 text-sm w-fit">
-                            <span>Refer Now</span>
-                            <ArrowRight size={14} />
-                          </button>
+                      <div className="w-[368px] h-[178px] ml-auto">
+                        <div className="bg-gradient-to-br from-[#6F09BA] to-[#4A0680] rounded-lg p-4 text-white relative overflow-hidden w-full h-full">
+                          <div className="relative z-10 h-full flex flex-col justify-center">
+                            <h3 className="text-lg font-bold mb-5 ml-23 w-[281px] h-[29px] text-[24px]">Refer and Earn</h3>
+                            <p className="text-xs text-white/90 -mb-1 ml-10 line-clamp-2 w-[281px] h-[34px] text-[14px]">
+                              Invite friends and earn exclusive rewards!
+                            </p>
+                            <button className="w-[222px] h-[48px] ml-15 rounded-lg bg-[#FFC357] hover:bg-[#FFB627] transition-colors flex items-center justify-center gap-[10px] px-[54px] py-[16px] text-gray-900 font-medium text-sm">
+                              <span>Refer Now</span>
+                              <ArrowRight size={16} />
+                            </button>
+                          </div>
+                          {/* Decorative circles */}
+                          <div className="absolute right-2 top-2 w-8 h-8 bg-white/10 rounded-full"></div>
+                          <div className="absolute right-6 bottom-2 w-4 h-4 bg-white/5 rounded-full"></div>
                         </div>
-                        <div className="absolute right-2 top-2 w-8 h-8 bg-white/10 rounded-full"></div>
-                        <div className="absolute right-6 bottom-2 w-4 h-4 bg-white/5 rounded-full"></div>
                       </div>
                     </div>
                   </div>
@@ -658,7 +780,7 @@ const formatTime = (dateString: string) => {
               <div className="grid grid-cols-12 gap-4 md:gap-6">
                 {/* Upcoming Lessons */}
                 <div className="col-span-12 lg:col-span-8">
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <div className="absolute top-[518px] left-[272px] w-[1240px] h-[530px] bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-lg font-semibold text-gray-900">
                         Upcoming Lessons
@@ -672,19 +794,22 @@ const formatTime = (dateString: string) => {
                       <table className="w-full">
                         <thead>
                           <tr className="border-b border-gray-200">
-                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                            <th className="text-left py-3 px-2 text-sm font-semibold text-[#212121] font-inter">
                               Date
                             </th>
-                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                            <th className="text-left py-3 px-2 text-sm font-semibold text-[#212121] font-inter">
                               Time
                             </th>
-                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                            <th className="text-left py-3 px-2 text-sm font-semibold text-[#212121] font-inter">
                               Course
                             </th>
-                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                            <th className="text-left py-3 px-2 text-sm font-semibold text-[#212121] font-inter">
                               Class Name
                             </th>
-                            <th className="text-left py-3 px-2 text-sm font-medium text-gray-600">
+                            <th className="text-left py-3 px-2 text-sm font-semibold text-[#212121] font-inter">
+                              Student Name
+                            </th>
+                            <th className="text-left py-3 px-2 text-sm font-semibold text-[#212121] font-inter">
                               Action
                             </th>
                           </tr>
@@ -722,6 +847,9 @@ const formatTime = (dateString: string) => {
                               <td className="py-3 px-2 text-sm text-gray-600">
                                 {classItem.title}
                               </td>
+                              <td className="py-3 px-2 text-sm text-gray-600">
+                                {classItem.title}
+                              </td>
                               <td className="py-3 px-2">
                                 <button
                                   onClick={() =>
@@ -753,18 +881,18 @@ const formatTime = (dateString: string) => {
                 {/* Feedback Pending */}
                 {/* Feedback Pending */}
                 <div className="col-span-12 lg:col-span-4">
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center">
-                      Feedback Pending
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 w-[370px] h-[531px] ml-45 mt-0">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 text-center leading-tight mb-6 mt-5">
+                      <span className="block">Feedback</span>
+                      <span className="block">Pending</span>
                     </h3>
-
                     {!loading ? (
                       <>
-                        <div className="flex items-center justify-center mb-4">
-                          <div className="relative w-32 h-32">
+                        <div className="flex items-center justify-center mb-15">
+                          <div className="relative w-40 h-40 mt-10">
                             {/* Background circle */}
                             <svg
-                              className="w-32 h-32 transform -rotate-90"
+                              className="w-40 h-40 transform -rotate-90"
                               viewBox="0 0 36 36"
                             >
                               {/* Background circle */}
@@ -817,7 +945,7 @@ const formatTime = (dateString: string) => {
                             {/* Center content */}
                             <div className="absolute inset-0 flex items-center justify-center">
                               <div className="text-center">
-                                <div className="text-2xl font-bold text-gray-900">
+                                <div className="text-2xl font-bold text-gray-900 text-[40px]">
                                   {feedbackPendingCount}
                                 </div>
                               </div>
@@ -862,6 +990,7 @@ const formatTime = (dateString: string) => {
           )}
         </main>
       </div>
+    </div>
     </div>
   );
 }

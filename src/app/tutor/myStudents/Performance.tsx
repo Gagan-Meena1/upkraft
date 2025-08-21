@@ -95,7 +95,7 @@ function Performance() {
   ];
 
   return (
-    <div className="h-full bg-gray-50 overflow-y-auto space-y-6">
+    <div className="h-full bg-gray-50 overflow-y-auto space-y-6 mt-10">
       {/* Overall Course Performance */}
       <PerformanceOverview />
 

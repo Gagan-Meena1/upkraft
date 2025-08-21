@@ -145,7 +145,7 @@ export default function Feedback() {
   };
 
   return (
-    <div className="h-full bg-white flex rounded-lg flex-col ">
+    <div className="h-full mt-5 bg-white flex rounded-lg flex-col ">
       <div className=" bg-white  p-6 border-b border-gray-200  flex w-full justify-between items-center">
         {/* Header */}
         <h1 className="text-xl font-semibold text-[#212121]">
@@ -227,13 +227,36 @@ export default function Feedback() {
         {/* Main Content */}
         <div className="flex-1 flex flex-col h-full overflow-hidden">
           {/* Content Header */}
-          <div className="bg-white p-6 flex gap-3 flex-col justify-between items-start">
+          <div className="bg-white p-6 flex justify-between items-center">
+            <div className="flex flex-col">
             <h2 className="text-xl font-semibold text-[#212121]">
               Student Performance Evaluation
             </h2>
             <p className="text-[#505050] text-sm">
               Provide feedback on student's performance
             </p>
+          </div>
+
+          {/* Right side: Upload button */}
+          <button
+            className="flex items-center gap-2 border border-[#6E09BD] text-[#6E09BD] px-4 py-2 rounded-md hover:bg-purple-50 transition w-auto"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            Upload Recording
+          </button>
           </div>
 
           {/* Evaluation Form */}

@@ -84,7 +84,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   const score = 5.6;
   const percentage = (score / 10) * 100;
 
-  const radius = 60;
+  const radius = 70;
   const fullCircumference = 2 * Math.PI * radius;
   const arcCircumference = (270 / 360) * fullCircumference; // 270° arc
   const offset = arcCircumference - (percentage / 100) * arcCircumference;
@@ -105,10 +105,10 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   const dotY = cy + radius * Math.sin(angleRad);
   return (
     <div className="h-full  flex flex-col overflow-y-auto">
-      <div className="flex flex-col gap-8 ">
+      <div className="flex flex-col gap-8 mt-8">
         {/* Profile Card */}
         <div className="grid grid-cols-8 gap-8">
-          <div className="border border-blue-400 rounded-lg p-6 flex flex-col items-center text-center col-span-2">
+          <div className="border border-blue-400 rounded-2xl p-6 flex flex-col items-center text-center col-span-2 bg-[#FFFFFF]">
             <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#F5F5F5] flex items-center justify-center">
               <div className="w-24 h-24 rounded-full overflow-hidden">
                 <img
@@ -133,31 +133,31 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-[#505050] text-[16px]">Email :</span>
-                <span className="text-[#212121] font-medium text-[16px]">
+                <span className="font-sans text-[#212121] font-medium text-[16px]">
                   eunicerrobel@gmail.com
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#505050] text-[16px]">Contact :</span>
-                <span className="text-[#212121] font-medium text-[16px]">
+                <span className="font-sans text-[#212121] font-medium text-[16px]">
                   698.661.1830
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#505050] text-[16px]">Age :</span>
-                <span className="text-[#212121] font-medium text-[16px]">
+                <span className="font-sans text-[#212121] font-medium text-[16px]">
                   22
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#505050] text-[16px]">DOB :</span>
-                <span className="text-[#212121] font-medium text-[16px]">
+                <span className="font-sans text-[#212121] font-medium text-[16px]">
                   1 January 2022
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#505050] text-[16px]">Gender :</span>
-                <span className="text-[#212121] font-medium text-[16px]">
+                <span className="font-sans text-[#212121] font-medium text-[16px]">
                   Female
                 </span>
               </div>
@@ -171,13 +171,13 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-[#505050] text-[16px]">Course :</span>
-                <span className="text-[#212121] font-medium text-[16px]">
+                <span className="font-sans text-[#212121] font-medium text-[16px]">
                   Piano Classes & Guitar Classes
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#505050] text-[16px]">Course Fee :</span>
-                <span className="text-[#212121] font-medium text-[16px]">
+                <span className="font-sans text-[#212121] font-medium text-[16px]">
                   Rs. 80,000
                 </span>
               </div>
@@ -185,19 +185,19 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
                 <span className="text-[#505050] text-[16px]">
                   Amount Paid :
                 </span>
-                <span className="text-[#212121] font-medium text-[16px]">
+                <span className="font-sans text-[#212121] font-medium text-[16px]">
                   NA
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#505050] text-[16px]">Status :</span>
-                <span className="text-[#E53935] font-medium text-[16px]">
+                <span className="font-sans text-[#E53935] font-medium text-[16px]">
                   Not Paid
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#505050] text-[16px]">Paid Via :</span>
-                <span className="text-[#212121] font-medium text-[16px]">
+                <span className="font-sans text-[#212121] font-medium text-[16px]">
                   NA
                 </span>
               </div>
@@ -257,7 +257,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
 
               {/* Overall Performance */}
               <div className="flex flex-col items-center">
-                <h4 className="text-sm font-medium text-gray-600 mb-4">
+                <h4 className="text-[16px] font-semibold text-[#212121]  mb-4">
                   Overall Course Performance
                 </h4>
                 <div className="relative w-48 h-48">
@@ -271,7 +271,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
                       cy={cy}
                       r={radius}
                       stroke="#E5E7EB"
-                      strokeWidth="10"
+                      strokeWidth="14"
                       fill="transparent"
                       strokeDasharray={`${perfomanceCircumference} ${fullCircumference}`}
                       strokeLinecap="round"
@@ -283,7 +283,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
                       cy={cy}
                       r={radius}
                       stroke="#FFC357"
-                      strokeWidth="10"
+                      strokeWidth="14"
                       fill="transparent"
                       strokeDasharray={`${arcCircumference} ${fullCircumference}`}
                       strokeDashoffset={offset}
@@ -292,12 +292,12 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
                     />
                   </svg>
 
-                  <div className="absolute top-[30%] right-[35%]  justify-center flex flex-col gap-2 items-center">
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-[60%] flex flex-col gap-2 items-center">
                     <div>
-                      <span className="text-2xl font-semibold text-purple-600">
+                      <span className="text-[48px] font-semibold text-[#6E09BD]">
                         {score}
                       </span>
-                      <span className="text-gray-500 text-lg">/10</span>
+                      <span className="text-gray-500 text-[24px]">/10</span>
                     </div>
                   </div>
                 </div>
