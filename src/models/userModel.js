@@ -49,6 +49,14 @@ const userSchema = new mongoose.Schema({
             }
         ]
     },
+    assignment: {
+        type: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Assignment",
+            }
+        ]
+    },
     isVerified: {
         type: Boolean,
         default: false
@@ -97,6 +105,10 @@ const userSchema = new mongoose.Schema({
         default:""
     },
     aboutMyself: {
+        type: String,
+        default: ""
+    },
+    certified: {
         type: String,
         default: ""
     },

@@ -22,3 +22,32 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  /* Firefox */
+  scrollbar-color: #6E09BD transparent;
+  /* Firefox */
+}
+
+/* Chrome, Edge, Safari */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #6E09BD;
+  width: 12px;
+  border-radius: 9999px;
+}
+
+/* Hide top and bottom arrows */
+.custom-scrollbar::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+}

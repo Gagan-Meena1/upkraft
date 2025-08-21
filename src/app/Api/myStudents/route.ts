@@ -77,7 +77,8 @@ export async function GET(request: NextRequest) {
       _id: user._id,
       username: user.username,
       email: user.email,
-      contact: user.contact
+      contact: user.contact,
+      profileImage:user.profileImage
     }));
 
     return NextResponse.json({

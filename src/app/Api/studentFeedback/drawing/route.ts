@@ -57,6 +57,19 @@ export async function POST(request: NextRequest) {
       const newFeedback = await feedbackDrawing.create(feedbackData);
       const savedNewFeedback = await newFeedback.save();
       console.log("savedNewFeedback : ", savedNewFeedback);
+
+      const updatedClass = await Class.findByIdAndUpdate(
+              classId,
+              { feedbackId: newFeedback._id },
+              { new: true } // Return the updated document
+            );
+      
+            if (!updatedClass) {
+              return NextResponse.json({
+                success: false,
+                message: 'Class not found'
+              }, { status: 404 });
+            }
       
       return NextResponse.json({
         success: true,
