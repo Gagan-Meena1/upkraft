@@ -1,7 +1,7 @@
 // app/api/assignments/create/route.js
 import { NextRequest, NextResponse } from 'next/server';
 import User from '@/models/userModel';
-import Assignment from '@/models/Assignment';
+import Assignment from '@/models/assignment';
 import { connect } from '@/dbConnection/dbConfic';
 import { writeFile } from 'fs/promises';
 import path from 'path';
