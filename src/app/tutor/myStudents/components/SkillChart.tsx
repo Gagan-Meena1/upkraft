@@ -127,31 +127,26 @@ const SkillChart: React.FC<SkillChartProps> = ({ title, data }) => {
             );
           })}
 
+          <defs>
+            <linearGradient id="gradYourScore" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#3549F8" stopOpacity={0.6} />
+              <stop offset="95%" stopColor="#3549F8" stopOpacity={0.05} />
+            </linearGradient>
+            <linearGradient id="gradTopScore" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#FFC357" stopOpacity={0.6} />
+              <stop offset="95%" stopColor="#FFC357" stopOpacity={0.05} />
+            </linearGradient>
+          </defs>
+
           {/* Areas */}
-          <path
-            d={createSmoothPath(topScores, true)}
-            fill="#FFC357"
-            fillOpacity={0.4}
-          />
-          <path
-            d={createSmoothPath(yourScores, true)}
-            fill="#3549F8"
-            fillOpacity={0.4}
-          />
+          <path d={createSmoothPath(topScores, true)} fill="url(#gradTopScore)" />
+          <path d={createSmoothPath(yourScores, true)} fill="url(#gradYourScore)" />
+
 
           {/* Lines */}
-          <path
-            d={createSmoothPath(topScores)}
-            stroke="#FFC357"
-            strokeWidth="3"
-            fill="none"
-          />
-          <path
-            d={createSmoothPath(yourScores)}
-            stroke="#3549F8"
-            strokeWidth="3"
-            fill="none"
-          />
+          <path d={createSmoothPath(topScores, true)} fill="url(#gradTopScore)" />
+          <path d={createSmoothPath(yourScores, true)} fill="url(#gradYourScore)" />
+
         </svg>
       </div>
 

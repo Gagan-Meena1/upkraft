@@ -288,9 +288,9 @@ export default function AddSessionPage() {
   ]
 
   return (
-    <div className="p-6 max-w-6xl mx-auto bg-gray-50 min-h-screen">
+    <div className="p-6 mt-6 mx-auto bg-white min-h-screen">
       {/* Header with back button */}
-      <div className="mb-8">
+      <div className="mb-8 border-b border-gray-200 pb-4">
         <div className="flex items-center gap-4">
           <button 
             onClick={handleBackNavigation}
@@ -302,10 +302,10 @@ export default function AddSessionPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
         {/* Calendar Section */}
-        <div>
-          <Card>
+         <div className="max-w-xl w-full md:border-r md:pr-8 md:h-auto">
+          <div className="bg-transparent shadow-none border-none rounded-none">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold text-gray-800">
@@ -375,8 +375,8 @@ export default function AddSessionPage() {
                           {day}
                         </span>
                         {!isPastDate && (
-                          <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-[#6B46C1] hover:bg-[#5A3A9F] rounded-full flex items-center justify-center text-white">
-                            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <button className="absolute bottom-1 right-1 sm:bottom-1.5 sm:right-1.5 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 bg-[#6B46C1] hover:bg-[#5A3A9F] rounded-full flex items-center justify-center text-white">
+                            <Plus className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
                           </button>
                         )}
                       </>
@@ -386,20 +386,20 @@ export default function AddSessionPage() {
               })}
             </div>
           </CardContent>
-                  </Card>
+                  </div>
         </div>
 
         {/* Form Section - Always visible */}
-        <div>
-          <Card>
+        <div className="md:col-span-2 min-h-[460px]">
+          
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-gray-800">
                 Create Session for {selectedDate || 'Select a date'}
               </CardTitle>
               <p className="text-sm text-gray-600">Add details below to create new session</p>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="flex flex-col h-full">
+              <div className="flex-1 space-y-4 mt-3">
                 <div>
                   <label htmlFor="title" className="block text-gray-800 mb-1 text-sm font-medium">
                     Class Title
@@ -415,8 +415,8 @@ export default function AddSessionPage() {
                     required
                   />
                 </div>
-                
-                <div>
+
+                <div className="mt-3">
                   <label htmlFor="description" className="block text-gray-800 mb-1 text-sm font-medium">
                     Description
                   </label>
@@ -432,7 +432,7 @@ export default function AddSessionPage() {
                   />
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 mt-3">
                   <div>
                     <label htmlFor="startTime" className="block text-gray-800 mb-1 text-sm font-medium">
                       Start Time
@@ -486,17 +486,18 @@ export default function AddSessionPage() {
                     {errorMessage}
                   </div>
                 )}
-                
+                <div className="mt-30 flex justify-end">
                 <button
                   onClick={handleSubmit}
-                  className="w-full py-3 px-4 bg-[#6B46C1] hover:bg-[#5A3A9F] text-white rounded font-semibold shadow-md transition-colors disabled:opacity-50 text-sm"
+                  className="w-[147px] py-3 px-4 bg-[#6B46C1] hover:bg-[#5A3A9F] text-white rounded font-semibold shadow-md transition-colors disabled:opacity-50 text-sm"
                   disabled={isSubmitting || !!errorMessage || !selectedDate}
                 >
                   {isSubmitting ? 'Creating...' : 'Create Session'}
                 </button>
               </div>
+              </div>
             </CardContent>
-          </Card>
+          
         </div>
       </div>
 
