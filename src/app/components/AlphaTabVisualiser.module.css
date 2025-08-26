@@ -1,0 +1,74 @@
+.alphatab-visualiser {
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  max-width: 1200px;
+  margin: auto;
+}
+.piano {
+  margin: 8px 0;
+}
+.keys {
+  display: flex;
+  position: relative;
+}
+.white-keys {
+  display: flex;
+  z-index: 1;
+}
+.white-key {
+  width: 18px;
+  height: 100px;
+  background: #fff;
+  border: 1px solid #888;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.black-keys {
+  display: grid;
+  grid-template-columns: repeat(52, 18px);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: 936px;
+  pointer-events: none;
+}
+.black-key-wrap {
+  position: relative;
+}
+.black-key {
+  width: 10px;
+  height: 60px;
+  background: #222;
+  border: 1px solid #888;
+  margin-left: -5px;
+  z-index: 2;
+  position: relative;
+  left: 4px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.label {
+  font-size: 10px;
+  color: #888;
+  margin-bottom: 2px;
+}
+.pressed {
+  box-shadow: 0 0 8px 2px #ff4e8c99;
+}
+.pressed-right {
+  background: #ff4e8c !important;
+}
+.pressed-left {
+  background: #4e8cff !important;
+}
+.pressed-both {
+  background: #8cff4e !important;
+}
+.labels-hidden .label {
+  display: none;
+}

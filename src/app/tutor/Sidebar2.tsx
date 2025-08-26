@@ -33,7 +33,7 @@ const Sidebar2 = () => {
 
   const pathname = usePathname();
   const menuItems = [
-    { id: "home", label: "Home", icon: Home, href: "/tutor" },
+  { id: "home", label: "Home", icon: Home, href: "/" },
     {
       id: "my-students",
       label: "My Students",
@@ -80,6 +80,12 @@ const Sidebar2 = () => {
       label: "Music Library",
       icon: Music,
       href: "/tutor/music-library",
+    },
+    {
+      id: "practice-studio",
+      label: "Practice Studio",
+      icon: Music,
+      href: "/tutor/practice-studio",
     },
     {
       id: "ai-coach",

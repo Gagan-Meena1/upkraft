@@ -1,3 +1,148 @@
+/* AlphaTab cursor and selection highlight for visibility */
+.at-cursor-bar {
+  background: rgba(255,242,0,.22) !important;
+}
+.at-cursor-beat {
+  background: rgba(64,255,160,.95) !important;
+  width: 5px !important;
+}
+.at-highlight * {
+  fill: #00a2ff !important;
+  stroke: #00a2ff !important;
+}
+.at-selection * {
+  fill: #ffd166 !important;
+  stroke: #ffd166 !important;
+}
+/* Upkraft Player Visualiser Styles - Match HTML Reference */
+.upkraft-topbar {
+  background: #162447;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  border-bottom: 1px solid #222;
+  min-height: 48px;
+  position: relative;
+  z-index: 2;
+}
+.upkraft-topbar input[type="file"] {
+  background: #222;
+  color: #fff;
+  border-radius: 4px;
+  border: none;
+  padding: 2px 6px;
+}
+.upkraft-topbar button,
+.upkraft-topbar select {
+  background: #1f2a48;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  margin-right: 2px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.upkraft-topbar button:hover {
+  background: #23305a;
+}
+.upkraft-topbar label {
+  color: #b0b8c9;
+  font-size: 13px;
+}
+.upkraft-instruments {
+  width: 200px;
+  background: #1f2a48;
+  color: #fff;
+  padding: 16px 12px 12px 12px;
+  font-family: inherit;
+  min-height: 600px;
+  border-right: 1px solid #222;
+}
+.upkraft-instruments h4 {
+  font-size: 15px;
+  margin: 0 0 12px 0;
+  color: #b0b8c9;
+  font-weight: 600;
+}
+.instrument-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  padding: 4px 0;
+  font-size: 14px;
+}
+.instrument-row span {
+  display: flex;
+  align-items: center;
+}
+.solo-btn, .mute-btn {
+  background: #222;
+  color: #b0b8c9;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.solo-btn.active, .mute-btn.active {
+  background: #e43f5a;
+  color: #fff;
+}
+.solo-btn:hover, .mute-btn:hover {
+  background: #23305a;
+  color: #fff;
+}
+.instrument-row strong {
+  color: #fff;
+  font-weight: 500;
+}
+.instrument-row .instrument-type {
+  color: #b0b8c9;
+  font-size: 12px;
+  margin-left: 4px;
+}
+.at-content {
+  background: #fff;
+  border-radius: 8px;
+  margin: 24px auto;
+  color: #222;
+  overflow-x: auto;
+  overflow-y: auto;
+  border: 1px solid #d0d0d0;
+  box-sizing: border-box;
+  max-width: 900px;
+  min-height: 600px;
+  width: 100%;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.at-content svg {
+  max-width: 100%;
+  height: auto !important;
+  display: block;
+  margin: 0 auto;
+}
+/* Piano keyboard tweaks */
+.piano-keyboard {
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+}
+/* General tweaks for matching HTML reference */
+body {
+  background: #f6f6f6;
+}
 @import "tailwindcss";
 
 @theme {
@@ -50,4 +195,69 @@ body {
 .custom-scrollbar::-webkit-scrollbar-button {
   display: none;
   height: 0;
+}
+
+/* Prevent AlphaTab SVG from stretching and overflowing */
+.at-content {
+  overflow-x: auto;
+  width: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  background: #fff;
+  min-height: 600px;
+}
+.at-content svg {
+  max-width: 1100px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+/* Sidebar and top bar colors */
+.upkraft-sidebar {
+  background: #101a2a;
+  color: #b0b8c9;
+}
+.upkraft-topbar {
+  background: #101a2a;
+  color: #fff;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.upkraft-instruments {
+  background: #101a2a;
+  color: #b0b8c9;
+  padding: 12px;
+  min-width: 220px;
+}
+.upkraft-instruments h4 {
+  font-size: 15px;
+  margin: 0 0 8px 0;
+  color: #fff;
+}
+.upkraft-instruments .instrument-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.upkraft-instruments .instrument-row strong {
+  color: #fff;
+}
+.upkraft-instruments .solo-btn, .upkraft-instruments .mute-btn {
+  background: #222;
+  color: #9db2d8;
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  cursor: pointer;
+}
+.upkraft-instruments .solo-btn.active, .upkraft-instruments .mute-btn.active {
+  background: #2e3a5e;
+  color: #fff;
 }

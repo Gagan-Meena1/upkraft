@@ -1,0 +1,2630 @@
+<!DOCTYPE html>
+
+<html data-theme="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>AlphaTab Guitar Practice Player (Top Controls, Note Highlight, MIDI to TAB)</title>
+<style>
+    :root{--bg:#0b1220;--fg:#e7f0ff;--muted:#a6b7d1;--panel:#101a2a;--panel2:#0e1830;--border:#1d2946;--accent:#4aa3ff;--accent2:#7bd88f;}
+    :root{--header-h:58px}
+    html,body{height:100%} body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
+    header{background:#0f1a2f;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:10px 14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+    header h2{margin:0;font-size:16px}
+    .btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#172544;color:var(--fg);cursor:pointer}
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .chip{padding:6px 10px;border-radius:999px;background:#0f203b;border:1px solid var(--border);color:var(--muted)}
+    select,input[type="file"]{padding:8px;border-radius:10px;border:1px solid var(--border);background:#0f1a2f;color:var(--fg)}
+    .wrap{display:grid;grid-template-columns:280px 1fr;gap:0;min-height:calc(100% - var(--header-h))}
+    .sidebar{background:var(--panel2);border-right:1px solid var(--border);overflow:auto}
+    .sidebar h3{margin:10px 12px;color:var(--muted);font-size:14px}
+    .main{display:flex;flex-direction:column}
+    #alphaTab{flex:1;min-height:420px;background:white;border-bottom:1px solid var(--border);overflow:auto}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .slider{appearance:none;height:6px;background:#14264a;border-radius:8px}
+    .slider::-webkit-slider-thumb{appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent)}
+    .track{display:flex;gap:10px;align-items:center;padding:8px;border-bottom:1px dashed #15264a}
+    .track .name{font-size:13px;line-height:1.2} .track .name small{display:block;color:#8ea1c5}
+    .log{max-height:160px;overflow:auto;background:#0b1428;border-top:1px solid var(--border);padding:6px 8px;font-family:ui-monospace,Consolas,Menlo,monospace;color:#9db2d8}
+    a.link{color:#9ecbff}
+    .at-cursor-bar{background:rgba(255,242,0,.22)}
+    .at-cursor-beat{background:rgba(64,255,160,.95);width:5px}
+    .at-highlight *{fill:#00a2ff;stroke:#00a2ff}
+    .at-selection *{fill:#ffd166;stroke:#ffd166}
+  
+header{flex-wrap:wrap;gap:8px;row-gap:8px;overflow-x:visible;overflow-y:visible;width:100%}
+header h2{font-size:14px;white-space:nowrap}
+header .btn{font-size:12px;padding:6px 10px;border-radius:8px}
+header .chip{font-size:11px;padding:4px 8px}
+header select, header input[type="file"]{font-size:12px;padding:6px 8px}
+header .link{font-size:11px}
+
+  
+/* Sidebar (left panel) compaction */
+.sidebar{font-size:12px}
+.sidebar h3{font-size:13px;margin:4px 0 8px}
+.sidebar .btn{font-size:12px;padding:6px 10px;border-radius:8px}
+.sidebar select,.sidebar input,.sidebar .chip,.sidebar label,.sidebar .link{font-size:12px}
+
+  
+/* Smaller top-panel title */
+header h2{font-size:13px !important}
+
+  
+/* Hide the MIDI to MusicXML converter section in the left panel */
+.hide-left-section{display:none !important}
+
+  
+/* Keep content clear of the sticky header if any element tries to scroll into view */
+html, body { scroll-padding-top: 72px; }
+.at-content { scroll-padding-top: 72px; }
+
+  
+/* Provide headroom so autoscroll can't tuck staves under the sticky header */
+#alphaTab.at-content { padding-top: 76px; }
+#alphaTab.at-content * { scroll-margin-top: 76px; }
+
+  
+/* Active button highlight */
+.btn.active{background:var(--accent);color:#08101f;box-shadow:0 0 0 2px var(--accent) inset, 0 0 8px rgba(74,163,255,.35)}
+.sidebar .btn.active{background:var(--accent2);color:#08101f;box-shadow:0 0 0 2px var(--accent2) inset, 0 0 8px rgba(123,216,143,.35)}
+
+  
+/* Make top-panel Count-In & Metronome match Instruments' active color */
+header #countIn.btn.active,
+header #metronome.btn.active {
+  background: var(--accent2);
+  color: #08101f;
+  box-shadow: 0 0 0 2px var(--accent2) inset, 0 0 8px rgba(123,216,143,.35);
+}
+
+  
+/* Use the same active highlight in the header as in the sidebar */
+header .btn.active{background:var(--accent2);color:#08101f;box-shadow:0 0 0 2px var(--accent2) inset,0 0 8px rgba(123,216,143,.35)}
+
+  
+/* Keep header visible; give the app its own scroll areas */
+html, body { height: 100%; overflow: hidden; }
+header { position: sticky; top: 0; z-index: 5; }
+.wrap { height: calc(100vh - var(--header-h)); }            /* match prior header height */
+.sidebar { height: 100%; overflow: auto; }
+#alphaTab.at-content { height: 100%; overflow: auto; padding-top: 76px; }
+#alphaTab.at-content * { scroll-margin-top: 76px; }
+
+  
+/* Ensure the grid and main fill the viewport, and alphaTab scrolls */
+.wrap { height: calc(100vh - var(--header-h)) !important; }
+.main { height: 100% !important; overflow: hidden; }
+#alphaTab.at-content { height: 100% !important; overflow: auto !important; touch-action: pan-y; overscroll-behavior: contain; }
+
+  
+/* Highlight instruments currently sounding */
+#tracks .track.playing { 
+  background: rgba(123,216,143,0.18);
+  outline: 2px solid var(--accent2);
+  border-radius: 10px;
+}
+
+  
+/* Stronger "now playing" highlight for instruments */
+#tracks .track.playing {
+  background: rgba(123,216,143,0.22) !important;
+  box-shadow: 0 0 0 2px var(--accent2) inset, 0 0 14px rgba(123,216,143,.45);
+  border-radius: 12px;
+}
+
+  
+/* Subtle, thinner "now playing" style */
+#tracks .track.playing {
+  background: rgba(123,216,143,0.12) !important;
+  box-shadow: 0 0 0 1px var(--accent2) inset, 0 0 6px rgba(123,216,143,.25) !important;
+  border-radius: 12px;
+  transition: background .15s ease, box-shadow .15s ease;
+}
+
+  
+/* --- Hide AlphaTab brand watermark --- */
+#alphaTab .at-brand,
+#alphaTab text.at-brand,
+#alphaTab g.at-brand,
+#alphaTab [class*="at-brand"],
+#alphaTab [data-brand],
+#alphaTab [data-alpha-tab-brand] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+/* Key selector styling */
+.key-selector {
+  position: relative;
+  display: inline-block;
+}
+
+.key-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 1000;
+  min-width: 120px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.key-dropdown.show {
+  display: block;
+}
+
+.key-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.key-option:last-child {
+  border-bottom: none;
+}
+
+.key-option:hover {
+  background: var(--accent2);
+  color: #08101f;
+}
+
+.key-option.current {
+  background: var(--accent);
+  color: #08101f;
+}
+
+
+/* Overlay root to host floating dropdowns above everything */
+#ui-overlay-root{
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647; /* very high to beat sticky header/content */
+  pointer-events: none; /* allow clicks to pass except on children */
+}
+#ui-overlay-root .dropdown-layer{
+  position: absolute;
+  pointer-events: auto;
+  z-index: 2147483647;
+}
+/* Keep key dropdown on top and scrollable */
+.key-dropdown{
+  z-index: 1000;
+  max-height: 260px;
+  overflow-y: auto;
+  /* width will be set in JS for anchor parity */
+}
+
+
+.row-break{flex-basis:100%;height:0}
+/* Optional: give second row a little breathing room */
+header .row-second{margin-top:4px}
+
+/* Keyboard shortcuts help */
+.kbd-help {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  z-index: 100;
+}
+.kbd-help:hover {
+  opacity: 1;
+}
+.kbd-help kbd {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: 0 2px;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+}
+
+/* === On-screen Piano Keyboard (RH/LH + Labels) === */
+:root {
+  --piano-bg: #0b1428;
+  --piano-border: var(--border, #23314f);
+  --white-key: #f6f7fb;
+  --white-key-border: #cfd8ea;
+  --white-key-bottom: #aeb9cf;
+  --white-key-pressed: #e7ecf7;
+  --black-key-top: #1a1e2b;
+  --black-key-bottom: #080c18;
+  --black-key-border: #161b2a;
+  --black-key-bottom-border: #0c1120;
+  /* RH/LH highlight colors (tweak to match brand) */
+  --rh-color: #60a5fa;  /* blue */
+  --lh-color: #f59e0b;  /* amber */
+}
+.piano {
+  position: relative;
+  width: 100%;
+  height: 190px;
+  background: var(--piano-bg);
+  border-top: 1px solid var(--piano-border);
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  user-select: none;
+  overflow: hidden;
+}
+.piano.hidden { display: none; }
+.piano.labels-hidden .label { display: none; }
+
+.piano .keys { position: relative; height: 100%; width: 100%; }
+.piano .white-keys { display: flex; height: 100%; gap: 1px; }
+
+.piano .white-key {
+  flex: 1 1 auto;
+  background: var(--white-key);
+  border: 1px solid var(--white-key-border);
+  border-bottom: 3px solid var(--white-key-bottom);
+  border-radius: 0 0 6px 6px;
+  position: relative;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,0.08);
+  transition: transform 0.02s, background 0.08s, box-shadow 0.08s;
+}
+.piano .white-key.pressed,
+.piano .white-key.pressed-right,
+.piano .white-key.pressed-left { transform: translateY(1px); }
+
+.piano .white-key.pressed { background: var(--white-key-pressed); }
+.piano .white-key.pressed-right {
+  background: linear-gradient(#f8fbff, #e9f3ff);
+  box-shadow: inset 0 -2px 0 rgba(96,165,250,0.6), 0 0 0 2px rgba(96,165,250,0.9), 0 0 16px rgba(96,165,250,0.75), 0 0 32px rgba(96,165,250,0.35);
+}
+.piano .white-key.pressed-left {
+  background: linear-gradient(#fffaf4, #fff1da);
+  box-shadow: inset 0 -2px 0 rgba(245,158,11,0.65), 0 0 0 2px rgba(245,158,11,0.95), 0 0 16px rgba(245,158,11,0.8), 0 0 32px rgba(245,158,11,0.45);
+}
+
+.piano .black-keys {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 62%;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  pointer-events: none; /* let clicks pass to whites */
+}
+.piano .black-key-wrap { position: relative; }
+
+.piano .black-key {
+  position: absolute;
+  left: 50%; transform: translateX(-50%);
+  width: 66%; height: 100%;
+  background: linear-gradient(var(--black-key-top), var(--black-key-bottom));
+  border: 1px solid var(--black-key-border);
+  border-bottom: 3px solid var(--black-key-bottom-border);
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.25), inset 0 -2px 0 rgba(255,255,255,0.04);
+  pointer-events: auto;
+  transition: transform 0.02s, filter 0.08s, box-shadow 0.08s;
+}
+.piano .black-key.pressed,
+.piano .black-key.pressed-right,
+.piano .black-key.pressed-left {
+  transform: translateX(-50%) translateY(1px);
+}
+.piano .black-key.pressed { filter: brightness(1.2); }
+.piano .black-key.pressed-right {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.35), 0 0 0 2px rgba(96,165,250,0.95) inset, 0 0 14px rgba(96,165,250,0.85), 0 0 28px rgba(96,165,250,0.5);
+  filter: brightness(1.15);
+}
+.piano .black-key.pressed-left {
+  box-shadow: 0 2px 5px rgba(0,0,0,0.35), 0 0 0 2px rgba(245,158,11,0.95) inset, 0 0 14px rgba(245,158,11,0.9), 0 0 28px rgba(245,158,11,0.6);
+  filter: brightness(1.15);
+}
+
+/* Note labels */
+.piano .label {
+  position: absolute;
+  bottom: 6px; left: 6px;
+  font-size: 10px;
+  color: #516280;
+  pointer-events: none;
+}
+.piano .white-key .label { bottom: 6px; left: 6px; }
+.piano .black-key .label {
+  top: 6px; left: 50%; transform: translateX(-50%);
+  color: #eaf1ff;
+  font-size: 9px;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.6);
+}
+
+@media (max-width: 900px) { .piano { height: 150px; } }
+
+.piano .white-key.pressed-right,
+.piano .white-key.pressed-left,
+.piano .black-key.pressed-right,
+.piano .black-key.pressed-left { z-index: 2; }
+
+
+</style>
+<!-- AlphaTab & @tonejs/midi -->
+<script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.6.1/dist/alphaTab.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/build/Midi.js"></script>
+
+
+
+
+
+
+
+<style id="longer-keys-0822">
+/* Keep piano stretched height but restore smaller font sizes */
+.piano {height: 300px;}
+.piano .white-key {min-height: 100%;}
+.piano .black-keys {height: 70%;}
+.piano .label {font-size:10px;}
+.piano .black-key .label {font-size:9px;}
+@media (max-width:900px){.piano{height:220px;}}
+</style>
+
+
+<style id="theme-toggle-0822">
+/* === Theme system === */
+html, body { background: var(--bg); color: var(--fg); }
+
+/* Dark theme (default) */
+:root, html[data-theme="dark"] {
+  --bg: #0b1220;
+  --fg: #e7f0ff;
+  --muted: #a6b7d1;
+  --panel: #101a2a;
+  --panel2: #0e1830;
+  --border: #1d2946;
+  --accent: #4aa3ff;
+  --accent2: #7bd88f;
+  --header-bg: #0f1a2f;
+  --sheet-bg: #ffffff;
+  --button-bg: #172544;
+  --chip-bg: #0f203b;
+}
+
+/* Light theme (snapshot style) */
+html[data-theme="light"] {
+  --bg: #f9f7fd;
+  --fg: #2a1f4d;
+  --muted: #7a6ca8;
+  --panel: #f3ecff;
+  --panel2: #efe7ff;
+  --border: #bda7ff;
+  --accent: #7a3cff;
+  --accent2: #6a3df0;
+  --header-bg: #fbf9ff;
+  --sheet-bg: #ffffff;
+  --button-bg: #ffffff;
+  --chip-bg: #ffffff;
+}
+
+header { background: var(--header-bg); border-bottom:1px solid var(--border); }
+.btn { background: var(--button-bg); color: var(--fg); border:1px solid var(--border); }
+.btn.active { background: var(--accent2); color:#fff; }
+</style>
+
+
+<style id="theme-fixes-0822">
+/* Ensure all pills/buttons/inputs use light colors in light theme */
+html[data-theme="light"] header { background: var(--header-bg) !important; border-bottom:1px solid var(--border) !important; }
+html[data-theme="light"] .btn { background: var(--button-bg) !important; color: var(--fg) !important; border-color: var(--border) !important; }
+html[data-theme="light"] header .btn { background: var(--button-bg) !important; color: var(--fg) !important; border-color: var(--border) !important; }
+html[data-theme="light"] .btn.active, 
+html[data-theme="light"] header .btn.active { background: var(--accent2) !important; color: #ffffff !important; }
+
+html[data-theme="light"] .chip,
+html[data-theme="light"] header .chip { background: var(--chip-bg) !important; color: var(--fg) !important; border-color: var(--border) !important; }
+
+html[data-theme="light"] select,
+html[data-theme="light"] header select,
+html[data-theme="light"] input[type="file"],
+html[data-theme="light"] header input[type="file"] { background: var(--chip-bg) !important; color: var(--fg) !important; border-color: var(--border) !important; }
+
+/* Key dropdown and overlays */
+html[data-theme="light"] .key-dropdown { background: var(--panel) !important; border-color: var(--border) !important; }
+html[data-theme="light"] .key-option.current { background: var(--accent) !important; color: #fff !important; }
+html[data-theme="light"] .key-option:hover { background: var(--accent2) !important; color: #fff !important; }
+
+/* Checkboxes/metronome/count-in active styles already use --accent2; ensure inactive pills aren't dark */
+html[data-theme="light"] #countIn.btn,
+html[data-theme="light"] #metronome.btn { background: var(--button-bg) !important; }
+
+/* Help panel */
+html[data-theme="light"] .kbd-help { background: var(--panel) !important; border-color: var(--border) !important; color: var(--muted) !important; }
+html[data-theme="light"] .kbd-help kbd { background: var(--panel2) !important; border-color: var(--border) !important; }
+
+/* Select: ensure option text is visible when opened (UA-dependent) */
+</style>
+
+
+<style id="theme-darkpurple-0822">
+/* Darker purple variant for Light theme */
+html[data-theme="light"] {
+  --bg: #f9f7fd;
+  --fg: #1e1033;          /* darker text */
+  --muted: #5a4b82;       /* muted violet */
+  --panel: #e8e0ff;       /* sidebar/panel a bit darker */
+  --panel2: #e0d6ff;
+  --border: #7a4cff;      /* darker purple border */
+  --accent: #5a2ecc;      /* strong deep purple primary */
+  --accent2: #4a24b5;     /* even darker purple for active */
+  --header-bg: #f4efff;
+  --sheet-bg: #ffffff;
+  --button-bg: #ffffff;
+  --chip-bg: #ffffff;
+}
+html[data-theme="light"] .btn,
+html[data-theme="light"] .chip,
+html[data-theme="light"] select,
+html[data-theme="light"] input[type="file"] {
+  border-color: var(--border) !important;
+}
+html[data-theme="light"] .btn.active {
+  background: var(--accent2) !important;
+  color: #fff !important;
+}
+html[data-theme="light"] a.link { color: var(--accent) !important; }
+</style>
+
+</head>
+<body>
+<header>
+<h2>Upkraft</h2>
+<input accept=".gp,.gp3,.gp4,.gp5,.gp6,.gp7,.gp8,.gpx,.xml,.musicxml,.mxl,.cap,.capx,.mid,.midi" id="fileInput" type="file"/>
+<button class="btn" id="play">▶ Play</button>
+<button class="btn" id="pause">⏸ Pause</button>
+<button class="btn" id="stop">⏹ Stop</button>
+<label class="chip">Speed
+      <select id="speed">
+<option value="0.5">50%</option><option value="0.75">75%</option>
+<option selected="" value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option>
+</select>
+</label>
+<label class="chip"><input checked="" id="autoScroll" type="checkbox"/> Auto‑Scroll</label>
+<button class="btn" id="countIn">Count‑In</button>
+<button class="btn" id="metronome">Metronome</button>
+<!-- Key Selector -->
+<div class="key-selector">
+<button class="btn" id="keyBtn">Key: C</button>
+<div class="key-dropdown" id="keyDropdown">
+<div class="key-option" data-key="C">C Major</div>
+<div class="key-option" data-key="G">G Major</div>
+<div class="key-option" data-key="D">D Major</div>
+<div class="key-option" data-key="A">A Major</div>
+<div class="key-option" data-key="E">E Major</div>
+<div class="key-option" data-key="B">B Major</div>
+<div class="key-option" data-key="F#">F# Major</div>
+<div class="key-option" data-key="C#">C# Major</div>
+<div class="key-option" data-key="F">F Major</div>
+<div class="key-option" data-key="Bb">Bb Major</div>
+<div class="key-option" data-key="Eb">Eb Major</div>
+<div class="key-option" data-key="Ab">Ab Major</div>
+<div class="key-option" data-key="Db">Db Major</div>
+<div class="key-option" data-key="Gb">Gb Major</div>
+<div class="key-option" data-key="Am">A Minor</div>
+<div class="key-option" data-key="Em">E Minor</div>
+<div class="key-option" data-key="Bm">B Minor</div>
+<div class="key-option" data-key="F#m">F# Minor</div>
+<div class="key-option" data-key="C#m">C# Minor</div>
+<div class="key-option" data-key="G#m">G# Minor</div>
+<div class="key-option" data-key="D#m">D# Minor</div>
+<div class="key-option" data-key="A#m">A# Minor</div>
+<div class="key-option" data-key="Dm">D Minor</div>
+<div class="key-option" data-key="Gm">G Minor</div>
+<div class="key-option" data-key="Cm">C Minor</div>
+<div class="key-option" data-key="Fm">F Minor</div>
+<div class="key-option" data-key="Bbm">Bb Minor</div>
+<div class="key-option" data-key="Ebm">Eb Minor</div>
+</div>
+<label class="chip"><input id="rewriteKeyOnly" type="checkbox" checked disabled/> Rewrite key only (locked)</label>
+<label class="chip"><input id="transposeToggle" type="checkbox"/> Transpose pitches</label>
+</div><span class="row-break"></span><div class="row row-second"><span class="chip" id="ab">A: — | B: —</span></div>
+<span class="chip">Loop A/B: <a class="link" href="#" id="setA">Set A</a> • <a class="link" href="#" id="setB">Set B</a> • <a class="link" href="#" id="clearAB">Clear</a></span>
+
+
+<span class="chip" id="time">00:00 / 00:00</span>
+<span class="chip" id="meta">No score loaded</span>
+
+<button class="btn" id="toggleKeyboard">Keyboard: Off</button>
+<button class="btn" id="toggleLabels">Key Names: On</button>
+<button class="btn" id="toggleTheme">Theme: Dark</button>
+</header>
+<div class="wrap">
+<aside class="sidebar">
+<h3>Instruments (render / solo / mute)</h3>
+<div id="tracks"></div>
+<div class="hide-left-section">
+<h3>MIDI to MusicXML (for TAB)</h3>
+<div style="padding:8px; display:grid; gap:8px">
+<label class="chip">Quantize
+          <select id="quant"><option>4</option><option selected="">8</option><option>12</option><option>16</option><option>24</option><option>32</option></select>
+</label>
+<label class="chip">Time Sig
+          <select id="tsNum"><option>2</option><option>3</option><option selected="">4</option><option>6</option><option>7</option><option>9</option><option>12</option></select> /
+          <select id="tsDen"><option>1</option><option>2</option><option selected="">4</option><option>8</option><option>16</option></select>
+</label>
+<label><input id="merge" type="checkbox"> Merge all tracks</input></label>
+<label><input id="includePerc" type="checkbox"> Include percussion (Ch.10)</input></label>
+</div>
+<div class="log" id="log"></div>
+</div>
+</aside>
+<main class="main">
+<div class="at-content" id="alphaTab"></div>
+<div id="pianoContainer" class="piano hidden" aria-hidden="true"></div>
+
+</main>
+</div>
+
+<!-- Keyboard shortcuts help -->
+<div class="kbd-help">
+  <kbd>Space</kbd> Play/Pause <kbd>S</kbd> Stop <kbd>A</kbd> Auto-scroll <kbd>C</kbd> Count-in <kbd>M</kbd> Metronome <kbd>L</kbd> Loop <kbd>↑↓</kbd> Speed <kbd>T</kbd> Transpose
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const logEl = $('#log'); function log(m){ const d=document.createElement('div'); d.textContent=m; logEl.appendChild(d); logEl/* auto-scroll disabled (scrollTop) */; console.log(m); }
+
+// Prevent space bar from scrolling the page globally
+window.addEventListener('keydown', function(e) {
+  if ((e.key === ' ' || e.key === 'Spacebar') && 
+      e.target.tagName !== 'INPUT' && 
+      e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+  }
+}, true); // Use capture phase
+
+// Keyboard shortcuts
+let loopState = 0; // 0: none, 1: A set, 2: B set
+
+// Ensure DOM is ready before attaching keyboard listeners
+console.log('Document readyState:', document.readyState);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupKeyboardShortcuts);
+} else {
+  // DOM is already loaded, set up immediately
+  setTimeout(setupKeyboardShortcuts, 100);
+}
+
+function setupKeyboardShortcuts() {
+  console.log('Setting up keyboard shortcuts...');
+  
+  document.addEventListener('keydown', function(e) {
+    console.log('Key pressed:', e.key, 'Target:', e.target.tagName);
+    
+    // Special handling for space - should work everywhere except text areas
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      // Only ignore space in actual text input fields
+      if (e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Play/Pause toggle - simplified approach
+      console.log('Space pressed');
+      
+      // Try the simplest approach first - just click the buttons
+      const playBtn = document.getElementById('play');
+      const pauseBtn = document.getElementById('pause');
+      
+      if (playBtn && pauseBtn) {
+        // Check which button is currently active
+        if (playBtn.classList.contains('active')) {
+          console.log('Play is active, clicking pause');
+          pauseBtn.click();
+        } else if (pauseBtn.classList.contains('active')) {
+          console.log('Pause is active, clicking play');
+          playBtn.click();
+        } else {
+          // Neither active (stopped), click play
+          console.log('Neither active (stopped), clicking play');
+          playBtn.click();
+        }
+      } else if (window.at) {
+        // Fallback to API if buttons not found
+        console.log('Buttons not found, using API. isPlaying:', window.isPlaying);
+        try {
+          if (window.isPlaying) {
+            window.at.pause();
+            window.isPlaying = false;
+          } else {
+            window.at.play();
+            window.isPlaying = true;
+          }
+        } catch(err) {
+          console.log('API error:', err);
+        }
+      } else {
+        console.log('No buttons or API available');
+      }
+      return;
+    }
+    
+    // Ignore other shortcuts if user is typing in an input field
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+      return;
+    }
+    
+    // Handle other shortcuts
+    switch(e.key.toLowerCase()) {
+      case 's':
+        // Stop
+        if (at) at.stop();
+        break;
+        
+      case 'a':
+        // Toggle Auto-Scroll
+        const autoScrollEl = $('#autoScroll');
+        if (autoScrollEl) {
+          autoScrollEl.checked = !autoScrollEl.checked;
+          autoScrollEl.dispatchEvent(new Event('change'));
+        }
+        break;
+        
+      case 'c':
+        // Toggle Count-In
+        $('#countIn').click();
+        break;
+        
+      case 'm':
+        // Toggle Metronome
+        $('#metronome').click();
+        break;
+        
+      case 'l':
+        // Cycle through loop states: none -> set A -> set B -> clear
+        if (loopState === 0) {
+          $('#setA').click();
+          loopState = 1;
+          log('Loop: A point set');
+        } else if (loopState === 1) {
+          $('#setB').click();
+          loopState = 2;
+          log('Loop: B point set (loop active)');
+        } else {
+          $('#clearAB').click();
+          loopState = 0;
+          log('Loop: Cleared');
+        }
+        break;
+        
+      case 't':
+        // Toggle Transpose pitches
+        const transposeEl = $('#transposeToggle');
+        if (transposeEl) {
+          transposeEl.checked = !transposeEl.checked;
+          transposeEl.dispatchEvent(new Event('change'));
+          log(`Transpose pitches: ${transposeEl.checked ? 'ON' : 'OFF'}`);
+        }
+        break;
+        
+      case 'arrowup':
+        // Increase speed by 5%
+        e.preventDefault();
+        if (at) {
+          const currentSpeed = at.playbackSpeed || 1;
+          const newSpeed = Math.min(2, currentSpeed + 0.05);
+          at.playbackSpeed = newSpeed;
+          
+          // Update dropdown to closest value
+          const speedSelect = $('#speed');
+          if (speedSelect) {
+            // Find closest option
+            let closestOption = speedSelect.options[0];
+            let closestDiff = Math.abs(parseFloat(closestOption.value) - newSpeed);
+            
+            for (let i = 1; i < speedSelect.options.length; i++) {
+              const diff = Math.abs(parseFloat(speedSelect.options[i].value) - newSpeed);
+              if (diff < closestDiff) {
+                closestDiff = diff;
+                closestOption = speedSelect.options[i];
+              }
+            }
+            speedSelect.value = closestOption.value;
+          }
+          
+          log(`Speed: ${Math.round(newSpeed * 100)}%`);
+        }
+        break;
+        
+      case 'arrowdown':
+        // Decrease speed by 5%
+        e.preventDefault();
+        if (at) {
+          const currentSpeed = at.playbackSpeed || 1;
+          const newSpeed = Math.max(0.25, currentSpeed - 0.05);
+          at.playbackSpeed = newSpeed;
+          
+          // Update dropdown to closest value
+          const speedSelect = $('#speed');
+          if (speedSelect) {
+            // Find closest option
+            let closestOption = speedSelect.options[0];
+            let closestDiff = Math.abs(parseFloat(closestOption.value) - newSpeed);
+            
+            for (let i = 1; i < speedSelect.options.length; i++) {
+              const diff = Math.abs(parseFloat(speedSelect.options[i].value) - newSpeed);
+              if (diff < closestDiff) {
+                closestDiff = diff;
+                closestOption = speedSelect.options[i];
+              }
+            }
+            speedSelect.value = closestOption.value;
+          }
+          
+          log(`Speed: ${Math.round(newSpeed * 100)}%`);
+        }
+        break;
+    }
+  });
+
+  // Prevent space from triggering file input when it's focused
+  $('#fileInput').addEventListener('keydown', function(e) {
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      e.stopPropagation();
+      // Blur the file input to remove focus
+      this.blur();
+      
+      // Use the same logic as main handler - click buttons
+      const playBtn = document.getElementById('play');
+      const pauseBtn = document.getElementById('pause');
+      
+      if (playBtn && pauseBtn) {
+        if (playBtn.classList.contains('active')) {
+          pauseBtn.click();
+        } else if (pauseBtn.classList.contains('active')) {
+          playBtn.click();
+        } else {
+          playBtn.click();
+        }
+      }
+    }
+  });
+}
+
+// Key signature and transposition system - COMPREHENSIVE VERSION
+const keySignatures = {
+  'C': { sharps: 0, flats: 0, semitones: 0 },
+  'G': { sharps: 1, flats: 0, semitones: 7 },
+  'D': { sharps: 2, flats: 0, semitones: 2 },
+  'A': { sharps: 3, flats: 0, semitones: 9 },
+  'E': { sharps: 4, flats: 0, semitones: 4 },
+  'B': { sharps: 5, flats: 0, semitones: 11 },
+  'F#': { sharps: 6, flats: 0, semitones: 6 },
+  'C#': { sharps: 7, flats: 0, semitones: 1 },
+  'F': { sharps: 0, flats: 1, semitones: 5 },
+  'Bb': { sharps: 0, flats: 2, semitones: 10 },
+  'Eb': { sharps: 0, flats: 3, semitones: 3 },
+  'Ab': { sharps: 0, flats: 4, semitones: 8 },
+  'Db': { sharps: 0, flats: 5, semitones: 1 },
+  'Gb': { sharps: 0, flats: 6, semitones: 6 },
+  // Minor keys
+  'Am': { sharps: 0, flats: 0, semitones: 9 },
+  'Em': { sharps: 1, flats: 0, semitones: 4 },
+  'Bm': { sharps: 2, flats: 0, semitones: 11 },
+  'F#m': { sharps: 3, flats: 0, semitones: 6 },
+  'C#m': { sharps: 4, flats: 0, semitones: 1 },
+  'G#m': { sharps: 5, flats: 0, semitones: 8 },
+  'D#m': { sharps: 6, flats: 0, semitones: 3 },
+  'A#m': { sharps: 7, flats: 0, semitones: 10 },
+  'Dm': { sharps: 0, flats: 1, semitones: 2 },
+  'Gm': { sharps: 0, flats: 2, semitones: 7 },
+  'Cm': { sharps: 0, flats: 3, semitones: 0 },
+  'Fm': { sharps: 0, flats: 4, semitones: 5 },
+  'Bbm': { sharps: 0, flats: 5, semitones: 10 },
+  'Ebm': { sharps: 0, flats: 6, semitones: 3 }
+};
+
+let currentKey = 'C';
+let originalKey = 'C';
+let currentTransposition = 0;
+
+// Init AlphaTab
+const at = new alphaTab.AlphaTabApi($('#alphaTab'), {
+  player: {
+    enablePlayer: true,
+    enableCursor: true,
+    enableScrolling: true,
+    soundFont: "https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.6.1/dist/soundfont/sonivox.sf2"
+  },
+  display: {
+    staveProfile: alphaTab.StaveProfile.ScoreTab, // notation + TAB
+    layoutMode: alphaTab.LayoutMode.Page
+  },
+  notation: {
+    displayTranspositionPitches: [] // Initialize empty array for per-track transposition
+  }
+});
+window.at = at;
+console.log('AlphaTab initialized, window.at set:', !!window.at);
+
+// Set up player state tracking for keyboard shortcuts
+window.isPlaying = false;
+setTimeout(() => {
+  console.log('Setting up player state tracking...');
+  if (at && at.player) {
+    try {
+      at.player.stateChanged?.on?.((state) => {
+        // AlphaTab internal states may vary, but typically:
+        // state 1 = playing, others = not playing
+        window.isPlaying = (state === 1);
+        console.log('Player state changed to:', state, 'isPlaying:', window.isPlaying);
+      });
+      console.log('Player state tracking set up successfully');
+    } catch(e) {
+      console.log('Could not attach to player state change event:', e);
+    }
+  } else {
+    console.log('Player not ready yet');
+  }
+}, 100);
+
+// COMPREHENSIVE key detection function
+function detectKeyFromScore(score) {
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    log('=== Key Detection Debug ===');
+    
+    // Method 1: Check score-level key signature (most reliable)
+    if (score && score.keySignature !== undefined && score.keySignature !== null) {
+      const detectedKey = keySignatureToKey(score.keySignature);
+      console.log(`Method 1 - Score keySignature: ${score.keySignature} = ${detectedKey}`);
+      log(`Detected key from score.keySignature: ${detectedKey}`);
+      return detectedKey;
+    }
+    
+    // Method 2: Check master bars for key signature
+    if (score && score.masterBars && score.masterBars.length > 0) {
+      for (let i = 0; i < Math.min(5, score.masterBars.length); i++) { // Check first 5 bars
+        const masterBar = score.masterBars[i];
+        if (masterBar && typeof masterBar.keySignature === 'number') {
+          const detectedKey = keySignatureToKey(masterBar.keySignature);
+          console.log(`Method 2 - MasterBar[${i}] keySignature: ${masterBar.keySignature} = ${detectedKey}`);
+          log(`Detected key from masterBar[${i}].keySignature: ${detectedKey}`);
+          return detectedKey;
+        }
+      }
+    }
+    
+    // Method 3: Check first track's first bar
+    if (score && score.tracks && score.tracks.length > 0) {
+      for (let trackIdx = 0; trackIdx < Math.min(3, score.tracks.length); trackIdx++) {
+        const track = score.tracks[trackIdx];
+        if (track && track.staves && track.staves.length > 0) {
+          for (let staffIdx = 0; staffIdx < track.staves.length; staffIdx++) {
+            const staff = track.staves[staffIdx];
+            if (staff && staff.bars && staff.bars.length > 0) {
+              for (let barIdx = 0; barIdx < Math.min(3, staff.bars.length); barIdx++) {
+                const bar = staff.bars[barIdx];
+                if (bar && typeof bar.keySignature === 'number') {
+                  const detectedKey = keySignatureToKey(bar.keySignature);
+                  console.log(`Method 3 - Track[${trackIdx}].Staff[${staffIdx}].Bar[${barIdx}] keySignature: ${bar.keySignature} = ${detectedKey}`);
+                  log(`Detected key from track[${trackIdx}].staff[${staffIdx}].bar[${barIdx}].keySignature: ${detectedKey}`);
+                  return detectedKey;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Method 4: Check for alternate property names
+    if (score && score.masterBars && score.masterBars.length > 0) {
+      const masterBar = score.masterBars[0];
+      if (masterBar) {
+        // Check various possible property names
+        const keyProps = ['keySignatureType', 'keySignatureData', 'key', 'keySignatureInfo'];
+        for (const prop of keyProps) {
+          if (masterBar[prop] !== undefined) {
+            const detectedKey = keySignatureToKey(masterBar[prop]);
+            console.log(`Method 4 - MasterBar.${prop}: ${masterBar[prop]} = ${detectedKey}`);
+            log(`Detected key from masterBar.${prop}: ${detectedKey}`);
+            return detectedKey;
+          }
+        }
+      }
+    }
+    
+    // Method 5: Analyze note patterns for heuristic key detection
+    if (score && score.tracks && score.tracks.length > 0) {
+      const detectedKey = analyzeNotesForKey(score);
+      if (detectedKey !== 'C') {
+        console.log(`Method 5 - Note analysis detected: ${detectedKey}`);
+        log(`Detected key from note analysis: ${detectedKey}`);
+        return detectedKey;
+      }
+    }
+    
+    console.log('No key signature found in any location, defaulting to C');
+    log('No key signature detected, defaulting to C Major');
+  } catch (e) {
+    console.error('Error in key detection:', e);
+    log('Error in key detection: ' + e.message);
+  }
+  return 'C'; // Default to C major
+}
+
+// Convert numeric key signature to key name
+function keySignatureToKey(keySignature) {
+  if (typeof keySignature !== 'number') return 'C';
+  
+  const keyMap = {
+    // Sharps (positive numbers)
+    0: 'C', 1: 'G', 2: 'D', 3: 'A', 4: 'E', 5: 'B', 6: 'F#', 7: 'C#',
+    // Flats (negative numbers)
+    [-1]: 'F', [-2]: 'Bb', [-3]: 'Eb', [-4]: 'Ab', [-5]: 'Db', [-6]: 'Gb', [-7]: 'Cb'
+  };
+  
+  return keyMap[keySignature] || 'C';
+}
+
+// Heuristic key detection based on note patterns
+function analyzeNotesForKey(score) {
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    const noteCounts = {};
+    let totalNotes = 0;
+    
+    // Count notes from first track (non-percussion)
+    for (const track of score.tracks || []) {
+      if (track.isPercussion) continue;
+      
+      for (const staff of track.staves || []) {
+        for (const bar of staff.bars || []) {
+          for (const voice of bar.voices || []) {
+            for (const beat of voice.beats || []) {
+              for (const note of beat.notes || []) {
+                if (note.fret !== undefined && note.string !== undefined) {
+                  // Convert fret/string to note (simplified)
+                  const noteClass = (note.fret + [64,59,55,50,45,40][note.string - 1] || 0) % 12;
+                  noteCounts[noteClass] = (noteCounts[noteClass] || 0) + 1;
+                  totalNotes++;
+                }
+              }
+            }
+          }
+        }
+      }
+      if (totalNotes > 20) break; // Don't analyze too many notes
+    }
+    
+    if (totalNotes < 5) return 'C'; // Not enough data
+    
+    // Simple key detection based on most common notes
+    const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    const sortedNotes = Object.entries(noteCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([note]) => parseInt(note));
+    
+    // Very basic heuristic - if most common note is not C, assume that key
+    if (sortedNotes.length > 0 && sortedNotes[0] !== 0) {
+      return noteNames[sortedNotes[0]];
+    }
+    
+  } catch (e) {
+    console.log('Note analysis failed:', e);
+  }
+  
+  return 'C';
+}
+
+function updateKeyDisplay(key) {
+  currentKey = key;
+  $('#keyBtn').textContent = `Key: ${key}`;
+  
+  // Update dropdown highlight
+  document.querySelectorAll('.key-option').forEach(opt => {
+    opt.classList.remove('current');
+    if (opt.dataset.key === key) {
+      opt.classList.add('current');
+    }
+  });
+}
+
+// Convert key name to numeric key signature (sharps/flats count)
+function keyToKeySignature(keyName) {
+  const keyToNumber = {
+    // Major keys
+    'C': 0, 'G': 1, 'D': 2, 'A': 3, 'E': 4, 'B': 5, 'F#': 6, 'C#': 7,
+    'F': -1, 'Bb': -2, 'Eb': -3, 'Ab': -4, 'Db': -5, 'Gb': -6,
+    // Minor keys (same as their relative majors)
+    'Am': 0, 'Em': 1, 'Bm': 2, 'F#m': 3, 'C#m': 4, 'G#m': 5, 'D#m': 6, 'A#m': 7,
+    'Dm': -1, 'Gm': -2, 'Cm': -3, 'Fm': -4, 'Bbm': -5, 'Ebm': -6
+  };
+  return keyToNumber[keyName] || 0;
+}
+
+// Update all key signature references in the score data structure
+function updateScoreKeySignatures(score, newKeySignature) {
+  let updatedCount = 0;
+  
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    // Update score-level key signature
+    if (score.keySignature !== undefined) {
+      score.keySignature = newKeySignature;
+      updatedCount++;
+      log(`Updated score.keySignature to ${newKeySignature}`);
+    }
+    
+    // Update all master bars
+    if (score.masterBars && score.masterBars.length > 0) {
+      for (let i = 0; i < score.masterBars.length; i++) {
+        const masterBar = score.masterBars[i];
+        if (masterBar && typeof masterBar.keySignature === 'number') {
+          masterBar.keySignature = newKeySignature;
+          updatedCount++;
+        }
+        // Also check alternative property names
+        if (masterBar && typeof masterBar.keySignatureType === 'number') {
+          masterBar.keySignatureType = newKeySignature;
+          updatedCount++;
+        }
+      }
+      log(`Updated ${score.masterBars.length} master bar key signatures`);
+    }
+    
+    // Update individual track/staff/bar key signatures
+    if (score.tracks && score.tracks.length > 0) {
+      for (const track of score.tracks) {
+        if (track.staves && track.staves.length > 0) {
+          for (const staff of track.staves) {
+            if (staff.bars && staff.bars.length > 0) {
+              for (const bar of staff.bars) {
+                if (bar && typeof bar.keySignature === 'number') {
+                  bar.keySignature = newKeySignature;
+                  updatedCount++;
+                }
+              }
+            }
+          }
+        }
+      }
+      log(`Updated individual bar key signatures across all tracks`);
+    }
+    
+    log(`Total key signature updates: ${updatedCount}`);
+    return updatedCount > 0;
+    
+  } catch (e) {
+    console.error('Error updating key signatures:', e);
+    log('❌ Error updating key signatures: ' + e.message);
+    return false;
+  }
+}
+
+// ENHANCED: Full transposition with key signature glyph updates
+function transposeToKey(targetKey) {
+  if (!at || !at.score) {
+    log('Cannot transpose: no score loaded');
+    return;
+  }
+  
+  const originalSemitones = keySignatures[originalKey]?.semitones || 0;
+  const targetSemitones = keySignatures[targetKey]?.semitones || 0;
+  
+  
+  // Always reflect the chosen key in the UI immediately
+  updateKeyDisplay(targetKey);
+// Calculate semitones difference for note transposition
+  let transposition = targetSemitones - originalSemitones;
+  // Respect 'Rewrite key only' toggle: update glyphs but do not transpose pitches
+  const __transposeToggleEl = document.getElementById('transposeToggle');
+const __doTranspose = !!(__transposeToggleEl && __transposeToggleEl.checked);
+if (!__doTranspose) { transposition = 0; }
+
+  
+  // Normalize to [-6, 6] range for better readability
+  while (transposition > 6) transposition -= 12;
+  while (transposition < -6) transposition += 12;
+  
+  // Calculate new key signature value for glyphs
+  const newKeySignature = keyToKeySignature(targetKey);
+  
+  currentTransposition = transposition;
+  
+  console.log(`Transposing from ${originalKey} (${originalSemitones}) to ${targetKey} (${targetSemitones}) = ${transposition} semitones`);
+  log(`🎵 Transposing from ${originalKey} to ${targetKey}`);
+  log(`🔀 Note transposition: ${transposition > 0 ? '+' : ''}${transposition} semitones`);
+  if (!__doTranspose) { log('✏️ Rewrite-only mode: pitches unchanged; only key signature glyphs updated.'); }
+  log(`🎼 Key signature: ${newKeySignature} (${newKeySignature > 0 ? newKeySignature + ' sharps' : newKeySignature < 0 ? Math.abs(newKeySignature) + ' flats' : 'no accidentals'})`);
+  
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    // Store current rendering state
+    const currentTracks = at.tracks || [];
+    
+    // STEP 1: Update actual key signature data in the score
+    const keySignatureUpdated = updateScoreKeySignatures(at.score, newKeySignature);
+    
+    if (keySignatureUpdated) {
+      log('✓ Score key signatures updated successfully');
+    } else {
+      log('⚠ Warning: Could not update score key signatures');
+    }
+    
+    // STEP 2: Apply note transposition via displayTranspositionPitches
+    const numTracks = at.score.tracks.length;
+    const transpositionArray = new Array(numTracks).fill(transposition);
+    
+    // Update settings with the correct API
+    at.settings.notation.transpositionPitches = transpositionArray;
+    
+    console.log(`Set displayTranspositionPitches to:`, transpositionArray);
+    // Also apply live playback transposition (affects audio)
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+      const tracksToChange = (currentTracks && currentTracks.length) ? currentTracks : (at.score?.tracks || []);
+      if (at.changeTrackTranspositionPitch && tracksToChange.length) {
+        at.changeTrackTranspositionPitch(tracksToChange, transposition);
+        log('🎧 Applied live playback transposition to audio.');
+      }
+    } catch (e) {
+      console.warn('Could not apply live playback transposition:', e);
+    }
+
+    log(`🎵 Applied note transposition: [${transpositionArray.join(', ')}] for ${numTracks} tracks`);
+    
+    // STEP 3: Apply settings update - CRITICAL STEP
+    at.updateSettings();
+    console.log('Called updateSettings()');
+    
+    // STEP 4: Re-render tracks to apply both key signature glyphs AND note transposition
+    if (currentTracks.length > 0) {
+      console.log(`Re-rendering ${currentTracks.length} tracks`);
+      at.renderTracks(currentTracks);
+    } else {
+      // Render first track if none selected
+      console.log('No tracks selected, rendering first track');
+      at.renderTracks([at.score.tracks[0]]);
+      // Update UI checkbox
+      setTimeout(() => {
+        const firstCheckbox = document.querySelector('#tracks .track .render');
+        if (firstCheckbox) firstCheckbox.checked = true;
+      }, 100);
+    }
+    
+    updateKeyDisplay(targetKey);
+    
+    // If we were playing, resume from the same approximate position
+    try {
+      if (wasPlaying) {
+        at.stop();
+        at.timePosition = currentMs;
+        at.play();
+        log('▶️ Resumed playback after transposition.');
+      }
+    } catch(e) { /* ignore */ }
+
+    log(`✅ Complete transposition applied successfully!`);
+    log(`🎼 Key signature glyphs should now show: ${targetKey}`);
+    
+  } catch (e) {
+    console.error('Transposition failed:', e);
+    log('❌ Transposition failed: ' + e.message);
+    
+    // Detailed error logging
+    log(`Debug info: tracks=${at.score?.tracks?.length}, settings=${!!at.settings}, notation=${!!at.settings?.notation}`);
+  }
+}
+
+// Transport
+$('#play').onclick = ()=> { 
+  console.log('Play button clicked');
+  at.play(); 
+  window.isPlaying = true; 
+};
+$('#pause').onclick = ()=> { 
+  console.log('Pause button clicked');
+  at.pause(); 
+  window.isPlaying = false; 
+};
+$('#stop').onclick = ()=> { 
+  console.log('Stop button clicked');
+  at.stop(); 
+  window.isPlaying = false; 
+};
+$('#speed').onchange = e => at.playbackSpeed = parseFloat(e.target.value);
+$('#countIn').onclick = ()=> at.countInVolume = at.countInVolume > 0 ? 0 : 1;
+$('#metronome').onclick = ()=> at.metronomeVolume = at.metronomeVolume > 0 ? 0 : 1;
+
+// Key selector event handlers
+$('#keyBtn').onclick = (e) => {
+  e.stopPropagation();
+  const dropdown = $('#keyDropdown');
+  // Create overlay root if needed
+  let root = document.getElementById('ui-overlay-root');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'ui-overlay-root';
+    root.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(root);
+  }
+  // Position dropdown relative to button (viewport coords)
+  const r = e.currentTarget.getBoundingClientRect();
+  dropdown.style.left = Math.round(Math.max(8, Math.min(r.left, window.innerWidth - r.width - 8))) + 'px';
+  dropdown.style.top  = Math.round(r.bottom + 4) + 'px';
+  dropdown.style.minWidth = Math.round(r.width) + 'px';
+  dropdown.classList.add('dropdown-layer');
+  root.appendChild(dropdown);
+  dropdown.classList.toggle('show');
+};
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const dropdown = $('#keyDropdown');
+  if (!e.target.closest('.key-selector') && !e.target.closest('#ui-overlay-root')) {
+    dropdown.classList.remove('show');
+    // Return dropdown to original parent for layout consistency
+    const parent = document.querySelector('.key-selector');
+    if (parent && dropdown && parent !== dropdown.parentElement) {
+      parent.appendChild(dropdown);
+      dropdown.classList.remove('dropdown-layer');
+      dropdown.style.left = dropdown.style.top = dropdown.style.minWidth = '';
+    }
+  }
+});
+
+// Key option selection
+document.querySelectorAll('.key-option').forEach(option => {
+  option.onclick = () => {
+    const selectedKey = option.dataset.key;
+    log(`🎵 User selected key: ${selectedKey}`);
+    
+    // Add visual feedback for user interaction
+    if (selectedKey === originalKey) {
+      log(`🔄 Returning to original key: ${originalKey}`);
+    } else {
+      log(`🎼 Transposing from current key (${currentKey}) to ${selectedKey}`);
+    }
+    
+    transposeToKey(selectedKey);
+    $('#keyDropdown').classList.remove('show');
+    // Return dropdown to parent after selection
+    try {
+      const dd = $('#keyDropdown');
+      const parent = document.querySelector('.key-selector');
+      if (parent && dd && parent !== dd.parentElement) {
+        parent.appendChild(dd);
+        dd.classList.remove('dropdown-layer');
+        dd.style.left = dd.style.top = dd.style.minWidth = '';
+      }
+    } catch(_) {}
+    
+  };
+});
+
+// Enhanced debug function
+function debugAlphaTab() {
+  log('=== AlphaTab Debug Info ===');
+  log(`AlphaTab loaded: ${typeof alphaTab !== 'undefined'}`);
+  log(`AlphaTab version: ${alphaTab?.version || 'unknown'}`);
+  log(`API instance: ${!!at}`);
+  log(`Current score: ${!!at.score}`);
+  log(`Settings object: ${!!at.settings}`);
+  log(`Notation settings: ${!!at.settings?.notation}`);
+  log(`Display transposition pitches: ${JSON.stringify(at.settings?.notation?.displayTranspositionPitches || [])}`);
+  log(`Score tracks: ${at.score?.tracks?.length || 0}`);
+  log(`Current rendered tracks: ${at.tracks?.length || 0}`);
+  log(`Current key: ${currentKey}`);
+  log(`Original key: ${originalKey}`);
+  log(`Current transposition: ${currentTransposition}`);
+  
+  if (at.score) {
+    log(`=== Score Structure ===`);
+    log(`Score title: ${at.score.title || 'untitled'}`);
+    log(`Score artist: ${at.score.artist || 'unknown'}`);
+    log(`Master bars: ${at.score.masterBars?.length || 0}`);
+    log(`Score key signature: ${at.score.keySignature}`);
+    
+    if (at.score.masterBars && at.score.masterBars.length > 0) {
+      const mb = at.score.masterBars[0];
+      log(`First master bar key signature: ${mb.keySignature}`);
+      log(`First master bar properties: ${Object.keys(mb).join(', ')}`);
+      
+      // Show key signatures in first few master bars
+      for (let i = 0; i < Math.min(5, at.score.masterBars.length); i++) {
+        const masterBar = at.score.masterBars[i];
+        log(`MasterBar[${i}] keySignature: ${masterBar.keySignature}`);
+      }
+    }
+    
+    if (at.score.tracks && at.score.tracks.length > 0) {
+      log(`Tracks: ${at.score.tracks.length}`);
+      at.score.tracks.forEach((track, i) => {
+        log(`  Track ${i}: ${track.name || 'unnamed'} (${track.staves?.length || 0} staves, percussion: ${track.isPercussion})`);
+        
+        // Show key signatures in first staff/bar of each track
+        if (track.staves && track.staves.length > 0) {
+          const staff = track.staves[0];
+          if (staff.bars && staff.bars.length > 0) {
+            const bar = staff.bars[0];
+            log(`    First bar keySignature: ${bar.keySignature}`);
+          }
+        }
+      });
+    }
+    
+    log(`=== Key Signature Analysis ===`);
+    log(`Target key (${currentKey}) should have signature: ${keyToKeySignature(currentKey)}`);
+    const expectedSharpsFalts = keyToKeySignature(currentKey);
+    if (expectedSharpsFalts > 0) {
+      log(`Expected: ${expectedSharpsFalts} sharps`);
+    } else if (expectedSharpsFalts < 0) {
+      log(`Expected: ${Math.abs(expectedSharpsFalts)} flats`);
+    } else {
+      log(`Expected: no accidentals (C major/A minor)`);
+    }
+  }
+  log('========================');
+}
+
+// Make debug function available
+window.debugAlphaTab = debugAlphaTab;
+
+// A/B Loop
+let aTick=null,bTick=null;
+function updateAB(){
+  $('#ab').textContent = `A: ${aTick??'—'} | B: ${bTick??'—'}`;
+  if(aTick!=null && bTick!=null){
+    const startTick = Math.min(aTick,bTick), endTick = Math.max(aTick,bTick);
+    at.playbackRange = { startTick, endTick }; at.isLooping = true;
+  } else { at.playbackRange = null; at.isLooping = false; }
+}
+$('#setA').onclick = e=>{ e.preventDefault(); aTick = at.tickPosition|0; updateAB(); loopState = 1; };
+$('#setB').onclick = e=>{ e.preventDefault(); bTick = at.tickPosition|0; updateAB(); loopState = 2; };
+$('#clearAB').onclick = e=>{ e.preventDefault(); aTick=bTick=null; updateAB(); loopState = 0; };
+
+// Time display
+at.playerPositionChanged.on(e=>{
+  const fmt = ms => { const s=Math.floor(ms/1000), m=(s/60|0), ss=String(s%60).padStart(2,'0'); return `${m}:${ss}`; };
+  $('#time').textContent = `${fmt(e.currentTime)} / ${fmt(e.endTime)}`;
+});
+
+// Extra highlight of current element
+at.midiEventsPlayedFilter = [alphaTab.midi.MidiEventType.NoteOn];
+at.midiEventsPlayed.on(ev => {
+  const el = ev?.events?.[0]?.element;
+  if (el && at.setSelection) {
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+ at.setSelection([el]); } catch { /* ignore if not supported */ }
+  }
+});
+
+// Track list
+function renderTrackList(score){
+  const cont = $('#tracks'); cont.innerHTML='';
+  (score.tracks||[]).forEach((t, idx)=>{
+    const row = document.createElement('div');
+    row.className = 'track';
+    row.innerHTML = `
+      <div class="name"><strong>${t.name||('Track '+(idx+1))}</strong><small>${t.isPercussion?'Percussion':'Instrument'}</small></div>
+      <div style="margin-left:auto; display:flex; gap:6px; align-items:center">
+        <label title="Render this track"><input type="checkbox" class="render"></label>
+        <button class="btn solo">Solo</button>
+        <button class="btn mute">Mute</button>
+      </div>`;
+    const renderCb = row.querySelector('.render');
+    renderCb.addEventListener('change', ()=>{
+      const selected = [...document.querySelectorAll('.track .render:checked')].map(cb=>{
+        const i = [...cont.children].indexOf(cb.closest('.track'));
+        return at.score.tracks[i];
+      });
+      if(selected.length===0){ 
+        at.renderTracks([at.score.tracks[0]]); 
+        cont.querySelector('.track .render').checked = true; 
+      } else { 
+        at.renderTracks(selected); 
+      }
+    });
+    row.querySelector('.solo').onclick = ()=> at.changeTrackSolo([at.score.tracks[idx]], true);
+    row.querySelector('.mute').onclick = ()=> at.changeTrackMute([at.score.tracks[idx]], true);
+    cont.appendChild(row);
+  });
+  if(at.score.tracks?.length){ 
+    at.renderTracks([at.score.tracks[0]]); 
+    document.querySelector('.track .render').checked = true; 
+  }
+}
+
+// ENHANCED: Score loading with comprehensive key detection
+at.scoreLoaded.on(score=>{
+  $('#meta').textContent = `${score.title||'Untitled'} — ${score.artist||'Unknown'} (${score.tracks?.length||0} tracks)`;
+  
+  // Reset play state
+  window.isPlaying = false;
+  
+  // Reset transposition when loading new score
+  currentTransposition = 0;
+  
+  // Reset transposition settings properly
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    const numTracks = score.tracks?.length || 1;
+    at.settings.notation.transpositionPitches = new Array(numTracks).fill(0);
+    // Also reset live playback transposition for audio
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+      if (at.changeTrackTranspositionPitch && at.score?.tracks?.length) {
+        at.changeTrackTranspositionPitch(at.score.tracks, 0);
+        log('🔄 Reset live playback transposition to 0.');
+      }
+    } catch (e) { /* ignore */ }
+    
+    at.updateSettings();
+  } catch(e) {
+    console.log('Could not reset transposition settings:', e);
+  }
+  
+  // Comprehensive key detection
+  const detectedKey = detectKeyFromScore(score);
+  originalKey = detectedKey;
+  currentKey = detectedKey;
+  updateKeyDisplay(detectedKey);
+  
+  renderTrackList(score);
+  log(`🎼 Score loaded: ${score.title || 'Untitled'}`);
+  log(`🎹 Detected key: ${detectedKey}`);
+  
+  // Debug the score structure
+  console.log('Full score object for debugging:', score);
+});
+
+// File input
+$('#fileInput').addEventListener('change', async e=>{
+  const f = e.target.files?.[0]; if(!f) return;
+  const name = f.name.toLowerCase(); const buf = await f.arrayBuffer();
+  
+  // Store the buffer for debugging/reloading
+  window.currentScoreBuffer = buf;
+  window.currentFileName = f.name;
+  
+  log(`📁 Loading file: ${f.name}`);
+  
+  if(name.endsWith('.mid') || name.endsWith('.midi')){
+    try{
+      log('🎵 Converting MIDI to MusicXML...');
+      const xml = midiToMusicXmlWithTab(new Midi(buf), {
+        quant: parseInt($('#quant').value,10)||8,
+        tsNum: parseInt($('#tsNum').value,10)||4,
+        tsDen: parseInt($('#tsDen').value,10)||4,
+        merge: $('#merge').checked,
+        includePerc: $('#includePerc').checked
+      });
+      const blob = new Blob([xml], {type:'application/vnd.recordare.musicxml+xml'});
+      const xmlBuffer = await blob.arrayBuffer();
+      window.currentScoreBuffer = xmlBuffer;
+      
+      await at.load(xmlBuffer);
+      log('✔ MIDI converted and loaded successfully');
+    }catch(err){
+      log('❌ MIDI conversion failed: '+err.message);
+      alert('Could not convert MIDI. Try a different quantization/time signature, or export MusicXML from your DAW.');
+    }
+  } else {
+    try{ 
+      await at.load(buf); 
+      log('✔ File loaded successfully'); 
+    }catch(err){ 
+      log('❌ Load error: '+err.message); 
+    }
+  }
+});
+
+// --- MIDI to MusicXML (two staves: treble + TAB) ---
+function midiToMusicXmlWithTab(midi, opts){
+  const ppq = midi.header.ppq || 480;
+  const divisions = opts.quant || 8;
+  const tsN = opts.tsNum || 4, tsD = opts.tsDen || 4;
+  const includePerc = !!opts.includePerc;
+  const merge = !!opts.merge;
+  const bpm = (midi.header.tempos && midi.header.tempos[0] && midi.header.tempos[0].bpm) ? Math.round(midi.header.tempos[0].bpm) : 120;
+
+  // Standard guitar tuning: strings 1..6 = E4,B3,G3,D3,A2,E2
+  const tuningMidi = [64,59,55,50,45,40];
+
+  // Build parts (skip empty/percussion unless opted-in)
+  const parts=[];
+  if(merge){
+    const all=[];
+    midi.tracks.forEach((t,ti)=>{
+      const ch = (typeof t.channel==='number') ? t.channel : null;
+      if(!includePerc && ch===9) return;
+      (t.notes||[]).forEach(n=> all.push({...n, track:ti}));
+    });
+    parts.push({id:'P1', name:'Merged', notes:all});
+  } else {
+    let idx=1;
+    midi.tracks.forEach((t,ti)=>{
+      if(!t.notes || !t.notes.length) return;
+      const ch = (typeof t.channel==='number') ? t.channel : null;
+      if(!includePerc && ch===9) return;
+      parts.push({id:'P'+(idx++), name: t.name||('Track '+(ti+1)), notes:t.notes.slice()});
+    });
+  }
+
+  function qTicksToDiv(ticks){ return Math.max(1, Math.round((ticks/ppq)*divisions)); }
+  function midiToPitch(m){
+    const names=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]; const sFull=names[m%12];
+    const step=sFull.replace('#',''); const alter=sFull.includes('#')?1:0; const octave=(m/12|0)-1;
+    return {step, alter, octave};
+  }
+  function durationType(divs){
+    const ratio = divs/divisions; const map={4:'whole',2:'half',1:'quarter',0.5:'eighth',0.25:'16th',0.125:'32nd'};
+    for(const k of Object.keys(map)){ if(Math.abs(ratio-parseFloat(k))<1e-6) return map[k]; } return null;
+  }
+  const measDiv = Math.round(divisions * tsN * (4/tsD));
+
+  function quantize(notes){
+    return notes.map(n=>({start:qTicksToDiv(n.ticks), dur:Math.max(1,qTicksToDiv(n.durationTicks)), midi:n.midi|0})).sort((a,b)=>a.start-b.start||a.midi-b.midi);
+  }
+  function splitMeasures(qnotes){
+    const measures=[]; let i=0;
+    while(i<qnotes.length){
+      const s=qnotes[i].start; const batch=[];
+      while(i<qnotes.length && qnotes[i].start===s){ batch.push(qnotes[i]); i++; }
+      const dur = Math.max(...batch.map(x=>x.dur));
+      let pos=s, remaining=dur;
+      while(remaining>0){
+        const mIndex = Math.floor(pos/measDiv); const mStart=mIndex*measDiv;
+        const within = pos - mStart; const room = measDiv - within; const take = Math.min(remaining, room);
+        if(!measures[mIndex]) measures[mIndex]=[];
+        measures[mIndex].push({ offset: within, dur: take, midis: batch.map(x=>x.midi), tieStart: remaining>take, tieStop: within>0 && take<dur });
+        pos+=take; remaining-=take;
+      }
+    }
+    return measures;
+  }
+
+  function toStringFret(m){
+    let bestFret = Infinity, bestString = 1;
+    for(let s=0;s<6;s++){
+      const fret = m - tuningMidi[s];
+      if(fret>=0 && fret<=22){
+        if(fret < bestFret){ bestFret=fret; bestString = s+1; }
+      }
+    }
+    if(!isFinite(bestFret)){ const f = Math.max(0, m - tuningMidi[0]); return {string:1, fret:f}; }
+    return {string:bestString, fret:bestFret};
+  }
+
+  function escapeXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function tuningStaffDetails(){
+    function stepOct(m){ const names=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]; const name=names[m%12]; const step=name.replace('#',''); const oct=(m/12|0)-1; return {step,oct:oct}; }
+    let lines = ['      <staff-details number="2"><staff-lines>6</staff-lines><staff-type>tab</staff-type>'];
+    for(let i=0;i<6;i++){
+      const {step,oct} = stepOct(tuningMidi[i]);
+      lines.push(`        <staff-tuning line="${i+1}"><tuning-step>${step}</tuning-step><tuning-octave>${oct}</tuning-octave></staff-tuning>`);
+    }
+    lines.push('      </staff-details>');
+    return lines.join('\n');
+  }
+
+  function emitHeader(){
+    const title = midi.name ? escapeXml(midi.name) : 'MIDI Conversion';
+    return [
+      '<?xml version="1.0" encoding="UTF-8" standalone="no"?>',
+      '<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 3.1 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">',
+      '<score-partwise version="3.1">',
+      `  <work><work-title>${title}</work-title></work>`,
+      '  <identification><encoding><software>MIDI to MusicXML (client-side, with TAB)</software></encoding></identification>',
+      '  <part-list>',
+      ...parts.map(p=>`    <score-part id="${p.id}"><part-name>${escapeXml(p.name)}</part-name></score-part>`),
+      '  </part-list>'
+    ].join('\n');
+  }
+
+  function emitAttributes(){
+    return [
+      '      <attributes>',
+      `        <divisions>${divisions}</divisions>`,
+      '        <staves>2</staves>',
+      '        <clef number="1"><sign>G</sign><line>2</line></clef>',
+      '        <clef number="2"><sign>TAB</sign><line>5</line></clef>',
+      `        <time><beats>${tsN}</beats><beat-type>${tsD}</beat-type></time>`,
+      tuningStaffDetails(),
+      '      </attributes>',
+      `      <direction placement="above"><direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>${bpm}</per-minute></metronome></direction-type><sound tempo="${bpm}"/></direction>`
+    ].join('\n');
+  }
+
+  function emitPart(p){
+    const q = quantize(p.notes||[]);
+    const measures = splitMeasures(q);
+    let xml = `  <part id="${p.id}">\n`;
+    const lastPos = q.length ? (q[q.length-1].start + q[q.length-1].dur) : 0;
+    const totalMeasures = measures.length ? measures.length : (lastPos ? Math.ceil(lastPos / measDiv) : 1);
+    for(let mi=0; mi<totalMeasures; mi++){
+      xml += `    <measure number="${mi+1}">\n`;
+      if(mi===0) xml += emitAttributes() + '\n';
+
+      const raw = measures[mi] || [];
+      const entries = raw.length ? raw.slice().sort((a,b)=>a.offset-b.offset) : [];
+      let j=0;
+      while(j<entries.length){
+        const off = entries[j].offset; const group=[];
+        while(j<entries.length && entries[j].offset===off){ group.push(entries[j]); j++; }
+        const chord = [...new Set(group.flatMap(g=>g.midis))].sort((a,b)=>a-b);
+        const dur = Math.max(...group.map(g=>g.dur));
+        const tieStart = group.some(g=>g.tieStart), tieStop = group.some(g=>g.tieStop);
+
+        if (chord.length===0){
+          xml += '      <note>\n        <rest/>\n';
+          xml += `        <duration>${dur}</duration>\n        <voice>1</voice>\n        <staff>1</staff>\n`;
+          const typ = durationType(dur); if (typ) xml += `        <type>${typ}</type>\n`;
+          xml += '      </note>\n';
+        } else {
+          // Staff 1 (notation)
+          chord.forEach((m, idx)=>{
+            const pch = midiToPitch(m);
+            xml += '      <note>\n';
+            if (idx>0) xml += '        <chord/>\n';
+            xml += `        <pitch><step>${pch.step}</step>${pch.alter?`<alter>${pch.alter}</alter>`:''}<octave>${pch.octave}</octave></pitch>\n`;
+            xml += `        <duration>${dur}</duration>\n        <voice>1</voice>\n        <staff>1</staff>\n`;
+            const typ = durationType(dur); if (typ) xml += `        <type>${typ}</type>\n`;
+            if (tieStop)  xml += '        <tie type="stop"/>\n';
+            if (tieStart) xml += '        <tie type="start"/>\n';
+            if (tieStop || tieStart){ xml += '        <notations>'; if(tieStop) xml += '<tied type="stop"/>'; if(tieStart) xml += '<tied type="start"/>'; xml += '</notations>\n'; }
+            xml += '      </note>\n';
+          });
+          // Staff 2 (TAB) with string/fret
+          chord.forEach((m, idx)=>{
+            const pch = midiToPitch(m);
+            const sf = toStringFret(m);
+            xml += '      <note>\n';
+            if (idx>0) xml += '        <chord/>\n';
+            xml += `        <pitch><step>${pch.step}</step>${pch.alter?`<alter>${pch.alter}</alter>`:''}<octave>${pch.octave}</octave></pitch>\n`;
+            xml += `        <duration>${dur}</duration>\n        <voice>2</voice>\n        <staff>2</staff>\n`;
+            const typ = durationType(dur); if (typ) xml += `        <type>${typ}</type>\n`;
+            if (tieStop)  xml += '        <tie type="stop"/>\n';
+            if (tieStart) xml += '        <tie type="start"/>\n';
+            xml += `        <notations><technical><string>${sf.string}</string><fret>${sf.fret}</fret></technical>`;
+            if (tieStop)  xml += '<tied type="stop"/>';
+            if (tieStart) xml += '<tied type="start"/>';
+            xml += '</notations>\n';
+            xml += '      </note>\n';
+          });
+        }
+      }
+      xml += '    </measure>\n';
+    }
+    xml += '  </part>\n';
+    return xml;
+  }
+
+  let out = emitHeader() + '\n';
+  for(const p of parts) out += emitPart(p);
+  out += '</score-partwise>';
+  return out;
+}
+
+// Live per-instrument highlight based on NoteOn events
+(function(){
+  const timers = {};
+  function rows(){ return Array.from(document.querySelectorAll('#tracks .track')); }
+  function clearAllPlaying(){
+    rows().forEach(r=> r.classList.remove('playing'));
+    for (const k in timers){ clearTimeout(timers[k]); delete timers[k]; }
+  }
+  function trackIndexFromElement(el){
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+      const t = el?.beat?.voice?.track || el?.voice?.track || el?.staff?.track || el?.track || null;
+      if (!t) return null;
+      const idx = (at.score.tracks||[]).indexOf(t);
+      return idx >= 0 ? idx : null;
+    } catch { return null; }
+  }
+  // Highlight on NoteOn
+  at.midiEventsPlayed.on(ev => {
+    const seen = new Set();
+    (ev?.events||[]).forEach(me=>{
+      const el = me?.element;
+      const idx = trackIndexFromElement(el);
+      if (idx == null) return;
+      seen.add(idx);
+      const r = rows()[idx]; if (!r) return;
+      r.classList.add('playing');
+      if (timers[idx]) clearTimeout(timers[idx]);
+      timers[idx] = setTimeout(()=>{
+        const rr = rows()[idx];
+        if (rr) rr.classList.remove('playing');
+        delete timers[idx];
+      }, 180);
+    });
+  });
+  // Also sync with player state
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    at.player.stateChanged?.on?.((s)=>{
+      if (s !== 1) clearAllPlaying(); // not playing
+    });
+  } catch{}
+  // After list re-render, clear stale timers & classes
+  const oldRender = window.renderTrackList;
+  window.renderTrackList = function(score){
+    if (typeof oldRender === 'function') oldRender(score);
+    clearAllPlaying();
+  };
+})();    
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const aside = document.querySelector('aside.sidebar');
+  if (!aside) return;
+  // Create (or reuse) a hidden parking area to preserve elements for JS bindings
+  let park = document.getElementById('ui-parking');
+  if (!park) {
+    park = document.createElement('div');
+    park.id = 'ui-parking';
+    park.style.display = 'none';
+    document.body.appendChild(park);
+  }
+  // Keep only the heading and the #tracks container in the sidebar
+  const kids = Array.from(aside.children);
+  for (const el of kids) {
+    const id = (el.getAttribute && el.getAttribute('id')) || '';
+    if (el.tagName.toLowerCase() === 'h3') continue;
+    if (id === 'tracks') continue;
+    park.appendChild(el);
+  }
+  // Rename sidebar title
+  const h = aside.querySelector('h3');
+  if (h) h.textContent = 'Instruments';
+});
+</script>
+<script>
+// Hard stop: suppress programmatic auto-scrolling at runtime
+(function(){
+  const blockScroll = (e)=>{
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+      if (!e) return;
+      const t = e.target || e.currentTarget || document;
+      if (t && (t.scrollLeft || t.scrollTop)) {
+        t.scrollLeft = t.scrollLeft; // no-op
+        t.scrollTop = t.scrollTop;   // no-op
+      }
+    } catch(_){}
+  };
+  // Monkey-patch common scroll methods
+  const elProto = Element.prototype;
+  const origSIV = elProto.scrollIntoView;
+  if (origSIV) {
+    elProto.scrollIntoView = function(){ /* disabled */ };
+  }
+  const origScrollTo = window.scrollTo;
+  if (origScrollTo) {
+    window.scrollTo = function(){ /* disabled */ };
+  }
+  const origScrollBy = window.scrollBy;
+  if (origScrollBy) {
+    window.scrollBy = function(){ /* disabled */ };
+  }
+  // Prevent smooth scrolling CSS from re-enabling movement
+  document.documentElement.style.scrollBehavior = 'auto';
+})();
+</script>
+<script>
+(function(){
+  function setTop(){
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+      const se = document.scrollingElement || document.documentElement || document.body;
+      se.scrollTop = 0; se.scrollLeft = 0;
+    } catch(_){}
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+      const aside = document.querySelector('aside.sidebar');
+      if (aside) { aside.scrollTop = 0; }
+    } catch(_){}
+  }
+  function freeze(ms=900){
+    const until = Date.now() + ms;
+    const id = setInterval(()=>{
+      if (Date.now() > until) return clearInterval(id);
+      setTop();
+    }, 16);
+  }
+  window.addEventListener('load', ()=>{ setTop(); freeze(1200); });
+  const fi = document.getElementById('fileInput');
+  if (fi) fi.addEventListener('change', ()=>{ setTop(); freeze(1500); });
+})();
+</script>
+<script>
+(function(){
+  // Auto-scroll toggle (default OFF to preserve current safe behavior)
+  window.__autoScrollEnabled = true;
+  const autoEl = document.getElementById('autoScroll');
+  if (autoEl) autoEl.checked = true;
+
+  // Guard native scrolling functions when auto-scroll is OFF
+  const orig = {
+    siv: Element.prototype.scrollIntoView,
+    st:  window.scrollTo,
+    sb:  window.scrollBy
+  };
+  function applyGuards(){
+    const on = !!window.__autoScrollEnabled;
+    Element.prototype.scrollIntoView = on ? orig.siv : function(){};
+    window.scrollTo = on ? orig.st : function(){};
+    window.scrollBy = on ? orig.sb : function(){};
+  }
+  applyGuards();
+  if (autoEl) autoEl.addEventListener('change', (e)=>{
+    window.__autoScrollEnabled = !!e.target.checked;
+    applyGuards();
+  });
+
+  // Visual toggles for Count-In & Metronome based on volumes
+  function refreshTopToggles(){
+    try{
+      const c = document.getElementById('countIn');
+      const m = document.getElementById('metronome');
+      if (c && window.at) c.classList.toggle('active', (at.countInVolume||0) > 0);
+      if (m && window.at) m.classList.toggle('active', (at.metronomeVolume||0) > 0);
+    }catch(_){}
+  }
+
+  // Patch existing handlers to also refresh visuals
+  const ci = document.getElementById('countIn');
+  if (ci){
+    const origCI = ci.onclick;
+    ci.onclick = ()=>{ if (origCI) origCI(); refreshTopToggles(); };
+  }
+  const mt = document.getElementById('metronome');
+  if (mt){
+    const origMT = mt.onclick;
+    mt.onclick = ()=>{ if (origMT) origMT(); refreshTopToggles(); };
+  }
+
+  // Track Solo/Mute highlighting with a small state map
+  window.__trackToggleState = window.__trackToggleState || {};
+  const oldRender = window.renderTrackList;
+  window.renderTrackList = function(score){
+    if (!window.__trackToggleState) window.__trackToggleState = {};
+    const state = window.__trackToggleState;
+    // Call the original
+    oldRender(score);
+    // Re-apply states & wire buttons
+    const rows = Array.from(document.querySelectorAll('#tracks .track'));
+    rows.forEach((row, idx)=>{
+      const soloBtn = row.querySelector('.solo');
+      const muteBtn = row.querySelector('.mute');
+      // Restore visual state if known
+      const st = state[idx] || {};
+      if (soloBtn) soloBtn.classList.toggle('active', !!st.solo);
+      if (muteBtn) muteBtn.classList.toggle('active', !!st.mute);
+      // Wrap handlers to also toggle classes + remember
+      if (soloBtn){
+        const origSolo = soloBtn.onclick;
+        soloBtn.onclick = ()=>{
+          if (origSolo) origSolo();
+          const on = !soloBtn.classList.contains('active');
+          soloBtn.classList.toggle('active', on);
+          state[idx] = state[idx] || {}; state[idx].solo = on;
+        };
+      }
+      if (muteBtn){
+        const origMute = muteBtn.onclick;
+        muteBtn.onclick = ()=>{
+          if (origMute) origMute();
+          const on = !muteBtn.classList.contains('active');
+          muteBtn.classList.toggle('active', on);
+          state[idx] = state[idx] || {}; state[idx].mute = on;
+        };
+      }
+    });
+    // Also refresh top toggles
+    refreshTopToggles();
+  };
+
+  // First refresh when AlphaTab initializes/loads
+  setTimeout(refreshTopToggles, 300);
+  setTimeout(refreshTopToggles, 1000);
+})();
+</script>
+<script>
+(function(){
+  // Ensure our state map exists
+  window.__trackToggleState = window.__trackToggleState || {};
+
+  // Wrap/replace renderTrackList again to enforce correct toggle behavior
+  const prevRender = window.renderTrackList;
+  window.renderTrackList = function(score){
+    if (typeof prevRender === 'function') prevRender(score);
+
+    const state = window.__trackToggleState;
+    const rows = Array.from(document.querySelectorAll('#tracks .track'));
+    rows.forEach((row, idx)=>{
+      const soloBtn = row.querySelector('.solo');
+      const muteBtn = row.querySelector('.mute');
+
+      // Restore visual state if previously set
+      const st = state[idx] || {};
+      if (soloBtn) soloBtn.classList.toggle('active', !!st.solo);
+      if (muteBtn) muteBtn.classList.toggle('active', !!st.mute);
+
+      // Replace handlers so they actually set API state instead of always 'true'
+      if (soloBtn){
+        soloBtn.onclick = ()=>{
+          const on = !soloBtn.classList.contains('active');
+          try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+ at.changeTrackSolo([at.score.tracks[idx]], on); } catch(_){}
+          soloBtn.classList.toggle('active', on);
+          state[idx] = state[idx] || {}; state[idx].solo = on;
+        };
+      }
+      if (muteBtn){
+        muteBtn.onclick = ()=>{
+          const on = !muteBtn.classList.contains('active');
+          try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+ at.changeTrackMute([at.score.tracks[idx]], on); } catch(_){}
+          muteBtn.classList.toggle('active', on);
+          state[idx] = state[idx] || {}; state[idx].mute = on;
+        };
+      }
+    });
+  };
+
+  // If a score is already loaded, re-render list to apply overrides
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    if (at && at.score && typeof window.renderTrackList === 'function'){
+      window.renderTrackList(at.score);
+    }
+  } catch(_){}
+})();
+</script>
+<script>
+(function(){
+  function setHeaderActive(which){
+    const ids = ['play','pause','stop'];
+    ids.forEach(id=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('active', id === which);
+    });
+    // Update our play state tracking
+    window.isPlaying = (which === 'play');
+    console.log('Header active changed to:', which, 'isPlaying:', window.isPlaying);
+  }
+
+  function refreshTopControls(){
+    try{
+      const ci = document.getElementById('countIn');
+      const mt = document.getElementById('metronome');
+      if (ci && window.at) ci.classList.toggle('active', (at.countInVolume||0) > 0);
+      if (mt && window.at) mt.classList.toggle('active', (at.metronomeVolume||0) > 0);
+    }catch(_){}
+  }
+
+  // Wrap Count-In & Metronome to also update button classes
+  const ci = document.getElementById('countIn');
+  if (ci){
+    const orig = ci.onclick;
+    ci.onclick = ()=>{ if (orig) orig(); refreshTopControls(); };
+  }
+  const mt = document.getElementById('metronome');
+  if (mt){
+    const orig2 = mt.onclick;
+    mt.onclick = ()=>{ if (orig2) orig2(); refreshTopControls(); };
+  }
+
+  // Play/Pause/Stop visuals based on clicks and player state
+  const p  = document.getElementById('play');
+  const pa = document.getElementById('pause');
+  const st = document.getElementById('stop');
+  if (p){
+    const op = p.onclick;
+    p.onclick = ()=>{ if (op) op(); setHeaderActive('play'); };
+  }
+  if (pa){
+    const opa = pa.onclick;
+    pa.onclick = ()=>{ if (opa) opa(); setHeaderActive('pause'); };
+  }
+  if (st){
+    const ost = st.onclick;
+    st.onclick = ()=>{ if (ost) ost(); setHeaderActive('stop'); };
+  }
+
+  function hookAT(){
+    try{
+      if (!window.at || !at.player) return;
+      // Sync on state changes (1=playing,2=paused,3=stopped)
+      at.player.stateChanged?.on?.((s)=>{
+        if (s === 1) setHeaderActive('play');
+        else if (s === 2) setHeaderActive('pause');
+        else setHeaderActive('stop');
+        refreshTopControls();
+      });
+      // Update volumes → button states after score load as well
+      at.scoreLoaded?.on?.(()=>{ refreshTopControls(); });
+    }catch(_){}
+  }
+  hookAT();
+  setTimeout(hookAT, 500);
+  setTimeout(()=>{ refreshTopControls(); }, 300);
+  setTimeout(()=>{ refreshTopControls(); }, 1200);
+})();
+</script>
+<script>
+(function(){
+  const se = document.scrollingElement || document.documentElement || document.body;
+  let lastY = 0, lastX = 0;
+  function clamp(){
+    // Keep the page pinned; we scroll inside #alphaTab instead
+    if (!window.__autoScrollEnabled){
+      if (se.scrollTop !== 0) se.scrollTop = 0;
+      if (se.scrollLeft !== 0) se.scrollLeft = 0;
+    }
+    requestAnimationFrame(clamp);
+  }
+  window.addEventListener('load', ()=>{ lastY=0; lastX=0; requestAnimationFrame(clamp); });
+})();
+</script>
+<script>
+(function(){
+  // Auto-follow inside the sheet viewport so the playhead stays high enough
+  // to reveal what's coming next (lookahead).
+  const VP_ID = 'alphaTab';
+  const LOOKAHEAD_RATIO = 0.12;   // keep cursor ~22% from the top
+  const STICKY_TOP = 76;          // padding already applied to avoid header overlap
+  const SMOOTH = 0.25;            // easing factor (0..1) for scroll changes
+  const DEAD_BAND = 6;            // px tolerance to avoid jitter
+
+  function vp(){ return document.getElementById(VP_ID); }
+  function cursor(){
+    return document.querySelector('#'+VP_ID+' .at-cursor-beat') ||
+           document.querySelector('#'+VP_ID+' .at-cursor-bar');
+  }
+
+  function step(){
+    const view = vp();
+    if (!view){ requestAnimationFrame(step); return; }
+    if (window.__autoScrollEnabled){
+      const cur = cursor();
+      if (cur){
+        const vr = view.getBoundingClientRect();
+        const cr = cur.getBoundingClientRect();
+        // Position target a bit below the very top, leaving most of the viewport for the "next" row.
+        const targetY = STICKY_TOP + (vr.height - STICKY_TOP) * LOOKAHEAD_RATIO;
+        const curYIn = cr.top - vr.top; // cursor Y within viewport
+        let delta = curYIn - targetY;   // positive = cursor too low -> scroll up (increase scrollTop)
+
+        if (Math.abs(delta) > DEAD_BAND){
+          // ease the scroll change for smooth following
+          view.scrollTop += delta * SMOOTH;
+        }
+      }
+    }
+    requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+})();
+</script>
+<script>
+(function(){
+  window.__trackToggleState = window.__trackToggleState || {};
+  const prevRender = window.renderTrackList;
+  window.renderTrackList = function(score){
+    if (typeof prevRender === 'function') prevRender(score);
+    // Tag rows with their track index for reliable lookup
+    const rows = Array.from(document.querySelectorAll('#tracks .track'));
+    rows.forEach((row, i)=> row.setAttribute('data-track-index', String(i)) );
+  };
+
+  // Build a Map from track object to index for quick lookup
+  try{
+    at.scoreLoaded?.on?.((score)=>{
+      const m = new Map();
+      (score.tracks||[]).forEach((t, i)=> m.set(t, i));
+      window.__trackIndexMap = m;
+      // Also ensure rows are tagged (if list already rendered)
+      const rows = Array.from(document.querySelectorAll('#tracks .track'));
+      rows.forEach((row, i)=> row.setAttribute('data-track-index', String(i)) );
+    });
+  }catch(_){}
+})();
+</script>
+<script>
+(function(){
+  // CSS class is already defined; here we wire MIDI to rows
+  const FLASH_MS = 280;
+  let timers = {};
+  function clearAll(){
+    document.querySelectorAll('#tracks .track.playing').forEach(r=> r.classList.remove('playing'));
+    for (const k in timers){ clearTimeout(timers[k]); delete timers[k]; }
+  }
+  function rows(){ return Array.from(document.querySelectorAll('#tracks .track')); }
+  function tagRows(){
+    const r = rows(); r.forEach((row,i)=> row.setAttribute('data-track-index', String(i)));
+  }
+  function rowByIndex(i){ return document.querySelector('#tracks .track[data-track-index="'+i+'"]') || rows()[i] || null; }
+
+  // Build (and keep updating) a channel->track index map
+  window.__trackIndexMap = window.__trackIndexMap || new Map();
+  window.__channelToTrack = window.__channelToTrack || new Map();
+  function numericChannelsFromTrack(t){
+    const out = new Set();
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+      const pb = t && (t.playbackInfo || t.playback || t.midiPlayback || t._playbackInfo);
+      if (pb){
+        // Collect any numeric properties in [0..15]
+        Object.keys(pb).forEach(k=>{
+          const v = pb[k];
+          if (typeof v === 'number' && v >= 0 && v <= 15) out.add(v|0);
+          if (Array.isArray(v)) v.forEach(x=> { if (typeof x === 'number' && x>=0 && x<=15) out.add(x|0); });
+        });
+      }
+      if (t && t.isPercussion) out.add(9); // MIDI ch-10 for drums as a heuristic
+    } catch(_){}
+    return Array.from(out);
+  }
+  function rebuildMaps(score){
+    const m = new Map();
+    const ch = new Map();
+    const tracks = (score && score.tracks) ? score.tracks : [];
+    tracks.forEach((t,i)=>{
+      m.set(t, i);
+      const chans = numericChannelsFromTrack(t);
+      chans.forEach(c => { if (!ch.has(c)) ch.set(c, new Set()); ch.get(c).add(i); });
+    });
+    window.__trackIndexMap = m;
+    window.__channelToTrack = ch;
+    tagRows();
+  }
+
+  // Initialize maps once score loads
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    at.scoreLoaded?.on?.((score)=> rebuildMaps(score));
+  } catch(_){}
+  // Also tag rows after (re)render of the list
+  const prevRT = window.renderTrackList;
+  window.renderTrackList = function(score){
+    if (typeof prevRT === 'function') prevRT(score);
+    tagRows();
+    if (at && at.score) rebuildMaps(at.score);
+  };
+
+  function highlightIndex(idx){
+    const r = rowByIndex(idx);
+    if (!r) return;
+    r.classList.add('playing');
+    if (timers[idx]) clearTimeout(timers[idx]);
+    timers[idx] = setTimeout(()=>{
+      const rr = rowByIndex(idx);
+      if (rr) rr.classList.remove('playing');
+      delete timers[idx];
+    }, FLASH_MS);
+  }
+
+  function idxFromElement(el){
+    // Try map by actual track object
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+      const t = el?.beat?.voice?.track || el?.voice?.track || el?.staff?.track || el?.track || null;
+      if (t && window.__trackIndexMap && window.__trackIndexMap.has(t)) return window.__trackIndexMap.get(t);
+    } catch(_){}
+    return null;
+  }
+
+  // Ensure we listen to NoteOn only
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    at.midiEventsPlayedFilter = [alphaTab.midi.MidiEventType.NoteOn];
+  } catch(_){ /* ignore */ }
+
+  at.midiEventsPlayed.on(ev => {
+    const seen = new Set();
+    (ev?.events || []).forEach(me => {
+      // 1) Element→Track (if available)
+      let idx = idxFromElement(me?.element);
+      if (idx != null) {
+        if (!seen.has(idx)) { seen.add(idx); highlightIndex(idx); }
+        return;
+      }
+      // 2) Channel→Track fallback
+      let ch = null;
+      try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+        ch = (typeof me.channel === 'number') ? me.channel : (typeof me.midiChannel === 'number' ? me.midiChannel : null);
+        if (ch == null && me && typeof me.getChannel === 'function') ch = me.getChannel();
+      } catch(_){}
+      if (ch == null) return;
+      const map = window.__channelToTrack;
+      if (!map) return;
+      const set = map.get(ch);
+      if (!set || !set.size) return;
+      set.forEach(ii => { if (!seen.has(ii)) { seen.add(ii); highlightIndex(ii); } });
+    });
+  });
+
+  // Cleanup on pause/stop
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+ at.player.stateChanged?.on?.(s => { if (s !== 1) clearAll(); }); } catch(_){}
+})();
+</script>
+<script>
+(function(){
+  function hideBrand(root){
+    try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+      const scope = root || document;
+      const nodes = scope.querySelectorAll('#alphaTab text, #alphaTab .at-brand, #alphaTab [class*="at-brand"]');
+      nodes.forEach(n => {
+        const txt = (n.textContent || '').trim();
+        if (/rendered by alphaTab/i.test(txt)) {
+          n.style.display = 'none';
+          n.style.visibility = 'hidden';
+          n.style.opacity = '0';
+          // If it's a grouping element, remove to avoid stray spacing
+          try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+ if (n.tagName && n.tagName.toLowerCase() !== 'text') n.remove(); } catch(e){}
+        }
+      });
+    } catch(e){}
+  }
+  // Initial run
+  hideBrand(document);
+  // After a score is loaded/rerendered
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+ 
+    if (window.at && at.scoreLoaded && at.scoreLoaded.on) {
+      at.scoreLoaded.on(() => setTimeout(() => hideBrand(document.getElementById('alphaTab')), 0));
+    }
+  } catch(e){}
+  // MutationObserver to catch dynamic renderings
+  try {
+
+  // Preserve play state and position across transposition
+  const wasPlaying = (at.playerState && at.playerState === 2); // 2 = Playing
+  const currentMs = at.timePosition || 0;
+
+    const target = document.getElementById('alphaTab');
+    if (target) {
+      const mo = new MutationObserver(() => hideBrand(target));
+      mo.observe(target, {childList: true, subtree: true});
+    }
+  } catch(e){}
+})();
+
+// Dynamically size content area when header wraps
+function updateHeaderHeight(){
+  const header = document.querySelector('header');
+  if (!header) return;
+  const h = Math.max(58, header.offsetHeight);
+  document.documentElement.style.setProperty('--header-h', h + 'px');
+}
+window.addEventListener('resize', updateHeaderHeight);
+document.addEventListener('DOMContentLoaded', updateHeaderHeight);
+setTimeout(updateHeaderHeight, 50); // ensure after fonts/layout
+</script>
+<div aria-hidden="true" id="ui-overlay-root"></div>
+
+<script>
+// Enforce "Rewrite key only" is always ON and non-interactive
+document.addEventListener('DOMContentLoaded', function(){
+  var rk = document.getElementById('rewriteKeyOnly');
+  if (rk) {
+    rk.checked = true;
+    rk.disabled = true;
+    rk.title = 'Locked: always on';
+    rk.addEventListener('click', function(e){ e.preventDefault(); return false; }, true);
+    rk.addEventListener('change', function(e){ rk.checked = true; }, true);
+  }
+});
+</script>
+
+
+<script>
+(function(){
+  // MIDI range
+  const A0 = 21, C8 = 108;
+  const noteNames = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+  function isBlack(pc){ return (pc===1||pc===3||pc===6||pc===8||pc===10); }
+  function whiteHasBlackAfter(pc){ return (pc===0||pc===2||pc===5||pc===7||pc===9); } // C D F G A
+
+  function midiToName(m){
+    const pc = m % 12;
+    const oct = Math.floor(m/12) - 1;
+    return noteNames[pc] + oct;
+  }
+
+  function buildKeyboard(root){
+    const keysWrap = document.createElement('div'); keysWrap.className = 'keys';
+    const whites = document.createElement('div'); whites.className = 'white-keys';
+    const blacks = document.createElement('div'); blacks.className = 'black-keys';
+
+    const keyMap = new Map();
+
+    let midi = A0;
+    while (midi <= C8){
+      const whiteKey = document.createElement('div');
+      whiteKey.className = 'white-key';
+      whites.appendChild(whiteKey);
+      keyMap.set(midi, whiteKey);
+
+      // White label: show note letter + octave on Cs, and letter on others
+      const pc = midi % 12;
+      const lbl = document.createElement('div');
+      lbl.className = 'label';
+      lbl.textContent = (pc===0 ? midiToName(midi) : noteNames[pc]); // "C4" else "D"
+      whiteKey.appendChild(lbl);
+
+      const next = midi + 1;
+      if (whiteHasBlackAfter(pc) && next <= C8){
+        const wrap = document.createElement('div');
+        wrap.className = 'black-key-wrap';
+        const black = document.createElement('div');
+        black.className = 'black-key';
+        const bl = document.createElement('div');
+        bl.className = 'label';
+        bl.textContent = midiToName(next); // e.g., C#4
+        black.appendChild(bl);
+        wrap.appendChild(black);
+        blacks.appendChild(wrap);
+        keyMap.set(next, black);
+        midi = next + 1;
+      } else {
+        const spacer = document.createElement('div');
+        spacer.className = 'black-key-wrap';
+        blacks.appendChild(spacer);
+        midi = midi + 2;
+      }
+    }
+
+    keysWrap.appendChild(whites);
+    keysWrap.appendChild(blacks);
+    root.appendChild(keysWrap);
+    return keyMap;
+  }
+
+  function makePresser(keyMap){
+    const timers = new Map();
+    return function press(midi, hand){ // hand 'R' or 'L' or undefined
+      const el = keyMap.get(midi);
+      if (!el) return;
+      el.classList.add('pressed');
+      if (hand === 'R') el.classList.add('pressed-right');
+      else if (hand === 'L') el.classList.add('pressed-left');
+
+      if (timers.has(midi)) clearTimeout(timers.get(midi));
+      timers.set(midi, setTimeout(()=>{
+        el.classList.remove('pressed','pressed-right','pressed-left');
+        timers.delete(midi);
+      }, 240));
+    };
+  }
+
+  const container = document.getElementById('pianoContainer');
+  if (!container) return;
+  const keyMap = buildKeyboard(container);
+  const pressKey = makePresser(keyMap);
+
+  // Toggles
+  const keyboardBtn = document.getElementById('toggleKeyboard');
+  const labelsBtn = document.getElementById('toggleLabels');
+  let keyboardOn = false;
+  function setKeyboard(v){
+    keyboardOn = !!v;
+    container.classList.toggle('hidden', !keyboardOn);
+    container.setAttribute('aria-hidden', String(!keyboardOn));
+    if (keyboardBtn) keyboardBtn.textContent = 'Keyboard: ' + (keyboardOn ? 'On' : 'Off');
+  }
+  function setLabels(on){
+    container.classList.toggle('labels-hidden', !on);
+    if (labelsBtn) labelsBtn.textContent = 'Key Names: ' + (on ? 'On' : 'Off');
+  }
+  keyboardBtn && keyboardBtn.addEventListener('click', ()=> setKeyboard(!keyboardOn));
+  labelsBtn && labelsBtn.addEventListener('click', ()=> {
+    const hidden = container.classList.contains('labels-hidden');
+    setLabels(hidden);
+  });
+  // default states
+  setKeyboard(false);
+  setLabels(true);
+
+  // Helpers to infer track and "hand"
+  function trackIndexFromElement(el){
+    try {
+      const t = el?.beat?.voice?.track || el?.voice?.track || el?.staff?.track || el?.track || null;
+      if (!t || !window.at || !at.score) return null;
+      const idx = (at.score.tracks||[]).indexOf(t);
+      return idx >= 0 ? idx : null;
+    } catch { return null; }
+  }
+  function staffIndexFromElement(el){
+    try {
+      // AlphaTab often has staff via beat.voice.staff or element.staff
+      const s = el?.beat?.voice?.staff || el?.voice?.staff || el?.staff || null;
+      if (!s) return null;
+      return (typeof s.index === 'number') ? s.index : null;
+    } catch { return null; }
+  }
+
+  function isKeyboardyTrack(idx){
+    if (!window.at || !at.score || idx == null) return true;
+    const t = at.score.tracks[idx];
+    if (!t || t.isPercussion) return false;
+    const n = (t.name || '').toLowerCase();
+    return /piano|synth|keys|keyboard|organ|rhodes|bass/.test(n);
+  }
+
+  function inferHand(midi, evElement){
+    // Prefer staff index if available: 0=upper/treble => Right, 1=lower/bass => Left
+    const si = staffIndexFromElement(evElement);
+    if (si === 0) return 'R';
+    if (si === 1) return 'L';
+    // Fallback by pitch split around middle C (C4=60)
+    if (typeof midi === 'number') return midi >= 60 ? 'R' : 'L';
+    return undefined;
+    }
+
+  // Hook to AlphaTab MIDI events
+  try {
+    if (window.at) {
+      at.midiEventsPlayedFilter = [alphaTab.midi.MidiEventType.NoteOn];
+      at.midiEventsPlayed.on(e => {
+        if (!keyboardOn) return;
+        const arr = e?.events || [];
+        for (const me of arr){
+          const idx = trackIndexFromElement(me?.element);
+          if (idx != null && !isKeyboardyTrack(idx)) continue;
+
+          const midi = (me?.param1 ?? me?.data1 ?? me?.note ?? null);
+          if (typeof midi !== 'number') continue;
+          const hand = inferHand(midi, me?.element);
+          pressKey(midi, hand);
+        }
+      });
+    }
+  } catch (err) { console.warn('Keyboard hook failed', err); }
+})();
+</script>
+
+
+<script id="theme-toggle-script-0822">
+(function(){
+  const root = document.documentElement;
+  const btn = document.getElementById('toggleTheme');
+  const saved = localStorage.getItem('upkraft-theme');
+  function setTheme(next){
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('upkraft-theme', next);
+    if(btn) btn.textContent = 'Theme: ' + (next.charAt(0).toUpperCase()+next.slice(1));
+  }
+  if(saved){ setTheme(saved); } else { setTheme('dark'); }
+  if(btn){ btn.addEventListener('click', ()=>{
+    const cur = root.getAttribute('data-theme') || 'dark';
+    setTheme(cur === 'dark' ? 'light' : 'dark');
+  });}
+})();
+</script>
+
+</body>
+</html>
