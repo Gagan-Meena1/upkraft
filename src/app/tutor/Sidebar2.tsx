@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation"; // <-- include useRouter too
 
 import {
   Home,
@@ -12,9 +12,6 @@ import {
   BookOpen,
   Calendar,
   FileText,
-  GraduationCap,
-  User,
-  BarChart3,
   Music,
   CreditCard,
   Gift,
@@ -31,86 +28,46 @@ const Sidebar2 = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isAssignmentOpen, setIsAssignmentOpen] = useState(false);
 
-  const pathname = usePathname();
+  // Handle pathname safely
+  const rawPath = usePathname();
+  const [pathname, setPathname] = useState("");
+
+  useEffect(() => {
+    if (rawPath) setPathname(rawPath);
+  }, [rawPath]);
+
   const menuItems = [
     { id: "home", label: "Home", icon: Home, href: "/tutor" },
-    {
-      id: "my-students",
-      label: "My Students",
-      icon: Users,
-      href: "/tutor/myStudents",
-    },
-    {
-      id: "my-courses",
-      label: "My Courses",
-      icon: BookOpen,
-      href: "/tutor/courses",
-    },
-    {
-      id: "calendar",
-      label: "Calendar",
-      icon: Calendar,
-      href: "/tutor/calendar",
-    },
+    { id: "my-students", label: "My Students", icon: Users, href: "/tutor/myStudents" },
+    { id: "my-courses", label: "My Courses", icon: BookOpen, href: "/tutor/courses" },
+    { id: "calendar", label: "Calendar", icon: Calendar, href: "/tutor/calendar" },
     {
       id: "assignment",
       label: "Assignment",
       icon: FileText,
       hasDropdown: true,
       href: "/tutor/assignments",
-      subItems: [
-        { label: "Create Assignment", href: "/tutor/assignment/create" },
-      ],
+      subItems: [{ label: "Create Assignment", href: "/tutor/assignment/create" }],
     },
-  
-    {
-      id: "music-library",
-      label: "Music Library",
-      icon: Music,
-      href: "/tutor/music-library",
-    },
-    {
-      id: "ai-coach",
-      label: "AI Music Coach",
-      icon: Bell,
-      href: "/tutor/ai-coach",
-    },
-    {
-      id: "payment",
-      label: "Payment Summary",
-      icon: CreditCard,
-      href: "/tutor/payment",
-    },
-    {
-      id: "refer-earn",
-      label: "Refer & Earn",
-      icon: Gift,
-      href: "/tutor/refer-earn",
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: Settings,
-      href: "/tutor/settings",
-    },
+    { id: "music-library", label: "Music Library", icon: Music, href: "/tutor/music-library" },
+    { id: "ai-coach", label: "AI Music Coach", icon: Bell, href: "/tutor/ai-coach" },
+    { id: "payment", label: "Payment Summary", icon: CreditCard, href: "/tutor/payment" },
+    { id: "refer-earn", label: "Refer & Earn", icon: Gift, href: "/tutor/refer-earn" },
+    { id: "settings", label: "Settings", icon: Settings, href: "/tutor/settings" },
   ];
 
-  const isActivePath = (href, id) => {
-    if (id === "home") {
-      return pathname === "/tutor";
-    }
+  // ✅ Clean isActivePath
+  const isActivePath = (href: string, id: string) => {
+    if (!pathname) return false;
+    if (id === "home") return pathname === "/tutor";
     return pathname.startsWith(href);
   };
 
-  // Check if mobile
+  // ✅ Separate effect for responsive sidebar
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setSidebarOpen(true);
-      } else {
-        setSidebarOpen(false);
-      }
+      setSidebarOpen(window.innerWidth >= 768);
     };
 
     checkMobile();
