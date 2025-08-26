@@ -96,6 +96,10 @@ const userSchema = new mongoose.Schema({
         type:String,
         default:""
     },
+    assignment:[{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Assignment"
+    }],
     aboutMyself: {
         type: String,
         default: ""

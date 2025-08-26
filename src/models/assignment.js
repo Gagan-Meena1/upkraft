@@ -37,6 +37,10 @@ const AssignmentSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'courseName',
   },
+  userId: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'users',
+  }],
   createdAt: {
     type: Date,
     default: Date.now,
