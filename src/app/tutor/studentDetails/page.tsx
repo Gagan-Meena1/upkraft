@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { IndianRupee,ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, ExternalLink, HomeIcon, LogOut, BookCheck, Menu, X } from "lucide-react";
+import { IndianRupee,ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, ExternalLink, HomeIcon, LogOut, BookCheck, Menu, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { BiBulb } from "react-icons/bi";
 import { toast } from 'react-hot-toast';
@@ -36,6 +36,7 @@ export default function StudentDetails() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [removingCourseId, setRemovingCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,6 +67,52 @@ export default function StudentDetails() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Function to handle course removal
+  const handleRemoveCourse = async (courseId: string) => {
+    if (!studentData) return;
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(`Are you sure you want to remove this course from ${studentData.username}?`);
+    if (!confirmed) return;
+
+    setRemovingCourseId(courseId);
+
+    try {
+      const response = await fetch('/Api/removeStudentToCourse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          courseId: courseId,
+          studentId: studentData.studentId,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        toast.success('Course removed successfully!');
+        
+        // Update the local state to remove the course from the list
+        setStudentData(prevData => {
+          if (!prevData) return null;
+          return {
+            ...prevData,
+            courses: prevData.courses.filter(course => course._id !== courseId)
+          };
+        });
+      } else {
+        toast.error(result.error || 'Failed to remove course');
+      }
+    } catch (error) {
+      console.error('Error removing course:', error);
+      toast.error('Error occurred while removing course');
+    } finally {
+      setRemovingCourseId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -301,18 +348,37 @@ export default function StudentDetails() {
                           <Calendar size={14} className="mr-2 flex-shrink-0" />
                           <span>{course.curriculum.length} Sessions</span>
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+                        <div className="flex flex-col space-y-2">
                           <div className="text-gray-900 font-semibold text-sm md:text-base">
-                          <span className="text-yellow-600 font-bold text-lg">₹</span>
+                            <span className="text-yellow-600 font-bold text-lg">₹</span>
                             {course.price.toFixed(2)}
                           </div>
-                          <Link 
-                            href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`} 
-                            className="flex items-center justify-center px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium"
-                          >
-                            <span>View Details</span>
-                            <ExternalLink size={14} className="ml-1" />
-                          </Link>
+                          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                            <Link 
+                              href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`} 
+                              className="flex items-center justify-center px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium flex-1"
+                            >
+                              <span>View Details</span>
+                              <ExternalLink size={14} className="ml-1" />
+                            </Link>
+                            
+                            <button 
+                              onClick={() => handleRemoveCourse(course._id)}
+                              disabled={removingCourseId === course._id}
+                              className={`flex items-center justify-center px-3 py-2 rounded-lg transition-colors text-sm font-medium flex-1 ${
+                                removingCourseId === course._id 
+                                  ? 'bg-gray-400 cursor-not-allowed' 
+                                  : 'bg-red-600 hover:bg-red-700'
+                              } text-white`}
+                            >
+                              {removingCourseId === course._id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1"></div>
+                              ) : (
+                                <Trash2 size={14} className="mr-1" />
+                              )}
+                              <span>{removingCourseId === course._id ? 'Removing...' : 'Remove Course'}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
