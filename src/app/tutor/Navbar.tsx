@@ -61,8 +61,9 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isMobile }
       className={`
         fixed top-0 right-0 z-30
         bg-[#FAF8F6]
-        w-full h-[80px]
-        px-[20px] py-[18px]
+        w-full h-auto
+        min-h-[64px]
+        px-5 py-3 
         flex items-center justify-between
         transition-all duration-300
         border-b border-[#EEEEEE]
@@ -106,7 +107,7 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isMobile }
           type="button"
           className="p-3 bg-[#4200EA] text-white rounded-full cursor-pointer transition-colors"
         >
-          <Send size={17} />
+          <Send className="w-2 h-2 sm:w-3 sm:h-3" />
         </button>
 
         <button
@@ -114,16 +115,16 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, setSidebarOpen, isMobile }
           type="button"
           className="relative p-2 rounded-full bg-[#C4B0F9]/17 text-[#7A7A7A]"
         >
-          <Bell size={24} />
+          <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
           <span className="absolute top-2 right-2 w-2 h-2 bg-[#EE4B4B] rounded-full"></span>
         </button>
 
         {/* User Profile with Divider */}
-          <div className="flex items-center space-x-3 pl-4 border-l border-gray-300">
+          <div className="flex items-center gap-3 pl-4 border-l border-gray-300">
             <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center text-white font-semibold">
               {getUserInitials()}
             </div>
-            <div className="hidden sm:block">
+            <div className="hidden sm:flex sm:flex-col">
               <p className="font-semibold text-[#212121]">
                 {userData?.username || "Loading..."}
               </p>

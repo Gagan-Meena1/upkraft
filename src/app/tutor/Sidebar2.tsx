@@ -91,7 +91,7 @@ const Sidebar2 = () => {
           fixed top-0 left-0 z-50 h-screen
           bg-gradient-to-b from-[#4201EB] to-[#7109B9] text-white 
           border-r border-gray-200 
-          flex flex-col
+          flex flex-col justify-between
           transition-all duration-300
           ${isMobile 
             ? (sidebarOpen ? "w-[240px] translate-x-0" : "-translate-x-full w-[240px]") 
@@ -200,7 +200,7 @@ const Sidebar2 = () => {
               }
             }}
             className={`
-              w-full text-[#FFC357] text-[16px] flex items-center mt-90 
+              w-full text-[#FFC357] text-[16px] flex items-center
               px-[8px] py-[10px] rounded-[8px] text-left transition-colors hover:bg-purple-500/50
               ${!isMobile && !sidebarOpen 
                 ? 'justify-center space-x-0' 
