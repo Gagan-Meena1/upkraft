@@ -543,88 +543,96 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 mb-6">
                   {/* Profile Card */}
                   <div className="lg:col-span-5 xl:col-span-4">
-                    <div 
-                      className="bg-white p-6 rounded-2xl border shadow-sm"
-                      style={{ borderColor: profileBorderColor }}
-                    >
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        Profile
-                      </h3>
-                      <div className="flex flex-col items-center text-center">
-                        <div className="relative mb-4">
-                          <div className="w-20 h-20 bg-[#FFC357] rounded-full flex items-center justify-center overflow-hidden">
-                            {userData?.profileImage ? (
-                              <Image 
-                                src={userData.profileImage} 
-                                alt={userData.username || 'Profile'} 
-                                width={80}
-                                height={80}
-                                className="w-full h-full object-cover rounded-full"
-                                priority
-                              />
-                            ) : (
-                              <span className="text-white font-bold text-lg">
-                                {getUserInitials(userData?.username)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-                            <span className="text-white text-sm">✓</span>
-                          </div>
-                        </div>
-                        <h4 className="text-2xl font-medium text-black mb-2">
-                          {userData?.username || "Loading..."}
-                        </h4>
-                        <p className="text-gray-600 mb-6">
-                          {courseData.length > 0
-                            ? `${courseData[0].category} Tutor`
-                            : "Tutor"}
-                        </p>
-                        <div className="flex flex-col space-y-3 w-full max-w-[200px]">
-                          <div className="flex items-center justify-between rounded-lg bg-[#F1ECF7] px-4 py-2">
-                            <div className="flex items-center gap-2">
-                              <Users size={16} className="text-[#7009BA]" />
-                              <span className="text-sm font-medium text-[#7009BA]">Students</span>
-                            </div>
-                            <span className="text-sm font-semibold text-[#212121]">{studentCount}</span>
-                          </div>
+  <div 
+    className="bg-white p-6 rounded-2xl border shadow-sm h-[100%]"
+    style={{ borderColor: profileBorderColor }}
+  >
+    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+      Profile
+    </h3>
 
-                          <div className="flex items-center justify-between rounded-lg bg-[#F1ECF7] px-4 py-2">
-                            <div className="flex items-center gap-2">
-                              <BookOpen size={16} className="text-[#7009BA]" />
-                              <span className="text-sm font-medium text-[#7009BA]">Courses</span>
-                            </div>
-                            <span className="text-sm font-semibold text-[#212121]">
-                              {courseData.length || 0}
-                            </span>
-                          </div>
+    {/* Flex Row: Left = Profile, Right = Stats */}
+    <div className="flex flex-row items-center justify-between">
+      
+      {/* LEFT SIDE - Profile Info */}
+      <div className="flex flex-col items-center text-center ml-[10%] mt-[5%] gap-2">
+        <div className="relative mb-4">
+          <div className="w-20 h-20 bg-[#FFC357] rounded-full flex items-center justify-center overflow-hidden">
+            {userData?.profileImage ? (
+              <Image 
+                src={userData.profileImage} 
+                alt={userData.username || 'Profile'} 
+                width={200}
+                height={200}
+                className="w-full h-full object-cover rounded-full"
+                priority
+              />
+            ) : (
+              <span className="text-white font-bold text-lg">
+                {getUserInitials(userData?.username)}
+              </span>
+            )}
+          </div>
+          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+            <span className="text-white text-sm">✓</span>
+          </div>
+        </div>
+        <h4 className="text-2xl font-medium text-black mb-2">
+          {userData?.username || "Loading..."}
+        </h4>
+        <p className="text-gray-600">
+          {courseData.length > 0
+            ? `${courseData[0].category} Tutor`
+            : "Tutor"}
+        </p>
+      </div>
 
-                          <div className="flex items-center justify-between rounded-lg bg-[#F1ECF7] px-4 py-2">
-                            <div className="flex items-center gap-2">
-                              <Star size={16} className="text-[#7009BA]" />
-                              <span className="text-sm font-medium text-[#7009BA]">Certified</span>
-                            </div>
-                            <span className="text-sm font-semibold text-[#212121]">Yes</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+      {/* RIGHT SIDE - Stats */}
+      <div className="flex flex-col space-y-3 w-[40%] gap-2">
+        <div className="flex items-center justify-between rounded-lg bg-[#F1ECF7] px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Users size={16} className="text-[#7009BA]" />
+            <span className="text-sm font-medium text-[#7009BA]">Students</span>
+          </div>
+          <span className="text-sm font-semibold text-[#212121]">{studentCount}</span>
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg bg-[#F1ECF7] px-4 py-2">
+          <div className="flex items-center gap-2">
+            <BookOpen size={16} className="text-[#7009BA]" />
+            <span className="text-sm font-medium text-[#7009BA]">Courses</span>
+          </div>
+          <span className="text-sm font-semibold text-[#212121]">
+            {courseData.length || 0}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg bg-[#F1ECF7] px-4 py-2">
+          <div className="flex items-center gap-2">
+            <Star size={16} className="text-[#7009BA]" />
+            <span className="text-sm font-medium text-[#7009BA]">Certified</span>
+          </div>
+          <span className="text-sm font-semibold text-[#212121]">Yes</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
                   {/* Right Column */}
                   <div className="lg:col-span-7 xl:col-span-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[100%]">
                       {/* Stats Column */}
-                      <div className="flex flex-col gap-4">
-                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+                      <div className="flex flex-col gap-10">
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-left min-h-[100px]">
                           <div className="text-3xl font-bold text-[#6F09BA] mb-1">15%</div>
                           <p className="text-sm text-gray-600">Lesson Completion</p>
                         </div>
-                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-left min-h-[100px]">
                           <div className="text-3xl font-bold text-[#6F09BA] mb-1">80%</div>
                           <p className="text-sm text-gray-600">Session Engagement</p>
                         </div>
-                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-center">
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-rigt min-h-[100px]">
                           <div className="text-3xl font-bold text-[#6F09BA] mb-1">95%</div>
                           <p className="text-sm text-gray-600">Student Satisfaction</p>
                         </div>
@@ -634,54 +642,54 @@ export default function Dashboard() {
                       <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col justify-between">
                         {/* Course Performance */}
                         <div className="text-center mb-8">
-                          <p className="text-sm font-semibold text-[#212121] mb-4">
-                            Overall Course Performance
-                          </p>
-                          <svg width="120" height="60" viewBox="0 0 120 60" className="mx-auto">
+                          <p className="text-sm font-semibold text-[#212121]">Overall Course</p>
+                          <p className="text-sm font-semibold text-[#212121]">Performance</p>
+                          <div className="mt-[3%]">  
+                          <svg width="170" height="100" viewBox="0 0 120 60" className="mx-auto">
                             <path
                               d="M 10 60 A 50 50 0 0 1 110 60"
                               stroke="#FFF7E8"
-                              strokeWidth="8"
+                              strokeWidth="9"
                               fill="none"
                             />
                             <path
                               d="M 10 60 A 50 50 0 0 1 110 60"
                               stroke="#FFC357"
-                              strokeWidth="8"
+                              strokeWidth="9"
                               fill="none"
                               strokeLinecap="round"
                               strokeDasharray={Math.PI * 50}
                               strokeDashoffset={Math.PI * 50 * (1 - 7.6 / 10)}
                             />
                           </svg>
-                          <div className="text-3xl font-bold text-purple-700 -mt-4">
+                          <div className="text-5xl font-bold text-purple-700 -mt-[15%]">
                             7.6<span className="text-gray-500 text-base">/10</span>
                           </div>
+                        </div>
                         </div>
 
                         {/* Student Performance */}
                         <div className="text-center">
-                          <p className="text-sm font-semibold text-[#212121] mb-4">
-                            Overall Student Performance
-                          </p>
-                          <svg width="120" height="60" viewBox="0 0 120 60" className="mx-auto">
+                          <p className="text-sm font-semibold text-[#212121]">Overall Student</p>
+                          <p className="text-sm font-semibold text-[#212121]">Performance</p>
+                          <svg width="170" height="100" viewBox="0 0 120 60" className="mx-auto">
                             <path
                               d="M 10 60 A 50 50 0 0 1 110 60"
                               stroke="#FFF7E8"
-                              strokeWidth="8"
+                              strokeWidth="9"
                               fill="none"
                             />
                             <path
                               d="M 10 60 A 50 50 0 0 1 110 60"
                               stroke="#FFC357"
-                              strokeWidth="8"
+                              strokeWidth="9"
                               fill="none"
                               strokeLinecap="round"
                               strokeDasharray={Math.PI * 50}
                               strokeDashoffset={Math.PI * 50 * (1 - 6.6 / 10)}
                             />
                           </svg>
-                          <div className="text-3xl font-bold text-purple-700 -mt-4">
+                          <div className="text-5xl font-bold text-purple-700 -mt-[15%]">
                             6.6<span className="text-gray-500 text-base">/10</span>
                           </div>
                         </div>
@@ -717,10 +725,10 @@ export default function Dashboard() {
                 </div>
 
                 {/* Bottom Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 ">
                   {/* Upcoming Lessons */}
-                  <div className="lg:col-span-2">
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                  <div className="lg:col-span-4 max-w-[1300px]">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 h-full">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">
                           Upcoming Lessons
@@ -812,7 +820,7 @@ export default function Dashboard() {
                   </div>
 
                   {/* Feedback Pending */}
-                  <div className="lg:col-span-1">
+                  <div className="lg:col-span-1 w-full ml-auto">
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 h-full">
                       <h3 className="text-lg font-semibold text-gray-900 mb-6 text-center">
                         <span className="block">Feedback</span>

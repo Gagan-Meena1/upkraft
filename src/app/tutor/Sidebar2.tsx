@@ -115,23 +115,8 @@ const Sidebar2 = () => {
           </Link>
         </div>
 
-        {/* Navigation Menu - Scrollable */}
-        <nav className="w-[250px] h-[580px] gap-4 flex flex-col px-6 overflow-y-auto">
-          <style jsx>{`
-            nav::-webkit-scrollbar {
-              width: 4px;
-            }
-            nav::-webkit-scrollbar-track {
-              background: transparent;
-            }
-            nav::-webkit-scrollbar-thumb {
-              background: rgba(255, 255, 255, 0.3);
-              border-radius: 2px;
-            }
-            nav::-webkit-scrollbar-thumb:hover {
-              background: rgba(255, 255, 255, 0.5);
-            }
-          `}</style>
+        {/* Navigation Menu*/}
+        <nav className="w-[100%] h-[100%] gap-4 flex flex-col px-6">
           
           <ul className="space-y-1 pb-3 pt-3 pr-2">
             {menuItems.map((item) => (
@@ -161,7 +146,7 @@ const Sidebar2 = () => {
                   <div className={`flex items-center ${!isMobile && !sidebarOpen ? '' : 'space-x-3'}`}>
                     <item.icon size={20} />
                     {(isMobile || sidebarOpen) && (
-                      <span className="font-medium">{item.label}</span>
+                      <span className="font-medium whitespace-nowrap truncate">{item.label}</span>
                     )}
                   </div>
                   {item.hasDropdown && (isMobile || sidebarOpen) &&
