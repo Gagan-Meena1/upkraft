@@ -134,10 +134,6 @@ export default function VerifyEmailPage() {
         <VerifyEmailContent />
       </Suspense>
 
-      {/* Footer */}
-      <footer className="w-full bg-gray-50 py-8 px-8 border-t border-gray-100 mt-auto">
-        <div className="text-center text-gray-500">© 2024 UpKraft. All rights reserved.</div>
-      </footer>
     </div>
   );
 }

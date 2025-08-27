@@ -161,20 +161,6 @@ const searchParams = useSearchParams();
           </div>
         )}
       </div>
-
-      {/* Footer */}
-      <footer className="w-full bg-gray-50 py-12 px-8 mt-auto border-t border-gray-100">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
-          <div className="font-bold text-xl text-gray-900 mb-6 md:mb-0">UPKRAFT</div>
-          <div className="flex space-x-8 text-gray-600">
-            <a href="#" className="hover:text-gray-900">About</a>
-            <a href="#" className="hover:text-gray-900">Features</a>
-            <a href="#" className="hover:text-gray-900">Pricing</a>
-            <a href="#" className="hover:text-gray-900">Contact</a>
-          </div>
-          <div className="mt-6 md:mt-0 text-gray-500">© 2025 UPKRAFT. All rights reserved.</div>
-        </div>
-      </footer>
     </div>
   );
 }
