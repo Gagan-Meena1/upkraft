@@ -352,187 +352,8 @@ export default function Dashboard() {
           />
         )}
 
-        {/* Sidebar */}
-        {/* <div
-          className={`bg-white border-r border-gray-200 h-screen ${
-            isMobile
-              ? `fixed top-0 left-0 z-50 w-64 transform transition-transform duration-300 ${
-                  sidebarOpen ? "translate-x-0" : "-translate-x-full"
-                }`
-              : sidebarOpen
-              ? "w-64"
-              : "w-16"
-          } transition-all duration-300 flex flex-col`}
-        >
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <div
-              className={`font-extrabold text-l text-orange-600 ${
-                !sidebarOpen && !isMobile && "hidden"
-              }`}
-            >
-              <Link href="/tutor" className="cursor-pointer">
-                <Image
-                  src="/logo.png"
-                  alt="UpKraft"
-                  width={288}
-                  height={72}
-                  priority
-                  className="object-contain w-36 h-auto"
-                />
-              </Link>
-            </div>
-            <button
-              onClick={toggleSidebar}
-              className="p-1 rounded-lg hover:bg-gray-100"
-            >
-              {isMobile ? (
-                sidebarOpen ? (
-                  <X size={20} />
-                ) : (
-                  <Menu size={20} />
-                )
-              ) : sidebarOpen ? (
-                <ChevronLeft size={20} />
-              ) : (
-                <ChevronRight size={20} />
-              )}
-            </button>
-          </div>
-
-          <div className="flex flex-col h-full">
-            <nav className="flex-1 px-2 py-4">
-              <Link
-                href="tutor/profile"
-                className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-                onClick={() => isMobile && setSidebarOpen(false)}
-              >
-                <Users size={20} />
-                {(sidebarOpen || isMobile) && (
-                  <span className="ml-3">Profile</span>
-                )}
-              </Link>
-              <Link
-                href="tutor/courses"
-                className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-                onClick={() => isMobile && setSidebarOpen(false)}
-              >
-                <BookOpen size={20} />
-                {(sidebarOpen || isMobile) && (
-                  <span className="ml-3">My Courses</span>
-                )}
-              </Link>
-              <Link
-                href="tutor/create-course"
-                className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-                onClick={() => isMobile && setSidebarOpen(false)}
-              >
-                <Users size={20} />
-                {(sidebarOpen || isMobile) && (
-                  <span className="ml-3">Create Course</span>
-                )}
-              </Link>
-              <Link
-                href="tutor/myStudents"
-                className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-                onClick={() => isMobile && setSidebarOpen(false)}
-              >
-                <Users size={20} />
-                {(sidebarOpen || isMobile) && (
-                  <span className="ml-3">My Students</span>
-                )}
-              </Link>
-              <Link
-                href="tutor/assignments"
-                className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-                onClick={() => isMobile && setSidebarOpen(false)}
-              >
-                <BookOpen size={20} />
-                {(sidebarOpen || isMobile) && (
-                  <span className="ml-3">Assignments</span>
-                )}
-              </Link>
-              <button
-                onClick={async () => {
-                  try {
-                    const response = await fetch("/Api/users/logout");
-                    if (response.ok) {
-                      toast.success("Logged out successfully");
-                      router.push("/login");
-                    } else {
-                      toast.error("Failed to logout");
-                    }
-                  } catch (error) {
-                    toast.error("Error during logout");
-                    console.error("Logout error:", error);
-                  }
-                  isMobile && setSidebarOpen(false);
-                }}
-                className="flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              >
-                <LogOut size={20} />
-                {(sidebarOpen || isMobile) && (
-                  <span className="ml-3">Logout</span>
-                )}
-              </button>
-            </nav>
-          </div>
-        </div>
-      */}
-
+        
         <div className="flex-1 flex flex-col">
-          {/* Header */}
-          {/* <header className="bg-white shadow-sm border-b border-gray-200 px-4 lg:px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center flex-1 max-w-md">
-                <div className="relative w-full">
-                  <Search
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    size={20}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Search here"
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6F09BA] focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {isMobile && (
-                  <button
-                    aria-label="Toggle menu"
-                    type="button"
-                    onClick={toggleSidebar}
-                    className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
-                  >
-                    <Menu size={20} />
-                  </button>
-                )}
-
-                <button
-                  aria-label="Settings"
-                  className="p-2 text-gray-600 hover:text-[#6F09BA] transition-colors"
-                >
-                  <Settings size={20} />
-                </button>
-
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-[#FFC357] rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold text-sm">
-                      {getUserInitials(userData?.username)}
-                    </span>
-                  </div>
-                  <div className="hidden sm:block">
-                    <p className="text-sm font-medium text-gray-900">
-                      {userData?.username || "Loading..."}
-                    </p>
-                    <p className="text-xs text-gray-500">Tutor</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </header> */} 
-
           {/* Main Content */}
           <main className="flex-1 p-4 lg:p-6">
             {meeting.isActive && meeting.url ? (
@@ -542,53 +363,52 @@ export default function Dashboard() {
                 {/* Top Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 mb-6">
                   {/* Profile Card */}
-                  <div className="lg:col-span-5 xl:col-span-4">
-  <div 
-    className="bg-white p-6 rounded-2xl border shadow-sm h-[100%]"
+<div className="h-[40vh] lg:col-span-5 xl:col-span-4">
+  <div
+    className="bg-white p-6 rounded-2xl border shadow-sm h-full"
     style={{ borderColor: profileBorderColor }}
   >
-    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+    {/* Header */}
+    <h3 className="text-lg font-semibold text-gray-900 mb-4 text-left">
       Profile
     </h3>
 
-    {/* Flex Row: Left = Profile, Right = Stats */}
-    <div className="flex flex-row items-center justify-between">
-      
-      {/* LEFT SIDE - Profile Info */}
-      <div className="flex flex-col items-center text-center ml-[10%] mt-[5%] gap-2">
-        <div className="relative mb-4">
-          <div className="w-20 h-20 bg-[#FFC357] rounded-full flex items-center justify-center overflow-hidden">
-            {userData?.profileImage ? (
-              <Image 
-                src={userData.profileImage} 
-                alt={userData.username || 'Profile'} 
-                width={200}
-                height={200}
-                className="w-full h-full object-cover rounded-full"
-                priority
-              />
-            ) : (
-              <span className="text-white font-bold text-lg">
-                {getUserInitials(userData?.username)}
-              </span>
-            )}
-          </div>
-          <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
-            <span className="text-white text-sm">✓</span>
-          </div>
-        </div>
-        <h4 className="text-2xl font-medium text-black mb-2">
+    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      {/* LEFT — Image, Name, and Role stacked */}
+      <div className="flex flex-col items-center md:items-start flex-1 px-3">
+        {/* Profile Image */}
+        <div className="relative">
+  <div className="w-24 h-24 rounded-full overflow-hidden bg-[#FFC357] flex items-center justify-center">
+    <Image
+      src={userData?.profileImage}
+      alt={userData?.username || "Profile"}
+      width={96}  // 24 * 4 = 96px
+      height={96}
+      className="w-full h-full object-cover rounded-full"
+      priority
+    />
+  </div>
+
+  {/* Online badge */}
+  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+    <span className="text-white text-sm">✓</span>
+  </div>
+</div>
+
+
+        {/* Name */}
+        <h4 className="text-lg md:text-2xl font-medium text-black text-center md:text-left py-3">
           {userData?.username || "Loading..."}
         </h4>
-        <p className="text-gray-600">
-          {courseData.length > 0
-            ? `${courseData[0].category} Tutor`
-            : "Tutor"}
+
+        {/* Role */}
+        <p className="text-sm md:text-base text-gray-600 text-center md:text-left">
+          {courseData.length > 0 ? `${courseData[0].category} Tutor` : "Tutor"}
         </p>
       </div>
 
-      {/* RIGHT SIDE - Stats */}
-      <div className="flex flex-col space-y-3 w-[40%] gap-2">
+      {/* RIGHT — Stats */}
+      <div className="w-full md:w-2/5 flex flex-col space-y-3">
         <div className="flex items-center justify-between rounded-lg bg-[#F1ECF7] px-4 py-2">
           <div className="flex items-center gap-2">
             <Users size={16} className="text-[#7009BA]" />
@@ -607,7 +427,7 @@ export default function Dashboard() {
           </span>
         </div>
 
-        <div className="flex items-center justify-between rounded-lg bg-[#F1ECF7] px-4 py-2">
+        <div className="flex items-center justify-between rounded-lg bg-[#F1ECF7] px-4 py-2 gap-2">
           <div className="flex items-center gap-2">
             <Star size={16} className="text-[#7009BA]" />
             <span className="text-sm font-medium text-[#7009BA]">Certified</span>
@@ -619,97 +439,118 @@ export default function Dashboard() {
   </div>
 </div>
 
+{/* ------- end Profile Card ------- */}
+
+
                   {/* Right Column */}
                   <div className="lg:col-span-7 xl:col-span-8">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-[100%]">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       {/* Stats Column */}
-                      <div className="flex flex-col gap-10">
-                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-left min-h-[100px]">
+                      <div className="flex flex-col gap-2 h-[40vh]">
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-left flex-1">
                           <div className="text-3xl font-bold text-[#6F09BA] mb-1">15%</div>
                           <p className="text-sm text-gray-600">Lesson Completion</p>
                         </div>
-                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-left min-h-[100px]">
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-left flex-1">
                           <div className="text-3xl font-bold text-[#6F09BA] mb-1">80%</div>
                           <p className="text-sm text-gray-600">Session Engagement</p>
                         </div>
-                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-rigt min-h-[100px]">
+                        <div className="bg-white rounded-lg p-4 border border-gray-200 text-left flex-1">
                           <div className="text-3xl font-bold text-[#6F09BA] mb-1">95%</div>
                           <p className="text-sm text-gray-600">Student Satisfaction</p>
                         </div>
                       </div>
                       
                       {/* Performance Column */}
-                      <div className="bg-white rounded-lg shadow-sm p-4 flex flex-col justify-between">
-                        {/* Course Performance */}
-                        <div className="text-center mb-8">
-                          <p className="text-sm font-semibold text-[#212121]">Overall Course</p>
-                          <p className="text-sm font-semibold text-[#212121]">Performance</p>
-                          <div className="mt-[3%]">  
-                          <svg width="170" height="100" viewBox="0 0 120 60" className="mx-auto">
-                            <path
-                              d="M 10 60 A 50 50 0 0 1 110 60"
-                              stroke="#FFF7E8"
-                              strokeWidth="9"
-                              fill="none"
-                            />
-                            <path
-                              d="M 10 60 A 50 50 0 0 1 110 60"
-                              stroke="#FFC357"
-                              strokeWidth="9"
-                              fill="none"
-                              strokeLinecap="round"
-                              strokeDasharray={Math.PI * 50}
-                              strokeDashoffset={Math.PI * 50 * (1 - 7.6 / 10)}
-                            />
-                          </svg>
-                          <div className="text-5xl font-bold text-purple-700 -mt-[15%]">
-                            7.6<span className="text-gray-500 text-base">/10</span>
-                          </div>
-                        </div>
-                        </div>
+<div className="bg-white rounded-lg shadow-sm p-4 flex flex-col justify-between h-[40vh] gap-2">
+  {/* Course Performance */}
+  <div className="flex flex-col items-center justify-center flex-1">
+    <p className="text-sm font-semibold text-[#212121]">Overall Course</p>
+    <p className="text-sm font-semibold text-[#212121] mb-2">Performance</p>
 
-                        {/* Student Performance */}
-                        <div className="text-center">
-                          <p className="text-sm font-semibold text-[#212121]">Overall Student</p>
-                          <p className="text-sm font-semibold text-[#212121]">Performance</p>
-                          <svg width="170" height="100" viewBox="0 0 120 60" className="mx-auto">
-                            <path
-                              d="M 10 60 A 50 50 0 0 1 110 60"
-                              stroke="#FFF7E8"
-                              strokeWidth="9"
-                              fill="none"
-                            />
-                            <path
-                              d="M 10 60 A 50 50 0 0 1 110 60"
-                              stroke="#FFC357"
-                              strokeWidth="9"
-                              fill="none"
-                              strokeLinecap="round"
-                              strokeDasharray={Math.PI * 50}
-                              strokeDashoffset={Math.PI * 50 * (1 - 6.6 / 10)}
-                            />
-                          </svg>
-                          <div className="text-5xl font-bold text-purple-700 -mt-[15%]">
-                            6.6<span className="text-gray-500 text-base">/10</span>
-                          </div>
-                        </div>
-                      </div>
+    <div className="relative w-[70%] aspect-[2/1]">
+      <svg
+        viewBox="0 0 120 60"
+        className="absolute inset-0 w-full h-full"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <path
+          d="M 10 60 A 50 50 0 0 1 110 60"
+          stroke="#FFF7E8"
+          strokeWidth="9"
+          fill="none"
+        />
+        <path
+          d="M 10 60 A 50 50 0 0 1 110 60"
+          stroke="#FFC357"
+          strokeWidth="9"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={Math.PI * 50}
+          strokeDashoffset={Math.PI * 50 * (1 - 7.6 / 10)}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center translate-y-5">
+        <div className="text-3xl lg:text-4xl font-bold text-purple-700">
+          7.6<span className="text-gray-500 text-sm lg:text-base">/10</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Student Performance */}
+  <div className="flex flex-col items-center justify-center flex-1">
+    <p className="text-sm font-semibold text-[#212121]">Overall Student</p>
+    <p className="text-sm font-semibold text-[#212121] mb-2">Performance</p>
+
+    <div className="relative w-[70%] aspect-[2/1]">
+      <svg
+        viewBox="0 0 120 60"
+        className="absolute inset-0 w-full h-full"
+        preserveAspectRatio="xMidYMid meet"
+      >
+        <path
+          d="M 10 60 A 50 50 0 0 1 110 60"
+          stroke="#FFF7E8"
+          strokeWidth="9"
+          fill="none"
+        />
+        <path
+          d="M 10 60 A 50 50 0 0 1 110 60"
+          stroke="#FFC357"
+          strokeWidth="9"
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={Math.PI * 50}
+          strokeDashoffset={Math.PI * 50 * (1 - 6.6 / 10)}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center translate-y-5">
+        <div className="text-3xl lg:text-4xl font-bold text-purple-700">
+          6.6<span className="text-gray-500 text-sm lg:text-base">/10</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
                       {/* Image and Refer Card */}
                       <div className="flex flex-col">
-                        <div className="flex-1 flex items-center justify-center mb-4">
-                          <Image
-                            src="/tutorDashboard.png"
-                            alt="Tutor Dashboard"
-                            width={200}
-                            height={200}
-                            className="rounded-lg object-contain max-w-full h-auto"
-                            priority
-                          />
+                        <div className="flex-1 flex items-center justify-center">
+                          <div className="relative w-32 h-32"> {/* dynamic container size */}
+                            <Image
+                              src="/tutorDashboard.png"
+                              alt="Tutor Dashboard"
+                              fill
+                              className="rounded-lg object-contain"
+                              priority
+                            />
+                          </div>
                         </div>
 
                         {/* Refer and Earn Card */}
-                        <div className="bg-gradient-to-br from-[#6F09BA] to-[#4A0680] rounded-lg p-4 text-white">
+                        <div className="bg-gradient-to-br from-[#6F09BA] to-[#4A0680] rounded-lg p-4 text-white w-[95%] ml-auto">
                           <h3 className="text-lg font-bold mb-2">Refer and Earn</h3>
                           <p className="text-sm text-white/90 mb-4">
                             Invite friends and earn exclusive rewards!
@@ -725,9 +566,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* Bottom Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 ">
+                <div className="grid grid-cols-1 lg:grid-cols-5 ">
                   {/* Upcoming Lessons */}
-                  <div className="lg:col-span-4 max-w-[1300px]">
+                  <div className="lg:col-span-4 max-w-[132vh]">
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 h-full">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">

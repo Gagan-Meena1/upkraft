@@ -3,9 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
 import Link from 'next/link';
-import { BarChart3, X } from 'lucide-react';
-
-import DashboardLayout from '@/app/components/DashboardLayout';
+import { BarChart3, X, BookOpen } from 'lucide-react';
 
 interface ClassDetail {
   _id: string;
@@ -58,7 +56,7 @@ const CourseDetailsPage = () => {
   const [courseDetails, setCourseDetails] = useState<CourseDetail | null>(null);
   const [classDetails, setClassDetails] = useState<ClassDetail[]>([]);
   const [userData, setUserData] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'schedule' | 'curriculum'>('schedule');
+  const [activeTab, setActiveTab] = useState<'classes' | 'curriculum'>('classes');
   const [classScheduleTab, setClassScheduleTab] = useState<'upcoming' | 'recorded'>('upcoming');
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
 
@@ -152,25 +150,39 @@ const CourseDetailsPage = () => {
     return { upcomingClasses, recordedClasses };
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long',
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
+  // Helper function to format started date like "25 July"
+  const getStartedFromDate = (course: CourseDetail) => {
+    // Since we don't have createdAt in CourseDetail, using a fallback
+    return "25 July"; // Fallback
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit'
-    });
+  // Helper function to format date and time
+  const formatDateTime = (dateTimeString: string) => {
+    const date = new Date(dateTimeString);
+    
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    
+    const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const weekday = weekdays[date.getDay()];
+    const monthName = months[month];
+    
+    const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    
+    return {
+      date: `${day}th ${monthName} ${year}`,
+      day: weekday,
+      time: timeStr
+    };
   };
 
-  // Function to render class items
+  // Function to render class items in tutor style
   const renderClassItems = (classes: ClassDetail[]) => {
     if (classes.length === 0) {
       return (
@@ -183,53 +195,56 @@ const CourseDetailsPage = () => {
     }
 
     return (
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-6">
         {classes.map((classItem) => {
           const isPast = isClassPast(classItem.endTime);
+          const { date, day, time: startTime } = formatDateTime(classItem.startTime);
+          const { time: endTime } = formatDateTime(classItem.endTime);
           
           return (
-            <div 
-              key={classItem._id} 
-              className="border-b pb-4 sm:pb-6 last:border-b-0"
-            >
-              <div className="flex flex-col space-y-3 sm:space-y-4">
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-800 mb-2 text-sm sm:text-base">
-                    {classItem.title}
-                  </div>
-                  <div className="text-xs sm:text-sm text-gray-500 space-y-1">
-                    <div>
-                      <span className="font-medium">Date:</span> {formatDate(classItem.startTime)}
-                    </div>
-                    <div>
-                      <span className="font-medium">Time:</span> {formatTime(classItem.startTime)} - {formatTime(classItem.endTime)}
-                    </div>
-                  </div>
+            <div key={classItem._id} className="border-none shadow-sm bg-white">
+              <div className="p-6 grid gap-2">
+                <div className="flex justify-between items-start">
+                  <h3 className="text-xl font-bold text-gray-900">{classItem.title}</h3>
+                </div>
+                <p className="text-gray-600">
+                  {classItem.description}
+                </p>
+                <div className="flex flex-wrap items-center gap-x-4 text-sm text-gray-600 mt-2">
+                  <span>
+                    Date : <span className="font-medium">{date}</span>
+                  </span>
+                  <span>
+                    Day : <span className="font-medium">{day}</span>
+                  </span>
+                  <span>
+                    Time : <span className="font-medium">{startTime} - {endTime}</span>
+                  </span>
                 </div>
                 
                 {/* Action buttons - responsive layout */}
                 {isPast && (
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 mt-4">
                     {classItem.recording && (
                       <Link 
                         href={`/student/classQuality/${classItem._id}`}
-                        className="px-3 sm:px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-md shadow-md hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
+                        className="text-purple-600 hover:bg-purple-200 border border-purple-200 flex items-center gap-2 rounded-none px-4 py-2"
                       >
-                        <BarChart3 className="mr-1 w-3 h-3 sm:w-4 sm:h-4" />
+                        <BarChart3 className="h-4 w-4" />
                         Class Quality
                       </Link>
                     )}
                     {classItem.performanceVideo && (
                       <button 
                         onClick={() => setSelectedVideo(classItem.performanceVideo)}
-                        className="px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow-md hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
+                        className="text-blue-600 hover:bg-blue-200 border border-blue-200 flex items-center gap-2 rounded-none px-4 py-2"
                       >
                         Performance Video
                       </button>
                     )}
                     <Link 
                       href={`/student/singleFeedback/${courseDetails?.category}?classId=${classItem._id}&studentId=${userData?._id}`}
-                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
+                      className="text-orange-600 hover:bg-orange-200 border border-orange-200 flex items-center gap-2 rounded-none px-4 py-2"
                     >
                       View Feedback
                     </Link>
@@ -243,159 +258,171 @@ const CourseDetailsPage = () => {
     );
   };
   
-  const pageContent = (
-    <>
-      <Toaster />
-      
-      {loading ? (
-        <div className="flex items-center justify-center min-h-screen px-4">
-          <p className="text-gray-600 text-base sm:text-lg text-center">Loading course details...</p>
-        </div>
-      ) : error ? (
-        <div className="mx-auto bg-red-50 p-4 rounded-lg border border-red-200">
-          <h1 className="text-red-600 text-lg sm:text-xl font-medium">Error Loading Course</h1>
-          <p className="text-red-500 mt-2 text-sm sm:text-base">{error}</p>
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#6B46C1] flex items-center justify-center p-4">
+        <div className="text-lg sm:text-2xl font-semibold text-white text-center">Loading Course Details...</div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !courseDetails) {
+    return (
+      <div className="min-h-screen bg-[#6B46C1] flex items-center justify-center p-4">
+        <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg text-center max-w-md w-full">
+          <div className="text-xl sm:text-2xl font-semibold text-red-600 mb-4">
+            Error Loading Course
+          </div>
+          <p className="text-gray-700 mb-6 text-sm sm:text-base">{error}</p>
           <button 
             onClick={fetchCourseDetails} 
-            className="mt-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm sm:text-base"
+            className="px-4 sm:px-6 py-2 sm:py-3 bg-[#6B46C1] text-white rounded-lg hover:bg-[#5A3A9F] transition-colors text-sm sm:text-base"
           >
             Try Again
           </button>
         </div>
-      ) : (
-        <div className="w-full">
-          {selectedVideo && (
-            <VideoModal videoUrl={selectedVideo} onClose={() => setSelectedVideo(null)} />
-          )}
-          
-          {/* Course Header */}
-          {courseDetails && (
-            <div className="mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-orange-500 mb-3 sm:mb-4">
-                {courseDetails.title}
-              </h1>
-              <div className="bg-gray-100 p-4 sm:p-6 rounded-lg">
-                <p className="text-gray-700 mb-4 text-sm sm:text-base leading-relaxed">{courseDetails.description}</p>
-                <div className="flex flex-wrap gap-3 sm:gap-4">
-                  <div className="bg-white p-3 sm:p-4 rounded-md shadow-sm flex-1 min-w-0">
-                    <span className="text-gray-500 text-xs sm:text-sm block">Duration</span>
-                    <p className="font-medium text-black text-sm sm:text-base">{courseDetails.duration}</p>
-                  </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#6B46C1] p-4 md:p-6 lg:p-8">
+      <Toaster />
+      
+      <div className="flex-1 rounded-xl bg-white shadow-lg overflow-hidden max-w-7xl mx-auto">
+        {selectedVideo && (
+          <VideoModal videoUrl={selectedVideo} onClose={() => setSelectedVideo(null)} />
+        )}
+
+        {/* Main Content Area */}
+        <main className="p-4 md:p-6 lg:p-8 space-y-6">
+          {/* Course Overview Card */}
+          <div className="rounded-xl border border-[#6B46C1] shadow-sm bg-white">
+            <div className="p-6 flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+              <div className="flex-shrink-0 w-24 h-24 rounded-full bg-purple-100 flex items-center justify-center">
+                <img src="/pianoCourse.png" alt="Piano Course" className="h-24 w-24" />
+              </div>
+              <div className="flex-1 grid gap-2 text-center md:text-left">
+                <h2 className="text-2xl font-bold text-gray-900">{courseDetails.title}</h2>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 text-sm text-gray-600">
+                  <span>
+                    Duration : <span className="font-medium text-gray-900">{courseDetails.duration}</span>
+                  </span>
+                  <span>
+                    Sessions : <span className="font-medium text-gray-900">{classDetails.length}</span>
+                  </span>
+                  <span>
+                    Price : <span className="font-medium text-gray-900">Rs {courseDetails.price}</span>
+                  </span>
+                  <span>
+                    Started From : <span className="font-medium text-gray-900">{getStartedFromDate(courseDetails)}</span>
+                  </span>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Main Toggle Buttons */}
-          <div className="mb-6 sm:mb-8">
-            <div className="flex bg-gray-100 p-1 rounded-lg w-full sm:w-fit overflow-hidden">
-              <button
-                onClick={() => setActiveTab('schedule')}
-                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-300 text-sm sm:text-base ${
-                  activeTab === 'schedule'
-                    ? 'bg-orange-500 text-white shadow-md'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Class Schedule
-              </button>
-              <button
-                onClick={() => setActiveTab('curriculum')}
-                className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-300 text-sm sm:text-base ${
-                  activeTab === 'curriculum'
-                    ? 'bg-orange-500 text-white shadow-md'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Course Curriculum
-              </button>
             </div>
           </div>
 
-          {/* Class Schedule Section */}
-          {activeTab === 'schedule' && (
-            <section className="mt-6 sm:mt-8">
-              {/* Class Schedule Sub-tabs */}
-              <div className="mb-4 sm:mb-6">
-                <div className="flex bg-gray-100 p-1 rounded-lg w-full sm:w-fit overflow-hidden">
-                  <button
-                    onClick={() => setClassScheduleTab('upcoming')}
-                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md font-medium text-xs sm:text-sm transition-all duration-300 ${
-                      classScheduleTab === 'upcoming'
-                        ? 'bg-blue-500 text-white shadow-md'
-                        : 'text-gray-600 hover:text-gray-800'
-                    }`}
-                  >
-                    <span className="hidden sm:inline">Upcoming Classes </span>
-                    <span className="sm:hidden">Upcoming </span>
-                    ({separateClasses().upcomingClasses.length})
-                  </button>
-                  <button
-                    onClick={() => setClassScheduleTab('recorded')}
-                    className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md font-medium text-xs sm:text-sm transition-all duration-300 ${
-                      classScheduleTab === 'recorded'
-                        ? 'bg-blue-500 text-white shadow-md'
-                        : 'text-gray-600 hover:text-gray-800'
-                    }`}
-                  >
-                    <span className="hidden sm:inline">Recorded Classes </span>
-                    <span className="sm:hidden">Recorded </span>
-                    ({separateClasses().recordedClasses.length})
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
-                {classScheduleTab === 'upcoming' && renderClassItems(separateClasses().upcomingClasses)}
-                {classScheduleTab === 'recorded' && renderClassItems(separateClasses().recordedClasses)}
-              </div>
-            </section>
-          )}
-
-          {/* Course Curriculum Section */}
-          {activeTab === 'curriculum' && courseDetails && courseDetails.curriculum && courseDetails.curriculum.length > 0 && (
-            <section className="mt-6 sm:mt-8">
-              <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
-                <div className="space-y-4 sm:space-y-6">
-                  {courseDetails.curriculum.map((item) => (
-                    <div 
-                      key={item.sessionNo} 
-                      className="border-b pb-4 sm:pb-6 last:border-b-0"
-                    >
-                      <div className="space-y-2">
-                        <div className="font-semibold text-gray-800 text-sm sm:text-base">
-                          Session {item.sessionNo}: {item.topic}
-                        </div>
-                        <div className="text-gray-600 text-xs sm:text-sm leading-relaxed">
-                          {item.tangibleOutcome}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Show message if no curriculum available */}
-          {activeTab === 'curriculum' && (!courseDetails?.curriculum || courseDetails.curriculum.length === 0) && (
-            <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-              <p className="text-gray-500 text-sm sm:text-base">No curriculum available</p>
+          {/* Tabs Section */}
+          <div className="w-full">
+            <div className="grid w-full grid-cols-2 h-auto bg-transparent p-0 border-b">
+              <button
+                onClick={() => setActiveTab('classes')}
+                className={`text-lg font-semibold rounded-none pb-2 transition-colors ${
+                  activeTab === 'classes'
+                    ? 'border-b-2 border-[#6B46C1] text-[#6B46C1]'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Classes
+              </button>
+              <button
+                onClick={() => setActiveTab('curriculum')}
+                className={`text-lg font-semibold rounded-none pb-2 transition-colors ${
+                  activeTab === 'curriculum'
+                    ? 'border-b-2 border-[#6B46C1] text-[#6B46C1]'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Curriculum
+              </button>
             </div>
-          )}
-        </div>
-      )}
-    </>
-  );
 
-  return (
-    <DashboardLayout userData={userData} userType="student">
-      <div className="bg-gray-50 min-h-screen p-4 sm:p-6 lg:p-8">
-        <div className="max-w-7xl mx-auto">
-          {pageContent}
-        </div>
+            {activeTab === 'classes' && (
+              <div className="mt-6">
+                {/* Class Schedule Sub-tabs */}
+                <div className="mb-6">
+                  <div className="flex bg-gray-100 p-1 rounded-lg w-full sm:w-fit overflow-hidden">
+                    <button
+                      onClick={() => setClassScheduleTab('upcoming')}
+                      className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md font-medium text-xs sm:text-sm transition-all duration-300 ${
+                        classScheduleTab === 'upcoming'
+                          ? 'bg-blue-500 text-white shadow-md'
+                          : 'text-gray-600 hover:text-gray-800'
+                      }`}
+                    >
+                      <span className="hidden sm:inline">Upcoming Classes </span>
+                      <span className="sm:hidden">Upcoming </span>
+                      ({separateClasses().upcomingClasses.length})
+                    </button>
+                    <button
+                      onClick={() => setClassScheduleTab('recorded')}
+                      className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-md font-medium text-xs sm:text-sm transition-all duration-300 ${
+                        classScheduleTab === 'recorded'
+                          ? 'bg-blue-500 text-white shadow-md'
+                          : 'text-gray-600 hover:text-gray-800'
+                      }`}
+                    >
+                      <span className="hidden sm:inline">Recorded Classes </span>
+                      <span className="sm:hidden">Recorded </span>
+                      ({separateClasses().recordedClasses.length})
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  {classScheduleTab === 'upcoming' && renderClassItems(separateClasses().upcomingClasses)}
+                  {classScheduleTab === 'recorded' && renderClassItems(separateClasses().recordedClasses)}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'curriculum' && (
+              <div className="mt-6">
+                <div className="bg-white rounded-xl shadow-sm p-6">
+                  {courseDetails.curriculum && courseDetails.curriculum.length > 0 ? (
+                    <div className="space-y-4">
+                      {courseDetails.curriculum.map((item, index) => (
+                        <div key={index} className="border-l-4 border-[#6B46C1] pl-4 py-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">
+                              Session {item.sessionNo}
+                            </span>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {item.topic}
+                            </h3>
+                          </div>
+                          <p className="text-gray-600 mt-2 text-sm sm:text-base">
+                            <span className="font-medium">Outcome:</span> {item.tangibleOutcome}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                      <p className="text-gray-500 text-lg">No curriculum available</p>
+                      <p className="text-gray-400 text-sm">The curriculum for this course hasn't been set up yet.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
-    </DashboardLayout>
+    </div>
   );
 };
 

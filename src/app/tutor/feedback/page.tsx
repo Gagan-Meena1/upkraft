@@ -145,7 +145,7 @@ export default function Feedback() {
   };
 
   return (
-    <div className="h-full bg-white flex rounded-lg flex-col ">
+    <div className="h-screen bg-white flex flex-col rounded-lg">
       <div className=" bg-white  p-6 border-b border-gray-200  flex w-full justify-between items-center">
         {/* Header */}
         <h1 className="text-xl font-semibold text-[#212121]">
@@ -158,9 +158,9 @@ export default function Feedback() {
           Back to Dashboard
         </Link>
       </div>
-      <div className="flex-1 flex h-full overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         {/* Student List */}
-        <div className="w-80 overflow-y-auto h-full bg-[#EEEEE] flex flex-col gap-6 p-6 border-r border-gray-200 custom-scrollbar">
+        <div className="w-80 h-full bg-[#EEEEE] flex flex-col gap-6 p-6 border-r border-gray-200 overflow-y-auto custom-scrollbar">
           {students.map((student) => (
             <div
               key={student.id}
@@ -225,7 +225,7 @@ export default function Feedback() {
           ))}
         </div>
         {/* Main Content */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden">
+        <div className="flex-1 flex flex-col h-full">
           {/* Content Header */}
           <div className="bg-white p-6 flex gap-3 flex-col justify-between items-start">
             <h2 className="text-xl font-semibold text-[#212121]">
@@ -237,8 +237,8 @@ export default function Feedback() {
           </div>
 
           {/* Evaluation Form */}
-          <div className="flex-1 px-6 w-full">
-            <div className=" bg-white p-6">
+          <div className="flex-1 flex flex-col px-6 overflow-hidden">
+            <div className=" flex-1 overflow-y-auto bg-white p-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 mb-6">
                 {/* Left Column */}
                 <div>
@@ -304,7 +304,7 @@ export default function Feedback() {
               </div>
 
               {/* Submit Button */}
-              <div className="flex justify-end">
+              <div className="p-6 border-t border-gray-200 bg-white flex justify-end">
                 <button
                   onClick={handleSubmitEvaluation}
                   className="px-8 py-3 bg-[#6E09BD] cursor-pointer hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors shadow-sm"

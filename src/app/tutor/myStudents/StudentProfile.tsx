@@ -242,16 +242,29 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => {
-                      setShowPerformance(true);
-                      onBack();
-                    }}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200"
-                  >
-                    <span>View Performance</span>
-                    <ExternalLink size={16} />
-                  </button>
+                  <div className="flex gap-4 mt-4">
+                    <button
+                      onClick={() => {
+                        setShowPerformance(true);
+                        onBack();
+                      }}
+                      className="bg-[#6E09BD] text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors duration-200"
+                    >
+                      <span>View Performance</span>
+                      <ExternalLink size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowPerformance(true);
+                        onBack();
+                      }}
+                      className="bg-white text-[#6E09BD] px-4 py-2 border border-[#6E09BD] rounded-lg flex items-center space-x-2 transition-colors duration-200"
+                    >
+                      <span>Session Summary</span>
+                      <ExternalLink size={16} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
