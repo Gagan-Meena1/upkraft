@@ -566,9 +566,9 @@ export default function Dashboard() {
                 </div>
 
                 {/* Bottom Section */}
-                <div className="grid grid-cols-1 lg:grid-cols-5 ">
+                <div className="grid grid-cols-1 lg:grid-cols-5">
                   {/* Upcoming Lessons */}
-                  <div className="lg:col-span-4 max-w-[132vh]">
+                  <div className="lg:col-span-4 max-w-[127.5vh]">
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 h-full">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">
