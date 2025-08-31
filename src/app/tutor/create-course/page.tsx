@@ -143,8 +143,8 @@ export default function CreateCourse() {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex-1 text-center">
-            <h2 className="text-xl font-semibold text-[#6F09BA]">Edit Course</h2>
-            <p className="text-sm text-gray-600 mt-1">Edit the course details below to update content & other information</p>
+            <h2 className="text-xl font-semibold text-[#6F09BA]">Add Course</h2>
+            <p className="text-sm text-gray-600 mt-1">Complete the form below to register a new student account</p>
           </div>
           <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={24} />

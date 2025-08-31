@@ -420,7 +420,7 @@ export default function TutorCoursesPage() {
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={() => handleClassQuality(course._id)}
-                      className="flex items-center space-x-2 px-4 py-2 bg-white text-[#6F09BA] border border-[#6F09BA] rounded-md hover:bg-[#5A0799] transition-colors"
+                      className="flex items-center space-x-2 px-4 py-2 bg-white text-[#6F09BA] border border-[#6F09BA] rounded-md transition-colors"
                     >
                       <span>Class Quality</span>
                       <ArrowRight size={14} />

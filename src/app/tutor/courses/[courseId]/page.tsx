@@ -603,7 +603,7 @@ const handleUpdateClass = async () => {
                           {classSession.recordingUrl && (
                             <Link 
                               href={`/tutor/classQuality/${classSession._id}`}
-                              className=" text-purple-600 hover:bg-purple-200 border border-purple-200 flex items-center gap-2 rounded-none px-4 py-2"
+                              className=" text-[#6E09BD] border border-[#6E09BD] flex items-center gap-2 rounded-none px-4 py-2"
                             >
                               <BarChart3 className="h-4 w-4" /> Class Quality
                             </Link>

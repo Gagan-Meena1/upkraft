@@ -288,7 +288,7 @@ export default function AddSessionPage() {
   ]
 
   return (
-    <div className="p-6 mt-6 mx-auto bg-white min-h-screen">
+    <div className="p-6 mt-6 mx-auto bg-white h-auto">
       {/* Header with back button */}
       <div className="mb-8 border-b border-gray-200 pb-4">
         <div className="flex items-center gap-4">
@@ -302,7 +302,7 @@ export default function AddSessionPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Calendar Section */}
          <div className="max-w-xl w-full md:border-r md:pr-8 md:h-auto">
           <div className="bg-transparent shadow-none border-none rounded-none">
@@ -358,7 +358,7 @@ export default function AddSessionPage() {
                 return (
                   <div 
                     key={index} 
-                    className={`relative p-2 sm:p-4 rounded-lg min-h-[3rem] sm:min-h-[4rem] ${
+                    className={`relative flex flex-col items-center justify-center p-2 sm:p-4 rounded-lg min-h-[3rem] sm:min-h-[4rem] ${
                       day 
                         ? isPastDate 
                           ? 'bg-gray-200 opacity-50 cursor-not-allowed' 
@@ -375,8 +375,8 @@ export default function AddSessionPage() {
                           {day}
                         </span>
                         {!isPastDate && (
-                          <button className="absolute bottom-1 right-1 sm:bottom-1.5 sm:right-1.5 w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 bg-[#6B46C1] hover:bg-[#5A3A9F] rounded-full flex items-center justify-center text-white">
-                            <Plus className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+                          <button className="absolute bottom-1 right-1 sm:bottom-1 sm:right-1 w-3 h-3 sm:w-4 sm:h-4 bg-[#6B46C1] hover:bg-[#5A3A9F] rounded-full flex items-center justify-center text-white">
+                            <Plus className="w-1.5 h-1.5 sm:w-2 sm:h-2" />
                           </button>
                         )}
                       </>
@@ -390,7 +390,7 @@ export default function AddSessionPage() {
         </div>
 
         {/* Form Section - Always visible */}
-        <div className="md:col-span-2 min-h-[460px]">
+        <div className="md:col-span-2">
           
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-gray-800">
@@ -398,7 +398,7 @@ export default function AddSessionPage() {
               </CardTitle>
               <p className="text-sm text-gray-600">Add details below to create new session</p>
             </CardHeader>
-            <CardContent className="flex flex-col h-full">
+            <CardContent className="flex flex-col">
               <div className="flex-1 space-y-4 mt-3">
                 <div>
                   <label htmlFor="title" className="block text-gray-800 mb-1 text-sm font-medium">
