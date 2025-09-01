@@ -4,6 +4,7 @@ import { Star, Info, Trash2, Plus } from "lucide-react";
 import StudentProfile from "./StudentProfile";
 import AddStudentModal from "./AddStudentModal";
 import Performance from "./Performance";
+import { Search } from "lucide-react";
 import { StarRating } from "./components/StarRating";
 
 interface Student {
@@ -18,6 +19,7 @@ const MyStudents: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [isShowPerformance, setIsShowPerformance] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingStudents, setDeletingStudents] = useState<Set<string>>(
@@ -38,6 +40,7 @@ const MyStudents: React.FC = () => {
 
       if (data && data.filteredUsers) {
         setStudents(data.filteredUsers);
+        setAllStudents(data.filteredUsers);
       } else {
         console.error("filteredUsers not found in API response:", data);
         setError("Invalid response format from server");
@@ -140,19 +143,44 @@ const MyStudents: React.FC = () => {
   }
 
   return (
-    <div className="h-full bg-white  shadow-xl rounded-lg flex flex-col">
+    <div className="h-full bg-white  shadow-xl rounded-lg flex flex-col mt-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-4 p-4 md:p-6">
-        <h1 className="text-xl font-semibold text-[#212121]">My Students</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-[#6E09BD] hover:bg-purple-700 text-white px-4 py-2 rounded-sm flex items-center space-x-2 transition-colors duration-200 shadow-sm"
-        >
-          <span>Add Student</span>
-          <Plus size={16} />
-        </button>
-      </div>
+      <div className="flex flex-col md:flex-row justify-between items-center mb-4 p-4 md:p-6 gap-4">
+        {/* Left Side: Title */}
+        <h1 className="text-xl font-semibold text-[#212121] whitespace-nowrap">
+          My Students
+        </h1>
 
+        {/* Right Side: Search + Add Student */}
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          {/* Search Box */}
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5" />
+            <input
+              type="text"
+              placeholder="Search student..."
+              className="pl-10 pr-3 py-2 border border-[#EEEEEE] rounded-md text-sm w-full focus:outline-none focus:ring-1 text-[#505050]"
+              onChange={(e) => {
+                const search = e.target.value.toLowerCase();
+                if (!search) {
+                  setStudents(allStudents); // reset to full list
+                } else {
+                  setStudents(
+                    allStudents.filter((student) =>
+                      student.username.toLowerCase().includes(search)
+                    )
+                  );
+                }
+              }}
+            />
+          </div>
+
+          {/* Add Student Button */}
+          <button className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition">
+            Add Student
+          </button>
+        </div>
+      </div>
       {/* Students Table */}
 
       <div className="flex-1 overflow-y-auto w-full">
@@ -173,7 +201,13 @@ const MyStudents: React.FC = () => {
                   Assignment Pending
                 </th>
                 <th className="text-left py-4 px-6 text-[16px] font-semibold text-[#212121]">
-                  Rating
+                  Performance Score
+                </th>
+                <th className="text-left py-4 px-6 text-[16px] font-semibold text-[#212121]">
+                  Tutor Score
+                </th>
+                <th className="text-left py-4 px-6 text-[16px] font-semibold text-[#212121]">
+                  My Student Details
                 </th>
                 <th className="text-left py-4 px-6 text-[16px] font-semibold text-[#212121]">
                   Action
@@ -193,7 +227,7 @@ const MyStudents: React.FC = () => {
                           "https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150"
                         }
                         alt={student.username}
-                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-100"
+                        className="w-8 h-8 rounded-full object-cover border-2 border-gray-100"
                       />
                       <span className=" text-black text-[16px]">
                         {student.username}
@@ -201,13 +235,13 @@ const MyStudents: React.FC = () => {
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="text-[#212121] text-[16px]">
+                    <span className="text-[#212121] text-[16px] ml-1">
                       {/* {student.location} */}
                       China
                     </span>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="text-[#212121] font-semibold text-lg">
+                    <span className="text-[#212121] font-semibold text-lg ml-10">
                       5.6
                       <span className="text-[#212121] text-[16px] font-normal">
                         /10
@@ -215,7 +249,15 @@ const MyStudents: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="text-[#212121] font-semibold text-lg">
+                    <span className="text-[#212121] font-semibold text-lg ml-15">
+                      8
+                      <span className="text-[#212121] text-[16px] font-normal">
+                        /10
+                      </span>
+                    </span>
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className="text-[#212121] font-semibold text-lg ml-15">
                       7
                       <span className="text-[#212121] text-[16px] font-normal">
                         /10
@@ -223,8 +265,26 @@ const MyStudents: React.FC = () => {
                     </span>
                   </td>
                   <td className="py-4 px-6">
-                    <StarRating rating={4} />
+                    <span className="text-[#212121] font-semibold text-lg ml-7">
+                      7
+                      <span className="text-[#212121] text-[16px] font-normal">
+                        /10
+                      </span>
+                    </span>
                   </td>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center space-x-1">
+                      <button
+                        type="button"
+                        aria-label="View Student"
+                        onClick={() => handleViewStudent(student)}
+                        className="px-4 py-2 bg-[#1E88E5] text-white rounded-md hover:bg-blue-700 transition-colors duration-200 ml-3"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </td>
+
                   <td className="py-4 px-6">
                     <div className="flex items-center space-x-1">
                       <button
@@ -239,7 +299,7 @@ const MyStudents: React.FC = () => {
                         type="button"
                         aria-label="Delete Student"
                         onClick={() => handleDeleteStudent(student._id)}
-                        className="p-2 text-[#E53935] hover:text-red-600 hover:bg-red-50 rounded-full transition-colors duration-200"
+                        className="p-2 text-[#E53935] hover:text-red-600 hover:bg-red-50 rounded-full transition-colors duration-200 -ml-3"
                       >
                         <Trash2 size={16} />
                       </button>

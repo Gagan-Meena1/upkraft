@@ -295,7 +295,7 @@ export default function TutorCoursesPage() {
         {/* Main Content */}
         <main className="flex-1 p-6">
           {/* Page Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mt-2 bg-white p-6 border-b border-gray-200">
             <h1 className="text-2xl font-semibold text-gray-900">My Courses</h1>
 
             <div className="flex items-center space-x-4">
@@ -382,10 +382,10 @@ export default function TutorCoursesPage() {
                   </div>
 
                   {/* Course Details */}
-                  <div className="flex flex-wrap items-center gap-6 mb-4 text-sm text-gray-600">
+                  <div className="flex flex-wrap items-center gap-6 mb-4 text-sm text-[#505050]">
                     <div>
                       <span>Started From : </span>
-                      <span className="font-medium text-gray-900">
+                      <span className="font-[16px] text-[#212121] ">
                         {getStartedFromDate(course)}
                       </span>
                     </div>
@@ -420,14 +420,14 @@ export default function TutorCoursesPage() {
                   <div className="flex items-center space-x-3">
                     <button
                       onClick={() => handleClassQuality(course._id)}
-                      className="flex items-center space-x-2 px-4 py-2 bg-[#6F09BA] text-white rounded-none hover:bg-[#5A0799] transition-colors"
+                      className="flex items-center space-x-2 px-4 py-2 bg-white text-[#6F09BA] border border-[#6F09BA] rounded-md transition-colors"
                     >
                       <span>Class Quality</span>
                       <ArrowRight size={14} />
                     </button>
                     <button
                       onClick={() => handleViewDetail(course._id)}
-                      className="flex items-center space-x-2 px-4 py-2 bg-[#6F09BA] text-white rounded-none hover:bg-[#5A0799] transition-colors"
+                      className="flex items-center space-x-2 px-4 py-2 bg-[#6F09BA] text-white rounded-md hover:bg-[#5A0799] transition-colors"
                     >
                       <span>View Detail</span>
                       <ArrowRight size={14} />

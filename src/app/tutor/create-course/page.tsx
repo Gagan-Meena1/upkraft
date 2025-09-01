@@ -137,14 +137,14 @@ export default function CreateCourse() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+    <div className="min-h-screen flex items-center justify-center">
       <Toaster />
-      <div className="bg-white rounded-xl w-full h-screen overflow-y-auto">
+      <div className="bg-white rounded-xl w-full h-screen overflow-y-auto mt-4">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex-1 text-center">
-            <h2 className="text-xl font-semibold text-[#6F09BA]">Add New Course</h2>
-            <p className="text-sm text-gray-600 mt-1">Complete the form below to create new course</p>
+            <h2 className="text-xl font-semibold text-[#6F09BA]">Add Course</h2>
+            <p className="text-sm text-gray-600 mt-1">Complete the form below to register a new student account</p>
           </div>
           <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X size={24} />
@@ -156,7 +156,7 @@ export default function CreateCourse() {
           <div className="p-6 space-y-6">
             {/* Course Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">Course Title</label>
+              <label className="block font-inter font-medium text-[16px] text-[#212121] mb-2">Course Title</label>
               <input
                 type="text"
                 value={title}
@@ -169,7 +169,7 @@ export default function CreateCourse() {
 
             {/* Course Category */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">Course Category</label>
+              <label className="block font-inter font-medium text-[16px] text-[#212121] mb-2">Course Category</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -187,7 +187,7 @@ export default function CreateCourse() {
 
             {/* Course Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">Course Description</label>
+              <label className="block font-inter font-medium text-[16px] text-[#212121] mb-2">Course Description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -200,7 +200,7 @@ export default function CreateCourse() {
 
             {/* Course Duration */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">Course Duration</label>
+              <label className="block font-inter font-medium text-[16px] text-[#212121] mb-2">Course Duration</label>
               <input
                 type="text"
                 value={duration}
@@ -213,7 +213,7 @@ export default function CreateCourse() {
 
             {/* Course Fees */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">Course Fees</label>
+              <label className="block font-inter font-medium text-[16px] text-[#212121] mb-2">Course Fees</label>
               <input
                 type="number"
                 value={price}
@@ -237,7 +237,7 @@ export default function CreateCourse() {
               
               <div className="space-y-4">
                 {/* Header Row */}
-                <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-600 pb-2 border-b border-gray-300">
+                <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-gray-600 pb-2 border-b ">
                   <div className="col-span-1 text-center">Session</div>
                   <div className="col-span-5">Topic</div>
                   <div className="col-span-5">Learning Outcome</div>
@@ -248,7 +248,7 @@ export default function CreateCourse() {
                 {curriculum.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-4 items-center text-gray-800">
                     <div className="col-span-1 flex items-center justify-center">
-                      <span className="w-8 h-8 bg-[#6F09BA] text-white rounded-full flex items-center justify-center text-sm font-medium">
+                      <span className="w-[84px] h-[56px] border border-[#DEE0E3] rounded-[4px] px-[25px] py-[16px] flex items-center justify-center text-sm font-medium text-[#6B7582]">
                         {index + 1}
                       </span>
                     </div>

@@ -5,11 +5,18 @@ interface AddStudentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddStudent: (student: {
+    gender: string,
+    instrument: string;
     name: string;
     email: string;
     contact: string;
     location: string;
     avatar: string;
+    teachingMode: string;
+    homeAddress: string;
+    teachingExperience: string;
+    dob: string;
+    pinCode: string;
   }) => void;
 }
 
@@ -20,10 +27,17 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
 }) => {
   const [formData, setFormData] = useState({
     name: "",
+    gender: "",
+    instrument: "",
     email: "",
     contact: "",
     location: "",
     avatar: "",
+    teachingMode: "",
+    homeAddress: "",
+    teachingExperience: "",
+    dob: "",
+    pinCode: "",
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -55,8 +69,36 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
       newErrors.contact = "Contact number is required";
     }
 
+    if (!formData.gender.trim()) {
+      newErrors.gender = "Gender is required";
+    }
+
     if (!formData.location.trim()) {
       newErrors.location = "Location is required";
+    }
+
+    if (!formData.teachingMode.trim()) {
+      newErrors.teachingMode = "Teaching mode is required";
+    }
+
+    if (!formData.homeAddress.trim()) {
+      newErrors.homeAddress = "Home address is required";
+    }
+
+    if (!formData.teachingExperience.trim()) {
+      newErrors.teachingExperience = "Teaching experience is required";
+    }
+
+    if (!formData.dob.trim()) {
+      newErrors.dob = "Date of birth is required";
+    }
+
+    if (!formData.pinCode.trim()) {
+      newErrors.pinCode = "Pin code is required";
+    }
+
+    if (!formData.instrument.trim()) {
+      newErrors.instrument = "Instrument is required";
     }
 
     setErrors(newErrors);
@@ -92,6 +134,13 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
         contact: "",
         location: "",
         avatar: "",
+        gender: "",
+        instrument: "",
+        teachingMode: "",
+        homeAddress: "",
+        teachingExperience: "",
+        dob: "",
+        pinCode: "",
       });
       setErrors({});
       onClose();
@@ -102,7 +151,7 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl px-16 shadow-2xl w-full max-w-2xl mx-auto transform transition-all duration-300 scale-100 relative">
+      <div className="bg-white rounded-2xl px-16 shadow-2xl w-[804px] max-h-[90vh] overflow-y-auto max-w-2xl mx-auto transform transition-all duration-300 scale-100 relative">
         {/* Header */}
         <button
           type="button"
@@ -168,6 +217,63 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
               )}
             </div>
 
+            {/* Gender */}
+            <div>
+              <label
+                htmlFor="gender"
+                className="block text-[16px] font-medium text-[#212121] mb-2"
+              >
+                Gender
+              </label>
+              
+              <select
+                id="gender"
+                name="gender"
+                value={formData.gender}
+                onChange={handleInputChange}
+                className={`w-full px-4 py-3 border rounded-sm transition-all duration-200 ${
+                  errors.gender ? "border-red-300 bg-red-50" : "border-gray-300"
+                } text-[#212121] text-[16px] font-normal truncate`}
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+
+              {errors.gender && (
+                <p className="mt-1 text-sm text-red-600">{errors.gender}</p>
+              )}
+            </div>
+
+            {/* Instrument */}
+            <div>
+              <label
+                htmlFor="instrument"
+                className="block text-[16px] font-medium text-[#212121] mb-2"
+              >
+                Instrument
+              </label>
+              <select
+                id="instrument"
+                name="instrument"
+                value={formData.instrument}
+                onChange={handleInputChange}
+                className={`w-full px-4 py-3 border rounded-sm transition-all duration-200 ${
+                  errors.instrument ? "border-red-300 bg-red-50" : "border-gray-300"
+                } text-[#212121] text-[16px] font-normal truncate`}
+              >
+                <option value="">Select Instrument</option>
+                <option value="Guitar">Guitar</option>
+                <option value="Piano">Piano</option>
+                <option value="Violin">Violin</option>
+              </select>
+
+              {errors.instrument && (
+                <p className="mt-1 text-sm text-red-600">{errors.instrument}</p>
+              )}
+            </div>
+
             {/* Email Address */}
             <div>
               <label
@@ -191,6 +297,31 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
               />
               {errors.email && (
                 <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
+            </div>
+
+            {/* DOB */}
+            <div>
+              <label
+                htmlFor="dob"
+                className="block text-[16px] font-medium text-[#212121] mb-2"
+              >
+                Date of Birth
+              </label>
+              <input
+                type="date"
+                id="dob"
+                name="dob"
+                value={formData.dob}
+                onChange={handleInputChange}
+                className={`w-full px-4 py-3 border rounded-sm  transition-all duration-200 ${
+                  errors.dob ? "border-red-300 bg-red-50" : "border-gray-300"
+                }
+                placeholder:text-[#6B7582] text-[#212121] text-[16px] font-normal
+                `}
+              />
+              {errors.dob && (
+                <p className="mt-1 text-sm text-red-600">{errors.dob}</p>
               )}
             </div>
 
@@ -247,6 +378,90 @@ const AddStudentModal: React.FC<AddStudentModalProps> = ({
               />
               {errors.location && (
                 <p className="mt-1 text-sm text-red-600">{errors.location}</p>
+              )}
+            </div>
+
+            {/* Home Address */}
+            <div>
+              <label
+                htmlFor="homeAddress"
+                className="block text-[16px] font-medium text-[#212121] mb-2"
+              >
+                Home Address
+              </label>
+              <input
+                type="text"
+                id="homeAddress"
+                name="homeAddress"
+                value={formData.homeAddress}
+                onChange={handleInputChange}
+                placeholder="45xxxxx"
+                className={`w-full px-4 py-3 border rounded-sm  transition-all duration-200 ${
+                  errors.homeAddress
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300"
+                }
+                placeholder:text-[#6B7582] text-[#212121] text-[16px] font-normal
+                `}
+              />
+              {errors.homeAddress && (
+                <p className="mt-1 text-sm text-red-600">{errors.homeAddress}</p>
+              )}
+            </div>
+
+            {/* Pin Code */}
+            <div>
+              <label
+                htmlFor="pinCode"
+                className="block text-[16px] font-medium text-[#212121] mb-2"
+              >
+                Pin Code
+              </label>
+              <input
+                type="text"
+                id="pinCode"
+                name="pinCode"
+                value={formData.pinCode}
+                onChange={handleInputChange}
+                placeholder="123xxx"
+                className={`w-full px-4 py-3 border rounded-sm  transition-all duration-200 ${
+                  errors.pinCode
+                    ? "border-red-300 bg-red-50"
+                    : "border-gray-300"
+                }
+                placeholder:text-[#6B7582] text-[#212121] text-[16px] font-normal
+                `}
+              />
+              {errors.pinCode && (
+                <p className="mt-1 text-sm text-red-600">{errors.pinCode}</p>
+              )}
+            </div>
+
+            {/* Teaching mode */}
+            <div>
+              <label
+                htmlFor="teachingMode"
+                className="block text-[16px] font-medium text-[#212121] mb-2"
+              >
+                Teaching Mode
+              </label>
+              <select
+                id="teachingMode"
+                name="teachingMode"
+                value={formData.teachingMode}
+                onChange={handleInputChange}
+                className={`w-full px-4 py-3 border rounded-sm transition-all duration-200 ${
+                  errors.teachingMode ? "border-red-300 bg-red-50" : "border-gray-300"
+                } text-[#212121] text-[16px] font-normal truncate`}
+              >
+                <option value="">Select Teaching Mode</option>
+                <option value="Online">Online</option>
+                <option value="Offline">Offline</option>
+                <option value="Hybrid">Hybrid</option>
+              </select>
+
+              {errors.teachingMode && (
+                <p className="mt-1 text-sm text-red-600">{errors.teachingMode}</p>
               )}
             </div>
 

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation"; // <-- include useRouter too
 
 import {
   Home,
@@ -12,9 +12,6 @@ import {
   BookOpen,
   Calendar,
   FileText,
-  GraduationCap,
-  User,
-  BarChart3,
   Music,
   CreditCard,
   Gift,
@@ -31,86 +28,46 @@ const Sidebar2 = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isAssignmentOpen, setIsAssignmentOpen] = useState(false);
 
-  const pathname = usePathname();
+  // Handle pathname safely
+  const rawPath = usePathname();
+  const [pathname, setPathname] = useState("");
+
+  useEffect(() => {
+    if (rawPath) setPathname(rawPath);
+  }, [rawPath]);
+
   const menuItems = [
     { id: "home", label: "Home", icon: Home, href: "/tutor" },
-    {
-      id: "my-students",
-      label: "My Students",
-      icon: Users,
-      href: "/tutor/myStudents",
-    },
-    {
-      id: "my-courses",
-      label: "My Courses",
-      icon: BookOpen,
-      href: "/tutor/courses",
-    },
-    {
-      id: "calendar",
-      label: "Calendar",
-      icon: Calendar,
-      href: "/tutor/calendar",
-    },
+    { id: "my-students", label: "My Students", icon: Users, href: "/tutor/myStudents" },
+    { id: "my-courses", label: "My Courses", icon: BookOpen, href: "/tutor/courses" },
+    { id: "calendar", label: "Calendar", icon: Calendar, href: "/tutor/calendar" },
     {
       id: "assignment",
       label: "Assignment",
       icon: FileText,
       hasDropdown: true,
       href: "/tutor/assignments",
-      subItems: [
-        { label: "Create Assignment", href: "/tutor/assignment/create" },
-      ],
+      subItems: [{ label: "Create Assignment", href: "/tutor/assignment/create" }],
     },
-  
-    {
-      id: "music-library",
-      label: "Music Library",
-      icon: Music,
-      href: "/tutor/music-library",
-    },
-    {
-      id: "ai-coach",
-      label: "AI Music Coach",
-      icon: Bell,
-      href: "/tutor/ai-coach",
-    },
-    {
-      id: "payment",
-      label: "Payment Summary",
-      icon: CreditCard,
-      href: "/tutor/payment",
-    },
-    {
-      id: "refer-earn",
-      label: "Refer & Earn",
-      icon: Gift,
-      href: "/tutor/refer-earn",
-    },
-    {
-      id: "settings",
-      label: "Settings",
-      icon: Settings,
-      href: "/tutor/settings",
-    },
+    { id: "music-library", label: "Music Library", icon: Music, href: "/tutor/music-library" },
+    { id: "ai-coach", label: "AI Music Coach", icon: Bell, href: "/tutor/ai-coach" },
+    { id: "payment", label: "Payment Summary", icon: CreditCard, href: "/tutor/payment" },
+    { id: "refer-earn", label: "Refer & Earn", icon: Gift, href: "/tutor/refer-earn" },
+    { id: "settings", label: "Settings", icon: Settings, href: "/tutor/settings" },
   ];
 
-  const isActivePath = (href, id) => {
-    if (id === "home") {
-      return pathname === "/tutor";
-    }
+  // ✅ Clean isActivePath
+  const isActivePath = (href: string, id: string) => {
+    if (!pathname) return false;
+    if (id === "home") return pathname === "/tutor";
     return pathname.startsWith(href);
   };
 
-  // Check if mobile
+  // ✅ Separate effect for responsive sidebar
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setSidebarOpen(true);
-      } else {
-        setSidebarOpen(false);
-      }
+      setSidebarOpen(window.innerWidth >= 768);
     };
 
     checkMobile();
@@ -134,13 +91,11 @@ const Sidebar2 = () => {
           fixed top-0 left-0 z-50 h-screen
           bg-gradient-to-b from-[#4201EB] to-[#7109B9] text-white 
           border-r border-gray-200 
-          flex flex-col
+          flex flex-col justify-between
           transition-all duration-300
           ${isMobile 
-            ? `w-64 transform ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`
-            : sidebarOpen 
-              ? "w-64" 
-              : "w-16"
+            ? (sidebarOpen ? "w-[240px] translate-x-0" : "-translate-x-full w-[240px]") 
+            : (sidebarOpen ? "w-[240px]" : "w-16")
           }
         `}
       >
@@ -153,32 +108,17 @@ const Sidebar2 = () => {
               width={288}
               height={72}
               priority
-              className={`object-contain w-36 h-auto transition-opacity duration-300 ${
+              className={`object-contain w-50 h-auto transition-opacity duration-300 ${
                 !isMobile && !sidebarOpen ? 'opacity-0' : 'opacity-100'
               }`}
             />
           </Link>
         </div>
 
-        {/* Navigation Menu - Scrollable */}
-        <nav className="flex-1 px-6 overflow-y-auto">
-          <style jsx>{`
-            nav::-webkit-scrollbar {
-              width: 4px;
-            }
-            nav::-webkit-scrollbar-track {
-              background: transparent;
-            }
-            nav::-webkit-scrollbar-thumb {
-              background: rgba(255, 255, 255, 0.3);
-              border-radius: 2px;
-            }
-            nav::-webkit-scrollbar-thumb:hover {
-              background: rgba(255, 255, 255, 0.5);
-            }
-          `}</style>
+        {/* Navigation Menu*/}
+        <nav className="w-[100%] h-[100%] gap-4 flex flex-col px-6">
           
-          <ul className="space-y-1 pb-4">
+          <ul className="space-y-1 pb-3 pt-3 pr-2">
             {menuItems.map((item) => (
               <li key={item.id}>
                 <Link
@@ -206,7 +146,7 @@ const Sidebar2 = () => {
                   <div className={`flex items-center ${!isMobile && !sidebarOpen ? '' : 'space-x-3'}`}>
                     <item.icon size={20} />
                     {(isMobile || sidebarOpen) && (
-                      <span className="font-medium">{item.label}</span>
+                      <span className="font-medium whitespace-nowrap truncate">{item.label}</span>
                     )}
                   </div>
                   {item.hasDropdown && (isMobile || sidebarOpen) &&
@@ -260,8 +200,8 @@ const Sidebar2 = () => {
               }
             }}
             className={`
-              w-full text-[#FFC357] text-[16px] flex items-center 
-              px-2 py-3 rounded-lg text-left transition-colors hover:bg-purple-500/50
+              w-full text-[#FFC357] text-[16px] flex items-center
+              px-[8px] py-[10px] rounded-[8px] text-left transition-colors hover:bg-purple-500/50
               ${!isMobile && !sidebarOpen 
                 ? 'justify-center space-x-0' 
                 : 'space-x-3'
