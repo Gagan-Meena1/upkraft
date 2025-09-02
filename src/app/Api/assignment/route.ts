@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import User from '@/models/userModel';
 import Assignment from '@/models/assignment';
+import Class from '@/models/Class';
 import { connect } from '@/dbConnection/dbConfic';
 import { writeFile } from 'fs/promises';
 import path from 'path';
@@ -123,63 +124,163 @@ export async function POST(request: NextRequest) {
   }
 }
 
-
-// app/api/assignment/route.js
-
 export async function GET(request: NextRequest) {
   try {
+    await connect();
+    
     // Extract user ID from URL query parameters
     const url = new URL(request.url);
-    const userId = url.searchParams.get('userId');
+    const userIdParam = url.searchParams.get('userId');
     
+    // Get userId from token if not provided in query parameters
+    let userId;
+    if (userIdParam) {
+      userId = userIdParam;
+    } else {
+      const token = request.cookies.get("token")?.value;
+      const decodedToken = token ? jwt.decode(token) : null;
+      userId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+    }
+    
+    // Ensure we have a valid userId
     if (!userId) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+      return NextResponse.json({ 
+        success: false,
+        message: "User ID is required. Please provide userId parameter or ensure you are logged in." 
+      }, { status: 400 });
     }
     
     // Validate user ID format
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return NextResponse.json({ error: "Invalid user ID format" }, { status: 400 });
+      return NextResponse.json({ 
+        success: false,
+        message: "Invalid user ID format" 
+      }, { status: 400 });
     }
     
-    // Find the user and get their assignment array
-    const user = await User.findById(userId).select('username email assignment');
+    // Find the user and get their assignment array and category
+    const user = await User.findById(userId).select('username email assignment category');
     
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ 
+        success: false,
+        message: "User not found" 
+      }, { status: 404 });
     }
     
     // Check if user has any assignments
     if (!user.assignment || user.assignment.length === 0) {
       return NextResponse.json({
+        success: true,
         message: "No assignments found for this user",
-        userId: user._id,
-        username: user.username,
-        assignments: []
+        data: {
+          userId: user._id,
+          username: user.username,
+          userCategory: user.category,
+          assignments: []
+        }
       });
     }
     
-    // Find all assignments based on the assignment IDs in user's array
-    const assignments = await Assignment.find({
-      _id: { $in: user.assignment }
-    })
-    .populate('classId', 'title description startTime endTime')
-    .populate('courseId', 'title category')
-    .sort({ deadline: 1 }); // Sort by deadline (earliest first)
+    // Handle based on user category
+    if (user.category.toLowerCase() === 'student') {
+      // For Students: Get assignment details only
+      const assignments = await Assignment.find({
+        _id: { $in: user.assignment }
+      })
+      .populate('classId', 'title description startTime endTime')
+      .populate('courseId', 'title category')
+      .sort({ deadline: 1 }); // Sort by deadline (earliest first)
+      
+      return NextResponse.json({
+        success: true,
+        message: "Student assignments retrieved successfully",
+        data: {
+          userId: user._id,
+          username: user.username,
+          userCategory: user.category,
+          totalAssignments: assignments.length,
+          assignments: assignments.map(assignment => ({
+            _id: assignment._id,
+            title: assignment.title,
+            description: assignment.description,
+            deadline: assignment.deadline,
+            status: assignment.status,
+            fileUrl: assignment.fileUrl,
+            fileName: assignment.fileName,
+            createdAt: assignment.createdAt,
+            class: assignment.classId,
+            course: assignment.courseId
+          }))
+        }
+      });
+      
+    } else if (user.category.toLowerCase() === 'tutor') {
+      // For Tutors: Get assignment details with student information
+      const assignments = await Assignment.find({
+        _id: { $in: user.assignment }
+      })
+      .populate('classId', 'title description startTime endTime')
+      .populate('courseId', 'title category')
+      .populate('userId', 'username email')
+      .sort({ deadline: 1 }); // Sort by deadline (earliest first)
+      
+      // Transform the data to include student details for each assignment
+      // Filter out the tutor from the student lists
+      const assignmentsWithStudents = assignments.map(assignment => {
+        // Filter out the tutor's ID from the assigned students
+        const studentsOnly = assignment.userId.filter(student => 
+          student._id.toString() !== userId.toString()
+        );
+        
+        return {
+          _id: assignment._id,
+          title: assignment.title,
+          description: assignment.description,
+          deadline: assignment.deadline,
+          status: assignment.status,
+          fileUrl: assignment.fileUrl,
+          fileName: assignment.fileName,
+          createdAt: assignment.createdAt,
+          class: assignment.classId,
+          course: assignment.courseId,
+          assignedStudents: studentsOnly.map(student => ({
+            userId: student._id,
+            username: student.username,
+            email: student.email
+          })),
+          totalAssignedStudents: studentsOnly.length
+        };
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: "Tutor assignments with student details retrieved successfully",
+        data: {
+          userId: user._id,
+          username: user.username,
+          userCategory: user.category,
+          totalAssignments: assignmentsWithStudents.length,
+          assignments: assignmentsWithStudents
+        }
+      });
+      
+    } else {
+      // Handle other categories if any
+      return NextResponse.json({
+        success: false,
+        message: "Invalid user category. Must be either 'student' or 'tutor'"
+      }, { status: 400 });
+    }
     
-    return NextResponse.json({
-      message: "User assignments retrieved successfully",
-      userId: user._id,
-      username: user.username,
-      totalAssignments: assignments.length,
-      assignments: assignments
-    });
-    
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error fetching user assignments:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      success: false,
+      message: error.message || "Internal server error"
+    }, { status: 500 });
   }
 }
-
 
 export async function PUT(request: NextRequest) {
   try {

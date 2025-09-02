@@ -1,10 +1,14 @@
 "use client"
 
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Head from 'next/head';
-import { FileText, Calendar, Clock, ChevronLeft, AlertCircle, Download, Check } from 'lucide-react';
-import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Calendar, Clock, User, FileText, Eye, Edit, Trash2, Plus, Filter, ChevronLeft, Search } from 'lucide-react';
+
+interface Student {
+  userId: string;
+  username: string;
+  email: string;
+}
 
 interface Assignment {
   _id: string;
@@ -15,72 +19,64 @@ interface Assignment {
   fileUrl?: string;
   fileName?: string;
   createdAt: string;
-  courseTitle: string;
+  class: {
+    _id: string;
+    title: string;
+    description: string;
+    startTime?: string;
+    endTime?: string;
+  };
+  course: {
+    _id: string;
+    title: string;
+    category: string;
+  };
+  assignedStudents: Student[];
+  totalAssignedStudents: number;
 }
 
-// Loading component for Suspense fallback
-function AssignmentsLoading() {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-orange-500">Course Assignments</h1>
-          <p className="text-gray-500 mt-2">Loading...</p>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          <div className="flex justify-center items-center p-16">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  data: {
+    userId: string;
+    username: string;
+    userCategory: string;
+    totalAssignments: number;
+    assignments: Assignment[];
+  };
 }
 
-// Extract the main component logic
-function AssignmentsContent() {
+export default function TutorAssignments() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  const classId = searchParams.get('classId');
-  const courseId = searchParams.get('courseId');
-  
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [courseTitle, setCourseTitle] = useState('My Course');
+  const [selectedMonth, setSelectedMonth] = useState('Monthly');
+  const [tutorInfo, setTutorInfo] = useState<{username: string; totalAssignments: number} | null>(null);
+  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'due' | 'completed'>('due');
-  
+  const [searchTerm, setSearchTerm] = useState('');
+
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
-        // Construct URL with query parameters if they exist
-        let url = `/Api/assignment`;
-        if (courseId) {
-          url += `?courseId=${courseId}`;
-        }
-        
-        const response = await fetch(url);
+        const response = await fetch('/Api/assignment');
         
         if (!response.ok) {
           throw new Error('Failed to fetch assignments');
         }
-        
-        const data = await response.json();
-        console.log("data :" ,data);
+
+        const data: ApiResponse = await response.json();
         
         if (data.success) {
-          setAssignments(data.assignments || []);
-          
-          // Set course title from the first assignment if available
-          if (data.assignments && data.assignments.length > 0 && data.assignments[0].courseTitle) {
-            setCourseTitle(data.assignments[0].courseTitle);
-          } else {
-            setCourseTitle('My Course');
-          }
+          setAssignments(data.data.assignments);
+          setTutorInfo({
+            username: data.data.username,
+            totalAssignments: data.data.totalAssignments
+          });
         } else {
-          throw new Error(data.error || 'Failed to fetch assignments');
+          throw new Error(data.message || 'Failed to fetch assignments');
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -88,23 +84,14 @@ function AssignmentsContent() {
         setIsLoading(false);
       }
     };
-    
-    fetchAssignments();
-  }, [courseId]);
-  
-  // Filter assignments based on active tab
-  const filteredAssignments = assignments.filter(assignment => {
-    if (activeTab === 'due') {
-      return !assignment.status; // Show assignments that are not completed
-    } else {
-      return assignment.status; // Show completed assignments
-    }
-  });
 
-  // Count assignments for each category
-  const dueCount = assignments.filter(a => !a.status).length;
-  const completedCount = assignments.filter(a => a.status).length;
-  
+    fetchAssignments();
+  }, []);
+
+  // Filter assignments based on status
+  const pendingAssignments = assignments.filter(assignment => !assignment.status);
+  const completedAssignments = assignments.filter(assignment => assignment.status);
+
   // Function to handle assignment status update
   const handleStatusChange = async (assignmentId: string, currentStatus: boolean) => {
     setUpdatingStatus(assignmentId);
@@ -127,7 +114,6 @@ function AssignmentsContent() {
       const data = await response.json();
       
       if (data.success) {
-        // Update the local state
         setAssignments(prevAssignments =>
           prevAssignments.map(assignment =>
             assignment._id === assignmentId
@@ -146,239 +132,247 @@ function AssignmentsContent() {
     }
   };
   
-  // Function to format date in a readable way
+  const handleViewDetail = (assignmentId: string) => {
+    router.push(`/tutor/assignments/singleAssignment?assignmentId=${assignmentId}`);
+  };
+  
+  const handleBackToTutor = () => {
+    router.push('/tutor');
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
-      weekday: 'short',
-      month: 'short', 
       day: 'numeric',
-      hour: 'numeric', 
-      minute: 'numeric'
+      month: 'short'
     }).format(date);
   };
-  
-  // Function to check if deadline is passed
-  const isDeadlinePassed = (deadlineString: string) => {
-    const deadline = new Date(deadlineString);
+
+  const formatDeadline = (dateString: string) => {
+    const date = new Date(dateString);
     const now = new Date();
-    return deadline < now;
-  };
-  
-  // Function to calculate days remaining until deadline
-  const getDaysRemaining = (deadlineString: string) => {
-    const deadline = new Date(deadlineString);
-    const now = new Date();
-    const diffTime = deadline.getTime() - now.getTime();
+    const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    
+    if (diffDays < 0) {
+      return 'Overdue';
+    } else if (diffDays === 0) {
+      return 'Due Today';
+    } else if (diffDays === 1) {
+      return '1 Day';
+    } else if (diffDays <= 7) {
+      return `${diffDays} Days`;
+    } else if (diffDays <= 30) {
+      const weeks = Math.ceil(diffDays / 7);
+      return `${weeks} Week${weeks > 1 ? 's' : ''}`;
+    } else {
+      const months = Math.ceil(diffDays / 30);
+      return `${months} Month${months > 1 ? 's' : ''}`;
+    }
   };
-  
+
+  const getDeadlineColor = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return 'text-red-600';
+    if (diffDays <= 2) return 'text-orange-600';
+    return 'text-gray-600';
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading assignments...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <FileText size={48} className="text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Assignments</h2>
+          <p className="text-red-600">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Head>
-        <title>Assignments | {courseTitle}</title>
-      </Head>
-      
+    <div className="p-6 bg-white min-h-screen">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 w-full">
-        <div className="px-6 py-4">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => router.back()}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
+          <div className="flex gap-3 items-center">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search here"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+              />
+            </div>
+            
+            {/* Monthly Dropdown */}
+            <select 
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
             >
-              <ChevronLeft className="h-6 w-6 text-gray-600" />
-            </button>
-            <h1 className="text-2xl font-semibold text-gray-800">Assignments</h1>
+              <option value="Monthly">Monthly</option>
+              <option value="Weekly">Weekly</option>
+              <option value="Daily">Daily</option>
+            </select>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        {/* Course Title */}
-        <div className="mb-6">
-          <h2 className="text-xl text-gray-600">{courseTitle}</h2>
-        </div>
-
-        {/* Toggle Buttons */}
-        <div className="mb-8">
-          <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
-            <button
-              onClick={() => setActiveTab('due')}
-              className={`px-6 py-3 rounded-md font-medium transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'due'
-                  ? 'bg-orange-500 text-white shadow-md'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Due Assignments
-              {dueCount > 0 && (
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  activeTab === 'due' 
-                    ? 'bg-gray-800 bg-opacity-20 text-white' 
-                    : 'bg-orange-100 text-orange-600'
-                }`}>
-                  {dueCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('completed')}
-              className={`px-6 py-3 rounded-md font-medium transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'completed'
-                  ? 'bg-orange-500 text-white shadow-md'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
-            >
-              Completed
-              {completedCount > 0 && (
-                <span className={`px-2 py-1 text-xs rounded-full ${
-                  activeTab === 'completed' 
-                    ? 'bg-gray-800 bg-opacity-20 text-white' 
-                    : 'bg-green-100 text-green-600'
-                }`}>
-                  {completedCount}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-        
-        {/* Main content */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
-          {isLoading ? (
-            <div className="flex justify-center items-center p-16">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center p-16 text-center">
-              <AlertCircle size={48} className="text-orange-500 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Assignments</h2>
-              <p className="text-gray-500">{error}</p>
-            </div>
-          ) : filteredAssignments.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-16 text-center">
-              <FileText size={48} className="text-orange-400 mb-4" />
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                {activeTab === 'due' ? 'No Due Assignments' : 'No Completed Assignments'}
-              </h2>
-              <p className="text-gray-500">
-                {activeTab === 'due' 
-                  ? 'Great! You have no pending assignments.' 
-                  : 'You haven\'t completed any assignments yet.'
-                }
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {filteredAssignments.map((assignment) => (
-                <div key={assignment._id} className="p-6 hover:bg-gray-50 transition-colors duration-150">
-                  <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1">
-                      {/* Checkbox for completion status */}
-                      <div className="flex items-center mt-1">
-                        <button
-                          onClick={() => handleStatusChange(assignment._id, assignment.status || false)}
-                          disabled={updatingStatus === assignment._id}
-                          className={`
-                            w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200
-                            ${assignment.status 
-                              ? 'bg-green-500 border-green-500 text-white' 
-                              : 'border-gray-300 hover:border-orange-400'
-                            }
-                            ${updatingStatus === assignment._id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                          `}
-                        >
-                          {updatingStatus === assignment._id ? (
-                            <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent" />
-                          ) : assignment.status ? (
-                            <Check size={12} />
-                          ) : null}
-                        </button>
+      {/* Table Container */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="divide-y divide-gray-200">
+          {assignments.map((assignment) => (
+            <div key={assignment._id} className="px-6 py-6 hover:bg-gray-50">
+              {/* Assignment Title */}
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                {assignment.title}
+              </h3>
+              
+              {/* Assignment Details Row */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-6 flex-1 min-w-0">
+                  {/* Student Info */}
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <span className="text-sm text-gray-600 whitespace-nowrap">Student :</span>
+                    {assignment.assignedStudents.slice(0, 1).map((student) => (
+                      <div key={student.userId} className="flex items-center space-x-2">
+                        <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-medium text-orange-700">
+                            {student.username.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
+                          {student.username}
+                        </span>
                       </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <h2 className={`text-xl font-semibold mb-2 group-hover:text-orange-500 ${
-                            assignment.status ? 'text-gray-500 line-through' : 'text-gray-800'
-                          }`}>
-                            {assignment.courseTitle} - {assignment.title}
-                          </h2>
-                          {assignment.status && (
-                            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full flex items-center gap-1">
-                              <Check size={12} />
-                              Completed
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center text-sm text-gray-500 mb-3">
-                          <Calendar size={16} className="mr-2 text-orange-400" />
-                          <span>Due: {formatDate(assignment.deadline)}</span>
-                          
-                          {!assignment.status && (
-                            <>
-                              {isDeadlinePassed(assignment.deadline) ? (
-                                <span className="ml-4 px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
-                                  Deadline passed
-                                </span>
-                              ) : getDaysRemaining(assignment.deadline) <= 2 ? (
-                                <span className="ml-4 px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
-                                  {getDaysRemaining(assignment.deadline) <= 0 
-                                    ? 'Due today' 
-                                    : `${getDaysRemaining(assignment.deadline)} day${getDaysRemaining(assignment.deadline) !== 1 ? 's' : ''} left`}
-                                </span>
-                              ) : (
-                                <span className="ml-4 px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                  {getDaysRemaining(assignment.deadline)} days left
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </div>
-                        
-                        <p className={`mb-4 line-clamp-2 ${
-                          assignment.status ? 'text-gray-400' : 'text-gray-600'
-                        }`}>
-                          {assignment.description}
-                        </p>
-                        
-                        <div className="flex items-center text-sm text-gray-500">
-                          <Clock size={16} className="mr-2 text-orange-400" />
-                          <span>Posted on {formatDate(assignment.createdAt)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col md:items-end gap-3">
-                      {assignment.fileUrl && (
-                        <a 
-                          href={assignment.fileUrl} 
-                          download={assignment.fileName || true}
-                          className="flex items-center text-sm font-medium text-orange-500 hover:text-orange-600 transition-colors"
-                        >
-                          <Download size={16} className="mr-2" />
-                          {assignment.fileName || 'Download attachment'}
-                        </a>
-                      )}
-                    </div>
+                    ))}
+                    {assignment.totalAssignedStudents > 1 && (
+                      <span className="text-sm text-gray-500 whitespace-nowrap">
+                        +{assignment.totalAssignedStudents - 1} more
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Assigned Creation Date */}
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <span className="text-sm text-gray-600 whitespace-nowrap">Assigned Creation Date :</span>
+                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">{formatDate(assignment.createdAt)}</span>
+                  </div>
+                  
+                  {/* Deadline */}
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <span className="text-sm text-gray-600 whitespace-nowrap">Deadline :</span>
+                    <span className={`text-sm font-medium whitespace-nowrap ${getDeadlineColor(assignment.deadline)}`}>
+                      {formatDeadline(assignment.deadline)}
+                    </span>
+                  </div>
+                  
+                  {/* Song Selected */}
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <span className="text-sm text-gray-600 whitespace-nowrap">Song Selected :</span>
+                    <span className="text-sm font-medium text-gray-900 whitespace-nowrap">Wonderwall (Ver 1)</span>
+                  </div>
+                  
+                  {/* Status */}
+                  <div className="flex items-center space-x-2 flex-shrink-0">
+                    <span className="text-sm text-gray-600 whitespace-nowrap">Status :</span>
+                    <span className={`text-sm font-medium whitespace-nowrap ${
+                      assignment.status ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {assignment.status ? 'Completed' : 'Pending'}
+                    </span>
                   </div>
                 </div>
-              ))}
+                
+                {/* Action Buttons */}
+                <div className="flex items-center space-x-2 ml-4">
+                  {/* Edit Button */}
+                  <button className="p-1.5 text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                    <Edit size={16} />
+                  </button>
+                  
+                  {/* Delete Button */}
+                  <button className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors">
+                    <Trash2 size={16} />
+                  </button>
+                  
+                  {/* View Detail Button */}
+                  <button 
+                    onClick={() => handleViewDetail(assignment._id)}
+                    className="px-3 py-1.5 bg-purple-600 text-white text-sm rounded hover:bg-purple-700 transition-colors flex items-center space-x-1"
+                  >
+                    <span>View Detail</span>
+                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
+          ))}
         </div>
+        
+        {/* Pagination */}
+        {/* {assignments.length > 0 && (
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div className="flex items-center justify-center space-x-2">
+              <button className="px-3 py-1 text-purple-600 bg-purple-100 rounded text-sm font-medium">
+                1
+              </button>
+              <button className="px-3 py-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded text-sm">
+                2
+              </button>
+              <button className="px-3 py-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded text-sm">
+                3
+              </button>
+              <span className="text-gray-400 text-sm">...</span>
+              <button className="px-3 py-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded text-sm">
+                99
+              </button>
+              <button className="px-3 py-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded text-sm">
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )} */}
+        
+        {/* Empty State */}
+        {assignments.length === 0 && (
+          <div className="p-12 text-center">
+            <FileText size={48} className="text-gray-400 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">No Assignments Found</h2>
+            <p className="text-gray-600">You haven't created any assignments yet.</p>
+          </div>
+        )}
       </div>
     </div>
-  );
-}
-
-// Main component with Suspense wrapper
-export default function AssignmentsList() {
-  return (
-    <Suspense fallback={<AssignmentsLoading />}>
-      <AssignmentsContent />
-    </Suspense>
   );
 }

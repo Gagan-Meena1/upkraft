@@ -32,32 +32,28 @@ const courseNameSchema = new mongoose.Schema({
   price:{
     type:Number
   },
+  courseQuality:{
+    type:Number
+  },
+  performanceScores:[{
+    userId:{
+      type:mongoose.Schema.Types.ObjectId,
+      ref:"users"
+    },
+    score:{
+      type:Number
+    },
+    date:{
+      type:Date,
+      default:Date.now
+    }
+  }],
   curriculum:{
     type:[{
       sessionNo:String,
       topic: String,
       tangibleOutcome:String
     }]
-  },
-  performanceScores: [{
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'users',
-      required: true
-    },
-    score: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    dateRecorded: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  courseQuality:{
-    type:Number,
-    default:10
   }
 }, {
   timestamps: true
