@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Calendar, Clock, User, FileText, Download, Users, BookOpen, MapPin } from 'lucide-react';
 
@@ -35,7 +35,8 @@ interface Assignment {
   totalAssignedStudents: number;
 }
 
-export default function AssignmentDetail() {
+// Separate component for the main content that uses useSearchParams
+function AssignmentDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const assignmentId = searchParams.get('assignmentId');
@@ -333,5 +334,34 @@ export default function AssignmentDetail() {
         </div>
       </div>
     </div>
+  );
+}
+
+function AssignmentDetailLoading() {
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-200 rounded w-32 mb-6"></div>
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="h-8 bg-gray-200 rounded w-2/3 mb-4"></div>
+            <div className="space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main component that wraps content in Suspense
+export default function AssignmentDetail() {
+  return (
+    <Suspense fallback={<AssignmentDetailLoading />}>
+      <AssignmentDetailContent />
+    </Suspense>
   );
 }
