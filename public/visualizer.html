@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html data-theme="dark" lang="en"><head>
-<meta charset="utf-8">
-<meta content="width=device-width, initial-scale=1" name="viewport">
+<html data-theme="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>AlphaTab Guitar Practice Player (Top Controls, Note Highlight, MIDI to TAB)</title>
 <style>
     :root{--bg:#0b1220;--fg:#e7f0ff;--muted:#a6b7d1;--panel:#101a2a;--panel2:#0e1830;--border:#1d2946;--accent:#4aa3ff;--accent2:#7bd88f;}
@@ -94,8 +95,8 @@ html, body { height: 100%; overflow: hidden; }
 header { position: sticky; top: 0; z-index: 5; }
 .wrap { height: calc(100vh - var(--header-h)); }
 .sidebar { height: 100%; overflow: auto; }
-#alphaTab.at-content { height: 100%; overflow: auto; padding-top: 76px; }
-#alphaTab.at-content * { scroll-margin-top: 76px; }
+#alphaTab.at-content { height: 100%; overflow: auto; padding-top: 20px; }
+#alphaTab.at-content * { scroll-margin-top: 20px; }
 
   
 /* Ensure the grid and main fill the viewport, and alphaTab scrolls */
@@ -161,18 +162,25 @@ header { position: sticky; top: 0; z-index: 5; }
   display: none;
   position: absolute;
   top: calc(100% + 4px);
-  left: 0;
+  left: 50%;
+  transform: translateX(-50%);  /* Add this to center it */
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px;
-  z-index: 1000;
+  z-index: 999999;
   min-width: 200px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .metronome-settings.show {
   display: block;
+}
+
+.metronome-settings.show ~ * .kbd-help,
+body:has(.metronome-settings.show) .kbd-help {
+  pointer-events: none !important;
+  z-index: 1 !important;
 }
 
 .metronome-row {
@@ -261,17 +269,17 @@ header .row-second{margin-top:4px}
 /* Keyboard shortcuts help */
 .kbd-help {
   position: fixed;
-  bottom: 10px;
-  right: 10px;
+  top: 125px;
+  right: 15px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 10px;
   font-size: 11px;
   color: var(--muted);
-  opacity: 0.7;
+  opacity: 0.5;
   transition: opacity 0.2s;
-  z-index: 100;
+  z-index: 50;
 }
 .kbd-help:hover {
   opacity: 1;
@@ -475,15 +483,6 @@ header .row.row-second { padding-right: 12px; }
 header .row-second-right { margin-right: 8px; flex-wrap: nowrap; }
 header .row-second-right > * { flex: 0 0 auto; }
 
-/* Record button group (2nd row, under Play) */
-header .row.row-second {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-  min-width: 0;
-}
 header .row-second-rec { position:absolute; left: var(--record-offset, 0px); top: 0; z-index: 4; }
 header .row-second-rec .rec { padding: 8px 12px; font-weight: 600; letter-spacing: .2px; }
 header .row-second-rec .rec.rec-on { background: #8b1d2f; color: #fff; box-shadow: 0 0 0 2px rgba(255,80,80,.4) inset; }
@@ -497,9 +496,35 @@ header .row-second-rec .rec { padding: 8px 12px; font-weight: 600; letter-spacin
   width: 100%;
 }
 
+#bpmBtn {
+  min-width: 80px;
+  font-weight: 600;
+  background: var(--panel2);
+}
+
+#bpmBtn.active {
+  background: var(--accent);
+  color: white;
+}
+
+#bpmSettings {
+  min-width: 220px;
+}
+
+#meta {
+  min-width: 200px;
+  max-width: 250px;
+  width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  box-sizing: border-box;
+}
+
 /* --- Upkraft Practice Studio: Record round icon + REC lamp --- */
 .btn.rec {
-  width: 36px; height: 36px; padding: 0;
+  width: 30px; height: 30px; padding: 0;
   border-radius: 9999px; position: relative;
   text-indent: -9999px; overflow: hidden;
   display: inline-grid; place-items: center;
@@ -544,9 +569,14 @@ label.chip.equal-h.btn-like {
   padding: 0 12px;
   font-weight: 500;
 }
+label.chip input[type="checkbox"],
 label.chip.equal-h.btn-like input[type="checkbox"] {
   transform: scale(1.05);
   accent-color: var(--accent2);
+  vertical-align: middle;
+  margin: 0 6px 0 0;
+  position: relative;
+  top: -1px;
 }
 
 label.chip.equal-h.btn-like { 
@@ -601,6 +631,23 @@ header .row-second-right {
 
 <style id="theme-toggle-0822">
 html, body { background: var(--bg); color: var(--fg); }
+
+/* Control groups visibility in light theme */
+html[data-theme="light"] .control-group {
+  background: rgba(122, 76, 255, 0.05) !important;  /* Light purple tint */
+  border: 1px solid var(--border) !important;
+  padding: 4px 8px !important;
+  border-radius: 8px !important;
+}
+
+/* Ensure control groups stay visible even on smaller screens */
+html[data-theme="light"] .control-group.transport-group,
+html[data-theme="light"] .control-group:has(.btn),
+html[data-theme="light"] .control-group:has(#record) {
+  background: rgba(122, 76, 255, 0.05) !important;
+  border: 1px solid var(--border) !important;
+  padding: 4px 8px !important;
+}
 
 /* Dark theme (default) */
 :root, html[data-theme="dark"] {
@@ -685,23 +732,55 @@ html[data-theme="light"] header #countIn.btn,
 html[data-theme="light"] header #metronome.btn { 
   color: var(--fg) !important;
 }
+
+/* Compact theme toggle button with icons */
+#toggleTheme {
+  min-width: auto;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+#toggleTheme .theme-icon {
+  display: inline-block;
+  transition: transform 0.3s ease;
+  font-size: 16px;
+}
+
+#toggleTheme:hover .theme-icon {
+  transform: rotate(20deg);
+}
+
+/* Icon changes based on theme */
+html[data-theme="light"] #toggleTheme .theme-icon::before {
+  content: "☀️";
+}
+
+html[data-theme="dark"] #toggleTheme .theme-icon::before {
+  content: "🌙";
+}
+
 </style>
 
 <style id="record-style-0823">
 header { padding: 8px 12px !important; }
 header .row.row-second { min-height: 32px !important; }
 header .row-second-rec .rec {
-  font-size: 11px !important;
-  padding: 4px 10px !important;
-  line-height: 1.2 !important;
+  font-size: 8px !important;
+  padding: 3px 8px !important;
+  line-height: 1.1 !important;
   border-radius: 999px !important;
 }
 
 header .row-second-rec .rec::before {
   content: "";
   display: inline-block;
-  width: 8px; height: 8px;
-  margin-right: 8px;
+  width: 6px; height: 6px;
+  margin-right: 6px;
   border-radius: 50%;
   background: #dc2626;
   box-shadow: 0 0 0 0 rgba(220,38,38,0.6);
@@ -793,8 +872,8 @@ header .btn:focus-visible {
 
 @media (max-width: 1200px) {
   .control-group {
-    background: transparent;
-    border: none;
+    /* Keep the borders but make them more subtle on small screens */
+    padding: 2px 4px;
     padding: 0;
   }
 }
@@ -1169,8 +1248,9 @@ html[data-theme="light"] .track.playing {
   position: sticky; top: 0; z-index: 2;
   display: flex; gap: 8px; align-items: center;
   padding: 8px 12px; margin: 0;
-  background: var(--sheet-bg, #ffffff);
-  border-bottom: 1px solid var(--border, #1d2946);
+   padding-left: calc(285px + 10px); /* Sidebar width + offset */
+  background: var(--panel2);
+  border-bottom: 1px solid var(--border);
 }
 #alphaTab .pdf-toolbar .btn {
   padding: 6px 10px;
@@ -1215,39 +1295,9 @@ html[data-theme="light"] .track.playing {
   }
 </script>
 
-<style id="alphaTabStyleShared">
-                .at-surface * {
-                    cursor: default;
-                    vertical-align: top;
-                    overflow: visible;
-                }
-                .at-surface-svg text {
-                    dominant-baseline: central;
-                    white-space:pre;
-                }</style><style id="alphaTabStyle">
-            @font-face {
-                font-display: block;
-                font-family: 'alphaTab';
-                src: url("https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.6.1/dist/font/Bravura.woff2") format('woff2'),url("https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.6.1/dist/font/Bravura.woff") format('woff'),url("https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.6.1/dist/font/Bravura.otf") format('opentype');
-                font-weight: normal;
-                font-style: normal;
-            }
-            .at-surface.at .at {
-                font-family: 'alphaTab';
-                speak: none;
-                font-style: normal;
-                font-weight: normal;
-                font-variant: normal;
-                text-transform: none;
-                line-height: 1;
-                line-height: 1;
-                -webkit-font-smoothing: antialiased;
-                -moz-osx-font-smoothing: grayscale;
-                font-size: 34px;
-                overflow: visible !important;
-            }</style></head>
+</head>
 <body>
-<header style="--first-row-offset: 256px; --left-cluster-offset: 280px; --record-offset: 272px;">
+<header>
 <h2>
   <div class="logo logo-staff">
     <div class="staff-container">
@@ -1270,7 +1320,7 @@ html[data-theme="light"] .track.playing {
 </h2>
 <div class="row-first-controls">
 <div class="control-group">
-<input accept=".gp,.gp3,.gp4,.gp5,.gp6,.gp7,.gp8,.gpx,.xml,.musicxml,.mxl,.cap,.capx,.mid,.midi,.pdf" id="fileInput" type="file" style="display:none">
+<input accept=".gp,.gp3,.gp4,.gp5,.gp6,.gp7,.gp8,.gpx,.xml,.musicxml,.mxl,.cap,.capx,.mid,.midi,.pdf" id="fileInput" type="file"/ style="display:none">
 <div class="control-group">
 <button class="btn" id="loadFileBtn">Load File</button>
 </div>
@@ -1280,21 +1330,33 @@ html[data-theme="light"] .track.playing {
 <div class="control-group transport-group">
 <button class="btn" id="play">▶ Play</button>
 <button class="btn" id="pause">⏸ Pause</button>
-<button class="btn active" id="stop">⏹ Stop</button>
-</div> <div class="control-group">
-<button class="btn rec" id="record">Record</button> <span id="recIndicator" class="rec-indicator" style="display:none;"><span class="dot"></span>
-</span></div><span class="label">REC</span>
+<button class="btn" id="stop">⏹ Stop</button>
+</div> 
+<div class="control-group">
+<button class="btn rec" id="record">Record</button> 
+<span id="recIndicator" class="rec-indicator" style="display:none;"><span class="dot"></span>
+</div>
+<span class="label">REC</span>
 
 <div class="control-group">
 <label class="chip">Speed
-      <select id="speed">
-<option value="0.5">50%</option><option value="0.75">75%</option>
-<option selected="" value="1">100%</option><option value="1.25">125%</option><option value="1.5">150%</option>
+  <select id="speed">
+    <option value="0.5">50%</option>
+    <option value="0.6">60%</option>
+    <option value="0.7">70%</option>
+    <option value="0.8">80%</option>
+    <option value="0.9">90%</option>
+    <option selected="" value="1">100%</option>
+    <option value="1.1">110%</option>
+    <option value="1.2">120%</option>
+    <option value="1.3">130%</option>
+    <option value="1.4">140%</option>
+    <option value="1.5">150%</option>
 </select>
 </label>
-<label class="chip"><input checked="" id="autoScroll" type="checkbox"> Auto‑Scroll</label>
+<label class="chip"><input checked="" id="autoScroll" type="checkbox"/> Auto‑Scroll</label>
 <button class="btn" id="countIn">Count‑In</button>
-<button class="btn" id="metronome" title="Click to toggle ON/OFF | Right-click for volume &amp; settings" style="cursor: pointer;">Metronome <span style="font-size: 8px; opacity: 0.8; margin-left: 2px;" title="Right-click for settings">⚙</span></button>
+<button class="btn" id="metronome">Metronome</button>
 <div class="metronome-settings" id="metronomeSettings">
   <div class="metronome-row">
     <label>Volume</label>
@@ -1304,10 +1366,12 @@ html[data-theme="light"] .track.playing {
   <div class="metronome-row">
     <label>Pattern</label>
     <select id="metronomeSubdivision">
-      <option value="1">Quarter notes</option>
-      <option value="2">Eighth notes</option>
-      <option value="3">Triplets</option>
-      <option value="4">Sixteenths</option>
+  <option value="0.25">Whole notes</option>
+  <option value="0.5">Half notes</option>
+  <option value="1" selected>Quarter notes</option>
+  <option value="2">Eighth notes</option>
+  <option value="3">Triplets</option>
+  <option value="4">Sixteenths</option>
 </select>
   </div>
   <div class="metronome-row">
@@ -1355,7 +1419,7 @@ html[data-theme="light"] .track.playing {
 <div class="key-option" data-key="Bbm">Bb Minor</div>
 <div class="key-option" data-key="Ebm">Eb Minor</div>
 </div>
-<label class="chip"><input id="transposeToggle" type="checkbox"> Transpose</label>
+<label class="chip"><input id="transposeToggle" type="checkbox"/> Transpose</label>
 </div>
 </div><span class="row-break"></span><div class="row row-second"><div class="row-second-rec"> </div><div class="row-second-left">
 <div class="loop-controls">
@@ -1367,8 +1431,13 @@ html[data-theme="light"] .track.playing {
     <button class="btn" id="clearAB">Clear Loop</button>
   </div>
 </div>
-<span class="chip" id="time">00:00 / 00:00</span><span class="chip" id="meta">No score loaded</span></div><div class="row-second-right"><button class="btn" id="toggleKeyboard">Keyboard: Off</button><button class="btn" id="toggleTreble">Treble Clef: On</button>
-<button class="btn" id="toggleTheme">Theme: Dark</button></div></div></header>
+<span class="chip" id="time">00:00 / 00:00</span>
+<span class="chip" id="meta">No score loaded</span>
+<button class="btn" id="bpmBtn" style="margin-left: 1px;">BPM: 120</button>
+</div><div class="row-second-right"><button class="btn" id="toggleKeyboard">Keyboard</button><button class="btn" id="toggleTreble">Treble Clef</button>
+<button class="btn" id="toggleTheme" title="Toggle theme">
+  <span class="theme-icon">🌙</span>
+</button></div></div></header>
 <div class="wrap">
 <aside class="sidebar">
 <h3>Instruments</h3>
@@ -1383,15 +1452,15 @@ html[data-theme="light"] .track.playing {
           <select id="tsNum"><option>2</option><option>3</option><option selected="">4</option><option>6</option><option>7</option><option>9</option><option>12</option></select> /
           <select id="tsDen"><option>1</option><option>2</option><option selected="">4</option><option>8</option><option>16</option></select>
 </label>
-<label><input id="merge" type="checkbox"> Merge all tracks</label>
-<label><input id="includePerc" type="checkbox"> Include percussion (Ch.10)</label>
+<label><input id="merge" type="checkbox"> Merge all tracks</input></label>
+<label><input id="includePerc" type="checkbox"> Include percussion (Ch.10)</input></label>
 </div>
 <div class="log" id="log"></div>
 </div>
 </aside>
 <main class="main">
-<div class="at-content alphaTab" id="alphaTab"><div class="at-surface at" style="font-size: 0px; overflow: hidden; line-height: 0; position: relative; width: 0px; height: 0px;"></div></div>
-<div id="pianoContainer" class="piano hidden" aria-hidden="true"><div class="keys"><div class="white-keys"><div class="white-key"><div class="label">A</div></div><div class="white-key"><div class="label">B</div></div><div class="white-key"><div class="label">C#</div></div><div class="white-key"><div class="label">D#</div></div><div class="white-key"><div class="label">F</div></div><div class="white-key"><div class="label">G</div></div><div class="white-key"><div class="label">A</div></div><div class="white-key"><div class="label">B</div></div><div class="white-key"><div class="label">C#</div></div><div class="white-key"><div class="label">D#</div></div><div class="white-key"><div class="label">F</div></div><div class="white-key"><div class="label">G</div></div><div class="white-key"><div class="label">A</div></div><div class="white-key"><div class="label">B</div></div><div class="white-key"><div class="label">C#</div></div><div class="white-key"><div class="label">D#</div></div><div class="white-key"><div class="label">F</div></div><div class="white-key"><div class="label">G</div></div><div class="white-key"><div class="label">A</div></div><div class="white-key"><div class="label">B</div></div><div class="white-key"><div class="label">C#</div></div><div class="white-key"><div class="label">D#</div></div><div class="white-key"><div class="label">F</div></div><div class="white-key"><div class="label">G</div></div><div class="white-key"><div class="label">A</div></div><div class="white-key"><div class="label">B</div></div><div class="white-key"><div class="label">C#</div></div><div class="white-key"><div class="label">D#</div></div><div class="white-key"><div class="label">F</div></div><div class="white-key"><div class="label">G</div></div><div class="white-key"><div class="label">A</div></div><div class="white-key"><div class="label">B</div></div><div class="white-key"><div class="label">C#</div></div><div class="white-key"><div class="label">D#</div></div><div class="white-key"><div class="label">F</div></div><div class="white-key"><div class="label">G</div></div><div class="white-key"><div class="label">A</div></div><div class="white-key"><div class="label">B</div></div><div class="white-key"><div class="label">C#</div></div><div class="white-key"><div class="label">D#</div></div><div class="white-key"><div class="label">F</div></div><div class="white-key"><div class="label">G</div></div><div class="white-key"><div class="label">A</div></div><div class="white-key"><div class="label">B</div></div></div><div class="black-keys"><div class="black-key-wrap"><div class="black-key"><div class="label">A#0</div></div></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"><div class="black-key"><div class="label">F#1</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">G#1</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">A#1</div></div></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"><div class="black-key"><div class="label">F#2</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">G#2</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">A#2</div></div></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"><div class="black-key"><div class="label">F#3</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">G#3</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">A#3</div></div></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"><div class="black-key"><div class="label">F#4</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">G#4</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">A#4</div></div></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"><div class="black-key"><div class="label">F#5</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">G#5</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">A#5</div></div></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"><div class="black-key"><div class="label">F#6</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">G#6</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">A#6</div></div></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"></div><div class="black-key-wrap"><div class="black-key"><div class="label">F#7</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">G#7</div></div></div><div class="black-key-wrap"><div class="black-key"><div class="label">A#7</div></div></div><div class="black-key-wrap"></div></div></div></div>
+<div class="at-content" id="alphaTab"></div>
+<div id="pianoContainer" class="piano hidden" aria-hidden="true"></div>
 
   <div class="at-credit" role="contentinfo" aria-label="Powered by alphaTab">
     <a href="https://www.alphatab.net" target="_blank" rel="noopener noreferrer">Powered by alphaTab</a>
@@ -1402,7 +1471,7 @@ html[data-theme="light"] .track.playing {
 
 <!-- Keyboard shortcuts help -->
 <div class="kbd-help">
-  <kbd>Space</kbd> Play/Pause <kbd>S</kbd> Stop <kbd>A</kbd> Auto-scroll <kbd>C</kbd> Count-in <kbd>M</kbd> Metronome <kbd>L</kbd> Loop <kbd>↑↓</kbd> Speed <kbd>T</kbd> Transpose
+  <kbd>Space</kbd> Play/Pause <kbd>S</kbd> Stop <kbd>A</kbd> Auto-scroll <kbd>C</kbd> Count-in <kbd>M</kbd> Metronome <kbd>L</kbd> Loop <kbd>↑↓</kbd> Speed <kbd>T</kbd> Transpose <kbd>R</kbd> Record
 </div>
 
 <!-- Song Search Modal -->
@@ -1414,12 +1483,34 @@ html[data-theme="light"] .track.playing {
       <button class="btn song-modal-close" id="songModalClose" aria-label="Close">✕</button>
     </div>
     <div class="song-modal-body">
-      <input type="text" id="songSearchInput" placeholder="Search by title, artist, tags..." aria-label="Song search input">
+      <input type="text" id="songSearchInput" placeholder="Search by title, artist, tags..." aria-label="Song search input" />
       <div id="songResults" class="song-results" role="listbox" aria-label="Search results"></div>
       <div class="song-hint">Tip: Press <kbd>Enter</kbd> to open the first result. Use ↑/↓ to navigate.</div>
     </div>
     <div class="song-modal-footer">
       <button class="btn" id="songModalCancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Recording Confirmation Modal -->
+<div id="recordConfirmModal" class="song-modal" aria-hidden="true" role="dialog" style="display:none;">
+  <div class="song-modal-backdrop"></div>
+  <div class="song-modal-dialog" role="document" style="width: min(480px, 90vw);">
+<div class="song-modal-header" style="position: relative;">
+  <h3 style="margin: 0; text-align: center; width: 100%;">Recording Complete</h3>
+  <button class="btn song-modal-close" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%);" onclick="document.getElementById('recordConfirmModal').style.display='none'; document.getElementById('recordConfirmModal').setAttribute('aria-hidden','true'); pendingBlob=null;" aria-label="Close">✕</button>
+</div>
+    <div class="song-modal-body" style="text-align: center; padding: 24px;">
+      <p style="margin-bottom: 20px; color: var(--fg);">Your practice session has been recorded. What would you like to do?</p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="btn" id="recordAIBtn" style="background: var(--accent2); color: white; padding: 12px 24px; line-height: 1.4; min-width: 180px;">
+          🤖 Save Recording<br>Get AI Feedback
+        </button>
+        <button class="btn" id="recordAgainBtn" style="padding: 12px 24px;">
+          🎤 Record Again
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1472,7 +1563,7 @@ const at = new alphaTab.AlphaTabApi($('#alphaTab'), {
   player: {
     enablePlayer: true,
     enableCursor: true,
-    enableScrolling: true,
+    enableScrolling: false,
     soundFont: "https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.6.1/dist/soundfont/sonivox.sf2",
     scrollMode: "continuous"  // Add this if needed
   },
@@ -1582,10 +1673,10 @@ function applyScrollControl(){
 // Auto-follow inside sheet viewport
 function autoFollowPlayhead(){
   const VP_ID = 'alphaTab';
-  const LOOKAHEAD_RATIO = 0.12;
-  const STICKY_TOP = 76;
-  const SMOOTH = 0.25;
-  const DEAD_BAND = 6;
+  const LOOKAHEAD_RATIO = 0.35;
+  const STICKY_TOP = 20;
+  const SMOOTH = 0.05;
+  const DEAD_BAND = 10;
   
   const view = $('#' + VP_ID);
   const cursor = view && (view.querySelector('.at-cursor-beat') || view.querySelector('.at-cursor-bar'));
@@ -1620,7 +1711,7 @@ function updateButtonStates(){
   const ci = $('#countIn');
   const mt = $('#metronome');
   if (ci && at) ci.classList.toggle('active', (at.countInVolume || 0) > 0);
-  if (mt && window.customMetronome) mt.classList.toggle('active', window.customMetronome.isPlaying);
+  if (mt) mt.classList.toggle('active', metronomeSettings.enabled);
 }
 
 function alignUIElements(){
@@ -1952,7 +2043,7 @@ $('#play').onclick = () => {
   at.play(); 
   AppState.isPlaying = true;
   
-  // Start metronome if enabled
+  // Start metronome if it's pre-enabled
   if (metronomeSettings.enabled && !customMetronome.isPlaying) {
     customMetronome.setVolume(metronomeSettings.volume);
     customMetronome.setSubdivision(metronomeSettings.subdivision);
@@ -1966,7 +2057,7 @@ $('#pause').onclick = () => {
   at.pause(); 
   AppState.isPlaying = false;
   
-  // Pause metronome
+  // Stop metronome when pausing
   if (customMetronome.isPlaying) {
     customMetronome.stop();
   }
@@ -1979,15 +2070,37 @@ $('#stop').onclick = () => {
   at.timePosition = 0;
   AppState.isPlaying = false;
   
-  // Stop metronome
+  // Stop metronome when stopping
   if (customMetronome.isPlaying) {
     customMetronome.stop();
   }
   
   updateButtonStates();
 };
-
-$('#speed').onchange = e => at.playbackSpeed = parseFloat(e.target.value);
+$('#speed').onchange = e => {
+  const newSpeed = parseFloat(e.target.value);
+  at.playbackSpeed = newSpeed;
+  
+  // Update BPM button if exists
+  const bpmBtn = $('#bpmBtn');
+  if (bpmBtn) {
+    // Use the base tempo if set, otherwise use default 120
+    const baseTempo = customMetronome.baseTempo || 120;
+    const currentBPM = Math.round(baseTempo * newSpeed);
+    bpmBtn.textContent = `BPM: ${currentBPM}`;
+    
+    // Make sure button is visible if it has content
+    if (bpmBtn.style.display === 'none') {
+      bpmBtn.style.display = 'inline-flex';
+    }
+  }
+  
+  // Update metronome tempo if it's running
+  if (customMetronome.isPlaying) {
+    customMetronome.stop();
+    customMetronome.start();
+  }
+};
 
 $('#countIn').onclick = () => {
   at.countInVolume = at.countInVolume > 0 ? 0 : 1;
@@ -2003,6 +2116,7 @@ class WorkingMetronome {
     this.nextNoteTime = 0;
     this.currentBeat = 0;
     this.tempo = 120;
+    this.baseTempo = 120;
     this.subdivision = 1;
     this.volume = 0.7;
     this.soundType = 'click';
@@ -2072,43 +2186,70 @@ class WorkingMetronome {
     }
   }
   
-  scheduler() {
-    const lookahead = 0.1;
+scheduler() {
+  const lookahead = 0.1;
+  
+  while (this.nextNoteTime < this.audioContext.currentTime + lookahead) {
+    const beatLength = 60.0 / this.tempo;
+    let noteLength;
     
-    while (this.nextNoteTime < this.audioContext.currentTime + lookahead) {
-      const beatLength = 60.0 / this.tempo;
-      let noteLength;
-      
-      switch(this.subdivision) {
-        case 2: noteLength = beatLength / 2; break;
-        case 3: noteLength = beatLength / 3; break;
-        case 4: noteLength = beatLength / 4; break;
-        default: noteLength = beatLength; break;
-      }
-      
-      const isDownbeat = (this.currentBeat % this.subdivision) === 0;
+    if (this.subdivision < 1) {
+      // For half and whole notes - subdivisions less than 1
+      noteLength = beatLength / this.subdivision;
+    } else {
+      // For quarter, eighth, triplet, sixteenth
+      noteLength = beatLength / this.subdivision;
+    }
+    
+    // Determine if this is a strong beat
+    let isDownbeat = false;
+    if (this.subdivision >= 1) {
+      // Normal subdivisions
+      isDownbeat = (this.currentBeat % this.subdivision) === 0;
+    } else if (this.subdivision === 0.5) {
+      // Half notes - every 2 beats
+      isDownbeat = (this.currentBeat % 2) === 0;
+    } else if (this.subdivision === 0.25) {
+      // Whole notes - every 4 beats  
+      isDownbeat = (this.currentBeat % 4) === 0;
+    }
+    
+    // Only play click for the appropriate pattern
+    if (this.subdivision >= 1 || isDownbeat) {
       this.playClick(this.nextNoteTime, isDownbeat);
-      
-      this.nextNoteTime += noteLength;
-      this.currentBeat++;
+    }
+    
+    this.nextNoteTime += noteLength;
+    this.currentBeat++;
+    
+    // Reset beat counter appropriately
+    if (this.subdivision >= 1) {
       if (this.currentBeat >= this.subdivision * 4) {
         this.currentBeat = 0;
       }
+    } else {
+      if (this.currentBeat >= 16) {  // Reset after 4 measures
+        this.currentBeat = 0;
+      }
     }
-    
-    this.timerID = setTimeout(() => this.scheduler(), 25);
   }
   
-  start() {
-    if (!this.audioContext) this.init();
-    if (at && at.playbackSpeed) {
-      this.tempo = 120 * at.playbackSpeed;
-    }
-    this.isPlaying = true;
-    this.currentBeat = 0;
-    this.nextNoteTime = this.audioContext.currentTime;
-    this.scheduler();
+  this.timerID = setTimeout(() => this.scheduler(), 25);
+}
+  
+start() {
+  if (!this.audioContext) this.init();
+  // Use the detected song BPM adjusted by playback speed
+  if (at && at.playbackSpeed) {
+    this.tempo = this.baseTempo * at.playbackSpeed;
+  } else {
+    this.tempo = this.baseTempo;
   }
+  this.isPlaying = true;
+  this.currentBeat = 0;
+  this.nextNoteTime = this.audioContext.currentTime;
+  this.scheduler();
+}
   
   stop() {
     this.isPlaying = false;
@@ -2147,21 +2288,27 @@ btn.onclick = (e) => {
     e.stopPropagation();
     metronomeSettings.enabled = !metronomeSettings.enabled;
     btn.classList.toggle('active', metronomeSettings.enabled);
-
-    if (metronomeSettings.enabled) {
-      // Turn off AlphaTab's metronome
-      at.metronomeVolume = 0.001;
-      // Only start if already playing
-      if (AppState.isPlaying) {
+    
+    // Turn off AlphaTab's metronome
+    at.metronomeVolume = 0.001;
+    
+    // Check if PDF is scrolling
+    const pdfScrollBtn = $('#pdfScrollToggle');
+    const isPdfScrolling = pdfScrollBtn && pdfScrollBtn.getAttribute('aria-pressed') === 'true';
+    
+    // Start/stop metronome based on either song playing or PDF scrolling
+    if (AppState.isPlaying || isPdfScrolling) {
+      if (metronomeSettings.enabled && !customMetronome.isPlaying) {
         customMetronome.setVolume(metronomeSettings.volume);
         customMetronome.setSubdivision(metronomeSettings.subdivision);
         customMetronome.start();
       }
-    } else {
-      // Stop custom metronome
-      customMetronome.stop();
-      at.metronomeVolume = 0.001;
     }
+    // Always stop if disabled, regardless of playback state
+    if (!metronomeSettings.enabled && customMetronome.isPlaying) {
+      customMetronome.stop();
+    }
+    
     updateButtonStates();
   };
   
@@ -2203,7 +2350,7 @@ if (gearSpan) {
 // Subdivision control (NOW WORKING!)
   if (subdivisionSelect) {
     subdivisionSelect.onchange = (e) => {
-      metronomeSettings.subdivision = parseInt(e.target.value);
+      metronomeSettings.subdivision = parseFloat(e.target.value);
       customMetronome.setSubdivision(metronomeSettings.subdivision);
     };
   }
@@ -2226,7 +2373,100 @@ if (gearSpan) {
   });
 })();
 
-$('#autoScroll').onchange = e => {
+// BPM Button with adjustment popup
+(function() {
+  const bpmBtn = $('#bpmBtn');
+  if (!bpmBtn) return;
+  
+  // Create BPM adjustment popup
+  const createBpmPopup = () => {
+    const popup = document.createElement('div');
+    popup.className = 'metronome-settings';
+    popup.id = 'bpmSettings';
+    popup.innerHTML = `
+      <div class="metronome-row">
+        <label>BPM</label>
+        <input type="range" id="bpmSlider" min="40" max="240" value="${customMetronome.baseTempo}" class="slider mini">
+        <input type="number" id="bpmInput" min="40" max="240" value="${customMetronome.baseTempo}" 
+               style="width:50px;padding:2px 4px;font-size:10px;background:var(--panel2);border:1px solid var(--border);color:var(--fg);border-radius:4px;">
+      </div>
+      <div class="metronome-row">
+        <button class="btn" id="bpmReset" style="width:100%;font-size:10px;padding:4px">
+          Reset to Original (${customMetronome.baseTempo})
+        </button>
+      </div>
+    `;
+    return popup;
+  };
+  
+  bpmBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    
+    let popup = $('#bpmSettings');
+    if (!popup) {
+      popup = createBpmPopup();
+      bpmBtn.parentElement.appendChild(popup);
+      
+      // Position popup
+      const rect = bpmBtn.getBoundingClientRect();
+      popup.style.position = 'absolute';
+      popup.style.top = `${rect.bottom + 4}px`;
+      popup.style.left = `${rect.left}px`;
+      
+      // Wire up controls
+      const slider = $('#bpmSlider');
+      const input = $('#bpmInput');
+      const reset = $('#bpmReset');
+      
+      const updateBpm = (newBpm) => {
+        customMetronome.baseTempo = newBpm;
+        
+        // Update displays
+        const currentBPM = Math.round(newBpm * (at.playbackSpeed || 1));
+        bpmBtn.textContent = `BPM: ${currentBPM}`;
+        
+        // Restart metronome if playing
+        if (customMetronome.isPlaying) {
+          customMetronome.stop();
+          customMetronome.start();
+        }
+        
+        log(`🎵 BPM adjusted to: ${newBpm}`);
+      };
+      
+      slider.oninput = (e) => {
+        const val = parseInt(e.target.value);
+        input.value = val;
+        updateBpm(val);
+      };
+      
+      input.oninput = (e) => {
+        const val = Math.min(240, Math.max(40, parseInt(e.target.value) || 120));
+        slider.value = val;
+        updateBpm(val);
+      };
+      
+      reset.onclick = () => {
+        const originalBpm = parseInt(reset.textContent.match(/\d+/)[0]);
+        slider.value = originalBpm;
+        input.value = originalBpm;
+        updateBpm(originalBpm);
+      };
+    }
+    
+    popup.classList.toggle('show');
+  });
+  
+  // Close popup when clicking outside
+  document.addEventListener('click', (e) => {
+    const popup = $('#bpmSettings');
+    if (popup && !e.target.closest('#bpmBtn') && !e.target.closest('#bpmSettings')) {
+      popup.classList.remove('show');
+    }
+  });
+})();
+
+$('#autoScroll').onchange = e => {  // <-- This is the next existing code around line 2143
   AppState.autoScrollEnabled = e.target.checked;
   applyScrollControl();
 };
@@ -2282,6 +2522,11 @@ $$('.key-option').forEach(option => {
 
 // ====== ALPHATAB EVENT HANDLERS ======
 at.scoreLoaded.on(score => {
+  // Clear any pending scroll reset when loading new score
+  if (window.scrollResetTimer) {
+    clearTimeout(window.scrollResetTimer);
+    window.scrollResetTimer = null;
+  }
   $('#meta').textContent = `${score.title||'Untitled'} — ${score.artist||'Unknown'} (${score.tracks?.length||0} tracks)`;
   
   AppState.isPlaying = false;
@@ -2297,6 +2542,13 @@ at.scoreLoaded.on(score => {
     at.updateSettings();
   } catch(e) { /* ignore */ }
   
+    // Reset playback speed to 100% when loading new score
+  at.playbackSpeed = 1.0;
+  const speedSelect = $('#speed');
+  if (speedSelect) {
+    speedSelect.value = '1';
+  }
+
   // Detect key
   const detectedKey = detectKeyFromScore(score);
   AppState.originalKey = detectedKey;
@@ -2307,6 +2559,37 @@ at.scoreLoaded.on(score => {
   log(`🎼 Score loaded: ${score.title || 'Untitled'}`);
   log(`🎹 Detected key: ${detectedKey}`);
   
+// Extract and set BPM from the score
+let songBPM = 120; // default
+try {
+  // Check for tempo in score
+  if (score.tempo) {
+    songBPM = score.tempo;
+  } else if (score.masterBars && score.masterBars[0]) {
+    // Look for tempo in first master bar
+    const firstBar = score.masterBars[0];
+    if (firstBar.tempoAutomation) {
+      songBPM = firstBar.tempoAutomation.value;
+    } else if (firstBar.tempo) {
+      songBPM = firstBar.tempo;
+    }
+  }
+  
+  // Update metronome's base tempo
+  customMetronome.baseTempo = songBPM;
+  log(`🎵 Song BPM detected: ${songBPM}`);
+  
+  // Update BPM button
+  const bpmBtn = $('#bpmBtn');
+  if (bpmBtn) {
+    bpmBtn.style.display = 'inline-flex';
+    bpmBtn.textContent = `BPM: ${songBPM}`;
+  }
+
+} catch(e) {
+  console.log('Could not detect BPM, using default 120');
+}
+
   // Restore metronome/count-in after score load
   setTimeout(() => {
     if (AppState.preservedMetronomeVolume > 0) {
@@ -2317,6 +2600,24 @@ at.scoreLoaded.on(score => {
     }
     updateButtonStates();
   }, 100);
+});
+// Reset scroll when rendering finishes (fixed to prevent vibration)
+at.renderFinished.on(() => {
+  const alphaTab = $('#alphaTab');
+  if (!alphaTab) return;
+  
+  // Clear any existing timer to prevent conflicts
+  if (window.scrollResetTimer) {
+    clearTimeout(window.scrollResetTimer);
+  }
+  
+  // Single delayed reset instead of multiple aggressive ones
+  window.scrollResetTimer = setTimeout(() => {
+    if (alphaTab && !AppState.isPlaying) {
+      alphaTab.scrollTop = 0;
+      alphaTab.scrollLeft = 0;
+    }
+  }, 150); // Single delay, adjusted for stability
 });
 
 at.playerPositionChanged.on(e => {
@@ -2362,7 +2663,16 @@ $('#fileInput').addEventListener('change', async e => {
   if(!f) return;
   
   const name = f.name.toLowerCase(); 
-  const buf = await f.arrayBuffer();
+  
+  // Restrict disallowed file types (MIDI & Capella)
+  const forbiddenExts = ['.mid', '.midi', '.cap', '.capx'];
+  if (forbiddenExts.some(ext => name.endsWith(ext))) {
+    alert('This player does not allow MIDI (.mid, .midi) or Capella (.cap, .capx) files. Please load Guitar Pro, MusicXML, or PDF.');
+    try { log('❌ Blocked unsupported file type: ' + f.name); } catch(_) {}
+    e.target.value = '';
+    return;
+  }
+const buf = await f.arrayBuffer();
   
   window.currentScoreBuffer = buf;
   window.currentFileName = f.name;
@@ -2727,58 +3037,93 @@ document.addEventListener('keydown', function(e) {
         log(`Transpose: ${transposeEl.checked ? 'ON' : 'OFF'}`);
       }
       break;
-      
-    case 'arrowup':
-      e.preventDefault();
-      if (at) {
-        const currentSpeed = at.playbackSpeed || 1;
-        const newSpeed = Math.min(2, currentSpeed + 0.05);
-        at.playbackSpeed = newSpeed;
-        
-        const speedSelect = $('#speed');
-        if (speedSelect) {
-          let closestOption = speedSelect.options[0];
-          let closestDiff = Math.abs(parseFloat(closestOption.value) - newSpeed);
-          
-          for (let i = 1; i < speedSelect.options.length; i++) {
-            const diff = Math.abs(parseFloat(speedSelect.options[i].value) - newSpeed);
-            if (diff < closestDiff) {
-              closestDiff = diff;
-              closestOption = speedSelect.options[i];
-            }
-          }
-          speedSelect.value = closestOption.value;
-        }
-        
-        log(`Speed: ${Math.round(newSpeed * 100)}%`);
+    case 'r':
+      const recordBtn = $('#record');
+      if (recordBtn) {
+         recordBtn.click();
       }
-      break;
+  break;
+case 'arrowup':
+  e.preventDefault();
+  if (at) {
+    const currentSpeed = at.playbackSpeed || 1;
+    const newSpeed = Math.min(1.5, currentSpeed + 0.1);
+    
+    // Set speed only once
+    at.playbackSpeed = newSpeed;
+    
+    // Update UI elements directly without triggering change event
+    const speedSelect = $('#speed');
+    if (speedSelect) {
+      let closestOption = speedSelect.options[0];
+      let closestDiff = Math.abs(parseFloat(closestOption.value) - newSpeed);
       
-    case 'arrowdown':
-      e.preventDefault();
-      if (at) {
-        const currentSpeed = at.playbackSpeed || 1;
-        const newSpeed = Math.max(0.25, currentSpeed - 0.05);
-        at.playbackSpeed = newSpeed;
-        
-        const speedSelect = $('#speed');
-        if (speedSelect) {
-          let closestOption = speedSelect.options[0];
-          let closestDiff = Math.abs(parseFloat(closestOption.value) - newSpeed);
-          
-          for (let i = 1; i < speedSelect.options.length; i++) {
-            const diff = Math.abs(parseFloat(speedSelect.options[i].value) - newSpeed);
-            if (diff < closestDiff) {
-              closestDiff = diff;
-              closestOption = speedSelect.options[i];
-            }
-          }
-          speedSelect.value = closestOption.value;
+      for (let i = 1; i < speedSelect.options.length; i++) {
+        const diff = Math.abs(parseFloat(speedSelect.options[i].value) - newSpeed);
+        if (diff < closestDiff) {
+          closestDiff = diff;
+          closestOption = speedSelect.options[i];
         }
-        
-        log(`Speed: ${Math.round(newSpeed * 100)}%`);
       }
-      break;
+      speedSelect.value = closestOption.value;
+    }
+    
+    // Update BPM display directly
+    const bpmBtn = $('#bpmBtn');
+    if (bpmBtn && customMetronome.baseTempo) {
+      const currentBPM = Math.round(customMetronome.baseTempo * newSpeed);
+      bpmBtn.textContent = `BPM: ${currentBPM}`;
+    }
+    
+    // Update metronome tempo without restart
+    if (customMetronome.isPlaying) {
+      customMetronome.tempo = customMetronome.baseTempo * newSpeed;
+    }
+    
+    log(`Speed: ${Math.round(newSpeed * 100)}%`);
+  }
+  break;
+
+case 'arrowdown':
+  e.preventDefault();
+  if (at) {
+    const currentSpeed = at.playbackSpeed || 1;
+    const newSpeed = Math.max(0.5, currentSpeed - 0.1);
+    
+    // Set speed only once
+    at.playbackSpeed = newSpeed;
+    
+    // Update UI elements directly without triggering change event
+    const speedSelect = $('#speed');
+    if (speedSelect) {
+      let closestOption = speedSelect.options[0];
+      let closestDiff = Math.abs(parseFloat(closestOption.value) - newSpeed);
+      
+      for (let i = 1; i < speedSelect.options.length; i++) {
+        const diff = Math.abs(parseFloat(speedSelect.options[i].value) - newSpeed);
+        if (diff < closestDiff) {
+          closestDiff = diff;
+          closestOption = speedSelect.options[i];
+        }
+      }
+      speedSelect.value = closestOption.value;
+    }
+    
+    // Update BPM display directly
+    const bpmBtn = $('#bpmBtn');
+    if (bpmBtn && customMetronome.baseTempo) {
+      const currentBPM = Math.round(customMetronome.baseTempo * newSpeed);
+      bpmBtn.textContent = `BPM: ${currentBPM}`;
+    }
+    
+    // Update metronome tempo without restart
+    if (customMetronome.isPlaying) {
+      customMetronome.tempo = customMetronome.baseTempo * newSpeed;
+    }
+    
+    log(`Speed: ${Math.round(newSpeed * 100)}%`);
+  }
+  break;
   }
 });
 
@@ -2972,6 +3317,7 @@ window.addEventListener('keydown', function(e) {
 // ====== RECORDING ======
 (function(){
   let recStream = null, mediaRecorder = null, recChunks = [], prevMuteStates = null;
+  let pendingBlob = null; // Store blob temporarily
   
   async function muteAllTracks() {
     try {
@@ -2994,11 +3340,45 @@ window.addEventListener('keydown', function(e) {
     } catch (e) {}
   }
   
- // let recChunks = [];
-// let recStream;
-// let mediaRecorder;
-
-async function startRecording() {
+  function downloadRecording() {
+    if (!pendingBlob) return;
+    
+    try {
+      const url = URL.createObjectURL(pendingBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'practice_recording_' + new Date().getTime() + '.webm';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+      
+      // Clear the pending blob
+      pendingBlob = null;
+      log('📥 Recording downloaded successfully');
+    } catch(e) {
+      console.error('Download error:', e);
+      alert('Failed to download recording');
+    }
+  }
+  
+  function showRecordingConfirmation() {
+    const modal = $('#recordConfirmModal');
+    if (modal) {
+      modal.style.display = 'block';
+      modal.setAttribute('aria-hidden', 'false');
+    }
+  }
+  
+  function hideRecordingConfirmation() {
+    const modal = $('#recordConfirmModal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+    }
+  }
+  
+  async function startRecording() {
   recChunks = [];
   recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
   mediaRecorder = new MediaRecorder(recStream);
@@ -3049,27 +3429,26 @@ async function startRecording() {
   mediaRecorder.start();
   document.querySelector("#play")?.click(); // if you want playback
 }
-
-function stopRecording() {
-  if (mediaRecorder && mediaRecorder.state !== "inactive") {
-    mediaRecorder.stop();
-    recStream.getTracks().forEach(track => track.stop());
+  
+  function stopRecording() {
+    try {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      if (recStream) {
+        recStream.getTracks().forEach(t => t.stop());
+      }
+    } catch(e) {}
+    
+    restoreMuteStates();
+    $('#stop')?.click();
+    log('⏹️ Recording stopped');
   }
-}
-
-
   
-  // function stopRecording() {
-  //   try {
-  //     if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-  //     if (recStream) recStream.getTracks().forEach(t => t.stop());
-  //   } catch(e){}
-  //   restoreMuteStates();
-  //   $('#stop')?.click();
-  // }
-  
+  // Main record button handler
   const recBtn = $('#record');
   const lamp = $('#recIndicator');
+  
   if (recBtn) {
     recBtn.addEventListener('click', async () => {
       if (!AppState.isRecording) {
@@ -3077,7 +3456,10 @@ function stopRecording() {
         recBtn.classList.add('rec-on');
         recBtn.textContent = '■ Stop';
         if (lamp) lamp.style.display = 'inline-flex';
-        try { await startRecording(); } catch(e){
+        
+        try {
+          await startRecording();
+        } catch(e) {
           AppState.isRecording = false;
           recBtn.classList.remove('rec-on');
           recBtn.textContent = 'Record';
@@ -3093,6 +3475,36 @@ function stopRecording() {
       }
     });
   }
+  
+  // Confirmation modal buttons
+  $('#recordAIBtn')?.addEventListener('click', () => {
+    downloadRecording();
+    hideRecordingConfirmation();
+    // Here you could add AI recommendation logic later
+    log('🤖 AI Recommendation selected - file downloaded');
+  });
+  
+  $('#recordAgainBtn')?.addEventListener('click', () => {
+    pendingBlob = null; // Discard the recording
+    hideRecordingConfirmation();
+    log('🔄 Recording discarded - ready to record again');
+  });
+  
+  // Close modal with backdrop click
+  //$('#recordConfirmModal .song-modal-backdrop')?.addEventListener('click', () => {
+    //hideRecordingConfirmation();
+    // Keep the blob in case user wants to reconsider
+  //});
+  
+  // ESC key to close modal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = $('#recordConfirmModal');
+      if (modal && modal.style.display !== 'none') {
+        hideRecordingConfirmation();
+      }
+    }
+  });
 })();
 
 // ====== PIANO KEYBOARD ======
@@ -3185,12 +3597,14 @@ function stopRecording() {
   const keyboardBtn = $('#toggleKeyboard');
   let keyboardOn = false;
   function setKeyboard(v){
-    keyboardOn = !!v;
-    container.classList.toggle('hidden', !keyboardOn);
-    container.setAttribute('aria-hidden', String(!keyboardOn));
-    if (keyboardBtn) keyboardBtn.textContent = 'Keyboard: ' + (keyboardOn ? 'On' : 'Off');
+  keyboardOn = !!v;
+  container.classList.toggle('hidden', !keyboardOn);
+  container.setAttribute('aria-hidden', String(!keyboardOn));
+  if (keyboardBtn) {
+    keyboardBtn.textContent = 'Keyboard';  // Changed from 'Keyboard: ' + (keyboardOn ? 'On' : 'Off')
+    keyboardBtn.classList.toggle('active', keyboardOn);  // Add active class toggle
   }
-  
+}
   keyboardBtn?.addEventListener('click', ()=> setKeyboard(!keyboardOn));
   setKeyboard(false);
   
@@ -3267,10 +3681,13 @@ function stopRecording() {
         '<button class="btn" id="pdfScrollToggle" aria-pressed="false" title="Auto-scroll the PDF">Scroll ▶</button>',
         '<select id="pdfScrollSpeed" class="pdf-select" aria-label="Scroll speed">',
         '<option value="30">30 px/s</option>',
+        '<option value="40">40 px/s</option>',
         '<option value="50" selected>50 px/s</option>',
+        '<option value="60">60 px/s</option>',
+        '<option value="70">70 px/s</option>',
         '<option value="80">80 px/s</option>',
-        '<option value="120">120 px/s</option>',
-        '<option value="180">180 px/s</option>',
+        '<option value="90">90 px/s</option>',
+        '<option value="100">100 px/s</option>',
         '</select>',
         '<span class="meta"><span id="pdfPageInfo">– / –</span></span>',
         '</div>',
@@ -3465,7 +3882,7 @@ function stopRecording() {
         if (Array.isArray(data) && data.length) return data;
       }
     } catch(e){ /* ignore */ }
-    return DEFAULT_LIBRARY;
+    // return DEFAULT_LIBRARY;
   }
   
   function openModal(){
@@ -3483,49 +3900,113 @@ function stopRecording() {
     m.setAttribute('aria-hidden', 'true');
   }
   
-  async function renderResults(query){
-    const lib = await getLibrary();
-    const q = (query||'').toLowerCase().trim();
-    const results = lib.filter(s => {
-      if (!q) return true;
-      return (s.title||'').toLowerCase().includes(q) ||
-             (s.artist||'').toLowerCase().includes(q) ||
-             (s.tags||'').toLowerCase().includes(q);
-    });
-    const box = $('#songResults');
+  async function renderResults(query) {
+  const box = $('#songResults');
+  box.innerHTML = '<div class="loading">Searching...</div>';
+
+  try {
+    let results = [];
+
+    if (query && query.trim()) {
+      // 🔥 Call your search API
+      const res = await fetch(`http://localhost:3000/Api/songs/search?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error("Search API failed");
+      const data = await res.json();
+      results = data.items || [];
+    } else {
+      // No query → load default library
+      results = await getLibrary();
+    }
+
     box.innerHTML = '';
-    results.forEach((s, idx)=>{
+    if (!results.length) {
+      box.innerHTML = '<div class="no-results">No songs found</div>';
+      return;
+    }
+
+    results.forEach((s, idx) => {
       const div = document.createElement('div');
       div.className = 'song-result';
-      div.setAttribute('role','option');
+      div.setAttribute('role', 'option');
       div.dataset.index = String(idx);
-      div.innerHTML = '<div class="title">'+ (s.title||'Untitled') +'</div>' +
-                      '<div class="meta">'+ (s.artist||'') +' · '+ (s.type||'file') +'</div>';
-      div.addEventListener('click', ()=> loadSong(s));
+
+      // Fallback: If DB has only filename, build a URL
+      const songUrl = s.url;
+
+      console.log(songUrl)
+      
+      div.innerHTML = `
+        <div class="title">${s.title || 'Untitled'}</div>
+        <div class="meta">${s.artist || ''} · ${s.type || 'file'}</div>
+      `;
+
+      // 👇 Ensure we pass url along
+      div.addEventListener('click', () => loadSong({ ...s, url: songUrl }));
+
       box.appendChild(div);
     });
+
+
     const first = box.querySelector('.song-result');
     if (first) first.setAttribute('aria-selected','true');
+
+  } catch (err) {
+    console.error("Search error:", err);
+    box.innerHTML = '<div class="error">Search failed</div>';
   }
-  
-  async function loadSong(song){
-    try {
-      if (!at) throw new Error('AlphaTab not ready');
-      const res = await fetch(song.url);
-      if (!res.ok) throw new Error('Failed to fetch song: ' + res.status);
-      const buf = new Uint8Array(await res.arrayBuffer());
-      at.loadScore(buf);
-      const meta = $('#meta');
-      if (meta) meta.textContent = (song.title || 'Song') + ' — ' + (song.artist || '');
-      closeModal();
-      setTimeout(()=>{
-        $('#play')?.click();
-      }, 300);
-    } catch(e){
-      console.error(e);
-      alert('Could not load song: ' + e.message);
+}
+
+async function waitForAlphaTab() {
+  return new Promise((resolve, reject) => {
+    const maxWait = 5000; // 5 seconds
+    const start = Date.now();
+    function check() {
+      if (window.at) return resolve(window.at);
+      if (Date.now() - start > maxWait) return reject(new Error("AlphaTab not ready"));
+      setTimeout(check, 50);
     }
+    check();
+  });
+}
+
+
+async function loadSong(song) {
+  try {
+    const url = song.url;
+    if (!url) throw new Error('No song URL provided');
+
+    const ext = url.split('.').pop().toLowerCase();
+
+    // Fetch the file
+    const res = await fetch(url.startsWith('http') ? url : `http://localhost:3000/${url}`);
+    if (!res.ok) throw new Error('Failed to fetch file: ' + res.status);
+
+    const buf = await res.arrayBuffer();
+
+    if (ext === 'pdf') {
+      // ✅ Call PDF loader
+      await showPdfFromBuffer(buf, song.title || url);
+    } else {
+      // ✅ Use AlphaTab for GP/GPX/MusicXML files
+      if (!window.at) throw new Error('AlphaTab not ready');
+      await window.at.load(buf);
+    }
+
+    // Update meta info
+    const meta = document.getElementById('meta');
+    if (meta) meta.textContent = `${song.title || 'Song'} — ${song.artist || ''}`;
+
+    closeModal();
+    setTimeout(() => document.getElementById('play')?.click(), 300);
+
+  } catch (e) {
+    console.error(e);
+    alert('Could not load song: ' + e.message);
   }
+}
+
+
+
   
   $('#searchSong')?.addEventListener('click', openModal);
   $('#songModalClose')?.addEventListener('click', closeModal);
@@ -3575,12 +4056,14 @@ function stopRecording() {
   const btn = $('#toggleTheme');
   const saved = localStorage.getItem('upkraft-theme');
   
-  function setTheme(next){
-    root.setAttribute('data-theme', next);
-    localStorage.setItem('upkraft-theme', next);
-    if(btn) btn.textContent = 'Theme: ' + (next.charAt(0).toUpperCase()+next.slice(1));
+function setTheme(next){
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('upkraft-theme', next);
+  if(btn) {
+    const icon = btn.querySelector('.theme-icon');
+    if(icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
   }
-  
+}
   if(saved){ setTheme(saved); } else { setTheme('dark'); }
   
   if(btn){
@@ -3597,12 +4080,12 @@ function stopRecording() {
   if (!btn || !at || !window.alphaTab) return;
   
   let trebleOn = true;
-  btn.textContent = "Treble Clef: On";
-  
+  btn.textContent = "Treble Clef";
+  btn.classList.add('active');
   btn.addEventListener('click', function(){
     trebleOn = !trebleOn;
-    btn.textContent = "Treble Clef: " + (trebleOn ? "On" : "Off");
-    
+    btn.textContent = "Treble Clef";
+    btn.classList.toggle('active', trebleOn);
     try {
       const wasPlaying = AppState.isPlaying;
       const currentMs = at.timePosition || 0;
@@ -3632,8 +4115,6 @@ function stopRecording() {
 
 // ====== INITIALIZATION ON DOM READY ======
 document.addEventListener('DOMContentLoaded', () => {
-  // Apply initial scroll control
-  applyScrollControl();
   
   // Start auto-follow
   requestAnimationFrame(autoFollowPlayhead);
@@ -3647,5 +4128,5 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
-
-</body></html>
+</body>
+</html>

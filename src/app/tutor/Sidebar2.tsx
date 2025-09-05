@@ -50,10 +50,11 @@ const Sidebar2 = () => {
       subItems: [{ label: "Create Assignment", href: "/tutor/assignment/create" }],
     },
     { id: "music-library", label: "Music Library", icon: Music, href: "/tutor/music-library" },
-    { id: "ai-coach", label: "AI Music Coach", icon: Bell, href: "/tutor/ai-coach" },
+    { id: "ai-coach", label: "AI Music Coach", icon: Bell, href: "/visualizer.html" },
     { id: "payment", label: "Payment Summary", icon: CreditCard, href: "/tutor/payment" },
     { id: "refer-earn", label: "Refer & Earn", icon: Gift, href: "/tutor/refer-earn" },
     { id: "settings", label: "Settings", icon: Settings, href: "/tutor/settings" },
+    { id: "uploadsongs", label: "Uploadsongs", icon: Settings, href: "/tutor/uploadsongs" },
   ];
 
   // ✅ Clean isActivePath
