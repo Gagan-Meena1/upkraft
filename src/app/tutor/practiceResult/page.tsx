@@ -32,7 +32,7 @@ const PracticeResult: React.FC<PracticeResultProps> = ({ analysisData }) => {
       return;
     }
 
-    // Try to get from sessionStorage (Option 1 - from HTML file)
+    // Try to get from sessionStorage (Option 1 - from HTML fil)
     try {
       const sessionData = sessionStorage.getItem('guitarAnalysisResults');
       if (sessionData) {
