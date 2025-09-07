@@ -1,62 +1,89 @@
-// models/Songs.ts
+// models/Songs.ts - Enhanced with all spreadsheet fields
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface ISong extends Document {
+  // Basic song info
   title: string;
-  artist?: string;
+  artist: string;
   filename: string;
   mimeType: string;
   url: string;
   uploadDate: Date;
+  
+  // File metadata
   fileType?: 'audio' | 'tablature';
   extension?: string;
   fileSize?: number;
   tags?: string[];
   
-  // ✅ Cloudinary specific fields
-  cloudinaryPublicId?: string;  // For file management/deletion
-  cloudinaryResourceType?: 'video' | 'raw';  // Cloudinary resource type
-  cloudinaryFolder?: string;    // Folder path in Cloudinary
+  // ✅ NEW: From your spreadsheet
+  primaryInstrumentFocus?: string;  // Guitar, Piano, Bass, Drums, etc.
+  genre?: string;                   // Hard Rock, Pop, Jazz, etc.
+  difficulty?: 'Easy' | 'Beginner' | 'Beginner-Intermediate' | 'Intermediate' | 'Advanced' | 'Expert';
+  year?: number;                    // Release year
+  notes?: string;                   // Practice notes, techniques, etc.
+  skills?: string;                  // Required skills (e.g., "Chord Melody, Slides, Pull-offs")
   
-  // Additional metadata for Guitar Pro files
+  // Cloudinary fields
+  cloudinaryPublicId?: string;
+  cloudinaryResourceType?: 'video' | 'raw';
+  cloudinaryFolder?: string;
+  
+  // Guitar Pro specific metadata
   guitarProVersion?: string;
   tuning?: string;
   tempo?: number;
-  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
   
-  // ✅ Enhanced metadata
-  duration?: number;           // For audio files (in seconds)
-  downloadCount?: number;      // Track popularity
-  isActive?: boolean;          // For soft delete
+  // Enhanced metadata
+  duration?: number;
+  downloadCount?: number;
+  isActive?: boolean;
+  
+  // ✅ Additional useful fields
+  key?: string;                     // Musical key (C, G, Am, etc.)
+  timeSignature?: string;           // 4/4, 3/4, etc.
+  capo?: number;                    // Capo position
+  alternativeTunings?: string[];    // Alternative tunings
+  practiceLevel?: 'Beginner' | 'Intermediate' | 'Advanced'; // Different from difficulty
+  learningObjectives?: string[];    // What you'll learn from this song
+  relatedSongs?: mongoose.Types.ObjectId[]; // References to similar songs
+  
+  // Search optimization
+  searchText?: string;
 }
 
 const SongSchema = new Schema<ISong>({
-  title: { 
-    type: String, 
+  // Basic fields
+  title: {
+    type: String,
     required: true,
     trim: true,
+    index: true, // ✅ Add index for better search
   },
-  artist: { 
-    type: String, 
-    default: "",
+  artist: {
+    type: String,
+    required: true, // ✅ Make required since you have this data
     trim: true,
+    index: true,
   },
-  filename: { 
-    type: String, 
-    required: true 
+  filename: {
+    type: String,
+    required: true
   },
-  mimeType: { 
-    type: String, 
-    required: true 
+  mimeType: {
+    type: String,
+    required: true
   },
-  url: { 
-    type: String, 
-    required: true 
+  url: {
+    type: String,
+    required: true
   },
-  uploadDate: { 
-    type: Date, 
-    default: Date.now 
+  uploadDate: {
+    type: Date,
+    default: Date.now
   },
+  
+  // File metadata
   fileType: {
     type: String,
     enum: ['audio', 'tablature'],
@@ -66,22 +93,63 @@ const SongSchema = new Schema<ISong>({
     type: String,
   },
   fileSize: {
-    type: Number, // in bytes
+    type: Number,
   },
   tags: [{
     type: String,
     trim: true,
   }],
   
-  // ✅ Cloudinary fields
+  // ✅ NEW FIELDS from your spreadsheet
+  primaryInstrumentFocus: {
+    type: String,
+    trim: true,
+    index: true,
+    enum: [
+      'Guitar', 'Guitar (Acoustic)', 'Guitar/vocal → Piano (arr.)', 
+      'Piano', 'Bass', 'Drums', 'Vocals', 'Ukulele', 'Mandolin', 'Banjo'
+    ]
+  },
+  genre: {
+    type: String,
+    trim: true,
+    index: true,
+    // Common genres - you can extend this list
+    enum: [
+      'Hard Rock', 'Pop', 'Pop/Rock', 'Alt Rock', 'Rock', 'Jazz', 
+      'Blues', 'Country', 'Folk', 'Classical', 'Metal', 'Punk',
+      'Indie', 'Electronic', 'R&B', 'Hip Hop', 'Reggae', 'Other'
+    ]
+  },
+  difficulty: {
+    type: String,
+    enum: ['Easy', 'Beginner', 'Beginner-Intermediate', 'Intermediate', 'Advanced', 'Expert'],
+    index: true,
+  },
+  year: {
+    type: Number,
+    min: 1900,
+    max: new Date().getFullYear() + 1,
+    index: true,
+  },
+  notes: {
+    type: String,
+    trim: true,
+    // Store practice notes, techniques, tips
+  },
+  skills: {
+    type: String,
+    trim: true,
+    // Store required skills as comma-separated string
+  },
+  
+  // Cloudinary fields
   cloudinaryPublicId: {
     type: String,
-    required: true,
   },
   cloudinaryResourceType: {
     type: String,
     enum: ['video', 'raw'],
-    required: true,
   },
   cloudinaryFolder: {
     type: String,
@@ -90,22 +158,21 @@ const SongSchema = new Schema<ISong>({
   
   // Guitar Pro metadata
   guitarProVersion: {
-    type: String, // e.g., "5.2", "6.0", "7.5", "8.0"
+    type: String,
   },
   tuning: {
-    type: String, // e.g., "E A D G B E"
+    type: String,
+    default: 'E A D G B E', // Standard tuning
   },
   tempo: {
-    type: Number, // BPM
-  },
-  difficulty: {
-    type: String,
-    enum: ['Beginner', 'Intermediate', 'Advanced', 'Expert'],
+    type: Number,
+    min: 40,
+    max: 300,
   },
   
-  // ✅ Enhanced fields
+  // Enhanced fields
   duration: {
-    type: Number, // seconds
+    type: Number,
   },
   downloadCount: {
     type: Number,
@@ -115,10 +182,69 @@ const SongSchema = new Schema<ISong>({
     type: Boolean,
     default: true,
   },
+  
+  // ✅ Additional useful fields
+  key: {
+    type: String,
+    trim: true,
+    // Musical keys like C, G, Am, F#m, etc.
+  },
+  timeSignature: {
+    type: String,
+    default: '4/4',
+    enum: ['4/4', '3/4', '2/4', '6/8', '12/8', '5/4', '7/8', 'Other']
+  },
+  capo: {
+    type: Number,
+    min: 0,
+    max: 12,
+    default: 0,
+  },
+  alternativeTunings: [{
+    type: String,
+    trim: true,
+  }],
+  practiceLevel: {
+    type: String,
+    enum: ['Beginner', 'Intermediate', 'Advanced'],
+  },
+  learningObjectives: [{
+    type: String,
+    trim: true,
+  }],
+  relatedSongs: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Song'
+  }],
+  
+  // Search optimization
+  searchText: {
+    type: String,
+    index: true,
+  },
 }, {
-  timestamps: true, // adds createdAt and updatedAt
+  timestamps: true,
 });
 
-// ✅ Enhanced indexes for better search performance
-SongSchema.index({ title: 'text', artist: 'text', tags: 'text' });
+// ✅ Enhanced pre-save middleware
+SongSchema.pre('save', function(next) {
+  // Build comprehensive search text
+  const searchableFields = [
+    this.title,
+    this.artist,
+    this.genre,
+    this.primaryInstrumentFocus,
+    this.skills,
+    this.notes,
+    this.key,
+    ...(this.tags || []),
+    ...(this.learningObjectives || [])
+  ].filter(Boolean);
+  
+  this.searchText = searchableFields.join(' ').toLowerCase();
+  next();
+});
+
+
+
 export const Song = mongoose.models.Song || mongoose.model<ISong>("Song", SongSchema);
