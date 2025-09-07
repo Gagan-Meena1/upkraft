@@ -3882,7 +3882,7 @@ window.addEventListener('keydown', function(e) {
         if (Array.isArray(data) && data.length) return data;
       }
     } catch(e){ /* ignore */ }
-    // return DEFAULT_LIBRARY;
+    return DEFAULT_LIBRARY; // ✅ Return default library as fallback
   }
   
   function openModal(){
@@ -3901,127 +3901,210 @@ window.addEventListener('keydown', function(e) {
   }
   
   async function renderResults(query) {
-  const box = $('#songResults');
-  box.innerHTML = '<div class="loading">Searching...</div>';
+    const box = $('#songResults');
+    box.innerHTML = '<div class="loading">Searching...</div>';
 
-  try {
-    let results = [];
+    try {
+      let results = [];
 
-    if (query && query.trim()) {
-      // 🔥 Call your search API
-      const res = await fetch(`http://localhost:3000/Api/songs/search?q=${encodeURIComponent(query)}`);
-      if (!res.ok) throw new Error("Search API failed");
-      const data = await res.json();
-      results = data.items || [];
-    } else {
-      // No query → load default library
-      results = await getLibrary();
+      if (query && query.trim()) {
+        // 🔥 Call your search API - Fixed URL (lowercase 'api')
+        const res = await fetch(`/Api/songs/search?q=${encodeURIComponent(query)}`);
+        if (!res.ok) {
+          console.warn("Search API failed, falling back to default library");
+          results = await getLibrary();
+        } else {
+          const data = await res.json();
+          results = data.items || [];
+        }
+      } else {
+        // No query → load from API without search term to get all songs
+        try {
+          const res = await fetch('/Api/songs/search');
+          if (res.ok) {
+            const data = await res.json();
+            results = data.items || [];
+          }
+          if (!results.length) {
+            results = await getLibrary();
+          }
+        } catch (err) {
+          console.warn("API not available, using default library");
+          results = await getLibrary();
+        }
+      }
+
+      box.innerHTML = '';
+      if (!results.length) {
+        box.innerHTML = '<div class="no-results">No songs found</div>';
+        return;
+      }
+
+      results.forEach((s, idx) => {
+        const div = document.createElement('div');
+        div.className = 'song-result';
+        div.setAttribute('role', 'option');
+        div.dataset.index = String(idx);
+
+        // ✅ Handle URL construction properly
+        let songUrl = s.url;
+        
+        // If URL is relative, construct full URL
+        if (songUrl && !songUrl.startsWith('http')) {
+          // Remove leading slash if present to avoid double slash
+          const cleanUrl = songUrl.startsWith('/') ? songUrl.substring(1) : songUrl;
+          songUrl = `${window.location.origin}/${cleanUrl}`;
+        }
+
+        console.log('Song URL:', songUrl, 'Original:', s.url);
+        
+        div.innerHTML = `
+          <div class="title">${s.title || 'Untitled'}</div>
+          <div class="meta">${s.artist || 'Unknown Artist'} · ${s.type || s.extension || 'file'}</div>
+        `;
+
+        // 👇 Store the complete song object with corrected URL
+        const songData = { ...s, url: songUrl };
+        div.addEventListener('click', () => loadSong(songData));
+
+        box.appendChild(div);
+      });
+
+      const first = box.querySelector('.song-result');
+      if (first) first.setAttribute('aria-selected','true');
+
+      // ✅ Store results for keyboard navigation
+      window.currentSearchResults = results.map(s => ({
+        ...s,
+        url: s.url && !s.url.startsWith('http') ? 
+          `${window.location.origin}/${s.url.startsWith('/') ? s.url.substring(1) : s.url}` : 
+          s.url
+      }));
+
+    } catch (err) {
+      console.error("Search error:", err);
+      box.innerHTML = '<div class="error">Search failed. Loading default songs...</div>';
+      // Fallback to default library
+      try {
+        const defaultSongs = await getLibrary();
+        setTimeout(() => {
+          if (defaultSongs && defaultSongs.length) {
+            renderDefaultResults(defaultSongs);
+          }
+        }, 1000);
+      } catch (fallbackErr) {
+        console.error("Even fallback failed:", fallbackErr);
+      }
     }
+  }
 
+  function renderDefaultResults(results) {
+    const box = $('#songResults');
     box.innerHTML = '';
-    if (!results.length) {
-      box.innerHTML = '<div class="no-results">No songs found</div>';
-      return;
-    }
-
+    
     results.forEach((s, idx) => {
       const div = document.createElement('div');
       div.className = 'song-result';
       div.setAttribute('role', 'option');
       div.dataset.index = String(idx);
-
-      // Fallback: If DB has only filename, build a URL
-      const songUrl = s.url;
-
-      console.log(songUrl)
       
       div.innerHTML = `
         <div class="title">${s.title || 'Untitled'}</div>
-        <div class="meta">${s.artist || ''} · ${s.type || 'file'}</div>
+        <div class="meta">${s.artist || 'Unknown Artist'} · ${s.type || 'file'}</div>
       `;
-
-      // 👇 Ensure we pass url along
-      div.addEventListener('click', () => loadSong({ ...s, url: songUrl }));
-
+      
+      div.addEventListener('click', () => loadSong(s));
       box.appendChild(div);
     });
 
-
     const first = box.querySelector('.song-result');
     if (first) first.setAttribute('aria-selected','true');
-
-  } catch (err) {
-    console.error("Search error:", err);
-    box.innerHTML = '<div class="error">Search failed</div>';
+    
+    window.currentSearchResults = results;
   }
-}
 
-async function waitForAlphaTab() {
-  return new Promise((resolve, reject) => {
-    const maxWait = 5000; // 5 seconds
-    const start = Date.now();
-    function check() {
-      if (window.at) return resolve(window.at);
-      if (Date.now() - start > maxWait) return reject(new Error("AlphaTab not ready"));
-      setTimeout(check, 50);
-    }
-    check();
-  });
-}
-
-
-async function loadSong(song) {
-  try {
-    const url = song.url;
-    if (!url) throw new Error('No song URL provided');
-
-    const ext = url.split('.').pop().toLowerCase();
-
-    // Fetch the file
-    const res = await fetch(url.startsWith('http') ? url : `http://localhost:3000/${url}`);
-    if (!res.ok) throw new Error('Failed to fetch file: ' + res.status);
-
-    const buf = await res.arrayBuffer();
-
-    if (ext === 'pdf') {
-      // ✅ Call PDF loader
-      await showPdfFromBuffer(buf, song.title || url);
-    } else {
-      // ✅ Use AlphaTab for GP/GPX/MusicXML files
-      if (!window.at) throw new Error('AlphaTab not ready');
-      await window.at.load(buf);
-    }
-
-    // Update meta info
-    const meta = document.getElementById('meta');
-    if (meta) meta.textContent = `${song.title || 'Song'} — ${song.artist || ''}`;
-
-    closeModal();
-    setTimeout(() => document.getElementById('play')?.click(), 300);
-
-  } catch (e) {
-    console.error(e);
-    alert('Could not load song: ' + e.message);
+  async function waitForAlphaTab() {
+    return new Promise((resolve, reject) => {
+      const maxWait = 5000; // 5 seconds
+      const start = Date.now();
+      function check() {
+        if (window.at) return resolve(window.at);
+        if (Date.now() - start > maxWait) return reject(new Error("AlphaTab not ready"));
+        setTimeout(check, 50);
+      }
+      check();
+    });
   }
-}
 
+  async function loadSong(song) {
+    try {
+      const url = song.url;
+      if (!url) throw new Error('No song URL provided');
 
+      console.log('Loading song from URL:', url);
 
+      const ext = (song.extension || song.type || url.split('.').pop() || '').toLowerCase().replace('.', '');
+
+      // ✅ Construct proper fetch URL
+      let fetchUrl = url;
+      if (!url.startsWith('http')) {
+        fetchUrl = url.startsWith('/') ? 
+          `${window.location.origin}${url}` : 
+          `${window.location.origin}/${url}`;
+      }
+
+      // Fetch the file
+      const res = await fetch(fetchUrl);
+      if (!res.ok) throw new Error(`Failed to fetch file: ${res.status} ${res.statusText}`);
+
+      const buf = await res.arrayBuffer();
+
+      if (ext === 'pdf') {
+        // ✅ Call PDF loader
+        await showPdfFromBuffer(buf, song.title || song.filename || 'Song');
+      } else {
+        // ✅ Use AlphaTab for GP/GPX/MusicXML files
+        if (!window.at) {
+          await waitForAlphaTab();
+        }
+        await window.at.load(buf);
+      }
+
+      // Update meta info
+      const meta = document.getElementById('meta');
+      if (meta) {
+        meta.textContent = `${song.title || song.filename || 'Song'} — ${song.artist || ''}`;
+      }
+
+      closeModal();
+      setTimeout(() => document.getElementById('play')?.click(), 300);
+
+    } catch (e) {
+      console.error('Load song error:', e);
+      alert('Could not load song: ' + e.message);
+    }
+  }
   
+  // Event listeners
   $('#searchSong')?.addEventListener('click', openModal);
   $('#songModalClose')?.addEventListener('click', closeModal);
   $('#songModalCancel')?.addEventListener('click', closeModal);
   $('.song-modal-backdrop')?.addEventListener('click', closeModal);
   
   const input = $('#songSearchInput');
-  input?.addEventListener('input', (e)=> renderResults(e.target.value));
+  input?.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    renderResults(query);
+  });
   
-  document.addEventListener('keydown', (e)=>{
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
     const modalVisible = $('#songSearchModal')?.getAttribute('aria-hidden') === 'false';
     if (!modalVisible) return;
     
     const items = $$('#songResults .song-result');
     if (!items.length) return;
+    
     let idx = items.findIndex(x => x.getAttribute('aria-selected') === 'true');
     if (idx < 0) idx = 0;
     
@@ -4040,14 +4123,18 @@ async function loadSong(song) {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const sel = items.find(x => x.getAttribute('aria-selected') === 'true') || items[0];
-      const libIndex = Number(sel.dataset.index)||0;
-      getLibrary().then(lib => loadSong(lib[libIndex]));
+      const resultIndex = Number(sel.dataset.index) || 0;
+      const results = window.currentSearchResults || [];
+      if (results[resultIndex]) {
+        loadSong(results[resultIndex]);
+      }
     } else if (e.key === 'Escape') {
       closeModal();
     }
   });
   
-  $('#searchSong')?.addEventListener('click', ()=> renderResults(''));
+  // Initialize - load all songs when search button is clicked
+  $('#searchSong')?.addEventListener('click', () => renderResults(''));
 })();
 
 // ====== THEME TOGGLE ======
@@ -4056,14 +4143,15 @@ async function loadSong(song) {
   const btn = $('#toggleTheme');
   const saved = localStorage.getItem('upkraft-theme');
   
-function setTheme(next){
-  root.setAttribute('data-theme', next);
-  localStorage.setItem('upkraft-theme', next);
-  if(btn) {
-    const icon = btn.querySelector('.theme-icon');
-    if(icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
+  function setTheme(next){
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('upkraft-theme', next);
+    if(btn) {
+      const icon = btn.querySelector('.theme-icon');
+      if(icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
+    }
   }
-}
+  
   if(saved){ setTheme(saved); } else { setTheme('dark'); }
   
   if(btn){

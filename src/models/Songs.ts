@@ -12,11 +12,22 @@ export interface ISong extends Document {
   extension?: string;
   fileSize?: number;
   tags?: string[];
+  
+  // ✅ Cloudinary specific fields
+  cloudinaryPublicId?: string;  // For file management/deletion
+  cloudinaryResourceType?: 'video' | 'raw';  // Cloudinary resource type
+  cloudinaryFolder?: string;    // Folder path in Cloudinary
+  
   // Additional metadata for Guitar Pro files
   guitarProVersion?: string;
   tuning?: string;
   tempo?: number;
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
+  
+  // ✅ Enhanced metadata
+  duration?: number;           // For audio files (in seconds)
+  downloadCount?: number;      // Track popularity
+  isActive?: boolean;          // For soft delete
 }
 
 const SongSchema = new Schema<ISong>({
@@ -61,7 +72,23 @@ const SongSchema = new Schema<ISong>({
     type: String,
     trim: true,
   }],
-  // Additional metadata for Guitar Pro files
+  
+  // ✅ Cloudinary fields
+  cloudinaryPublicId: {
+    type: String,
+    required: true,
+  },
+  cloudinaryResourceType: {
+    type: String,
+    enum: ['video', 'raw'],
+    required: true,
+  },
+  cloudinaryFolder: {
+    type: String,
+    default: 'music-app/songs',
+  },
+  
+  // Guitar Pro metadata
   guitarProVersion: {
     type: String, // e.g., "5.2", "6.0", "7.5", "8.0"
   },
@@ -75,14 +102,23 @@ const SongSchema = new Schema<ISong>({
     type: String,
     enum: ['Beginner', 'Intermediate', 'Advanced', 'Expert'],
   },
+  
+  // ✅ Enhanced fields
+  duration: {
+    type: Number, // seconds
+  },
+  downloadCount: {
+    type: Number,
+    default: 0,
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
 }, {
   timestamps: true, // adds createdAt and updatedAt
 });
 
-// Index for search functionality
-SongSchema.index({ title: 'text', artist: 'text' });
-SongSchema.index({ uploadDate: -1 });
-SongSchema.index({ fileType: 1 });
-SongSchema.index({ extension: 1 });
-
+// ✅ Enhanced indexes for better search performance
+SongSchema.index({ title: 'text', artist: 'text', tags: 'text' });
 export const Song = mongoose.models.Song || mongoose.model<ISong>("Song", SongSchema);
