@@ -30,7 +30,7 @@ export async function GET(request:NextRequest) {
     
     // Find both users in parallel for efficiency
     const [student, instructor] = await Promise.all([
-      User.findById(studentId).select('username email courses profileImage'),
+      User.findById(studentId).select('username email courses profileImage contact city age'),
       User.findById(instructorId).select('courses')
     ]);
     
@@ -61,13 +61,15 @@ export async function GET(request:NextRequest) {
         username: student.username,
         email: student.email,
         profileImage:student.profileImage,
+        contact: student.contact,
+        city: student.city,
+        age: student.age,
         courses: []
       });
     }
     
     // Fetch the common courses
-    const commonCourses = await courseName.find({ _id: { $in: commonCourseIds } })
-      .select('title description duration price curriculum _id');
+    const commonCourses = await courseName.find({ _id: { $in: commonCourseIds } });
     
     return NextResponse.json({
       message: "Common courses retrieved successfully",
@@ -75,6 +77,9 @@ export async function GET(request:NextRequest) {
       username: student.username,
       email: student.email,
       profileImage:student.profileImage,
+      contact: student.contact,
+      city: student.city,
+      age: student.age,
       courses: commonCourses
     });
     

@@ -29,13 +29,24 @@ export async function GET(request) {
 
     // Get course details for the user's enrolled courses
     const courseDetails = await courseName.find({ _id: { $in: user.courses } });
-        
+    
+    // EXTRA: Create a map of course ID to course name for easy access
+    const courseTitleMap = {};
+    courseDetails.forEach(course => {
+      courseTitleMap[course._id.toString()] = {
+        title: course.title,
+        category: course.category,
+        description: course.description,
+        duration: course.duration,
+        price: course.price,
+        curriculum: course.curriculum
+      };
+    });
+
     // Extract all class IDs from the courses
     const classIds = courseDetails.reduce((acc, course) => {
       return acc.concat(course.class || []);
     }, []);
-
-    // console.log("Extracted class IDs:", classIds);
 
     // Find class details using the extracted class IDs
     const classDetails = await Class.find({ _id: { $in: classIds } });
@@ -43,16 +54,17 @@ export async function GET(request) {
     // Count students who have this user as their instructor
     const studentCount = await User.countDocuments({
       instructorId: userId,
-      category: "Student" // 
+      category: "Student"
     });
 
     return NextResponse.json({
       success: true,
-      message: `Sent user successfully`,
+      message: "Sent user successfully",
       user,
       courseDetails,
       classDetails,
-      studentCount
+      studentCount,
+      courseTitleMap
     });
 
   } catch (error) {

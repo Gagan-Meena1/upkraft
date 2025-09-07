@@ -455,8 +455,18 @@ export default function Dashboard() {
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
               onClick={() => isMobile && setSidebarOpen(false)}
             >
+            
               <BookCheck size={20} />
               {(sidebarOpen || isMobile) && <span className="ml-3">Assignments</span>}
+            </Link>
+             <Link 
+              href="/visualizer.html" 
+              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
+              onClick={() => isMobile && setSidebarOpen(false)}
+            >
+            
+              <BookCheck size={20} />
+              {(sidebarOpen || isMobile) && <span className="ml-3">Practice Studio</span>}
             </Link>
             <button 
               onClick={async () => {

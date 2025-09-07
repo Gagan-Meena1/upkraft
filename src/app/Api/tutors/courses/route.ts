@@ -46,7 +46,13 @@ export async function POST(request: NextRequest) {
         const savednewCourse=await newCourse.save();
         const courses=await courseName.find({instructorId})
         await User.findByIdAndUpdate(instructorId,{$addToSet:{courses:savednewCourse._id}},{new:true})
-   
+    // TODO: Replace with your actual database or service call
+    // For example, if using Prisma:
+    // const newCourse = await prisma.course.create({
+    //   data: courseData
+    // });
+
+    // Simulated successful course creation
     console.log("22222222222222222222222222");
 
     return NextResponse.json({
