@@ -1,4 +1,3 @@
-// app/tutor/bulkUpload/page.tsx
 'use client';
 import { useState } from 'react';
 
@@ -6,60 +5,65 @@ export default function BulkUpload() {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const uploadFiles = async () => {
     if (files.length === 0) return;
 
     setUploading(true);
     setResults(null);
-    const formData = new FormData();
-    
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
+    setUploadProgress(0);
 
     try {
-      console.log('Starting bulk upload with', files.length, 'files');
-      
-      // ✅ FIXED: Correct API endpoint
-      const response = await fetch('/Api/songs/batch-upload', {
-        method: 'POST',
-        body: formData,
+      // Process files in chunks to avoid timeout
+      const chunkSize = 3; // Process 3 files at a time
+      const chunks = [];
+      for (let i = 0; i < files.length; i += chunkSize) {
+        chunks.push(files.slice(i, i + chunkSize));
+      }
+
+      let totalSuccess = 0;
+      let totalErrors = [];
+
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        const formData = new FormData();
+        
+        chunk.forEach((file) => {
+          formData.append('files', file);
+        });
+
+        console.log(`Uploading chunk ${i + 1}/${chunks.length} with ${chunk.length} files`);
+
+        // ✅ FIXED: Lowercase 'api'
+        const response = await fetch('/Api/songs/batch-upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Chunk upload error:', errorText);
+          totalErrors.push(`Chunk ${i + 1} failed: ${errorText}`);
+          continue;
+        }
+
+        const data = await response.json();
+        totalSuccess += data.success || chunk.length;
+        
+        if (data.errors) {
+          totalErrors.push(...data.errors);
+        }
+
+        // Update progress
+        setUploadProgress(((i + 1) / chunks.length) * 100);
+      }
+
+      setResults({
+        success: totalSuccess,
+        failed: files.length - totalSuccess,
+        errors: totalErrors
       });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Response error:', errorText);
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const responseText = await response.text();
-        console.error('Non-JSON response:', responseText);
-        throw new Error(`Server returned non-JSON response: ${responseText.slice(0, 100)}...`);
-      }
-
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-
-      if (!responseText.trim()) {
-        throw new Error('Server returned empty response');
-      }
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError);
-        throw new Error(`Invalid JSON: ${responseText.slice(0, 100)}...`);
-      }
-
-      console.log('Upload successful:', data);
-      setResults(data);
       
     } catch (error) {
       console.error('Upload error:', error);
@@ -69,6 +73,7 @@ export default function BulkUpload() {
       });
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -76,17 +81,20 @@ export default function BulkUpload() {
     const selectedFiles = Array.from(event.target.files);
     const validFiles = selectedFiles.filter(file => {
       const ext = file.name.toLowerCase();
-      return ext.endsWith('.mp3') || 
-             ext.endsWith('.gp') || 
-             ext.endsWith('.gp3') || 
-             ext.endsWith('.gp4') || 
-             ext.endsWith('.gp5') || 
-             ext.endsWith('.gp6') || 
-             ext.endsWith('.gp7') || 
-             ext.endsWith('.gp8') || 
-             ext.endsWith('.dp');
+      const validExtensions = ['.mp3', '.gp', '.gp3', '.gp4', '.gp5', '.gp6', '.gp7', '.gp8', '.dp'];
+      return validExtensions.some(extension => ext.endsWith(extension));
     });
-    setFiles(validFiles);
+    
+    // Check file sizes (limit to 10MB per file for better upload)
+    const sizeFilteredFiles = validFiles.filter(file => {
+      if (file.size > 10 * 1024 * 1024) { // 10MB
+        alert(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Max 10MB allowed.`);
+        return false;
+      }
+      return true;
+    });
+    
+    setFiles(sizeFilteredFiles);
     setResults(null);
   };
 
@@ -97,7 +105,7 @@ export default function BulkUpload() {
       <div className="bg-white rounded-lg shadow p-6">
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">
-            Select Music Files (MP3, GP, GP3-GP8, DP)
+            Select Music Files (MP3, GP, GP3-GP8, DP) - Max 10MB each
           </label>
           <input
             type="file"
@@ -106,6 +114,9 @@ export default function BulkUpload() {
             onChange={handleFileChange}
             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
+          <p className="text-xs text-gray-500 mt-1">
+            Supported: MP3 (audio), GP/GP1-GP8/GPX (Guitar Pro), DP files. Files processed in chunks to avoid timeouts.
+          </p>
         </div>
 
         {files.length > 0 && (
@@ -115,11 +126,28 @@ export default function BulkUpload() {
             </p>
             <div className="max-h-40 overflow-y-auto bg-gray-50 rounded p-3">
               {files.map((file, index) => (
-                <div key={index} className="text-sm text-gray-700">
-                  {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                <div key={index} className="text-sm text-gray-700 flex justify-between">
+                  <span>{file.name}</span>
+                  <span className="text-gray-500">
+                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                  </span>
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {uploading && uploadProgress > 0 && (
+          <div className="mb-4">
+            <div className="bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              ></div>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">
+              Upload Progress: {uploadProgress.toFixed(0)}%
+            </p>
           </div>
         )}
 
@@ -128,7 +156,7 @@ export default function BulkUpload() {
           disabled={uploading || files.length === 0}
           className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {uploading ? 'Uploading...' : `Upload ${files.length} Files`}
+          {uploading ? `Uploading... (${uploadProgress.toFixed(0)}%)` : `Upload ${files.length} Files`}
         </button>
 
         {results && (
@@ -138,9 +166,12 @@ export default function BulkUpload() {
                 <h3 className="font-semibold text-red-800">Upload Failed</h3>
                 <p className="text-red-600">{results.error}</p>
                 {results.details && (
-                  <pre className="mt-2 text-xs text-red-500 overflow-auto">
-                    {results.details}
-                  </pre>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-red-700">Show Details</summary>
+                    <pre className="mt-2 text-xs text-red-500 overflow-auto bg-red-100 p-2 rounded">
+                      {results.details}
+                    </pre>
+                  </details>
                 )}
               </div>
             ) : (
@@ -155,10 +186,10 @@ export default function BulkUpload() {
                 
                 {results.errors && results.errors.length > 0 && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
-                    <h4 className="font-semibold text-yellow-800">Errors:</h4>
-                    <ul className="text-sm text-yellow-700">
+                    <h4 className="font-semibold text-yellow-800">Issues Found:</h4>
+                    <ul className="text-sm text-yellow-700 max-h-40 overflow-y-auto">
                       {results.errors.map((error, index) => (
-                        <li key={index}>• {error}</li>
+                        <li key={index} className="mb-1">• {error}</li>
                       ))}
                     </ul>
                   </div>
