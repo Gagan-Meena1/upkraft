@@ -116,12 +116,6 @@ export default function StudentFeedbackPage() {
         )}
       </div>
 
-      {/* Footer */}
-      <footer className="w-full bg-gray-50 py-8 px-8 border-t border-gray-100">
-        <div className="max-w-6xl mx-auto text-center text-gray-500">
-          © 2025 UPKRAFT. All rights reserved.
-        </div>
-      </footer>
     </div>
   );
 }

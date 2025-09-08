@@ -469,38 +469,6 @@ export default function Home() {
 
       {/* Add Chat component */}
       <Chat />
-
-      {/* Footer */}
-      <footer className="w-full bg-gray-50 py-8 sm:py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: '#fbf5ee' }}>
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
-          <div className="order-1 md:order-1">
-            <Link href="/" className="cursor-pointer">
-              <Image 
-                src="/logo.png"
-                alt="UpKraft"
-                width={288}
-                height={72}
-                priority
-                className="object-contain w-24 sm:w-32 lg:w-36 h-auto" 
-              />
-            </Link>
-          </div>
-          <div className="flex flex-wrap justify-center space-x-4 sm:space-x-8 text-gray-600 order-2 md:order-2">
-            <a href="#" className="hover:text-gray-900 body-text text-sm sm:text-base">About</a>
-            <a href="#" className="hover:text-gray-900 body-text text-sm sm:text-base">Features</a>
-            <a href="#" className="hover:text-gray-900 body-text text-sm sm:text-base">Pricing</a>
-            <a href="#" className="hover:text-gray-900 body-text text-sm sm:text-base">Contact</a>
-          </div>
-          <div className="text-gray-500 order-3 md:order-3">
-            <div className="flex space-x-4 mb-4 justify-center">
-              <a href="#"><img src="facebook.png" alt="Facebook" className="w-5 sm:w-6 h-auto"/></a>
-              <a href="#"><img src="twitter.png" alt="Twitter" className="w-5 sm:w-6 h-auto" /></a>
-              <a href="#"><img src="instagram .png" alt="Instagram" className="w-5 sm:w-6 h-auto" /></a>
-            </div>
-            <p className="body-text text-center text-xs sm:text-sm">© 2025 UpKraft. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

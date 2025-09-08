@@ -1,7 +1,11 @@
 // app/Api/assignment/route.js (modify your existing endpoint)
 import { NextResponse } from 'next/server';
 import {connect} from '@/dbConnection/dbConfic'
+<<<<<<< HEAD
 import Assignment from '@/models/assignment'; 
+=======
+import Assignment from '@/models/assignment'; // Adjust path as needed
+>>>>>>> 65ba086d57a21c409b508009631c19b03e15fd7d
 
 export async function GET(request) {
   try {
