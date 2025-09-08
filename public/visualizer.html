@@ -1,9 +1,26 @@
+
 <!DOCTYPE html>
 <html data-theme="dark" lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>AlphaTab Guitar Practice Player (Top Controls, Note Highlight, MIDI to TAB)</title>
+<script>
+  (function(){
+    try{
+      var params = new URLSearchParams(location.search);
+      var api = params.get('apiBase');
+      if (api) {
+        window.API_BASE_URL = api;
+      }
+      var songUrl = params.get('songUrl');
+      if (songUrl) {
+        window.__UPKRAFT_SELECTED_SONG__ = songUrl;
+      }
+    }catch(e){}
+  })();
+  // Optional: parent app may also set window.UPKRAFT_API_BASE
+</script>
 <style>
     :root{--bg:#0b1220;--fg:#e7f0ff;--muted:#a6b7d1;--panel:#101a2a;--panel2:#0e1830;--border:#1d2946;--accent:#4aa3ff;--accent2:#7bd88f;}
     :root{--header-h:64px}
@@ -46,7 +63,7 @@
     .at-selection *{fill:#ffd166;stroke:#ffd166}
   
 header{flex-wrap:wrap;gap:8px;row-gap:8px;overflow-x:visible;overflow-y:visible;width:100%}
-header .btn{font-size:12px;padding:6px 10px;border-radius:8px}
+header .btn{font-size:12px;padding:8px 12px;border-radius:8px}
 header .chip{font-size:11px;padding:4px 8px}
 header select, header input[type="file"]{font-size:12px;padding:6px 8px}
 header .link{font-size:11px}
@@ -269,7 +286,7 @@ header .row-second{margin-top:4px}
 /* Keyboard shortcuts help */
 .kbd-help {
   position: fixed;
-  top: 125px;
+  top: 128px;
   right: 15px;
   background: var(--panel);
   border: 1px solid var(--border);
@@ -565,9 +582,11 @@ label.chip.equal-h.btn-like {
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  gap: 2px;
+  padding: 8px 10px;
   font-weight: 500;
+  min-height: 32px;
+  font-size: 12px;
 }
 label.chip input[type="checkbox"],
 label.chip.equal-h.btn-like input[type="checkbox"] {
@@ -615,6 +634,43 @@ header .row-second-right {
   min-width: 0;
 }
 
+</style>
+<style id="responsive-merge">
+/* Responsive enhancements merged from visualizer-reponsive.html */
+@media (max-width: 1200px) {
+  header h2 { width: 180px !important; font-size: 12px !important; }
+  .row-first-controls { gap: 6px !important; }
+  .control-group { gap: 4px !important; padding: 2px 4px !important; }
+  header .btn { padding: 6px 8px !important; font-size: 11px !important; }
+}
+@media (max-width: 900px) {
+  header h2 { display: none !important; }
+  header { --first-row-offset: 0px !important; }
+  .row-first-controls { margin-left: 0 !important; padding: 8px 12px 0 12px !important; width: 100%; justify-content: center; }
+  .row.row-second { padding: 0 12px 8px 12px !important; justify-content: center !important; }
+  .row-second-left { margin-left: 0 !important; flex: 1; justify-content: center; }
+  .loop-controls { display: none !important; }
+  #meta { max-width: 150px !important; }
+}
+.row-first-controls { max-width: calc(100% - var(--first-row-offset, 0px) - 20px); overflow-x: hidden; scrollbar-width: thin; }
+@media (max-width: 600px) {
+  .row-first-controls { overflow-x: auto; scrollbar-width: thin; }
+}
+.row-first-controls::-webkit-scrollbar { display: none; }
+header { overflow-x: hidden !important; overflow-y: hidden !important; }
+.row.row-second { overflow-x: hidden !important; }
+.row-first-controls::-webkit-scrollbar { height: 4px; }
+.row-first-controls::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+@media (max-width: 768px) {
+  .key-selector { display: none !important; }
+  #toggleTheme { display: none !important; }
+  #toggleTreble { display: none !important; }
+  #countIn { display: none !important; }
+}
+header { min-height: auto !important; height: auto !important; max-height: 120px !important; overflow-y: hidden !important; }
+.row-first-controls, .row.row-second { min-height: 32px; flex-shrink: 0; }
+.wrap { min-width: 320px !important; max-width: 100% !important; }
+#alphaTab { min-width: 0 !important; width: 100% !important; }
 </style>
 <!-- AlphaTab & @tonejs/midi -->
 <script src="https://cdn.jsdelivr.net/npm/@coderline/alphatab@1.6.1/dist/alphaTab.min.js"></script>
@@ -731,7 +787,6 @@ html[data-theme="light"] header .btn.active {
 html[data-theme="light"] header #countIn.btn,
 html[data-theme="light"] header #metronome.btn { 
   color: var(--fg) !important;
-}
 
 /* Compact theme toggle button with icons */
 #toggleTheme {
@@ -808,6 +863,68 @@ header .row-second-rec .rec.rec-on::before {
   50%      { box-shadow: 0 0 0 6px rgba(255,59,48,0.15); opacity: .85; }
 }
 #record{ font-weight: 400 !important; }
+
+/* Recording Countdown Styles */
+.countdown-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.countdown-content {
+  text-align: center;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.countdown-number {
+  font-size: 120px;
+  font-weight: bold;
+  color: var(--accent2);
+  text-shadow: 0 0 40px rgba(123, 216, 143, 0.5);
+  animation: pulse 1s ease-in-out infinite;
+  line-height: 1;
+  margin-bottom: 20px;
+}
+
+.countdown-number.recording {
+  color: #ff3b30;
+  text-shadow: 0 0 40px rgba(255, 59, 48, 0.7);
+  font-size: 60px;
+}
+
+.countdown-text {
+  font-size: 24px;
+  color: var(--fg);
+  margin-bottom: 30px;
+  opacity: 0.9;
+}
+
+.countdown-cancel {
+  background: var(--panel2);
+  padding: 10px 24px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.countdown-cancel:hover {
+  opacity: 1;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 </style>
 
 <style id="professional-header">
@@ -1228,6 +1345,10 @@ html[data-theme="light"] .track.playing {
   background: var(--button-bg); color: var(--fg); font-size: 14px;
 }
 .song-results { display:grid; gap: 8px; overflow:auto; max-height: 52vh; padding-right: 2px; }
+/* Inline loader for search */
+.loading { display:flex; align-items:center; gap:8px; color: var(--muted); font-size: 13px; }
+.loading::before { content:""; width:14px; height:14px; border-radius:50%; border:2px solid var(--border); border-top-color: var(--accent2); animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .song-result { border:1px solid var(--border); border-radius: 10px; padding: 10px 12px; background: var(--panel2); cursor: pointer; }
 .song-result:hover, .song-result[aria-selected="true"] { outline: 2px solid var(--accent2); }
 .song-result .title { font-weight: 700; }
@@ -1326,17 +1447,14 @@ html[data-theme="light"] .track.playing {
 </div>
 </div>
 
-<div class="control-group"><button class="btn" id="searchSong">🔎 Search Song</button></div>
+<div class="control-group"><button class="btn" id="searchSong">🔎 Song</button></div>
 <div class="control-group transport-group">
 <button class="btn" id="play">▶ Play</button>
 <button class="btn" id="pause">⏸ Pause</button>
 <button class="btn" id="stop">⏹ Stop</button>
-</div> 
-<div class="control-group">
-<button class="btn rec" id="record">Record</button> 
-<span id="recIndicator" class="rec-indicator" style="display:none;"><span class="dot"></span>
-</div>
-<span class="label">REC</span>
+</div> <div class="control-group">
+<button class="btn rec" id="record">Record</button> <span id="recIndicator" class="rec-indicator" style="display:none;"><span class="dot"></span>
+</div><span class="label">REC</span></span>
 
 <div class="control-group">
 <label class="chip">Speed
@@ -1354,7 +1472,7 @@ html[data-theme="light"] .track.playing {
     <option value="1.5">150%</option>
 </select>
 </label>
-<label class="chip"><input checked="" id="autoScroll" type="checkbox"/> Auto‑Scroll</label>
+<label class="chip"><input id="autoScroll" type="checkbox"/> Auto‑Scroll</label>
 <button class="btn" id="countIn">Count‑In</button>
 <button class="btn" id="metronome">Metronome</button>
 <div class="metronome-settings" id="metronomeSettings">
@@ -1419,11 +1537,11 @@ html[data-theme="light"] .track.playing {
 <div class="key-option" data-key="Bbm">Bb Minor</div>
 <div class="key-option" data-key="Ebm">Eb Minor</div>
 </div>
-<label class="chip"><input id="transposeToggle" type="checkbox"/> Transpose</label>
+<label class="chip equal-h btn-like" title="Transpose pitch up/down"><input id="transposeToggle" type="checkbox"/> T⇅</label>
 </div>
-</div><span class="row-break"></span><div class="row row-second"><div class="row-second-rec"> </div><div class="row-second-left">
+</div><span class="row-break"></span><div class="row row-second"><div class="row-second-rec"> </div>
+<div class="row-second-left">
 <div class="loop-controls">
-  <span class="chip" id="ab">A: — | B: —</span>
   <div class="loop-inputs">
     <label class="chip">Set A: <input type="number" id="barA" min="1" placeholder="1" max="999" step="1"></label>
     <label class="chip">Set B: <input type="number" id="barB" min="1" placeholder="8" max="999" step="1"></label>
@@ -1434,10 +1552,14 @@ html[data-theme="light"] .track.playing {
 <span class="chip" id="time">00:00 / 00:00</span>
 <span class="chip" id="meta">No score loaded</span>
 <button class="btn" id="bpmBtn" style="margin-left: 1px;">BPM: 120</button>
-</div><div class="row-second-right"><button class="btn" id="toggleKeyboard">Keyboard</button><button class="btn" id="toggleTreble">Treble Clef</button>
+<button class="btn" id="toggleKeyboard">Keyboard</button>
+<button class="btn" id="toggleTreble">Treble Clef</button>
 <button class="btn" id="toggleTheme" title="Toggle theme">
   <span class="theme-icon">🌙</span>
-</button></div></div></header>
+</button>
+</div>
+<div class="row-second-right"></div>
+</div></header>
 <div class="wrap">
 <aside class="sidebar">
 <h3>Instruments</h3>
@@ -1471,7 +1593,7 @@ html[data-theme="light"] .track.playing {
 
 <!-- Keyboard shortcuts help -->
 <div class="kbd-help">
-  <kbd>Space</kbd> Play/Pause <kbd>S</kbd> Stop <kbd>A</kbd> Auto-scroll <kbd>C</kbd> Count-in <kbd>M</kbd> Metronome <kbd>L</kbd> Loop <kbd>↑↓</kbd> Speed <kbd>T</kbd> Transpose <kbd>R</kbd> Record
+  <kbd>Space</kbd> Play/Pause <kbd>S</kbd> Stop <kbd>A</kbd> Scroll <kbd>C</kbd> Count-in <kbd>M</kbd> Metronome <kbd>L</kbd> Loop <kbd>↑↓</kbd> Speed <kbd>T</kbd> Transpose <kbd>R</kbd> Record
 </div>
 
 <!-- Song Search Modal -->
@@ -1517,6 +1639,17 @@ html[data-theme="light"] .track.playing {
 
 <div aria-hidden="true" id="ui-overlay-root"></div>
 
+<!-- Global upload/loading overlay -->
+<div id="uploadLoading" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 10000; align-items: center; justify-content: center;">
+  <div style="background: var(--panel); color: var(--fg); border:1px solid var(--border); padding: 14px 16px; border-radius: 10px; display: flex; align-items: center; gap: 10px;">
+    <span class="loading" style="margin:0"></span>
+    <span>Uploading recording…</span>
+  </div>
+  <style>
+    #uploadLoading .loading::before { width: 16px; height: 16px; border-width: 2px; }
+  </style>
+</div>
+
 <script>
 // ====== CONSOLIDATED INITIALIZATION AND STATE MANAGEMENT ======
 // Single global selector
@@ -1527,7 +1660,7 @@ const $$ = s => Array.from(document.querySelectorAll(s));
 const AppState = {
   isPlaying: false,
   isRecording: false,
-  autoScrollEnabled: true,
+  autoScrollEnabled: false,
   trackStates: {},
   currentKey: 'C',
   originalKey: 'C',
@@ -1840,7 +1973,7 @@ function highlightPlayingTrack(idx) {
   trackHighlightTimers[idx] = setTimeout(() => {
     row.classList.remove('playing');
     delete trackHighlightTimers[idx];
-  }, 280);
+  }, 300);
 }
 
 function clearAllPlayingTracks() {
@@ -2373,97 +2506,13 @@ if (gearSpan) {
   });
 })();
 
-// BPM Button with adjustment popup
+// BPM Display only (no adjustment)
 (function() {
   const bpmBtn = $('#bpmBtn');
   if (!bpmBtn) return;
   
-  // Create BPM adjustment popup
-  const createBpmPopup = () => {
-    const popup = document.createElement('div');
-    popup.className = 'metronome-settings';
-    popup.id = 'bpmSettings';
-    popup.innerHTML = `
-      <div class="metronome-row">
-        <label>BPM</label>
-        <input type="range" id="bpmSlider" min="40" max="240" value="${customMetronome.baseTempo}" class="slider mini">
-        <input type="number" id="bpmInput" min="40" max="240" value="${customMetronome.baseTempo}" 
-               style="width:50px;padding:2px 4px;font-size:10px;background:var(--panel2);border:1px solid var(--border);color:var(--fg);border-radius:4px;">
-      </div>
-      <div class="metronome-row">
-        <button class="btn" id="bpmReset" style="width:100%;font-size:10px;padding:4px">
-          Reset to Original (${customMetronome.baseTempo})
-        </button>
-      </div>
-    `;
-    return popup;
-  };
-  
-  bpmBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    
-    let popup = $('#bpmSettings');
-    if (!popup) {
-      popup = createBpmPopup();
-      bpmBtn.parentElement.appendChild(popup);
-      
-      // Position popup
-      const rect = bpmBtn.getBoundingClientRect();
-      popup.style.position = 'absolute';
-      popup.style.top = `${rect.bottom + 4}px`;
-      popup.style.left = `${rect.left}px`;
-      
-      // Wire up controls
-      const slider = $('#bpmSlider');
-      const input = $('#bpmInput');
-      const reset = $('#bpmReset');
-      
-      const updateBpm = (newBpm) => {
-        customMetronome.baseTempo = newBpm;
-        
-        // Update displays
-        const currentBPM = Math.round(newBpm * (at.playbackSpeed || 1));
-        bpmBtn.textContent = `BPM: ${currentBPM}`;
-        
-        // Restart metronome if playing
-        if (customMetronome.isPlaying) {
-          customMetronome.stop();
-          customMetronome.start();
-        }
-        
-        log(`🎵 BPM adjusted to: ${newBpm}`);
-      };
-      
-      slider.oninput = (e) => {
-        const val = parseInt(e.target.value);
-        input.value = val;
-        updateBpm(val);
-      };
-      
-      input.oninput = (e) => {
-        const val = Math.min(240, Math.max(40, parseInt(e.target.value) || 120));
-        slider.value = val;
-        updateBpm(val);
-      };
-      
-      reset.onclick = () => {
-        const originalBpm = parseInt(reset.textContent.match(/\d+/)[0]);
-        slider.value = originalBpm;
-        input.value = originalBpm;
-        updateBpm(originalBpm);
-      };
-    }
-    
-    popup.classList.toggle('show');
-  });
-  
-  // Close popup when clicking outside
-  document.addEventListener('click', (e) => {
-    const popup = $('#bpmSettings');
-    if (popup && !e.target.closest('#bpmBtn') && !e.target.closest('#bpmSettings')) {
-      popup.classList.remove('show');
-    }
-  });
+  // Just keep the button as a display, no click functionality
+  bpmBtn.style.cursor = 'default';
 })();
 
 $('#autoScroll').onchange = e => {  // <-- This is the next existing code around line 2143
@@ -2601,24 +2650,8 @@ try {
     updateButtonStates();
   }, 100);
 });
-// Reset scroll when rendering finishes (fixed to prevent vibration)
-at.renderFinished.on(() => {
-  const alphaTab = $('#alphaTab');
-  if (!alphaTab) return;
-  
-  // Clear any existing timer to prevent conflicts
-  if (window.scrollResetTimer) {
-    clearTimeout(window.scrollResetTimer);
-  }
-  
-  // Single delayed reset instead of multiple aggressive ones
-  window.scrollResetTimer = setTimeout(() => {
-    if (alphaTab && !AppState.isPlaying) {
-      alphaTab.scrollTop = 0;
-      alphaTab.scrollLeft = 0;
-    }
-  }, 150); // Single delay, adjusted for stability
-});
+// Do not force-reset scroll on render; respect user's scroll position
+at.renderFinished.on(() => {});
 
 at.playerPositionChanged.on(e => {
   const fmt = ms => { 
@@ -3221,11 +3254,6 @@ window.addEventListener('keydown', function(e) {
   }
   
   function updateABDisplay() {
-    if (abSpan) {
-      const aText = AppState.aBar ? ('Bar ' + AppState.aBar) : '—';
-      const bText = AppState.bBar ? ('Bar ' + AppState.bBar) : '—';
-      abSpan.textContent = `A: ${aText} | B: ${bText}`;
-    }
     try {
       if (AppState.aBar && AppState.bBar) {
         AppState.aTick = getBarStartTick(AppState.aBar);
@@ -3314,10 +3342,11 @@ window.addEventListener('keydown', function(e) {
   } catch(e){}
 })();
 
-// ====== RECORDING ======
+// ====== RECORDING WITH COUNTDOWN ======
 (function(){
   let recStream = null, mediaRecorder = null, recChunks = [], prevMuteStates = null;
-  let pendingBlob = null; // Store blob temporarily
+  let pendingBlob = null;
+  let countdownInterval = null;
   
   async function muteAllTracks() {
     try {
@@ -3340,6 +3369,105 @@ window.addEventListener('keydown', function(e) {
     } catch (e) {}
   }
   
+  function showCountdown() {
+    return new Promise((resolve, reject) => {
+      const overlay = $('#recordCountdown');
+      const numberEl = overlay.querySelector('.countdown-number');
+      const textEl = overlay.querySelector('.countdown-text');
+      const cancelBtn = overlay.querySelector('.countdown-cancel');
+      
+      overlay.style.display = 'flex';
+      let count = 5;
+      
+      // Cancel handler
+      const cancelCountdown = () => {
+        if (countdownInterval) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+        overlay.style.display = 'none';
+        reject(new Error('Countdown cancelled'));
+      };
+      
+      cancelBtn.onclick = cancelCountdown;
+      
+      // Countdown logic
+      const updateCountdown = () => {
+        if (count > 0) {
+          numberEl.textContent = count;
+          numberEl.className = 'countdown-number';
+          textEl.textContent = 'Get Ready!';
+          
+          // Optional: Add audio beep for each count
+          const beep = new AudioContext();
+          const osc = beep.createOscillator();
+          const gain = beep.createGain();
+          osc.connect(gain);
+          gain.connect(beep.destination);
+          osc.frequency.value = count === 1 ? 880 : 660; // Higher pitch on last count
+          gain.gain.value = 0.1;
+          osc.start();
+          osc.stop(beep.currentTime + 0.1);
+          
+          count--;
+        } else if (count === 0) {
+          numberEl.textContent = 'RECORDING!';
+          numberEl.className = 'countdown-number recording';
+          textEl.textContent = 'Session in progress';
+          cancelBtn.style.display = 'none';
+          count--;
+        } else {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+          overlay.style.display = 'none';
+          resolve();
+        }
+      };
+      
+      updateCountdown(); // Show 5 immediately
+      countdownInterval = setInterval(updateCountdown, 1000);
+    });
+  }
+  
+  async function startRecording(stream) {
+    recChunks = [];
+    recStream = stream; // Use the already granted stream
+    mediaRecorder = new MediaRecorder(recStream);
+    
+    mediaRecorder.ondataavailable = e => { 
+      if (e.data.size > 0) recChunks.push(e.data);
+    };
+    
+    mediaRecorder.onstop = () => {
+      try {
+        pendingBlob = new Blob(recChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        showRecordingConfirmation();
+      } catch(e) {
+        console.error('Recording processing error:', e);
+      }
+    };
+    
+    await muteAllTracks();
+    mediaRecorder.start();
+    $('#play')?.click();
+    log('🎤 Recording started');
+  }
+  
+  function stopRecording() {
+    try {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      if (recStream) {
+        recStream.getTracks().forEach(t => t.stop());
+      }
+    } catch(e) {}
+    
+    restoreMuteStates();
+    $('#stop')?.click();
+    log('⏹️ Recording stopped');
+  }
+  
   function downloadRecording() {
     if (!pendingBlob) return;
     
@@ -3352,8 +3480,6 @@ window.addEventListener('keydown', function(e) {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 15000);
-      
-      // Clear the pending blob
       pendingBlob = null;
       log('📥 Recording downloaded successfully');
     } catch(e) {
@@ -3378,95 +3504,45 @@ window.addEventListener('keydown', function(e) {
     }
   }
   
-  async function startRecording() {
-  recChunks = [];
-  recStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  mediaRecorder = new MediaRecorder(recStream);
-
-  mediaRecorder.ondataavailable = e => {
-    if (e.data.size > 0) recChunks.push(e.data);
-  };
-
-  mediaRecorder.onstop = async () => {
-    try {
-      const blob = new Blob(recChunks, { type: mediaRecorder.mimeType || "audio/mp3" });
-
-
-      console.log('blob',blob);
-
-      // Prepare form data
-      const formData = new FormData();
-      formData.append("audio_file", blob, "practice_recording.mp3");
-      // formData.append("model", "gemini-v1");
-      // formData.append("include_thoughts", "true");
-
-      for (let [key, value] of formData.entries()) {
-  console.log(key, value);
-}
-
-
-      // Upload to API
-      const response = await fetch("http://168.231.103.13:8000/audio/guitar-ratings/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log("Analysis result:", result);
-      // Store data temporarily (clears when browser tab closes)
-      sessionStorage.setItem('guitarAnalysisResults', JSON.stringify(result));
-      window.location.href = '/tutor/practiceResult';
-    } catch (err) {
-      console.error("Upload failed:", err);
-    }
-  };
-
-  await muteAllTracks(); // optional if you want to mute mic/system
-  mediaRecorder.start();
-  document.querySelector("#play")?.click(); // if you want playback
-}
-  
-  function stopRecording() {
-    try {
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        mediaRecorder.stop();
-      }
-      if (recStream) {
-        recStream.getTracks().forEach(t => t.stop());
-      }
-    } catch(e) {}
-    
-    restoreMuteStates();
-    $('#stop')?.click();
-    log('⏹️ Recording stopped');
-  }
-  
-  // Main record button handler
+  // Main record button handler with countdown
   const recBtn = $('#record');
   const lamp = $('#recIndicator');
   
   if (recBtn) {
     recBtn.addEventListener('click', async () => {
       if (!AppState.isRecording) {
-        AppState.isRecording = true;
-        recBtn.classList.add('rec-on');
-        recBtn.textContent = '■ Stop';
-        if (lamp) lamp.style.display = 'inline-flex';
+        let micStream = null;
         
         try {
-          await startRecording();
-        } catch(e) {
-          AppState.isRecording = false;
-          recBtn.classList.remove('rec-on');
-          recBtn.textContent = 'Record';
-          if (lamp) lamp.style.display = 'none';
-          alert('Microphone access is needed to record.');
+          // STEP 1: Request microphone permission FIRST
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          log('🎙️ Microphone access granted');
+          
+          // STEP 2: If permission granted, show countdown
+          try {
+            await showCountdown();
+            
+            // STEP 3: After countdown, start recording
+            AppState.isRecording = true;
+            recBtn.classList.add('rec-on');
+            recBtn.textContent = '■ Stop';
+            if (lamp) lamp.style.display = 'inline-flex';
+            
+            await startRecording(micStream);
+          } catch(countdownError) {
+            // User cancelled countdown
+            if (micStream) {
+              micStream.getTracks().forEach(t => t.stop());
+            }
+            log('Countdown cancelled');
+          }
+        } catch(micError) {
+          // Microphone permission denied
+          alert('Microphone access is required to record. Please allow microphone access and try again.');
+          log('❌ Microphone access denied');
         }
       } else {
+        // Stop recording
         AppState.isRecording = false;
         recBtn.classList.remove('rec-on');
         recBtn.textContent = 'Record';
@@ -3477,24 +3553,51 @@ window.addEventListener('keydown', function(e) {
   }
   
   // Confirmation modal buttons
-  $('#recordAIBtn')?.addEventListener('click', () => {
-    downloadRecording();
-    hideRecordingConfirmation();
-    // Here you could add AI recommendation logic later
-    log('🤖 AI Recommendation selected - file downloaded');
+  $('#recordAIBtn')?.addEventListener('click', async () => {
+    if (!pendingBlob) { hideRecordingConfirmation(); return; }
+    try {
+      const up = document.getElementById('uploadLoading');
+      if (up) up.style.display = 'flex';
+      const formData = new FormData();
+      formData.append('audio_file', pendingBlob, 'practice_recording.webm');
+      const response = await fetch('http://168.231.103.13:8000/audio/guitar-ratings/upload', { method: 'POST', body: formData });
+      if (!response.ok) throw new Error('Upload failed: ' + response.status);
+      const result = await response.json();
+      sessionStorage.setItem('guitarAnalysisResults', JSON.stringify(result));
+      // Ensure the value is readable before proceeding
+      try {
+        const key = 'guitarAnalysisResults';
+        let tries = 0;
+        while (!sessionStorage.getItem(key) && tries < 20) { // ~1s max
+          await new Promise(r => setTimeout(r, 50));
+          tries++;
+        }
+      } catch(_) { /* storage is synchronous, this is a safety check */ }
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: 'upkraft:showResults', payload: { source: 'visualizer', ts: Date.now() } }, '*');
+        } else {
+          window.location.href = '/practice-studio#Results';
+        }
+      } catch(_) {
+        window.location.href = '/practice-studio#Results';
+      }
+    } catch(err){
+      console.error('Upload failed:', err);
+      alert('Upload failed');
+    } finally {
+      const up = document.getElementById('uploadLoading');
+      if (up) up.style.display = 'none';
+      hideRecordingConfirmation();
+      pendingBlob = null;
+    }
   });
   
   $('#recordAgainBtn')?.addEventListener('click', () => {
-    pendingBlob = null; // Discard the recording
+    pendingBlob = null;
     hideRecordingConfirmation();
     log('🔄 Recording discarded - ready to record again');
   });
-  
-  // Close modal with backdrop click
-  //$('#recordConfirmModal .song-modal-backdrop')?.addEventListener('click', () => {
-    //hideRecordingConfirmation();
-    // Keep the blob in case user wants to reconsider
-  //});
   
   // ESC key to close modal
   document.addEventListener('keydown', (e) => {
@@ -3562,7 +3665,7 @@ window.addEventListener('keydown', function(e) {
         const spacer = document.createElement('div');
         spacer.className = 'black-key-wrap';
         blacks.appendChild(spacer);
-        midi = midi + 2;
+        midi = midi + 1;
       }
     }
     
@@ -3882,7 +3985,7 @@ window.addEventListener('keydown', function(e) {
         if (Array.isArray(data) && data.length) return data;
       }
     } catch(e){ /* ignore */ }
-    return DEFAULT_LIBRARY; // ✅ Return default library as fallback
+    return DEFAULT_LIBRARY;
   }
   
   function openModal(){
@@ -3900,211 +4003,112 @@ window.addEventListener('keydown', function(e) {
     m.setAttribute('aria-hidden', 'true');
   }
   
-  async function renderResults(query) {
+  async function renderResults(query){
     const box = $('#songResults');
     box.innerHTML = '<div class="loading">Searching...</div>';
 
-    try {
+    try{
       let results = [];
-
-      if (query && query.trim()) {
-        // 🔥 Call your search API - Fixed URL (lowercase 'api')
-        const res = await fetch(`/Api/songs/search?q=${encodeURIComponent(query)}`);
-        if (!res.ok) {
-          console.warn("Search API failed, falling back to default library");
-          results = await getLibrary();
-        } else {
-          const data = await res.json();
-          results = data.items || [];
-        }
+      const q = (query||'').trim();
+      if (q) {
+        const apiUrl = (p) => {
+          const base = (window.UPKRAFT_API_BASE || window.API_BASE_URL || '').replace(/\/+$/, '');
+          const path = p.startsWith('/') ? p : `/${p}`;
+          return base ? `${base}${path}` : path;
+        };
+        const res = await fetch(apiUrl(`/Api/songs/search?q=${encodeURIComponent(q)}`));
+        if (!res.ok) throw new Error('Search API failed');
+        const data = await res.json();
+        results = Array.isArray(data?.items) ? data.items : [];
       } else {
-        // No query → load from API without search term to get all songs
-        try {
-          const res = await fetch('/Api/songs/search');
-          if (res.ok) {
-            const data = await res.json();
-            results = data.items || [];
-          }
-          if (!results.length) {
-            results = await getLibrary();
-          }
-        } catch (err) {
-          console.warn("API not available, using default library");
-          results = await getLibrary();
-        }
+        const lib = await getLibrary();
+        results = Array.isArray(lib) ? lib : [];
       }
 
       box.innerHTML = '';
-      if (!results.length) {
+      if (results.length === 0) {
         box.innerHTML = '<div class="no-results">No songs found</div>';
         return;
       }
 
-      results.forEach((s, idx) => {
+      results.forEach((s, idx)=>{
         const div = document.createElement('div');
         div.className = 'song-result';
-        div.setAttribute('role', 'option');
+        div.setAttribute('role','option');
         div.dataset.index = String(idx);
-
-        // ✅ Handle URL construction properly
-        let songUrl = s.url;
-        
-        // If URL is relative, construct full URL
-        if (songUrl && !songUrl.startsWith('http')) {
-          // Remove leading slash if present to avoid double slash
-          const cleanUrl = songUrl.startsWith('/') ? songUrl.substring(1) : songUrl;
-          songUrl = `${window.location.origin}/${cleanUrl}`;
-        }
-
-        console.log('Song URL:', songUrl, 'Original:', s.url);
-        
-        div.innerHTML = `
-          <div class="title">${s.title || 'Untitled'}</div>
-          <div class="meta">${s.artist || 'Unknown Artist'} · ${s.type || s.extension || 'file'}</div>
-        `;
-
-        // 👇 Store the complete song object with corrected URL
-        const songData = { ...s, url: songUrl };
-        div.addEventListener('click', () => loadSong(songData));
-
+        div.innerHTML = '<div class="title">'+ (s.title||'Untitled') +'</div>' +
+                        '<div class="meta">'+ (s.artist||'') +' · '+ (s.type||'file') +'</div>';
+        div.addEventListener('click', ()=> loadSong(s));
         box.appendChild(div);
       });
-
       const first = box.querySelector('.song-result');
       if (first) first.setAttribute('aria-selected','true');
-
-      // ✅ Store results for keyboard navigation
-      window.currentSearchResults = results.map(s => ({
-        ...s,
-        url: s.url && !s.url.startsWith('http') ? 
-          `${window.location.origin}/${s.url.startsWith('/') ? s.url.substring(1) : s.url}` : 
-          s.url
-      }));
-
-    } catch (err) {
-      console.error("Search error:", err);
-      box.innerHTML = '<div class="error">Search failed. Loading default songs...</div>';
-      // Fallback to default library
-      try {
-        const defaultSongs = await getLibrary();
-        setTimeout(() => {
-          if (defaultSongs && defaultSongs.length) {
-            renderDefaultResults(defaultSongs);
-          }
-        }, 1000);
-      } catch (fallbackErr) {
-        console.error("Even fallback failed:", fallbackErr);
-      }
-    }
-  }
-
-  function renderDefaultResults(results) {
-    const box = $('#songResults');
-    box.innerHTML = '';
-    
-    results.forEach((s, idx) => {
-      const div = document.createElement('div');
-      div.className = 'song-result';
-      div.setAttribute('role', 'option');
-      div.dataset.index = String(idx);
-      
-      div.innerHTML = `
-        <div class="title">${s.title || 'Untitled'}</div>
-        <div class="meta">${s.artist || 'Unknown Artist'} · ${s.type || 'file'}</div>
-      `;
-      
-      div.addEventListener('click', () => loadSong(s));
-      box.appendChild(div);
-    });
-
-    const first = box.querySelector('.song-result');
-    if (first) first.setAttribute('aria-selected','true');
-    
-    window.currentSearchResults = results;
-  }
-
-  async function waitForAlphaTab() {
-    return new Promise((resolve, reject) => {
-      const maxWait = 5000; // 5 seconds
-      const start = Date.now();
-      function check() {
-        if (window.at) return resolve(window.at);
-        if (Date.now() - start > maxWait) return reject(new Error("AlphaTab not ready"));
-        setTimeout(check, 50);
-      }
-      check();
-    });
-  }
-
-  async function loadSong(song) {
-    try {
-      const url = song.url;
-      if (!url) throw new Error('No song URL provided');
-
-      console.log('Loading song from URL:', url);
-
-      const ext = (song.extension || song.type || url.split('.').pop() || '').toLowerCase().replace('.', '');
-
-      // ✅ Construct proper fetch URL
-      let fetchUrl = url;
-      if (!url.startsWith('http')) {
-        fetchUrl = url.startsWith('/') ? 
-          `${window.location.origin}${url}` : 
-          `${window.location.origin}/${url}`;
-      }
-
-      // Fetch the file
-      const res = await fetch(fetchUrl);
-      if (!res.ok) throw new Error(`Failed to fetch file: ${res.status} ${res.statusText}`);
-
-      const buf = await res.arrayBuffer();
-
-      if (ext === 'pdf') {
-        // ✅ Call PDF loader
-        await showPdfFromBuffer(buf, song.title || song.filename || 'Song');
-      } else {
-        // ✅ Use AlphaTab for GP/GPX/MusicXML files
-        if (!window.at) {
-          await waitForAlphaTab();
-        }
-        await window.at.load(buf);
-      }
-
-      // Update meta info
-      const meta = document.getElementById('meta');
-      if (meta) {
-        meta.textContent = `${song.title || song.filename || 'Song'} — ${song.artist || ''}`;
-      }
-
-      closeModal();
-      setTimeout(() => document.getElementById('play')?.click(), 300);
-
-    } catch (e) {
-      console.error('Load song error:', e);
-      alert('Could not load song: ' + e.message);
+    } catch(err){
+      console.error('Search error:', err);
+      box.innerHTML = '<div class="error">Search failed</div>';
     }
   }
   
-  // Event listeners
+  async function loadSong(song) {
+  try {
+    const url = song.url;
+    if (!url) throw new Error('No song URL provided');
+
+    const ext = url.split('.').pop().toLowerCase();
+
+    // Fetch the file
+    const apiUrl = (p) => {
+      const base = (window.UPKRAFT_API_BASE || window.API_BASE_URL || '').replace(/\/+$/, '');
+      const path = p.startsWith('/') ? p : `/${p}`;
+      return base ? `${base}${path}` : path;
+    };
+    const res = await fetch(url.startsWith('http') ? url : apiUrl(url));
+    if (!res.ok) throw new Error('Failed to fetch file: ' + res.status);
+
+    const buf = await res.arrayBuffer();
+
+    if (ext === 'pdf') {
+      // ✅ Call PDF loader
+      await showPdfFromBuffer(buf, song.title || url);
+    } else {
+      // ✅ Use AlphaTab for GP/GPX/MusicXML files
+      if (!window.at) throw new Error('AlphaTab not ready');
+      await window.at.load(buf);
+    }
+
+    // Update meta info
+    const meta = document.getElementById('meta');
+    if (meta) meta.textContent = `${song.title || 'Song'} — ${song.artist || ''}`;
+
+    closeModal();
+    
+    // Auto-play after loading
+    // setTimeout(() => document.getElementById('play')?.click(), 300);
+
+  } catch (e) {
+    console.error(e);
+    alert('Could not load song: ' + e.message);
+  }
+}
+
+  // Expose for parent window postMessage handler
+  try { window.loadSong = loadSong; } catch(_) {}
+
+  
   $('#searchSong')?.addEventListener('click', openModal);
   $('#songModalClose')?.addEventListener('click', closeModal);
   $('#songModalCancel')?.addEventListener('click', closeModal);
   $('.song-modal-backdrop')?.addEventListener('click', closeModal);
   
   const input = $('#songSearchInput');
-  input?.addEventListener('input', (e) => {
-    const query = e.target.value.trim();
-    renderResults(query);
-  });
+  input?.addEventListener('input', (e)=> renderResults(e.target.value));
   
-  // Keyboard navigation
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', (e)=>{
     const modalVisible = $('#songSearchModal')?.getAttribute('aria-hidden') === 'false';
     if (!modalVisible) return;
     
     const items = $$('#songResults .song-result');
     if (!items.length) return;
-    
     let idx = items.findIndex(x => x.getAttribute('aria-selected') === 'true');
     if (idx < 0) idx = 0;
     
@@ -4123,18 +4127,14 @@ window.addEventListener('keydown', function(e) {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const sel = items.find(x => x.getAttribute('aria-selected') === 'true') || items[0];
-      const resultIndex = Number(sel.dataset.index) || 0;
-      const results = window.currentSearchResults || [];
-      if (results[resultIndex]) {
-        loadSong(results[resultIndex]);
-      }
+      const libIndex = Number(sel.dataset.index)||0;
+      getLibrary().then(lib => loadSong(lib[libIndex]));
     } else if (e.key === 'Escape') {
       closeModal();
     }
   });
   
-  // Initialize - load all songs when search button is clicked
-  $('#searchSong')?.addEventListener('click', () => renderResults(''));
+  $('#searchSong')?.addEventListener('click', ()=> renderResults(''));
 })();
 
 // ====== THEME TOGGLE ======
@@ -4143,15 +4143,14 @@ window.addEventListener('keydown', function(e) {
   const btn = $('#toggleTheme');
   const saved = localStorage.getItem('upkraft-theme');
   
-  function setTheme(next){
-    root.setAttribute('data-theme', next);
-    localStorage.setItem('upkraft-theme', next);
-    if(btn) {
-      const icon = btn.querySelector('.theme-icon');
-      if(icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
-    }
+function setTheme(next){
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('upkraft-theme', next);
+  if(btn) {
+    const icon = btn.querySelector('.theme-icon');
+    if(icon) icon.textContent = next === 'dark' ? '🌙' : '☀️';
   }
-  
+}
   if(saved){ setTheme(saved); } else { setTheme('dark'); }
   
   if(btn){
@@ -4213,8 +4212,46 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initial button states
   updateButtonStates();
+
+  // Auto-load selected song if provided via query
+  try {
+    var sel = window.__UPKRAFT_SELECTED_SONG__;
+    if (sel) {
+      var apiUrl = function(p){
+        var base = (window.UPKRAFT_API_BASE || window.API_BASE_URL || '').replace(/\/+$/, '');
+        var path = p.startsWith('/') ? p : '/' + p;
+        return base ? (base + path) : path;
+      };
+      var url = /^https?:\/\//i.test(sel) ? sel : apiUrl(sel);
+      console.log('[Visualizer] Auto-loading selected song:', { sel, resolved: url, apiBase: (window.UPKRAFT_API_BASE || window.API_BASE_URL || '') });
+      // Reuse loadSong's logic pathway
+      loadSong({ title: 'Selected Song', artist: '', url }).catch(function(err){
+        console.error('[Visualizer] Auto-load failed:', err);
+        alert('Could not auto-load song: ' + (err && err.message ? err.message : err));
+      });
+    }
+  } catch(_){}
+
+  // Also support dynamic selection via postMessage from parent
+  window.addEventListener('message', function(e){
+    try{
+      if (e && e.data && e.data.type === 'upkraft:loadSong' && e.data.url){
+        var base = (window.UPKRAFT_API_BASE || window.API_BASE_URL || '').replace(/\/+$/, '');
+        var url = /^https?:\/\//i.test(e.data.url) ? e.data.url : (base ? base + (e.data.url.startsWith('/') ? e.data.url : '/' + e.data.url) : e.data.url);
+        loadSong({ title: 'Selected Song', url: url });
+      }
+    }catch(err){ console.warn('postMessage loadSong failed', err); }
+  });
 });
 
 </script>
+<!-- Recording Countdown Overlay -->
+<div id="recordCountdown" class="countdown-overlay" style="display:none;">
+  <div class="countdown-content">
+    <div class="countdown-number">5</div>
+    <div class="countdown-text">Get Ready!</div>
+    <button class="btn countdown-cancel">Cancel</button>
+  </div>
+</div>
 </body>
 </html>

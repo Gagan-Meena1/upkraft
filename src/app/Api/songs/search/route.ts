@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { Song } from '@/models/Songs'; // Adjust path as needed
 import mongoose from 'mongoose';
+import {connect} from '@/dbConnection/dbConfic'
 
 // Connect to MongoDB if not already connected
 async function connectDB() {
@@ -10,8 +11,7 @@ async function connectDB() {
   }
   
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
+    await connect();
   } catch (error) {
     console.error('❌ MongoDB connection error:', error);
     throw error;
