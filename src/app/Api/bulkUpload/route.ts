@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 import { Song } from '@/models/Songs';
+import {connect} from '@/dbConnection/dbConfic'
 
 // Configure Cloudinary
 cloudinary.config({
@@ -12,6 +13,7 @@ cloudinary.config({
 
 export async function POST(request) {
   try {
+    await connect();
     console.log('🚀 Starting batch upload...');
     
     // Parse form data
