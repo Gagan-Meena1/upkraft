@@ -86,7 +86,6 @@ const SongSchema = new Schema<ISong>({
   // File metadata
   fileType: {
     type: String,
-    enum: ['audio', 'tablature'],
     default: 'tablature',
   },
   extension: {
@@ -105,25 +104,17 @@ const SongSchema = new Schema<ISong>({
     type: String,
     trim: true,
     index: true,
-    enum: [
-      'Guitar', 'Guitar (Acoustic)', 'Guitar/vocal → Piano (arr.)', 
-      'Piano', 'Bass', 'Drums', 'Vocals', 'Ukulele', 'Mandolin', 'Banjo'
-    ]
+
   },
   genre: {
     type: String,
     trim: true,
     index: true,
     // Common genres - you can extend this list
-    enum: [
-      'Hard Rock', 'Pop', 'Pop/Rock', 'Alt Rock', 'Rock', 'Jazz', 
-      'Blues', 'Country', 'Folk', 'Classical', 'Metal', 'Punk',
-      'Indie', 'Electronic', 'R&B', 'Hip Hop', 'Reggae', 'Other'
-    ]
+ 
   },
   difficulty: {
     type: String,
-    enum: ['Easy', 'Beginner', 'Beginner-Intermediate', 'Intermediate', 'Advanced', 'Expert'],
     index: true,
   },
   year: {
@@ -149,7 +140,6 @@ const SongSchema = new Schema<ISong>({
   },
   cloudinaryResourceType: {
     type: String,
-    enum: ['video', 'raw'],
   },
   cloudinaryFolder: {
     type: String,
@@ -192,7 +182,6 @@ const SongSchema = new Schema<ISong>({
   timeSignature: {
     type: String,
     default: '4/4',
-    enum: ['4/4', '3/4', '2/4', '6/8', '12/8', '5/4', '7/8', 'Other']
   },
   capo: {
     type: Number,
@@ -206,7 +195,6 @@ const SongSchema = new Schema<ISong>({
   }],
   practiceLevel: {
     type: String,
-    enum: ['Beginner', 'Intermediate', 'Advanced'],
   },
   learningObjectives: [{
     type: String,
