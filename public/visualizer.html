@@ -3577,10 +3577,10 @@ window.addEventListener('keydown', function(e) {
         if (window.parent && window.parent !== window) {
           window.parent.postMessage({ type: 'upkraft:showResults', payload: { source: 'visualizer', ts: Date.now() } }, '*');
         } else {
-          window.location.href = '/practice-studio#Results';
+          window.location.href = '/tutor/practiceResult';
         }
       } catch(_) {
-        window.location.href = '/practice-studio#Results';
+        window.location.href = '/tutor';
       }
     } catch(err){
       console.error('Upload failed:', err);
