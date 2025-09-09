@@ -1,204 +1,269 @@
-'use client';
-import { useState } from 'react';
+"use client"
+import React, { useState } from 'react';
+import { Upload, FileText, Music, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
-export default function BulkUpload() {
+export default function EnhancedBatchUpload() {
   const [files, setFiles] = useState([]);
+  const [excelFile, setExcelFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [results, setResults] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
-  const uploadFiles = async () => {
-    if (files.length === 0) return;
+  const handleFileSelect = (e) => {
+    const selectedFiles = Array.from(e.target.files);
+    const validFiles = selectedFiles.filter(file => {
+      const extension = file.name.toLowerCase().split('.').pop();
+      return ['mp3', 'gp', 'gp1', 'gp2', 'gp3', 'gp4', 'gp5', 'gp6', 'gp7', 'gp8', 'gpx', 'dp','mxl'].includes(extension);
+    });
+    setFiles(validFiles);
+  };
 
-    setUploading(true);
-    setResults(null);
-    setUploadProgress(0);
-
-    try {
-      // Process files in chunks to avoid timeout
-      const chunkSize = 3; // Process 3 files at a time
-      const chunks = [];
-      for (let i = 0; i < files.length; i += chunkSize) {
-        chunks.push(files.slice(i, i + chunkSize));
-      }
-
-      let totalSuccess = 0;
-      let totalErrors = [];
-
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = chunks[i];
-        const formData = new FormData();
-        
-        chunk.forEach((file) => {
-          formData.append('files', file);
-        });
-
-        console.log(`Uploading chunk ${i + 1}/${chunks.length} with ${chunk.length} files`);
-
-        // ✅ FIXED: Lowercase 'api'
-        const response = await fetch('/Api/songs/batch-upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Chunk upload error:', errorText);
-          totalErrors.push(`Chunk ${i + 1} failed: ${errorText}`);
-          continue;
-        }
-
-        const data = await response.json();
-        totalSuccess += data.success || chunk.length;
-        
-        if (data.errors) {
-          totalErrors.push(...data.errors);
-        }
-
-        // Update progress
-        setUploadProgress(((i + 1) / chunks.length) * 100);
-      }
-
-      setResults({
-        success: totalSuccess,
-        failed: files.length - totalSuccess,
-        errors: totalErrors
-      });
-      
-    } catch (error) {
-      console.error('Upload error:', error);
-      setResults({ 
-        error: error.message || 'Upload failed',
-        details: error.stack
-      });
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
+  const handleExcelSelect = (e) => {
+    const file = e.target.files[0];
+    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+      setExcelFile(file);
+    } else {
+      alert('Please select a valid Excel file (.xlsx or .xls)');
     }
   };
 
-  const handleFileChange = (event) => {
-    const selectedFiles = Array.from(event.target.files);
-    const validFiles = selectedFiles.filter(file => {
-      const ext = file.name.toLowerCase();
-      const validExtensions = ['.mp3', '.gp', '.gp3', '.gp4', '.gp5', '.gp6', '.gp7', '.gp8', '.dp'];
-      return validExtensions.some(extension => ext.endsWith(extension));
-    });
-    
-    // Check file sizes (limit to 10MB per file for better upload)
-    const sizeFilteredFiles = validFiles.filter(file => {
-      if (file.size > 10 * 1024 * 1024) { // 10MB
-        alert(`File ${file.name} is too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Max 10MB allowed.`);
-        return false;
-      }
-      return true;
-    });
-    
-    setFiles(sizeFilteredFiles);
+  const handleUpload = async () => {
+    if (files.length === 0 || !excelFile) {
+      alert('Please select both song files and an Excel file');
+      return;
+    }
+
+    setUploading(true);
     setResults(null);
+
+    try {
+      const formData = new FormData();
+      
+      // Add song files
+      files.forEach(file => {
+        formData.append('files', file);
+      });
+      
+      // Add Excel file
+      formData.append('excelFile', excelFile);
+
+      const response = await fetch('/Api/bulkUpload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      setResults(result);
+
+      if (result.success > 0) {
+        // Clear files on success
+        setFiles([]);
+        setExcelFile(null);
+        document.getElementById('song-files').value = '';
+        document.getElementById('excel-file').value = '';
+      }
+
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setResults({
+        success: 0,
+        failed: files.length,
+        errors: ['Network error: ' + error.message]
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">Bulk Music Upload</h1>
-      
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">
-            Select Music Files (MP3, GP, GP3-GP8, DP) - Max 10MB each
-          </label>
-          <input
-            type="file"
-            multiple
-            accept=".mp3,.gp,.gp3,.gp4,.gp5,.gp6,.gp7,.gp8,.dp"
-            onChange={handleFileChange}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Supported: MP3 (audio), GP/GP1-GP8/GPX (Guitar Pro), DP files. Files processed in chunks to avoid timeouts.
-          </p>
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-gray-800 mb-2 flex items-center">
+          <Music className="w-6 h-6 mr-2 text-blue-600" />
+          Enhanced Batch Song Upload
+        </h2>
+        <p className="text-gray-600">
+          Upload your song files and Excel spreadsheet to automatically match metadata
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        {/* Song Files Upload */}
+        <div className="space-y-4">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <label htmlFor="song-files" className="cursor-pointer">
+              <span className="text-lg font-medium text-gray-700">Select Song Files</span>
+              <p className="text-sm text-gray-500 mt-2">
+                .mp3, .gp, .gp1-gp8, .gpx, .dp, .mxl files
+              </p>
+            </label>
+            <input
+              id="song-files"
+              type="file"
+              multiple
+              accept=".mp3,.gp,.gp1,.gp2,.gp3,.gp4,.gp5,.gp6,.gp7,.gp8,.gpx,.dp,.mxl"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
+          
+          {files.length > 0 && (
+            <div className="bg-blue-50 rounded-lg p-4">
+              <p className="font-medium text-blue-800 mb-2">
+                {files.length} song files selected:
+              </p>
+              <div className="max-h-32 overflow-y-auto">
+                {files.slice(0, 5).map((file, index) => (
+                  <p key={index} className="text-sm text-blue-600 truncate">
+                    {file.name}
+                  </p>
+                ))}
+                {files.length > 5 && (
+                  <p className="text-sm text-blue-500">...and {files.length - 5} more</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {files.length > 0 && (
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-2">
-              Selected {files.length} files:
-            </p>
-            <div className="max-h-40 overflow-y-auto bg-gray-50 rounded p-3">
-              {files.map((file, index) => (
-                <div key={index} className="text-sm text-gray-700 flex justify-between">
-                  <span>{file.name}</span>
-                  <span className="text-gray-500">
-                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Excel File Upload */}
+        <div className="space-y-4">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-green-400 transition-colors">
+            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <label htmlFor="excel-file" className="cursor-pointer">
+              <span className="text-lg font-medium text-gray-700">Select Excel File</span>
+              <p className="text-sm text-gray-500 mt-2">
+                .xlsx or .xls with song metadata
+              </p>
+            </label>
+            <input
+              id="excel-file"
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleExcelSelect}
+              className="hidden"
+            />
           </div>
-        )}
-
-        {uploading && uploadProgress > 0 && (
-          <div className="mb-4">
-            <div className="bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-            <p className="text-sm text-gray-600 mt-1">
-              Upload Progress: {uploadProgress.toFixed(0)}%
-            </p>
-          </div>
-        )}
-
-        <button
-          onClick={uploadFiles}
-          disabled={uploading || files.length === 0}
-          className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {uploading ? `Uploading... (${uploadProgress.toFixed(0)}%)` : `Upload ${files.length} Files`}
-        </button>
-
-        {results && (
-          <div className="mt-6 p-4 rounded">
-            {results.error ? (
-              <div className="bg-red-50 border border-red-200 rounded p-4">
-                <h3 className="font-semibold text-red-800">Upload Failed</h3>
-                <p className="text-red-600">{results.error}</p>
-                {results.details && (
-                  <details className="mt-2">
-                    <summary className="cursor-pointer text-red-700">Show Details</summary>
-                    <pre className="mt-2 text-xs text-red-500 overflow-auto bg-red-100 p-2 rounded">
-                      {results.details}
-                    </pre>
-                  </details>
-                )}
+          
+          {excelFile && (
+            <div className="bg-green-50 rounded-lg p-4">
+              <p className="font-medium text-green-800">✅ Excel file selected:</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-sm text-green-600 truncate flex-1 mr-2">📊 {excelFile.name}</p>
+                <span className="text-green-500 text-xs whitespace-nowrap">
+                  {(excelFile.size / 1024).toFixed(1)} KB
+                </span>
               </div>
-            ) : (
-              <div>
-                <div className="bg-green-50 border border-green-200 rounded p-4 mb-4">
-                  <h3 className="font-semibold text-green-800">Upload Complete</h3>
-                  <p className="text-green-600">
-                    Successfully uploaded {results.success} files
-                    {results.failed > 0 && `, ${results.failed} failed`}
-                  </p>
-                </div>
-                
-                {results.errors && results.errors.length > 0 && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded p-4">
-                    <h4 className="font-semibold text-yellow-800">Issues Found:</h4>
-                    <ul className="text-sm text-yellow-700 max-h-40 overflow-y-auto">
-                      {results.errors.map((error, index) => (
-                        <li key={index} className="mb-1">• {error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Upload Button */}
+      <div className="text-center mb-6">
+        <button
+          onClick={handleUpload}
+          disabled={files.length === 0 || !excelFile || uploading}
+          className="px-8 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+        >
+          {uploading ? (
+            <span className="flex items-center">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Uploading...
+            </span>
+          ) : (
+            'Upload Songs with Metadata'
+          )}
+        </button>
+      </div>
+
+      {/* Results */}
+      {results && (
+        <div className="bg-gray-50 rounded-lg p-6">
+          <h3 className="text-xl font-semibold mb-4 flex items-center">
+            <CheckCircle className="w-6 h-6 text-green-600 mr-2" />
+            Upload Results
+          </h3>
+          
+          {/* Summary Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-green-100 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-green-600">{results.success}</div>
+              <div className="text-sm text-green-700">Successful</div>
+            </div>
+            <div className="bg-red-100 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-red-600">{results.failed}</div>
+              <div className="text-sm text-red-700">Failed</div>
+            </div>
+            <div className="bg-blue-100 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {results.matchingStats?.matched || 0}
+              </div>
+              <div className="text-sm text-blue-700">Excel Matched</div>
+            </div>
+            <div className="bg-yellow-100 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {results.matchingStats?.unmatched || 0}
+              </div>
+              <div className="text-sm text-yellow-700">Unmatched</div>
+            </div>
+          </div>
+
+          {/* Summary Info */}
+          {results.summary && (
+            <div className="bg-white rounded-lg p-4 mb-4">
+              <p className="text-gray-700">
+                <strong>Success Rate:</strong> {results.summary.successRate} | 
+                <strong> Excel Matching Rate:</strong> {results.summary.matchingRate}
+              </p>
+            </div>
+          )}
+
+          {/* Uploaded Files */}
+          {results.uploadedFiles && results.uploadedFiles.length > 0 && (
+            <div className="mb-4">
+              <h4 className="font-semibold text-gray-800 mb-2">Successfully Uploaded:</h4>
+              <div className="max-h-40 overflow-y-auto bg-white rounded border">
+                {results.uploadedFiles.map((file, index) => (
+                  <div key={index} className="p-2 border-b last:border-b-0 flex items-center justify-between">
+                    <div>
+                      <span className="font-medium">{file.title}</span>
+                      {file.artist && <span className="text-gray-600"> by {file.artist}</span>}
+                      <div className="text-xs text-gray-500">
+                        {file.genre} • {file.difficulty} • {file.year}
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      {file.matchedFromExcel ? (
+                        <CheckCircle className="w-4 h-4 text-green-500" title="Matched with Excel" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-yellow-500" title="Used filename data" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Errors */}
+          {results.errors && results.errors.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-red-800 mb-2 flex items-center">
+                <XCircle className="w-4 h-4 mr-1" />
+                Errors:
+              </h4>
+              <div className="max-h-32 overflow-y-auto bg-red-50 rounded border border-red-200">
+                {results.errors.map((error, index) => (
+                  <p key={index} className="p-2 text-sm text-red-700 border-b last:border-b-0">
+                    {error}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

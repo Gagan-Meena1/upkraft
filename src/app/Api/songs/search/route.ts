@@ -1,4 +1,4 @@
-// app/api/songs/search/route.js - MongoDB version
+// app/api/songs/search/route.js - Updated MongoDB version
 import { NextResponse } from 'next/server';
 import { Song } from '@/models/Songs'; // Adjust path as needed
 import mongoose from 'mongoose';
@@ -41,26 +41,25 @@ export async function GET(req) {
 
     // Add text search if query provided
     if (q && q.length >= 1) {
-      // Use MongoDB text search if available, otherwise use regex
-      try {
-        // Try text search first (requires text index)
-        searchQuery.$text = { $search: q };
-      } catch (textSearchError) {
-        // Fallback to regex search
-        const searchRegex = new RegExp(q, 'i');
-        searchQuery.$or = [
-          { title: searchRegex },
-          { artist: searchRegex },
-          { filename: searchRegex },
-          { tags: { $in: [searchRegex] } }
-        ];
-      }
+      const searchRegex = new RegExp(q, 'i');
+      searchQuery.$or = [
+        { title: searchRegex },
+        { artist: searchRegex },
+        { filename: searchRegex },
+        { primaryInstrumentFocus: searchRegex },
+        { genre: searchRegex },
+        { difficulty: searchRegex },
+        { skills: searchRegex },
+        { notes: searchRegex },
+        { tags: { $in: [searchRegex] } },
+        { searchText: searchRegex } // Use the searchText field for comprehensive search
+      ];
     }
 
     // Execute search with pagination
     const [songs, totalCount] = await Promise.all([
       Song.find(searchQuery)
-        .select('-__v') // Exclude version field
+        .select('-__v -searchText') // Exclude version field and searchText from results
         .sort({ uploadDate: -1 }) // Most recent first
         .skip(skip)
         .limit(limit)
@@ -96,30 +95,41 @@ export async function GET(req) {
         id: song._id.toString(),
         title: title,
         artist: artist,
-        url: song.url, // Keep as-is, frontend will handle URL construction
-        type: song.extension || song.fileType || 'file',
-        format: song.extension?.replace('.', '') || '',
-        size: song.fileSize || 0,
-        duration: song.duration || null,
-        uploadedAt: song.uploadDate || song.createdAt,
-        tags: `${title} ${artist} ${song.extension || ''} ${song.fileType || ''}`.toLowerCase(),
+        url: song.url,
         
-        // Additional metadata for frontend
+        // New fields from schema
+        primaryInstrumentFocus: song.primaryInstrumentFocus,
+        genre: song.genre,
+        difficulty: song.difficulty,
+        year: song.year,
+        notes: song.notes,
+        skills: song.skills,
+        
+        // Keep some original fields for compatibility
         fileType: song.fileType,
         mimeType: song.mimeType,
         filename: song.filename,
         extension: song.extension,
-        isGuitarProFile: song.fileType === 'tablature',
-        isAudioFile: song.fileType === 'audio',
+        uploadedAt: song.uploadDate || song.createdAt,
+        
+        // Additional useful fields
+        key: song.key,
+        tempo: song.tempo,
+        tuning: song.tuning,
+        timeSignature: song.timeSignature,
+        capo: song.capo,
+        practiceLevel: song.practiceLevel,
+        learningObjectives: song.learningObjectives,
         
         // Guitar Pro specific fields
         guitarProVersion: song.guitarProVersion,
-        tuning: song.tuning,
-        tempo: song.tempo,
-        difficulty: song.difficulty,
+        isGuitarProFile: song.fileType === 'tablature',
+        isAudioFile: song.fileType === 'audio',
         
         // Stats
         downloadCount: song.downloadCount || 0,
+        size: song.fileSize || 0,
+        duration: song.duration || null,
       };
     });
 

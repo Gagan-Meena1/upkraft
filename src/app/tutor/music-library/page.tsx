@@ -14,6 +14,13 @@ type SongItem = {
   uploadedAt?: string | Date;
   tags?: string | string[];
   filename?: string;
+  // New fields from schema
+  primaryInstrumentFocus?: string;
+  genre?: string;
+  difficulty?: 'Easy' | 'Beginner' | 'Beginner-Intermediate' | 'Intermediate' | 'Advanced' | 'Expert';
+  year?: number;
+  notes?: string;
+  skills?: string;
 };
 
 type SongSearchResponse = {
@@ -25,25 +32,21 @@ type SongSearchResponse = {
   totalPages?: number;
 };
 
-function formatDate(d?: string | Date) {
-  if (!d) return "-";
-  try {
-    const date = typeof d === "string" ? new Date(d) : d;
-    return new Date(date).toLocaleDateString();
-  } catch {
-    return "-";
+function getDifficultyColor(difficulty?: string) {
+  switch (difficulty?.toLowerCase()) {
+    case 'easy':
+    case 'beginner':
+      return 'bg-green-100 text-green-800';
+    case 'beginner-intermediate':
+    case 'intermediate':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'advanced':
+      return 'bg-orange-100 text-orange-800';
+    case 'expert':
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
   }
-}
-
-function formatSize(n?: number | null) {
-  if (n == null) return "-";
-  if (n < 1024) return `${n} B`;
-  const kb = n / 1024;
-  if (kb < 1024) return `${kb.toFixed(1)} KB`;
-  const mb = kb / 1024;
-  if (mb < 1024) return `${mb.toFixed(1)} MB`;
-  const gb = mb / 1024;
-  return `${gb.toFixed(1)} GB`;
 }
 
 export default function MusicLibraryWithSidebar() {
@@ -113,11 +116,14 @@ export default function MusicLibraryWithSidebar() {
     const q = query.trim().toLowerCase();
     if (!q) return songs;
     return songs.filter((s) => {
-      const tagString = Array.isArray(s.tags) ? s.tags.join(" ") : s.tags || "";
       return (
         (s.title || "").toLowerCase().includes(q) ||
         (s.artist || "").toLowerCase().includes(q) ||
-        tagString.toLowerCase().includes(q)
+        (s.primaryInstrumentFocus || "").toLowerCase().includes(q) ||
+        (s.genre || "").toLowerCase().includes(q) ||
+        (s.difficulty || "").toLowerCase().includes(q) ||
+        (s.skills || "").toLowerCase().includes(q) ||
+        (s.notes || "").toLowerCase().includes(q)
       );
     });
   }, [songs, query]);
@@ -282,7 +288,7 @@ export default function MusicLibraryWithSidebar() {
                     setPage(1);
                     setQuery(e.target.value);
                   }}
-                  placeholder="Search songs, artists or tags"
+                  placeholder="Search songs, artists, genres, skills, or instruments"
                   className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
@@ -301,18 +307,19 @@ export default function MusicLibraryWithSidebar() {
                   <tr className="text-left text-sm font-semibold text-gray-600">
                     <th className="p-4 border-b border-gray-200">Title</th>
                     <th className="p-4 border-b border-gray-200">Artist</th>
-                    <th className="p-4 border-b border-gray-200">Type</th>
-                    <th className="p-4 border-b border-gray-200">MIME</th>
-                    <th className="p-4 border-b border-gray-200">Size</th>
-                    <th className="p-4 border-b border-gray-200">Uploaded</th>
-                    <th className="p-4 border-b border-gray-200">Tags</th>
+                    <th className="p-4 border-b border-gray-200">Instrument</th>
+                    <th className="p-4 border-b border-gray-200">Genre</th>
+                    <th className="p-4 border-b border-gray-200">Difficulty</th>
+                    <th className="p-4 border-b border-gray-200">Year</th>
+                    <th className="p-4 border-b border-gray-200">Skills</th>
+                    <th className="p-4 border-b border-gray-200">Notes</th>
                     <th className="p-4 border-b border-gray-200">Action</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm text-gray-700">
                   {loading && (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-gray-500">
+                      <td colSpan={9} className="p-8 text-center text-gray-500">
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500 mr-3"></div>
                           Loading songs...
@@ -322,7 +329,7 @@ export default function MusicLibraryWithSidebar() {
                   )}
                   {!loading && error && (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-red-600 bg-red-50">
+                      <td colSpan={9} className="p-8 text-center text-red-600 bg-red-50">
                         <div className="flex items-center justify-center">
                           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -334,7 +341,7 @@ export default function MusicLibraryWithSidebar() {
                   )}
                   {!loading && !error && filtered.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-gray-500 bg-gray-50">
+                      <td colSpan={9} className="p-8 text-center text-gray-500 bg-gray-50">
                         <div className="flex flex-col items-center">
                           <Music size={48} className="text-gray-300 mb-3" />
                           <p className="text-lg font-medium">No songs found</p>
@@ -348,16 +355,33 @@ export default function MusicLibraryWithSidebar() {
                       <td className="p-4 font-medium text-gray-900">{s.title}</td>
                       <td className="p-4 text-gray-600">{s.artist || "-"}</td>
                       <td className="p-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {s.fileType || "Unknown"}
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          {s.primaryInstrumentFocus || "Unknown"}
                         </span>
                       </td>
-                      <td className="p-4 font-mono text-xs text-gray-500">{s.mimeType || "-"}</td>
-                      <td className="p-4 text-gray-600">{formatSize(s.size as number)}</td>
-                      <td className="p-4 text-gray-500">{formatDate(s.uploadedAt)}</td>
+                      <td className="p-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {s.genre || "-"}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        {s.difficulty ? (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getDifficultyColor(s.difficulty)}`}>
+                            {s.difficulty}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="p-4 text-gray-600">{s.year || "-"}</td>
                       <td className="p-4 max-w-xs">
-                        <div className="truncate" title={Array.isArray(s.tags) ? s.tags.join(", ") : (s.tags as string) || "-"}>
-                          {Array.isArray(s.tags) ? s.tags.join(", ") : (s.tags as string) || "-"}
+                        <div className="truncate" title={s.skills || "-"}>
+                          {s.skills || "-"}
+                        </div>
+                      </td>
+                      <td className="p-4 max-w-xs">
+                        <div className="truncate" title={s.notes || "-"}>
+                          {s.notes || "-"}
                         </div>
                       </td>
                       <td className="p-4">

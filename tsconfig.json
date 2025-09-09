@@ -25,6 +25,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/Api/users/user/route.js", "src/app/Api/admin/userInfo/route.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/app/Api/users/user/route.js", "src/app/Api/admin/userInfo/route.ts", "src/app/Api/songs/cleanup/route.js"],
   "exclude": ["node_modules"]
 }
