@@ -1,7 +1,23 @@
-
 <!DOCTYPE html>
 <html data-theme="dark" lang="en">
 <head>
+<script>
+  // Disable right-click context menu
+  document.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+  });
+  // Disable F12, Ctrl+Shift+I, Ctrl+U, Ctrl+Shift+J
+  document.addEventListener('keydown', function(e) {
+    if (
+      e.key === 'F12' ||
+      (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+      (e.ctrlKey && e.key === 'U')
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+</script>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>AlphaTab Guitar Practice Player (Top Controls, Note Highlight, MIDI to TAB)</title>
@@ -1638,6 +1654,35 @@ html[data-theme="light"] .track.playing {
 </div>
 
 <div aria-hidden="true" id="ui-overlay-root"></div>
+
+<!-- Instrument Selection Modal -->
+<div id="instrumentSelectModal" class="song-modal" aria-hidden="true" role="dialog" style="display:none;">
+  <div class="song-modal-backdrop"></div>
+  <div class="song-modal-dialog" role="document" style="width: min(420px, 90vw);">
+    <div class="song-modal-header" style="position: relative;">
+      <h3 style="margin: 0; text-align: center; width: 100%;">Select Your Instrument</h3>
+      <button class="btn song-modal-close" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%);" onclick="document.getElementById('instrumentSelectModal').style.display='none'; document.getElementById('instrumentSelectModal').setAttribute('aria-hidden','true');" aria-label="Close">✕</button>
+    </div>
+    <div class="song-modal-body" style="text-align: center; padding: 24px;">
+      <p style="margin-bottom: 20px; color: var(--fg);">Which instrument did you record with?</p>
+      <div style="display: flex; justify-content: center; margin-bottom: 20px;">
+        <select id="instrumentSelect" style="width: 220px; padding: 10px 12px; border-radius: 8px; background: var(--button-bg); color: var(--fg); border: 1px solid var(--border); font-size: 14px; text-align: center;">
+          <option value="">-- Select Instrument --</option>
+          <option value="guitar">🎸 Guitar</option>
+          <option value="piano">🎹 Piano</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="btn" id="instrumentConfirmBtn" style="background: var(--accent2); color: white; padding: 12px 24px; min-width: 120px;">
+          Confirm
+        </button>
+        <button class="btn" id="instrumentBackBtn" style="padding: 12px 24px;">
+          Back
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Global upload/loading overlay -->
 <div id="uploadLoading" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 10000; align-items: center; justify-content: center;">
@@ -3346,6 +3391,7 @@ window.addEventListener('keydown', function(e) {
 (function(){
   let recStream = null, mediaRecorder = null, recChunks = [], prevMuteStates = null;
   let pendingBlob = null;
+  let selectedInstrument = null; // Track selected instrument
   let countdownInterval = null;
   
   async function muteAllTracks() {
@@ -3475,13 +3521,16 @@ window.addEventListener('keydown', function(e) {
       const url = URL.createObjectURL(pendingBlob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'practice_recording_' + new Date().getTime() + '.webm';
+      // Include instrument in filename if selected
+      const instrument = selectedInstrument ? `_${selectedInstrument}` : '';
+      a.download = `practice_recording${instrument}_${new Date().getTime()}.webm`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 15000);
       pendingBlob = null;
-      log('📥 Recording downloaded successfully');
+      selectedInstrument = null; // Reset after download
+      log(`📥 Recording downloaded successfully${instrument ? ` (${instrument})` : ''}`);
     } catch(e) {
       console.error('Download error:', e);
       alert('Failed to download recording');
@@ -3493,6 +3542,25 @@ window.addEventListener('keydown', function(e) {
     if (modal) {
       modal.style.display = 'block';
       modal.setAttribute('aria-hidden', 'false');
+    }
+  }
+
+  function showInstrumentSelection() {
+    const modal = $('#instrumentSelectModal');
+    if (modal) {
+      const select = $('#instrumentSelect');
+      if (select) select.value = '';
+      modal.style.display = 'block';
+      modal.setAttribute('aria-hidden', 'false');
+      hideRecordingConfirmation();
+    }
+  }
+  
+  function hideInstrumentSelection() {
+    const modal = $('#instrumentSelectModal');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
     }
   }
   
@@ -3552,45 +3620,9 @@ window.addEventListener('keydown', function(e) {
     });
   }
   
-  // Confirmation modal buttons
-  $('#recordAIBtn')?.addEventListener('click', async () => {
-    if (!pendingBlob) { hideRecordingConfirmation(); return; }
-    try {
-      const up = document.getElementById('uploadLoading');
-      if (up) up.style.display = 'flex';
-      const formData = new FormData();
-      formData.append('audio_file', pendingBlob, 'practice_recording.webm');
-      const response = await fetch('http://168.231.103.13:8000/audio/guitar-ratings/upload', { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('Upload failed: ' + response.status);
-      const result = await response.json();
-      sessionStorage.setItem('guitarAnalysisResults', JSON.stringify(result));
-      // Ensure the value is readable before proceeding
-      try {
-        const key = 'guitarAnalysisResults';
-        let tries = 0;
-        while (!sessionStorage.getItem(key) && tries < 20) { // ~1s max
-          await new Promise(r => setTimeout(r, 50));
-          tries++;
-        }
-      } catch(_) { /* storage is synchronous, this is a safety check */ }
-      try {
-        if (window.parent && window.parent !== window) {
-          window.parent.postMessage({ type: 'upkraft:showResults', payload: { source: 'visualizer', ts: Date.now() } }, '*');
-        } else {
-          window.location.href = '/tutor/practiceResult';
-        }
-      } catch(_) {
-        window.location.href = '/tutor';
-      }
-    } catch(err){
-      console.error('Upload failed:', err);
-      alert('Upload failed');
-    } finally {
-      const up = document.getElementById('uploadLoading');
-      if (up) up.style.display = 'none';
-      hideRecordingConfirmation();
-      pendingBlob = null;
-    }
+  // Confirmation modal: first ask for instrument
+  $('#recordAIBtn')?.addEventListener('click', () => {
+    showInstrumentSelection();
   });
   
   $('#recordAgainBtn')?.addEventListener('click', () => {
@@ -3599,12 +3631,93 @@ window.addEventListener('keydown', function(e) {
     log('🔄 Recording discarded - ready to record again');
   });
   
-  // ESC key to close modal
+  // Instrument selection modal handlers
+  // Instrument selection modal handlers
+// Instrument selection modal handlers
+$('#instrumentConfirmBtn')?.addEventListener('click', async () => {
+  const select = $('#instrumentSelect');
+  if (!select || !select.value) { 
+    alert('Please select an instrument'); 
+    return; 
+  }
+  selectedInstrument = select.value;
+  log(`🎵 Instrument selected: ${selectedInstrument}`);
+
+  // Proceed with upload using the selected instrument
+  if (!pendingBlob) { 
+    hideInstrumentSelection(); 
+    hideRecordingConfirmation(); 
+    return; 
+  }
+  
+  try {
+    const up = document.getElementById('uploadLoading');
+    if (up) up.style.display = 'flex';
+    
+    const formData = new FormData();
+    formData.append('audio_file', pendingBlob, 'practice_recording.webm');
+    
+    // Choose endpoint based on selected instrument
+    let apiEndpoint;
+    if (selectedInstrument === 'guitar') {
+      apiEndpoint = 'http://168.231.103.13:8000/audio/guitar-ratings/upload';
+    } else if (selectedInstrument === 'piano') {
+      apiEndpoint = 'http://168.231.103.13:8000/audio/piano-ratings/upload';
+    } else {
+      throw new Error('Invalid instrument selection');
+    }
+    
+    const response = await fetch(apiEndpoint, {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) throw new Error('Upload failed: ' + response.status);
+    const result = await response.json();
+    
+    // Store results and instrument in sessionStorage
+    const analysisData = {
+      ...result,
+      instrument: selectedInstrument,
+      timestamp: Date.now()
+    };
+    
+    sessionStorage.setItem('practiceAnalysisResults', JSON.stringify(analysisData));
+    sessionStorage.setItem('practiceAnalysisInstrument', selectedInstrument);
+    
+    // Navigate to results page
+    window.location.href = '/tutor/practiceResult';
+    
+  } catch(err) {
+    console.error('Upload failed:', err);
+    alert(`Upload failed: ${err.message}`);
+  } finally {
+    const up = document.getElementById('uploadLoading');
+    if (up) up.style.display = 'none';
+    hideInstrumentSelection();
+    hideRecordingConfirmation();
+    pendingBlob = null;
+    selectedInstrument = null;
+  }
+});
+
+  $('#instrumentBackBtn')?.addEventListener('click', () => {
+    hideInstrumentSelection();
+    showRecordingConfirmation();
+  });
+
+  // ESC key to close modals
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      const modal = $('#recordConfirmModal');
-      if (modal && modal.style.display !== 'none') {
+      const recordModal = $('#recordConfirmModal');
+      const instrumentModal = $('#instrumentSelectModal');
+      if (instrumentModal && instrumentModal.style.display !== 'none') {
+        hideInstrumentSelection();
+        showRecordingConfirmation();
+      } else if (recordModal && recordModal.style.display !== 'none') {
         hideRecordingConfirmation();
+        pendingBlob = null;
+        selectedInstrument = null;
       }
     }
   });
@@ -3971,9 +4084,9 @@ window.addEventListener('keydown', function(e) {
 // ====== SONG SEARCH MODAL ======
 (function(){
   const DEFAULT_LIBRARY = [
-    { title: "Canon in D", artist: "Pachelbel", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/CanoninD.mid", type: "midi", tags: "classical wedding piano" },
-    { title: "Fur Elise", artist: "Beethoven", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/FurElise.mid", type: "midi", tags: "classical piano" },
-    { title: "Greensleeves", artist: "Traditional", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/greensleeves.mid", type: "midi", tags: "folk guitar" }
+    { title: "Canon in D", artist: "Pachelbel", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/CanoninD.mid", type: ".xml", tags: "classical wedding piano" },
+    { title: "Fur Elise", artist: "Beethoven", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/FurElise.mid", type: ".xml", tags: "classical piano" },
+    { title: "Greensleeves", artist: "Traditional", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/greensleeves.mid", type: ".gp5", tags: "folk guitar" }
   ];
   
   async function getLibrary(){
