@@ -475,7 +475,7 @@ export default function Dashboard() {
             >
             
               <BookCheck size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Muisc Library</span>}
+              {(sidebarOpen || isMobile) && <span className="ml-3">Music Library</span>}
             </Link>
             <button 
               onClick={async () => {
