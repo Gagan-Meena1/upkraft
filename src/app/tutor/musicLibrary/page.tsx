@@ -342,7 +342,7 @@ const MusicLibraryTable = () => {
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Year</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Notes</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Skills</th>
-                <th className="text-center py-3 px-4 font-semibold text-gray-900">Actions</th>
+                <th className="text-right py-3 px-4 font-semibold text-gray-900">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -386,15 +386,21 @@ const MusicLibraryTable = () => {
                   <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
                     {formatSkills(song.skills)}
                   </td>
+                 
                   <td className="py-3 px-4 text-center">
-                    {/* <button
-                      onClick={() => handleDownload(song)}
-                      className="inline-flex items-center px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded-lg font-medium transition-colors"
-                      title="Download file"
-                    >
-                      <Download className="w-3 h-3 mr-1" />
-                      Download
-                    </button> */}
+                    {song.url ? (
+                      <a
+                        className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium text-orange-600 bg-orange-100 hover:bg-orange-200 transition-colors"
+                        href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
+                        // target="_blank"
+                        // rel="noreferrer"
+                      >
+                        <Music className="w-3 h-3 mr-1" />
+                        Open
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
                 </tr>
               ))}

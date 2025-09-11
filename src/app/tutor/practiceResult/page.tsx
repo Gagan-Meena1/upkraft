@@ -10,6 +10,8 @@ export default function ResultsPage() {
   const [expandedSections, setExpandedSections] = useState({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
 
   // Check if mobile
   useEffect(() => {
@@ -53,6 +55,107 @@ export default function ResultsPage() {
       setError(true);
       setLoading(false);
     }
+  };
+
+  const saveResults = async () => {
+    if (!results) return;
+    
+    try {
+      setSaving(true);
+      
+      const response = await fetch('/Api/practice/saveResult', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          instrument: instrument,
+          analysisResults: results.ratings,
+          cloudinaryPublicId: results.audioFile?.publicId,
+          audioFileUrl: results.audioFile?.url,
+          shouldSave: true
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save results');
+      }
+
+      const data = await response.json();
+      
+      // Clear session storage after successful save
+      sessionStorage.removeItem('practiceAnalysisResults');
+      sessionStorage.removeItem('practiceAnalysisInstrument');
+      
+      alert(`Practice session "${data.title}" saved successfully!`);
+      
+      // Redirect to practice history or dashboard
+      window.location.href = '/tutor/practice-history';
+      
+    } catch (error) {
+      console.error('Error saving results:', error);
+      alert(`Failed to save results: ${error.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const discardResults = async () => {
+    if (!results?.audioFile?.publicId) {
+      // Just clear session storage if no audio file
+      sessionStorage.removeItem('practiceAnalysisResults');
+      sessionStorage.removeItem('practiceAnalysisInstrument');
+      window.location.href = '/tutor/practice';
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to discard this practice session? This action cannot be undone.')) {
+      return;
+    }
+    
+    try {
+      setDiscarding(true);
+      
+      const response = await fetch('/Api/practice/saveResult', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          instrument: instrument,
+          analysisResults: results.ratings,
+          cloudinaryPublicId: results.audioFile?.publicId,
+          audioFileUrl: results.audioFile?.url,
+          shouldSave: false
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to discard results');
+      }
+      
+      // Clear session storage
+      sessionStorage.removeItem('practiceAnalysisResults');
+      sessionStorage.removeItem('practiceAnalysisInstrument');
+      
+      alert('Practice session discarded successfully');
+      window.location.href = '/tutor/practice';
+      
+    } catch (error) {
+      console.error('Error discarding results:', error);
+      alert(`Failed to discard results: ${error.message}`);
+    } finally {
+      setDiscarding(false);
+    }
+  };
+
+  const goBack = () => {
+    // Clear session storage and go back to practice
+    sessionStorage.removeItem('practiceAnalysisResults');
+    sessionStorage.removeItem('practiceAnalysisInstrument');
+    window.location.href = '/tutor/practice';
   };
 
   const toggleSection = (sectionKey) => {
@@ -226,13 +329,7 @@ export default function ResultsPage() {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const goBack = () => {
-    console.log('Going back...');
-  };
-
-  const saveResults = () => {
-    console.log('Saving results...');
-  };
+  const isProcessing = saving || discarding;
 
   if (loading) {
     return (
@@ -247,14 +344,14 @@ export default function ResultsPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-5">
         <div className="text-center">
           <div className="bg-red-100 border border-red-300 text-red-700 p-5 rounded-xl mb-5">
-            <h3 className="text-lg font-semibold mb-2">⚠️ No Results Found</h3>
+            <h3 className="text-lg font-semibold mb-2">No Results Found</h3>
             <p>No analysis results were found. Please go back and record your practice session.</p>
           </div>
           <button 
             onClick={goBack}
             className="px-6 py-3 bg-gray-200 text-gray-700 rounded-full font-semibold hover:bg-gray-300 transition-all duration-300"
           >
-            ← Back to Practice
+            Back to Practice
           </button>
         </div>
       </div>
@@ -358,6 +455,11 @@ export default function ResultsPage() {
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-purple-600 mb-2">Session Complete!</h1>
             <p className="text-gray-500">AI feedback summary for your last recording</p>
+            {results?.audioFile && (
+              <div className="text-sm text-gray-400 mt-2">
+                Audio file: {(results.audioFile.size / (1024 * 1024)).toFixed(2)} MB • {instrument.toUpperCase()}
+              </div>
+            )}
           </div>
 
           {/* Summary Section */}
@@ -458,17 +560,38 @@ export default function ResultsPage() {
           <div className="flex gap-4 justify-end mt-8">
             <button
               onClick={saveResults}
-              className="px-8 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-all duration-300"
+              disabled={isProcessing}
+              className="px-8 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
             >
-              Save
+              {saving ? 'Saving...' : 'Save Results'}
+            </button>
+            <button
+              onClick={discardResults}
+              disabled={isProcessing}
+              className="px-8 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+            >
+              {discarding ? 'Discarding...' : 'Discard'}
             </button>
             <button
               onClick={goBack}
-              className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all duration-300"
+              disabled={isProcessing}
+              className="px-8 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
             >
-              Back
+              New Practice
             </button>
           </div>
+
+          {/* Audio File Info */}
+          {results?.audioFile && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+              <h4 className="font-medium text-blue-800 mb-2">Recording Details</h4>
+              <div className="text-sm text-blue-700 space-y-1">
+                <div>File Size: {(results.audioFile.size / (1024 * 1024)).toFixed(2)} MB</div>
+                <div>Format: {results.audioFile.type}</div>
+                <div>Stored in: Cloudinary</div>
+              </div>
+            </div>
+          )}
 
           {/* Timestamp */}
           {results?.timestamp && (
