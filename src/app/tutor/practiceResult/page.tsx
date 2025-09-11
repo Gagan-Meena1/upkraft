@@ -396,7 +396,7 @@ export default function ResultsPage() {
         </div>
         
         {/* Navigation Links */}
-        <div className="flex flex-col h-full">
+        {/* <div className="flex flex-col h-full">
           <nav className="flex-1 px-2 py-4 space-y-1">
             <button className="flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all">
               <User size={20} />
@@ -431,7 +431,7 @@ export default function ResultsPage() {
               {(sidebarOpen || isMobile) && <span className="ml-3">Logout</span>}
             </button>
           </nav>
-        </div>
+        </div> */}
       </div>
 
       {/* Main Content */}

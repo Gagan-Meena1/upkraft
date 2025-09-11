@@ -158,6 +158,22 @@ const Sidebar: React.FC<SidebarProps> = ({
             isMobile={isMobile}
           />
           <SidebarItem 
+            title="Practice Studio" 
+            icon={<Calendar size={20} className="text-gray-700" />}
+            route="/visualizer.html"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem 
+            title="Music Library" 
+            icon={<Calendar size={20} className="text-gray-700" />}
+            route="/student/musicLibrary"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem 
             title="Performance Video" 
             icon={<Video size={20} className="text-gray-700" />}
             route="/student/performanceVideo"

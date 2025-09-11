@@ -63,16 +63,23 @@ const Sidebar = ({ isOpen, onToggle, isMobile }) => {
         <div className="flex flex-col h-full">
           <nav className="flex-1 px-2 py-4">
             <Link 
-              href="/tutor" 
+              href="/student" 
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
               onClick={() => isMobile && onToggle()}
             >
               <User size={20} />
               {(isOpen || isMobile) && <span className="ml-3">Dashboard</span>}
             </Link>
-            
             <Link 
-              href="/tutor/courses" 
+              href="/student/profile" 
+              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+              onClick={() => isMobile && onToggle()}
+            >
+              <User size={20} />
+              {(isOpen || isMobile) && <span className="ml-3">Profile</span>}
+            </Link>
+            <Link 
+              href="/student/courses" 
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
               onClick={() => isMobile && onToggle()}
             >
@@ -87,23 +94,16 @@ const Sidebar = ({ isOpen, onToggle, isMobile }) => {
               <Music size={20} />
               {(isOpen || isMobile) && <span className="ml-3">Music Library</span>}
             </Link>
-           
             <Link 
-              href="/tutor/myStudents" 
+              href="/tutor/create-course" 
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
               onClick={() => isMobile && onToggle()}
             >
-              <Users size={20} />
-              {(isOpen || isMobile) && <span className="ml-3">My Students</span>}
+              <PlusCircle size={20} />
+              {(isOpen || isMobile) && <span className="ml-3">Create Course</span>}
             </Link>
-            <Link 
-              href="/tutor/assignments" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && onToggle()}
-            >
-              <BookCheck size={20} />
-              {(isOpen || isMobile) && <span className="ml-3">Assignments</span>}
-            </Link>
+            
+            
             <Link 
               href="/visualizer.html" 
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
