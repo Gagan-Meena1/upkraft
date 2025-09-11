@@ -3631,75 +3631,69 @@ window.addEventListener('keydown', function(e) {
     log('🔄 Recording discarded - ready to record again');
   });
   
-  // Instrument selection modal handlers
-  // Instrument selection modal handlers
-// Instrument selection modal handlers
-$('#instrumentConfirmBtn')?.addEventListener('click', async () => {
-  const select = $('#instrumentSelect');
-  if (!select || !select.value) { 
-    alert('Please select an instrument'); 
-    return; 
-  }
-  selectedInstrument = select.value;
-  log(`🎵 Instrument selected: ${selectedInstrument}`);
+  // Updated instrument selection modal handler - calls your Next.js API
+  $('#instrumentConfirmBtn')?.addEventListener('click', async () => {
+    const select = $('#instrumentSelect');
+    if (!select || !select.value) { 
+      alert('Please select an instrument'); 
+      return; 
+    }
+    selectedInstrument = select.value;
+    log(`🎵 Instrument selected: ${selectedInstrument}`);
 
-  // Proceed with upload using the selected instrument
-  if (!pendingBlob) { 
-    hideInstrumentSelection(); 
-    hideRecordingConfirmation(); 
-    return; 
-  }
-  
-  try {
-    const up = document.getElementById('uploadLoading');
-    if (up) up.style.display = 'flex';
-    
-    const formData = new FormData();
-    formData.append('audio_file', pendingBlob, 'practice_recording.webm');
-    
-    // Choose endpoint based on selected instrument
-    let apiEndpoint;
-    if (selectedInstrument === 'guitar') {
-      apiEndpoint = 'http://168.231.103.13:8000/audio/guitar-ratings/upload';
-    } else if (selectedInstrument === 'piano') {
-      apiEndpoint = 'http://168.231.103.13:8000/audio/piano-ratings/upload';
-    } else {
-      throw new Error('Invalid instrument selection');
+    // Proceed with upload using the selected instrument
+    if (!pendingBlob) { 
+      hideInstrumentSelection(); 
+      hideRecordingConfirmation(); 
+      return; 
     }
     
-    const response = await fetch(apiEndpoint, {
-      method: 'POST',
-      body: formData
-    });
-    
-    if (!response.ok) throw new Error('Upload failed: ' + response.status);
-    const result = await response.json();
-    
-    // Store results and instrument in sessionStorage
-    const analysisData = {
-      ...result,
-      instrument: selectedInstrument,
-      timestamp: Date.now()
-    };
-    
-    sessionStorage.setItem('practiceAnalysisResults', JSON.stringify(analysisData));
-    sessionStorage.setItem('practiceAnalysisInstrument', selectedInstrument);
-    
-    // Navigate to results page
-    window.location.href = '/tutor/practiceResult';
-    
-  } catch(err) {
-    console.error('Upload failed:', err);
-    alert(`Upload failed: ${err.message}`);
-  } finally {
-    const up = document.getElementById('uploadLoading');
-    if (up) up.style.display = 'none';
-    hideInstrumentSelection();
-    hideRecordingConfirmation();
-    pendingBlob = null;
-    selectedInstrument = null;
-  }
-});
+    try {
+      const up = document.getElementById('uploadLoading');
+      if (up) up.style.display = 'flex';
+      
+      const formData = new FormData();
+      formData.append('audio_file', pendingBlob, 'practice_recording.webm');
+      formData.append('ratingPath', selectedInstrument); // Pass instrument as ratingPath
+      
+      // Call your Next.js API route instead of external API directly
+      const response = await fetch('/Api/proxy/practice', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Store results and instrument in sessionStorage
+      const analysisData = {
+        ...result,
+        instrument: selectedInstrument,
+        timestamp: Date.now()
+      };
+      
+      sessionStorage.setItem('practiceAnalysisResults', JSON.stringify(analysisData));
+      sessionStorage.setItem('practiceAnalysisInstrument', selectedInstrument);
+      
+      // Navigate to results page
+      window.location.href = '/tutor/practiceResult';
+      
+    } catch(err) {
+      console.error('Upload failed:', err);
+      alert(`Upload failed: ${err.message}`);
+    } finally {
+      const up = document.getElementById('uploadLoading');
+      if (up) up.style.display = 'none';
+      hideInstrumentSelection();
+      hideRecordingConfirmation();
+      pendingBlob = null;
+      selectedInstrument = null;
+    }
+  });
 
   $('#instrumentBackBtn')?.addEventListener('click', () => {
     hideInstrumentSelection();
