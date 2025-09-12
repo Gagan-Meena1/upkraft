@@ -1,4 +1,4 @@
-// pages/api/practice/cleanup-cloudinary.js
+// /Api/practice/cleanup-cloudinary/route.js
 import { NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 
@@ -32,7 +32,7 @@ export async function DELETE(request) {
       return NextResponse.json({ 
         message: 'File may not exist or was already deleted',
         result 
-      });
+      }, { status: 200 }); // Still return 200 since it's not really an error
     }
 
   } catch (error) {

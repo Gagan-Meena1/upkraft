@@ -3632,69 +3632,120 @@ window.addEventListener('keydown', function(e) {
   });
   
   // Updated instrument selection modal handler - calls your Next.js API
-  $('#instrumentConfirmBtn')?.addEventListener('click', async () => {
-    const select = $('#instrumentSelect');
-    if (!select || !select.value) { 
-      alert('Please select an instrument'); 
-      return; 
-    }
-    selectedInstrument = select.value;
-    log(`🎵 Instrument selected: ${selectedInstrument}`);
+  // Updated instrument selection modal handler - uploads to Cloudinary first, then calls analysis API
+$('#instrumentConfirmBtn')?.addEventListener('click', async () => {
+  const select = $('#instrumentSelect');
+  if (!select || !select.value) { 
+    alert('Please select an instrument'); 
+    return; 
+  }
+  selectedInstrument = select.value;
+  log(`🎵 Instrument selected: ${selectedInstrument}`);
 
-    // Proceed with upload using the selected instrument
-    if (!pendingBlob) { 
-      hideInstrumentSelection(); 
-      hideRecordingConfirmation(); 
-      return; 
+  if (!pendingBlob) { 
+    hideInstrumentSelection(); 
+    hideRecordingConfirmation(); 
+    return; 
+  }
+  
+  try {
+    const up = document.getElementById('uploadLoading');
+    if (up) up.style.display = 'flex';
+    
+    // STEP 1: Upload audio to Cloudinary first
+    log('📤 Uploading audio to Cloudinary...');
+    const cloudinaryFormData = new FormData();
+    cloudinaryFormData.append('audio', pendingBlob, 'practice_recording.webm');
+    cloudinaryFormData.append('instrument', selectedInstrument);
+    
+    const cloudinaryResponse = await fetch('/Api/practice/upload', {
+      method: 'POST',
+      body: cloudinaryFormData
+    });
+    
+    if (!cloudinaryResponse.ok) {
+      const errorData = await cloudinaryResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Cloudinary upload failed: ${cloudinaryResponse.status}`);
     }
     
-    try {
-      const up = document.getElementById('uploadLoading');
-      if (up) up.style.display = 'flex';
-      
-      const formData = new FormData();
-      formData.append('audio_file', pendingBlob, 'practice_recording.webm');
-      formData.append('ratingPath', selectedInstrument); // Pass instrument as ratingPath
-      
-      // Call your Next.js API route instead of external API directly
-      const response = await fetch('/Api/proxy/practice', {
-        method: 'POST',
-        body: formData
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Upload failed: ${response.status}`);
+    const cloudinaryResult = await cloudinaryResponse.json();
+    log('☁️ Audio uploaded to Cloudinary successfully');
+    
+    // STEP 2: Call analysis API with Cloudinary URL
+    log('🔍 Starting AI analysis...');
+    const analysisFormData = new FormData();
+    analysisFormData.append('audio_file', pendingBlob, 'practice_recording.webm');
+    analysisFormData.append('ratingPath', selectedInstrument);
+    
+    const analysisResponse = await fetch('/Api/proxy/practice', {
+      method: 'POST',
+      body: analysisFormData
+    });
+    
+    if (!analysisResponse.ok) {
+      // If analysis fails, clean up the Cloudinary file
+      try {
+        await fetch('/Api/practice/cleanup', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cloudinaryPublicId: cloudinaryResult.public_id })
+        });
+        log('🗑️ Cleaned up Cloudinary file due to analysis failure');
+      } catch (cleanupError) {
+        console.error('Failed to cleanup Cloudinary file:', cleanupError);
       }
       
-      const result = await response.json();
-      
-      // Store results and instrument in sessionStorage
-      const analysisData = {
-        ...result,
-        instrument: selectedInstrument,
-        timestamp: Date.now()
-      };
-      
-      sessionStorage.setItem('practiceAnalysisResults', JSON.stringify(analysisData));
-      sessionStorage.setItem('practiceAnalysisInstrument', selectedInstrument);
-      
-      // Navigate to results page
-      window.location.href = '/tutor/practiceResult';
-      
-    } catch(err) {
-      console.error('Upload failed:', err);
-      alert(`Upload failed: ${err.message}`);
-    } finally {
-      const up = document.getElementById('uploadLoading');
-      if (up) up.style.display = 'none';
-      hideInstrumentSelection();
-      hideRecordingConfirmation();
-      pendingBlob = null;
-      selectedInstrument = null;
+      const errorData = await analysisResponse.json().catch(() => ({}));
+      throw new Error(errorData.error || `Analysis failed: ${analysisResponse.status}`);
     }
-  });
-
+    
+    const analysisResult = await analysisResponse.json();
+    log('✅ AI analysis completed successfully');
+    
+    // STEP 3: Store results with Cloudinary info in sessionStorage
+    const analysisData = {
+  ...analysisResult,
+  instrument: selectedInstrument,
+  timestamp: Date.now(),
+  audioFile: {
+    // Original file info
+    url: cloudinaryResult.secure_url,
+    publicId: cloudinaryResult.public_id,
+    assetId: cloudinaryResult.asset_id,
+    size: cloudinaryResult.bytes,
+    type: 'audio/webm',
+    
+    // MP3 info (if available)
+    mp3_url: cloudinaryResult.mp3_url,
+    mp3_public_id: cloudinaryResult.mp3_public_id,
+    has_mp3_version: cloudinaryResult.has_mp3_version,
+    
+    // Preferred URLs for playback and download
+    playback_url: cloudinaryResult.playback_url,
+    download_url: cloudinaryResult.download_url
+  }
+};
+    
+    sessionStorage.setItem('practiceAnalysisResults', JSON.stringify(analysisData));
+    sessionStorage.setItem('practiceAnalysisInstrument', selectedInstrument);
+    
+    log('💾 Results stored in session storage with Cloudinary info');
+    
+    // Navigate to results page
+    window.location.href = '/tutor/practiceResult';
+    
+  } catch(err) {
+    console.error('Process failed:', err);
+    alert(`Process failed: ${err.message}`);
+  } finally {
+    const up = document.getElementById('uploadLoading');
+    if (up) up.style.display = 'none';
+    hideInstrumentSelection();
+    hideRecordingConfirmation();
+    pendingBlob = null;
+    selectedInstrument = null;
+  }
+});
   $('#instrumentBackBtn')?.addEventListener('click', () => {
     hideInstrumentSelection();
     showRecordingConfirmation();

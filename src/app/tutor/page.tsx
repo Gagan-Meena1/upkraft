@@ -477,6 +477,15 @@ export default function Dashboard() {
               <BookCheck size={20} />
               {(sidebarOpen || isMobile) && <span className="ml-3">Music Library</span>}
             </Link>
+             <Link 
+              href="/tutor/myArchieve" 
+              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
+              onClick={() => isMobile && setSidebarOpen(false)}
+            >
+            
+              <BookCheck size={20} />
+              {(sidebarOpen || isMobile) && <span className="ml-3">My Archives</span>}
+            </Link>
             <button 
               onClick={async () => {
                 try {

@@ -57,105 +57,102 @@ export default function ResultsPage() {
     }
   };
 
-  const saveResults = async () => {
-    if (!results) return;
+ const saveResults = async () => {
+  if (!results) return;
+  
+  try {
+    setSaving(true);
     
-    try {
-      setSaving(true);
-      
-      const response = await fetch('/Api/practice/saveResult', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          instrument: instrument,
-          analysisResults: results.ratings,
-          cloudinaryPublicId: results.audioFile?.publicId,
-          audioFileUrl: results.audioFile?.url,
-          shouldSave: true
-        })
-      });
+    const response = await fetch('/Api/practice/saveResult', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        instrument: instrument,
+        analysisResults: results.ratings,
+        cloudinaryPublicId: results.audioFile?.publicId,
+        audioFileUrl: results.audioFile?.url,
+        shouldSave: true
+      })
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save results');
-      }
-
-      const data = await response.json();
-      
-      // Clear session storage after successful save
-      sessionStorage.removeItem('practiceAnalysisResults');
-      sessionStorage.removeItem('practiceAnalysisInstrument');
-      
-      alert(`Practice session "${data.title}" saved successfully!`);
-      
-      // Redirect to practice history or dashboard
-      window.location.href = '/tutor/practice-history';
-      
-    } catch (error) {
-      console.error('Error saving results:', error);
-      alert(`Failed to save results: ${error.message}`);
-    } finally {
-      setSaving(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to save results');
     }
-  };
+
+    const data = await response.json();
+    
+    // Clear session storage after successful save
+    sessionStorage.removeItem('practiceAnalysisResults');
+    sessionStorage.removeItem('practiceAnalysisInstrument');
+    
+    alert(`Practice session "${data.title}" saved successfully!`);
+    
+    // Redirect to practice history or dashboard
+    window.location.href = '/tutor';
+    
+  } catch (error) {
+    console.error('Error saving results:', error);
+    alert(`Failed to save results: ${error.message}`);
+  } finally {
+    setSaving(false);
+  }
+};
 
   const discardResults = async () => {
-    if (!results?.audioFile?.publicId) {
-      // Just clear session storage if no audio file
-      sessionStorage.removeItem('practiceAnalysisResults');
-      sessionStorage.removeItem('practiceAnalysisInstrument');
-      window.location.href = '/tutor/practice';
-      return;
-    }
+  if (!results?.audioFile?.publicId) {
+    // Just clear session storage if no audio file
+    sessionStorage.removeItem('practiceAnalysisResults');
+    sessionStorage.removeItem('practiceAnalysisInstrument');
+    window.location.href = '/tutor';
+    return;
+  }
+  
+  if (!confirm('Are you sure you want to discard this practice session? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    setDiscarding(true);
     
-    if (!confirm('Are you sure you want to discard this practice session? This action cannot be undone.')) {
-      return;
-    }
-    
-    try {
-      setDiscarding(true);
-      
-      const response = await fetch('/Api/practice/saveResult', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          instrument: instrument,
-          analysisResults: results.ratings,
-          cloudinaryPublicId: results.audioFile?.publicId,
-          audioFileUrl: results.audioFile?.url,
-          shouldSave: false
-        })
-      });
+    // Delete from Cloudinary using the cleanup API
+    const response = await fetch('/Api/practice/cleanup', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        cloudinaryPublicId: results.audioFile.publicId
+      })
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to discard results');
-      }
-      
-      // Clear session storage
-      sessionStorage.removeItem('practiceAnalysisResults');
-      sessionStorage.removeItem('practiceAnalysisInstrument');
-      
-      alert('Practice session discarded successfully');
-      window.location.href = '/tutor/practice';
-      
-    } catch (error) {
-      console.error('Error discarding results:', error);
-      alert(`Failed to discard results: ${error.message}`);
-    } finally {
-      setDiscarding(false);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to delete audio file');
     }
-  };
+    
+    // Clear session storage
+    sessionStorage.removeItem('practiceAnalysisResults');
+    sessionStorage.removeItem('practiceAnalysisInstrument');
+    
+    alert('Practice session discarded and audio file deleted successfully');
+    window.location.href = '/tutor/practice';
+    
+  } catch (error) {
+    console.error('Error discarding results:', error);
+    alert(`Failed to discard results: ${error.message}`);
+  } finally {
+    setDiscarding(false);
+  }
+};
 
   const goBack = () => {
     // Clear session storage and go back to practice
     sessionStorage.removeItem('practiceAnalysisResults');
     sessionStorage.removeItem('practiceAnalysisInstrument');
-    window.location.href = '/tutor/practice';
+    window.location.href = '/tutor';
   };
 
   const toggleSection = (sectionKey) => {
