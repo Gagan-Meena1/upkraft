@@ -63,7 +63,7 @@ export default function LoginPage() {
     console.log("User category and verification:", userCategory, isVerified);
     
     // Check verification status first
-    if ((userCategory === "Tutor" || userCategory === "Admin") && !isVerified) {
+    if ((userCategory === "Tutor" || userCategory === "Admin" || userCategory === "Student") && !isVerified) {
       setNotApproved(true); // Show permanent message
       toast.error("Admin has not approved your request yet");
       return; // Don't proceed with navigation

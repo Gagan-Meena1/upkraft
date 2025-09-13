@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
     // Execute both queries in parallel for better performance
     const [verifiedTutors, unverifiedTutors] = await Promise.all([
     User.find({ 
-        category: { $in: ["Tutor", "Admin"] }, 
+        category: { $in: ["Tutor", "Admin","Student"] }, 
         isVerified: true 
       }),
 
       User.find({ 
-        category: { $in: ["Tutor", "Admin"] }, 
+        category: { $in: ["Tutor", "Admin","Student"] }, 
         isVerified: { $ne: true } 
       })
     ]);
@@ -77,7 +77,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(
       { 
-        message: "Tutor approved successfully",
+        message: `${user.category} approved successfully`,
         data: user
       }, 
       { status: 200 }
@@ -105,15 +105,13 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (user.category !== "Tutor") {
-      return NextResponse.json({ error: "User is not a Tutor" }, { status: 400 });
-    }
+  
 
     await User.findByIdAndDelete(userId);
 
     return NextResponse.json(
       { 
-        message: "Tutor rejected and deleted successfully",
+        message: `${user.category} rejected and deleted successfully`,
         data: { deletedUserId: userId }
       }, 
       { status: 200 }
