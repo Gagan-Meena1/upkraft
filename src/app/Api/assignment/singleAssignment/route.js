@@ -52,6 +52,10 @@ export async function GET(request) {
         status: assignment.status || false,
         fileUrl: assignment.fileUrl,
         fileName: assignment.fileName,
+        songName: assignment.songName,
+        practiceStudio: assignment.practiceStudio,
+        speed: assignment.speed,
+        metronome: assignment.metronome,
         createdAt: assignment.createdAt,
         class: {
           _id: assignment.classId?._id || '',
@@ -73,6 +77,7 @@ export async function GET(request) {
         totalAssignedStudents: assignment.userId?.filter(user => user.category !== 'Tutor').length || 0
       };
 
+      console.log('Transformed Assignment:', transformedAssignment);
       return NextResponse.json({
         success: true,
         message: 'Assignment details fetched successfully',
@@ -99,11 +104,12 @@ export async function GET(request) {
       { status: 500 }
     );
   }
+
 }
 
 export async function PUT(request) {
   try {
-    await dbConnect();
+    await connect();
     
     const { searchParams } = new URL(request.url);
     const assignmentId = searchParams.get('assignmentId');

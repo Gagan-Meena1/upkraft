@@ -91,8 +91,14 @@ export default function ResultsPage() {
     alert(`Practice session "${data.title}" saved successfully!`);
     
     // Redirect to practice history or dashboard
+  const urlParams = new URLSearchParams(window.location.search);
+  const userType = urlParams.get('user');
+  
+  if (userType === 'student') {
+    window.location.href = '/student';
+  } else {
     window.location.href = '/tutor';
-    
+  }    
   } catch (error) {
     console.error('Error saving results:', error);
     alert(`Failed to save results: ${error.message}`);
@@ -106,8 +112,14 @@ export default function ResultsPage() {
     // Just clear session storage if no audio file
     sessionStorage.removeItem('practiceAnalysisResults');
     sessionStorage.removeItem('practiceAnalysisInstrument');
+  const urlParams = new URLSearchParams(window.location.search);
+  const userType = urlParams.get('user');
+  
+  if (userType === 'student') {
+    window.location.href = '/student';
+  } else {
     window.location.href = '/tutor';
-    return;
+  }    return;
   }
   
   if (!confirm('Are you sure you want to discard this practice session? This action cannot be undone.')) {
@@ -138,8 +150,14 @@ export default function ResultsPage() {
     sessionStorage.removeItem('practiceAnalysisInstrument');
     
     alert('Practice session discarded and audio file deleted successfully');
-    window.location.href = '/tutor/practice';
-    
+  const urlParams = new URLSearchParams(window.location.search);
+  const userType = urlParams.get('user');
+  
+  if (userType === 'student') {
+    window.location.href = '/student';
+  } else {
+    window.location.href = '/tutor';
+  }    
   } catch (error) {
     console.error('Error discarding results:', error);
     alert(`Failed to discard results: ${error.message}`);
@@ -149,11 +167,20 @@ export default function ResultsPage() {
 };
 
   const goBack = () => {
-    // Clear session storage and go back to practice
-    sessionStorage.removeItem('practiceAnalysisResults');
-    sessionStorage.removeItem('practiceAnalysisInstrument');
+  // Clear session storage and go back to practice
+  sessionStorage.removeItem('practiceAnalysisResults');
+  sessionStorage.removeItem('practiceAnalysisInstrument');
+  
+  // Check for user query parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const userType = urlParams.get('user');
+  
+  if (userType === 'student') {
+    window.location.href = '/student';
+  } else {
     window.location.href = '/tutor';
-  };
+  }
+};
 
   const toggleSection = (sectionKey) => {
     setExpandedSections(prev => ({

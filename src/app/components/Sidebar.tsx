@@ -160,7 +160,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <SidebarItem 
             title="Practice Studio" 
             icon={<Calendar size={20} className="text-gray-700" />}
-            route="/visualizer.html"
+            route="/visualizer.html?user=student"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}

@@ -434,14 +434,14 @@ export default function Dashboard() {
               <BookOpen size={20} />
               {(sidebarOpen || isMobile) && <span className="ml-3">My Courses</span>}
             </Link>
-            {/* <Link 
-              href="tutor/create-course" 
+            <Link 
+              href="tutor/performanceVideo" 
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
               onClick={() => isMobile && setSidebarOpen(false)}
             >
               <PlusCircle size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Create Course</span>}
-            </Link> */}
+              {(sidebarOpen || isMobile) && <span className="ml-3">Performance Video</span>}
+            </Link>
             <Link 
               href="tutor/myStudents" 
               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"

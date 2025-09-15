@@ -26,6 +26,12 @@ export async function POST(request: NextRequest) {
     const courseId = formData.get('courseId');
     const assignmentFile = formData.get('assignmentFile');
     
+    // Extract new fields
+    const songName = formData.get('songName');
+    const practiceStudio = formData.get('practiceStudio') === 'true';
+    const speed = formData.get('speed');
+    const metronome = formData.get('metronome');
+    
     // Validate required fields
     // console.log("classId : ", classId);
     // console.log("courseId : ", courseId);
@@ -56,6 +62,10 @@ export async function POST(request: NextRequest) {
       classId,
       courseId,
       userId: UserIds, // Changed from userId to userIds array
+      songName: songName || '',
+      practiceStudio,
+      speed: speed || '100%',
+      metronome: metronome || '100%'
     };
     console.log("333333333333333333333333333333333333333333333333333333333");
     
@@ -208,6 +218,10 @@ export async function GET(request: NextRequest) {
             status: assignment.status,
             fileUrl: assignment.fileUrl,
             fileName: assignment.fileName,
+            songName: assignment.songName,
+            practiceStudio: assignment.practiceStudio,
+            speed: assignment.speed,
+            metronome: assignment.metronome,
             createdAt: assignment.createdAt,
             class: assignment.classId,
             course: assignment.courseId
@@ -241,6 +255,10 @@ export async function GET(request: NextRequest) {
           status: assignment.status,
           fileUrl: assignment.fileUrl,
           fileName: assignment.fileName,
+          songName: assignment.songName,
+          practiceStudio: assignment.practiceStudio,
+          speed: assignment.speed,
+          metronome: assignment.metronome,
           createdAt: assignment.createdAt,
           class: assignment.classId,
           course: assignment.courseId,

@@ -3731,8 +3731,15 @@ $('#instrumentConfirmBtn')?.addEventListener('click', async () => {
     
     log('💾 Results stored in session storage with Cloudinary info');
     
-    // Navigate to results page
-    window.location.href = '/tutor/practiceResult';
+    // Navigate to results page and preserve query parameters
+const urlParams = new URLSearchParams(window.location.search);
+const queryString = urlParams.toString();
+
+if (queryString) {
+  window.location.href = `/tutor/practiceResult?${queryString}`;
+} else {
+  window.location.href = '/tutor/practiceResult';
+}
     
   } catch(err) {
     console.error('Process failed:', err);

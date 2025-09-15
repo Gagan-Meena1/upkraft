@@ -45,6 +45,22 @@ const AssignmentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  songName:{
+    type:String,
+
+  },
+  practiceStudio:{
+    type:Boolean,
+  },
+  speed:{
+    type:String,
+    enum:['25%','50%','75%','100%'],
+  },
+  metronome:{
+    type:String,
+    enum:['25%','50%','75%','100%'],
+  }
+
 });
 
 // Check if the model already exists to prevent overwriting during hot reloads

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Calendar, Clock, User, FileText, Download, Users, BookOpen, MapPin } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, FileText, Download, Users, BookOpen, Music, Gauge, Zap, Home } from 'lucide-react';
 
 interface Student {
   userId: string;
@@ -19,6 +19,10 @@ interface Assignment {
   fileUrl?: string;
   fileName?: string;
   createdAt: string;
+  songName?: string;
+  metronome?: number;       // Percentage value
+  speed?: number;
+  practiceStudio?: boolean;
   class: {
     _id: string;
     title: string;
@@ -232,35 +236,85 @@ function AssignmentDetailContent() {
             </div>
           </div>
 
-          {/* Assignment Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Calendar size={20} className="text-purple-500" />
-              <div>
-                <p className="text-sm text-gray-600">Assigned Date</p>
-                <p className="font-medium text-gray-800">
-                  {assignment?.createdAt ? formatDate(assignment.createdAt) : 'Loading...'}
-                </p>
+          {/* Assignment Info Grid - Two rows: original 3 fields, then 4 new fields */}
+          <div className="space-y-4">
+            {/* First Row: Original Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Calendar size={20} className="text-purple-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Assigned Date</p>
+                  <p className="font-medium text-gray-800">
+                    {assignment?.createdAt ? formatDate(assignment.createdAt) : 'Loading...'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Clock size={20} className="text-orange-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Deadline</p>
+                  <p className="font-medium text-gray-800">
+                    {assignment?.deadline ? formatDate(assignment.deadline) : 'Loading...'}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Users size={20} className="text-blue-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Students</p>
+                  <p className="font-medium text-gray-800">
+                    {assignment?.totalAssignedStudents || 0} Students
+                  </p>
+                </div>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Clock size={20} className="text-orange-500" />
-              <div>
-                <p className="text-sm text-gray-600">Deadline</p>
-                <p className="font-medium text-gray-800">
-                  {assignment?.deadline ? formatDate(assignment.deadline) : 'Loading...'}
-                </p>
+
+            {/* Second Row: New Music Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Song Name Field */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Music size={20} className="text-green-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Song Name</p>
+                  <p className="font-medium text-gray-800">
+                    {assignment?.songName || 'Not specified'}
+                  </p>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <Users size={20} className="text-blue-500" />
-              <div>
-                <p className="text-sm text-gray-600">Students</p>
-                <p className="font-medium text-gray-800">
-                  {assignment?.totalAssignedStudents || 0} Students
-                </p>
+
+              {/* Metronome Percentage Field */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Gauge size={20} className="text-indigo-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Metronome</p>
+                  <p className="font-medium text-gray-800">
+                    {assignment?.metronome !== undefined ? `${assignment.metronome}%` : 'Not specified'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Speed Field */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Zap size={20} className="text-yellow-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Speed</p>
+                  <p className="font-medium text-gray-800">
+                    {assignment?.speed || 'Not specified'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Practice Studio Field */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Home size={20} className="text-pink-500" />
+                <div>
+                  <p className="text-sm text-gray-600">Practice Studio</p>
+                  <p className="font-medium text-gray-800">
+                    {assignment?.practiceStudio !== undefined ? (assignment.practiceStudio ? 'Yes' : 'No') : 'Not specified'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
