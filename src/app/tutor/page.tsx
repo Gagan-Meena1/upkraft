@@ -419,73 +419,77 @@ export default function Dashboard() {
         <div className="flex flex-col h-full">
           <nav className="flex-1 px-2 py-4">
             <Link 
-              href="tutor/profile" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <User size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Profile</span>}
-            </Link>
-            <Link 
-              href="tutor/courses" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <BookOpen size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">My Courses</span>}
-            </Link>
-            <Link 
-              href="tutor/performanceVideo" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <PlusCircle size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Performance Video</span>}
-            </Link>
-            <Link 
-              href="tutor/myStudents" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <User size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">My Students</span>}
-            </Link>
-            <Link 
-              href="tutor/assignments" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-            
-              <BookCheck size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Assignments</span>}
-            </Link>
-          <Link 
-              href="/visualizer.html" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-            
-              <BookCheck size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Practice Studio</span>}
-            </Link>
-               <Link 
-              href="/tutor/musicLibrary" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-            
-              <BookCheck size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Music Library</span>}
-            </Link>
-             <Link 
-              href="/tutor/myArchieve" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-            
-              <BookCheck size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">My Archives</span>}
-            </Link>
+      href="tutor/profile" 
+      className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+      onClick={() => isMobile && setSidebarOpen(false)}
+    >
+      <User size={20} />
+      {(sidebarOpen || isMobile) && <span className="ml-3">Profile</span>}
+    </Link>
+    <Link 
+      href="tutor/calendar" 
+      className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+      onClick={() => isMobile && setSidebarOpen(false)}
+    >
+      <Calendar size={20} />
+      {(sidebarOpen || isMobile) && <span className="ml-3">Calendar</span>}
+    </Link>
+    <Link 
+      href="tutor/courses" 
+      className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+      onClick={() => isMobile && setSidebarOpen(false)}
+    >
+      <BookOpen size={20} />
+      {(sidebarOpen || isMobile) && <span className="ml-3">My Courses</span>}
+    </Link>
+    <Link 
+      href="tutor/performanceVideo" 
+      className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
+      onClick={() => isMobile && setSidebarOpen(false)}
+    >
+      <PlusCircle size={20} />
+      {(sidebarOpen || isMobile) && <span className="ml-3">Performance Video</span>}
+    </Link>
+    <Link 
+      href="tutor/myStudents" 
+      className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
+      onClick={() => isMobile && setSidebarOpen(false)}
+    >
+      <Users size={20} />
+      {(sidebarOpen || isMobile) && <span className="ml-3">My Students</span>}
+    </Link>
+    <Link 
+      href="tutor/assignments" 
+      className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
+      onClick={() => isMobile && setSidebarOpen(false)}
+    >
+      <BookCheck size={20} />
+      {(sidebarOpen || isMobile) && <span className="ml-3">Assignments</span>}
+    </Link>
+    <Link 
+      href="/visualizer.html" 
+      className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
+      onClick={() => isMobile && setSidebarOpen(false)}
+    >
+      <CheckCircle size={20} />
+      {(sidebarOpen || isMobile) && <span className="ml-3">Practice Studio</span>}
+    </Link>
+    <Link 
+      href="/tutor/musicLibrary" 
+      className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
+      onClick={() => isMobile && setSidebarOpen(false)}
+    >
+      <BookMarkedIcon size={20} />
+      {(sidebarOpen || isMobile) && <span className="ml-3">Music Library</span>}
+    </Link>
+    <Link 
+      href="/tutor/myArchieve" 
+      className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
+      onClick={() => isMobile && setSidebarOpen(false)}
+    >
+      <Clock size={20} />
+      {(sidebarOpen || isMobile) && <span className="ml-3">My Archives</span>}
+    </Link>
             <button 
               onClick={async () => {
                 try {

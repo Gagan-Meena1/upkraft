@@ -134,11 +134,11 @@ export default function TutorAssignments() {
   };
   
   const handleViewDetail = (assignmentId: string) => {
-  router.push(`/tutor/assignments/singleAssignment?assignmentId=${assignmentId}`);
+  router.push(`/student/assignments/singleAssignment?assignmentId=${assignmentId}`);
   };
   
   const handleBackToTutor = () => {
-    router.push('/tutor');
+    router.push('/student');
   };
 
   const formatDate = (dateString: string) => {
@@ -226,21 +226,6 @@ export default function TutorAssignments() {
             </button>
             <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
           </div>
-          <div className="flex gap-3">
-            <select 
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="Monthly">Monthly</option>
-              <option value="Weekly">Weekly</option>
-              <option value="Daily">Daily</option>
-            </select>
-            <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
-              <Plus size={16} />
-              Add Assignments
-            </button>
-          </div>
         </div>
         {tutorInfo && (
           <p className="text-gray-600 mt-2">
@@ -301,17 +286,6 @@ export default function TutorAssignments() {
             <h2 className="text-xl font-semibold text-gray-800 mb-2">
               {activeTab === 'pending' ? 'No Pending Assignments' : 'No Completed Assignments'}
             </h2>
-            <p className="text-gray-600">
-              {activeTab === 'pending' 
-                ? "You haven't created any assignments yet." 
-                : "No assignments have been completed yet."
-              }
-            </p>
-            {activeTab === 'pending' && (
-              <button className="mt-4 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                Create Your First Assignment
-              </button>
-            )}
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -319,30 +293,6 @@ export default function TutorAssignments() {
               <div key={assignment._id} className="p-6 hover:bg-purple-100 transition-colors">
                 <div className="flex justify-between items-start">
                   <div className="flex items-start gap-4 flex-1">
-                    {/* Status Checkbox */}
-                    <div className="flex items-center mt-1">
-                      <button
-                        onClick={() => handleStatusChange(assignment._id, assignment.status || false)}
-                        disabled={updatingStatus === assignment._id}
-                        className={`
-                          w-5 h-5 rounded border-2 flex items-center justify-center transition-all duration-200
-                          ${assignment.status 
-                            ? 'bg-green-500 border-green-500 text-white' 
-                            : 'border-gray-300 hover:border-purple-400'
-                          }
-                          ${updatingStatus === assignment._id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                        `}
-                      >
-                        {updatingStatus === assignment._id ? (
-                          <div className="animate-spin rounded-full h-3 w-3 border border-current border-t-transparent" />
-                        ) : assignment.status ? (
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        ) : null}
-                      </button>
-                    </div>
-
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className={`text-lg font-semibold ${
@@ -385,7 +335,8 @@ export default function TutorAssignments() {
                           Students: 
                         </span>
                         <div className="flex items-center gap-2">
-                          {assignment.assignedStudents.slice(0, 3).map((student, index) => (
+                          {/* Fixed: Add null check and default empty array */}
+                          {(assignment.assignedStudents || []).slice(0, 3).map((student, index) => (
                             <div key={student.userId} className="flex items-center">
                               <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
                                 <span className="text-xs font-medium text-purple-700">
@@ -393,20 +344,19 @@ export default function TutorAssignments() {
                                 </span>
                               </div>
                               <span className="ml-1 text-sm text-gray-700">{student.username}</span>
-                              {index < Math.min(assignment.assignedStudents.length, 3) - 1 && (
+                              {index < Math.min((assignment.assignedStudents || []).length, 3) - 1 && (
                                 <span className="mx-1 text-gray-400">•</span>
                               )}
                             </div>
                           ))}
-                          {assignment.totalAssignedStudents > 3 && (
+                          {/* Fixed: Add null check for totalAssignedStudents and assignedStudents */}
+                          {(assignment.totalAssignedStudents || 0) > 3 && (
                             <span className="text-sm text-gray-500">
-                              +{assignment.totalAssignedStudents - 3} more
+                              +{(assignment.totalAssignedStudents || 0) - 3} more
                             </span>
                           )}
                         </div>
                       </div>
-
-                      
 
                       {assignment.fileUrl && (
                         <div className="flex items-center gap-2 text-sm text-purple-600 mb-4">

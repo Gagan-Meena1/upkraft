@@ -327,12 +327,12 @@ export default function PracticeHistoryPage() {
               <Music size={48} className="mx-auto text-gray-400 mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Practice Sessions Found</h3>
               <p className="text-gray-500">Start practicing to see your results here!</p>
-              <button 
+              {/* <button 
                 onClick={() => window.location.href = '/tutor/practice'}
                 className="mt-4 px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-all duration-300"
               >
                 Start Practicing
-              </button>
+              </button> */}
             </div>
           ) : (
             <div className="space-y-4">

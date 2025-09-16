@@ -89,7 +89,7 @@ const userSchema = new mongoose.Schema({
     },
     teachingMode: {
         type: String,
-        enum: ["Online", "In-person", "Both", ""],
+        enum: ["Online", "In-person", "Both", "","Hybrid"],
         default: ""
     },
     instagramLink:{

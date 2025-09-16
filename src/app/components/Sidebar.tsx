@@ -190,6 +190,14 @@ const Sidebar: React.FC<SidebarProps> = ({
             isMobile={isMobile}
           />
           <SidebarItem 
+            title="My Archives" 
+            icon={<MdAssignment size={20} className="text-gray-700" />}
+            route="/tutor/myArchieve"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem 
             title="Logout" 
             icon={<LogOut size={20} className="text-gray-700" />}
             collapsed={sidebarCollapsed}

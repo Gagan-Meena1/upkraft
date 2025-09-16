@@ -588,7 +588,7 @@ const handleSaveChanges = async () => {
                       <option value="">Select Teaching Mode</option>
                       <option value="Online">Online</option>
                       <option value="In-person">In-person</option>
-                      <option value="Both">Both</option>
+                      <option value="Hybrid">Both</option>
                     </select>
                   </div>
                 </div>

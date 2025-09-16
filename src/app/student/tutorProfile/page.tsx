@@ -208,7 +208,7 @@ function TutorProfileContent() {
                 </div>
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Pricing per Class</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1">Pricing per Month</h3>
                   <p className="text-lg text-gray-800">
                     {courses.length > 0 ? `₹${courses[0].price.toLocaleString()}` : "Not specified"}
                   </p>
