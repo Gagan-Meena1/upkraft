@@ -305,14 +305,14 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
     
-  } catch (error) {
+  } catch (error:any) {
     console.error("Error fetching user assignments:", error);
     return NextResponse.json({ 
       success: false,
       message: error.message || "Internal server error"
     }, { status: 500 });
   }
-}}
+}
 
 export async function PUT(request: NextRequest) {
   try {
