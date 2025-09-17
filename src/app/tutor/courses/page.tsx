@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Book, Clock, IndianRupee, List, MessageCircle, Trash2, ChevronLeft, BarChart3, Pencil, Edit, Eye } from 'lucide-react';
+import { Book, Clock, IndianRupee, List, MessageCircle, Trash2, ChevronLeft, BarChart3, Pencil, Edit, Eye, Copy } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { use } from 'react';
@@ -19,6 +19,7 @@ interface Course {
     topic: string;
     tangibleOutcome: string;
   }[];
+  category?: string;
 }
 
 export default function TutorCoursesPage() {
@@ -26,6 +27,7 @@ export default function TutorCoursesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
+  const [copyingCourseId, setCopyingCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -91,6 +93,56 @@ export default function TutorCoursesPage() {
     }
   };
 
+  const handleCopyCourse = async (course: Course) => {
+    if (!confirm(`Are you sure you want to create a copy of "${course.title}"?`)) {
+      return;
+    }
+
+    try {
+      setCopyingCourseId(course._id);
+      
+      // Create a copy of the course data with modified title
+      const courseDataToCopy = {
+        title: `${course.title} (Copy)`,
+        description: course.description,
+        duration: course.duration,
+        price: course.price,
+        curriculum: course.curriculum,
+        category: course.category || ''
+      };
+
+      const response = await fetch('/Api/dublicateCourse', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(courseDataToCopy),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to copy course');
+      }
+
+      const data = await response.json();
+      
+      if (data.course) {
+        toast.success('Course copied successfully!');
+        // Add the new course to the local state
+        setCourses(prevCourses => [...prevCourses, ...data.course]);
+      } else {
+        toast.success('Course copied successfully!');
+        // If the API doesn't return the new course, refresh the courses list
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error copying course:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to copy course');
+    } finally {
+      setCopyingCourseId(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -149,17 +201,33 @@ export default function TutorCoursesPage() {
                 key={course._id} 
                 className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 transform transition-all hover:shadow-lg"
               >
-                {/* Course Header */}
+                {/* Course Header with Copy Button */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-2">
                   <h2 
-                    className="text-lg sm:text-xl font-bold text-gray-800 truncate sm:max-w-[70%]" 
+                    className="text-lg sm:text-xl font-bold text-gray-800 truncate sm:max-w-[60%]" 
                     title={course.title}
                   >
                     {course.title}
                   </h2>
-                  <div className="flex items-center gap-1 text-gray-600 shrink-0 self-start sm:self-auto">
-                    <Clock className="text-orange-500 h-4 w-4" />
-                    <span className="text-sm">{course.duration}</span>
+                  <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+                    {/* Copy Button */}
+                    <button
+                      onClick={() => handleCopyCourse(course)}
+                      disabled={copyingCourseId === course._id}
+                      className="p-1.5 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Copy course"
+                    >
+                      {copyingCourseId === course._id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-orange-500"></div>
+                      ) : (
+                        <Copy className="text-gray-600 hover:text-orange-500 h-4 w-4" />
+                      )}
+                    </button>
+                    {/* Duration */}
+                    <div className="flex items-center gap-1 text-gray-600">
+                      <Clock className="text-orange-500 h-4 w-4" />
+                      <span className="text-sm">{course.duration}</span>
+                    </div>
                   </div>
                 </div>
 
