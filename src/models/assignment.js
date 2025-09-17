@@ -59,7 +59,11 @@ const AssignmentSchema = new mongoose.Schema({
   metronome:{
     type:String,
     enum:['25%','50%','75%','100%'],
-  }
+  },
+  cloudinaryPublicId: {
+  type: String,
+  // Store Cloudinary public_id for file management
+}
 
 });
 

@@ -4,12 +4,16 @@ import User from '@/models/userModel';
 import Assignment from '@/models/assignment';
 import Class from '@/models/Class';
 import { connect } from '@/dbConnection/dbConfic';
-import { writeFile } from 'fs/promises';
-import path from 'path';
-import { mkdir } from 'fs/promises';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-import { log } from 'console';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,19 +37,14 @@ export async function POST(request: NextRequest) {
     const metronome = formData.get('metronome');
     
     // Validate required fields
-    // console.log("classId : ", classId);
-    // console.log("courseId : ", courseId);
-    // console.log("11111111111111111111111111111111111111111111111111111");
-    
     if (!title || !description || !deadline || !classId || !courseId) {
       return NextResponse.json({
         success: false,
         message: 'Missing required fields'
       }, { status: 400 });
     }
-    console.log("2222222222222222222222222222222222222222222222222222222222");
 
-    // Find all  who have this courseId
+    // Find all users who have this courseId
     const userWithCourse = await User.find({
       courses: courseId 
     }).select('_id');
@@ -61,46 +60,61 @@ export async function POST(request: NextRequest) {
       deadline: typeof deadline === 'string' ? new Date(deadline) : null,
       classId,
       courseId,
-      userId: UserIds, // Changed from userId to userIds array
+      userId: UserIds,
       songName: songName || '',
       practiceStudio,
       speed: speed || '100%',
       metronome: metronome || '100%'
     };
-    console.log("333333333333333333333333333333333333333333333333333333333");
     
-    // Handle file upload if present
+    // Handle file upload with Cloudinary if present
     if (assignmentFile instanceof File && assignmentFile.size > 0) {
-      // Create uploads directory if it doesn't exist
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'assignments');
       try {
-        await mkdir(uploadDir, { recursive: true });
-      } catch (error) {
-        console.error('Error creating uploads directory:', error);
+        console.log("Starting file upload to Cloudinary...");
+        
+        // Convert file to buffer
+        const fileBuffer = Buffer.from(await assignmentFile.arrayBuffer());
+        
+        // Upload to Cloudinary
+        const uploadResult = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            {
+              resource_type: "raw", // Use "raw" for non-image files like PDFs, docs, etc.
+              folder: "assignments", // Optional: organize files in folders
+              public_id: `${Date.now()}-${assignmentFile.name.split('.')[0]}`, // Generate unique filename
+              use_filename: true,
+              unique_filename: false,
+            },
+            (error, result) => {
+              if (error) {
+                console.error("Cloudinary upload error:", error);
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          ).end(fileBuffer);
+        });
+
+        console.log("File uploaded to Cloudinary successfully");
+        
+        // Update assignment data with Cloudinary file info
+        assignmentData.fileUrl = uploadResult.secure_url;
+        assignmentData.fileName = assignmentFile.name;
+        assignmentData.cloudinaryPublicId = uploadResult.public_id; // Store for potential deletion later
+        
+      } catch (uploadError) {
+        console.error('Error uploading file to Cloudinary:', uploadError);
+        return NextResponse.json({
+          success: false,
+          message: 'File upload failed. Please try again.'
+        }, { status: 500 });
       }
-      console.log("444444444444444444444444444444444444444444444444");
-      
-      // Generate unique filename to prevent overwrites
-      const fileName = `${Date.now()}-${assignmentFile.name}`;
-      const filePath = path.join(uploadDir, fileName);
-      
-      // Create buffer from file
-      const fileBuffer = Buffer.from(await assignmentFile.arrayBuffer());
-      console.log("55555555555555555555555555555555555555555555555555");
-      
-      // Write file to server
-      await writeFile(filePath, fileBuffer);
-      
-      // Update assignment data with file info
-      assignmentData.fileUrl = `/uploads/assignments/${fileName}`;
-      assignmentData.fileName = assignmentFile.name;
     }
-    
-    console.log("55555555555555555555555555555555555555555555555556");
     
     // Create new assignment in database
     const assignment = await Assignment.create(assignmentData);
-    console.log("55555555555555555555555555555555555555555555555557");
+    console.log("Assignment created successfully");
     
     // Update all users' assignment arrays with the new assignment ID
     if (UserIds.length > 0) {
@@ -298,7 +312,7 @@ export async function GET(request: NextRequest) {
       message: error.message || "Internal server error"
     }, { status: 500 });
   }
-}
+}}
 
 export async function PUT(request: NextRequest) {
   try {
