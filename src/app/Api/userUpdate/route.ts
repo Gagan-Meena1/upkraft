@@ -2,15 +2,15 @@
 import { NextResponse } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
 import User from '@/models/userModel';
-import formidable from 'formidable';
-import path from 'path';
-import fs from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
 import { v4 as uuidv4 } from 'uuid';
-import { writeFile } from 'fs/promises';
-import { mkdir } from 'fs/promises';
 
-// Note: bodyParser: false doesn't work the same in App Router
-// We'll handle the multipart form data differently
+// Configure Cloudinary (you can also do this in a separate config file)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function PUT(request: Request) {
   try {
@@ -24,7 +24,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
     }
 
-    // With App Router, we need to handle form data differently
+    // Handle form data
     const formData = await request.formData();
     
     // Get JSON data
@@ -46,7 +46,7 @@ export async function PUT(request: Request) {
       ...(userData.education && { education: userData.education }),
       ...(userData.skills && { skills: userData.skills }),
       ...(userData.experience && { experience: Number(userData.experience) }),
-     ...(userData.studentsCoached && { studentsCoached: Number(userData.studentsCoached) }),
+      ...(userData.studentsCoached && { studentsCoached: Number(userData.studentsCoached) }),
       ...(userData.teachingMode && { teachingMode: userData.teachingMode }),
       ...(userData.instagramLink && { instagramLink: userData.instagramLink }),
       ...(userData.aboutMyself && { aboutMyself: userData.aboutMyself }),
@@ -56,26 +56,45 @@ export async function PUT(request: Request) {
     const profileImage = formData.get('profileImage');
     
     if (profileImage && profileImage instanceof Blob) {
-      // Create upload directory if it doesn't exist
-      const uploadDir = path.join(process.cwd(), 'public/uploads/profiles');
       try {
-        await mkdir(uploadDir, { recursive: true });
-      } catch (err) {
-        // Directory might already exist, that's fine
+        // Convert blob to buffer
+        const buffer = Buffer.from(await profileImage.arrayBuffer());
+        
+        // Generate unique public_id for Cloudinary
+        const publicId = `profiles/${userId}_${uuidv4()}`;
+        
+        // Upload to Cloudinary
+        const uploadResult = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            {
+              resource_type: "image",
+              public_id: publicId,
+              folder: "profiles", // Optional: organize uploads in folders
+              transformation: [
+                { width: 500, height: 500, crop: "fill" }, // Optional: resize/crop image
+                { quality: "auto", fetch_format: "auto" } // Optional: optimize quality and format
+              ]
+            },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(result);
+              }
+            }
+          ).end(buffer);
+        });
+
+        // Set the Cloudinary URL in update data
+        updateData.profileImage = (uploadResult as any).secure_url;
+        
+      } catch (uploadError) {
+        console.error('Error uploading to Cloudinary:', uploadError);
+        return NextResponse.json({
+          message: 'Error uploading profile image',
+          error: uploadError
+        }, { status: 500 });
       }
-      
-      // Generate unique filename
-      const fileExtension = profileImage.type.split('/')[1] || 'jpg';
-      const fileName = `${uuidv4()}.${fileExtension}`;
-      const filePath = path.join(uploadDir, fileName);
-      
-      // Convert blob to buffer and save file
-      const buffer = Buffer.from(await profileImage.arrayBuffer());
-      await writeFile(filePath, buffer);
-      
-      // Set the image URL in update data
-      const imageUrl = `/uploads/profiles/${fileName}`;
-      updateData.profileImage = imageUrl;
     }
 
     // Update the user profile in the database
