@@ -5,11 +5,42 @@ import Image from "next/image";
 import { MdDelete } from "react-icons/md";
 import { ChevronLeft } from "lucide-react";
 
+interface Course {
+  _id: string;
+  title: string;
+  category: string;
+  description: string;
+  duration: string;
+  price: number;
+  courseQuality: number;
+  curriculum: any[];
+  performanceScores: {
+    userId: {
+      _id: string;
+      username: string;
+      email: string;
+    };
+    score: number;
+    date: string;
+  }[];
+  instructorId: {
+    _id: string;
+    username: string;
+    email: string;
+  };
+}
+
 interface Student {
   _id: string;
   username: string;
   email: string;
   contact: string;
+  city: string;
+  assignment: string[];
+  courses: Course[];
+  pendingAssignments?: number;
+  performanceAverage?: number;
+  courseQualityAverage?: number;
 }
 
 interface ApiResponse {
@@ -17,11 +48,83 @@ interface ApiResponse {
   filteredUsers: Student[];
 }
 
+interface AssignmentDetail {
+  _id: string;
+  title: string;
+  status: boolean;
+}
+
 export default function MyStudents() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingStudents, setDeletingStudents] = useState<Set<string>>(new Set());
+  const [loadingAssignments, setLoadingAssignments] = useState<Set<string>>(new Set());
+
+  const calculatePerformanceAverage = (student: Student): number => {
+    if (!student.courses || student.courses.length === 0) return 0;
+    
+    const studentScores: number[] = [];
+    
+    student.courses.forEach(course => {
+      if (course.performanceScores && course.performanceScores.length > 0) {
+        // Find the student's score in this course
+        const studentScore = course.performanceScores.find(
+          score => score.userId._id === student._id
+        );
+        
+        if (studentScore) {
+          studentScores.push(studentScore.score);
+        }
+      }
+    });
+    
+    if (studentScores.length === 0) return 0;
+    
+    const average = studentScores.reduce((sum, score) => sum + score, 0) / studentScores.length;
+    return Math.round(average * 100) / 100; // Round to 2 decimal places
+  };
+
+  const calculateCourseQualityAverage = (student: Student): number => {
+    if (!student.courses || student.courses.length === 0) return 0;
+    
+    const validCourses = student.courses.filter(course => 
+      course.courseQuality && course.courseQuality > 0
+    );
+    
+    if (validCourses.length === 0) return 0;
+    
+    const average = validCourses.reduce((sum, course) => sum + course.courseQuality, 0) / validCourses.length;
+    return Math.round(average * 100) / 100; // Round to 2 decimal places
+  };
+
+  const fetchAssignmentDetails = async (assignmentIds: string[]): Promise<{ pending: number }> => {
+    if (!assignmentIds || assignmentIds.length === 0) {
+      return { pending: 0 };
+    }
+
+    try {
+      const assignmentPromises = assignmentIds.map(async (assignmentId) => {
+        const response = await fetch(`/Api/assignment/singleAssignment?assignmentId=${assignmentId}`);
+        if (!response.ok) {
+          console.error(`Failed to fetch assignment ${assignmentId}`);
+          return null;
+        }
+        const data = await response.json();
+        return data.success ? data.data : null;
+      });
+
+      const assignments = await Promise.all(assignmentPromises);
+      const validAssignments = assignments.filter(Boolean) as AssignmentDetail[];
+
+      const pending = validAssignments.filter(assignment => !assignment.status).length;
+
+      return { pending };
+    } catch (error) {
+      console.error('Error fetching assignment details:', error);
+      return { pending: 0 };
+    }
+  };
 
   const fetchStudents = async () => {
     try {
@@ -36,7 +139,32 @@ export default function MyStudents() {
       console.log("API Response:", data);
       
       if (data && data.filteredUsers) {
-        setStudents(data.filteredUsers);
+        const studentsWithDetails = await Promise.all(
+          data.filteredUsers.map(async (student: Student) => {
+            setLoadingAssignments(prev => new Set(prev).add(student._id));
+            
+            const assignmentCounts = await fetchAssignmentDetails(student.assignment || []);
+            
+            // Calculate averages
+            const performanceAverage = calculatePerformanceAverage(student);
+            const courseQualityAverage = calculateCourseQualityAverage(student);
+            
+            setLoadingAssignments(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(student._id);
+              return newSet;
+            });
+
+            return {
+              ...student,
+              pendingAssignments: assignmentCounts.pending,
+              performanceAverage,
+              courseQualityAverage
+            };
+          })
+        );
+        
+        setStudents(studentsWithDetails);
       } else {
         console.error("filteredUsers not found in API response:", data);
         setError("Invalid response format from server");
@@ -106,7 +234,7 @@ export default function MyStudents() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         {/* Header Section */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">My Students</h1>
@@ -118,7 +246,6 @@ export default function MyStudents() {
                 <span className="mr-2">+</span> Add Student
               </button>
             </Link>
-           
           </div>
         </div>
 
@@ -172,14 +299,18 @@ export default function MyStudents() {
               <>
                 {/* Desktop Table View - Hidden on mobile */}
                 <div className="hidden lg:block overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full table-fixed">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-800">Name</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-800">Email</th>
-                        <th className="px-6 py-4 text-left font-semibold text-gray-800">Contact</th>
-                        <th className="px-6 py-4 text-center font-semibold text-gray-800">Add To</th>
-                        <th className="px-6 py-4 text-right font-semibold text-gray-800">Actions</th>
+                        <th className="w-32 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Name</th>
+                        <th className="w-40 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Email</th>
+                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Contact</th>
+                        <th className="w-24 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Location</th>
+                        <th className="w-24 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Pending</th>
+                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Perf Avg</th>
+                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Quality Avg</th>
+                        <th className="w-24 px-3 py-3 text-center font-semibold text-gray-800 text-sm">Assign</th>
+                        <th className="w-32 px-3 py-3 text-right font-semibold text-gray-800 text-sm">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -188,29 +319,77 @@ export default function MyStudents() {
                           key={student._id} 
                           className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                         >
-                          <td className="px-6 py-4 text-gray-900 font-medium">{student.username}</td>
-                          <td className="px-6 py-4 text-gray-600">{student.email}</td>
-                          <td className="px-6 py-4 text-gray-600">{student.contact}</td>
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-3 py-3 text-gray-900 font-medium text-sm truncate" title={student.username}>
+                            {student.username}
+                          </td>
+                          <td className="px-3 py-3 text-gray-600 text-sm truncate" title={student.email}>
+                            {student.email}
+                          </td>
+                          <td className="px-3 py-3 text-gray-600 text-sm">
+                            {student.contact}
+                          </td>
+                          <td className="px-3 py-3 text-gray-600 text-sm truncate" title={student.city || 'N/A'}>
+                            {student.city || 'N/A'}
+                          </td>
+                          <td className="px-3 py-3">
+                            {loadingAssignments.has(student._id) ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                {student.pendingAssignments || 0}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              student.performanceAverage && student.performanceAverage > 0
+                                ? student.performanceAverage >= 80
+                                  ? 'bg-green-100 text-green-800'
+                                  : student.performanceAverage >= 60
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {student.performanceAverage && student.performanceAverage > 0 
+                                ? `${student.performanceAverage}%` 
+                                : 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              student.courseQualityAverage && student.courseQualityAverage > 0
+                                ? student.courseQualityAverage >= 4
+                                  ? 'bg-green-100 text-green-800'
+                                  : student.courseQualityAverage >= 3
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {student.courseQualityAverage && student.courseQualityAverage > 0 
+                                ? `${student.courseQualityAverage}` 
+                                : 'N/A'}
+                            </span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
                             <Link 
                               href={`/tutor/addToCourseTutor?studentId=${student._id}`}
-                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                              className="text-blue-600 hover:text-blue-800 hover:underline text-xs"
                             >
-                              Assign Course
+                              Course
                             </Link>
                           </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end space-x-3">
+                          <td className="px-3 py-3 text-right">
+                            <div className="flex items-center justify-end space-x-2">
                               <Link 
                                 href={`/tutor/studentDetails?studentId=${student._id}`}
-                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                                className="text-blue-600 hover:text-blue-800 hover:underline text-xs"
                               >
-                                View Details
+                                Details
                               </Link>
                               <button
                                 onClick={() => handleDeleteStudent(student._id)}
                                 disabled={deletingStudents.has(student._id)}
-                                className={`p-2 rounded-lg transition-colors ${
+                                className={`p-1 rounded-lg transition-colors ${
                                   deletingStudents.has(student._id)
                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                     : 'text-red-600 hover:bg-red-50 hover:text-red-800'
@@ -218,9 +397,9 @@ export default function MyStudents() {
                                 title="Delete Student"
                               >
                                 {deletingStudents.has(student._id) ? (
-                                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-gray-400"></div>
                                 ) : (
-                                  <MdDelete className="h-4 w-4" />
+                                  <MdDelete className="h-3 w-3" />
                                 )}
                               </button>
                             </div>
@@ -247,12 +426,67 @@ export default function MyStudents() {
                         {/* Student Details */}
                         <div className="space-y-2">
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="text-sm font-medium text-gray-500 sm:w-20">Email:</span>
+                            <span className="text-sm font-medium text-gray-500 sm:w-24">Email:</span>
                             <span className="text-sm text-gray-700 break-all">{student.email}</span>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="text-sm font-medium text-gray-500 sm:w-20">Contact:</span>
+                            <span className="text-sm font-medium text-gray-500 sm:w-24">Contact:</span>
                             <span className="text-sm text-gray-700">{student.contact}</span>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-center">
+                            <span className="text-sm font-medium text-gray-500 sm:w-24">Location:</span>
+                            <span className="text-sm text-gray-700">{student.city || 'N/A'}</span>
+                          </div>
+                        </div>
+
+                        {/* Performance Metrics */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                          {/* Pending Assignments */}
+                          <div>
+                            <span className="text-sm font-medium text-gray-500 block mb-1">Pending Assignments:</span>
+                            {loadingAssignments.has(student._id) ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                {student.pendingAssignments || 0}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Performance Average */}
+                          <div>
+                            <span className="text-sm font-medium text-gray-500 block mb-1">Performance Avg:</span>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              student.performanceAverage && student.performanceAverage > 0
+                                ? student.performanceAverage >= 80
+                                  ? 'bg-green-100 text-green-800'
+                                  : student.performanceAverage >= 60
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {student.performanceAverage && student.performanceAverage > 0 
+                                ? `${student.performanceAverage}%` 
+                                : 'N/A'}
+                            </span>
+                          </div>
+
+                          {/* Course Quality Average */}
+                          <div>
+                            <span className="text-sm font-medium text-gray-500 block mb-1">Quality Avg:</span>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              student.courseQualityAverage && student.courseQualityAverage > 0
+                                ? student.courseQualityAverage >= 4
+                                  ? 'bg-green-100 text-green-800'
+                                  : student.courseQualityAverage >= 3
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {student.courseQualityAverage && student.courseQualityAverage > 0 
+                                ? `${student.courseQualityAverage}` 
+                                : 'N/A'}
+                            </span>
                           </div>
                         </div>
                         

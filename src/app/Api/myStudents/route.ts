@@ -1,70 +1,106 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { NextApiRequest, NextApiResponse } from 'next';
 import { connect } from '@/dbConnection/dbConfic';
 import courseName from '@/models/courseName';
 import User from '@/models/userModel';
-import jwt from 'jsonwebtoken'
-// import { getServerSession } from 'next-auth/next'; // If using next-auth
+import jwt from 'jsonwebtoken';
+
 await connect();
+
 export async function GET(request: NextRequest) {
   try {
     // Get tutor ID from token first
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     let tutorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-
+    
     // Override with query param if provided
     const url = new URL(request.url);
     const tutorIdParam = url.searchParams.get('tutorId');
     if (tutorIdParam) {
       tutorId = tutorIdParam;
     }
-
+    
     const email = url.searchParams.get('email');
     console.log("tutorId:", tutorId);
     console.log("email:", email);
-
+    
     if (!tutorId) {
       return NextResponse.json({ 
         success: false, 
-        error: "Unauthorized - Please log in again" 
+        error: "Unauthorized - Please log in again"
       }, { status: 401 });
     }
-
+    
     // If email is provided, check for existing student
     if (email) {
       const user = await User.findOne({
         email: { $regex: `^${email}$`, $options: 'i' },
         category: "Student"
-      }).select('username email contact instructorId');
-
+      })
+      .select('username email contact instructorId city profileImage assignment courses _id')
+      .populate({
+        path: 'courses',
+        select: 'title category description duration price courseQuality curriculum performanceScores instructorId',
+        populate: [
+          {
+            path: 'instructorId',
+            select: 'username email'
+          },
+          {
+            path: 'performanceScores.userId',
+            select: 'username email'
+          }
+        ]
+      });
+      
       // Check if student is already in tutor's list
       const isAlreadyAdded = user?.instructorId?.includes(tutorId);
-
+      
       return NextResponse.json({
         success: true,
         user: user ? {
           username: user.username,
           email: user.email,
           contact: user.contact,
+          city: user.city,
+          profileImage: user.profileImage,
+          assignment: user.assignment,
+          _id: user._id,
+          courses: user.courses,
           isAlreadyAdded
         } : null
       });
     }
-
-    // Get tutor's courses
-    const courses = await courseName.find({ instructorId: tutorId });
     
-    // Get students
+    // Get tutor's courses
+    const tutorCourses = await courseName.find({ instructorId: tutorId });
+    const courseIds = tutorCourses.map(course => course._id);
+    
+    // Get students with populated course data
     const users = await User.find({
-      category: "Student", // Only return students
+      category: "Student",
       $or: [
-        { courses: { $in: courses } }, // Students with at least one course from the list
-        { instructorId: tutorId }   // Students with the instructor ID
+        { courses: { $in: courseIds } },
+        { instructorId: tutorId }
+      ]
+    })
+    .select('username email contact city profileImage assignment courses _id')
+    .populate({
+      path: 'courses',
+      select: 'title category description duration price courseQuality curriculum performanceScores instructorId',
+      populate: [
+        {
+          path: 'instructorId',
+          select: 'username email'
+        },
+        {
+          path: 'performanceScores.userId',
+          select: 'username email'
+        }
       ]
     });
-
-    if (!users) {
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ 
         success: true,
         message: 'No students found',
@@ -72,15 +108,18 @@ export async function GET(request: NextRequest) {
         userCount: 0
       });
     }
-   
+    
     const filteredUsers = users.map(user => ({
       _id: user._id,
       username: user.username,
       email: user.email,
       contact: user.contact,
-      profileImage:user.profileImage
+      profileImage: user.profileImage,
+      city: user.city,
+      assignment: user.assignment,
+      courses: user.courses,
     }));
-
+    
     return NextResponse.json({
       success: true,
       message: filteredUsers.length > 0 ? 'Students fetched successfully' : 'No students found',
@@ -92,7 +131,7 @@ export async function GET(request: NextRequest) {
     console.error('Server error:', error);
     return NextResponse.json({ 
       success: false, 
-      error: error instanceof Error ? error.message : 'Failed to fetch students. Please try again.' 
+      error: error instanceof Error ? error.message : 'Failed to fetch students. Please try again.'
     }, { status: 500 });
   }
 }
