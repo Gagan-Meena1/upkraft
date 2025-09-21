@@ -34,22 +34,19 @@ const pianoResultSchema = new mongoose.Schema({
       feedback: String,
       suggestion: String
     },
-    audioFileUrl: {
-  type: String,
-  required: true
-},
-mp3Url: {  // NEW FIELD
-  type: String,
-  required: false
-},
-mp3PublicId: {  // NEW FIELD  
-  type: String,
-  required: false
-},
-hasMp3Version: {  // NEW FIELD
-  type: Boolean,
-  default: false
-}
+    // REMOVED: audioFileUrl (it's already at root level)
+    mp3Url: {
+      type: String,
+      required: false
+    },
+    mp3PublicId: {
+      type: String,
+      required: false
+    },
+    hasMp3Version: {
+      type: Boolean,
+      default: false
+    }
   },
   pianoAnalysis: {
     // FUNDAMENTAL TECHNIQUE

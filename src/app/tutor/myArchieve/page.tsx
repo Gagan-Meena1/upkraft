@@ -41,7 +41,11 @@ export default function PracticeHistoryPage() {
   const fetchResults = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/Api/practice/getResults');
+          const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+    
+  
+      const response = await fetch(`/Api/practice/getResults?userId=${userId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

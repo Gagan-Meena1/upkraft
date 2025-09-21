@@ -318,6 +318,13 @@ export default function StudentDetails() {
                       <BiBulb size={16} className="mr-2" />
                       Talent
                     </Link>
+                    <Link 
+                      href={`/tutor/myArchieve?userId=${studentData.studentId}`}
+                      className="flex items-center justify-center w-full sm:w-auto mt-3 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium text-sm md:text-base"
+                    >
+                      <BiBulb size={16} className="mr-2" />
+                      Student Practice
+                    </Link>
                   </div>
                 </div>
               </div>
