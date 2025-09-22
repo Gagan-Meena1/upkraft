@@ -430,7 +430,7 @@ const MusicLibraryTable = () => {
             <button
               onClick={() => fetchSongs(pagination.currentPage + 1)}
               disabled={!pagination.hasNextPage || loading}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-800 font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 mr-15 border border-gray-300 rounded-lg text-gray-800 font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Next
             </button>
