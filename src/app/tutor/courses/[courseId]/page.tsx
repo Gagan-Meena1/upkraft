@@ -70,7 +70,7 @@ const formatDateTime = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
   // Use UTC methods to get the EXACT stored time
-  const year = date.getUTCFullYear();
+   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
   const day = date.getUTCDate();
   const hours = date.getUTCHours();
@@ -105,7 +105,7 @@ const extractDateTimeForForm = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
   // Use UTC methods to get the EXACT stored time
-  const year = date.getUTCFullYear();
+    const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
   const hours = String(date.getUTCHours()).padStart(2, '0');

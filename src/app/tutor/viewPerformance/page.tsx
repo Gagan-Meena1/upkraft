@@ -69,6 +69,71 @@ const StudentFeedbackDashboard = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [averageSkillScores, setAverageSkillScores] = useState<Record<string, number>>({});
+const [isSubmittingScore, setIsSubmittingScore] = useState<boolean>(false);
+const [scoreSubmissionStatus, setScoreSubmissionStatus] = useState<{
+  success: boolean;
+  message: string;
+} | null>(null);
+
+
+// Function to submit performance score to API
+const submitPerformanceScore = async (score: number) => {
+  if (!courseId || !studentId) {
+    console.error('Missing courseId or studentId');
+    return;
+  }
+
+  setIsSubmittingScore(true);
+  setScoreSubmissionStatus(null);
+
+  try {
+    console.log('Submitting performance score:', { courseId, studentId, score });
+    
+    const response = await fetch('/Api/getPerformanceScore', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        courseId,
+        studentId,
+        score: score
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to submit performance score');
+    }
+
+    console.log('Performance score submitted successfully:', result);
+    setScoreSubmissionStatus({
+      success: true,
+      message: result.message || 'Performance score saved successfully'
+    });
+
+    // Hide success message after 3 seconds
+    setTimeout(() => {
+      setScoreSubmissionStatus(null);
+    }, 3000);
+
+  } catch (error) {
+    console.error('Error submitting performance score:', error);
+    setScoreSubmissionStatus({
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to save performance score'
+    });
+
+    // Hide error message after 5 seconds
+    setTimeout(() => {
+      setScoreSubmissionStatus(null);
+    }, 5000);
+  } finally {
+    setIsSubmittingScore(false);
+  }
+};
+
 
   useEffect(() => {
     const fetchFeedbackData = async () => {
@@ -225,15 +290,20 @@ const StudentFeedbackDashboard = () => {
             technique: +(skillTotals.technique / sessionCount).toFixed(2)
           });
         }
-        // Calculate overall performance score (average of all session averages)
-        if (processedData.length > 0) {
-          const overallScore = processedData.reduce((total, session) => total + session.averageScore, 0) / processedData.length;
-          // Store with 2 decimal places
-          setAverageSkillScores(prev => ({
-            ...prev,
-            overall: +overallScore.toFixed(2)
-          }));
-        }
+       // Calculate overall performance score (average of all session averages)
+if (processedData.length > 0) {
+  const overallScore = processedData.reduce((total, session) => total + session.averageScore, 0) / processedData.length;
+  const roundedScore = +overallScore.toFixed(2);
+  
+  // Store with 2 decimal places
+  setAverageSkillScores(prev => ({
+    ...prev,
+    overall: roundedScore
+  }));
+  
+  // Submit the performance score to API
+  submitPerformanceScore(roundedScore);
+}
         // Process the all-student feedback data
       // Process the all-student feedback data
       if (result.feedbackAllStudent && Array.isArray(result.feedbackAllStudent)) {

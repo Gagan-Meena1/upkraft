@@ -62,23 +62,26 @@ export async function POST(request: NextRequest) {
     
     console.log('Received data:', { title, description, date, startTime, endTime, timezone });
     
-    // FIXED: Create dates without timezone conversion
-    // Parse the date and time components separately
-    const [year, month, day] = date.split('-').map(Number);
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
-    
-    // Create Date objects in local time (no timezone conversion)
-    const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
-    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
-    
-    console.log('Created DateTime objects:', {
-      startDateTime: startDateTime.toString(),
-      endDateTime: endDateTime.toString(),
-      startDateTimeISO: startDateTime.toISOString(),
-      endDateTimeISO: endDateTime.toISOString()
-    });
+   // FIXED: Create dates in UTC to prevent MongoDB timezone conversion
+// Parse the date and time components separately
+const [year, month, day] = date.split('-').map(Number);
+const [startHour, startMinute] = startTime.split(':').map(Number);
+const [endHour, endMinute] = endTime.split(':').map(Number);
 
+// Create Date objects in UTC (this prevents MongoDB from converting them)
+const startDateTime = new Date(Date.UTC(year, month - 1, day, startHour, startMinute));
+const endDateTime = new Date(Date.UTC(year, month - 1, day, endHour, endMinute));
+
+console.log('Created DateTime objects in UTC:', {
+  inputTime: `${startTime} - ${endTime}`,
+  startDateTime: startDateTime.toString(),
+  endDateTime: endDateTime.toString(),
+  startDateTimeISO: startDateTime.toISOString(),
+  endDateTimeISO: endDateTime.toISOString(),
+  // This should show the SAME time as input
+  startTimeCheck: `${startDateTime.getUTCHours()}:${startDateTime.getUTCMinutes().toString().padStart(2, '0')}`,
+  endTimeCheck: `${endDateTime.getUTCHours()}:${endDateTime.getUTCMinutes().toString().padStart(2, '0')}`
+});
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;

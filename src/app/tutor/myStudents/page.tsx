@@ -343,15 +343,15 @@ export default function MyStudents() {
                           <td className="px-3 py-3">
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               student.performanceAverage && student.performanceAverage > 0
-                                ? student.performanceAverage >= 80
+                                ? student.performanceAverage >= 8
                                   ? 'bg-green-100 text-green-800'
-                                  : student.performanceAverage >= 60
+                                  : student.performanceAverage >= 6
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : 'bg-red-100 text-red-800'
                                 : 'bg-gray-100 text-gray-600'
                             }`}>
                               {student.performanceAverage && student.performanceAverage > 0 
-                                ? `${student.performanceAverage}%` 
+                                ? `${student.performanceAverage}` 
                                 : 'N/A'}
                             </span>
                           </td>
@@ -458,15 +458,15 @@ export default function MyStudents() {
                             <span className="text-sm font-medium text-gray-500 block mb-1">Performance Avg:</span>
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                               student.performanceAverage && student.performanceAverage > 0
-                                ? student.performanceAverage >= 80
+                                ? student.performanceAverage >= 8
                                   ? 'bg-green-100 text-green-800'
-                                  : student.performanceAverage >= 60
+                                  : student.performanceAverage >= 6
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : 'bg-red-100 text-red-800'
                                 : 'bg-gray-100 text-gray-600'
                             }`}>
                               {student.performanceAverage && student.performanceAverage > 0 
-                                ? `${student.performanceAverage}%` 
+                                ? `${student.performanceAverage}` 
                                 : 'N/A'}
                             </span>
                           </div>

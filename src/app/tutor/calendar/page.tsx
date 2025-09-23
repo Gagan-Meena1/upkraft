@@ -118,20 +118,26 @@ const StudentCalendarView = () => {
 
   const formatTime = (startTime, endTime) => {
     if (!startTime) return '';
-    const start = new Date(startTime).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-    const end = endTime
-      ? new Date(endTime).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        })
-      : '';
-    return end ? `${start} - ${end}` : start;
-  };
+     // Use UTC methods to get the exact stored time
+  const startDate = new Date(startTime);
+  const start = startDate.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'UTC'  // This ensures we read the UTC time correctly
+  });
+  
+  const end = endTime
+    ? new Date(endTime).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'UTC'  // This ensures we read the UTC time correctly
+      })
+    : '';
+  
+  return end ? `${start} - ${end}` : start;
+};
 
   const getInitials = (name) => {
     if (!name) return 'NA';
@@ -379,107 +385,107 @@ const StudentCalendarView = () => {
             </div>
 
             {/* Calendar Grid */}
-            <div className="mt-2 border border-gray-200 rounded overflow-hidden">
-              {/* Header Row */}
-              <div
-                className="grid items-stretch bg-white border-b"
-                style={gridTemplate}
-              >
-                {/* Search Input Cell */}
-                <div className="p-3 border-r bg-white">
-                  <input
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    type="text"
-                    placeholder="Search Students"
-                    className="w-full h-[48px] px-4 rounded 
-                              border border-[#505050] 
-                              text-[14px] text-[#505050] 
-                              bg-white 
-                              font-inter font-normal
-                              focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
+   <div className="mt-2 rounded overflow-hidden">
+  {/* Header Row */}
+  <div
+    className="grid items-stretch bg-white"
+    style={gridTemplate}
+  >
+    {/* Search Input Cell */}
+    <div className="p-3 bg-white">
+      <input
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        type="text"
+        placeholder="Search Students"
+        className="w-full h-[48px] px-4 rounded 
+                  border border-[#505050] 
+                  text-[14px] text-[#505050] 
+                  bg-white 
+                  font-inter font-normal
+                  focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+      />
+    </div>
 
-                {/* Week Day Headers */}
-                {weekDays.map((day, idx) => (
-                  <div key={idx} className="p-3 text-center bg-[#F5F5F5] border-r last:border-r-0">
-                    <div className="text-[16px] font-inter font-medium text-[#212121]">
-                      {day.toLocaleDateString('en-US', { day: '2-digit', weekday: 'short' })}
-                    </div>
-                  </div>
-                ))}
+    {/* Week Day Headers */}
+    {weekDays.map((day, idx) => (
+      <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
+        <div className="text-[16px] font-inter font-medium text-[#212121]">
+          {day.toLocaleDateString('en-US', { day: '2-digit', weekday: 'short' })}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Calendar Body */}
+  <div className="max-h-[70vh] overflow-auto">
+    {filteredStudents.length === 0 ? (
+      <div className="p-8 text-center">
+        <div className="text-[16px] text-[#9B9B9B] mb-2">No students to display</div>
+        <div className="text-[14px] text-[#C4C4C4]">
+          {searchTerm ? 'Try adjusting your search terms' : 'No students found in the system'}
+        </div>
+      </div>
+    ) : (
+      filteredStudents.map((student) => (
+        <div 
+          key={student._id} 
+          className="grid items-center hover:bg-gray-50 transition-colors" 
+          style={gridTemplate}
+        >
+          {/* Student Info Cell */}
+          <div className="p-3 flex items-center gap-3 min-h-[88px] border-r border-gray-200">
+            {student.profileImage ? (
+              <img 
+                src={student.profileImage} 
+                alt={student.username} 
+                className="w-10 h-10 rounded-full object-cover" 
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-medium text-orange-600">
+                {getInitials(student.username)}
               </div>
+            )}
+            <div>
+              <div className="text-[14px] text-[#212121] font-medium">
+                {student.username}
+              </div>
+            </div>
+          </div>
 
-              {/* Calendar Body */}
-              <div className="max-h-[70vh] overflow-auto">
-                {filteredStudents.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="text-[16px] text-[#9B9B9B] mb-2">No students to display</div>
-                    <div className="text-[14px] text-[#C4C4C4]">
-                      {searchTerm ? 'Try adjusting your search terms' : 'No students found in the system'}
-                    </div>
+          {/* Daily Schedule Cells */}
+          {weekDays.map((day, idx) => {
+            const classes = getClassesForDate(student._id, day);
+            return (
+              <div key={idx} className="p-3 min-h-[88px]">
+                {classes.length === 0 ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-[12px] text-[#E0E0E0]">No classes</div>
                   </div>
                 ) : (
-                  filteredStudents.map((student) => (
-                    <div 
-                      key={student._id} 
-                      className="grid items-center border-b last:border-b-0 hover:bg-gray-50 transition-colors" 
-                      style={gridTemplate}
+                  classes.map((classItem, cIdx) => (
+                    <div
+                      key={classItem._id || cIdx}
+                      className="mb-2 last:mb-0 p-2 bg-orange-50 border-l-4 border-orange-400 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      title={`${classItem.title || 'Class'} - ${formatTime(classItem.startTime, classItem.endTime)}`}
                     >
-                      {/* Student Info Cell */}
-                      <div className="p-3 flex items-center gap-3 border-r min-h-[88px]">
-                        {student.profileImage ? (
-                          <img 
-                            src={student.profileImage} 
-                            alt={student.username} 
-                            className="w-10 h-10 rounded-full object-cover" 
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-medium text-orange-600">
-                            {getInitials(student.username)}
-                          </div>
-                        )}
-                        <div>
-                          <div className="text-[14px] text-[#212121] font-medium">
-                            {student.username}
-                          </div>
-                        </div>
+                      <div className="font-medium text-[13px] truncate">
+                        {classItem.title || 'Class'}
                       </div>
-
-                      {/* Daily Schedule Cells */}
-                      {weekDays.map((day, idx) => {
-                        const classes = getClassesForDate(student._id, day);
-                        return (
-                          <div key={idx} className="p-3 border-r last:border-r-0 min-h-[88px]">
-                            {classes.length === 0 ? (
-                              <div className="h-full flex items-center justify-center">
-                                <div className="text-[12px] text-[#E0E0E0]">No classes</div>
-                              </div>
-                            ) : (
-                              classes.map((classItem, cIdx) => (
-                                <div
-                                  key={classItem._id || cIdx}
-                                  className="mb-2 last:mb-0 p-2 bg-orange-50 border-l-4 border-orange-400 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                                  title={`${classItem.title || 'Class'} - ${formatTime(classItem.startTime, classItem.endTime)}`}
-                                >
-                                  <div className="font-medium text-[13px] truncate">
-                                    {classItem.title || 'Class'}
-                                  </div>
-                                  <div className="text-[11px] text-gray-600 truncate">
-                                    {formatTime(classItem.startTime, classItem.endTime)}
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        );
-                      })}
+                      <div className="text-[11px] text-gray-600 truncate">
+                        {formatTime(classItem.startTime, classItem.endTime)}
+                      </div>
                     </div>
                   ))
                 )}
               </div>
-            </div>
+            );
+          })}
+        </div>
+      ))
+    )}
+  </div>
+</div>
           </div>
         </main>
       </div>

@@ -441,31 +441,38 @@ export default function Home() {
       </div>
 
       {/* Call to Action Section */}
-      <div className="w-full py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-orange-50 to-orange-100 relative overflow-hidden">
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <h2 className="heading-primary text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-4 sm:mb-6 px-4">
-            <span>Ready to Transform Your </span>
-            <span className="accent block sm:inline">Extracurricular Journey</span>
-            <span>?</span>
-          </h2>
-          <p className="body-text text-base sm:text-lg lg:text-xl mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed px-4">
-            Join thousands of musicians who have already discovered their potential with UpKraft's AI-powered platform.
-          </p>
-          <div className="flex justify-center px-4">
-            <a href="/signup" target="_blank" rel="noopener noreferrer">
-              <button className="px-8 sm:px-10 py-3 sm:py-4 bg-[#ff8d57] text-white font-semibold rounded-lg hover:bg-orange-700 transition-colors duration-200 body-text-semibold shadow-lg text-base sm:text-lg">
-                Get Started Today
-              </button>
-            </a>
-          </div>
-        </div>
-        
-        {/* Background decoration */}
-        <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute -top-12 sm:-top-24 -left-12 sm:-left-24 w-24 sm:w-48 h-24 sm:h-48 bg-[#ff8d57] rounded-full opacity-10"></div>
-          <div className="absolute -bottom-12 sm:-bottom-24 -right-12 sm:-right-24 w-24 sm:w-48 h-24 sm:h-48 bg-[#ff8d57] rounded-full opacity-10"></div>
-        </div>
-      </div>
+<div className="w-full py-16 sm:py-20 lg:py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-orange-50 to-orange-100 relative overflow-hidden">
+  <div className="max-w-4xl mx-auto text-center relative z-10">
+    <h2 className="heading-primary text-2xl sm:text-3xl md:text-4xl lg:text-5xl mb-4 sm:mb-6 px-4">
+      <span>Ready to Transform Your </span>
+      <span className="accent block sm:inline">Extracurricular Journey</span>
+      <span>?</span>
+    </h2>
+    <p className="body-text text-base sm:text-lg lg:text-xl mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed px-4">
+      Join thousands of musicians who have already discovered their potential with UpKraft's AI-powered platform.
+    </p>
+    <div className="flex justify-center px-4">
+      <a href="/signup" target="_blank" rel="noopener noreferrer">
+        <button className="px-8 sm:px-10 py-3 sm:py-4 bg-[#ff8d57] text-white font-semibold rounded-lg hover:bg-orange-700 transition-colors duration-200 body-text-semibold shadow-lg text-base sm:text-lg">
+          Get Started Today
+        </button>
+      </a>
+    </div>
+    
+    {/* Copyright Notice */}
+    <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-orange-200">
+      <p className="text-sm sm:text-base text-orange-600/70">
+        © 2025 Upkraft Technologies Private Limited. All rights reserved.
+      </p>
+    </div>
+  </div>
+  
+  {/* Background decoration */}
+  <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+    <div className="absolute -top-12 sm:-top-24 -left-12 sm:-left-24 w-24 sm:w-48 h-24 sm:h-48 bg-[#ff8d57] rounded-full opacity-10"></div>
+    <div className="absolute -bottom-12 sm:-bottom-24 -right-12 sm:-right-24 w-24 sm:w-48 h-24 sm:h-48 bg-[#ff8d57] rounded-full opacity-10"></div>
+  </div>
+</div>
 
       {/* Add Chat component */}
       <Chat />
