@@ -3,7 +3,7 @@ import React from 'react'
 import ProgressBar from "react-bootstrap/ProgressBar";
 import { Button, Form } from 'react-bootstrap'
 import Link from 'next/link'
-import StudentProfileImg from '../../assets/student-profile-img.png'
+import StudentProfileImg from '../../../assets/student-profile-img.png'
 import './FeedbackPendingDetails.css'
 import Image from 'next/image';
 
@@ -108,7 +108,7 @@ const FeedbackPendingDetails = () => {
                 </Link>
               </div>
             </div>
-            <div className='bothrefm-feedback-box row'>
+            <div className='bottom-feedback-box row'>
                
               <div className='col-xxl-6 mb-0'>
                   <div className='progressbar-line-sec'>
@@ -203,7 +203,7 @@ const FeedbackPendingDetails = () => {
                   </div>
               </div>
 
-              <div className='bothrefm-recording-box'>
+              <div className='bottom-recording-box'>
                 <p><strong>Personal Feedback & Area for Improvement</strong></p>
                 <Form>
                     <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
