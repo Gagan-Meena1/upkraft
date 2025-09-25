@@ -259,7 +259,7 @@ export default function CreateCourse() {
                 onClick={addCurriculumSession}
                 className="bg-orange-100 text-orange-500 px-3 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-orange-200 transition-colors text-sm font-medium w-full sm:w-auto"
               >
-                <Plus size={16} /> Add Session
+                <Plus size={16} /> Add Lesson
               </button>
             </div>
             
@@ -271,7 +271,7 @@ export default function CreateCourse() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="bg-orange-100 text-orange-600 px-2 py-1 rounded text-xs font-medium">
-                          Session {session.sessionNo}
+                          Lesson {session.sessionNo}
                         </span>
                       </div>
                       {curriculum.length > 1 && (
@@ -279,7 +279,7 @@ export default function CreateCourse() {
                           type="button"
                           onClick={() => removeCurriculumSession(index)}
                           className="bg-red-100 text-red-500 p-1.5 rounded-lg hover:bg-red-200 transition-colors"
-                          title="Remove this session"
+                          title="Remove this Lesson"
                         >
                           <X size={14} />
                         </button>
@@ -292,7 +292,7 @@ export default function CreateCourse() {
                         type="text"
                         value={session.topic}
                         onChange={(e) => updateCurriculumSession(index, 'topic', e.target.value)}
-                        placeholder={`Enter topic for Session ${session.sessionNo}`}
+                        placeholder={`Enter topic for Lesson ${session.sessionNo}`}
                         className="w-full bg-white text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
                         required
                       />
@@ -304,9 +304,9 @@ export default function CreateCourse() {
                         type="text"
                         value={session.tangibleOutcome}
                         onChange={(e) => updateCurriculumSession(index, 'tangibleOutcome', e.target.value)}
-                        placeholder={`Enter tangible outcome for Session ${session.sessionNo}`}
+                        placeholder={`Enter tangible outcome for Lesson ${session.sessionNo}`}
                         className="w-full bg-white text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
-                        required
+                        
                       />
                     </div>
                   </div>
@@ -323,7 +323,7 @@ export default function CreateCourse() {
                       type="text"
                       value={session.topic}
                       onChange={(e) => updateCurriculumSession(index, 'topic', e.target.value)}
-                      placeholder={`Enter topic for Session ${session.sessionNo}`}
+                      placeholder={`Enter topic for Lesson ${session.sessionNo}`}
                       className="flex-1 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                     />
@@ -331,9 +331,9 @@ export default function CreateCourse() {
                       type="text"
                       value={session.tangibleOutcome}
                       onChange={(e) => updateCurriculumSession(index, 'tangibleOutcome', e.target.value)}
-                      placeholder={`Enter tangible outcome for Session ${session.sessionNo}`}
+                      placeholder={`Enter tangible outcome for Lesson ${session.sessionNo}`}
                       className="flex-1 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
+                      
                     />
                     {curriculum.length > 1 && (
                       <button
