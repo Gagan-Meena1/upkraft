@@ -1,0 +1,300 @@
+.top-header-sec {
+    position: fixed;
+    top: 0;
+    background: var(--bg-grey);
+    z-index: 1;
+}
+
+.top-header-sec .right-top-header {
+    width: calc(100% - 240px);
+    margin-left: auto;
+    padding: 18px;
+    border-bottom: 1px solid var(--bg-light-grey);
+}
+
+.dashboard-sec .side-menu-sec {
+    width: 240px;
+    position: fixed;
+    top: 0;
+    z-index: 2;
+}
+
+.dashboard-sec .side-menu-sec .offcanvas {
+    background: linear-gradient(180deg, #4201EB 0%, #7109B9 100%);
+    padding: 18px 24px;
+    width: 240px !important;
+}
+
+.top-header-sec .right-top-header input {
+    box-shadow: 0px 4px 8px 0px #00000005;
+    padding: 12px 10px 12px 45px;
+    border: none;
+    min-width: 450px;
+}
+
+.search-box button.btn {
+    position: absolute;
+    top: 6px;
+    left: 14px;
+    border-radius: 8px;
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0px;
+}
+
+.search-box input {
+    box-shadow: 0px 4px 8px 0px #00000005;
+    padding: 11px 10px 11px 45px;
+    border: 1px solid var(--bg-light-grey) !important;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 100%;
+    letter-spacing: 0px;
+}
+
+.top-header-sec .right-top-header .right-head-details .btn-box.btn-dark {
+    background: var(--blue);
+}
+
+.top-header-sec .right-top-header .right-head-details .btn-box {
+    background: #C4B0F92B;
+    border-radius: 100px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.top-header-sec .right-top-header .right-head-details .btn-box svg {
+    display: block;
+}
+
+.top-header-sec .right-top-header .right-head-details  .img-admin {
+    padding-left: 16px;
+    margin-left: 16px;
+    border-left: 1px solid #97979778;
+}
+
+.top-header-sec .right-top-header .right-head-details img {
+    border-radius: 50px;
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    display: block;
+}
+
+.top-header-sec .right-top-header .right-head-details h6 {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 100%;
+    letter-spacing: 0px;
+    margin-bottom: 5px;
+}
+
+.top-header-sec .right-top-header .right-head-details  p {
+    margin: 0;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 100%;
+    letter-spacing: 0px;
+    color: #505050;
+}
+
+.dashboard-sec .side-menu-sec .offcanvas .offcanvas-body {
+    padding: 0;
+    overflow: hidden;
+}
+
+.dashboard-sec .side-menu-sec .img-logo .logo, .dashboard-sec .side-menu-sec .img-logo .logo img {
+    display: block;
+}
+
+.dashboard-sec .side-menu-sec .side-menu {
+    overflow-y: scroll;
+    height: calc(100svh - 110px);
+    margin-top: 40px;
+}
+
+.side-menu::-webkit-scrollbar {
+    display: none;
+}
+
+.dashboard-sec .side-menu-sec .side-menu a {
+    padding: 10px 8px;
+    border-radius: 8px;
+    color: var(--bg-grey);
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 100%;
+    letter-spacing: 0px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.dashboard-sec .side-menu-sec .side-menu a.active, .dashboard-sec .side-menu-sec .side-menu a:hover {
+    background: var(--white);
+    color: var(--dark-blue);
+}
+
+.dashboard-sec .side-menu-sec .side-menu a.active svg path, .dashboard-sec .side-menu-sec .side-menu a:hover svg path {
+    fill: var(--dark-blue);
+}
+
+.dashboard-sec .side-menu-sec .side-menu a svg path {
+    transition: all 0.5s ease;
+}
+
+.dashboard-sec  .side-details-sec {
+    width: calc(100% - 240px);
+    padding: 33px 18px;
+    margin-left: auto;
+    margin-top: 80px;
+}
+
+
+/********com css**********/
+
+.card-box {
+    background: var(--white);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+
+
+.table-sec table tr th {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 100%;
+    letter-spacing: 0px;
+    color: var(--text-color);
+    padding: 16px 4px;
+}
+
+.table-sec table tr td {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 130%;
+    letter-spacing: 0px;
+    padding: 16px 4px;
+    color: var(--text-color);
+}
+
+.btn-text {
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 100%;
+    letter-spacing: 0px;
+    color: var(--blue);
+}
+
+
+.pagination-sec ul.pagination {
+    margin: 0;
+    background: #FAF8F6;
+    border-radius: 16px;
+    padding: 8px;
+    align-items: center;
+}
+
+.pagination-sec ul.pagination .page-link {
+    background: transparent;
+    border: none;
+    display: flex;
+    padding: 8px;
+    color: var(--text-color);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.pagination-sec ul.pagination li.active .page-link {
+    background: var(--white);
+    color: var(--dark-blue);
+    border-radius: 4px;
+}
+
+.pagination-sec ul.pagination .page-link span {
+    display: block;
+}
+
+.red-text {
+    color: var(--red);
+}
+
+.green-text {
+    color: #00BC7E;
+}
+
+.yellow-text {
+    color: #FFC357;
+}
+
+
+.w-1200 {
+    min-width: 1200px;
+}
+
+button:focus:not(:focus-visible) {
+    outline: 0;
+    box-shadow: none;
+}
+
+.dropdown .btn.show {
+    background-color: transparent !important;
+    border-color:  var(--dark-blue) !important;
+    color: var(--dark-blue) !important;
+}
+
+
+.btn.btn-primary:focus {
+    background: transparent;
+    border: 1px solid var(--dark-blue) !important;
+}
+
+.admin-shome-box .top-text {
+    font-size: 26px;
+}
+
+.approval-requests-card .card-box {
+    border: 1px solid #EEEEEE;
+}
+
+
+.approval-requests-card .card-box {
+    border: 1px solid #EEEEEE;
+}
+
+.btn.btn-border.btn-green, .btn.btn-border.btn-green:focus {
+    background: transparent;
+    color: #00BC7E;
+    border-color: #00BC7E !important;
+    border-radius: 4px;
+}
+
+.btn.btn-border.btn-green:hover svg path {stroke: #00BC7E;}
+
+.btn.btn-border.btn-red, .btn.btn-border.btn-red:focus {
+    color: #E53935;
+    border-color: #E53935 !important;
+    background: transparent;
+    border-radius: 4px;
+}
+
+.btn.btn-border.btn-red:hover svg path {
+    stroke: #E53935;
+}
+
+
+.text-log-out {
+    color: #FFC357 !important;
+}
+
+.text-log-out:hover svg path{
+    stroke: #FFC357;
+}

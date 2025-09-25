@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from './components/ClientLayout';
 
+import "./media.css"
+import "./custom.css"
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
