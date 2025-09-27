@@ -47,7 +47,7 @@ const VideoMeeting = dynamic(() => import("../components/VideoMeeting"), {
 
 interface UserData {
   _id: string;
-  name: string;
+  username: string;
   email: string;
   category: string;
   age: number;
@@ -263,6 +263,8 @@ export default function Dashboard() {
     url: null,
     classId: null,
   });
+  const [coursePerformance, setCoursePerformance] = useState<number>(0);
+  const [studentPerformance, setStudentPerformance] = useState<number>(0);
 
   const role = "tutor";
   const isActive = (path: string) => {
@@ -329,6 +331,36 @@ export default function Dashboard() {
         // Set assignment data if available
         if (assignmentResponseData?.assignments) {
           setAssignmentData(assignmentResponseData.assignments);
+        }
+
+        // Fetch course quality data
+        const courseQualityResponse = await fetch("/Api/courseQuality");
+        const courseQualityData = await courseQualityResponse.json();
+
+        if (
+          courseQualityData &&
+          courseQualityData.overall_quality_score !== undefined
+        ) {
+          setCoursePerformance(courseQualityData.overall_quality_score);
+        }
+
+        // Fetch student performance data
+        const performanceResponse = await fetch("/Api/studentFeedbackForTutor");
+        const performanceData = await performanceResponse.json();
+
+        // Calculate average performance from all student feedback
+        if (
+          performanceData &&
+          performanceData.data &&
+          performanceData.data.length > 0
+        ) {
+          const performances = performanceData.data.map(
+            (item) => parseFloat(item.performance) || 0
+          );
+          const avgPerformance =
+            performances.reduce((sum, val) => sum + val, 0) /
+            performances.length;
+          setStudentPerformance(avgPerformance);
         }
 
         setLoading(false);
@@ -479,7 +511,7 @@ export default function Dashboard() {
               <h2 className="mb-4">Profile</h2>
               <div className="com-profile d-flex align-items-center gap-23">
                 <div className="col-img-profile">
-                  <ProfileProgress />
+                  <ProfileProgress user={userData ? userData : null} />
                 </div>
                 <div className="col-text-profile">
                   <ul className="p-0 m-0 list-unstyled">
@@ -503,7 +535,9 @@ export default function Dashboard() {
                         </svg>
                       </span>
                       <span className="text-dark-blue text-box">Students</span>
-                      <span className="text-black text-box">{studentCount}</span>
+                      <span className="text-black text-box">
+                        {studentCount}
+                      </span>
                     </li>
                     <li className="btn-white d-flex align-items-center gap-2 w-100">
                       <span className="icons">
@@ -521,7 +555,9 @@ export default function Dashboard() {
                         </svg>
                       </span>
                       <span className="text-dark-blue text-box">Course</span>
-                      <span className="text-black text-box">{totalClasses}</span>
+                      <span className="text-black text-box">
+                        {totalClasses}
+                      </span>
                     </li>
                     <li className="btn-white d-flex align-items-center gap-2 w-100">
                       <span className="icons">
@@ -557,13 +593,13 @@ export default function Dashboard() {
               <div className="row">
                 <div className="col-md-12 mb-4">
                   <div className="card-box">
-                    <h2 className="top-text">30</h2>
+                    <h2 className="top-text">{studentCount}</h2>
                     <p className="bottom-text">Total Active Students</p>
                   </div>
                 </div>
                 <div className="col-md-12 mb-4">
                   <div className="card-box">
-                    <h2 className="top-text">30</h2>
+                    <h2 className="top-text">{studentCount}</h2>
                     <p className="bottom-text">Total Active Students</p>
                   </div>
                 </div>
@@ -609,13 +645,13 @@ export default function Dashboard() {
             <div className="card-box">
               <div className="top-progress mb-4">
                 <SemiCircleProgress
-                  value={7.6}
-                  label="Overall Course Performance"
+                  value={coursePerformance}
+                  label="Class Quality Score"
                 />
               </div>
               <div className="bottom-progress">
                 <SemiCircleProgress
-                  value={6.6}
+                  value={studentPerformance}
                   label="Overall Student Performance"
                 />
               </div>

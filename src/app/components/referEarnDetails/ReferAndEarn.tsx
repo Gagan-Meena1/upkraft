@@ -7,8 +7,8 @@ import Image from 'next/image'
 const ReferAndEarn = () => {
   return (
     <div className='refer-and-earn-box text-center'>
-        <div className='img-box'>
-            <Image src={ReferImg} alt="" />
+        <div className='img-box w-full'>
+            <Image className='object-contain w-full' src={ReferImg} alt="" />
         </div>
         <div className='text-bottom-box'>
             <div className='blue-box'>

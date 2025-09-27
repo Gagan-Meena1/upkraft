@@ -19,7 +19,7 @@ const ClassSchema = new mongoose.Schema({
     ref: "users"
   },
   feedbackId:{
-    type:mongoose.Schema.Types.ObjectId,
+    type:mongoose.Schema.Types.ObjectId, //make array type array m object(feedbackid and user id)
     ref:"feedback"
   },
   assignmentId:{

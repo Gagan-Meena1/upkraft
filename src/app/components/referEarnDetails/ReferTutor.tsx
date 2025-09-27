@@ -1,5 +1,6 @@
 import React from "react";
 import { Button, Form } from "react-bootstrap";
+import '../../components/referEarnDetails/ReferAndEarn.css'
 
 const ReferTutor = () => {
   return (
@@ -90,7 +91,7 @@ const ReferTutor = () => {
             </Form.Group>
           </div>
           <div className="col-md-6">
-            <Button type="" className="btn btn-primary w-100">Submit and Send Invite</Button>
+            <Button type="submit" className="btn btn-primary w-100">Submit and Send Invite</Button>
           </div>
         </div>
       </Form>

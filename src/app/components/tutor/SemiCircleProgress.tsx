@@ -6,7 +6,12 @@ import {
 import "react-circular-progressbar/dist/styles.css";
 import './SemiCircleProgress.css'
 
-const SemiCircleProgress = ({ value, label }) => {
+interface SemiCircleProgressProps {
+  value: number; 
+  label: string; 
+}
+
+const SemiCircleProgress = ({ value, label }: SemiCircleProgressProps) => {
   const percentage = (value / 10) * 100; 
 
   return (

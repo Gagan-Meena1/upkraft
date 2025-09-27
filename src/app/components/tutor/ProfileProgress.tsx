@@ -5,7 +5,18 @@ import './Dashboard.css'
 import Profile from '../../../assets/Profile-img.png'
 import Image from 'next/image';
 
-const ProfileProgress = () => {
+interface UserData {
+  _id: string;
+  username: string;
+  email: string;
+  category: string;
+  age: number;
+  address: string;
+  contact: string;
+  courses: any[];
+  createdAt: string;
+}
+const ProfileProgress = ({ user }: { user: UserData }) => {
   const percentage = 25;
 
   return (
@@ -20,13 +31,33 @@ const ProfileProgress = () => {
             strokeLinecap: "round"
             })}>
 
-            <Image 
-              style={{ width: 120, height: 120, borderRadius: "50%", objectFit: "cover"}} 
-              src={Profile}  
-              alt="profile"
-              width={120}
-              height={120}
-            />
+            {user?.profileImage ? (
+              <Image 
+                style={{ width: 120, height: 120, borderRadius: "50%", objectFit: "cover"}} 
+                src={user.profileImage}  
+                alt={user.username || "Profile"}
+                width={120}
+                height={120}
+              />
+            ) : (
+              <div 
+                style={{ 
+                  width: 120, 
+                  height: 120, 
+                  borderRadius: "50%", 
+                  backgroundColor: "#ff8c00",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontSize: "48px",
+                  fontWeight: "bold"
+                }}
+              >
+                {user?.username?.charAt(0)?.toUpperCase() || 'U'}
+              </div>
+            )}
+
 
             <div className="icons" style={{position: "absolute",bottom: 15,right: 15, }} >
                 <span className='text'>
@@ -36,8 +67,8 @@ const ProfileProgress = () => {
             </CircularProgressbarWithChildren>
         </div>
         <div className="text-center mt-3"> 
-            <h1 className="mb-2">Sherry Wolf</h1>
-            <h3>Piano Tutor</h3>
+            <h1 className="mb-2">{user?.username}</h1>
+            <h3>{user?.category}</h3>
         </div>
     </>
   );

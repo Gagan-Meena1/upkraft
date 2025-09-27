@@ -59,7 +59,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-students"
+                      href="tutor/mystudents"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-students") ? "active" : ""
                       }`}
@@ -83,7 +83,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-courses"
+                      href="tutor/courses"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-courses") ? "active" : ""
                       }`}
@@ -107,7 +107,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/calendar"
+                      href="tutor/calendar"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/calendar") ? "active" : ""
                       }`}
@@ -142,7 +142,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/assignment"
+                      href="tutor/assignments"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/assignment") ? "active" : ""
                       }`}
@@ -170,7 +170,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/music-library"
+                      href="tutor/musicLibrary"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/music-library") ? "active" : ""
                       }`}
@@ -194,7 +194,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/practice-studio"
+                      href="/visualizer.html"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/practice-studio") ? "active" : ""
                       }`}

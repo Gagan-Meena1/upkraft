@@ -1,12 +1,38 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
 import LogoHeader from '../../assets/LogoHeader.png'
 import { Button, Dropdown, Form } from 'react-bootstrap'
 import Author from '../../assets/Author.png'
 import Image from 'next/image'
 
+interface UserData {
+  _id: string;
+  username: string;
+  email: string;
+  category: string;
+  age: number;
+  address: string;
+  contact: string;
+  courses: any[];
+  createdAt: string;
+}
 const TopHeader = ({ role, setRole }) => {
+  const [userData, setUserData] = useState<UserData | null>(null);
+   useEffect(() => {
+      const fetchData = async () => {
+         try {
+            // Fetch all data from single endpoint
+            const userResponse = await fetch("/Api/users/user");
+            const userData = await userResponse.json();
+            setUserData(userData.user);
+         } catch (error) {
+            console.error("Error fetching user data:", error);
+         }
+      };
+
+      fetchData();
+   }, []);
   return (
     <div className='top-header-sec d-flex align-items-center w-100'>
       <div className='logo-box d-lg-none d-block'>
@@ -53,12 +79,35 @@ const TopHeader = ({ role, setRole }) => {
                     </li>
                 </ul>
                 <div className='right-head-details d-flex align-items-center gap-2'>
-                    <div className='img-admin'>
-                        <Image src={Author} alt="" />
+                     <div className='img-admin' style={{ width: '40px', height: '40px' }}>
+                        {userData?.profileImage ? (
+                            <Image 
+                                src={userData.profileImage} 
+                                alt={userData.username || "Profile"} 
+                                width={40}
+                                height={40}
+                                className="rounded-circle"
+                                style={{ objectFit: 'cover', width: '100%', height: '100%' }}
+                            />
+                        ) : (
+                            <div 
+                                className="rounded-circle d-flex align-items-center justify-content-center" 
+                                style={{ 
+                                    width: '40px', 
+                                    height: '40px', 
+                                    backgroundColor: '#ff8c00', 
+                                    color: 'white',
+                                    fontSize: '16px',
+                                    fontWeight: 'bold'
+                                }}
+                            >
+                                {userData?.username?.charAt(0)?.toUpperCase() || 'U'}
+                            </div>
+                        )}
                     </div>
                     <div className='author-details'>
-                        <h6>Sherry Wolf</h6>
-                        <p>Tuhrefr</p>
+                        <h6>{userData?.username}</h6>
+                        <p>{userData?.category}</p>
                     </div>
                 </div>
                 <div className="btn-menu-mobile">
