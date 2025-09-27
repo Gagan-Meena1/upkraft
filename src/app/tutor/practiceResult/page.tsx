@@ -248,6 +248,10 @@ export default function ResultsPage() {
           'pinch_harmonics',
           'natural_harmonics'
         ],
+         'SONG ANALYSIS & TIMING': [
+        'song_identification',
+        'timestamp_improvements'
+      ],
         'ADDITIONAL PERFORMANCE VIEW': [
           'dynamic_control',
           'fluency',
@@ -286,6 +290,10 @@ export default function ResultsPage() {
           'polyphonic_counterpoint',
           'voice_leading'
         ],
+         'SONG ANALYSIS & TIMING': [
+        'song_identification',
+        'timestamp_improvements'
+      ],
         'ADDITIONAL PERFORMANCE VIEW': [
           'dynamic_control',
           'fluency_and_sync',
@@ -323,6 +331,8 @@ export default function ResultsPage() {
       'understanding_of_the_style_matching_the_genre': 'Genre',
       'qulaity_of_sound_basis_instrument_sound': 'Quality',
       'note_accuracy': 'Note Accuracy',
+      'song_identification': 'Song Identification',
+'timestamp_improvements': 'Timestamp Improvements',
       // Guitar fields
       'strumming_patterns': 'Strumming Patterns',
       'hammer_ons_pull_offs_slides_bends_combined': 'Hammer-ons, Pull-offs, Slides, Bends (Combined)',
@@ -486,7 +496,7 @@ export default function ResultsPage() {
             )}
           </div>
 
-          {/* Summary Section */}
+         {/* Summary Section */}
           <div className="mb-8 space-y-4">
             {/* Overall Rating */}
             {ratings.overall_rating && (
@@ -514,6 +524,36 @@ export default function ResultsPage() {
                 </div>
                 <p className="text-center text-gray-700 leading-relaxed">
                   {ratings.places_to_improve.suggestion}
+                </p>
+              </div>
+            )}
+
+            {/* Song Identification */}
+            {ratings.song_identification && (
+              <div className={`p-6 rounded-lg border ${getFeedbackColor(ratings.song_identification.feedback)}`}>
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-semibold text-green-600 mb-1">Song Identification</h3>
+                  <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-white bg-opacity-50">
+                    {ratings.song_identification.feedback}
+                  </span>
+                </div>
+                <p className="text-center text-gray-700 leading-relaxed">
+                  {ratings.song_identification.suggestion}
+                </p>
+              </div>
+            )}
+
+            {/* Timestamp Improvements */}
+            {ratings.timestamp_improvements && (
+              <div className={`p-6 rounded-lg border ${getFeedbackColor(ratings.timestamp_improvements.feedback)}`}>
+                <div className="text-center mb-4">
+                  <h3 className="text-xl font-semibold text-orange-600 mb-1">Timestamp Improvements</h3>
+                  <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-white bg-opacity-50">
+                    {ratings.timestamp_improvements.feedback}
+                  </span>
+                </div>
+                <p className="text-center text-gray-700 leading-relaxed">
+                  {ratings.timestamp_improvements.suggestion}
                 </p>
               </div>
             )}

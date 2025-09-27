@@ -149,7 +149,15 @@ const pianoResultSchema = new mongoose.Schema({
     note_accuracy: {
       feedback: String,
       suggestion: String
-    }
+    },
+    song_identification: {
+  feedback: String,
+  suggestion: String
+},
+timestamp_improvements: {
+  feedback: String,
+  suggestion: String
+}
   },
   createdAt: {
     type: Date,
@@ -328,6 +336,14 @@ const guitarResultSchema = new mongoose.Schema({
       suggestion: String
     }
   },
+  song_identification: {
+  feedback: String,
+  suggestion: String
+},
+timestamp_improvements: {
+  feedback: String,
+  suggestion: String
+},
   createdAt: {
     type: Date,
     default: Date.now

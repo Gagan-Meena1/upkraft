@@ -112,7 +112,10 @@ export async function POST(request) {
         fluency_and_sync: analysisResults.fluency_and_sync,
         understanding_of_the_style_matching_the_genre: analysisResults.understanding_of_the_style_matching_the_genre,
         qulaity_of_sound_basis_instrument_sound: analysisResults.qulaity_of_sound_basis_instrument_sound,
-        note_accuracy: analysisResults.note_accuracy
+        note_accuracy: analysisResults.note_accuracy,
+        // Newly added fields
+        song_identification: analysisResults.song_identification,
+        timestamp_improvements: analysisResults.timestamp_improvements,
       };
     } else if (instrument.toLowerCase() === 'guitar') {
       practiceData.guitarAnalysis = {
@@ -156,7 +159,10 @@ export async function POST(request) {
         genre: analysisResults.genre,
         quality: analysisResults.quality,
         note_accuracy: analysisResults.note_accuracy,
-        sound: analysisResults.sound
+        sound: analysisResults.sound,
+        // Newly added fields
+        song_identification: analysisResults.song_identification,
+        timestamp_improvements: analysisResults.timestamp_improvements,
       };
     }
 
