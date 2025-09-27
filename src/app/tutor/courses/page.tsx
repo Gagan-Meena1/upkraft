@@ -103,7 +103,7 @@ export default function TutorCoursesPage() {
       
       // Create a copy of the course data with modified title
       const courseDataToCopy = {
-        title: `${course.title} (Copy)`,
+        title: `(Copy) ${course.title} `,
         description: course.description,
         duration: course.duration,
         price: course.price,
@@ -201,10 +201,10 @@ export default function TutorCoursesPage() {
                 key={course._id} 
                 className="bg-white rounded-xl shadow-md p-4 sm:p-6 border border-gray-100 transform transition-all hover:shadow-lg"
               >
-                {/* Course Header with Copy Button */}
+                {/* Course Header with Action Icons */}
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4 gap-2">
                   <h2 
-                    className="text-lg sm:text-xl font-bold text-gray-800 truncate sm:max-w-[60%]" 
+                    className="text-lg sm:text-xl font-bold text-gray-800 truncate sm:max-w-[50%]" 
                     title={course.title}
                   >
                     {course.title}
@@ -223,6 +223,21 @@ export default function TutorCoursesPage() {
                         <Copy className="text-gray-600 hover:text-orange-500 h-4 w-4" />
                       )}
                     </button>
+                    
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => handleDeleteCourse(course._id)}
+                      disabled={deletingCourseId === course._id}
+                      className="p-1.5 hover:bg-red-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Delete course"
+                    >
+                      {deletingCourseId === course._id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-red-500"></div>
+                      ) : (
+                        <Trash2 className="text-gray-600 hover:text-red-500 h-4 w-4" />
+                      )}
+                    </button>
+                    
                     {/* Duration */}
                     <div className="flex items-center gap-1 text-gray-600">
                       <Clock className="text-orange-500 h-4 w-4" />
