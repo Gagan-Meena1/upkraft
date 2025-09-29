@@ -249,7 +249,7 @@ export default function ResultsPage() {
           'natural_harmonics'
         ],
          'SONG ANALYSIS & TIMING': [
-        'song_identification',
+        //'song_identification',
         'timestamp_improvements'
       ],
         'ADDITIONAL PERFORMANCE VIEW': [
@@ -291,7 +291,7 @@ export default function ResultsPage() {
           'voice_leading'
         ],
          'SONG ANALYSIS & TIMING': [
-        'song_identification',
+        //'song_identification',
         'timestamp_improvements'
       ],
         'ADDITIONAL PERFORMANCE VIEW': [
@@ -331,7 +331,7 @@ export default function ResultsPage() {
       'understanding_of_the_style_matching_the_genre': 'Genre',
       'qulaity_of_sound_basis_instrument_sound': 'Quality',
       'note_accuracy': 'Note Accuracy',
-      'song_identification': 'Song Identification',
+      //'song_identification': 'Song Identification',
 'timestamp_improvements': 'Timestamp Improvements',
       // Guitar fields
       'strumming_patterns': 'Strumming Patterns',
