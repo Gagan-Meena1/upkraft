@@ -529,7 +529,7 @@ export default function ResultsPage() {
             )}
 
             {/* Song Identification */}
-            {ratings.song_identification && (
+            {/* {ratings.song_identification && (
               <div className={`p-6 rounded-lg border ${getFeedbackColor(ratings.song_identification.feedback)}`}>
                 <div className="text-center mb-4">
                   <h3 className="text-xl font-semibold text-green-600 mb-1">Song Identification</h3>
@@ -541,7 +541,7 @@ export default function ResultsPage() {
                   {ratings.song_identification.suggestion}
                 </p>
               </div>
-            )}
+            )} */}
 
             {/* Timestamp Improvements */}
             {ratings.timestamp_improvements && (
