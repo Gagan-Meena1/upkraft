@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 interface ClassData {
   _id: string;
@@ -15,23 +17,36 @@ interface ClassData {
   }>;
 }
 
+interface UserData {
+  _id: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  category: string;
+}
+
 const UpcomingLessons = () => {
   const [classes, setClasses] = useState<ClassData[]>([]);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const fetchClasses = async () => {
       try {
         setLoading(true);
-        // Fetch user data to get the classes
         const userResponse = await fetch("/Api/users/user");
-        const userData = await userResponse.json();
+        const userResponseData = await userResponse.json();
 
-        if (userData.classDetails && userData.classDetails.length > 0) {
-          // Filter future classes
+        // Save user data
+        if (userResponseData.user) {
+          setUserData(userResponseData.user);
+        }
+
+        if (userResponseData.classDetails && userResponseData.classDetails.length > 0) {
           const now = new Date();
-          const futureClasses = userData.classDetails
+          const futureClasses = userResponseData.classDetails
             .filter((cls: ClassData) => new Date(cls.startTime) > now)
             .sort(
               (a: ClassData, b: ClassData) =>
@@ -73,6 +88,40 @@ const UpcomingLessons = () => {
     }
   };
 
+  const handleJoinMeeting = async (classId: string) => {
+    try {
+      if (!userData) {
+        toast.error("User data not available. Please refresh the page.");
+        return;
+      }
+
+      console.log("[Meeting] Creating meeting for class:", classId);
+      const response = await fetch('/Api/meeting/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          classId: classId, 
+          userId: userData._id, 
+          userRole: userData.category 
+        }),
+      });
+      
+      const data = await response.json();
+      console.log("[Meeting] Server response:", data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create meeting');
+      }
+
+      router.push(`/tutor/video-call?url=${encodeURIComponent(data.url)}&userRole=${userData.category}&token=${encodeURIComponent(data.token || '')}`);
+    } catch (error: any) {
+      console.error('[Meeting] Error details:', error);
+      toast.error(error.message || 'Failed to create meeting. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="card-box table-sec">
@@ -111,12 +160,13 @@ const UpcomingLessons = () => {
               <th>Time</th>
               <th>Course</th>
               <th>Student Name</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             {classes.length === 0 ? (
               <tr>
-                <td colSpan={4} className="text-center py-3">
+                <td colSpan={5} className="text-center py-3">
                   No upcoming lessons
                 </td>
               </tr>
@@ -132,14 +182,13 @@ const UpcomingLessons = () => {
                           .map((student) => student.username)
                           .join(", ")
                       : "No students assigned"}
-                    <button
-                      className="btn btn-link p-0 ms-1"
+                  </td>
+                  <td>
+                    <button 
                       onClick={() => handleJoinMeeting(classItem._id)}
-                      style={{ marginLeft: "5px" }}
-                      // disabled={!userData}
+                      className="bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-orange-700 transition-colors"
                     >
-                    
-
+                      Join
                     </button>
                   </td>
                 </tr>

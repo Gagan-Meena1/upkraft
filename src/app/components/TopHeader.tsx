@@ -79,7 +79,7 @@ const TopHeader = ({ role, setRole }) => {
                     </li>
                 </ul>
                 <div className='right-head-details d-flex align-items-center gap-2'>
-                     <div className='img-admin' style={{ width: '40px', height: '40px' }}>
+                     <div className='img-admin'>
                         {userData?.profileImage ? (
                             <Image 
                                 src={userData.profileImage} 

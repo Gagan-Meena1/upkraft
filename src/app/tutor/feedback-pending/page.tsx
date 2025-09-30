@@ -41,6 +41,7 @@ const FeedbackPendingDetails = () => {
   const [selectedFeedback, setSelectedFeedback] = useState<PendingFeedback | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [feedbackData, setFeedbackData] = useState({
     rhythm: 5,
     theoretical: 5,
@@ -101,7 +102,9 @@ const FeedbackPendingDetails = () => {
         const classesWithFeedback = new Map();
         feedbackResults.forEach(result => {
           result.feedbacks.forEach((feedback: any) => {
-            classesWithFeedback.set(feedback.classId, true);
+            // Create a unique key combining classId and studentId
+            const key = `${feedback.classId}-${feedback.userId}`;
+            classesWithFeedback.set(key, true);
           });
         });
         
@@ -111,7 +114,8 @@ const FeedbackPendingDetails = () => {
           // Find classes for this student that need feedback
           const studentClasses = classDetails.filter((cls: Class) => {
             // Check if feedback exists for this class and student
-            return !classesWithFeedback.has(cls._id);
+            const key = `${cls._id}-${student._id}`;
+            return !classesWithFeedback.has(key);
           });
           
           if (studentClasses.length > 0) {
@@ -141,6 +145,17 @@ const FeedbackPendingDetails = () => {
   
   const handleSelectStudent = (feedback: PendingFeedback) => {
     setSelectedFeedback(feedback);
+    // Reset feedback data when switching students
+    setFeedbackData({
+      rhythm: 5,
+      theoretical: 5,
+      understanding: 5,
+      performance: 5,
+      earTraining: 5,
+      assignment: 5,
+      technique: 5,
+      feedback: ''
+    });
   };
   
   const handleSelectClass = (feedbackIndex: number, classIndex: number) => {
@@ -148,15 +163,31 @@ const FeedbackPendingDetails = () => {
     updatedFeedbacks[feedbackIndex].selectedClassIndex = classIndex;
     setPendingFeedbacks(updatedFeedbacks);
     setSelectedFeedback(updatedFeedbacks[feedbackIndex]);
+    // Reset feedback data when switching classes
+    setFeedbackData({
+      rhythm: 5,
+      theoretical: 5,
+      understanding: 5,
+      performance: 5,
+      earTraining: 5,
+      assignment: 5,
+      technique: 5,
+      feedback: ''
+    });
   };
   
-  const handleInputChange = (field: string, value: number | string) => {
+  const handleSliderChange = (field: string, value: number) => {
     setFeedbackData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleTextChange = (value: string) => {
+    setFeedbackData(prev => ({ ...prev, feedback: value }));
   };
   
   const handleSubmit = async () => {
     if (!selectedFeedback) return;
     
+    setIsSubmitting(true);
     const student = selectedFeedback.student;
     const classData = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
     
@@ -184,27 +215,39 @@ const FeedbackPendingDetails = () => {
       
       if (result.success) {
         // Remove the submitted feedback from the list
-        const updatedFeedbacks = pendingFeedbacks.filter(
-          f => !(f.student._id === studentId && 
-                f.classes.length === 1 && 
-                f.classes[0]._id === classId)
+        let updatedFeedbacks = [...pendingFeedbacks];
+        
+        // Find the current feedback index
+        const currentFeedbackIndex = updatedFeedbacks.findIndex(
+          f => f.student._id === studentId
         );
         
-        // If the student has more classes needing feedback, just remove this class
-        const updatedFeedbacksWithRemovedClass = pendingFeedbacks.map(f => {
-          if (f.student._id === studentId && f.classes.length > 1) {
-            return {
-              ...f,
-              classes: f.classes.filter(c => c._id !== classId),
+        if (currentFeedbackIndex !== -1) {
+          const currentFeedback = updatedFeedbacks[currentFeedbackIndex];
+          
+          // Remove the submitted class from the classes array
+          const remainingClasses = currentFeedback.classes.filter(c => c._id !== classId);
+          
+          if (remainingClasses.length > 0) {
+            // If there are more classes for this student, update the feedback
+            updatedFeedbacks[currentFeedbackIndex] = {
+              ...currentFeedback,
+              classes: remainingClasses,
               selectedClassIndex: 0
             };
+          } else {
+            // If no more classes, remove this student from pending feedbacks
+            updatedFeedbacks.splice(currentFeedbackIndex, 1);
           }
-          return f;
-        }).filter(f => f.classes.length > 0);
+        }
         
-        setPendingFeedbacks(updatedFeedbacksWithRemovedClass);
-        if (updatedFeedbacksWithRemovedClass.length > 0) {
-          setSelectedFeedback(updatedFeedbacksWithRemovedClass[0]);
+        setPendingFeedbacks(updatedFeedbacks);
+        
+        // Select the next feedback or reset
+        if (updatedFeedbacks.length > 0) {
+          // Try to select the same index, or the previous one if we're at the end
+          const nextIndex = Math.min(currentFeedbackIndex, updatedFeedbacks.length - 1);
+          setSelectedFeedback(updatedFeedbacks[nextIndex]);
         } else {
           setSelectedFeedback(null);
         }
@@ -221,7 +264,7 @@ const FeedbackPendingDetails = () => {
           feedback: ''
         });
         
-        alert('Feedback submitted successfully');
+        alert('Feedback submitted successfully!');
       } else {
         alert(result.message || 'Failed to submit feedback');
       }
@@ -229,6 +272,8 @@ const FeedbackPendingDetails = () => {
     } catch (err) {
       console.error('Error submitting feedback:', err);
       alert('Failed to submit feedback. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -273,8 +318,9 @@ const FeedbackPendingDetails = () => {
             </div>
           </div>
         </div>
-        <div className='alert alert-info mt-4'>
-          No pending feedbacks at this time.
+        <div className='alert alert-success mt-4 text-center'>
+          <h4>🎉 All Caught Up!</h4>
+          <p>No pending feedbacks at this time. Great job staying on top of your student evaluations!</p>
         </div>
       </div>
     );
@@ -285,7 +331,7 @@ const FeedbackPendingDetails = () => {
       <div className='feed-back-heading'>
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-md-3 flex-xl-nowrap flex-wrap">
             <div className='left-head'>
-                <h2 className='m-0'>Feedback Pending</h2>
+                <h2 className='m-0'>Feedback Pending ({pendingFeedbacks.length} students)</h2>
             </div>
             <div className='right-form'>
                <Link href="/tutor" className='link-text'>Back to Dashboard</Link>
@@ -310,10 +356,23 @@ const FeedbackPendingDetails = () => {
                           src={feedback.student.profileImage} 
                           alt={feedback.student.username} 
                           width={40} 
-                          height={40} 
+                          height={40}
+                          className="rounded-circle"
+                          style={{ objectFit: 'cover' }}
                         />
                       ) : (
-                        <div className="student-initials">
+                        <div className="student-initials" style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          backgroundColor: '#ff8c00',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'white',
+                          fontWeight: 'bold',
+                          fontSize: '16px'
+                        }}>
                           {feedback.student.username.charAt(0).toUpperCase()}
                         </div>
                       )}
@@ -350,7 +409,9 @@ const FeedbackPendingDetails = () => {
               <div className='head-feedback d-flex align-items-center gap-2 justify-content-between flex-md-nowrap flex-wrap'>
                 <div className='text-head-feedback'>
                   <h2>Student Performance Evaluation</h2>
-                  <p>Provide feedback on student's performance</p>
+                  <p>
+                    <strong>{selectedFeedback.student.username}</strong> - {selectedFeedback.classes[selectedFeedback.selectedClassIndex].title}
+                  </p>
                 </div>
                 <div className='btn-right'>
                   <Link href={`/tutor/video-recording?classId=${selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id}`} className='btn-link border-box d-flex align-items-center gap-2 justify-content-center'>
@@ -362,92 +423,174 @@ const FeedbackPendingDetails = () => {
               <div className='bottom-feedback-box row'>
                 <div className='col-xxl-6 mb-0'>
                   <div className='progressbar-line-sec'>
-                    <div className="card-box mb-3 d-flex align-items-center gap-2 justify-content-between">
-                      <div className="left-progress-bar">
-                        <h6 className="mb-2">Rhythm</h6>
-                        <ProgressBar now={feedbackData.rhythm * 10} variant="" style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.rhythm * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px", }}></div>
-                        </ProgressBar>
+                    {/* Rhythm */}
+                    <div className="card-box mb-3">
+                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
+                        <h6 className="mb-0">Rhythm</h6>
+                        <div className="right-text-box red-text">
+                          <span className='main-text'>{feedbackData.rhythm}</span>
+                          <span className="text-muted">/10</span>
+                        </div>
                       </div>
-                      <div className="right-text-box red-text">
-                        <span className='main-text'>{feedbackData.rhythm}</span>
-                        <span className="text-muted">/10</span>
-                      </div>
-                    </div>
-                    <div className="card-box mb-3 d-flex align-items-center gap-2 justify-content-between">
-                      <div className="left-progress-bar">
-                        <h6 className="mb-2">Understanding of Topic</h6>
-                        <ProgressBar now={feedbackData.understanding * 10} variant="" style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.understanding * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px", }}></div>
-                        </ProgressBar>
-                      </div>
-                      <div className="right-text-box red-text">
-                        <span className='main-text'>{feedbackData.understanding}</span>
-                        <span className="text-muted">/10</span>
-                      </div>
-                    </div>
-                    <div className="card-box mb-0 d-flex align-items-center gap-2 justify-content-between">
-                      <div className="left-progress-bar">
-                        <h6 className="mb-2">Ear Training</h6>
-                        <ProgressBar now={feedbackData.earTraining * 10} variant="" style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.earTraining * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px", }}></div>
-                        </ProgressBar>
-                      </div>
-                      <div className="right-text-box red-text">
-                        <span className='main-text'>{feedbackData.earTraining}</span>
-                        <span className="text-muted">/10</span>
+                      <div className="progress-slider-container">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={feedbackData.rhythm}
+                          onChange={(e) => handleSliderChange('rhythm', parseInt(e.target.value))}
+                          className="form-range mb-2"
+                        />
+                        {/* <ProgressBar now={feedbackData.rhythm * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
+                          <div style={{ width: `${feedbackData.rhythm * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
+                        </ProgressBar> */}
                       </div>
                     </div>
-                    <div className="card-box mb-0 d-flex align-items-center gap-2 justify-content-between">
-                      <div className="left-progress-bar">
-                        <h6 className="mb-2">Technique</h6>
-                        <ProgressBar now={feedbackData.technique * 10} variant="" style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.technique * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px", }}></div>
-                        </ProgressBar>
+
+                    {/* Understanding */}
+                    <div className="card-box mb-3">
+                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
+                        <h6 className="mb-0">Understanding of Topic</h6>
+                        <div className="right-text-box red-text">
+                          <span className='main-text'>{feedbackData.understanding}</span>
+                          <span className="text-muted">/10</span>
+                        </div>
                       </div>
-                      <div className="right-text-box red-text">
-                        <span className='main-text'>{feedbackData.technique}</span>
-                        <span className="text-muted">/10</span>
+                      <div className="progress-slider-container">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={feedbackData.understanding}
+                          onChange={(e) => handleSliderChange('understanding', parseInt(e.target.value))}
+                          className="form-range mb-2"
+                        />
+                        {/* <ProgressBar now={feedbackData.understanding * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
+                          <div style={{ width: `${feedbackData.understanding * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
+                        </ProgressBar> */}
+                      </div>
+                    </div>
+
+                    {/* Ear Training */}
+                    <div className="card-box mb-3">
+                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
+                        <h6 className="mb-0">Ear Training</h6>
+                        <div className="right-text-box red-text">
+                          <span className='main-text'>{feedbackData.earTraining}</span>
+                          <span className="text-muted">/10</span>
+                        </div>
+                      </div>
+                      <div className="progress-slider-container">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={feedbackData.earTraining}
+                          onChange={(e) => handleSliderChange('earTraining', parseInt(e.target.value))}
+                          className="form-range mb-2"
+                        />
+                        {/* <ProgressBar now={feedbackData.earTraining * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
+                          <div style={{ width: `${feedbackData.earTraining * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
+                        </ProgressBar> */}
+                      </div>
+                    </div>
+
+                    {/* Technique */}
+                    <div className="card-box mb-0">
+                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
+                        <h6 className="mb-0">Technique</h6>
+                        <div className="right-text-box red-text">
+                          <span className='main-text'>{feedbackData.technique}</span>
+                          <span className="text-muted">/10</span>
+                        </div>
+                      </div>
+                      <div className="progress-slider-container">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={feedbackData.technique}
+                          onChange={(e) => handleSliderChange('technique', parseInt(e.target.value))}
+                          className="form-range mb-2"
+                        />
+                        {/* <ProgressBar now={feedbackData.technique * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
+                          <div style={{ width: `${feedbackData.technique * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
+                        </ProgressBar> */}
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className='col-xxl-6 mb-4'>
                   <div className='progressbar-line-sec'>
-                    <div className="card-box mb-3 d-flex align-items-center gap-2 justify-content-between">
-                      <div className="left-progress-bar">
-                        <h6 className="mb-2">Theoretical Understanding</h6>
-                        <ProgressBar now={feedbackData.theoretical * 10} variant="" style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.theoretical * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px", }}></div>
-                        </ProgressBar>
+                    {/* Theoretical Understanding */}
+                    <div className="card-box mb-3">
+                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
+                        <h6 className="mb-0">Theoretical Understanding</h6>
+                        <div className="right-text-box red-text">
+                          <span className='main-text'>{feedbackData.theoretical}</span>
+                          <span className="text-muted">/10</span>
+                        </div>
                       </div>
-                      <div className="right-text-box red-text">
-                        <span className='main-text'>{feedbackData.theoretical}</span>
-                        <span className="text-muted">/10</span>
+                      <div className="progress-slider-container">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={feedbackData.theoretical}
+                          onChange={(e) => handleSliderChange('theoretical', parseInt(e.target.value))}
+                          className="form-range mb-2"
+                        />
+                        {/* <ProgressBar now={feedbackData.theoretical * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
+                          <div style={{ width: `${feedbackData.theoretical * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
+                        </ProgressBar> */}
                       </div>
                     </div>
-                    <div className="card-box mb-3 d-flex align-items-center gap-2 justify-content-between">
-                      <div className="left-progress-bar">
-                        <h6 className="mb-2">Performance</h6>
-                        <ProgressBar now={feedbackData.performance * 10} variant="" style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.performance * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px", }}></div>
-                        </ProgressBar>
+
+                    {/* Performance */}
+                    <div className="card-box mb-3">
+                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
+                        <h6 className="mb-0">Performance</h6>
+                        <div className="right-text-box red-text">
+                          <span className='main-text'>{feedbackData.performance}</span>
+                          <span className="text-muted">/10</span>
+                        </div>
                       </div>
-                      <div className="right-text-box red-text">
-                        <span className='main-text'>{feedbackData.performance}</span>
-                        <span className="text-muted">/10</span>
+                      <div className="progress-slider-container">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={feedbackData.performance}
+                          onChange={(e) => handleSliderChange('performance', parseInt(e.target.value))}
+                          className="form-range mb-2"
+                        />
+                        {/* <ProgressBar now={feedbackData.performance * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
+                          <div style={{ width: `${feedbackData.performance * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
+                        </ProgressBar> */}
                       </div>
                     </div>
-                    <div className="card-box mb-0 d-flex align-items-center gap-2 justify-content-between">
-                      <div className="left-progress-bar">
-                        <h6 className="mb-2">Assignment</h6>
-                        <ProgressBar now={feedbackData.assignment * 10} variant="" className='w-100' style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.assignment * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px", }}></div>
-                        </ProgressBar>
+
+                    {/* Assignment */}
+                    <div className="card-box mb-0">
+                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
+                        <h6 className="mb-0">Assignment</h6>
+                        <div className="right-text-box red-text">
+                          <span className='main-text'>{feedbackData.assignment}</span>
+                          <span className="text-muted">/10</span>
+                        </div>
                       </div>
-                      <div className="right-text-box red-text">
-                        <span className='main-text'>{feedbackData.assignment}</span>
-                        <span className="text-muted">/10</span>
+                      <div className="progress-slider-container">
+                        <input
+                          type="range"
+                          min="1"
+                          max="10"
+                          value={feedbackData.assignment}
+                          onChange={(e) => handleSliderChange('assignment', parseInt(e.target.value))}
+                          className="form-range mb-2"
+                        />
+                        {/* <ProgressBar now={feedbackData.assignment * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
+                          <div style={{ width: `${feedbackData.assignment * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
+                        </ProgressBar> */}
                       </div>
                     </div>
                   </div>
@@ -462,7 +605,7 @@ const FeedbackPendingDetails = () => {
                         rows={5} 
                         placeholder='Provide detailed feedback and suggestions for improvement...'
                         value={feedbackData.feedback}
-                        onChange={(e) => handleInputChange('feedback', e.target.value)}
+                        onChange={(e) => handleTextChange(e.target.value)}
                       />
                     </Form.Group>
                   </Form>
@@ -471,8 +614,16 @@ const FeedbackPendingDetails = () => {
                       type='button' 
                       className='btn btn-primary'
                       onClick={handleSubmit}
+                      disabled={isSubmitting}
                     >
-                      Submit Evaluation
+                      {isSubmitting ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                          Submitting...
+                        </>
+                      ) : (
+                        'Submit Evaluation'
+                      )}
                     </Button>
                   </div>
                 </div>

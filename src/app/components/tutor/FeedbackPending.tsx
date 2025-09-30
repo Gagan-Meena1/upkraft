@@ -1,11 +1,16 @@
-import React from "react";
+"use client"
+import React, { useState } from "react";
 import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
 import "react-circular-progressbar/dist/styles.css";
 import Link from "next/link";
 import './FeedbackPending.css'
 
-const FeedbackPending = () => {
-  const value = 12;
+interface FeedbackPendingProps {
+  count?: number;
+}
+
+const FeedbackPending: React.FC<FeedbackPendingProps> = ({ count = 0 }) => {
+const [pendingFeedbackCount, setpendingFeedbackCount] = useState<number>(0);  const value = count;
   const maxValue = 20;
 
   return (

@@ -5,6 +5,7 @@ import Tabs from 'react-bootstrap/Tabs';
 import ReferAndEarn from '../../components/referEarnDetails/ReferAndEarn';
 import ReferEarnDetailsList from '../../components/referEarnDetails/ReferEarnDetailsList';
 import ReferTutor from '../../components/referEarnDetails/ReferTutor';
+import ReferStudent from '../../components/referEarnDetails/ReferStudent';
 
 const ReferEarnDetails = () => {
   return (
@@ -22,6 +23,7 @@ const ReferEarnDetails = () => {
                 </Tab>
                 <Tab eventKey="ReferStudent" title="Refer Student">
                     Refer Student
+                    <ReferStudent/>
                 </Tab>
               </Tabs>
             </div>

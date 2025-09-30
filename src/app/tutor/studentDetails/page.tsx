@@ -170,7 +170,6 @@ export default function StudentDetails() {
             const response = await fetch('/Api/users/logout');
             if (response.ok) {
               toast.success('Logged out successfully');
-              // router.push('/login'); // Uncomment if you have router
             } else {
               toast.error('Failed to logout');
             }
@@ -363,7 +362,7 @@ export default function StudentDetails() {
                           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                             <Link 
                               href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`} 
-                              className="flex items-center justify-center px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium flex-1"
+                              className="flex items-center justify-center px-3 py-2 bg-black-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium flex-1"
                             >
                               <span>View Details</span>
                               <ExternalLink size={14} className="ml-1" />
