@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-hot-toast";
-import { usePathname, useRouter } from "next/navigation"; // <-- include useRouter too
+import { usePathname, useRouter } from "next/navigation";
 
 import {
   Home,
@@ -28,7 +28,6 @@ const Sidebar2 = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isAssignmentOpen, setIsAssignmentOpen] = useState(false);
 
-  // Handle pathname safely
   const rawPath = usePathname();
   const [pathname, setPathname] = useState("");
 
@@ -45,26 +44,22 @@ const Sidebar2 = () => {
       id: "assignment",
       label: "Assignment",
       icon: FileText,
-      hasDropdown: true,
       href: "/tutor/assignments",
-      subItems: [{ label: "Create Assignment", href: "/tutor/assignment/create" }],
     },
     { id: "music-library", label: "Music Library", icon: Music, href: "/tutor/music-library" },
     { id: "ai-coach", label: "AI Music Coach", icon: Bell, href: "/visualizer.html" },
     { id: "payment", label: "Payment Summary", icon: CreditCard, href: "/tutor/payment" },
     { id: "refer-earn", label: "Refer & Earn", icon: Gift, href: "/tutor/refer-earn" },
     { id: "settings", label: "Settings", icon: Settings, href: "/tutor/settings" },
-    { id: "uploadsongs", label: "Uploadsongs", icon: Settings, href: "/tutor/uploadsongs" },
+    { id: "uploadsongs", label: "Upload Songs", icon: Settings, href: "/tutor/uploadsongs" },
   ];
 
-  // ✅ Clean isActivePath
   const isActivePath = (href: string, id: string) => {
     if (!pathname) return false;
     if (id === "home") return pathname === "/tutor";
     return pathname.startsWith(href);
   };
 
-  // ✅ Separate effect for responsive sidebar
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -76,106 +71,122 @@ const Sidebar2 = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("/Api/users/logout");
+      if (response.ok) {
+        toast.success("Logged out successfully");
+        router.push("/login");
+      } else {
+        toast.error("Failed to logout");
+      }
+    } catch (error) {
+      toast.error("Error during logout");
+      console.error("Logout error:", error);
+    }
+  };
+
   return (
     <>
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={() => setSidebarOpen(false)}
         />
       )}
-      
+
       {/* Sidebar */}
       <div
         className={`
           fixed top-0 left-0 z-50 h-screen
           bg-gradient-to-b from-[#4201EB] to-[#7109B9] text-white 
-          border-r border-gray-200 
-          flex flex-col justify-between
-          transition-all duration-300
-          ${isMobile 
-            ? (sidebarOpen ? "w-[240px] translate-x-0" : "-translate-x-full w-[240px]") 
-            : (sidebarOpen ? "w-[240px]" : "w-16")
+          border-r border-purple-400/20
+          flex flex-col
+          transition-all duration-300 ease-in-out
+          ${isMobile
+            ? (sidebarOpen ? "w-64 translate-x-0" : "-translate-x-full w-64")
+            : (sidebarOpen ? "w-64" : "w-20")
           }
         `}
       >
-        {/* Logo */}
-        <div className="p-6 flex-shrink-0">
-          <Link href="/tutor" className="cursor-pointer">
+        {/* Logo Section */}
+        <div className="flex-shrink-0 p-6 border-b border-purple-400/20">
+          <Link href="/tutor" className="block">
             <Image
               src="/upkraft.svg"
               alt="UpKraft"
               width={288}
               height={72}
               priority
-              className={`object-contain w-50 h-auto transition-opacity duration-300 ${
-                !isMobile && !sidebarOpen ? 'opacity-0' : 'opacity-100'
-              }`}
+              className={`object-contain w-full h-auto transition-all duration-300 ${!isMobile && !sidebarOpen ? 'opacity-0 w-0' : 'opacity-100'
+                }`}
             />
           </Link>
         </div>
 
-        {/* Navigation Menu*/}
-        <nav className="w-[100%] h-[100%] gap-4 flex flex-col px-6">
-          
-          <ul className="space-y-1 pb-3 pt-3 pr-2">
+        {/* Navigation Menu - Scrollable */}
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden py-4 px-3 custom-scrollbar">
+          <ul className="space-y-2">
             {menuItems.map((item) => (
               <li key={item.id}>
                 <Link
                   href={item.href}
-                  onClick={() => {
-                    if (item.hasDropdown) {
-                      setIsAssignmentOpen(!isAssignmentOpen);
-                    }
-                    // Close mobile sidebar when clicking a link
+                  onClick={(e) => {
+
                     if (isMobile) {
                       setSidebarOpen(false);
                     }
                   }}
                   className={`
-                    w-full flex font-semibold text-[16px] items-center justify-between 
-                    px-2 py-3 rounded-lg text-left transition-all duration-200 
-                    hover:bg-white hover:shadow-md hover:text-[#6F09BA]
+                    group flex items-center justify-between
+                    px-3 py-3 rounded-lg
+                    font-medium text-base
+                    transition-all duration-200
+                    hover:bg-white/10 hover:shadow-lg hover:translate-x-1
                     ${isActivePath(item.href, item.id)
-                      ? "bg-white shadow-md text-[#6F09BA]"
-                      : ""
+                      ? "bg-white text-[#6F09BA] shadow-lg"
+                      : "text-white"
                     }
-                    ${!isMobile && !sidebarOpen ? 'justify-center' : ''}
+                    ${!isMobile && !sidebarOpen ? 'justify-center px-0' : ''}
                   `}
                 >
-                  <div className={`flex items-center ${!isMobile && !sidebarOpen ? '' : 'space-x-3'}`}>
-                    <item.icon size={20} />
+                  <div className={`flex items-center min-w-0 ${!isMobile && !sidebarOpen ? '' : 'gap-3'}`}>
+                    <item.icon
+                      size={20}
+                      className={`flex-shrink-0 ${!isMobile && !sidebarOpen ? 'mx-auto' : ''}`}
+                    />
                     {(isMobile || sidebarOpen) && (
-                      <span className="font-medium whitespace-nowrap truncate">{item.label}</span>
+                      <span className="truncate">{item.label}</span>
                     )}
                   </div>
-                  {item.hasDropdown && (isMobile || sidebarOpen) &&
-                    (isAssignmentOpen ? (
-                      <ChevronDown size={16} />
-                    ) : (
-                      <ChevronRight size={16} />
-                    ))}
+                  {(isMobile || sidebarOpen) && (
+                    <div className="flex-shrink-0">
+                      {isAssignmentOpen ? (
+                        <ChevronDown size={16} className="transition-transform" />
+                      ) : (
+                        <ChevronRight size={16} className="transition-transform" />
+                      )}
+                    </div>
+                  )}
                 </Link>
 
-                {/* Assignment Dropdown */}
-                {item.hasDropdown && isAssignmentOpen && (isMobile || sidebarOpen) && (
-                  <ul className="ml-8 mt-2 space-y-1">
-                    {item.subItems?.map((subItem, index) => (
-                      <li key={index}>
-                        <Link
-                          href={subItem.href}
-                          onClick={() => {
-                            if (isMobile) {
-                              setSidebarOpen(false);
-                            }
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-purple-200 hover:text-white hover:bg-purple-500/30 rounded-md transition-colors"
-                        >
-                          {subItem.label}
-                        </Link>
-                      </li>
-                    ))}
+                {/* Dropdown Menu */}
+                {isAssignmentOpen && (isMobile || sidebarOpen) && (
+                  <ul className="mt-2 ml-6 space-y-1 border-l-2 border-purple-400/30 pl-4">
+                    <li key={item.id}>
+                      <Link
+                        href={item.href}
+                        onClick={() => {
+                          if (isMobile) {
+                            setSidebarOpen(false);
+                          }
+                        }}
+                        className="block px-3 py-2 text-sm text-purple-200 hover:text-white hover:bg-white/10 rounded-md transition-all duration-200"
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
                   </ul>
                 )}
               </li>
@@ -183,39 +194,47 @@ const Sidebar2 = () => {
           </ul>
         </nav>
 
-        {/* Logout - Fixed at bottom */}
-        <div className="px-6 pb-6 flex-shrink-0">
+        {/* Logout Button - Fixed at Bottom */}
+        <div className="flex-shrink-0 p-4 border-t border-purple-400/20">
           <button
-            onClick={async () => {
-              try {
-                const response = await fetch("/Api/users/logout");
-                if (response.ok) {
-                  toast.success("Logged out successfully");
-                  router.push("/login");
-                } else {
-                  toast.error("Failed to logout");
-                }
-              } catch (error) {
-                toast.error("Error during logout");
-                console.error("Logout error:", error);
-              }
-            }}
+            onClick={handleLogout}
             className={`
-              w-full text-[#FFC357] text-[16px] flex items-center
-              px-[8px] py-[10px] rounded-[8px] text-left transition-colors hover:bg-purple-500/50
-              ${!isMobile && !sidebarOpen 
-                ? 'justify-center space-x-0' 
-                : 'space-x-3'
+              group w-full flex items-center
+              px-3 py-3 rounded-lg
+              font-medium text-base
+              text-[#FFC357] hover:text-white
+              transition-all duration-200
+              hover:bg-white/10 hover:shadow-lg
+              ${!isMobile && !sidebarOpen
+                ? 'justify-center px-0'
+                : 'gap-3'
               }
             `}
           >
-            <LogOut size={20} />
+            <LogOut size={20} className={`flex-shrink-0 ${!isMobile && !sidebarOpen ? 'mx-auto' : ''}`} />
             {(isMobile || sidebarOpen) && (
-              <span className="font-medium">Logout</span>
+              <span>Logout</span>
             )}
           </button>
         </div>
       </div>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.5);
+        }
+      `}</style>
     </>
   );
 };

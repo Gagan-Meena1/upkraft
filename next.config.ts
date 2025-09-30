@@ -37,6 +37,18 @@ const nextConfig = {
     };
     return config;
   },
+
+  // Configure remote image domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        port: '',
+        pathname: '/**', // allow all Cloudinary paths
+      },
+    ],
+  },
 };
 
 export default nextConfig;
