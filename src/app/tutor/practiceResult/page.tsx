@@ -249,7 +249,7 @@ export default function ResultsPage() {
           'natural_harmonics'
         ],
          'SONG ANALYSIS & TIMING': [
-        'song_identification',
+        //'song_identification',
         'timestamp_improvements'
       ],
         'ADDITIONAL PERFORMANCE VIEW': [
@@ -291,7 +291,7 @@ export default function ResultsPage() {
           'voice_leading'
         ],
          'SONG ANALYSIS & TIMING': [
-        'song_identification',
+        //'song_identification',
         'timestamp_improvements'
       ],
         'ADDITIONAL PERFORMANCE VIEW': [
@@ -331,7 +331,7 @@ export default function ResultsPage() {
       'understanding_of_the_style_matching_the_genre': 'Genre',
       'qulaity_of_sound_basis_instrument_sound': 'Quality',
       'note_accuracy': 'Note Accuracy',
-      'song_identification': 'Song Identification',
+      //'song_identification': 'Song Identification',
 'timestamp_improvements': 'Timestamp Improvements',
       // Guitar fields
       'strumming_patterns': 'Strumming Patterns',
@@ -529,7 +529,7 @@ export default function ResultsPage() {
             )}
 
             {/* Song Identification */}
-            {ratings.song_identification && (
+            {/* {ratings.song_identification && (
               <div className={`p-6 rounded-lg border ${getFeedbackColor(ratings.song_identification.feedback)}`}>
                 <div className="text-center mb-4">
                   <h3 className="text-xl font-semibold text-green-600 mb-1">Song Identification</h3>
@@ -541,7 +541,7 @@ export default function ResultsPage() {
                   {ratings.song_identification.suggestion}
                 </p>
               </div>
-            )}
+            )} */}
 
             {/* Timestamp Improvements */}
             {ratings.timestamp_improvements && (
