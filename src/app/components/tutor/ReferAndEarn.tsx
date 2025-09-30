@@ -10,10 +10,10 @@ const ReferAndEarn = () => {
   return (
     <div className='refer-and-earn-box text-center'>
         <div className='img-box'>
-            <Image className='object-contain w-full' src={ReferImg} alt="" />
+            <Image className='object-contain w-full h-full' src={ReferImg} alt="" />
         </div>
         <div className='text-bottom-box'>
-            <div className='blue-box'>
+            <div className='blue-box py-8'>
                 <h2 className='mb-2'>Refer and Earn</h2>
                 <p>Invite friends and earn exclusive rewards for every successful referral!</p>
                 <Link href="/tutor/refer-earn" className='btn btn-orange w-100 d-flex align-items-center gap-2 justify-content-center text-center'>

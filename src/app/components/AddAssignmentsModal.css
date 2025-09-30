@@ -1,0 +1,147 @@
+.w-800 {
+	.modal-content {
+		border-radius: 16px;
+	}
+	.modal-dialog {
+		max-width: 800px;
+	}
+}
+.modal-common-sec {
+	.modal-header {
+		border: none;
+		position: absolute;
+		right: 10px;
+		top: 6px;
+		button {
+			&.btn-close {
+				background: transparent;
+                padding: 0;
+			}
+		}
+	}
+	.modal-dialog {
+		.modal-content {
+			padding: 40px 100px;
+            @media only screen and (max-width:767px){
+                padding: 40px  20px 20px;
+            }
+            @media only screen and (min-width: 767px){
+             margin: 15px;
+            }
+		}
+		.modal-body {
+			padding: 0;
+			margin: 0;
+		}
+		.head-modal {
+			margin-bottom: 40px;
+			h2 {
+				font-size: 24px;
+				color: var(--dark-blue);
+				margin-bottom: 16px;
+                @media only screen and (max-width:767px){
+                    font-size: 18px;
+                }
+			}
+			p {
+				margin: 0;
+                @media only screen and (max-width:767px){
+                    line-height: 20px;
+                }
+			}
+		}
+		.form-box-modal {
+			label {
+				font-weight: 500;
+				font-size: 16px;
+				line-height: 24px;
+				letter-spacing: 0px;
+				margin-bottom: 8px;
+				color: #121417;
+                @media only screen and (max-width:767px){
+                    font-size: 14px;
+                    line-height: 20px;
+                }
+			}
+		}
+		.modal-footer {
+			border: 0;
+			padding: 0;
+			margin: 20px 0 0;
+		}
+	}
+}
+.upload-box {
+	margin-bottom: 15px;
+	label {
+		&.upload-label {
+			width: 100%;
+			border: 1px solid #1E88E5;
+			border-style: dashed;
+			padding: 25px 25px;
+			text-align: center;
+			border-radius: 6px;
+			p {
+				margin: 0;
+				font-weight: 400;
+				font-size: 12px;
+				line-height: 19px;
+				letter-spacing: 0px;
+			}
+			.icon {
+				display: block;
+				margin-bottom: 8px;
+			}
+			strong {
+				color: #1E88E5;
+			}
+		}
+	}
+}
+.modal-common-sec .modal-dialog .form-box-modal input, .modal-common-sec .modal-dialog .form-box-modal select, .modal-common-sec .modal-dialog .form-box-modal textarea {
+	padding: 12px 20px;
+	font-weight: 400;
+	font-size: 16px;
+	line-height: 24px;
+	letter-spacing: 0px;
+	color: #6B7582;
+    @media only screen and (max-width:767px){ 
+        font-size: 14px;
+        line-height: 20px;
+    }
+}
+.checkbox-btn {
+	position: relative;
+	input {
+		position: absolute;
+		left: 0;
+		width: 100%;
+		border-radius: 0 !important;
+		top: 0;
+		margin: 0 !important;
+		opacity: 0;
+		height: 100%;
+		cursor: pointer;
+		&:checked {
+			& ~ label {
+				&.form-check-label {
+					background: var(--dark-blue);
+					color: var(--white);
+				}
+			}
+		}
+	}
+	label {
+		&.form-check-label {
+			border: 1px solid #DEE0E3;
+			padding: 8px 25px;
+			margin: 0 !important;
+			border-radius: 4px;
+			font-weight: 400 !important;
+		}
+	}
+	.form-check {
+		margin: 0;
+		padding: 0;
+	}
+}

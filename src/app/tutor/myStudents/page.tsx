@@ -1,9 +1,11 @@
-"use client"
+"use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MdDelete } from "react-icons/md";
 import { ChevronLeft } from "lucide-react";
+import AddNewStudentModal from "../../components/AddNewStudentModal"
+import { Button, Dropdown, Form } from 'react-bootstrap'
 
 interface Course {
   _id: string;
@@ -58,54 +60,66 @@ export default function MyStudents() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [deletingStudents, setDeletingStudents] = useState<Set<string>>(new Set());
-  const [loadingAssignments, setLoadingAssignments] = useState<Set<string>>(new Set());
+  const [deletingStudents, setDeletingStudents] = useState<Set<string>>(
+    new Set()
+  );
+  const [loadingAssignments, setLoadingAssignments] = useState<Set<string>>(
+    new Set()
+  );
 
   const calculatePerformanceAverage = (student: Student): number => {
     if (!student.courses || student.courses.length === 0) return 0;
-    
+
     const studentScores: number[] = [];
-    
-    student.courses.forEach(course => {
+
+    student.courses.forEach((course) => {
       if (course.performanceScores && course.performanceScores.length > 0) {
         // Find the student's score in this course
         const studentScore = course.performanceScores.find(
-          score => score.userId._id === student._id
+          (score) => score.userId._id === student._id
         );
-        
+
         if (studentScore) {
           studentScores.push(studentScore.score);
         }
       }
     });
-    
+
     if (studentScores.length === 0) return 0;
-    
-    const average = studentScores.reduce((sum, score) => sum + score, 0) / studentScores.length;
+
+    const average =
+      studentScores.reduce((sum, score) => sum + score, 0) /
+      studentScores.length;
     return Math.round(average * 100) / 100; // Round to 2 decimal places
   };
 
   const calculateCourseQualityAverage = (student: Student): number => {
     if (!student.courses || student.courses.length === 0) return 0;
-    
-    const validCourses = student.courses.filter(course => 
-      course.courseQuality && course.courseQuality > 0
+
+    const validCourses = student.courses.filter(
+      (course) => course.courseQuality && course.courseQuality > 0
     );
-    
+
     if (validCourses.length === 0) return 0;
-    
-    const average = validCourses.reduce((sum, course) => sum + course.courseQuality, 0) / validCourses.length;
+
+    const average =
+      validCourses.reduce((sum, course) => sum + course.courseQuality, 0) /
+      validCourses.length;
     return Math.round(average * 100) / 100; // Round to 2 decimal places
   };
 
-  const fetchAssignmentDetails = async (assignmentIds: string[]): Promise<{ pending: number }> => {
+  const fetchAssignmentDetails = async (
+    assignmentIds: string[]
+  ): Promise<{ pending: number }> => {
     if (!assignmentIds || assignmentIds.length === 0) {
       return { pending: 0 };
     }
 
     try {
       const assignmentPromises = assignmentIds.map(async (assignmentId) => {
-        const response = await fetch(`/Api/assignment/singleAssignment?assignmentId=${assignmentId}`);
+        const response = await fetch(
+          `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`
+        );
         if (!response.ok) {
           console.error(`Failed to fetch assignment ${assignmentId}`);
           return null;
@@ -115,13 +129,17 @@ export default function MyStudents() {
       });
 
       const assignments = await Promise.all(assignmentPromises);
-      const validAssignments = assignments.filter(Boolean) as AssignmentDetail[];
+      const validAssignments = assignments.filter(
+        Boolean
+      ) as AssignmentDetail[];
 
-      const pending = validAssignments.filter(assignment => !assignment.status).length;
+      const pending = validAssignments.filter(
+        (assignment) => !assignment.status
+      ).length;
 
       return { pending };
     } catch (error) {
-      console.error('Error fetching assignment details:', error);
+      console.error("Error fetching assignment details:", error);
       return { pending: 0 };
     }
   };
@@ -130,26 +148,28 @@ export default function MyStudents() {
     try {
       setLoading(true);
       const response = await fetch("/Api/myStudents");
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch students");
       }
-      
+
       const data = await response.json();
       console.log("API Response:", data);
-      
+
       if (data && data.filteredUsers) {
         const studentsWithDetails = await Promise.all(
           data.filteredUsers.map(async (student: Student) => {
-            setLoadingAssignments(prev => new Set(prev).add(student._id));
-            
-            const assignmentCounts = await fetchAssignmentDetails(student.assignment || []);
-            
+            setLoadingAssignments((prev) => new Set(prev).add(student._id));
+
+            const assignmentCounts = await fetchAssignmentDetails(
+              student.assignment || []
+            );
+
             // Calculate averages
             const performanceAverage = calculatePerformanceAverage(student);
             const courseQualityAverage = calculateCourseQualityAverage(student);
-            
-            setLoadingAssignments(prev => {
+
+            setLoadingAssignments((prev) => {
               const newSet = new Set(prev);
               newSet.delete(student._id);
               return newSet;
@@ -159,46 +179,54 @@ export default function MyStudents() {
               ...student,
               pendingAssignments: assignmentCounts.pending,
               performanceAverage,
-              courseQualityAverage
+              courseQualityAverage,
             };
           })
         );
-        
+
         setStudents(studentsWithDetails);
       } else {
         console.error("filteredUsers not found in API response:", data);
         setError("Invalid response format from server");
       }
-      
+
       setLoading(false);
     } catch (err) {
       console.error("Error fetching students:", err);
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
       setLoading(false);
     }
   };
 
   const handleDeleteStudent = async (studentId: string) => {
-    if (!confirm("Are you sure you want to delete this student? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this student? This action cannot be undone."
+      )
+    ) {
       return;
     }
 
     try {
-      setDeletingStudents(prev => new Set(prev).add(studentId));
-      
+      setDeletingStudents((prev) => new Set(prev).add(studentId));
+
       const response = await fetch(`/Api/myStudents?studentId=${studentId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
-      
+
       if (!response.ok) {
         throw new Error("Failed to delete student");
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         // Remove the student from the local state
-        setStudents(prev => prev.filter(student => student._id !== studentId));
+        setStudents((prev) =>
+          prev.filter((student) => student._id !== studentId)
+        );
         alert(data.message || "Student removed successfully");
       } else {
         throw new Error(data.message || "Failed to delete student");
@@ -207,7 +235,7 @@ export default function MyStudents() {
       console.error("Error deleting student:", err);
       alert(err instanceof Error ? err.message : "Failed to delete student");
     } finally {
-      setDeletingStudents(prev => {
+      setDeletingStudents((prev) => {
         const newSet = new Set(prev);
         newSet.delete(studentId);
         return newSet;
@@ -225,10 +253,15 @@ export default function MyStudents() {
       <div className="bg-white border-b border-gray-200 w-full">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center gap-4">
-            <Link href="/tutor" className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Link
+              href="/tutor"
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
               <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
             </Link>
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">My Students</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
+              My Students
+            </h1>
           </div>
         </div>
       </div>
@@ -237,15 +270,28 @@ export default function MyStudents() {
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
         {/* Header Section */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">My Students</h1>
-          
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">
+            My Students
+          </h1>
+
           {/* Action Buttons - Stack on mobile, inline on larger screens */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <Link href="/tutor/createStudent" className="flex-1 sm:flex-none">
-              <button className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition flex items-center justify-center hover:cursor-grab">
-                <span className="mr-2">+</span> Add Student
-              </button>
-            </Link>
+          <div className="flex justify-between items-center"> 
+            <div className='right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap'>
+              <Button type='button' className='btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2' data-bs-toggle="modal" data-bs-target="#AddStudentModal">
+                                <span>Add Student </span>
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.9997 8.66536H8.66634V11.9987C8.66634 12.1755 8.5961 12.3451 8.47108 12.4701C8.34605 12.5951 8.17649 12.6654 7.99967 12.6654C7.82286 12.6654 7.65329 12.5951 7.52827 12.4701C7.40325 12.3451 7.33301 12.1755 7.33301 11.9987V8.66536H3.99967C3.82286 8.66536 3.65329 8.59513 3.52827 8.4701C3.40325 8.34508 3.33301 8.17551 3.33301 7.9987C3.33301 7.82189 3.40325 7.65232 3.52827 7.52729C3.65329 7.40227 3.82286 7.33203 3.99967 7.33203H7.33301V3.9987C7.33301 3.82189 7.40325 3.65232 7.52827 3.52729C7.65329 3.40227 7.82286 3.33203 7.99967 3.33203C8.17649 3.33203 8.34605 3.40227 8.47108 3.52729C8.5961 3.65232 8.66634 3.82189 8.66634 3.9987V7.33203H11.9997C12.1765 7.33203 12.3461 7.40227 12.4711 7.52729C12.5961 7.65232 12.6663 7.82189 12.6663 7.9987C12.6663 8.17551 12.5961 8.34508 12.4711 8.4701C12.3461 8.59513 12.1765 8.66536 11.9997 8.66536Z" fill="white"/></svg>
+                            </Button>
+                            <div className='search-box'>
+                                    <Form.Group className="position-relative mb-0">
+                                        <Form.Label className='d-none'>search</Form.Label>
+                                        <Form.Control type="text" placeholder="Search here" />
+                                        <Button className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute">
+                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.4995 17.5L13.8828 13.8833" stroke="#505050" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z" stroke="#505050" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                        </Button>
+                                    </Form.Group>
+                            </div>
+                            
+                        </div>
           </div>
         </div>
 
@@ -256,10 +302,22 @@ export default function MyStudents() {
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 max-w-md w-full text-center">
-              <svg className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-red-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
-              <h3 className="mt-4 text-base sm:text-lg font-medium text-red-800">Failed to Load Students</h3>
+              <h3 className="mt-4 text-base sm:text-lg font-medium text-red-800">
+                Failed to Load Students
+              </h3>
               <p className="mt-2 text-sm text-red-600">{error}</p>
               <button
                 onClick={() => {
@@ -278,17 +336,40 @@ export default function MyStudents() {
             {students.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
                 <div className="text-center">
-                  <svg className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  <svg
+                    className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
                   </svg>
-                  <h3 className="mt-4 text-base sm:text-lg font-medium text-gray-900">No Students Yet</h3>
+                  <h3 className="mt-4 text-base sm:text-lg font-medium text-gray-900">
+                    No Students Yet
+                  </h3>
                   <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-                    You haven't added any students to your list. Start by adding your first student to begin managing your classes.
+                    You haven't added any students to your list. Start by adding
+                    your first student to begin managing your classes.
                   </p>
                   <Link href="/tutor/createStudent">
                     <button className="mt-6 px-4 sm:px-6 py-2 sm:py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors inline-flex items-center text-sm sm:text-base">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      <svg
+                        className="w-4 h-4 sm:w-5 sm:h-5 mr-2"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                        />
                       </svg>
                       Add Your First Student
                     </button>
@@ -302,34 +383,61 @@ export default function MyStudents() {
                   <table className="w-full table-fixed">
                     <thead className="bg-gray-50 border-b border-gray-100">
                       <tr>
-                        <th className="w-32 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Name</th>
-                        <th className="w-40 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Email</th>
-                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Contact</th>
-                        <th className="w-24 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Location</th>
-                        <th className="w-24 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Pending</th>
-                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Perf Avg</th>
-                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">Quality Avg</th>
-                        <th className="w-24 px-3 py-3 text-center font-semibold text-gray-800 text-sm">Assign</th>
-                        <th className="w-32 px-3 py-3 text-right font-semibold text-gray-800 text-sm">Actions</th>
+                        <th className="w-32 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                          Name
+                        </th>
+                        <th className="w-40 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                          Email
+                        </th>
+                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                          Contact
+                        </th>
+                        <th className="w-24 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                          Location
+                        </th>
+                        <th className="w-24 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                          Pending
+                        </th>
+                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                          Perf Avg
+                        </th>
+                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                          Quality Avg
+                        </th>
+                        <th className="w-24 px-3 py-3 text-center font-semibold text-gray-800 text-sm">
+                          Assign
+                        </th>
+                        <th className="w-32 px-3 py-3 text-right font-semibold text-gray-800 text-sm">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {students.map((student) => (
-                        <tr 
-                          key={student._id} 
+                        <tr
+                          key={student._id}
                           className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                         >
-                          <td className="px-3 py-3 text-gray-900 font-medium text-sm truncate" title={student.username}>
+                          <td
+                            className="px-3 py-3 text-gray-900 font-medium text-sm truncate"
+                            title={student.username}
+                          >
                             {student.username}
                           </td>
-                          <td className="px-3 py-3 text-gray-600 text-sm truncate" title={student.email}>
+                          <td
+                            className="px-3 py-3 text-gray-600 text-sm truncate"
+                            title={student.email}
+                          >
                             {student.email}
                           </td>
                           <td className="px-3 py-3 text-gray-600 text-sm">
                             {student.contact}
                           </td>
-                          <td className="px-3 py-3 text-gray-600 text-sm truncate" title={student.city || 'N/A'}>
-                            {student.city || 'N/A'}
+                          <td
+                            className="px-3 py-3 text-gray-600 text-sm truncate"
+                            title={student.city || "N/A"}
+                          >
+                            {student.city || "N/A"}
                           </td>
                           <td className="px-3 py-3">
                             {loadingAssignments.has(student._id) ? (
@@ -341,37 +449,45 @@ export default function MyStudents() {
                             )}
                           </td>
                           <td className="px-3 py-3">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              student.performanceAverage && student.performanceAverage > 0
-                                ? student.performanceAverage >= 80
-                                  ? 'bg-green-100 text-green-800'
-                                  : student.performanceAverage >= 60
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {student.performanceAverage && student.performanceAverage > 0 
-                                ? `${student.performanceAverage}%` 
-                                : 'N/A'}
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                student.performanceAverage &&
+                                student.performanceAverage > 0
+                                  ? student.performanceAverage >= 80
+                                    ? "bg-green-100 text-green-800"
+                                    : student.performanceAverage >= 60
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {student.performanceAverage &&
+                              student.performanceAverage > 0
+                                ? `${student.performanceAverage}%`
+                                : "N/A"}
                             </span>
                           </td>
                           <td className="px-3 py-3">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              student.courseQualityAverage && student.courseQualityAverage > 0
-                                ? student.courseQualityAverage >= 4
-                                  ? 'bg-green-100 text-green-800'
-                                  : student.courseQualityAverage >= 3
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {student.courseQualityAverage && student.courseQualityAverage > 0 
-                                ? `${student.courseQualityAverage}` 
-                                : 'N/A'}
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                student.courseQualityAverage &&
+                                student.courseQualityAverage > 0
+                                  ? student.courseQualityAverage >= 4
+                                    ? "bg-green-100 text-green-800"
+                                    : student.courseQualityAverage >= 3
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {student.courseQualityAverage &&
+                              student.courseQualityAverage > 0
+                                ? `${student.courseQualityAverage}`
+                                : "N/A"}
                             </span>
                           </td>
                           <td className="px-3 py-3 text-center">
-                            <Link 
+                            <Link
                               href={`/tutor/addToCourseTutor?studentId=${student._id}`}
                               className="text-blue-600 hover:text-blue-800 hover:underline text-xs"
                             >
@@ -380,7 +496,7 @@ export default function MyStudents() {
                           </td>
                           <td className="px-3 py-3 text-right">
                             <div className="flex items-center justify-end space-x-2">
-                              <Link 
+                              <Link
                                 href={`/tutor/studentDetails?studentId=${student._id}`}
                                 className="text-blue-600 hover:text-blue-800 hover:underline text-xs"
                               >
@@ -391,8 +507,8 @@ export default function MyStudents() {
                                 disabled={deletingStudents.has(student._id)}
                                 className={`p-1 rounded-lg transition-colors ${
                                   deletingStudents.has(student._id)
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    : 'text-red-600 hover:bg-red-50 hover:text-red-800'
+                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    : "text-red-600 hover:bg-red-50 hover:text-red-800"
                                 }`}
                                 title="Delete Student"
                               >
@@ -413,29 +529,43 @@ export default function MyStudents() {
                 {/* Mobile Card View - Visible on small and medium screens */}
                 <div className="lg:hidden">
                   {students.map((student) => (
-                    <div 
-                      key={student._id} 
+                    <div
+                      key={student._id}
                       className="border-b border-gray-100 p-4 sm:p-6 hover:bg-gray-50 transition-colors"
                     >
                       <div className="space-y-3">
                         {/* Student Name */}
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900">{student.username}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {student.username}
+                          </h3>
                         </div>
-                        
+
                         {/* Student Details */}
                         <div className="space-y-2">
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="text-sm font-medium text-gray-500 sm:w-24">Email:</span>
-                            <span className="text-sm text-gray-700 break-all">{student.email}</span>
+                            <span className="text-sm font-medium text-gray-500 sm:w-24">
+                              Email:
+                            </span>
+                            <span className="text-sm text-gray-700 break-all">
+                              {student.email}
+                            </span>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="text-sm font-medium text-gray-500 sm:w-24">Contact:</span>
-                            <span className="text-sm text-gray-700">{student.contact}</span>
+                            <span className="text-sm font-medium text-gray-500 sm:w-24">
+                              Contact:
+                            </span>
+                            <span className="text-sm text-gray-700">
+                              {student.contact}
+                            </span>
                           </div>
                           <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="text-sm font-medium text-gray-500 sm:w-24">Location:</span>
-                            <span className="text-sm text-gray-700">{student.city || 'N/A'}</span>
+                            <span className="text-sm font-medium text-gray-500 sm:w-24">
+                              Location:
+                            </span>
+                            <span className="text-sm text-gray-700">
+                              {student.city || "N/A"}
+                            </span>
                           </div>
                         </div>
 
@@ -443,7 +573,9 @@ export default function MyStudents() {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                           {/* Pending Assignments */}
                           <div>
-                            <span className="text-sm font-medium text-gray-500 block mb-1">Pending Assignments:</span>
+                            <span className="text-sm font-medium text-gray-500 block mb-1">
+                              Pending Assignments:
+                            </span>
                             {loadingAssignments.has(student._id) ? (
                               <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
                             ) : (
@@ -455,44 +587,56 @@ export default function MyStudents() {
 
                           {/* Performance Average */}
                           <div>
-                            <span className="text-sm font-medium text-gray-500 block mb-1">Performance Avg:</span>
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              student.performanceAverage && student.performanceAverage > 0
-                                ? student.performanceAverage >= 80
-                                  ? 'bg-green-100 text-green-800'
-                                  : student.performanceAverage >= 60
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {student.performanceAverage && student.performanceAverage > 0 
-                                ? `${student.performanceAverage}%` 
-                                : 'N/A'}
+                            <span className="text-sm font-medium text-gray-500 block mb-1">
+                              Performance Avg:
+                            </span>
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                student.performanceAverage &&
+                                student.performanceAverage > 0
+                                  ? student.performanceAverage >= 80
+                                    ? "bg-green-100 text-green-800"
+                                    : student.performanceAverage >= 60
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {student.performanceAverage &&
+                              student.performanceAverage > 0
+                                ? `${student.performanceAverage}%`
+                                : "N/A"}
                             </span>
                           </div>
 
                           {/* Course Quality Average */}
                           <div>
-                            <span className="text-sm font-medium text-gray-500 block mb-1">Quality Avg:</span>
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              student.courseQualityAverage && student.courseQualityAverage > 0
-                                ? student.courseQualityAverage >= 4
-                                  ? 'bg-green-100 text-green-800'
-                                  : student.courseQualityAverage >= 3
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}>
-                              {student.courseQualityAverage && student.courseQualityAverage > 0 
-                                ? `${student.courseQualityAverage}` 
-                                : 'N/A'}
+                            <span className="text-sm font-medium text-gray-500 block mb-1">
+                              Quality Avg:
+                            </span>
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                student.courseQualityAverage &&
+                                student.courseQualityAverage > 0
+                                  ? student.courseQualityAverage >= 4
+                                    ? "bg-green-100 text-green-800"
+                                    : student.courseQualityAverage >= 3
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {student.courseQualityAverage &&
+                              student.courseQualityAverage > 0
+                                ? `${student.courseQualityAverage}`
+                                : "N/A"}
                             </span>
                           </div>
                         </div>
-                        
+
                         {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t border-gray-100">
-                          <Link 
+                          <Link
                             href={`/tutor/addToCourseTutor?studentId=${student._id}`}
                             className="flex-1"
                           >
@@ -500,7 +644,7 @@ export default function MyStudents() {
                               Assign Course
                             </button>
                           </Link>
-                          <Link 
+                          <Link
                             href={`/tutor/studentDetails?studentId=${student._id}`}
                             className="flex-1"
                           >
@@ -513,8 +657,8 @@ export default function MyStudents() {
                             disabled={deletingStudents.has(student._id)}
                             className={`px-3 py-2 text-sm rounded-md transition-colors ${
                               deletingStudents.has(student._id)
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : 'bg-red-600 text-white hover:bg-red-700'
+                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                : "bg-red-600 text-white hover:bg-red-700"
                             }`}
                             title="Delete Student"
                           >
@@ -538,6 +682,7 @@ export default function MyStudents() {
           </div>
         )}
       </div>
+      <AddNewStudentModal/>
     </div>
   );
 }
