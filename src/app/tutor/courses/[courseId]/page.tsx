@@ -744,7 +744,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                     <div key={index} className="border-l-4 border-blue-500 pl-4 py-3">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                          Session {item.sessionNo}
+                          Lesson {item.sessionNo}
                         </span>
                         <h3 className="text-lg font-semibold text-gray-800">
                           {item.topic}

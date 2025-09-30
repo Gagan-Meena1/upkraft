@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
         
         // Connect to the database
         await connect();
-        
+        L
         // Default course IDs that should be added to all tutors
         const defaultCourseIds = ['68d83ffadfe106de56ae841d', '68d8411fdfe106de56ae91cf'];
         
