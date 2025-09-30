@@ -717,7 +717,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                               className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors flex items-center text-sm"
                             >
                               <FileText className="mr-1" size={16} />
-                              Assignment
+                              Add Assignment
                             </Link>
                           </div>
                         </div>
