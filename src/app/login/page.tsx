@@ -148,7 +148,7 @@ export default function LoginPage() {
   )}
   
         {/* Email Input */}
-        <div className="mb-5">
+        <div className="mb-2">
           <label className="block mb-2 text-gray-700 text-sm font-medium">Email</label>
           <input
             className="w-full p-3 rounded-md bg-gray-50 border border-gray-200 text-gray-800 focus:ring-2 focus:ring-orange-400 focus:border-transparent transition-all"

@@ -5,6 +5,9 @@ import ClientLayout from './components/ClientLayout';
 
 import "./media.css"
 import "./custom.css"
+import "./globals.css"
+import "../../style.css"
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
