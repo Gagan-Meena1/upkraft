@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-// Create a non-SSR version of the component
+// Create a non-SSR version of the components
 const StudentFeedbackDashboardClient = dynamic(
   () => Promise.resolve(AddSessionPage),
   { ssr: false }
