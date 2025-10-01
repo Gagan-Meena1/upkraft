@@ -2,9 +2,9 @@
 import { NextResponse } from 'next/server';
 import { Song } from '@/models/Songs'; // Adjust path as needed
 import mongoose from 'mongoose';
-
+import {connect} from '@/dbConnection/dbConfic'
 // Connect to MongoDB if not already connected
-async function connectDB() {
+async function connect() {
   if (mongoose.connections[0].readyState) {
     return;
   }
@@ -20,7 +20,7 @@ async function connectDB() {
 
 export async function GET(req) {
   try {
-    await connectDB();
+    await connect();
     
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get("q") || "").trim();
