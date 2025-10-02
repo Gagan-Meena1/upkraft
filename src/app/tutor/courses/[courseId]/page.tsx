@@ -350,7 +350,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
         
         console.log(`[${classId}] recordingUrl updated in mongoDB.`);
 
-        // 4. Trigger background processing
+          // 4. Trigger background processing
         toast('Video evaluation and performance video generation have started.');
 
         // Trigger evaluation process (fire-and-forget)
