@@ -4,6 +4,7 @@ import { Card, Button } from "react-bootstrap";
 import { CircularProgressbarWithChildren, buildStyles,} 
 from "react-circular-progressbar";
 import Link from "next/link";
+import Image from "next/image"
 
 const ScoreCard = ({ title, score, text, image }) => {
   const percentage = (score / 10) * 100;
@@ -22,7 +23,7 @@ const ScoreCard = ({ title, score, text, image }) => {
             rotation: 0.75, 
           })}
         >
-          <img src={image} alt="profile" className="circle-avatar" />
+          <Image src={image} alt="profile" className="circle-avatar" />
           <div className="circle-score">
             {score}
             <span>/10</span>

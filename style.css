@@ -4,7 +4,12 @@
   background-color: var(--black);
   color: var(--white);
 }
-
+.line-clamp-2 {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+}
 :root {
   --white: #ffffff;
   --black: #000000; 

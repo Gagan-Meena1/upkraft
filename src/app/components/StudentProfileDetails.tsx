@@ -7,6 +7,7 @@ import VideoPoster from '../../assets/video-poster.png'
 import SemiCircleProgress from './tutor/SemiCircleProgress';
 import ScoreCard from '../student/ScoreCard';
 import Image from 'next/image';
+import "./MyStudentList.css"
 
 const StudentProfileDetails = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -175,8 +176,8 @@ const StudentProfileDetails = () => {
                                                 <div className="poster-wrapper position-relative">
                                                     {/* Poster Image */}
                                                     <Image src={VideoPoster} alt="Video Poster" className="img-fluid rounded shadow"/>
-                                                    {/* Play Buthrefn */}
-                                                    <Button variant="light" className="play-btn position-absolute hrefp-50 start-50 translate-middle rounded-circle p-3 shadow" onClick={() => setIsPlaying(true)} > ▶ </Button>
+                                                    {/* Play Button */}
+                                                    <Button variant="light" className="play-btn position-absolute top-50 start-50 text-black translate-middle rounded-circle p-3 shadow" onClick={() => setIsPlaying(true)} > ▶ </Button>
                                                 </div>
                                             ) : (
                                                 <video className="w-100 rounded shadow"  controls autoPlay poster={VideoPoster}>
@@ -189,7 +190,7 @@ const StudentProfileDetails = () => {
                                         
                                         <div className='right-assignment my-course-student-right mt-xxl-0 mt-3'>
                                             <div className='student-assignment my-course-student d-flex align-items-center flex-wrap gap-xl-4 gap-2'>
-                                                <ul className='d-flex align-items-center w-full-width gap-2 justify-content-center m-auhref mt-3 list-unstyled flex-wrap m-0 p-0'>
+                                                <ul className='d-flex align-items-center w-full-width gap-2 justify-content-center m-auto mt-3 list-unstyled flex-wrap m-0 p-0'>
                                                     <li>
                                                         <Link href="/view-course-detail" className='btn btn-border padding-fixed d-flex align-items-center justify-content-center gap-2'>
                                                             <span>View More</span>
@@ -209,7 +210,7 @@ const StudentProfileDetails = () => {
             <div className='col-xl-3 col-md-12'>
                 <div className='student-profile-right-box'>
                     <div className='card-box mb-4'>
-                        <div className='hrefp-progress helf-semicir-sec mb-0'>
+                        <div className='top-progress helf-semicir-sec mb-0'>
                             <SemiCircleProgress value={7.6} label="Overall Course Performance" />
                         </div>
                     </div>

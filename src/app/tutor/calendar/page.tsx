@@ -118,20 +118,26 @@ const StudentCalendarView = () => {
 
   const formatTime = (startTime, endTime) => {
     if (!startTime) return '';
-    const start = new Date(startTime).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-    const end = endTime
-      ? new Date(endTime).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        })
-      : '';
-    return end ? `${start} - ${end}` : start;
-  };
+     // Use UTC methods to get the exact stored time
+  const startDate = new Date(startTime);
+  const start = startDate.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'UTC'  // This ensures we read the UTC time correctly
+  });
+  
+  const end = endTime
+    ? new Date(endTime).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'UTC'  // This ensures we read the UTC time correctly
+      })
+    : '';
+  
+  return end ? `${start} - ${end}` : start;
+};
 
   const getInitials = (name) => {
     if (!name) return 'NA';
@@ -167,154 +173,6 @@ const StudentCalendarView = () => {
 
   return (
     <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
-      {/* Mobile Overlay */}
-      {isMobile && sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div className={`bg-white border-r border-gray-200 h-screen ${
-        isMobile 
-          ? `fixed top-0 left-0 z-50 w-64 transform transition-transform duration-300 ${
-              sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-            }`
-          : sidebarOpen ? 'w-64' : 'w-16'
-      } transition-all duration-300 flex flex-col`}>
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <div className={`font-extrabold text-l text-orange-600 ${!sidebarOpen && !isMobile && 'hidden'}`}>
-            <Link href="/tutor" className="cursor-pointer">
-              <Image 
-                src="/logo.png"
-                alt="UpKraft"
-                width={288}
-                height={72}
-                priority
-                className="object-contain w-36 h-auto" 
-              />
-            </Link>
-          </div>
-          <button 
-            onClick={toggleSidebar} 
-            className="p-1 rounded-lg hover:bg-gray-100"
-          >
-            {isMobile ? (
-              sidebarOpen ? <X size={20} /> : <Menu size={20} />
-            ) : (
-              sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />
-            )}
-          </button>
-        </div>
-        
-        {/* Navigation Links */}
-        <div className="flex flex-col h-full">
-          <nav className="flex-1 px-2 py-4">
-            <Link 
-              href="/tutor" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <Home size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Dashboard</span>}
-            </Link>
-            <Link 
-              href="/tutor/profile" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <User size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Profile</span>}
-            </Link>
-            <Link 
-              href="/tutor/calendar" 
-              className="flex items-center p-2 rounded-lg bg-orange-100 text-orange-700 mb-1 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <Calendar size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Calendar</span>}
-            </Link>
-            <Link 
-              href="/tutor/courses" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <BookOpen size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">My Courses</span>}
-            </Link>
-            <Link 
-              href="/tutor/performanceVideo" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <PlusCircle size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Performance Video</span>}
-            </Link>
-            <Link 
-              href="/tutor/myStudents" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <Users size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">My Students</span>}
-            </Link>
-            <Link 
-              href="/tutor/assignments" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <BookCheck size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Assignments</span>}
-            </Link>
-            <Link 
-              href="/visualizer.html" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <CheckCircle size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Practice Studio</span>}
-            </Link>
-            <Link 
-              href="/tutor/musicLibrary" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <BookMarkedIcon size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Music Library</span>}
-            </Link>
-            <Link 
-              href="/tutor/myArchieve" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-all"
-              onClick={() => isMobile && setSidebarOpen(false)}
-            >
-              <Clock size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">My Archives</span>}
-            </Link>
-            <button 
-              onClick={async () => {
-                try {
-                  const response = await fetch('/Api/users/logout');
-                  if (response.ok) {
-                    toast.success('Logged out successfully');
-                    router.push('/login');
-                  } else {
-                    toast.error('Failed to logout');
-                  }
-                } catch (error) {
-                  toast.error('Error during logout');
-                  console.error('Logout error:', error);
-                }
-                isMobile && setSidebarOpen(false);
-              }}
-              className="flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-            >
-              <LogOut size={20} />
-              {(sidebarOpen || isMobile) && <span className="ml-3">Logout</span>}
-            </button>
-          </nav>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="flex-1 min-h-screen">
@@ -379,107 +237,107 @@ const StudentCalendarView = () => {
             </div>
 
             {/* Calendar Grid */}
-            <div className="mt-2 border border-gray-200 rounded overflow-hidden">
-              {/* Header Row */}
-              <div
-                className="grid items-stretch bg-white border-b"
-                style={gridTemplate}
-              >
-                {/* Search Input Cell */}
-                <div className="p-3 border-r bg-white">
-                  <input
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    type="text"
-                    placeholder="Search Students"
-                    className="w-full h-[48px] px-4 rounded 
-                              border border-[#505050] 
-                              text-[14px] text-[#505050] 
-                              bg-white 
-                              font-inter font-normal
-                              focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
+   <div className="mt-2 rounded overflow-hidden">
+  {/* Header Row */}
+  <div
+    className="grid items-stretch bg-white"
+    style={gridTemplate}
+  >
+    {/* Search Input Cell */}
+    <div className="p-3 bg-white">
+      <input
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        type="text"
+        placeholder="Search Students"
+        className="w-full h-[48px] px-4 rounded 
+                  border border-[#505050] 
+                  text-[14px] text-[#505050] 
+                  bg-white 
+                  font-inter font-normal
+                  focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+      />
+    </div>
 
-                {/* Week Day Headers */}
-                {weekDays.map((day, idx) => (
-                  <div key={idx} className="p-3 text-center bg-[#F5F5F5] border-r last:border-r-0">
-                    <div className="text-[16px] font-inter font-medium text-[#212121]">
-                      {day.toLocaleDateString('en-US', { day: '2-digit', weekday: 'short' })}
-                    </div>
-                  </div>
-                ))}
+    {/* Week Day Headers */}
+    {weekDays.map((day, idx) => (
+      <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
+        <div className="text-[16px] font-inter font-medium text-[#212121]">
+          {day.toLocaleDateString('en-US', { day: '2-digit', weekday: 'short' })}
+        </div>
+      </div>
+    ))}
+  </div>
+
+  {/* Calendar Body */}
+  <div className="max-h-[70vh] overflow-auto">
+    {filteredStudents.length === 0 ? (
+      <div className="p-8 text-center">
+        <div className="text-[16px] text-[#9B9B9B] mb-2">No students to display</div>
+        <div className="text-[14px] text-[#C4C4C4]">
+          {searchTerm ? 'Try adjusting your search terms' : 'No students found in the system'}
+        </div>
+      </div>
+    ) : (
+      filteredStudents.map((student) => (
+        <div 
+          key={student._id} 
+          className="grid items-center hover:bg-gray-50 transition-colors" 
+          style={gridTemplate}
+        >
+          {/* Student Info Cell */}
+          <div className="p-3 flex items-center gap-3 min-h-[88px] border-r border-gray-200">
+            {student.profileImage ? (
+              <img 
+                src={student.profileImage} 
+                alt={student.username} 
+                className="w-10 h-10 rounded-full object-cover" 
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-medium text-orange-600">
+                {getInitials(student.username)}
               </div>
+            )}
+            <div>
+              <div className="text-[14px] text-[#212121] font-medium">
+                {student.username}
+              </div>
+            </div>
+          </div>
 
-              {/* Calendar Body */}
-              <div className="max-h-[70vh] overflow-auto">
-                {filteredStudents.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="text-[16px] text-[#9B9B9B] mb-2">No students to display</div>
-                    <div className="text-[14px] text-[#C4C4C4]">
-                      {searchTerm ? 'Try adjusting your search terms' : 'No students found in the system'}
-                    </div>
+          {/* Daily Schedule Cells */}
+          {weekDays.map((day, idx) => {
+            const classes = getClassesForDate(student._id, day);
+            return (
+              <div key={idx} className="p-3 min-h-[88px]">
+                {classes.length === 0 ? (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-[12px] text-[#E0E0E0]">No classes</div>
                   </div>
                 ) : (
-                  filteredStudents.map((student) => (
-                    <div 
-                      key={student._id} 
-                      className="grid items-center border-b last:border-b-0 hover:bg-gray-50 transition-colors" 
-                      style={gridTemplate}
+                  classes.map((classItem, cIdx) => (
+                    <div
+                      key={classItem._id || cIdx}
+                      className="mb-2 last:mb-0 p-2 bg-orange-50 border-l-4 border-orange-400 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      title={`${classItem.title || 'Class'} - ${formatTime(classItem.startTime, classItem.endTime)}`}
                     >
-                      {/* Student Info Cell */}
-                      <div className="p-3 flex items-center gap-3 border-r min-h-[88px]">
-                        {student.profileImage ? (
-                          <img 
-                            src={student.profileImage} 
-                            alt={student.username} 
-                            className="w-10 h-10 rounded-full object-cover" 
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-medium text-orange-600">
-                            {getInitials(student.username)}
-                          </div>
-                        )}
-                        <div>
-                          <div className="text-[14px] text-[#212121] font-medium">
-                            {student.username}
-                          </div>
-                        </div>
+                      <div className="font-medium text-[13px] truncate">
+                        {classItem.title || 'Class'}
                       </div>
-
-                      {/* Daily Schedule Cells */}
-                      {weekDays.map((day, idx) => {
-                        const classes = getClassesForDate(student._id, day);
-                        return (
-                          <div key={idx} className="p-3 border-r last:border-r-0 min-h-[88px]">
-                            {classes.length === 0 ? (
-                              <div className="h-full flex items-center justify-center">
-                                <div className="text-[12px] text-[#E0E0E0]">No classes</div>
-                              </div>
-                            ) : (
-                              classes.map((classItem, cIdx) => (
-                                <div
-                                  key={classItem._id || cIdx}
-                                  className="mb-2 last:mb-0 p-2 bg-orange-50 border-l-4 border-orange-400 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                                  title={`${classItem.title || 'Class'} - ${formatTime(classItem.startTime, classItem.endTime)}`}
-                                >
-                                  <div className="font-medium text-[13px] truncate">
-                                    {classItem.title || 'Class'}
-                                  </div>
-                                  <div className="text-[11px] text-gray-600 truncate">
-                                    {formatTime(classItem.startTime, classItem.endTime)}
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        );
-                      })}
+                      <div className="text-[11px] text-gray-600 truncate">
+                        {formatTime(classItem.startTime, classItem.endTime)}
+                      </div>
                     </div>
                   ))
                 )}
               </div>
-            </div>
+            );
+          })}
+        </div>
+      ))
+    )}
+  </div>
+</div>
           </div>
         </main>
       </div>

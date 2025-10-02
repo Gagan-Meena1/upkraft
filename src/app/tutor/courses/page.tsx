@@ -177,7 +177,7 @@ export default function TutorCoursesPage() {
               <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">My Courses</h1>
             </div>
             <Link href="/tutor/create-course" className="w-full sm:w-auto">
-              <button className="w-full sm:w-auto bg-orange-500 text-white px-4 sm:px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors text-sm sm:text-base">
+              <button className="w-full sm:w-auto bg-blue-600 text-white px-4 sm:px-6 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors text-sm sm:text-base">
                 <Book size={18} className="sm:size-5" /> 
                 <span className="hidden xs:inline">Create New Course</span>
                 <span className="xs:hidden">Create Course</span>
@@ -271,7 +271,7 @@ export default function TutorCoursesPage() {
 
                   {/* Bottom Row - View Details */}
                   <Link href={`/tutor/courses/${course._id}`} className="block">
-                    <button className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
+                    <button className="w-full bg-blue-600 hover:bg-blue-600 text-white px-4 py-2 rounded-md font-medium transition-colors flex items-center justify-center gap-2">
                       <Eye size={16} className="sm:size-[18px]" />
                       <span>View Details</span>
                     </button>

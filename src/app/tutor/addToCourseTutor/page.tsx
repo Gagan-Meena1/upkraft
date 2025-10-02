@@ -22,9 +22,7 @@ export default function TutorCoursesPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [studentId, setStudentId] = useState<string>("");
   const [tutorId, setTutorId] = useState<string>("");
-
-  
-
+  const [expandedCourses, setExpandedCourses] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -141,6 +139,14 @@ export default function TutorCoursesPage() {
     
   };
 
+  // Handler to toggle expanded state for a course
+const toggleExpanded = (courseId: string) => {
+  setExpandedCourses(prev => ({
+    ...prev,
+    [courseId]: !prev[courseId]
+  }));
+};
+
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
       {/* Navigation - keep as is */}
@@ -213,10 +219,7 @@ export default function TutorCoursesPage() {
                 {/* Changed from grid to single column layout */}
                 <div className="space-y-4">
                   {filteredCourses.map((course) => (
-                    <div 
-                      key={course._id} 
-                      className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200"
-                    >
+                    <div key={course._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
                       <div className="flex items-center justify-between">
                         {/* Left side - Course info */}
                         <div className="flex-1">
@@ -231,7 +234,17 @@ export default function TutorCoursesPage() {
                               </span>
                             </div>
                           </div>
-                          <p className="text-gray-600 text-sm mb-3">{course.description || 'No description available'}</p>
+                          <p className={`text-gray-600 text-sm mb-3 ${!expandedCourses[course._id] ? "line-clamp-1" : ""}`}>
+                            {course.description || 'No description available'}
+                          </p>
+                          {course.description && course.description.length > 60 && (
+                            <button
+                              className="text-blue-600 text-xs underline cursor-pointer"
+                              onClick={() => toggleExpanded(course._id)}
+                            >
+                              {!expandedCourses[course._id] ? "Show more..." : "Show less"}
+                            </button>
+                          )}
                           <div className="flex items-center gap-4 text-sm text-gray-500">
                             <span>Fees: Rs 3000</span>
                             <span>Sessions: 2 Sessions</span>
@@ -241,16 +254,7 @@ export default function TutorCoursesPage() {
 
                         {/* Right side - Actions */}
                         <div className="flex items-center gap-3 ml-6">
-                          <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                            </svg>
-                          </button>
-                          <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                            </svg>
-                          </button>
+                        
                           <button 
                             className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-700 transition-colors flex items-center gap-2"
                             onClick={() => handleAddStudentToCourse(course._id)}

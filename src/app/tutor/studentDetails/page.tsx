@@ -189,8 +189,8 @@ export default function StudentDetails() {
   );
 
   return (
-    <div>
-      <StudentProfileDetails/>
+    <div className="student-profile-details-sec">
+      <StudentProfileDetails />
     </div>
   );
 }
