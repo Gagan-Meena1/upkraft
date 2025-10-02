@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Clock, User, FileText, Eye, Edit, Trash2, Plus, Filter, ChevronLeft, Search, Music } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import CreateAssignmentModal from '@/app/components/CreateAssignmentModal';
 
 interface Student {
   userId: string;
@@ -47,27 +48,41 @@ interface ApiResponse {
   };
 }
 
+interface Course {
+  _id: string;
+  title: string;
+  category?: string;
+}
+
+interface Class {
+  _id: string;
+  title: string;
+  startTime?: string;
+  endTime?: string;
+}
+
 export default function TutorAssignments() {
   const router = useRouter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState('Monthly');
-  const [tutorInfo, setTutorInfo] = useState<{username: string; totalAssignments: number} | null>(null);
+  const [tutorInfo, setTutorInfo] = useState<{ username: string; totalAssignments: number } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
         const response = await fetch('/Api/assignment');
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch assignments');
         }
 
         const data: ApiResponse = await response.json();
-        
+
         if (data.success) {
           setAssignments(data.data.assignments);
           setTutorInfo({
@@ -96,12 +111,25 @@ export default function TutorAssignments() {
     }).format(date);
   };
 
+  const [coursesData, setCoursesData] = useState<Course[]>([]);
+  const [classesData, setClassesData] = useState<Class[]>([]);
+
+  useEffect(() => {
+    fetch('/api/courses')
+      .then(res => res.json())
+      .then(data => setCoursesData(data));
+
+    fetch('/api/classes')
+      .then(res => res.json())
+      .then(data => setClassesData(data));
+  }, []);
+
   const formatDeadline = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) {
       return 'Overdue';
     } else if (diffDays === 0) {
@@ -124,7 +152,7 @@ export default function TutorAssignments() {
     const now = new Date();
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return 'text-red-600 bg-red-50';
     if (diffDays <= 2) return 'text-orange-600 bg-orange-50';
     return 'text-green-600 bg-green-50';
@@ -145,26 +173,42 @@ export default function TutorAssignments() {
   };
 
   const handleCreateAssignment = () => {
-    router.push('/tutor/assignments/create');
+    setIsModalOpen(true); // open modal instead of redirect
   };
 
   const filteredAssignments = assignments.filter(assignment =>
     assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    assignment.assignedStudents.some(student => 
+    assignment.assignedStudents.some(student =>
       student.username.toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
 
   if (isLoading) {
     return (
-      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-200 border-t-purple-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading assignments...</p>
+      <div className="p-6 bg-gray-50 min-h-screen">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6">Assignments</h1>
+          <div className="grid gap-4">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="p-6 bg-white rounded-xl shadow-sm border border-gray-200 animate-pulse"
+              >
+                <div className="h-5 w-1/3 bg-gray-200 rounded mb-4"></div>
+                <div className="flex gap-4">
+                  <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                  <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                  <div className="h-4 w-28 bg-gray-200 rounded"></div>
+                </div>
+                <div className="h-4 w-full bg-gray-200 rounded mt-4"></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
+
 
   if (error) {
     return (
@@ -173,8 +217,8 @@ export default function TutorAssignments() {
           <FileText size={48} className="text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Assignments</h2>
           <p className="text-red-600">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Retry
@@ -198,7 +242,7 @@ export default function TutorAssignments() {
                 </p>
               )}
             </div>
-            
+
             <div className="flex flex-wrap gap-3">
               {/* Search Bar */}
               <div className="relative flex-1 sm:flex-initial">
@@ -208,15 +252,15 @@ export default function TutorAssignments() {
                   placeholder="Search assignments..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full sm:w-64 pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                  className="w-full sm:w-64 pl-10 text-gray-700 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
                 />
               </div>
-              
+
               {/* Filter Dropdown */}
-              <select 
+              <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white"
+                className="px-4 py-2.5 border text-gray-700 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white"
               >
                 <option value="Monthly">Monthly</option>
                 <option value="Weekly">Weekly</option>
@@ -224,7 +268,7 @@ export default function TutorAssignments() {
               </select>
 
               {/* Create Assignment Button */}
-              <button 
+              <button
                 onClick={handleCreateAssignment}
                 className="px-4 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-sm hover:shadow-md"
               >
@@ -244,12 +288,12 @@ export default function TutorAssignments() {
                 {searchTerm ? 'No Matching Assignments' : 'No Assignments Yet'}
               </h2>
               <p className="text-gray-600 mb-6">
-                {searchTerm 
-                  ? 'Try adjusting your search terms' 
+                {searchTerm
+                  ? 'Try adjusting your search terms'
                   : 'Create your first assignment to get started'}
               </p>
               {!searchTerm && (
-                <button 
+                <button
                   onClick={handleCreateAssignment}
                   className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 mx-auto"
                 >
@@ -261,8 +305,8 @@ export default function TutorAssignments() {
           ) : (
             <div className="divide-y divide-gray-100">
               {filteredAssignments.map((assignment) => (
-                <div 
-                  key={assignment._id} 
+                <div
+                  key={assignment._id}
                   className="p-6 hover:bg-gray-50 transition-colors"
                 >
                   {/* Assignment Title */}
@@ -270,26 +314,26 @@ export default function TutorAssignments() {
                     <h3 className="text-lg font-semibold text-gray-900 flex-1">
                       {assignment.title}
                     </h3>
-                    
+
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2 ml-4">
-                      <button 
+                      <button
                         onClick={() => handleEdit(assignment._id)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Edit"
                       >
                         <Edit size={18} />
                       </button>
-                      
-                      <button 
+
+                      <button
                         onClick={() => handleDelete(assignment._id)}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Delete"
                       >
                         <Trash2 size={18} />
                       </button>
-                      
-                      <button 
+
+                      <button
                         onClick={() => handleViewDetail(assignment._id)}
                         className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
                       >
@@ -298,7 +342,7 @@ export default function TutorAssignments() {
                       </button>
                     </div>
                   </div>
-                  
+
                   {/* Assignment Details Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                     {/* Students */}
@@ -327,7 +371,7 @@ export default function TutorAssignments() {
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Created Date */}
                     <div className="flex items-center gap-2">
                       <Calendar size={16} className="text-gray-400 flex-shrink-0" />
@@ -338,7 +382,7 @@ export default function TutorAssignments() {
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Deadline */}
                     <div className="flex items-center gap-2">
                       <Clock size={16} className="text-gray-400 flex-shrink-0" />
@@ -349,7 +393,7 @@ export default function TutorAssignments() {
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Course */}
                     <div className="flex items-center gap-2">
                       <Music size={16} className="text-gray-400 flex-shrink-0" />
@@ -360,23 +404,21 @@ export default function TutorAssignments() {
                         </span>
                       </div>
                     </div>
-                    
+
                     {/* Status */}
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        assignment.status ? 'bg-green-500' : 'bg-amber-500'
-                      }`}></div>
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${assignment.status ? 'bg-green-500' : 'bg-amber-500'
+                        }`}></div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600 whitespace-nowrap">Status:</span>
-                        <span className={`text-sm font-semibold ${
-                          assignment.status ? 'text-green-600' : 'text-amber-600'
-                        }`}>
+                        <span className={`text-sm font-semibold ${assignment.status ? 'text-green-600' : 'text-amber-600'
+                          }`}>
                           {assignment.status ? 'Completed' : 'Pending'}
                         </span>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Description Preview */}
                   {assignment.description && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
@@ -391,6 +433,16 @@ export default function TutorAssignments() {
           )}
         </div>
       </div>
+
+      {/* Create Assignment Modal */}
+      {isModalOpen && (
+        <CreateAssignmentModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          courses={coursesData}    // <-- pass actual courses array here
+          classes={classesData}    // <-- pass actual classes array here
+        />
+      )}
     </div>
   );
 }

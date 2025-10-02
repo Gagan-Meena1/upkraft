@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronRight,
   Bell,
+  Archive,
 } from "lucide-react";
 
 const Sidebar2 = () => {
@@ -47,11 +48,16 @@ const Sidebar2 = () => {
       href: "/tutor/assignments",
     },
     { id: "music-library", label: "Music Library", icon: Music, href: "/tutor/music-library" },
+    {
+      id: "myArchieve",
+      label: "My Archive",
+      icon: Archive, // still using the Archive icon
+      href: "/tutor/myArchieve",
+    },
     { id: "ai-coach", label: "AI Music Coach", icon: Bell, href: "/visualizer.html" },
     { id: "payment", label: "Payment Summary", icon: CreditCard, href: "/tutor/payment" },
     { id: "refer-earn", label: "Refer & Earn", icon: Gift, href: "/tutor/refer-earn" },
     { id: "settings", label: "Settings", icon: Settings, href: "/tutor/settings" },
-    { id: "uploadsongs", label: "Upload Songs", icon: Settings, href: "/tutor/uploadsongs" },
   ];
 
   const isActivePath = (href: string, id: string) => {
