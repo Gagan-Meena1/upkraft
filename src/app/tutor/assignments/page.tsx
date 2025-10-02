@@ -114,16 +114,6 @@ export default function TutorAssignments() {
   const [coursesData, setCoursesData] = useState<Course[]>([]);
   const [classesData, setClassesData] = useState<Class[]>([]);
 
-  useEffect(() => {
-    fetch('/api/courses')
-      .then(res => res.json())
-      .then(data => setCoursesData(data));
-
-    fetch('/api/classes')
-      .then(res => res.json())
-      .then(data => setClassesData(data));
-  }, []);
-
   const formatDeadline = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
