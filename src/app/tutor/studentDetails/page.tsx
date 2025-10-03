@@ -190,7 +190,7 @@ export default function StudentDetails() {
 
   return (
     <div className="student-profile-details-sec">
-      <StudentProfileDetails />
+      <StudentProfileDetails data={studentData} />
     </div>
   );
 }

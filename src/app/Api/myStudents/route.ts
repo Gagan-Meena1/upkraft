@@ -8,12 +8,10 @@ await connect();
 
 export async function GET(request: NextRequest) {
   try {
-    // Get tutor ID from token first
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     let tutorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
     
-    // Override with query param if provided
     const url = new URL(request.url);
     const tutorIdParam = url.searchParams.get('tutorId');
     if (tutorIdParam) {
@@ -31,7 +29,6 @@ export async function GET(request: NextRequest) {
       }, { status: 401 });
     }
     
-    // If email is provided, check for existing student
     if (email) {
       const user = await User.findOne({
         email: { $regex: `^${email}$`, $options: 'i' },
@@ -72,11 +69,9 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    // Get tutor's courses
     const tutorCourses = await courseName.find({ instructorId: tutorId });
     const courseIds = tutorCourses.map(course => course._id);
     
-    // Get students with populated course data
     const users = await User.find({
       category: "Student",
       $or: [
@@ -141,7 +136,6 @@ export async function DELETE(request: NextRequest) {
     // Connect to database
      await connect();
 
-    // Get the studentId from the URL search params
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
 

@@ -463,7 +463,7 @@ export default function MyStudents() {
                             >
                               {student.performanceAverage &&
                               student.performanceAverage > 0
-                                ? `${student.performanceAverage}%`
+                                ? `${student.performanceAverage}`
                                 : "N/A"}
                             </span>
                           </td>
@@ -604,7 +604,7 @@ export default function MyStudents() {
                             >
                               {student.performanceAverage &&
                               student.performanceAverage > 0
-                                ? `${student.performanceAverage}%`
+                                ? `${student.performanceAverage}`
                                 : "N/A"}
                             </span>
                           </div>
