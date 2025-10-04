@@ -59,7 +59,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="tutor/mystudents"
+                      href="/tutor/myStudents"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-students") ? "active" : ""
                       }`}
@@ -83,7 +83,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="tutor/courses"
+                      href="/tutor/courses"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-courses") ? "active" : ""
                       }`}
@@ -107,7 +107,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="tutor/calendar"
+                      href="/tutor/calendar"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/calendar") ? "active" : ""
                       }`}
@@ -142,7 +142,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="tutor/assignments"
+                      href="/tutor/assignments"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/assignment") ? "active" : ""
                       }`}
@@ -170,7 +170,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="tutor/musicLibrary"
+                      href="/tutor/musicLibrary"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/music-library") ? "active" : ""
                       }`}
@@ -379,7 +379,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-tuhrefr"
+                      href="/my-tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-tuhrefr") ? "active" : ""
                       }`}
@@ -398,7 +398,7 @@ const SideMenuHeader = ({ role }) => {
                           />
                         </svg>
                       </span>
-                      <span>My Tuhrefr</span>
+                      <span>My Tutor</span>
                     </Link>
                   </li>
                   <li>
@@ -688,9 +688,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-tuhrefr"
+                      href="/my-tutor"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/my-tuhrefr") ? "active" : ""
+                        isActive("/my-tutor") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -707,7 +707,7 @@ const SideMenuHeader = ({ role }) => {
                           />
                         </svg>
                       </span>
-                      <span>Tuhrefr</span>
+                      <span>Tutor</span>
                     </Link>
                   </li>
                   <li>

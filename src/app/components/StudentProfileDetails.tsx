@@ -9,25 +9,24 @@ import ScoreCard from "../student/ScoreCard";
 import Image from "next/image";
 import "./MyStudentList.css";
 
-
 const StudentProfileDetails = ({ data }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   console.log(data);
 
-  const courses = data.courses
+  const courses = data.courses;
 
-// Sum of first (or average) score per course
-const totalScore = courses.reduce((acc, course) => {
-  if (course.performanceScores.length > 0) {
-    // if multiple scores exist, you could avg them per course
-    const sum = course.performanceScores.reduce((s, ps) => s + ps.score, 0)
-    const avg = sum / course.performanceScores.length
-    return acc + avg
-  }
-  return acc
-}, 0)
+  // Sum of first (or average) score per course
+  const totalScore = courses.reduce((acc, course) => {
+    if (course.performanceScores.length > 0) {
+      // if multiple scores exist, you could avg them per course
+      const sum = course.performanceScores.reduce((s, ps) => s + ps.score, 0);
+      const avg = sum / course.performanceScores.length;
+      return acc + avg;
+    }
+    return acc;
+  }, 0);
 
-const classQualityScore = (totalScore / courses.length).toFixed(2)
+  const classQualityScore = (totalScore / courses.length).toFixed(2);
   return (
     <div className="student-profile-details-sec">
       <div className="row">
@@ -160,7 +159,7 @@ const classQualityScore = (totalScore / courses.length).toFixed(2)
                               <ul className="d-flex align-items-center w-full-width gap-2 list-unstyled flex-wrap m-0 p-0">
                                 <li>
                                   <Link
-                                    href="/overall-performance"
+                                    href={`/tutor/viewPerformance?courseId=${course._id}&studentId=${data.studentId}`}
                                     className="btn btn-primary d-flex align-items-center justify-content-center gap-2"
                                   >
                                     <span>View Performance</span>

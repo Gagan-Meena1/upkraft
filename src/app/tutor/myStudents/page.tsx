@@ -4,8 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { MdDelete } from "react-icons/md";
 import { ChevronLeft } from "lucide-react";
-import AddNewStudentModal from "../../components/AddNewStudentModal"
-import { Button, Dropdown, Form } from 'react-bootstrap'
+import AddNewStudentModal from "../../components/AddNewStudentModal";
+import { Button, Dropdown, Form } from "react-bootstrap";
 
 interface Course {
   _id: string;
@@ -275,23 +275,57 @@ export default function MyStudents() {
           </h1>
 
           {/* Action Buttons - Stack on mobile, inline on larger screens */}
-          <div className="flex justify-between items-center"> 
-            <div className='right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap'>
-              <Button type='button' className='btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2' data-bs-toggle="modal" data-bs-target="#AddStudentModal">
-                                <span>Add Student </span>
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.9997 8.66536H8.66634V11.9987C8.66634 12.1755 8.5961 12.3451 8.47108 12.4701C8.34605 12.5951 8.17649 12.6654 7.99967 12.6654C7.82286 12.6654 7.65329 12.5951 7.52827 12.4701C7.40325 12.3451 7.33301 12.1755 7.33301 11.9987V8.66536H3.99967C3.82286 8.66536 3.65329 8.59513 3.52827 8.4701C3.40325 8.34508 3.33301 8.17551 3.33301 7.9987C3.33301 7.82189 3.40325 7.65232 3.52827 7.52729C3.65329 7.40227 3.82286 7.33203 3.99967 7.33203H7.33301V3.9987C7.33301 3.82189 7.40325 3.65232 7.52827 3.52729C7.65329 3.40227 7.82286 3.33203 7.99967 3.33203C8.17649 3.33203 8.34605 3.40227 8.47108 3.52729C8.5961 3.65232 8.66634 3.82189 8.66634 3.9987V7.33203H11.9997C12.1765 7.33203 12.3461 7.40227 12.4711 7.52729C12.5961 7.65232 12.6663 7.82189 12.6663 7.9987C12.6663 8.17551 12.5961 8.34508 12.4711 8.4701C12.3461 8.59513 12.1765 8.66536 11.9997 8.66536Z" fill="white"/></svg>
-                            </Button>
-                            <div className='search-box'>
-                                    <Form.Group className="position-relative mb-0">
-                                        <Form.Label className='d-none'>search</Form.Label>
-                                        <Form.Control type="text" placeholder="Search here" />
-                                        <Button className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute">
-                                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.4995 17.5L13.8828 13.8833" stroke="#505050" strokeLinecap="round" strokeLinejoin="round"/><path d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z" stroke="#505050" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                                        </Button>
-                                    </Form.Group>
-                            </div>
-                            
-                        </div>
+          <div className="flex justify-between items-center">
+            <div className="right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap">
+              <Button
+                type="button"
+                className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
+                data-bs-toggle="modal"
+                data-bs-target="#AddStudentModal"
+              >
+                <span>Add Student </span>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M11.9997 8.66536H8.66634V11.9987C8.66634 12.1755 8.5961 12.3451 8.47108 12.4701C8.34605 12.5951 8.17649 12.6654 7.99967 12.6654C7.82286 12.6654 7.65329 12.5951 7.52827 12.4701C7.40325 12.3451 7.33301 12.1755 7.33301 11.9987V8.66536H3.99967C3.82286 8.66536 3.65329 8.59513 3.52827 8.4701C3.40325 8.34508 3.33301 8.17551 3.33301 7.9987C3.33301 7.82189 3.40325 7.65232 3.52827 7.52729C3.65329 7.40227 3.82286 7.33203 3.99967 7.33203H7.33301V3.9987C7.33301 3.82189 7.40325 3.65232 7.52827 3.52729C7.65329 3.40227 7.82286 3.33203 7.99967 3.33203C8.17649 3.33203 8.34605 3.40227 8.47108 3.52729C8.5961 3.65232 8.66634 3.82189 8.66634 3.9987V7.33203H11.9997C12.1765 7.33203 12.3461 7.40227 12.4711 7.52729C12.5961 7.65232 12.6663 7.82189 12.6663 7.9987C12.6663 8.17551 12.5961 8.34508 12.4711 8.4701C12.3461 8.59513 12.1765 8.66536 11.9997 8.66536Z"
+                    fill="white"
+                  />
+                </svg>
+              </Button>
+              <div className="search-box">
+                <Form.Group className="position-relative mb-0">
+                  <Form.Label className="d-none">search</Form.Label>
+                  <Form.Control type="text" placeholder="Search here" />
+                  <Button variant="link" className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute !top-[10px]">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M17.4995 17.5L13.8828 13.8833"
+                        stroke="#505050"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
+                        stroke="#505050"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </Button>
+                </Form.Group>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -682,7 +716,7 @@ export default function MyStudents() {
           </div>
         )}
       </div>
-      <AddNewStudentModal/>
+      <AddNewStudentModal />
     </div>
   );
 }

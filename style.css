@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 ::selection {
   background-color: var(--black);
@@ -11,17 +10,17 @@
   overflow: hidden !important;
 }
 :root {
-  --white: #ffffff;
-  --black: #000000; 
-  --text-color: #212121;  
-  --blue: #4301EA;
-  --dark-blue: #7009BA;
-  --light-blur: #F1ECF7;
-  --red: #E53935;
-  --orange : #FFC357;
-  --bg-grey: #FAF8F6;
-  --bg-light-grey: #EEEEEEEE;
-  --Inter: "Inter", sans-serif;
+  --white: #ffffff !important;
+  --black: #000000 !important;
+  --text-color: #212121 !important;
+  --blue: #4301EA !important;
+  --dark-blue: #7009BA !important;
+  --light-blur: #F1ECF7 !important;
+  --red: #E53935 !important;
+  --orange : #FFC357 !important;
+  --bg-grey: #FAF8F6 !important;
+  --bg-light-grey: #EEEEEEEE !important;
+  --Inter: "Inter", sans-serif !important;
 }
 
 * {
@@ -135,7 +134,7 @@ form input, form select, form textarea, .form-select {
 }
 
 .btn {
-  transition: all 0.5s ease;
+  transition: all 0.5s ease !important;
 }
 
 
@@ -145,15 +144,15 @@ html {
 
 
 .btn-primary {
-    font-weight: 600;
-    font-size: 16px;
-    line-height: 28px;
-    letter-spacing: 0;
-    padding: 10px 15px;
-    color: var(--white);
-    background-color: var(--dark-blue);
-    border-radius: 8px;
-    border-color: var(--dark-blue);
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    line-height: 28px !important;
+    letter-spacing: 0 !important;
+    padding: 10px 15px !important;
+    color: var(--white) !important;
+    background-color: var(--dark-blue) !important;
+    border-radius: 8px !important;
+    border-color: var(--dark-blue) !important;
 }
 
 .btn-primary:hover {
