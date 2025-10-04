@@ -1,0 +1,34 @@
+.progressbar-helf {
+	max-width: 200px;
+	margin: 0 auto;
+	position: relative;
+	.label-text {
+		font-weight: 600;
+		font-size: 16px;
+		line-height: 100%;
+		letter-spacing: 0px;
+	}
+	.progress-value {
+		position: absolute;
+		top: 60%;
+		left: 0;
+		right: 0;
+		margin: 0 auto;
+		font-weight: 700;
+		font-size: 48px;
+		line-height: 100%;
+		letter-spacing: 0px;
+		transform: translateY(-50%);
+		color: var(--blue);
+		.pregree-devide {
+			font-weight: 400;
+			font-size: 24px;
+			line-height: 100%;
+			letter-spacing: 0px;
+			color: var(--text-color);
+		}
+	}
+    .half-circle-progressbar {
+        height: 166px;
+    }
+}

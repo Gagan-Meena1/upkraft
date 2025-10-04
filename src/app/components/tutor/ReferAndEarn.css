@@ -1,0 +1,60 @@
+.refer-and-earn-box {
+	.text-bottom-box {
+		background: var(--blue);
+		padding: 14px;
+		border-radius: 8px;
+		h2 {
+			color: var(--white);
+			font-weight: 600;
+			font-size: 24px;
+			line-height: 100%;
+			letter-spacing: 0px;
+            @media only screen and (max-width: 1750px) {
+                font-size: 17px;
+            }
+		}
+		p {
+			color: var(--white);
+			line-height: 18px;
+			font-size: 14px;
+			@media only screen and (max-width: 1499px) {
+				font-size: 13px;
+			}
+		}
+		.blue-box {
+			max-width: 250px;
+			margin: 0 auto;
+		}
+	}
+	.img-box {
+		img {
+			height: 150px;
+            @media only screen and (max-width: 1750px) {
+                height: 125px;  
+                @media only screen and (max-width: 1550px) {
+                    height: 114px; 
+					@media only screen and (max-width: 1400px) {
+						height: 140px;
+					}  
+                }  
+            }
+		}
+	}
+}
+.btn {
+	&.btn-orange {
+		background: var(--orange);
+		display: block;
+		margin-top: 12px;
+		font-size: 16px;
+		font-weight: 600;
+		padding: 6px 25px;
+            @media only screen and (max-width: 1750px) {
+                font-size: 14px;
+                padding: 6px 15px;
+                @media only screen and (max-width: 1550px) {
+                    padding: 3px 15px;
+                }
+            }
+	}
+}

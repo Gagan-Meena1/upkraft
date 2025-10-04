@@ -1,0 +1,27 @@
+.progress-bar-pending-sec {
+	max-width: 250px;
+	margin: 19px auto;
+	h2 {
+		max-width: 150px;
+		margin: 0 auto;
+	}
+	.feedback-progress {
+		padding: 25px 0 40px;
+		position: relative;
+		p {
+			position: absolute;
+			top: 58%;
+			left: 0;
+			right: 0;
+			margin: 0 auto;
+			transform: translateY(-50%);
+			color: #505050;
+		}
+		.CircularProgressbar-text {
+			font-weight: 700;
+			font-size: 32px;
+			line-height: 100%;
+			letter-spacing: 0;
+		}
+	}
+}
