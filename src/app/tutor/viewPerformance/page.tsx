@@ -605,9 +605,9 @@ const StudentFeedbackDashboard = () => {
         <div className="mt-2 text-center">
           <span
             className={`font-medium ${
-              getScoreColor(score) === "#4CAF50"
+              getScoreColor(score) === "text-green-500"
                 ? "text-green-600"
-                : getScoreColor(score) === "#FF9800"
+                : getScoreColor(score) === "text-orange-500"
                 ? "text-orange-500"
                 : "text-red-500"
             }`}
@@ -747,14 +747,14 @@ const StudentFeedbackDashboard = () => {
                   variant=""
                   style={{ height: "8px", backgroundColor: "#eee" }}
                 >
-                  <div
+                  {/* <div
                     style={{
                       width: `${averageSkillScores.rhythm * 10}%`,
                       height: "100%",
                       backgroundColor: "#7b2ff7",
                       borderRadius: "6px",
                     }}
-                  ></div>
+                  ></div> */}
                 </ProgressBar>
               </div>
               <div className="right-text-box">

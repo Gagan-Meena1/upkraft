@@ -25,22 +25,46 @@ const IndividualProgress: React.FC<IndividualProgressProps> = ({
                 <hr className="hr-light"/>
             </div>
             <div className="col-xxl-4 col-md-6 mb-5">
-                <RhythmChart feedbackData={feedbackData} averageSkillScores={averageSkillScores} />
+                <RhythmChart 
+                    feedbackData={feedbackData} 
+                    averageSkillScores={averageSkillScores} 
+                    allStudentsFeedbackData={allStudentsFeedbackData} 
+                />
             </div>
             <div className="col-xxl-4 col-md-6 mb-5">
-                <TheoriticalUnderstanding feedbackData={feedbackData} averageSkillScores={averageSkillScores} />
+                <TheoriticalUnderstanding 
+                    feedbackData={feedbackData} 
+                    averageSkillScores={averageSkillScores} 
+                    allStudentsFeedbackData={allStudentsFeedbackData} 
+                />
             </div>
             <div className="col-xxl-4 col-md-6 mb-5">
-                <EarTraining feedbackData={feedbackData} averageSkillScores={averageSkillScores} />
+                <EarTraining 
+                    feedbackData={feedbackData} 
+                    averageSkillScores={averageSkillScores} 
+                    allStudentsFeedbackData={allStudentsFeedbackData} 
+                />
             </div>
             <div className="col-xxl-4 col-md-6 mb-5">
-                <Performance feedbackData={feedbackData} averageSkillScores={averageSkillScores} />
+                <Performance 
+                    feedbackData={feedbackData} 
+                    averageSkillScores={averageSkillScores} 
+                    allStudentsFeedbackData={allStudentsFeedbackData} 
+                />
             </div>
             <div className="col-xxl-4 col-md-6 mb-5">
-                <Technique feedbackData={feedbackData} averageSkillScores={averageSkillScores} />
+                <Technique 
+                    feedbackData={feedbackData} 
+                    averageSkillScores={averageSkillScores} 
+                    allStudentsFeedbackData={allStudentsFeedbackData} 
+                />
             </div>
             <div className="col-xxl-4 col-md-6 mb-5">
-                <AssignmentCompletion feedbackData={feedbackData} averageSkillScores={averageSkillScores} />
+                <AssignmentCompletion 
+                    feedbackData={feedbackData} 
+                    averageSkillScores={averageSkillScores} 
+                    allStudentsFeedbackData={allStudentsFeedbackData} 
+                />
             </div>
         </div>
     </div>

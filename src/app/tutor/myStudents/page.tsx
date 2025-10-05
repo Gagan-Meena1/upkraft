@@ -249,22 +249,6 @@ export default function MyStudents() {
 
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
-      {/* Navigation */}
-      <div className="bg-white border-b border-gray-200 w-full">
-        <div className="px-4 sm:px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/tutor"
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6 text-gray-600" />
-            </Link>
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">
-              My Students
-            </h1>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">

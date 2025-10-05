@@ -13,7 +13,7 @@
 }
 
 .dashboard-sec .side-menu-sec {
-  width: 240px;
+  width: 242px;
   position: fixed;
   top: 0;
   z-index: 2;
@@ -22,7 +22,7 @@
 .dashboard-sec .side-menu-sec .offcanvas {
   background: linear-gradient(180deg, #4201eb 0%, #7109b9 100%);
   padding: 18px 24px;
-  width: 240px !important;
+  width: 242px !important;
 }
 
 .top-header-sec .right-top-header input {

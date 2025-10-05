@@ -57,7 +57,7 @@ const TopHeader = ({ role, setRole }) => {
             <div className='listing-details-author d-flex align-items-center'>
               <div className="dropdown-box me-4">
                   <Dropdown>
-                    <Dropdown.Toggle variant="primary" id="dropdown-basic" className='py-1 btn btn-border'>
+                    <Dropdown.Toggle id="dropdown-basic" className='py-1 btn btn-border'>
                     {role}
                     </Dropdown.Toggle>
                     <Dropdown.Menu>

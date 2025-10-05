@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Download, Filter, RefreshCw, FileText, Music, 
@@ -9,6 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { Button } from 'react-bootstrap';
 
 // Sidebar Component
 const Sidebar = ({ isOpen, onToggle, isMobile }) => {
@@ -320,6 +321,7 @@ const MusicLibraryTable = () => {
           <table className="w-full">
             <thead className="bg-gray-50 border-b">
               <tr>
+                <th className="text-right py-3 px-4 font-semibold text-gray-900">Actions</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Song</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Artist</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Instrument</th>
@@ -328,12 +330,26 @@ const MusicLibraryTable = () => {
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Year</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Notes</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">Skills</th>
-                <th className="text-right py-3 px-4 font-semibold text-gray-900">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {songs.map((song) => (
                 <tr key={song._id} className="hover:bg-gray-50 transition-colors">
+                  <td className="py-3 px-4 text-center">
+                    {song.url ? (
+                      <a
+                        className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium text-orange-600 bg-orange-100 hover:bg-orange-200 transition-colors"
+                        href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
+                        // target="_blank"
+                        // rel="noreferrer"
+                      >
+                        <Music className="w-3 h-3 mr-1" />
+                        Open
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center space-x-2">
                       {getFileIcon(song.fileType, song.extension)}
@@ -373,21 +389,7 @@ const MusicLibraryTable = () => {
                     {formatSkills(song.skills)}
                   </td>
                  
-                  <td className="py-3 px-4 text-center">
-                    {song.url ? (
-                      <a
-                        className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium text-orange-600 bg-orange-100 hover:bg-orange-200 transition-colors"
-                        href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
-                        // target="_blank"
-                        // rel="noreferrer"
-                      >
-                        <Music className="w-3 h-3 mr-1" />
-                        Open
-                      </a>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
+                  
                 </tr>
               ))}
             </tbody>
@@ -470,7 +472,7 @@ const MusicLibraryPage = () => {
   return (
     <div className="min-h-screen w-full bg-gray-50 flex">
       {/* Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} isMobile={isMobile} />
+      {/* <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} isMobile={isMobile} /> */}
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
@@ -492,13 +494,13 @@ const MusicLibraryPage = () => {
             </div>
           </div>
           
-          <button 
+          <Button 
             onClick={() => window.location.reload()}
-            className="flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
+            className="btn btn-primary d-flex align-items-center "
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
-          </button>
+          </Button>
         </header>
         
         {/* Page Content */}
