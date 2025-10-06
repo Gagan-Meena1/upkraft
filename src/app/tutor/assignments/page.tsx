@@ -227,7 +227,7 @@ export default function TutorAssignments() {
             <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
           </div>
           <div className="flex gap-3">
-            <select 
+            {/* <select 
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -235,11 +235,11 @@ export default function TutorAssignments() {
               <option value="Monthly">Monthly</option>
               <option value="Weekly">Weekly</option>
               <option value="Daily">Daily</option>
-            </select>
-            <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
+            </select> */}
+            {/* <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2">
               <Plus size={16} />
               Add Assignments
-            </button>
+            </button> */}
           </div>
         </div>
         {tutorInfo && (

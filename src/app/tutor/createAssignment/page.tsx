@@ -239,7 +239,7 @@ export default function CreateAssignment() {
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                    <Music size={18} className="text-orange-400" />
+                    <Music size={18} className="text-orange-400 pr-1" />
                   </div>
                   <input
                     id="songName"
@@ -383,7 +383,7 @@ export default function CreateAssignment() {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <Calendar size={18} className="text-orange-400" />
+                  <Calendar size={18} className="pr-2 text-orange-400" />
                 </div>
                 <input
                   id="deadline"
@@ -391,7 +391,7 @@ export default function CreateAssignment() {
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
                   required
-                  className="w-full pl-10 px-4 py-3 text-gray-800 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
+                  className="w-full pl-95 px-4 py-3 text-gray-800 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all"
                 />
               </div>
             </div>

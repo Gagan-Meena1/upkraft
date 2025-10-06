@@ -247,6 +247,8 @@ const StudentsCountBox = ({ studentCount }: { studentCount: number }) => {
   );
 };
 
+
+
 export default function Dashboard() {
   const router = useRouter();
   const pathname = usePathname(); // Add this hook
@@ -267,6 +269,8 @@ export default function Dashboard() {
   const [studentPerformance, setStudentPerformance] = useState<number>(0);
   const [pendingFeedbackCount, setPendingFeedbackCount] = useState<number>(0);
   const [assignmentCompletionPercentage, setAssignmentCompletionPercentage] = useState<number>(0);
+  const [overallPerformanceScore, setOverallPerformanceScore] = useState<number>(0);
+  const [averageCourseQuality, setAverageCourseQuality] = useState<number>(0);
 
   const role = "tutor";
   const isActive = (path: string) => {
@@ -307,6 +311,21 @@ export default function Dashboard() {
 
         const assignmentResponse = await fetch("/Api/assignment");
         const assignmentResponseData = await assignmentResponse.json();
+
+        // In your useEffect fetchData function:
+try {
+  const perfResponse = await fetch("/Api/overallPerformanceScore");
+  const perfData = await perfResponse.json();
+  
+  if (perfData.success) {
+    setOverallPerformanceScore(perfData.overallScore);
+    setAverageCourseQuality(perfData.averageCourseQuality);
+  }
+} catch (error) {
+  console.error("Error fetching overall performance:", error);
+  setOverallPerformanceScore(0);
+  setAverageCourseQuality(0);
+}
 
         setUserData(userData.user);
 
@@ -826,15 +845,15 @@ console.log("Fetched Assignments:", assignmentResponseData);
             <div className="card-box">
               <div className="top-progress mb-4">
                 <SemiCircleProgress
-                  value={coursePerformance}
+                  value={averageCourseQuality}
                   label="Class Quality Score"
                 />
               </div>
               <div className="bottom-progress">
-                <SemiCircleProgress
-                  value={studentPerformance}
-                  label="Overall Student Performance"
-                />
+               <SemiCircleProgress
+                value={overallPerformanceScore}
+                label="Overall Performance Score"
+              />
               </div>
             </div>
           </div>

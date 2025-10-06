@@ -145,12 +145,13 @@ export default function CourseDetailsPage() {
             </h1>
           </div>
           <div className="w-full sm:w-auto">
-            <Link
-              href={`${viewPerformanceRoutes[courseData.courseDetails.category as keyof typeof viewPerformanceRoutes] || "/tutor/viewPerformance"}?courseId=${courseData.courseDetails._id}&studentId=${new URLSearchParams(window.location.search).get('studentId')}`}
-              className="block w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-md text-center text-sm md:text-base"
-            >
-              View Performance 
-            </Link>
+           <Link
+  href={`${viewPerformanceRoutes[courseData.courseDetails.category as keyof typeof viewPerformanceRoutes] || "/tutor/viewPerformance"}?courseId=${courseData.courseDetails._id}&studentId=${new URLSearchParams(window.location.search).get('studentId')}`}
+  style={{ backgroundColor: '#10b981', color: '#ffffff' }}
+  className="block w-full sm:w-auto px-4 py-2 rounded-md hover:opacity-90 transition-all shadow-md text-center text-sm md:text-base font-medium"
+>
+  View Performance 
+</Link>
           </div>
         </header>
   

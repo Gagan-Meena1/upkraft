@@ -122,104 +122,76 @@ export default function StudentDetails() {
     );
   }
 
-  const NavigationLinks = ({ mobile = false }) => (
-    <>
-      <Link 
-        href="/tutor/profile" 
-        className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
-        onClick={() => mobile && setMobileMenuOpen(false)}
-      >
-        <User size={20} />
-        {(sidebarOpen || mobile) && <span className="ml-3">Profile</span>}
-      </Link>
-      <Link 
-        href="/tutor/courses" 
-        className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
-        onClick={() => mobile && setMobileMenuOpen(false)}
-      >
-        <BookOpen size={20} />
-        {(sidebarOpen || mobile) && <span className="ml-3">My Courses</span>}
-      </Link>
-      <Link 
-        href="/tutor/create-course" 
-        className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
-        onClick={() => mobile && setMobileMenuOpen(false)}
-      >
-        <PlusCircle size={20} />
-        {(sidebarOpen || mobile) && <span className="ml-3">Create Course</span>}
-      </Link>
-      <Link 
-        href="/tutor/myStudents" 
-        className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
-        onClick={() => mobile && setMobileMenuOpen(false)}
-      >
-        <User size={20} />
-        {(sidebarOpen || mobile) && <span className="ml-3">My Students</span>}
-      </Link>
-      <Link 
-        href="/tutor/assignments" 
-        className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
-        onClick={() => mobile && setMobileMenuOpen(false)}
-      >
-        <BookCheck size={20} />
-        {(sidebarOpen || mobile) && <span className="ml-3">Assignments</span>}
-      </Link>
-      <button 
-        onClick={async () => {
-          try {
-            const response = await fetch('/Api/users/logout');
-            if (response.ok) {
-              toast.success('Logged out successfully');
-              // router.push('/login'); // Uncomment if you have router
-            } else {
-              toast.error('Failed to logout');
-            }
-          } catch (error) {
-            toast.error('Error during logout');
-            console.error('Logout error:', error);
-          }
-          if (mobile) setMobileMenuOpen(false);
-        }}
-        className={`flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
-      >
-        <LogOut size={20} />
-        {(sidebarOpen || mobile) && <span className="ml-3">Logout</span>}
-      </button>
-    </>
-  );
+  // const NavigationLinks = ({ mobile = false }) => (
+  //   <>
+  //     <Link 
+  //       href="/tutor/profile" 
+  //       className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
+  //       onClick={() => mobile && setMobileMenuOpen(false)}
+  //     >
+  //       <User size={20} />
+  //       {(sidebarOpen || mobile) && <span className="ml-3">Profile</span>}
+  //     </Link>
+  //     <Link 
+  //       href="/tutor/courses" 
+  //       className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
+  //       onClick={() => mobile && setMobileMenuOpen(false)}
+  //     >
+  //       <BookOpen size={20} />
+  //       {(sidebarOpen || mobile) && <span className="ml-3">My Courses</span>}
+  //     </Link>
+  //     <Link 
+  //       href="/tutor/create-course" 
+  //       className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
+  //       onClick={() => mobile && setMobileMenuOpen(false)}
+  //     >
+  //       <PlusCircle size={20} />
+  //       {(sidebarOpen || mobile) && <span className="ml-3">Create Course</span>}
+  //     </Link>
+  //     <Link 
+  //       href="/tutor/myStudents" 
+  //       className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
+  //       onClick={() => mobile && setMobileMenuOpen(false)}
+  //     >
+  //       <User size={20} />
+  //       {(sidebarOpen || mobile) && <span className="ml-3">My Students</span>}
+  //     </Link>
+  //     <Link 
+  //       href="/tutor/assignments" 
+  //       className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
+  //       onClick={() => mobile && setMobileMenuOpen(false)}
+  //     >
+  //       <BookCheck size={20} />
+  //       {(sidebarOpen || mobile) && <span className="ml-3">Assignments</span>}
+  //     </Link>
+  //     <button 
+  //       onClick={async () => {
+  //         try {
+  //           const response = await fetch('/Api/users/logout');
+  //           if (response.ok) {
+  //             toast.success('Logged out successfully');
+  //             // router.push('/login'); // Uncomment if you have router
+  //           } else {
+  //             toast.error('Failed to logout');
+  //           }
+  //         } catch (error) {
+  //           toast.error('Error during logout');
+  //           console.error('Logout error:', error);
+  //         }
+  //         if (mobile) setMobileMenuOpen(false);
+  //       }}
+  //       className={`flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
+  //     >
+  //       <LogOut size={20} />
+  //       {(sidebarOpen || mobile) && <span className="ml-3">Logout</span>}
+  //     </button>
+  //   </>
+  // );
 
   return (
     <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
       {/* Desktop Sidebar */}
-      <div className={`hidden md:flex bg-white border-r border-gray-200 h-screen ${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 flex-col sticky top-0`}>
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <div className={`font-extrabold text-l text-orange-600 ${!sidebarOpen && 'hidden'}`}>
-            <Link href="/tutor" className="cursor-pointer">
-              <Image 
-                src="/logo.png"
-                alt="UpKraft"
-                width={288}
-                height={72}
-                priority
-                className="object-contain w-36 h-auto" 
-              />
-            </Link>
-          </div>
-          <button 
-            onClick={() => setSidebarOpen(!sidebarOpen)} 
-            className="p-1 rounded-lg hover:bg-gray-100"
-          >
-            {sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-          </button>
-        </div>
-        
-        {/* Desktop Navigation Links */}
-        <nav className="flex-1 px-2 py-4">
-          <NavigationLinks />
-        </nav>
-        
-      
-      </div>
+    
 
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
@@ -254,27 +226,7 @@ export default function StudentDetails() {
       {/* Main Content */}
       <div className="flex-1 min-h-screen w-full md:w-auto">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 p-4 md:p-6 sticky top-0 z-10 flex justify-between items-center">
-  <div className="flex items-center">
-    {/* Back Button */}
-    <Link
-      href="/tutor"
-      className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 mr-3 transition-colors shadow-sm"
-    >
-      <ChevronLeft className="text-gray-700" size={20} />
-    </Link>
-    
-    {/* Mobile Menu Button */}
-    <button 
-      onClick={() => setMobileMenuOpen(true)}
-      className="md:hidden p-2 rounded-lg hover:bg-gray-100 mr-3"
-    >
-      <Menu size={20} />
-    </button>
-    
-    <h1 className="text-xl md:text-2xl font-bold text-gray-900">Student Details</h1>
-  </div>
-</header>
+      
 
         {/* Content Area */}
         <main className="p-4 md:p-6">
@@ -341,7 +293,7 @@ export default function StudentDetails() {
                 {studentData.courses.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {studentData.courses.map((course) => (
-                      <div key={course._id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-all">
+                      <div key={course._id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 md:p-6 hover:shadow-md transition-all flex flex-col">
                         <div className="flex justify-between items-start mb-3 md:mb-4">
                           <h3 className="text-base md:text-lg font-semibold text-gray-900 flex-1 min-w-0 pr-2">
                             <span className="line-clamp-2">{course.title}</span>
@@ -355,38 +307,43 @@ export default function StudentDetails() {
                           <Calendar size={14} className="mr-2 flex-shrink-0" />
                           <span>{course.curriculum.length} Sessions</span>
                         </div>
-                        <div className="flex flex-col space-y-2">
-                          <div className="text-gray-900 font-semibold text-sm md:text-base">
-                            <span className="text-yellow-600 font-bold text-lg">₹</span>
-                            {course.price.toFixed(2)}
-                          </div>
-                          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-                            <Link 
-                              href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`} 
-                              className="flex items-center justify-center px-3 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium flex-1"
-                            >
-                              <span>View Details</span>
-                              <ExternalLink size={14} className="ml-1" />
-                            </Link>
-                            
-                            <button 
-                              onClick={() => handleRemoveCourse(course._id)}
-                              disabled={removingCourseId === course._id}
-                              className={`flex items-center justify-center px-3 py-2 rounded-lg transition-colors text-sm font-medium flex-1 ${
-                                removingCourseId === course._id 
-                                  ? 'bg-gray-400 cursor-not-allowed' 
-                                  : 'bg-red-600 hover:bg-red-700'
-                              } text-white`}
-                            >
-                              {removingCourseId === course._id ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-1"></div>
-                              ) : (
-                                <Trash2 size={14} className="mr-1" />
-                              )}
-                              <span>{removingCourseId === course._id ? 'Removing...' : 'Remove Course'}</span>
-                            </button>
-                          </div>
-                        </div>
+                        <div className="mt-auto pt-4">
+  <div className="text-gray-900 font-semibold text-sm md:text-base mb-3">
+    <span className="text-yellow-600 font-bold text-lg">₹</span>
+    {course.price.toFixed(2)}
+  </div>
+  <div className="flex flex-col gap-2 w-full">
+<Link 
+  href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`} 
+  className="flex items-center justify-center px-4 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-sm font-medium w-full text-white shadow-lg shadow-blue-500/40 hover:shadow-xl hover:shadow-blue-500/50 hover:scale-[1.02]"
+>
+  <ExternalLink size={16} className="mr-2" />
+  <span>View Details</span>
+</Link>
+    
+<button 
+  onClick={() => handleRemoveCourse(course._id)}
+  disabled={removingCourseId === course._id}
+  className={`flex items-center justify-center px-3 py-2.5 rounded-lg transition-all duration-300 text-sm font-medium w-full text-white ${
+    removingCourseId === course._id 
+      ? 'bg-gray-400 cursor-not-allowed shadow-md' 
+      : 'bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-lg shadow-rose-500/40 hover:shadow-xl hover:shadow-rose-500/50 hover:scale-[1.02]'
+  }`}
+>
+  {removingCourseId === course._id ? (
+    <>
+      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+      <span>Removing...</span>
+    </>
+  ) : (
+    <>
+      <Trash2 size={14} className="mr-2" />
+      <span>Remove</span>
+    </>
+  )}
+</button>
+  </div>
+</div>
                       </div>
                     ))}
                   </div>

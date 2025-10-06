@@ -625,13 +625,14 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                           </div>
 
                           {/* Assignment Button */}
-                          <Link 
-                            href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-                            className="w-full px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
-                          >
-                            <FileText className="mr-1" size={14} />
-                            Add Assignment
-                          </Link>
+                       <Link 
+  href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
+  className="w-full px-3 py-2 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-xs font-medium shadow-sm"
+>
+  <FileText className="mr-1" size={14} />
+  Add Assignment
+</Link>
                         </div>
                       </div>
 
@@ -677,49 +678,55 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                           </div>
 
                           {/* Actions */}
-                          <div className="flex justify-end space-x-4">
-                            {/* Hidden file input */}
-                            <input
-                              type="file"
-                              accept="video/*"
-                              className="hidden"
-                              ref={el => { fileInputRefs.current[classSession._id] = el; }}
-                              onChange={(e) => handleFileChange(classSession._id, e)}
-                            />
+                          {/* Actions */}
+<div className="flex flex-col gap-3 min-w-[180px]">
+  {/* Hidden file input */}
+  <input
+    type="file"
+    accept="video/*"
+    className="hidden"
+    ref={el => { fileInputRefs.current[classSession._id] = el; }}
+    onChange={(e) => handleFileChange(classSession._id, e)}
+  />
 
-                            {/* Class Quality button */}
-                            {classSession.recordingUrl && (
-                              <Link 
-                                href={`/tutor/classQuality/${classSession._id}`}
-                                className="px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center text-sm"
-                              >
-                                <BarChart3 className="mr-1" size={16} />
-                                Class Quality
-                              </Link>
-                            )}
+  {/* Class Quality button */}
+  {classSession.recordingUrl && (
+    <Link 
+      href={`/tutor/classQuality/${classSession._id}`}
+      style={{ backgroundColor: '#a78bfa', color: '#ffffff' }}
+      className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+    >
+      <BarChart3 className="mr-2" size={16} />
+      Class Quality
+    </Link>
+  )}
 
-                            {/* Upload Recording button */}
-                            <button
-                              onClick={() => triggerFileInput(classSession._id)}
-                              disabled={isUploading}
-                              className={`px-2 py-1 ${
-                                isUploading ? 'bg-gray-400 cursor-not-allowed' 
-                                  : 'bg-green-500 hover:bg-green-600'
-                              } text-white rounded-lg transition-colors flex items-center text-sm`}
-                            >
-                              <Upload className="mr-1" size={16} />
-                              {getButtonText(classSession, isUploading)}
-                            </button>
+  {/* Upload Recording button */}
+  <button
+    onClick={() => triggerFileInput(classSession._id)}
+    disabled={isUploading}
+    style={{ 
+      backgroundColor: isUploading ? '#9ca3af' : '#34d399',
+      color: '#ffffff'
+    }}
+    className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
+      isUploading ? 'cursor-not-allowed' : 'hover:opacity-90'
+    }`}
+  >
+    <Upload className="mr-2" size={16} />
+    {getButtonText(classSession, isUploading)}
+  </button>
 
-                            {/* Assignment Button */}
-                            <Link 
-                              href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-                              className="px-2 py-1 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-colors flex items-center text-sm"
-                            >
-                              <FileText className="mr-1" size={16} />
-                              Add Assignment
-                            </Link>
-                          </div>
+  {/* Assignment Button */}
+  <Link 
+    href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+    style={{ backgroundColor: '#fbbf24', color: '#ffffff' }}
+    className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+  >
+    <FileText className="mr-2" size={16} />
+    Add Assignment
+  </Link>
+</div>
                         </div>
                       </div>
                     </div>

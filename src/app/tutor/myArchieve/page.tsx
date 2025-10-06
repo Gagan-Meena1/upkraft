@@ -203,7 +203,7 @@ export default function PracticeHistoryPage() {
       )}
 
       {/* Sidebar */}
-      <div className={`bg-white border-r border-gray-200 h-screen ${
+      {/* <div className={`bg-white border-r border-gray-200 h-screen ${
         isMobile 
           ? `fixed top-0 left-0 z-50 w-64 transform transition-transform duration-300 ${
               sidebarOpen ? 'translate-x-0' : '-translate-x-full'
@@ -225,12 +225,12 @@ export default function PracticeHistoryPage() {
             )}
           </button>
         </div>
-      </div>
+      </div> */}
 
       {/* Main Content */}
       <div className="flex-1 min-h-screen">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
+        {/* <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Practice History</h1>
           {isMobile && (
             <button 
@@ -240,7 +240,7 @@ export default function PracticeHistoryPage() {
               <Menu size={24} />
             </button>
           )}
-        </header>
+        </header> */}
 
         {/* Content Area */}
         <main className="p-4 sm:p-6">

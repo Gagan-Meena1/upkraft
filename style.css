@@ -1,0 +1,243 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+::selection {
+  background-color: var(--black);
+  color: var(--white);
+}
+
+:root {
+  --white: #ffffff;
+  --black: #000000; 
+  --text-color: #212121;  
+  --blue: #4301EA;
+  --dark-blue: #7009BA;
+  --light-blur: #F1ECF7;
+  --red: #E53935;
+  --orange : #FFC357;
+  --bg-grey: #FAF8F6;
+  --bg-light-grey: #EEEEEEEE;
+  --Inter: "Inter", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  color: var(--text-color);
+  background-color: var(--bg-grey)!important;
+  font-family: var(--Inter);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: 0px;
+  overflow-x: hidden;
+}
+
+h1, .h1 {
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 100%;
+  letter-spacing: 0px;
+}
+
+h2, .h2 {
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 100%;
+  letter-spacing: 0px;
+}
+
+h3, .h3 {
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 100%;
+  letter-spacing: 0px;
+}
+
+h4, .h4 {
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 16px;
+  letter-spacing: 0%;
+  
+}
+
+h5, .h5 {
+  font-weight: 500;
+  font-size: 18px;  
+  line-height: 27px;
+  letter-spacing: 0%;
+}
+
+h6, h6 {
+  font-weight: 500;
+  font-size: 16px;  
+  line-height: 27px;
+  letter-spacing: 0%;
+}
+
+ul,
+ol {
+  padding: 0 0 0 25px;
+}
+
+ul li,
+ol li,
+p {
+font-weight: 400;
+font-size: 16px;
+line-height: 100%;
+letter-spacing: 0px;
+margin: 0;
+}
+
+.unorderlist, .orderlist {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+a {
+  text-decoration: none !important;
+  color: var(--black);
+  font-weight: 400;
+  line-height: 24px;
+  font-size: 15px;
+  transition: all 0.5s ease;
+}
+
+a:hover, a:focus {
+  color: var(--dark-blue); 
+}
+
+a:focus, .btn:focus, input:focus, select:focus, textarea:focus, button:focus-visible{
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--bg-light-grey) !important;
+}
+
+form input, form select, form textarea, .form-select {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 100%;
+    letter-spacing: 0px;
+    padding: 11px 10px;
+}
+
+.form-select , form select {
+    padding: 11px 40px 11px 10px;
+}
+
+.btn {
+  transition: all 0.5s ease;
+}
+
+
+html {
+  scroll-behavior: smooth;
+}
+
+
+.btn-primary {
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 28px;
+    letter-spacing: 0;
+    padding: 10px 15px;
+    color: var(--white);
+    background-color: var(--dark-blue);
+    border-radius: 8px;
+    border-color: var(--dark-blue);
+}
+
+.btn-primary:hover {
+  background-color: var(--white);
+  color: var(--dark-blue);
+  border-color: var(--dark-blue);
+}
+
+
+.btn-primary:hover svg path {
+    stroke: var(--dark-blue);
+}
+
+.btn-primary svg path {
+    transition: all 0.5s;
+}
+
+.owl-nav button span {
+  font-size: 0;
+}
+
+.swiper-button-next {
+    position: absolute;
+    background: url(./src/assets/next-btn.png) !important;
+    width: 40px;
+    height: 40px;
+    top: 50%;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    right: 15px;
+    /* transform: translateY(-50%); */
+    border-radius: 100px;
+    background-size: contain !important;
+}
+
+.swiper-button-prev {
+    position: absolute;
+    background: url(./src/assets/prev-btn.png) !important;
+    width: 40px;
+    height: 40px;
+    top: 50%;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    left: 15px;
+    /* transform: translateY(-50%); */
+    border-radius: 100px;
+    background-size: contain !important;
+}
+
+ .swiper-button-next:after, .swiper-button-prev:after {
+  display: none;
+ }
+
+.container {
+  max-width: 100%;
+  padding: 0px;
+}
+
+main {
+  overflow: hidden;
+}
+
+.hr-light {border: 1px solid var(--bg-light-grey);}
+
+
+.btn-primary.add-assignments {
+    font-weight: 400;
+    padding: 4px 15px;
+}
+
+.rs-picker-popup {
+  z-index: 9991;
+}
+
+
+.btn.btn-border {
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 28px;
+    letter-spacing: 0;
+    padding: 10px 15px;
+    color: var(--dark-blue);
+    background-color: var(--white);
+    border-radius: 8px;
+    border-color: var(
+    --dark-blue);
+}
+
+.btn.btn-border:hover {
+    background: var(--dark-blue);
+    color: var(--white);
+}

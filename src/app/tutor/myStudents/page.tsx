@@ -242,10 +242,10 @@ export default function MyStudents() {
           {/* Action Buttons - Stack on mobile, inline on larger screens */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <Link href="/tutor/createStudent" className="flex-1 sm:flex-none">
-              <button className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition flex items-center justify-center hover:cursor-grab">
-                <span className="mr-2">+</span> Add Student
-              </button>
-            </Link>
+  <button className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/60 hover:scale-[1.02]">
+    <span className="mr-2 text-lg">+</span> Add Student
+  </button>
+</Link>
           </div>
         </div>
 

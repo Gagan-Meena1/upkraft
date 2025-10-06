@@ -293,7 +293,7 @@ export default function CreateCourse() {
                         value={session.topic}
                         onChange={(e) => updateCurriculumSession(index, 'topic', e.target.value)}
                         placeholder={`Enter topic for Lesson ${session.sessionNo}`}
-                        className="w-full bg-white text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        className="w-full bg-white pl-10 text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
                         required
                       />
                     </div>
@@ -305,7 +305,7 @@ export default function CreateCourse() {
                         value={session.tangibleOutcome}
                         onChange={(e) => updateCurriculumSession(index, 'tangibleOutcome', e.target.value)}
                         placeholder={`Enter tangible outcome for Lesson ${session.sessionNo}`}
-                        className="w-full bg-white text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        className="w-full pl-10 bg-white text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
                         
                       />
                     </div>
@@ -317,14 +317,14 @@ export default function CreateCourse() {
                       type="number"
                       value={session.sessionNo}
                       readOnly
-                      className="w-20 bg-gray-50 text-center text-gray-800 p-2 rounded-lg border border-gray-200 mt-1"
+                      className="w-20 pl-10 bg-gray-50 text-center text-gray-800 p-2 rounded-lg border border-gray-200 mt-1"
                     />
                     <input 
                       type="text"
                       value={session.topic}
                       onChange={(e) => updateCurriculumSession(index, 'topic', e.target.value)}
                       placeholder={`Enter topic for Lesson ${session.sessionNo}`}
-                      className="flex-1 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="flex-1 pl-10 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       required
                     />
                     <input 
@@ -332,7 +332,7 @@ export default function CreateCourse() {
                       value={session.tangibleOutcome}
                       onChange={(e) => updateCurriculumSession(index, 'tangibleOutcome', e.target.value)}
                       placeholder={`Enter tangible outcome for Lesson ${session.sessionNo}`}
-                      className="flex-1 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="flex-1 pl-10 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
                       
                     />
                     {curriculum.length > 1 && (
