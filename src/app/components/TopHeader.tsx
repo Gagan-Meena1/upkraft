@@ -55,18 +55,7 @@ const TopHeader = ({ role, setRole }) => {
         </div>
         <div className='right-head-details'>  
             <div className='listing-details-author d-flex align-items-center'>
-              <div className="dropdown-box me-4">
-                  <Dropdown>
-                    <Dropdown.Toggle id="dropdown-basic" className='py-1 btn btn-border'>
-                    {role}
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                      <Dropdown.Item  onClick={() => setRole("tutor")}>tutor</Dropdown.Item>
-                      <Dropdown.Item onClick={() => setRole("student")}>student</Dropdown.Item>
-                      <Dropdown.Item onClick={() => setRole("admin")}>admin</Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown>
-              </div>
+              
                 <ul className=' d-flex align-items-center gap-md-3 gap-2 mb-0 p-0 list-unstyled'>
                     <li>
                         <Link href="" className='btn-box btn-dark'>

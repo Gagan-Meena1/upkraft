@@ -2,6 +2,7 @@ import { Inter, Geist_Mono } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from './components/ClientLayout';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 import "./media.css"
 import "./custom.css"

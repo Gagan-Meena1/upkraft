@@ -247,7 +247,7 @@ const toggleExpanded = (courseId: string) => {
                           )}
                           <div className="flex items-center gap-4 text-sm text-gray-500">
                             <span>Fees: Rs 3000</span>
-                            <span>Sessions: 2 Sessions</span>
+                            <span>Lessons: 2 Lessons</span>
                             <span>Student: Eunice Robel</span>
                           </div>
                         </div>

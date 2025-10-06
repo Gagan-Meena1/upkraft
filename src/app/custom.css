@@ -158,27 +158,27 @@
 /********com css**********/
 
 .card-box {
-  background: var(--white);
-  border-radius: 8px;
-  padding: 20px;
+  background: var(--white) !important;
+  border-radius: 8px !important;
+  padding: 20px !important;
 }
 
 .table-sec table tr th {
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 100%;
-  letter-spacing: 0px;
-  color: var(--text-color);
-  padding: 16px 4px;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  line-height: 100% !important;
+  letter-spacing: 0px !important;
+  color: var(--text-color) !important;
+  padding: 16px 4px !important;
 }
 
 .table-sec table tr td {
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 130%;
-  letter-spacing: 0px;
-  padding: 16px 4px;
-  color: var(--text-color);
+  font-weight: 400 !important;
+  font-size: 14px !important;
+  line-height: 130% !important;
+  letter-spacing: 0px !important;
+  padding: 16px 4px !important;
+  color: var(--text-color) !important;
 }
 
 .btn-text {
@@ -701,3 +701,4 @@ button:focus:not(:focus-visible) {
   box-shadow: none !important;
   border-color: #dee2e6 !important;
 }
+

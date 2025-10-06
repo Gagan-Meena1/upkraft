@@ -30,6 +30,7 @@ interface StudentData {
   age?: number;
   profileImage?: string;
   courses: CourseData[];
+  city: string;
 }
 
 export default function StudentDetails() {

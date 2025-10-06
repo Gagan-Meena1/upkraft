@@ -247,7 +247,7 @@ export default function TutorCoursesPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <List className="text-orange-500" size={18} />
-                    <span className="text-gray-700">{course.curriculum.length} Sessions</span>
+                    <span className="text-gray-700">{course.curriculum.length} Lessons</span>
                   </div>
                 </div>
 

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Button } from "react-bootstrap";
 import Link from "next/link";
 import StudentProfileImg from "../../assets/student-profile-img.png";
+import StudentImage from "../../assets/studentimage.png";
 import VideoPoster from "../../assets/video-poster.png";
 import SemiCircleProgress from "./tutor/SemiCircleProgress";
 import ScoreCard from "../student/ScoreCard";
@@ -11,22 +12,76 @@ import "./MyStudentList.css";
 
 const StudentProfileDetails = ({ data }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [imageError, setImageError] = useState(false);
   console.log(data);
 
   const courses = data.courses;
 
-  // Sum of first (or average) score per course
-  const totalScore = courses.reduce((acc, course) => {
-    if (course.performanceScores.length > 0) {
-      // if multiple scores exist, you could avg them per course
-      const sum = course.performanceScores.reduce((s, ps) => s + ps.score, 0);
-      const avg = sum / course.performanceScores.length;
-      return acc + avg;
-    }
-    return acc;
+  // Calculate total course fee
+  const totalCourseFee = courses.reduce((acc, course) => {
+    return acc + (course.price || 0);
   }, 0);
 
-  const classQualityScore = (totalScore / courses.length).toFixed(2);
+  // Calculate overall performance score based on student's performance scores in all courses
+  const calculateOverallPerformanceScore = () => {
+    let totalScore = 0;
+    let scoreCount = 0;
+
+    courses.forEach(course => {
+      if (course.performanceScores && course.performanceScores.length > 0) {
+        // Find the student's score in this course
+        const studentScore = course.performanceScores.find(
+          score => score.userId === data.studentId || score.userId._id === data.studentId
+        );
+        
+        if (studentScore && studentScore.score) {
+          totalScore += studentScore.score;
+          scoreCount++;
+        }
+      }
+    });
+
+    // Return average score, or 0 if no scores found
+    return scoreCount > 0 ? (totalScore / scoreCount) : 0;
+  };
+
+  // Calculate class quality score (average of course quality scores)
+  const calculateClassQualityScore = () => {
+    let totalQuality = 0;
+    let qualityCount = 0;
+
+    courses.forEach(course => {
+      if (course.courseQuality && course.courseQuality > 0) {
+        totalQuality += course.courseQuality;
+        qualityCount++;
+      }
+    });
+
+    return qualityCount > 0 ? (totalQuality / qualityCount) : 0;
+  };
+
+  // Calculate assignment completion (if available)
+  const calculateAssignmentCompletion = () => {
+    // This would depend on your assignment structure
+    // For now, using a default value or calculating from available data
+    return data.assignment ? data.assignment.length : 5;
+  };
+
+  const overallPerformanceScore = calculateOverallPerformanceScore();
+  const classQualityScore = calculateClassQualityScore();
+  const assignmentScore = calculateAssignmentCompletion();
+
+  console.log("Performance Calculation:", {
+    overallPerformanceScore,
+    classQualityScore,
+    assignmentScore,
+    coursesData: courses.map(c => ({
+      title: c.title,
+      performanceScores: c.performanceScores,
+      courseQuality: c.courseQuality
+    }))
+  });
+  
   return (
     <div className="student-profile-details-sec">
       <div className="row">
@@ -35,7 +90,14 @@ const StudentProfileDetails = ({ data }) => {
             <div className="col-lg-3 mb-4">
               <div className="profile-box card-box text-center">
                 <div className="img-profile">
-                  <Image src={data.profileImage} alt="" />
+                  <Image
+                    src={imageError || !data.profileImage ? StudentImage : data.profileImage}
+                    alt="Student Profile"
+                    width={100}
+                    height={100}
+                    style={{ objectFit: 'cover', borderRadius: '50%' }}
+                    onError={() => setImageError(true)}
+                  />
                 </div>
                 <div className="text-profile">
                   <h2>{data.username}</h2>
@@ -60,12 +122,12 @@ const StudentProfileDetails = ({ data }) => {
                     <span className="details-box">{data.age}</span>
                   </li>
                   <li className="d-flex align-items-center">
-                    <span className="name-box">DOB :</span>
-                    <span className="details-box">1 January 2022</span>
+                    <span className="name-box">City :</span>
+                    <span className="details-box">{data.city}</span>
                   </li>
                   <li className="d-flex align-items-center">
-                    <span className="name-box">Gender :</span>
-                    <span className="details-box">Female</span>
+                    <span className="name-box">Category :</span>
+                    <span className="details-box">{data.courses.length > 0 ? data.courses[0].category : 'N/A'}</span>
                   </li>
                 </ul>
               </div>
@@ -77,12 +139,12 @@ const StudentProfileDetails = ({ data }) => {
                   <li className="d-flex align-items-center">
                     <span className="name-box">Course :</span>
                     <span className="details-box">
-                      Piano Classes & Guitar Classes
+                      {courses.map(course => course.title).join(', ')}
                     </span>
                   </li>
                   <li className="d-flex align-items-center">
                     <span className="name-box">Course Fee :</span>
-                    <span className="details-box">Rs. 80,000</span>
+                    <span className="details-box">Rs. {totalCourseFee.toLocaleString()}</span>
                   </li>
                   <li className="d-flex align-items-center">
                     <span className="name-box">Amount Paid :</span>
@@ -114,6 +176,11 @@ const StudentProfileDetails = ({ data }) => {
                       const text = expanded
                         ? course.description
                         : course.description.slice(0, MAX_CHARS);
+
+                      // Find student's performance score for this course
+                      const studentPerformanceScore = course.performanceScores?.find(
+                        score => score.userId === data.studentId || score.userId._id === data.studentId
+                      );
 
                       return (
                         <div key={course._id} className="enrolled-box">
@@ -151,6 +218,14 @@ const StudentProfileDetails = ({ data }) => {
                                   <strong>Rs {course.price}</strong>
                                 </span>
                               </li>
+                              {studentPerformanceScore && (
+                                <li className="d-flex align-items-center gap-2">
+                                  <span className="student-text">Performance :</span>
+                                  <span className="student-txt">
+                                    <strong>{studentPerformanceScore.score}/10</strong>
+                                  </span>
+                                </li>
+                              )}
                             </ul>
                           </div>
 
@@ -179,7 +254,7 @@ const StudentProfileDetails = ({ data }) => {
                                 </li>
                                 <li>
                                   <Link
-                                    href="/session-summary"
+                                    href={`/tutor/session-summary`}
                                     className="btn btn-border padding-fixed d-flex align-items-center justify-content-center gap-2"
                                   >
                                     <span>Session Summary</span>
@@ -249,7 +324,7 @@ const StudentProfileDetails = ({ data }) => {
                           <ul className="d-flex align-items-center w-full-width gap-2 justify-content-center m-auto mt-3 list-unstyled flex-wrap m-0 p-0">
                             <li>
                               <Link
-                                href="/view-course-detail"
+                                href="/tutor/ViewCourseDetail/"
                                 className="btn btn-border padding-fixed d-flex align-items-center justify-content-center gap-2"
                               >
                                 <span>View More</span>
@@ -282,7 +357,7 @@ const StudentProfileDetails = ({ data }) => {
             <div className="card-box mb-4">
               <div className="top-progress helf-semicir-sec mb-0">
                 <SemiCircleProgress
-                  value={7.6}
+                  value={overallPerformanceScore}
                   label="Overall Course Performance"
                 />
               </div>
@@ -291,13 +366,14 @@ const StudentProfileDetails = ({ data }) => {
               <div className="card-pro">
                 <ScoreCard
                   title="Class Quality Score"
-                  score={classQualityScore}
+                  score={classQualityScore || 5.6}
                   text="Excellent"
                   image={StudentProfileImg}
+                  link={`/tutor/courseQuality?courseId=${courses[1]._id}`}
                 />
                 <ScoreCard
                   title="Assignments"
-                  score={5}
+                  score={assignmentScore}
                   text="Completed"
                   image={StudentProfileImg}
                 />
