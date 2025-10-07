@@ -451,9 +451,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-tuhrefr"
+                      href="/my-tutor"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/my-tuhrefr") ? "active" : ""
+                        isActive("/my-tutor") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -470,7 +470,7 @@ const SideMenuHeader = ({ role }) => {
                           />
                         </svg>
                       </span>
-                      <span>My Tuhrefr</span>
+                      <span>My Tutor</span>
                     </Link>
                   </li>
                   <li>
@@ -760,9 +760,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-tuhrefr"
+                      href="/my-tutor"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/my-tuhrefr") ? "active" : ""
+                        isActive("/my-tutor") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -779,7 +779,7 @@ const SideMenuHeader = ({ role }) => {
                           />
                         </svg>
                       </span>
-                      <span>Tuhrefr</span>
+                      <span>Tutor</span>
                     </Link>
                   </li>
                   <li>
@@ -820,8 +820,8 @@ const SideMenuHeader = ({ role }) => {
                 </>
               )}
             </ul>
-            <div className="log-out-btn d-flex align-items-center gap-2 mt-auhref">
-              <Link href="" className="text-log-out bg-transparent">
+            <div className="log-out-btn d-flex align-items-center gap-2 mt-auto">
+              <Link href="/" className="text-log-out bg-transparent">
                 <svg
                   width="24"
                   height="24"
