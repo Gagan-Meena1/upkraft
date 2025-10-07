@@ -16,6 +16,7 @@ interface UserData {
   contact: string;
   courses: any[];
   createdAt: string;
+  profileImage?: string;
 }
 const TopHeader = ({ role, setRole }) => {
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -46,7 +47,7 @@ const TopHeader = ({ role, setRole }) => {
                 <Form.Group className="position-relative mb-0">
                     <Form.Label className='d-none'>search</Form.Label>
                     <Form.Control type="text" placeholder="Search here" />
-                    <Button className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute">
+                    <Button variant='link' className="btn border-0 bg-transparent p-0 m-0 !top-[10px] position-absolute">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.4995 17.5L13.8828 13.8833" stroke="#505050" strokeLinecap="round" strokeLinejoin="round"/><path d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z" stroke="#505050" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </Button>
                 </Form.Group>
@@ -54,18 +55,7 @@ const TopHeader = ({ role, setRole }) => {
         </div>
         <div className='right-head-details'>  
             <div className='listing-details-author d-flex align-items-center'>
-              <div className="dropdown-box me-4">
-                  <Dropdown>
-                    <Dropdown.Toggle variant="primary" id="dropdown-basic" className='py-1 btn btn-border'>
-                    {role}
-                    </Dropdown.Toggle>
-                    <Dropdown.Menu>
-                      <Dropdown.Item  onClick={() => setRole("tutor")}>tutor</Dropdown.Item>
-                      <Dropdown.Item onClick={() => setRole("student")}>student</Dropdown.Item>
-                      <Dropdown.Item onClick={() => setRole("admin")}>admin</Dropdown.Item>
-                    </Dropdown.Menu>
-                  </Dropdown>
-              </div>
+              
                 <ul className=' d-flex align-items-center gap-md-3 gap-2 mb-0 p-0 list-unstyled'>
                     <li>
                         <Link href="" className='btn-box btn-dark'>
