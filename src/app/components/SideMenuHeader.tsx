@@ -337,7 +337,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/payment-summary"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/payment-summary") ? "active" : ""
                       }`}
@@ -621,7 +621,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/payment-summary"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/payment-summary") ? "active" : ""
                       }`}
