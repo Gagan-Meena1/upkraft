@@ -23,7 +23,7 @@ const SideMenuHeader = ({ role }) => {
       >
         <div className="offcanvas-body">
           <div className="img-logo">
-            <Link href="/" className="logo">
+            <Link href="/tutor" className="logo">
               <Image src={LogoHeader} alt="logo" />
             </Link>
           </div>
