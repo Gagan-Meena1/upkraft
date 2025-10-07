@@ -821,7 +821,7 @@ const SideMenuHeader = ({ role }) => {
               )}
             </ul>
             <div className="log-out-btn d-flex align-items-center gap-2 mt-auto">
-              <Link href="/" className="text-log-out bg-transparent">
+              <Link href="/login" className="text-log-out bg-transparent">
                 <svg
                   width="24"
                   height="24"
