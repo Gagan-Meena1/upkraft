@@ -495,68 +495,84 @@ console.log("Fetched Assignments:", assignmentResponseData);
       }
     };
 
-    const calculatePendingFeedback = async (userData: any) => {
+ const calculatePendingFeedback = async (userData: any) => {
+  try {
+    // Get all students for this tutor
+    const studentsResponse = await fetch("/Api/myStudents");
+    const studentsData = await studentsResponse.json();
+
+    if (!studentsData.filteredUsers) {
+      throw new Error("Failed to load students data");
+    }
+
+    const students = studentsData.filteredUsers;
+
+    // Early exit: if no students found, set pending feedback to 0
+    if (!students || students.length === 0) {
+      console.log("No students found for this tutor");
+      setPendingFeedbackCount(0);
+      return;
+    }
+
+    const courseDetails = userData?.courseDetails || [];
+    const classDetails = userData?.classDetails || [];
+
+    // Early exit: if no classes found, set pending feedback to 0
+    if (!classDetails || classDetails.length === 0) {
+      console.log("No classes found for this tutor");
+      setPendingFeedbackCount(0);
+      return;
+    }
+
+    const feedbackPromises = courseDetails.map(async (course: any) => {
       try {
-        // Get all students for this tutor
-        const studentsResponse = await fetch("/Api/myStudents");
-        const studentsData = await studentsResponse.json();
-
-        if (!studentsData.filteredUsers) {
-          throw new Error("Failed to load students data");
+        const response = await fetch(
+          `/Api/studentFeedbackForTutor?courseId=${course._id}`
+        );
+        if (response.status === 404) {
+          console.log(`No classes found for course ${course._id}`);
+          setPendingFeedbackCount(0);
+          throw new Error("No classes found for the course");
         }
-
-        const students = studentsData.filteredUsers;
-
-        const courseDetails = userData?.courseDetails || [];
-        const classDetails = userData?.classDetails || [];
-
-        const feedbackPromises = courseDetails.map(async (course: any) => {
-          try {
-            const response = await fetch(
-              `/Api/studentFeedbackForTutor?courseId=${course._id}`
-            );
-            if (response.status === 404) {
-              return { courseId: course._id, feedbacks: [] };
-            }
-            if (response.ok) {
-              const data = await response.json();
-              return { courseId: course._id, feedbacks: data.data || [] };
-            }
-            return { courseId: course._id, feedbacks: [] };
-          } catch (e) {
-            console.error(`Error fetching feedback for course ${course._id}:`, e);
-            return { courseId: course._id, feedbacks: [] };
-          }
-        });
-
-        const feedbackResults = await Promise.all(feedbackPromises);
-
-        const classesWithFeedback = new Map();
-        feedbackResults.forEach((result) => {
-          result.feedbacks.forEach((feedback: any) => {
-            const key = `${feedback.classId}-${feedback.userId}`;
-            classesWithFeedback.set(key, true);
-          });
-        });
-
-        // Count all pending feedback instances
-        let pendingCount = 0;
-        students.forEach((student: any) => {
-          classDetails.forEach((cls: any) => {
-            const key = `${cls._id}-${student._id}`;
-            if (!classesWithFeedback.has(key)) {
-              pendingCount++;
-            }
-          });
-        });
-
-        // Set the pending feedback count in state
-        setPendingFeedbackCount(pendingCount);
-      } catch (error) {
-        console.error("Error calculating pending feedback count:", error);
-        setPendingFeedbackCount(0);
+        if (response.ok) {
+          const data = await response.json();
+          return { courseId: course._id, feedbacks: data.data || [] };
+        }
+        return { courseId: course._id, feedbacks: [] };
+      } catch (e) {
+        console.error(`Error fetching feedback for course ${course._id}:`, e);
+        return { courseId: course._id, feedbacks: [] };
       }
-    };
+    });
+
+    const feedbackResults = await Promise.all(feedbackPromises);
+
+    const classesWithFeedback = new Map();
+    feedbackResults.forEach((result) => {
+      result.feedbacks.forEach((feedback: any) => {
+        const key = `${feedback.classId}-${feedback.userId}`;
+        classesWithFeedback.set(key, true);
+      });
+    });
+
+    // Count all pending feedback instances
+    let pendingCount = 0;
+    students.forEach((student: any) => {
+      classDetails.forEach((cls: any) => {
+        const key = `${cls._id}-${student._id}`;
+        if (!classesWithFeedback.has(key)) {
+          pendingCount++;
+        }
+      });
+    });
+
+    // Set the pending feedback count in state
+    setPendingFeedbackCount(pendingCount);
+  } catch (error) {
+    console.error("Error calculating pending feedback count:", error);
+    setPendingFeedbackCount(0);
+  }
+};
 
     fetchData();
   }, []);
@@ -867,5 +883,3 @@ console.log("Fetched Assignments:", assignmentResponseData);
     </>
   );
 }
-
-
