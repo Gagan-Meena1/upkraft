@@ -361,9 +361,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="tutor/refer-earn"
+                      href="/tutor/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/Refer-Earn") ? "active" : ""
+                        isActive("/tutor/refer-earn") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -389,9 +389,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/settings"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/settings") ? "active" : ""
+                        isActive("/") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -645,9 +645,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/Refer-Earn"
+                      href="/tutor/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/Refer-Earn") ? "active" : ""
+                        isActive("/tutor/refer-earn") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -673,9 +673,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/settings"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/settings") ? "active" : ""
+                        isActive("/") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
