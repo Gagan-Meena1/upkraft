@@ -528,7 +528,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
     }}
   />
   
-  <button 
+<button 
     onClick={() => {
       if (selectedFeedback) {
         triggerFileInput(selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id);
@@ -536,9 +536,13 @@ const getButtonText = (classId: string, isUploading: boolean) => {
     }}
     disabled={selectedFeedback ? uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] : false}
     style={{ 
-      backgroundColor: selectedFeedback && uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] ? '#9ca3af' : '#34d399',
+      backgroundColor: selectedFeedback && uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] ? '#a855f7' : '#9333ea',
       color: '#ffffff',
-      border: 'none'
+      border: 'none',
+      boxShadow: selectedFeedback && !uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] 
+        ? '0 0 12px rgba(147, 51, 234, 0.4)' 
+        : 'none',
+      transition: 'all 0.3s ease'
     }}
     className='btn-link d-flex align-items-center gap-2 justify-content-center px-3 py-2 rounded'
   >

@@ -315,7 +315,7 @@ export default function StudentDetails() {
   <div className="flex flex-col gap-2 w-full">
 <Link 
   href={`/tutor/courseDetailsForFeedback/${course._id}?studentId=${studentData.studentId}`} 
-  className="flex items-center justify-center px-4 py-3 rounded-lg bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-sm font-medium w-full text-white shadow-lg shadow-blue-500/40 hover:shadow-xl hover:shadow-blue-500/50 hover:scale-[1.02]"
+  className="flex items-center justify-center px-4 py-2  bg-gradient-to-r from-purple-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 transition-all duration-300 text-sm font-medium w-full text-white shadow-lg shadow-blue-500/40 hover:shadow-xl hover:shadow-blue-500/50 hover:scale-[1.02]"
 >
   <ExternalLink size={16} className="mr-2" />
   <span>View Details</span>

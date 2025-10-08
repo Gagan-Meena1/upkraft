@@ -62,15 +62,26 @@ export default function Home() {
     }
   }, [activeCard]);
 
-  return (
-    <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900" style={{ backgroundColor: '#fbf5ee' }}>
-      {/* Font imports */}
+ return (
+    <div style={{
+      all: 'revert',
+      contain: 'layout style paint',
+      minHeight: '100vh',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: '#fbf5ee',
+      color: '#1f2937',
+      fontSize: '16px',
+      lineHeight: '1.5',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      {/* Only your page styles - nothing inherited */}
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700;800;900&display=swap');
 
-        /* Typography System */
         .heading-primary {
           font-family: 'Playfair Display', serif;
           font-weight: 500;
@@ -106,32 +117,10 @@ export default function Home() {
           color: #374151;
         }
 
-        /* Legacy classes for compatibility */
-        h1, h2, h3, .heading-font {
-          font-family: 'Manrope', sans-serif;
-          color: #ff8d57;
-          font-weight: 700;
-        }
-
-        p, .body-font, body, input, button, textarea, select {
-          font-family: 'Lato', sans-serif;
-        }
-
-        .lato-semibold {
-          font-family: 'Lato', sans-serif;
-          font-weight: 600;
-        }
-
-        .lato-normal {
-          font-family: 'Lato', sans-serif;
-          font-weight: 400;
-        }
-        
         .playfair-display {
           font-family: 'Playfair Display', serif;
         }
 
-        /* Responsive video container */
         .video-container {
           position: relative;
           width: 100%;
@@ -145,7 +134,6 @@ export default function Home() {
           }
         }
 
-        /* Hide scrollbar for carousel */
         .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
@@ -154,6 +142,8 @@ export default function Home() {
           display: none;
         }
       `}</style>
+
+      {/* Rest of your page content */}
 
       {/* Navigation */}
       <nav className="w-full py-3 px-4 sm:px-6 lg:px-8 flex justify-between items-center sticky top-0 backdrop-blur-md z-50" style={{ backgroundColor: '#fbf5ee' }}>
