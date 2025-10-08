@@ -307,12 +307,12 @@ const fetchInProgress = useRef(false);
 useEffect(() => {
   const fetchData = async () => {
     try {
-if (fetchInProgress.current) {
-      console.log("Fetch already in progress, skipping");
-      return;
-    }
-    
-    fetchInProgress.current = true;
+      if (fetchInProgress.current) {
+        console.log("Fetch already in progress, skipping");
+        return;
+      }
+      
+      fetchInProgress.current = true;
 
       // Parallelize initial API calls
       const [userResponse, assignmentResponse, perfResponse] = await Promise.allSettled([
@@ -329,7 +329,7 @@ if (fetchInProgress.current) {
         ? await assignmentResponse.value.json() 
         : null;
 
-      // Handle performance score - NO CALCULATION NEEDED
+      // Handle performance score
       if (perfResponse.status === 'fulfilled') {
         const perfData = await perfResponse.value.json();
         
@@ -347,6 +347,7 @@ if (fetchInProgress.current) {
 
       if (!userData?.user) {
         setLoading(false);
+        fetchInProgress.current = false;
         return;
       }
 
@@ -374,15 +375,20 @@ if (fetchInProgress.current) {
         setAssignmentCompletionPercentage(percentage);
       }
 
-     
-
-      // Calculate pending feedback - OPTIMIZED with early 404 exit
-      await calculatePendingFeedbackOptimized(userData);
-
+      // ✅ CRITICAL CHANGE: Show page NOW - don't wait for feedback calculation
       setLoading(false);
+      fetchInProgress.current = false;
+
+      // ✅ Load feedback in background AFTER page is shown
+      calculatePendingFeedbackOptimized(userData).catch((error) => {
+        console.error("Background feedback calculation failed:", error);
+        setPendingFeedbackCount(0);
+      });
+
     } catch (error) {
       console.error("Error fetching data:", error);
       setLoading(false);
+      fetchInProgress.current = false;
     }
   };
 
@@ -391,32 +397,18 @@ if (fetchInProgress.current) {
       const courseDetails = userData?.courseDetails || [];
       const classDetails = userData?.classDetails || [];
 
-      if (!classDetails || classDetails.length === 0) {
+      if (!classDetails || classDetails.length === 0 || !courseDetails || courseDetails.length === 0) {
         setPendingFeedbackCount(0);
         return;
       }
 
-      // Fetch students first
-      const studentsResponse = await fetch("/Api/myStudents");
-      const studentsData = await studentsResponse.json();
-      const students = studentsData.filteredUsers || [];
-
-      if (students.length === 0) {
-        setPendingFeedbackCount(0);
-        return;
-      }
-
-      // Parallelize feedback fetching for all courses
-      const feedbackPromises = courseDetails.map((course: any) =>
-        fetch(`/Api/studentFeedbackForTutor?courseId=${course._id}`)
+      // ✅ OPTIMIZATION: Fetch students and feedback in parallel
+      const courseIds = courseDetails.map((c: any) => c._id);
+      
+      const feedbackPromises = courseIds.map((courseId: string) =>
+        fetch(`/Api/studentFeedbackForTutor?courseId=${courseId}`)
           .then(async (response) => {
-            // CRITICAL: Return null immediately on 404 - don't try to parse
-            if (response.status === 404) {
-              console.log(`404 for course ${course._id} - skipping`);
-              return null;
-            }
-            
-            if (!response.ok) {
+            if (response.status === 404 || !response.ok) {
               return null;
             }
             
@@ -427,10 +419,27 @@ if (fetchInProgress.current) {
               return null;
             }
           })
-          .catch(() => null) // Handle any network errors
+          .catch(() => null)
       );
 
-      const feedbackResults = await Promise.all(feedbackPromises);
+      // Fetch students and all feedback in parallel
+      const [studentsResponse, ...feedbackResults] = await Promise.all([
+        fetch("/Api/myStudents"),
+        ...feedbackPromises
+      ]);
+
+      if (!studentsResponse.ok) {
+        setPendingFeedbackCount(0);
+        return;
+      }
+
+      const studentsData = await studentsResponse.json();
+      const students = studentsData.filteredUsers || [];
+
+      if (students.length === 0) {
+        setPendingFeedbackCount(0);
+        return;
+      }
 
       // Process feedback results
       const classesWithFeedback = new Map();
