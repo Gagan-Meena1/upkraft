@@ -112,6 +112,7 @@ const userSchema = new mongoose.Schema({
 {timestamps: true}
 );
 
+db.users.createIndex({ instructorId: 1, category: 1 });
+
 const User = mongoose.models.users || mongoose.model("users", userSchema);
 export default User;
-db.users.createIndex({ instructorId: 1, category: 1 });
