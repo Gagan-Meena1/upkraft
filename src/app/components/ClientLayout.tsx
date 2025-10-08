@@ -40,7 +40,7 @@ export default function ClientLayout({
     <>
       <Toaster position="top-center" />
       {children}
-      <Chat />
+      {/* <Chat /> */}
     </>
   );
 }

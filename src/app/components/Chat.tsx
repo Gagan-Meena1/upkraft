@@ -102,20 +102,20 @@ export default function Chat() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="z-50">
       {/* Chat Icon */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative bg-orange-500 hover:bg-orange-600 text-white rounded-full p-4 shadow-lg transition-all duration-200 ease-in-out ai-chat-icon"
+        className="!relative !bg-orange-500 !hover:bg-orange-600 !text-white !rounded-full !p-2 !shadow-lg !transition-all !duration-200 !ease-in-out !ai-chat-icon"
         aria-label="Open AI Chat Support"
       >
         {/* AI Chat Icon with Glow and Badge */}
-        <span className="absolute -top-1 -right-1 bg-white text-orange-500 text-xs font-bold rounded-full px-2 py-0.5 shadow-md border border-orange-500 z-10" style={{letterSpacing: '1px'}}>AI</span>
+        <span className="!absolute !-top-1 !-right-1 !bg-white !text-orange-500 !text-xs !font-bold !rounded-full !px-2 !py-0.25 !shadow-md !border !border-orange-500 !z-10" style={{letterSpacing: '1px'}}>AI</span>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 40 40"
           fill="none"
-          className="w-8 h-8"
+          className="w-7 h-7"
         >
           {/* Chat bubble */}
           <ellipse cx="20" cy="22" rx="15" ry="12" fill="#fff" stroke="#fb923c" strokeWidth="2.5" />
@@ -139,24 +139,24 @@ export default function Chat() {
 
       {/* Chat Interface */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-80 bg-white rounded-lg shadow-xl border border-gray-200">
+        <div className="!absolute !top-16 !right-16 !w-96 !bg-white !rounded-lg !shadow-xl !border !border-gray-200">
           {/* Chat Header */}
-          <div className="bg-orange-500 p-4 rounded-t-lg">
-            <h3 className="font-bold text-xl" style={{ color: '#ffffff' }}>AI Chat Support</h3>
+          <div className="!bg-orange-500 !p-4 !rounded-t-lg">
+            <h3 className="!font-bold !text-xl" style={{ color: '#ffffff' }}>AI Chat Support</h3>
           </div>
 
           {/* Messages Container */}
-          <div className="h-96 overflow-y-auto p-4">
+          <div className="!h-96 !overflow-y-auto !p-4">
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`mb-4 ${message.isUser ? 'text-right' : 'text-left'}`}
+                className={`!mb-4 ${message.isUser ? '!text-right' : '!text-left'}`}
               >
                 <div
-                  className={`inline-block p-3 rounded-lg whitespace-pre-wrap ${
+                  className={`!inline-block !p-3 !rounded-lg !whitespace-pre-wrap ${
                     message.isUser
-                      ? 'bg-orange-500 text-white'
-                      : 'bg-gray-100 text-gray-800'
+                      ? '!bg-orange-500 !text-white'
+                      : '!bg-gray-100 !text-gray-800'
                   }`}
                   style={{ maxWidth: '80%' }}
                 >
@@ -168,13 +168,13 @@ export default function Chat() {
                     return part;
                   })}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="!text-xs !text-gray-500 mt-1">
                   {message.timestamp.toLocaleTimeString()}
                 </div>
               </div>
             ))}
             {isLoading && (
-              <div className="text-center text-gray-500">
+              <div className="!text-center !text-gray-500">
                 <div className="typing-indicator">
                   <span></span>
                   <span></span>
@@ -186,19 +186,19 @@ export default function Chat() {
           </div>
 
           {/* Message Input */}
-          <form onSubmit={handleSendMessage} className="border-t border-gray-200 p-4">
-            <div className="flex space-x-2">
+          <form onSubmit={handleSendMessage} className="!border-t !border-gray-200 !p-4">
+            <div className="!flex !space-x-2">
               <input
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Type your message..."
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-orange-500 text-gray-900 bg-white placeholder-gray-500"
+                className="!border !border-gray-300 !rounded-lg !px-4 !py-2 !focus:outline-none !focus:border-orange-500 !text-gray-900 !bg-white !placeholder-gray-500 !min-w-full"
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors disabled:bg-orange-300"
+                className="!bg-orange-500 !text-white !px-4 !py-2 !rounded-lg !hover:bg-orange-600 !transition-colors !disabled:bg-orange-300"
               >
                 Send
               </button>
@@ -209,37 +209,37 @@ export default function Chat() {
 
       <style jsx>{`
         .typing-indicator {
-          display: flex;
-          justify-content: center;
-          gap: 4px;
+          display: flex !important;
+          justify-content: center !important;
+          gap: 4px !important;
         }
 
         .typing-indicator span {
-          width: 8px;
-          height: 8px;
-          background-color: #d1d5db;
-          border-radius: 50%;
-          animation: bounce 1.4s infinite ease-in-out;
+          width: 8px !important;
+          height: 8px !important;
+          background-color: #d1d5db !important;
+          border-radius: 50% !important;
+          animation: bounce 1.4s infinite ease-in-out !important;
         }
 
-        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s !important; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s !important; }
 
         @keyframes bounce {
-          0%, 80%, 100% { transform: scale(0); }
-          40% { transform: scale(1); }
+          0%, 80%, 100% { transform: scale(0) !important; }
+          40% { transform: scale(1) !important; }
         }
         /* AI Chat Icon Glow */
         .ai-chat-icon {
-          box-shadow: 0 0 0 0 #fb923c, 0 0 16px 4px #fb923c44;
-          animation: ai-glow 2s infinite alternate;
+          box-shadow: 0 0 0 0 #fb923c, 0 0 16px 4px #fb923c44 !important;
+          animation: ai-glow 2s infinite alternate !important;
         }
         @keyframes ai-glow {
           0% {
-            box-shadow: 0 0 0 0 #fb923c, 0 0 16px 4px #fb923c44;
+            box-shadow: 0 0 0 0 #fb923c, 0 0 16px 4px #fb923c44 !important;
           }
           100% {
-            box-shadow: 0 0 0 4px #fb923c55, 0 0 32px 8px #fb923c66;
+            box-shadow: 0 0 0 4px #fb923c55, 0 0 32px 8px #fb923c66 !important;
           }
         }
       `}</style>

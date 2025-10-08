@@ -171,12 +171,12 @@ export default function Home() {
         </div>
         <div className="!flex !space-x-2 sm:!space-x-4 body-text">
           <Link href="/signup">
-            <button className="!px-3 sm:!px-6 !py-2 !text-gray-900 !font-medium !rounded-lg hover:!bg-gray-300 hover:!text-gray-800 !transition-colors !duration-200 body-text-semibold !text-sm sm:!text-base">
+            <button className="!px-3 sm:!px-6 !py-2 !text-gray-900 !font-bond !rounded-lg hover:!bg-gray-300 hover:!text-gray-800 !transition-colors !duration-200 body-text-semibold !text-sm sm:!text-base">
               Sign Up
             </button>
           </Link>
           <Link href="/login">
-            <button className="!px-3 sm:!px-6 !py-2 !text-gray-900 !font-medium !rounded-lg hover:!bg-gray-300 hover:!text-gray-800 !transition-colors !duration-200 body-text-semibold !text-sm sm:!text-base">
+            <button className="!px-3 sm:!px-6 !py-2 !text-gray-900 !font-bond !rounded-lg hover:!bg-gray-300 hover:!text-gray-800 !transition-colors !duration-200 body-text-semibold !text-sm sm:!text-base">
               Login
             </button>
           </Link>
@@ -468,7 +468,7 @@ export default function Home() {
       </div>
 
       {/* Add Chat component */}
-      <Chat />
+      {/* <Chat /> */}
     </div>
   );
 }

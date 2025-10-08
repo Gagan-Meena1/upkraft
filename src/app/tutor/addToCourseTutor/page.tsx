@@ -11,6 +11,9 @@ interface Course {
   createdAt: string;
   duration: string;
   instructor: string;
+  price?: number;
+  category?: string;
+  // Add other fields as needed
 }
 
 export default function TutorCoursesPage() {
@@ -22,9 +25,7 @@ export default function TutorCoursesPage() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [studentId, setStudentId] = useState<string>("");
   const [tutorId, setTutorId] = useState<string>("");
-
-  
-
+  const [expandedCourses, setExpandedCourses] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -141,32 +142,28 @@ export default function TutorCoursesPage() {
     
   };
 
+  // Handler to toggle expanded state for a course
+const toggleExpanded = (courseId: string) => {
+  setExpandedCourses(prev => ({
+    ...prev,
+    [courseId]: !prev[courseId]
+  }));
+};
+
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
-      {/* Navigation */}
-      <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
-        <div className="font-extrabold text-2xl text-gray-800">
-          {/* <img src="/logo.png" alt="UPKRAFT" className="w-36 h-auto" /> */}
-            <Link href="/tutor" className="cursor-pointer">
-                                    <Image 
-                                      src="/logo.png"
-                                      alt="UpKraft"
-                                      width={288} // Use 2x the display size for crisp rendering
-                                      height={72}  // Adjust based on your logo's actual aspect ratio
-                                      priority
-                                      className="object-contain w-36 h-auto" 
-                                    />
-                                  </Link>
-        </div>
-        <div className="flex space-x-4">
-          <Link
-           href={`/tutor/myStudents`}>
-            <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition">
-              Back 
-            </button>
-          </Link>
-        </div>
-      </nav>
+      {/* Navigation - keep as is */}
+        {/* <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
+          <div className="font-extrabold text-2xl text-gray-800">
+          </div>
+          <div className="flex space-x-4">
+            <Link href={`/tutor/myStudents`}>
+              <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition">
+                Back 
+              </button>
+            </Link>
+          </div>
+        </nav> */}
 
       {/* Main Content */}
       <div className="flex-1 w-full max-w-6xl mx-auto px-8 py-12">
@@ -177,7 +174,7 @@ export default function TutorCoursesPage() {
               <input
                 type="text"
                 placeholder="Search courses..."
-                className="w-full md:w-64 px-4 py-2 pl-10 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full md:w-64 px-5 py-2 pl-10 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -221,74 +218,57 @@ export default function TutorCoursesPage() {
                 <div className="mb-4 text-sm text-gray-500">
                   Showing {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                {/* Changed from grid to single column layout */}
+                <div className="space-y-4">
                   {filteredCourses.map((course) => (
-                    <div 
-                      key={course._id} 
-                      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl scale:125 hover:translate-y-px"
-                    >
-                      <div className="bg-gray-900 h-3"></div>
-                      <div className="p-6">
-                    <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-xl font-semibold text-gray-900">{course.title || 'Untitled Course'}</h3>
-                        <button 
-                        className="w-8 h-8 flex items-center justify-center bg-orange-600 text-white rounded-full hover:bg-orange-700 transition"
-                        title="Add course to Student"
-                        aria-label="Add course"
-                        onClick={() => handleAddStudentToCourse(course._id)} // Add this line
-
-                        >
-                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                        </button>
-                    </div>
-                        <p className="text-gray-600 mb-4 line-clamp-3">{course.description || 'No description available'}</p>
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          <div className="px-3 py-1 bg-orange-100 rounded-full text-xs font-medium text-orange-600">
-                            <span className="flex items-center">
-                              <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              {formatDate(course.createdAt)}
-                            </span>
+                    <div key={course._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+                      <div className="flex items-center justify-between">
+                        {/* Left side - Course info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">{course.title || 'Untitled Course'}</h3>
+                            <div className="flex gap-2">
+                              <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
+                                Started: {formatDate(course.createdAt)}
+                              </span>
+                              <span className="px-2 py-1 bg-blue-100 rounded text-xs text-blue-600">
+                                Duration: {course.duration || 'Not specified'}
+                              </span>
+                            </div>
                           </div>
-                          <div className="px-3 py-1 bg-blue-100 rounded-full text-xs font-medium text-blue-600">
-                            <span className="flex items-center">
-                              <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              {course.duration || 'Duration not specified'}
-                            </span>
+                          <p className={`!text-gray-600 !text-sm !leading-6 ${!expandedCourses[course._id] ? "line-clamp-1" : ""}`}>
+                            {course.description || 'No description available'}
+                          </p>
+                          {course.description && course.description.length > 60 && (
+                            <button
+                              className="!text-blue-800 !text-xs underline cursor-pointer mb-3"
+                              onClick={() => toggleExpanded(course._id)}
+                            >
+                              {!expandedCourses[course._id] ? "Show more..." : "Show less"}
+                            </button>
+                          )}
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <span>Fees: Rs {course.price ?? "N/A"}</span>
+                            <span>Lessons: {course.curriculum ? course.curriculum.length : "N/A"} Lessons</span>
+                            <span>Category: {course.category ?? "N/A"}</span>
                           </div>
                         </div>
-                        {/* <div className="pt-4 border-t border-gray-100"> */}
-                          {/* <Link 
-                            href={`/tutor/courses/${course._id}`}
-                            className="w-full inline-flex justify-center items-center px-4 py-2 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition"
+
+                        {/* Right side - Actions */}
+                        <div className="flex items-center gap-3 ml-6">
+                        
+                          <button 
+                            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-700 transition-colors flex items-center gap-2"
+                            onClick={() => handleAddStudentToCourse(course._id)}
+                            title="Add course to Student"
                           >
-                            <svg 
-                              className="h-5 w-5 mr-2" 
-                              fill="none" 
-                              viewBox="0 0 24 24" 
-                              stroke="currentColor"
-                            >
-                              <path 
-                                strokeLinecap="round" 
-                                strokeLinejoin="round" 
-                                strokeWidth={2} 
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" 
-                              />
-                              <path 
-                                strokeLinecap="round" 
-                                strokeLinejoin="round" 
-                                strokeWidth={2} 
-                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" 
-                              />
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                             </svg>
-                            View Course Details
-                          </Link> */}
-                        {/* </div> */}
+                            Add Course
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -299,38 +279,36 @@ export default function TutorCoursesPage() {
         )}
       </div>
 
-     
-      {/* Add loading overlay and notification here */}
-{/* Loading overlay */}
-{isAddingStudent && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600 mb-4"></div>
-      <p className="text-gray-700">Adding student to course...</p>
-    </div>
-  </div>
-)}
-{/* Success/Error notification */}
-{addStudentMessage && (
-  <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
-    addStudentMessage.type === 'success' ? 'bg-green-100 border-l-4 border-green-500' : 'bg-red-100 border-l-4 border-red-500'
-  }`}>
-    <div className="flex items-center">
-      {addStudentMessage.type === 'success' ? (
-        <svg className="h-6 w-6 text-green-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ) : (
-        <svg className="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      )}
-      <p className={addStudentMessage.type === 'success' ? 'text-green-700' : 'text-red-700'}>
-        {addStudentMessage.text}
-      </p>
-    </div>
-  </div>
-)}
+    {/* Keep all existing loading overlay and notification code exactly as is */}
+    {isAddingStudent && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600 mb-4"></div>
+          <p className="text-gray-700">Adding student to course...</p>
+        </div>
+      </div>
+    )}
+
+    {addStudentMessage && (
+      <div className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+        addStudentMessage.type === 'success' ? 'bg-green-100 border-l-4 border-green-500' : 'bg-red-100 border-l-4 border-red-500'
+      }`}>
+        <div className="flex items-center">
+          {addStudentMessage.type === 'success' ? (
+            <svg className="h-6 w-6 text-green-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="h-6 w-6 text-red-500 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+          <p className={addStudentMessage.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+            {addStudentMessage.text}
+          </p>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

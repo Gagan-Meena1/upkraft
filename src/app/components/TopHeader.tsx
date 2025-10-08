@@ -5,6 +5,7 @@ import LogoHeader from '../../assets/LogoHeader.png'
 import { Button, Dropdown, Form } from 'react-bootstrap'
 import Author from '../../assets/Author.png'
 import Image from 'next/image'
+import Chat from './Chat'
 
 interface UserData {
   _id: string;
@@ -57,6 +58,9 @@ const TopHeader = ({ role, setRole }) => {
             <div className='listing-details-author d-flex align-items-center'>
               
                 <ul className=' d-flex align-items-center gap-md-3 gap-2 mb-0 p-0 list-unstyled'>
+                    <li>
+                        <Chat />
+                    </li>
                     <li>
                         <Link href="" className='btn-box btn-dark'>
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><g clipPath="url(#clip0_558_31833)"><path fillRule="evenodd" clipRule="evenodd" d="M13.8532 0.145982C13.9218 0.214468 13.969 0.301399 13.989 0.396203C14.0091 0.491006 14.0012 0.589597 13.9662 0.679982L8.96625 13.68C8.93085 13.772 8.86906 13.8514 8.78864 13.9084C8.70822 13.9654 8.61275 13.9973 8.51423 14.0002C8.41571 14.0031 8.31853 13.9768 8.23491 13.9246C8.15129 13.8725 8.08496 13.7967 8.04425 13.707L5.95325 9.10698L9.02925 6.02998C9.16173 5.88781 9.23385 5.69976 9.23042 5.50546C9.22699 5.31116 9.14828 5.12577 9.01087 4.98836C8.87345 4.85095 8.68807 4.77224 8.49377 4.76881C8.29947 4.76538 8.11142 4.8375 7.96924 4.96998L4.89225 8.04598L0.292245 5.95598C0.202212 5.91532 0.126242 5.8489 0.0739231 5.7651C0.0216042 5.6813 -0.00471863 5.58388 -0.00172314 5.48514C0.00127235 5.3864 0.0334519 5.29075 0.0907541 5.21028C0.148056 5.12981 0.227913 5.06811 0.320245 5.03298L13.3202 0.0329824C13.4105 -0.00174309 13.5089 -0.00955065 13.6035 0.0105056C13.6981 0.0305618 13.7848 0.0776212 13.8532 0.145982Z" fill="white"/></g><defs><clipPath id="clip0_558_31833"><rect width="14" height="14" fill="white"/></clipPath></defs></svg>

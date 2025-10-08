@@ -33,9 +33,9 @@ const SideMenuHeader = ({ role }) => {
                 <>
                   <li>
                     <Link
-                      href="/"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
-                        pathname === "/" ? "active" : ""
+                        pathname === "/tutor" ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -353,7 +353,7 @@ const SideMenuHeader = ({ role }) => {
                 <>
                   <li>
                     <Link
-                      href="/"
+                      href="/student"
                       className={`d-flex align-items-center gap-2 ${
                         pathname === "/" ? "active" : ""
                       }`}
@@ -638,7 +638,7 @@ const SideMenuHeader = ({ role }) => {
                 <>
                   <li>
                     <Link
-                      href="/"
+                      href="/admin"
                       className={`d-flex align-items-center gap-2 ${
                         pathname === "/" ? "active" : ""
                       }`}
@@ -748,8 +748,8 @@ const SideMenuHeader = ({ role }) => {
                 </>
               )}
             </ul>
-            <div className="log-out-btn d-flex align-items-center gap-2 mt-auhref">
-              <Link href="" className="text-log-out bg-transparent">
+            <div className="log-out-btn">
+              <Link href="" className="text-log-out bg-transparent !flex !items-center !gap-2 !mt-auto">
                 <svg
                   width="24"
                   height="24"
