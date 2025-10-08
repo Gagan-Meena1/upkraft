@@ -125,7 +125,7 @@ const ClassProgressBox = ({
                 Total:{" "}
                 <span className="font-medium text-gray-900">
                   {totalClasses}
-                </span>
+                </span>¯
               </span>
             </div>
           </div>
@@ -303,25 +303,28 @@ export default function Dashboard() {
     });
   };
 
-  useEffect(() => {
+useEffect(() => {
   const fetchData = async () => {
     try {
-      const userResponse = await fetch("/Api/users/user");
-      const userData = await userResponse.json();
+      // Parallelize initial API calls
+      const [userResponse, assignmentResponse, perfResponse] = await Promise.allSettled([
+        fetch("/Api/users/user"),
+        fetch("/Api/assignment"),
+        fetch("/Api/overallPerformanceScore")
+      ]);
 
-      const assignmentResponse = await fetch("/Api/assignment");
-      const assignmentResponseData = await assignmentResponse.json();
+      // Handle user data
+      const userData = userResponse.status === 'fulfilled' ? await userResponse.value.json() : null;
+      
+      // Handle assignment data
+      const assignmentResponseData = assignmentResponse.status === 'fulfilled' 
+        ? await assignmentResponse.value.json() 
+        : null;
 
-      // Fetch overall performance score with 401 error handling
+      // Handle performance score
       try {
-        const perfResponse = await fetch("/Api/overallPerformanceScore");
-        
-        if (perfResponse.status === 401) {
-          console.log("Unauthorized - setting performance scores to 0");
-          setOverallPerformanceScore(0);
-          setAverageCourseQuality(0);
-        } else if (perfResponse.ok) {
-          const perfData = await perfResponse.json();
+        if (perfResponse.status === 'fulfilled') {
+          const perfData = await perfResponse.value.json();
           
           if (perfData.success) {
             setOverallPerformanceScore(perfData.overallScore);
@@ -340,6 +343,11 @@ export default function Dashboard() {
         setAverageCourseQuality(0);
       }
 
+      if (!userData?.user) {
+        setLoading(false);
+        return;
+      }
+
       setUserData(userData.user);
       setStudentCount(userData.studentCount || 0);
 
@@ -356,7 +364,7 @@ export default function Dashboard() {
       }
 
       console.log("Fetched Assignments:", assignmentResponseData);
-      if (assignmentResponseData?.data.assignments) {
+      if (assignmentResponseData?.data?.assignments) {
         setAssignmentData(assignmentResponseData.data.assignments);
 
         const assignments = assignmentResponseData.data.assignments;
@@ -366,44 +374,48 @@ export default function Dashboard() {
         setAssignmentCompletionPercentage(percentage);
       }
 
+      // Parallelize course quality and student performance fetches
       if (userData.user?.courses?.length > 0) {
         const defaultCourseId = userData.user.courses[0];
 
+        const [courseQualityResponse, performanceResponse] = await Promise.allSettled([
+          fetch(`/Api/courseQuality?courseId=${defaultCourseId}`),
+          fetch(`/Api/studentFeedbackForTutor?courseId=${defaultCourseId}`)
+        ]);
+
+        // Handle course quality
         try {
-          const courseQualityResponse = await fetch(
-            `/Api/courseQuality?courseId=${defaultCourseId}`
-          );
-          const courseQualityData = await courseQualityResponse.json();
+          if (courseQualityResponse.status === 'fulfilled') {
+            const courseQualityData = await courseQualityResponse.value.json();
 
-          if (courseQualityData && !courseQualityData.error) {
-            if (courseQualityData.overall_quality_score !== undefined) {
-              setCoursePerformance(courseQualityData.overall_quality_score);
-            } else if (courseQualityData.hasEvaluation) {
-              const metrics = [
-                courseQualityData.session_focus_clarity_score || 0,
-                courseQualityData.content_delivery_score || 0,
-                courseQualityData.student_engagement_score || 0,
-                courseQualityData.student_progress_score || 0,
-                courseQualityData.key_performance_score || 0,
-                courseQualityData.communication_score || 0,
-              ];
+            if (courseQualityData && !courseQualityData.error) {
+              if (courseQualityData.overall_quality_score !== undefined) {
+                setCoursePerformance(courseQualityData.overall_quality_score);
+              } else if (courseQualityData.hasEvaluation) {
+                const metrics = [
+                  courseQualityData.session_focus_clarity_score || 0,
+                  courseQualityData.content_delivery_score || 0,
+                  courseQualityData.student_engagement_score || 0,
+                  courseQualityData.student_progress_score || 0,
+                  courseQualityData.key_performance_score || 0,
+                  courseQualityData.communication_score || 0,
+                ];
 
-              const availableMetrics = metrics.filter((score) => score > 0);
-              const avgScore =
-                availableMetrics.length > 0
-                  ? availableMetrics.reduce((a, b) => a + b, 0) /
-                    availableMetrics.length
-                  : 0;
+                const availableMetrics = metrics.filter((score) => score > 0);
+                const avgScore =
+                  availableMetrics.length > 0
+                    ? availableMetrics.reduce((a, b) => a + b, 0) /
+                      availableMetrics.length
+                    : 0;
 
-              setCoursePerformance(parseFloat(avgScore.toFixed(2)));
+                setCoursePerformance(parseFloat(avgScore.toFixed(2)));
+              } else {
+                setCoursePerformance(0);
+              }
             } else {
               setCoursePerformance(0);
             }
           } else {
-            console.log(
-              "Course quality data not available:",
-              courseQualityData?.error || "Unknown error"
-            );
             setCoursePerformance(0);
           }
         } catch (error) {
@@ -411,80 +423,66 @@ export default function Dashboard() {
           setCoursePerformance(0);
         }
 
-        // Fetch student performance data - WITH courseId parameter
+        // Handle student performance
         try {
-          const performanceResponse = await fetch(
-            `/Api/studentFeedbackForTutor?courseId=${defaultCourseId}`
-          );
+          if (performanceResponse.status === 'fulfilled') {
+            const response = performanceResponse.value;
+            
+            if (response.status === 404) {
+              console.log("No classes found for course - setting student performance to 0");
+              setStudentPerformance(0);
+            } else if (response.ok) {
+              const performanceData = await response.json();
 
-          if (performanceResponse.status === 404) {
-            console.log("No classes found for course - setting student performance to 0");
-            setStudentPerformance(0);
-          } else if (!performanceResponse.ok) {
-            throw new Error("Failed to fetch performance data");
-          } else {
-            const performanceData = await performanceResponse.json();
+              if (
+                performanceData?.success &&
+                performanceData?.data &&
+                performanceData.data.length > 0
+              ) {
+                let totalWeightedScore = 0;
 
-            if (
-              performanceData?.success &&
-              performanceData?.data &&
-              performanceData.data.length > 0
-            ) {
-              let totalWeightedScore = 0;
+                performanceData.data.forEach((item) => {
+                  const rhythm = typeof item.rhythm === 'string' ? parseFloat(item.rhythm) : (item.rhythm || 0);
+                  const theoreticalUnderstanding = typeof item.theoreticalUnderstanding === 'string' ? 
+                    parseFloat(item.theoreticalUnderstanding) : (item.theoreticalUnderstanding || 0);
+                  const performance = typeof item.performance === 'string' ? 
+                    parseFloat(item.performance) : (item.performance || 0);
+                  const earTraining = typeof item.earTraining === 'string' ? 
+                    parseFloat(item.earTraining) : (item.earTraining || 0);
+                  const assignment = typeof item.assignment === 'string' ? 
+                    parseFloat(item.assignment) : (item.assignment || 0);
+                  const technique = typeof item.technique === 'string' ? 
+                    parseFloat(item.technique) : (item.technique || 0);
+                  
+                  const weightedScore = 
+                    (rhythm * 1/6) +
+                    (theoreticalUnderstanding * 1/6) +
+                    (performance * 1/6) +
+                    (earTraining * 1/6) +
+                    (assignment * 1/6) +
+                    (technique * 1/6);
 
-              performanceData.data.forEach((item) => {
-                const rhythm = typeof item.rhythm === 'string' ? parseFloat(item.rhythm) : (item.rhythm || 0);
-                const theoreticalUnderstanding = typeof item.theoreticalUnderstanding === 'string' ? 
-                  parseFloat(item.theoreticalUnderstanding) : (item.theoreticalUnderstanding || 0);
-                const performance = typeof item.performance === 'string' ? 
-                  parseFloat(item.performance) : (item.performance || 0);
-                const earTraining = typeof item.earTraining === 'string' ? 
-                  parseFloat(item.earTraining) : (item.earTraining || 0);
-                const assignment = typeof item.assignment === 'string' ? 
-                  parseFloat(item.assignment) : (item.assignment || 0);
-                const technique = typeof item.technique === 'string' ? 
-                  parseFloat(item.technique) : (item.technique || 0);
-                
-                const rhythmWeight = 1/6;
-                const theoreticalWeight = 1/6;
-                const performanceWeight = 1/6;
-                const earTrainingWeight = 1/6;
-                const assignmentWeight = 1/6;
-                const techniqueWeight = 1/6;
+                  totalWeightedScore += weightedScore;
+                });
 
-                const weightedScore = 
-                  (rhythm * rhythmWeight) +
-                  (theoreticalUnderstanding * theoreticalWeight) +
-                  (performance * performanceWeight) +
-                  (earTraining * earTrainingWeight) +
-                  (assignment * assignmentWeight) +
-                  (technique * techniqueWeight);
+                const averageScore = performanceData.data.length > 0 ? 
+                  totalWeightedScore / performanceData.data.length : 0;
 
-                totalWeightedScore += weightedScore;
-              });
-
-              const averageScore = performanceData.data.length > 0 ? 
-                totalWeightedScore / performanceData.data.length : 0;
-
-              console.log("Student Performance Calculation:", {
-                totalWeightedScore,
-                dataPoints: performanceData.data.length,
-                averageScore,
-                roundedScore: parseFloat(averageScore.toFixed(1)),
-              });
-
-              setStudentPerformance(parseFloat(averageScore.toFixed(1)));
+                setStudentPerformance(parseFloat(averageScore.toFixed(1)));
+              } else {
+                setStudentPerformance(0);
+              }
             } else {
-              console.log("Student performance data not available");
               setStudentPerformance(0);
             }
+          } else {
+            setStudentPerformance(0);
           }
         } catch (error) {
           console.error("Error fetching student performance:", error);
           setStudentPerformance(0);
         }
       } else {
-        console.log("No courses available for this tutor. Using default values.");
         setCoursePerformance(0);
         setStudentPerformance(0);
       }
@@ -498,69 +496,72 @@ export default function Dashboard() {
     }
   };
 
-
-   const calculatePendingFeedback = async (userData: any) => {
+  const calculatePendingFeedback = async (userData: any) => {
     try {
-      // Get all students for this tutor
-      const studentsResponse = await fetch("/Api/myStudents");
-      const studentsData = await studentsResponse.json();
-
-      // Handle case where no students found (empty array)
-      if (!studentsData.filteredUsers || studentsData.filteredUsers.length === 0) {
-        console.log("No students found for this tutor");
-        setPendingFeedbackCount(0);
-        return;
-      }
-
-      const students = studentsData.filteredUsers;
-
       const courseDetails = userData?.courseDetails || [];
       const classDetails = userData?.classDetails || [];
 
-      // Early exit: if no classes found, set pending feedback to 0
       if (!classDetails || classDetails.length === 0) {
         console.log("No classes found for this tutor");
         setPendingFeedbackCount(0);
         return;
       }
 
-      const feedbackPromises = courseDetails.map(async (course: any) => {
-        try {
-          const response = await fetch(
-            `/Api/studentFeedbackForTutor?courseId=${course._id}`
-          );
-          
-          // Handle 404 - no classes found for this course
-          if (response.status === 404) {
-            console.log(`No classes found for course ${course._id}`);
-            return { courseId: course._id, feedbacks: [] };
-          }
-          
-          // Handle other non-ok responses
-          if (!response.ok) {
-            console.warn(`Failed to fetch feedback for course ${course._id}: ${response.status}`);
-            return { courseId: course._id, feedbacks: [] };
-          }
-          
-          const data = await response.json();
-          return { courseId: course._id, feedbacks: data.data || [] };
-        } catch (e) {
-          console.error(`Error fetching feedback for course ${course._id}:`, e);
-          return { courseId: course._id, feedbacks: [] };
-        }
-      });
+      // Parallelize all API calls
+      const [studentsResponse, ...feedbackResponses] = await Promise.allSettled([
+        fetch("/Api/myStudents"),
+        ...courseDetails.map((course: any) =>
+          fetch(`/Api/studentFeedbackForTutor?courseId=${course._id}`)
+        )
+      ]);
 
-      const feedbackResults = await Promise.all(feedbackPromises);
+      // Handle students
+      let students = [];
+      if (studentsResponse.status === 'fulfilled') {
+        const studentsData = await studentsResponse.value.json();
+        students = studentsData.filteredUsers || [];
+      }
 
+      if (students.length === 0) {
+        console.log("No students found for this tutor");
+        setPendingFeedbackCount(0);
+        return;
+      }
+
+      // Process feedback results
       const classesWithFeedback = new Map();
-      feedbackResults.forEach((result) => {
-        result.feedbacks.forEach((feedback: any) => {
-          const key = `${feedback.classId}-${feedback.userId}`;
-          classesWithFeedback.set(key, true);
-        });
-      });
+      
+      for (let i = 0; i < feedbackResponses.length; i++) {
+        const result = feedbackResponses[i];
+        
+        if (result.status === 'fulfilled') {
+          const response = result.value;
+          
+          if (response.status === 404) {
+            console.log(`No classes found for course ${courseDetails[i]._id}`);
+            continue;
+          }
+          
+          if (!response.ok) {
+            console.warn(`Failed to fetch feedback for course ${courseDetails[i]._id}: ${response.status}`);
+            continue;
+          }
+          
+          try {
+            const data = await response.json();
+            const feedbacks = data.data || [];
+            
+            feedbacks.forEach((feedback: any) => {
+              const key = `${feedback.classId}-${feedback.userId}`;
+              classesWithFeedback.set(key, true);
+            });
+          } catch (e) {
+            console.error(`Error parsing feedback for course ${courseDetails[i]._id}:`, e);
+          }
+        }
+      }
 
-      // Count all pending feedback instances
+      // Count pending feedback
       let pendingCount = 0;
       students.forEach((student: any) => {
         classDetails.forEach((cls: any) => {
@@ -571,7 +572,6 @@ export default function Dashboard() {
         });
       });
 
-      // Set the pending feedback count in state
       setPendingFeedbackCount(pendingCount);
     } catch (error) {
       console.error("Error calculating pending feedback count:", error);
