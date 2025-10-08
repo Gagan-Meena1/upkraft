@@ -78,3 +78,5 @@ const ClassSchema = new mongoose.Schema({
 });
 
 export default mongoose.models.Class || mongoose.model('Class', ClassSchema);
+db.classes.createIndex({ startTime: 1 });
+db.classes.createIndex({ _id: 1, startTime: 1 });

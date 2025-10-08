@@ -114,3 +114,4 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.models.users || mongoose.model("users", userSchema);
 export default User;
+db.users.createIndex({ instructorId: 1, category: 1 });

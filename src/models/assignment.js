@@ -71,3 +71,4 @@ const AssignmentSchema = new mongoose.Schema({
 const Assignment = mongoose.models.Assignment || mongoose.model('Assignment', AssignmentSchema);
 
 export default Assignment;
+db.assignments.createIndex({ courseId: 1, status: 1 });

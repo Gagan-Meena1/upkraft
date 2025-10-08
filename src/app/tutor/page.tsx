@@ -279,6 +279,10 @@ export default function Dashboard() {
   const classesPerPage = isMobile ? 1 : 3; // Show 1 class per page on mobile
   const totalPages = Math.ceil(classData.length / classesPerPage);
 
+  const LoadingSkeleton = ({ height = "h-8", width = "w-16" }) => (
+  <div className={`animate-pulse ${height} ${width} bg-gray-200 rounded`} />
+);
+
   // Check if mobile
   useEffect(() => {
     const checkMobile = () => {
@@ -305,7 +309,7 @@ export default function Dashboard() {
 const fetchInProgress = useRef(false);
 
 useEffect(() => {
-  const fetchData = async () => {
+  const fetchEssentialData = async () => {
     try {
       if (fetchInProgress.current) {
         console.log("Fetch already in progress, skipping");
@@ -314,15 +318,18 @@ useEffect(() => {
       
       fetchInProgress.current = true;
 
-      // Parallelize initial API calls
-      const [userResponse, assignmentResponse, perfResponse] = await Promise.allSettled([
-        fetch("/Api/users/user"),
+      // ✅ PHASE 1: Fetch ONLY the absolute minimum data to show the page
+      console.log("Phase 1: Loading essential data...");
+      const [essentialsResponse, assignmentResponse, perfResponse] = await Promise.allSettled([
+        fetch("/Api/users/essentials"), // User + future classes only
         fetch("/Api/assignment"),
         fetch("/Api/overallPerformanceScore")
       ]);
 
-      // Handle user data
-      const userData = userResponse.status === 'fulfilled' ? await userResponse.value.json() : null;
+      // Handle essentials data
+      const essentialsData = essentialsResponse.status === 'fulfilled' 
+        ? await essentialsResponse.value.json() 
+        : null;
       
       // Handle assignment data
       const assignmentResponseData = assignmentResponse.status === 'fulfilled' 
@@ -345,64 +352,123 @@ useEffect(() => {
         setAverageCourseQuality(0);
       }
 
-      if (!userData?.user) {
+      if (!essentialsData?.user) {
         setLoading(false);
         fetchInProgress.current = false;
         return;
       }
 
-      setUserData(userData.user);
-      setStudentCount(userData.studentCount || 0);
+      // Set essential data immediately
+      setUserData(essentialsData.user);
 
-      if (userData.classDetails && userData.classDetails.length > 0) {
-        const sortedClasses = userData.classDetails.sort(
-          (a: ClassData, b: ClassData) =>
-            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-        );
-
-        const futureClasses = filterFutureClasses(sortedClasses);
-        setClassData(futureClasses);
+      // Classes are already filtered to future classes from the API
+      if (essentialsData.classDetails && essentialsData.classDetails.length > 0) {
+        setClassData(essentialsData.classDetails);
       } else {
         setClassData([]);
       }
 
+      // Handle assignments
       if (assignmentResponseData?.data?.assignments) {
         setAssignmentData(assignmentResponseData.data.assignments);
 
         const assignments = assignmentResponseData.data.assignments;
-        const completedAssignments = assignments.filter(assignment => assignment.status === true).length;
+        const completedAssignments = assignments.filter(
+          assignment => assignment.status === true
+        ).length;
         const percentage = Math.round((completedAssignments / assignments.length) * 100);
         setAssignmentCompletionPercentage(percentage);
       }
 
-      // ✅ CRITICAL CHANGE: Show page NOW - don't wait for feedback calculation
+      // ✅ SHOW PAGE IMMEDIATELY - Student count and feedback will load in background
+      console.log("Phase 1 complete - showing page with loading states");
       setLoading(false);
       fetchInProgress.current = false;
 
-      // ✅ Load feedback in background AFTER page is shown
-      calculatePendingFeedbackOptimized(userData).catch((error) => {
-        console.error("Background feedback calculation failed:", error);
-        setPendingFeedbackCount(0);
-      });
+      // ✅ PHASE 2: Load non-critical data in background
+      console.log("Phase 2: Loading additional data in background...");
+      loadAdditionalData(essentialsData.user._id);
 
     } catch (error) {
-      console.error("Error fetching data:", error);
+      console.error("Error fetching essential data:", error);
       setLoading(false);
       fetchInProgress.current = false;
     }
   };
 
-  const calculatePendingFeedbackOptimized = async (userData: any) => {
+  const loadAdditionalData = async (userId: string) => {
     try {
-      const courseDetails = userData?.courseDetails || [];
-      const classDetails = userData?.classDetails || [];
+      // Fetch students and course details in parallel
+      const [studentsResponse, additionalResponse] = await Promise.allSettled([
+        fetch("/Api/myStudents"),
+        fetch("/Api/users/additional")
+      ]);
 
-      if (!classDetails || classDetails.length === 0 || !courseDetails || courseDetails.length === 0) {
+      // Handle students data
+      let studentsData = null;
+      if (studentsResponse.status === 'fulfilled') {
+        studentsData = await studentsResponse.value.json();
+        if (studentsData.success) {
+          setStudentCount(studentsData.userCount || 0);
+          console.log("Student count updated:", studentsData.userCount);
+        } else {
+          setStudentCount(0);
+        }
+      } else {
+        setStudentCount(0);
+      }
+
+      // Handle additional course data
+      if (additionalResponse.status !== 'fulfilled') {
+        console.error("Failed to load additional data");
         setPendingFeedbackCount(0);
         return;
       }
 
-      // ✅ OPTIMIZATION: Fetch students and feedback in parallel
+      const additionalData = await additionalResponse.value.json();
+      
+      if (additionalData.success && additionalData.courseDetails && studentsData) {
+        // Now calculate pending feedback with both students and course details
+        await calculatePendingFeedback(
+          additionalData.courseDetails,
+          studentsData
+        );
+      } else {
+        setPendingFeedbackCount(0);
+      }
+    } catch (error) {
+      console.error("Error loading additional data:", error);
+      setStudentCount(0);
+      setPendingFeedbackCount(0);
+    }
+  };
+
+  const calculatePendingFeedback = async (courseDetails: any[], studentsData: any) => {
+    try {
+      if (!courseDetails || courseDetails.length === 0) {
+        setPendingFeedbackCount(0);
+        return;
+      }
+
+      // Get students from the already fetched data
+      const students = studentsData?.filteredUsers || [];
+
+      if (students.length === 0) {
+        setPendingFeedbackCount(0);
+        return;
+      }
+
+      // Get all class IDs from courses
+      const classIds = courseDetails.reduce((acc, course) => {
+        return acc.concat(course.class || []);
+      }, []);
+
+      if (classIds.length === 0) {
+        setPendingFeedbackCount(0);
+        return;
+      }
+
+      // Fetch all feedback for all courses in parallel
       const courseIds = courseDetails.map((c: any) => c._id);
       
       const feedbackPromises = courseIds.map((courseId: string) =>
@@ -422,24 +488,7 @@ useEffect(() => {
           .catch(() => null)
       );
 
-      // Fetch students and all feedback in parallel
-      const [studentsResponse, ...feedbackResults] = await Promise.all([
-        fetch("/Api/myStudents"),
-        ...feedbackPromises
-      ]);
-
-      if (!studentsResponse.ok) {
-        setPendingFeedbackCount(0);
-        return;
-      }
-
-      const studentsData = await studentsResponse.json();
-      const students = studentsData.filteredUsers || [];
-
-      if (students.length === 0) {
-        setPendingFeedbackCount(0);
-        return;
-      }
+      const feedbackResults = await Promise.all(feedbackPromises);
 
       // Process feedback results
       const classesWithFeedback = new Map();
@@ -453,17 +502,18 @@ useEffect(() => {
         }
       });
 
-      // Count pending feedback
+      // Count pending feedback using classIds
       let pendingCount = 0;
       students.forEach((student: any) => {
-        classDetails.forEach((cls: any) => {
-          const key = `${cls._id}-${student._id}`;
+        classIds.forEach((classId: any) => {
+          const key = `${classId}-${student._id}`;
           if (!classesWithFeedback.has(key)) {
             pendingCount++;
           }
         });
       });
 
+      console.log("Pending feedback count calculated:", pendingCount);
       setPendingFeedbackCount(pendingCount);
     } catch (error) {
       console.error("Error calculating pending feedback:", error);
@@ -471,7 +521,7 @@ useEffect(() => {
     }
   };
 
-  fetchData();
+  fetchEssentialData();
 }, []);
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -644,8 +694,12 @@ useEffect(() => {
                       </span>
                       <span className="text-dark-blue text-box">Students</span>
                       <span className="text-black text-box">
-                        {studentCount}
-                      </span>
+                      {studentCount === 0 ? (
+                        <LoadingSkeleton height="h-5" width="w-12" />
+                            ) : (
+                              <span className="text-black text-box">{studentCount}</span>
+                            )} 
+                        </span>
                     </li>
                     <li className="btn-white d-flex align-items-center gap-2 w-100">
                       <span className="icons">
@@ -701,8 +755,18 @@ useEffect(() => {
               <div className="row">
                 <div className="col-md-12 mb-4">
                   <div className="card-box">
-                    <h2 className="top-text">{studentCount}</h2>
-                    <p className="bottom-text">Total Active Students</p>
+                    
+                   {studentCount === 0 ? (
+                    <>
+                      <LoadingSkeleton height="h-8" width="w-16" />
+                      <LoadingSkeleton height="h-4" width="w-32" />
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="top-text">{studentCount}</h2>
+                      <p className="bottom-text">Total Active Students</p>
+                    </>
+                  )}
                   </div>
                 </div>
                 <div className="col-md-12 mb-4">
@@ -772,8 +836,14 @@ useEffect(() => {
           </div>
           <div className="col-xxl-3 col-md-6 mb-4">
             <div className="card-box">
+  {pendingFeedbackCount === 0 ? (
+              <div className="p-4">
+                <LoadingSkeleton height="h-8" width="w-24" />
+                <LoadingSkeleton height="h-4" width="w-full" />
+              </div>
+            ) : (
               <FeedbackPending count={pendingFeedbackCount} />
-            </div>
+            )}            </div>
           </div>
         </div>
       </div>
