@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -302,10 +302,18 @@ export default function Dashboard() {
       return classStartTime > now;
     });
   };
+const fetchInProgress = useRef(false);
 
 useEffect(() => {
   const fetchData = async () => {
     try {
+if (fetchInProgress.current) {
+      console.log("Fetch already in progress, skipping");
+      return;
+    }
+    
+    fetchInProgress.current = true;
+
       // Parallelize initial API calls
       const [userResponse, assignmentResponse, perfResponse] = await Promise.allSettled([
         fetch("/Api/users/user"),
