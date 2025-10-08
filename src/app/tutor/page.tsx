@@ -125,7 +125,7 @@ const ClassProgressBox = ({
                 Total:{" "}
                 <span className="font-medium text-gray-900">
                   {totalClasses}
-                </span>¯
+                </span>
               </span>
             </div>
           </div>
@@ -321,24 +321,18 @@ useEffect(() => {
         ? await assignmentResponse.value.json() 
         : null;
 
-      // Handle performance score
-      try {
-        if (perfResponse.status === 'fulfilled') {
-          const perfData = await perfResponse.value.json();
-          
-          if (perfData.success) {
-            setOverallPerformanceScore(perfData.overallScore);
-            setAverageCourseQuality(perfData.averageCourseQuality);
-          } else {
-            setOverallPerformanceScore(0);
-            setAverageCourseQuality(0);
-          }
+      // Handle performance score - NO CALCULATION NEEDED
+      if (perfResponse.status === 'fulfilled') {
+        const perfData = await perfResponse.value.json();
+        
+        if (perfData.success) {
+          setOverallPerformanceScore(perfData.overallScore);
+          setAverageCourseQuality(perfData.averageCourseQuality);
         } else {
           setOverallPerformanceScore(0);
           setAverageCourseQuality(0);
         }
-      } catch (error) {
-        console.error("Error fetching overall performance:", error);
+      } else {
         setOverallPerformanceScore(0);
         setAverageCourseQuality(0);
       }
@@ -363,18 +357,16 @@ useEffect(() => {
         setClassData([]);
       }
 
-      console.log("Fetched Assignments:", assignmentResponseData);
       if (assignmentResponseData?.data?.assignments) {
         setAssignmentData(assignmentResponseData.data.assignments);
 
         const assignments = assignmentResponseData.data.assignments;
         const completedAssignments = assignments.filter(assignment => assignment.status === true).length;
         const percentage = Math.round((completedAssignments / assignments.length) * 100);
-        console.log("Calculated Assignment Completion Percentage:", percentage);
         setAssignmentCompletionPercentage(percentage);
       }
 
-      // Parallelize course quality and student performance fetches
+      // OPTIMIZED: Parallelize course quality and student performance - with early exit for 404
       if (userData.user?.courses?.length > 0) {
         const defaultCourseId = userData.user.courses[0];
 
@@ -384,102 +376,88 @@ useEffect(() => {
         ]);
 
         // Handle course quality
-        try {
-          if (courseQualityResponse.status === 'fulfilled') {
-            const courseQualityData = await courseQualityResponse.value.json();
+        if (courseQualityResponse.status === 'fulfilled') {
+          const courseQualityData = await courseQualityResponse.value.json();
 
-            if (courseQualityData && !courseQualityData.error) {
-              if (courseQualityData.overall_quality_score !== undefined) {
-                setCoursePerformance(courseQualityData.overall_quality_score);
-              } else if (courseQualityData.hasEvaluation) {
-                const metrics = [
-                  courseQualityData.session_focus_clarity_score || 0,
-                  courseQualityData.content_delivery_score || 0,
-                  courseQualityData.student_engagement_score || 0,
-                  courseQualityData.student_progress_score || 0,
-                  courseQualityData.key_performance_score || 0,
-                  courseQualityData.communication_score || 0,
-                ];
+          if (courseQualityData && !courseQualityData.error) {
+            if (courseQualityData.overall_quality_score !== undefined) {
+              setCoursePerformance(courseQualityData.overall_quality_score);
+            } else if (courseQualityData.hasEvaluation) {
+              const metrics = [
+                courseQualityData.session_focus_clarity_score || 0,
+                courseQualityData.content_delivery_score || 0,
+                courseQualityData.student_engagement_score || 0,
+                courseQualityData.student_progress_score || 0,
+                courseQualityData.key_performance_score || 0,
+                courseQualityData.communication_score || 0,
+              ];
 
-                const availableMetrics = metrics.filter((score) => score > 0);
-                const avgScore =
-                  availableMetrics.length > 0
-                    ? availableMetrics.reduce((a, b) => a + b, 0) /
-                      availableMetrics.length
-                    : 0;
+              const availableMetrics = metrics.filter((score) => score > 0);
+              const avgScore =
+                availableMetrics.length > 0
+                  ? availableMetrics.reduce((a, b) => a + b, 0) / availableMetrics.length
+                  : 0;
 
-                setCoursePerformance(parseFloat(avgScore.toFixed(2)));
-              } else {
-                setCoursePerformance(0);
-              }
+              setCoursePerformance(parseFloat(avgScore.toFixed(2)));
             } else {
               setCoursePerformance(0);
             }
           } else {
             setCoursePerformance(0);
           }
-        } catch (error) {
-          console.error("Error fetching course quality:", error);
+        } else {
           setCoursePerformance(0);
         }
 
-        // Handle student performance
-        try {
-          if (performanceResponse.status === 'fulfilled') {
-            const response = performanceResponse.value;
-            
-            if (response.status === 404) {
-              console.log("No classes found for course - setting student performance to 0");
-              setStudentPerformance(0);
-            } else if (response.ok) {
-              const performanceData = await response.json();
+        // Handle student performance - STOP ON 404
+        if (performanceResponse.status === 'fulfilled') {
+          const response = performanceResponse.value;
+          
+          // CRITICAL: Check for 404 and exit immediately
+          if (response.status === 404) {
+            console.log("No classes found (404) - setting student performance to 0");
+            setStudentPerformance(0);
+          } else if (response.ok) {
+            const performanceData = await response.json();
 
-              if (
-                performanceData?.success &&
-                performanceData?.data &&
-                performanceData.data.length > 0
-              ) {
-                let totalWeightedScore = 0;
+            if (performanceData?.success && performanceData?.data && performanceData.data.length > 0) {
+              let totalWeightedScore = 0;
 
-                performanceData.data.forEach((item) => {
-                  const rhythm = typeof item.rhythm === 'string' ? parseFloat(item.rhythm) : (item.rhythm || 0);
-                  const theoreticalUnderstanding = typeof item.theoreticalUnderstanding === 'string' ? 
-                    parseFloat(item.theoreticalUnderstanding) : (item.theoreticalUnderstanding || 0);
-                  const performance = typeof item.performance === 'string' ? 
-                    parseFloat(item.performance) : (item.performance || 0);
-                  const earTraining = typeof item.earTraining === 'string' ? 
-                    parseFloat(item.earTraining) : (item.earTraining || 0);
-                  const assignment = typeof item.assignment === 'string' ? 
-                    parseFloat(item.assignment) : (item.assignment || 0);
-                  const technique = typeof item.technique === 'string' ? 
-                    parseFloat(item.technique) : (item.technique || 0);
-                  
-                  const weightedScore = 
-                    (rhythm * 1/6) +
-                    (theoreticalUnderstanding * 1/6) +
-                    (performance * 1/6) +
-                    (earTraining * 1/6) +
-                    (assignment * 1/6) +
-                    (technique * 1/6);
+              performanceData.data.forEach((item) => {
+                const rhythm = typeof item.rhythm === 'string' ? parseFloat(item.rhythm) : (item.rhythm || 0);
+                const theoreticalUnderstanding = typeof item.theoreticalUnderstanding === 'string' ? 
+                  parseFloat(item.theoreticalUnderstanding) : (item.theoreticalUnderstanding || 0);
+                const performance = typeof item.performance === 'string' ? 
+                  parseFloat(item.performance) : (item.performance || 0);
+                const earTraining = typeof item.earTraining === 'string' ? 
+                  parseFloat(item.earTraining) : (item.earTraining || 0);
+                const assignment = typeof item.assignment === 'string' ? 
+                  parseFloat(item.assignment) : (item.assignment || 0);
+                const technique = typeof item.technique === 'string' ? 
+                  parseFloat(item.technique) : (item.technique || 0);
+                
+                const weightedScore = 
+                  (rhythm * 1/6) +
+                  (theoreticalUnderstanding * 1/6) +
+                  (performance * 1/6) +
+                  (earTraining * 1/6) +
+                  (assignment * 1/6) +
+                  (technique * 1/6);
 
-                  totalWeightedScore += weightedScore;
-                });
+                totalWeightedScore += weightedScore;
+              });
 
-                const averageScore = performanceData.data.length > 0 ? 
-                  totalWeightedScore / performanceData.data.length : 0;
+              const averageScore = performanceData.data.length > 0 ? 
+                totalWeightedScore / performanceData.data.length : 0;
 
-                setStudentPerformance(parseFloat(averageScore.toFixed(1)));
-              } else {
-                setStudentPerformance(0);
-              }
+              setStudentPerformance(parseFloat(averageScore.toFixed(1)));
             } else {
               setStudentPerformance(0);
             }
           } else {
             setStudentPerformance(0);
           }
-        } catch (error) {
-          console.error("Error fetching student performance:", error);
+        } else {
           setStudentPerformance(0);
         }
       } else {
@@ -487,7 +465,8 @@ useEffect(() => {
         setStudentPerformance(0);
       }
 
-      await calculatePendingFeedback(userData);
+      // Calculate pending feedback - OPTIMIZED with early 404 exit
+      await calculatePendingFeedbackOptimized(userData);
 
       setLoading(false);
     } catch (error) {
@@ -496,70 +475,63 @@ useEffect(() => {
     }
   };
 
-  const calculatePendingFeedback = async (userData: any) => {
+  const calculatePendingFeedbackOptimized = async (userData: any) => {
     try {
       const courseDetails = userData?.courseDetails || [];
       const classDetails = userData?.classDetails || [];
 
       if (!classDetails || classDetails.length === 0) {
-        console.log("No classes found for this tutor");
         setPendingFeedbackCount(0);
         return;
       }
 
-      // Parallelize all API calls
-      const [studentsResponse, ...feedbackResponses] = await Promise.allSettled([
-        fetch("/Api/myStudents"),
-        ...courseDetails.map((course: any) =>
-          fetch(`/Api/studentFeedbackForTutor?courseId=${course._id}`)
-        )
-      ]);
-
-      // Handle students
-      let students = [];
-      if (studentsResponse.status === 'fulfilled') {
-        const studentsData = await studentsResponse.value.json();
-        students = studentsData.filteredUsers || [];
-      }
+      // Fetch students first
+      const studentsResponse = await fetch("/Api/myStudents");
+      const studentsData = await studentsResponse.json();
+      const students = studentsData.filteredUsers || [];
 
       if (students.length === 0) {
-        console.log("No students found for this tutor");
         setPendingFeedbackCount(0);
         return;
       }
+
+      // Parallelize feedback fetching for all courses
+      const feedbackPromises = courseDetails.map((course: any) =>
+        fetch(`/Api/studentFeedbackForTutor?courseId=${course._id}`)
+          .then(async (response) => {
+            // CRITICAL: Return null immediately on 404 - don't try to parse
+            if (response.status === 404) {
+              console.log(`404 for course ${course._id} - skipping`);
+              return null;
+            }
+            
+            if (!response.ok) {
+              return null;
+            }
+            
+            try {
+              const data = await response.json();
+              return data.data || [];
+            } catch (e) {
+              return null;
+            }
+          })
+          .catch(() => null) // Handle any network errors
+      );
+
+      const feedbackResults = await Promise.all(feedbackPromises);
 
       // Process feedback results
       const classesWithFeedback = new Map();
       
-      for (let i = 0; i < feedbackResponses.length; i++) {
-        const result = feedbackResponses[i];
-        
-        if (result.status === 'fulfilled') {
-          const response = result.value;
-          
-          if (response.status === 404) {
-            console.log(`No classes found for course ${courseDetails[i]._id}`);
-            continue;
-          }
-          
-          if (!response.ok) {
-            console.warn(`Failed to fetch feedback for course ${courseDetails[i]._id}: ${response.status}`);
-            continue;
-          }
-          
-          try {
-            const data = await response.json();
-            const feedbacks = data.data || [];
-            
-            feedbacks.forEach((feedback: any) => {
-              const key = `${feedback.classId}-${feedback.userId}`;
-              classesWithFeedback.set(key, true);
-            });
-          } catch (e) {
-            console.error(`Error parsing feedback for course ${courseDetails[i]._id}:`, e);
-          }
+      feedbackResults.forEach((feedbacks) => {
+        if (feedbacks && Array.isArray(feedbacks)) {
+          feedbacks.forEach((feedback: any) => {
+            const key = `${feedback.classId}-${feedback.userId}`;
+            classesWithFeedback.set(key, true);
+          });
         }
-      }
+      });
 
       // Count pending feedback
       let pendingCount = 0;
@@ -574,7 +546,7 @@ useEffect(() => {
 
       setPendingFeedbackCount(pendingCount);
     } catch (error) {
-      console.error("Error calculating pending feedback count:", error);
+      console.error("Error calculating pending feedback:", error);
       setPendingFeedbackCount(0);
     }
   };
