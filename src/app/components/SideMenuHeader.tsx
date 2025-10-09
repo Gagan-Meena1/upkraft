@@ -289,9 +289,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/Refer-Earn"
+                      href="/tutor/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/Refer-Earn") ? "active" : ""
+                        isActive("/tutor/refer-earn") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -317,7 +317,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/settings"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/settings") ? "active" : ""
                       }`}
@@ -573,9 +573,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/Refer-Earn"
+                      href="/tutor/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/Refer-Earn") ? "active" : ""
+                        isActive("/tutor/refer-earn") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -601,7 +601,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/settings"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/settings") ? "active" : ""
                       }`}
@@ -749,7 +749,7 @@ const SideMenuHeader = ({ role }) => {
               )}
             </ul>
             <div className="log-out-btn">
-              <Link href="" className="text-log-out bg-transparent !flex !items-center !gap-2 !mt-auto">
+              <Link href="/" className="text-log-out bg-transparent !flex !items-center !gap-2 !mt-auto">
                 <svg
                   width="24"
                   height="24"
