@@ -279,9 +279,9 @@ export default function Dashboard() {
   const classesPerPage = isMobile ? 1 : 3; // Show 1 class per page on mobile
   const totalPages = Math.ceil(classData.length / classesPerPage);
 
-  const LoadingSkeleton = ({ height = "h-8", width = "w-16" }) => (
-  <div className={`animate-pulse ${height} ${width} bg-gray-200 rounded`} />
-);
+//   const LoadingSkeleton = ({ height = "h-8", width = "w-16" }) => (
+//   <div className={`animate-pulse ${height} ${width} bg-gray-200 rounded`} />
+// );
 
   // Check if mobile
   useEffect(() => {
@@ -318,25 +318,21 @@ useEffect(() => {
       
       fetchInProgress.current = true;
 
-      // ✅ PHASE 1: Fetch ONLY the absolute minimum data to show the page
       console.log("Phase 1: Loading essential data...");
       const [essentialsResponse, assignmentResponse, perfResponse] = await Promise.allSettled([
-        fetch("/Api/users/essentials"), // User + future classes only
+        fetch("/Api/users/user"), // Changed from "/Api/users/essentials" to "/Api/users/user"
         fetch("/Api/assignment"),
         fetch("/Api/overallPerformanceScore")
       ]);
 
-      // Handle essentials data
       const essentialsData = essentialsResponse.status === 'fulfilled' 
         ? await essentialsResponse.value.json() 
         : null;
       
-      // Handle assignment data
       const assignmentResponseData = assignmentResponse.status === 'fulfilled' 
         ? await assignmentResponse.value.json() 
         : null;
 
-      // Handle performance score
       if (perfResponse.status === 'fulfilled') {
         const perfData = await perfResponse.value.json();
         
@@ -358,10 +354,8 @@ useEffect(() => {
         return;
       }
 
-      // Set essential data immediately
       setUserData(essentialsData.user);
 
-      // Classes are already filtered to future classes from the API
       if (essentialsData.classDetails && essentialsData.classDetails.length > 0) {
         setClassData(essentialsData.classDetails);
       } else {
@@ -694,11 +688,13 @@ useEffect(() => {
                       </span>
                       <span className="text-dark-blue text-box">Students</span>
                       <span className="text-black text-box">
-                      {studentCount === 0 ? (
+                      {/* {studentCount === 0 ? (
                         <LoadingSkeleton height="h-5" width="w-12" />
                             ) : (
                               <span className="text-black text-box">{studentCount}</span>
-                            )} 
+                            )}  */}
+                                                          <span className="text-black text-box">{studentCount}</span>
+
                         </span>
                     </li>
                     <li className="btn-white d-flex align-items-center gap-2 w-100">
@@ -756,7 +752,7 @@ useEffect(() => {
                 <div className="col-md-12 mb-4">
                   <div className="card-box">
                     
-                   {studentCount === 0 ? (
+                   {/* {studentCount === 0 ? (
                     <>
                       <LoadingSkeleton height="h-8" width="w-16" />
                       <LoadingSkeleton height="h-4" width="w-32" />
@@ -766,7 +762,11 @@ useEffect(() => {
                       <h2 className="top-text">{studentCount}</h2>
                       <p className="bottom-text">Total Active Students</p>
                     </>
-                  )}
+                  )} */}
+                  {/* <span className="text-black text-box">{studentCount}</span> */}
+
+ <h2 className="top-text">{studentCount}</h2>
+                      <p className="bottom-text">Total Active Students</p>
                   </div>
                 </div>
                 <div className="col-md-12 mb-4">
@@ -836,14 +836,14 @@ useEffect(() => {
           </div>
           <div className="col-xxl-3 col-md-6 mb-4">
             <div className="card-box">
-  {pendingFeedbackCount === 0 ? (
-              <div className="p-4">
-                <LoadingSkeleton height="h-8" width="w-24" />
-                <LoadingSkeleton height="h-4" width="w-full" />
-              </div>
-            ) : (
+  {/* pendingFeedbackCount === 0 ?  */}
+              {/* // <div className="p-4">
+              //   <LoadingSkeleton height="h-8" width="w-24" />
+              //   <LoadingSkeleton height="h-4" width="w-full" />
+              // </div> */}
+            {/* ) :  */}
               <FeedbackPending count={pendingFeedbackCount} />
-            )}            </div>
+                      </div>
           </div>
         </div>
       </div>
