@@ -504,7 +504,7 @@ export default function CreateAssignmentModal({
 
                         {/* File Uploads */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Music Sheet Upload */}
+                            {/* Music Sheet Upload
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                     <Upload size={16} className="text-purple-600" /> Music Sheet (PDF)
@@ -526,7 +526,7 @@ export default function CreateAssignmentModal({
                                         <p className="text-xs text-gray-400 mt-1">PDF files only</p>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Assignment File Upload */}
                             <div>

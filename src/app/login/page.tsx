@@ -100,7 +100,7 @@ export default function LoginPage() {
           {/* <img src="logo.png" alt="" className="w-36 h-auto" /> */}
           <Link href="/" className="cursor-pointer">
             <Image
-              src="/assets1/LogoHeader.png"
+              src="/logo.png"
               alt="UpKraft"
               width={288}
               height={72}

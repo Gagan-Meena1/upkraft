@@ -111,7 +111,7 @@ export default function SignupPage() {
         <div className="!font-extrabold !text-2xl !text-gray-800">
            <Link href="/" className="!cursor-pointer">
               <Image 
-                src="/assets1/LogoHeader.png"
+                src="/logo.png"
                 alt="UpKraft"
                 width={288} // Use 2x the display size for crisp rendering
                 height={72}  // Adjust based on your logo's actual aspect ratio
