@@ -45,7 +45,7 @@ const ProfileProgress = ({ user }: { user: UserData }) => {
                   width: 120, 
                   height: 120, 
                   borderRadius: "50%", 
-                  backgroundColor: "#ff8c00",
+                  backgroundColor: "#7009BA", // Changed to purple
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

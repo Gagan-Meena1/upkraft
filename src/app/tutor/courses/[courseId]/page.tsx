@@ -603,7 +603,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                             {classSession.recordingUrl && (
                               <Link 
                                 href={`/tutor/classQuality/${classSession._id}`}
-                                className="flex-1 px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
+                                className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
                               >
                                 <BarChart3 className="mr-1" size={14} />
                                 Quality
@@ -616,7 +616,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                               disabled={isUploading}
                               className={`flex-1 px-3 py-2 ${
                                 isUploading ? 'bg-gray-400 cursor-not-allowed' 
-                                  : 'bg-green-500 hover:bg-green-600'
+                                  : 'bg-purple-500 hover:bg-purple-600'
                               } text-white rounded-lg transition-colors flex items-center justify-center text-xs`}
                             >
                               <Upload className="mr-1" size={14} />
@@ -693,7 +693,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
   {classSession.recordingUrl && (
     <Link 
       href={`/tutor/classQuality/${classSession._id}`}
-      style={{ backgroundColor: '#a78bfa', color: '#ffffff' }}
+      style={{ backgroundColor: 'purple', color: '#ffffff' }}
       className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
     >
       <BarChart3 className="mr-2" size={16} />
@@ -706,7 +706,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
     onClick={() => triggerFileInput(classSession._id)}
     disabled={isUploading}
     style={{ 
-      backgroundColor: isUploading ? '#9ca3af' : '#34d399',
+      backgroundColor: isUploading ? 'blueviolet' : 'blue',
       color: '#ffffff'
     }}
     className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
@@ -720,7 +720,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
   {/* Assignment Button */}
   <Link 
     href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-    style={{ backgroundColor: '#fbbf24', color: '#ffffff' }}
+    style={{ backgroundColor: 'blueviolet', color: '#ffffff' }}
     className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
   >
     <FileText className="mr-2" size={16} />
