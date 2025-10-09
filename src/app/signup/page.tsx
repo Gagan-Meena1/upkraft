@@ -111,7 +111,7 @@ export default function SignupPage() {
         <div className="!font-extrabold !text-2xl !text-gray-800">
            <Link href="/" className="!cursor-pointer">
               <Image 
-                src="/logo.png"
+                src="/assets1/LogoHeader.png"
                 alt="UpKraft"
                 width={288} // Use 2x the display size for crisp rendering
                 height={72}  // Adjust based on your logo's actual aspect ratio
@@ -137,7 +137,7 @@ export default function SignupPage() {
       {/* Signup Form */}
       <div className="!flex-1 !flex !flex-col !items-center !justify-center !px-8 !py-16">
         <div className="!w-full !max-w-md !bg-white !rounded-xl !shadow-sm !border !border-gray-100 !p-8">
-          <h1 className="!text-3xl !font-bold !text-center !mb-8 !text-orange-600">
+          <h1 className="!text-3xl !font-bold !text-center !mb-8 !text-[#5204d6]">
             {loading ? "Processing..." : "Join UPKRAFT"}
           </h1>
           
@@ -213,7 +213,7 @@ export default function SignupPage() {
           
           <p className="!text-center !mt-6 !text-gray-600">
             Already have an account?{" "}
-            <Link href="/login" className="!text-orange-600 hover:!underline !font-medium">
+            <Link href="/login" className="!text-[#5204d6] hover:!underline !font-medium">
               Login
             </Link>
           </p>
