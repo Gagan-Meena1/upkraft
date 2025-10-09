@@ -318,25 +318,21 @@ useEffect(() => {
       
       fetchInProgress.current = true;
 
-      // ✅ PHASE 1: Fetch ONLY the absolute minimum data to show the page
       console.log("Phase 1: Loading essential data...");
       const [essentialsResponse, assignmentResponse, perfResponse] = await Promise.allSettled([
-        fetch("/Api/users/essentials"), // User + future classes only
+        fetch("/Api/users/user"), // Changed from "/Api/users/essentials" to "/Api/users/user"
         fetch("/Api/assignment"),
         fetch("/Api/overallPerformanceScore")
       ]);
 
-      // Handle essentials data
       const essentialsData = essentialsResponse.status === 'fulfilled' 
         ? await essentialsResponse.value.json() 
         : null;
       
-      // Handle assignment data
       const assignmentResponseData = assignmentResponse.status === 'fulfilled' 
         ? await assignmentResponse.value.json() 
         : null;
 
-      // Handle performance score
       if (perfResponse.status === 'fulfilled') {
         const perfData = await perfResponse.value.json();
         
@@ -358,10 +354,8 @@ useEffect(() => {
         return;
       }
 
-      // Set essential data immediately
       setUserData(essentialsData.user);
 
-      // Classes are already filtered to future classes from the API
       if (essentialsData.classDetails && essentialsData.classDetails.length > 0) {
         setClassData(essentialsData.classDetails);
       } else {
