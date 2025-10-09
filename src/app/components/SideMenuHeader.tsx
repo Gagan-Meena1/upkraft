@@ -389,7 +389,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/tutor"
+                      href="/tutor/profile"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/settings") ? "active" : ""
                       }`}
