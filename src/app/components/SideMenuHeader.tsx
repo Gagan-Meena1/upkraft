@@ -260,7 +260,7 @@ const SideMenuHeader = ({ role }) => {
                           />
                         </svg>
                       </span>
-                      <span>Upkraft Studio</span>
+                      <span>Knowledge Hub</span>
                     </Link>
                   </li>
                   <li>
