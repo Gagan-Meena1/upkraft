@@ -59,7 +59,7 @@ const courseNameSchema = new mongoose.Schema({
   timestamps: true
 });
 
-db.coursenames.createIndex({ _id: 1 });
+// db.coursenames.createIndex({ _id: 1 });
 
 
 export default mongoose.models.courseName || mongoose.model('courseName', courseNameSchema);

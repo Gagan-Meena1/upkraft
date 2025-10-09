@@ -70,7 +70,7 @@ const AssignmentSchema = new mongoose.Schema({
 // Check if the model already exists to prevent overwriting during hot reloads
 const Assignment = mongoose.models.Assignment || mongoose.model('Assignment', AssignmentSchema);
 
-db.assignments.createIndex({ courseId: 1, status: 1 });
+// db.assignments.createIndex({ courseId: 1, status: 1 });
 
 
 export default Assignment;
