@@ -10,10 +10,19 @@ import ScoreCard from "../student/ScoreCard";
 import Image from "next/image";
 import "./MyStudentList.css";
 
-const StudentProfileDetails = ({ data, assignmentCount = 0 }) => {
+const StudentProfileDetails = ({ data, assignmentCount = 0, pendingAssignmentCount = 0 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [imageError, setImageError] = useState(false);
-  console.log(data);
+
+  // Add function to get initials
+  const getInitials = (name) => {
+    return name
+      .split(" ")
+      .map((word) => word.charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const courses = data.courses;
 
@@ -62,21 +71,30 @@ const StudentProfileDetails = ({ data, assignmentCount = 0 }) => {
     return qualityCount > 0 ? totalQuality / qualityCount : 0;
   };
 
-  // Calculate assignment completion (now using API count)
-  const calculateAssignmentCompletion = () => {
-    return assignmentCount;
+  // Calculate pending assignments (updated to show pending instead of completed)
+  const calculatePendingAssignments = () => {
+    return pendingAssignmentCount || 0;
   };
 
   const overallPerformanceScore = Number(
     calculateOverallPerformanceScore()
   ).toFixed(1);
   const classQualityScore = calculateClassQualityScore();
-  const assignmentScore = calculateAssignmentCompletion();
+  const pendingAssignmentScore = calculatePendingAssignments();
+
+  // Function to get quality text based on score
+  const getQualityText = (score) => {
+    if (score > 9) return "Excellent";
+    if (score > 7) return "Good";
+    if (score > 5) return "Average";
+    if (score > 3) return "Below Average";
+    return "Poor";
+  };
 
   console.log("Performance Calculation:", {
     overallPerformanceScore,
     classQualityScore,
-    assignmentScore,
+    pendingAssignmentScore,
     coursesData: courses.map((c) => ({
       title: c.title,
       performanceScores: c.performanceScores,
@@ -92,18 +110,35 @@ const StudentProfileDetails = ({ data, assignmentCount = 0 }) => {
             <div className="col-lg-3 mb-4">
               <div className="profile-box card-box text-center">
                 <div className="img-profile">
-                  <Image
-                    src={
-                      imageError || !data.profileImage
-                        ? StudentImage
-                        : data.profileImage
-                    }
-                    alt="Student Profile"
-                    width={100}
-                    height={100}
-                    style={{ objectFit: "cover", borderRadius: "50%" }}
-                    onError={() => setImageError(true)}
-                  />
+                  {/* Update this section to show initials when no profile image */}
+                  {imageError || !data.profileImage ? (
+                    <div
+                      style={{
+                        width: "100px",
+                        height: "100px",
+                        borderRadius: "50%",
+                        backgroundColor: "#7009BA", // Purple color
+                        color: "white",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "32px",
+                        fontWeight: "bold",
+                        border: "3px solid #7009BA",
+                      }}
+                    >
+                      {getInitials(data.username || "User")}
+                    </div>
+                  ) : (
+                    <Image
+                      src={data.profileImage}
+                      alt="Student Profile"
+                      width={100}
+                      height={100}
+                      style={{ objectFit: "cover", borderRadius: "50%" }}
+                      onError={() => setImageError(true)}
+                    />
+                  )}
                 </div>
                 <div className="text-profile">
                   <h2>{data.username}</h2>
@@ -306,7 +341,7 @@ const StudentProfileDetails = ({ data, assignmentCount = 0 }) => {
                                 </li>
                                 <li>
                                   <Link
-                                    href={`/tutor/session-summary`}
+                                    href={`/tutor/session-summary?studentId=${data.studentId}&tutorId=${courses[0]?.instructorId}`}
                                     className="btn btn-border padding-fixed d-flex align-items-center justify-content-center gap-2"
                                   >
                                     <span>Session Summary</span>
@@ -376,7 +411,7 @@ const StudentProfileDetails = ({ data, assignmentCount = 0 }) => {
                           <ul className="d-flex align-items-center w-full-width gap-2 justify-content-center m-auto mt-3 list-unstyled flex-wrap m-0 p-0">
                             <li>
                               <Link
-                                href="/tutor/ViewCourseDetail/"
+                                href="/tutor/performanceVideo/"
                                 className="btn btn-border padding-fixed d-flex align-items-center justify-content-center gap-2"
                               >
                                 <span>View More</span>
@@ -419,10 +454,10 @@ const StudentProfileDetails = ({ data, assignmentCount = 0 }) => {
                 <ScoreCard
                   title="Class Quality Score"
                   score={classQualityScore || 5.6}
-                  text="Excellent"
+                  text={getQualityText(classQualityScore || 5.6)}
                   image={
                     imageError || !data.profileImage
-                      ? StudentImage
+                      ? null // Pass null so ScoreCard can handle initials
                       : data.profileImage
                   }
                   data={data}
@@ -430,11 +465,11 @@ const StudentProfileDetails = ({ data, assignmentCount = 0 }) => {
                 />
                 <ScoreCard
                   title="Assignments"
-                  score={assignmentScore}
-                  text="Completed"
+                  score={pendingAssignmentScore}
+                  text="Pending"
                   image={
                     imageError || !data.profileImage
-                      ? StudentImage
+                      ? null // Pass null so ScoreCard can handle initials
                       : data.profileImage
                   }
                   data={data}
