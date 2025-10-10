@@ -344,7 +344,7 @@ export default function MyStudents() {
                             {loadingAssignments.has(student._id) ? (
                               <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium  text-red-800">
                                 {student.pendingAssignments || 0}
                               </span>
                             )}

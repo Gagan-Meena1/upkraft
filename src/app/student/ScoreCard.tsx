@@ -10,6 +10,15 @@ const ScoreCard = ({ title, score, text, image, data, link, showOutOfTen = true 
   // If showing count, render full ring for display; else scale as score/10
   const percentage = showOutOfTen ? (score / 10) * 100 : 100;
 
+  const getInitials = (name) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <Card className="score-card text-center border-0">
       <h6 className="fw-bold mb-3">{title}</h6>
@@ -24,14 +33,35 @@ const ScoreCard = ({ title, score, text, image, data, link, showOutOfTen = true 
             rotation: 0.75, 
           })}
         >
-          <Image
-            src={image}
-            alt="profile"
-            width={50}
-            height={50}
-            className="circle-avatar"
-            style={{ borderRadius: "50%", objectFit: "cover" }}
-          />
+          <div className="img-profile">
+            {!image ? (
+              <div 
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  borderRadius: '50%',
+                  backgroundColor: '#7009BA', // Purple color
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  border: '2px solid #7009BA'
+                }}
+              >
+                {getInitials(data.username || 'User')}
+              </div>
+            ) : (
+              <Image
+                src={image}
+                alt="Profile"
+                width={60}
+                height={60}
+                style={{ objectFit: "cover", borderRadius: "50%" }}
+              />
+            )}
+          </div>
           <div className="circle-score">
             {score}
             {!showOutOfTen ? null : <span>/10</span>}
