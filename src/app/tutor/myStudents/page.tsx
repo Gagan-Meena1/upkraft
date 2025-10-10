@@ -461,7 +461,7 @@ export default function MyStudents() {
                             {loadingAssignments.has(student._id) ? (
                               <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium  text-red-800">
                                 {student.pendingAssignments || 0}
                               </span>
                             )}
@@ -471,12 +471,12 @@ export default function MyStudents() {
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                                 student.performanceAverage &&
                                 student.performanceAverage > 0
-                                  ? student.performanceAverage >= 80
-                                    ? "bg-green-100 text-green-800"
-                                    : student.performanceAverage >= 60
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                  : "bg-gray-100 text-gray-600"
+                                  // ? student.performanceAverage >= 80
+                                  //   ? "bg-green-100 text-green-800"
+                                  //   : student.performanceAverage >= 60
+                                  //   ? "bg-yellow-100 text-yellow-800"
+                                  //   : "bg-red-100 text-red-800"
+                                  // : "bg-gray-100 text-gray-600"
                               }`}
                             >
                               {student.performanceAverage &&
@@ -490,12 +490,12 @@ export default function MyStudents() {
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                                 student.courseQualityAverage &&
                                 student.courseQualityAverage > 0
-                                  ? student.courseQualityAverage >= 4
-                                    ? "bg-green-100 text-green-800"
-                                    : student.courseQualityAverage >= 3
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                  : "bg-gray-100 text-gray-600"
+                                  // ? student.courseQualityAverage >= 4
+                                  //   ? "bg-green-100 text-green-800"
+                                  //   : student.courseQualityAverage >= 3
+                                  //   ? "bg-yellow-100 text-yellow-800"
+                                  //   : "bg-red-100 text-red-800"
+                                  // : "bg-gray-100 text-gray-600"
                               }`}
                             >
                               {student.courseQualityAverage &&
