@@ -361,7 +361,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="tutor/refer-earn"
+                      href="/tutor/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/Refer-Earn") ? "active" : ""
                       }`}
