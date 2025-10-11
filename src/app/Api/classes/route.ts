@@ -68,9 +68,9 @@ const [year, month, day] = date.split('-').map(Number);
 const [startHour, startMinute] = startTime.split(':').map(Number);
 const [endHour, endMinute] = endTime.split(':').map(Number);
 
-// Create Date objects in LOCAL timezone (browser's timezone)
-const startDateTime = new Date(year, month - 1, day, startHour, startMinute);
-const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+// Create Date objects in UTC (this prevents MongoDB from converting them)
+const startDateTime = new Date(Date.UTC(year, month - 1, day, startHour, startMinute));
+const endDateTime = new Date(Date.UTC(year, month - 1, day, endHour, endMinute));
 
 console.log('Created DateTime objects in UTC:', {
   inputTime: `${startTime} - ${endTime}`,

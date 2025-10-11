@@ -78,15 +78,30 @@ const UpcomingLessons = () => {
     }
   };
 
-  const formatTime = (startTime: string, endTime: string) => {
-    try {
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      return `${format(start, "h:mm")} - ${format(end, "h:mm a")}`;
-    } catch (error) {
-      return "Invalid time";
-    }
-  };
+const formatTime = (startTime: string, endTime: string) => {
+  try {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    // Use UTC methods to get EXACT stored time (same as CourseDetailsPage)
+    const startHours = start.getUTCHours();
+    const startMinutes = start.getUTCMinutes();
+    const endHours = end.getUTCHours();
+    const endMinutes = end.getUTCMinutes();
+    
+    // Format manually
+    const formatTimeString = (hours: number, minutes: number) => {
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12; // Convert to 12-hour format
+      const displayMinutes = String(minutes).padStart(2, '0');
+      return `${displayHours}:${displayMinutes} ${period}`;
+    };
+    
+    return `${formatTimeString(startHours, startMinutes)} - ${formatTimeString(endHours, endMinutes)}`;
+  } catch (error) {
+    return "Invalid time";
+  }
+};
 
   const handleJoinMeeting = async (classId: string) => {
     try {
