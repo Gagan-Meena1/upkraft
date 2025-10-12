@@ -390,130 +390,123 @@ useEffect(() => {
     }
   };
 
-  const loadAdditionalData = async (userId: string) => {
-    try {
-      // Fetch students and course details in parallel
-      const [studentsResponse, additionalResponse] = await Promise.allSettled([
-        fetch("/Api/myStudents"),
-        fetch("/Api/users/additional")
-      ]);
+ const loadAdditionalData = async (userId: string) => {
+  try {
+    // Fetch students and pending feedback in parallel
+    const [studentsResponse, feedbackResponse] = await Promise.allSettled([
+      fetch("/Api/myStudents"),
+      fetch("/Api/pendingFeedback") // Your new API endpoint
+    ]);
 
-      // Handle students data
-      let studentsData = null;
-      if (studentsResponse.status === 'fulfilled') {
-        studentsData = await studentsResponse.value.json();
-        if (studentsData.success) {
-          setStudentCount(studentsData.userCount || 0);
-          console.log("Student count updated:", studentsData.userCount);
-        } else {
-          setStudentCount(0);
-        }
+    // Handle students data
+    if (studentsResponse.status === 'fulfilled') {
+      const studentsData = await studentsResponse.value.json();
+      if (studentsData.success) {
+        setStudentCount(studentsData.userCount || 0);
+        console.log("Student count updated:", studentsData.userCount);
       } else {
         setStudentCount(0);
       }
+    } else {
+      setStudentCount(0);
+    }
 
-      // Handle additional course data
-      if (additionalResponse.status !== 'fulfilled') {
-        console.error("Failed to load additional data");
-        setPendingFeedbackCount(0);
-        return;
-      }
-
-      const additionalData = await additionalResponse.value.json();
-      
-      if (additionalData.success && additionalData.courseDetails && studentsData) {
-        // Now calculate pending feedback with both students and course details
-        await calculatePendingFeedback(
-          additionalData.courseDetails,
-          studentsData
-        );
+    // Handle feedback data
+    if (feedbackResponse.status === 'fulfilled') {
+      const feedbackData = await feedbackResponse.value.json();
+      if (feedbackData.success) {
+        setPendingFeedbackCount(feedbackData.count || 0);
+        console.log("Pending feedback count:", feedbackData.count);
       } else {
         setPendingFeedbackCount(0);
       }
-    } catch (error) {
-      console.error("Error loading additional data:", error);
-      setStudentCount(0);
+    } else {
       setPendingFeedbackCount(0);
     }
-  };
+  } catch (error) {
+    console.error("Error loading additional data:", error);
+    setStudentCount(0);
+    setPendingFeedbackCount(0);
+  }
+};
 
-  const calculatePendingFeedback = async (courseDetails: any[], studentsData: any) => {
-    try {
-      if (!courseDetails || courseDetails.length === 0) {
-        setPendingFeedbackCount(0);
-        return;
-      }
+  // const calculatePendingFeedback = async (courseDetails: any[], studentsData: any) => {
+  //   try {
+  //     if (!courseDetails || courseDetails.length === 0) {
+  //       setPendingFeedbackCount(0);
+  //       return;
+  //     }
 
-      // Get students from the already fetched data
-      const students = studentsData?.filteredUsers || [];
+  //     // Get students from the already fetched data
+  //     const students = studentsData?.filteredUsers || [];
 
-      if (students.length === 0) {
-        setPendingFeedbackCount(0);
-        return;
-      }
+  //     if (students.length === 0) {
+  //       setPendingFeedbackCount(0);
+  //       return;
+  //     }
 
-      // Get all class IDs from courses
-      const classIds = courseDetails.reduce((acc, course) => {
-        return acc.concat(course.class || []);
-      }, []);
+  //     // Get all class IDs from courses
+  //     const classIds = courseDetails.reduce((acc, course) => {
+  //       return acc.concat(course.class || []);
+  //     }, []);
 
-      if (classIds.length === 0) {
-        setPendingFeedbackCount(0);
-        return;
-      }
+  //     if (classIds.length === 0) {
+  //       setPendingFeedbackCount(0);
+  //       return;
+  //     }
 
-      // Fetch all feedback for all courses in parallel
-      const courseIds = courseDetails.map((c: any) => c._id);
+  //     // Fetch all feedback for all courses in parallel
+  //     const courseIds = courseDetails.map((c: any) => c._id);
       
-      const feedbackPromises = courseIds.map((courseId: string) =>
-        fetch(`/Api/studentFeedbackForTutor?courseId=${courseId}`)
-          .then(async (response) => {
-            if (response.status === 404 || !response.ok) {
-              return null;
-            }
+  //     const feedbackPromises = courseIds.map((courseId: string) =>
+  //       fetch(`/Api/studentFeedbackForTutor?courseId=${courseId}`)
+  //         .then(async (response) => {
+  //           if (response.status === 404 || !response.ok) {
+  //             return null;
+  //           }
             
-            try {
-              const data = await response.json();
-              return data.data || [];
-            } catch (e) {
-              return null;
-            }
-          })
-          .catch(() => null)
-      );
+  //           try {
+  //             const data = await response.json();
+  //             return data.data || [];
+  //           } catch (e) {
+  //             return null;
+  //           }
+  //         })
+  //         .catch(() => null)
+  //     );
 
-      const feedbackResults = await Promise.all(feedbackPromises);
+  //     const feedbackResults = await Promise.all(feedbackPromises);
 
-      // Process feedback results
-      const classesWithFeedback = new Map();
+  //     // Process feedback results
+  //     const classesWithFeedback = new Map();
       
-      feedbackResults.forEach((feedbacks) => {
-        if (feedbacks && Array.isArray(feedbacks)) {
-          feedbacks.forEach((feedback: any) => {
-            const key = `${feedback.classId}-${feedback.userId}`;
-            classesWithFeedback.set(key, true);
-          });
-        }
-      });
+  //     feedbackResults.forEach((feedbacks) => {
+  //       if (feedbacks && Array.isArray(feedbacks)) {
+  //         feedbacks.forEach((feedback: any) => {
+  //           const key = `${feedback.classId}-${feedback.userId}`;
+  //           classesWithFeedback.set(key, true);
+  //         });
+  //       }
+  //     });
 
-      // Count pending feedback using classIds
-      let pendingCount = 0;
-      students.forEach((student: any) => {
-        classIds.forEach((classId: any) => {
-          const key = `${classId}-${student._id}`;
-          if (!classesWithFeedback.has(key)) {
-            pendingCount++;
-          }
-        });
-      });
+  //     // Count pending feedback using classIds
+  //     let pendingCount = 0;
+  //     students.forEach((student: any) => {
+  //       classIds.forEach((classId: any) => {
+  //         const key = `${classId}-${student._id}`;
+  //         if (!classesWithFeedback.has(key)) {
+  //           pendingCount++;
+  //         }
+  //       });
+  //     });
 
-      console.log("Pending feedback count calculated:", pendingCount);
-      setPendingFeedbackCount(pendingCount);
-    } catch (error) {
-      console.error("Error calculating pending feedback:", error);
-      setPendingFeedbackCount(0);
-    }
-  };
+  //     console.log("Pending feedback count calculated:", pendingCount);
+  //     setPendingFeedbackCount(pendingCount);
+  //   } catch (error) {
+  //     console.error("Error calculating pending feedback:", error);
+  //     setPendingFeedbackCount(0);
+  //   }
+  // };
 
   fetchEssentialData();
 }, []);
