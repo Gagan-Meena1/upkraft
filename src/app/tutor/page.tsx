@@ -271,6 +271,7 @@ export default function Dashboard() {
   const [assignmentCompletionPercentage, setAssignmentCompletionPercentage] = useState<number>(0);
   const [overallPerformanceScore, setOverallPerformanceScore] = useState<number>(0);
   const [averageCourseQuality, setAverageCourseQuality] = useState<number>(0);
+  const [pendingFeedbackLoading, setPendingFeedbackLoading] = useState<boolean>(true);
 
   const role = "tutor";
   const isActive = (path: string) => {
@@ -395,7 +396,7 @@ useEffect(() => {
     // Fetch students and pending feedback in parallel
     const [studentsResponse, feedbackResponse] = await Promise.allSettled([
       fetch("/Api/myStudents"),
-      fetch("/Api/pendingFeedback") // Your new API endpoint
+      fetch("/Api/pendingFeedback")
     ]);
 
     // Handle students data
@@ -413,20 +414,40 @@ useEffect(() => {
 
     // Handle feedback data
     if (feedbackResponse.status === 'fulfilled') {
-      const feedbackData = await feedbackResponse.value.json();
-      if (feedbackData.success) {
-        setPendingFeedbackCount(feedbackData.count || 0);
-        console.log("Pending feedback count:", feedbackData.count);
-      } else {
+      try {
+        const response = feedbackResponse.value;
+        
+        if (!response.ok) {
+          console.error("Feedback API error:", response.status, response.statusText);
+          setPendingFeedbackCount(0);
+          setPendingFeedbackLoading(false);
+          return;
+        }
+        
+        const feedbackData = await response.json();
+        
+        if (feedbackData.success) {
+          setPendingFeedbackCount(feedbackData.count || 0);
+          console.log("Pending feedback count:", feedbackData.count);
+        } else {
+          setPendingFeedbackCount(0);
+        }
+      } catch (parseError) {
+        console.error("Error parsing feedback response:", parseError);
         setPendingFeedbackCount(0);
+      } finally {
+        setPendingFeedbackLoading(false);
       }
     } else {
+      console.error("Feedback fetch failed:", feedbackResponse.reason);
       setPendingFeedbackCount(0);
+      setPendingFeedbackLoading(false);
     }
   } catch (error) {
     console.error("Error loading additional data:", error);
     setStudentCount(0);
     setPendingFeedbackCount(0);
+    setPendingFeedbackLoading(false);
   }
 };
 
@@ -835,7 +856,7 @@ useEffect(() => {
               //   <LoadingSkeleton height="h-4" width="w-full" />
               // </div> */}
             {/* ) :  */}
-              <FeedbackPending count={pendingFeedbackCount} />
+              <FeedbackPending count={pendingFeedbackCount} loading={pendingFeedbackLoading} />
                       </div>
           </div>
         </div>
