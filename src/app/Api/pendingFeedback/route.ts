@@ -123,6 +123,7 @@ export async function GET(request) {
             missingFeedbackClasses.push({
               studentId: student._id,
               studentName: student.username,
+              profileImage: student.profileImage || null,
               classId: classItem._id,
               className: classItem.title || classItem.name,
               courseId: course._id,

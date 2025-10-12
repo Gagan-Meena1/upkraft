@@ -61,93 +61,73 @@ const FeedbackPendingDetails = () => {
   
   // Fetch data on component mount
   useEffect(() => {
-    const fetchPendingFeedbacks = async () => {
-      try {
-        setLoading(true);
-        
-        // Step 1: Get the tutor data
-        const userResponse = await fetch('/Api/users/user');
-        const userData = await userResponse.json();
-        
-        if (!userData.user || !userData.courseDetails) {
-          throw new Error('Failed to load user data');
-        }
-        
-        // Step 2: Get all classes for this tutor's courses
-        const courseDetails = userData.courseDetails || [];
-        const classDetails = userData.classDetails || [];
-        
-        // Step 3: Get all students for this tutor
-        const studentsResponse = await fetch('/Api/myStudents');
-        const studentsData = await studentsResponse.json();
-        
-        if (!studentsData.filteredUsers) {
-          throw new Error('Failed to load students data');
-        }
-        
-        const students = studentsData.filteredUsers;
-        
-        // Step 4: Get all existing feedback
-        const feedbackPromises = courseDetails.map(async (course: Course) => {
-          try {
-            const response = await fetch(`/Api/studentFeedbackForTutor?courseId=${course._id}`);
-            if (response.ok) {
-              const data = await response.json();
-              return { courseId: course._id, feedbacks: data.data || [] };
-            }
-            return { courseId: course._id, feedbacks: [] };
-          } catch (e) {
-            console.error(`Error fetching feedback for course ${course._id}:`, e);
-            return { courseId: course._id, feedbacks: [] };
-          }
-        });
-        
-        const feedbackResults = await Promise.all(feedbackPromises);
-        
-        // Create a map of classes with feedback
-        const classesWithFeedback = new Map();
-        feedbackResults.forEach(result => {
-          result.feedbacks.forEach((feedback: any) => {
-            // Create a unique key combining classId and studentId
-            const key = `${feedback.classId}-${feedback.userId}`;
-            classesWithFeedback.set(key, true);
-          });
-        });
-        
-        // Find all students that need feedback
-        const pendingFeedbacks: PendingFeedback[] = [];
-        students.forEach((student: Student) => {
-          // Find classes for this student that need feedback
-          const studentClasses = classDetails.filter((cls: Class) => {
-            // Check if feedback exists for this class and student
-            const key = `${cls._id}-${student._id}`;
-            return !classesWithFeedback.has(key);
-          });
-          
-          if (studentClasses.length > 0) {
-            pendingFeedbacks.push({
-              student,
-              classes: studentClasses,
-              selectedClassIndex: 0
-            });
-          }
-        });
-        
-        setPendingFeedbacks(pendingFeedbacks);
-        if (pendingFeedbacks.length > 0) {
-          setSelectedFeedback(pendingFeedbacks[0]);
-        }
-        
-      } catch (err) {
-        console.error('Error fetching pending feedbacks:', err);
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      } finally {
-        setLoading(false);
+  const fetchPendingFeedbacks = async () => {
+    try {
+      setLoading(true);
+      
+      // Call the new API endpoint
+      const response = await fetch('/Api/pendingFeedback');
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to load pending feedbacks');
       }
-    };
-    
-    fetchPendingFeedbacks();
-  }, []);
+      
+      // Transform the API response to match our component structure
+      const pendingFeedbacks: PendingFeedback[] = [];
+      
+      // Group classes by student
+      const studentMap = new Map<string, { student: Student, classes: Class[] }>();
+      
+      data.missingFeedbackClasses.forEach((item: any) => {
+        const studentId = item.studentId;
+        
+        if (!studentMap.has(studentId)) {
+          studentMap.set(studentId, {
+            student: {
+              _id: item.studentId,
+              username: item.studentName,
+              email: '', // Not provided by API, but not needed for display
+            },
+            classes: []
+          });
+        }
+        
+        studentMap.get(studentId)!.classes.push({
+          _id: item.classId,
+          title: item.className,
+          description: '',
+          startTime: item.classDate || '',
+          endTime: '',
+          course: item.courseId,
+        });
+      });
+      
+      // Convert map to array with selectedClassIndex
+      studentMap.forEach((value) => {
+        pendingFeedbacks.push({
+          student: value.student,
+          classes: value.classes,
+          selectedClassIndex: 0
+        });
+      });
+      
+      setPendingFeedbacks(pendingFeedbacks);
+      
+      if (pendingFeedbacks.length > 0) {
+        setSelectedFeedback(pendingFeedbacks[0]);
+      }
+      
+    } catch (err) {
+      console.error('Error fetching pending feedbacks:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  fetchPendingFeedbacks();
+}, []);
   
   const handleSelectStudent = (feedback: PendingFeedback) => {
     setSelectedFeedback(feedback);
