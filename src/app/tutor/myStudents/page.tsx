@@ -295,7 +295,7 @@ export default function MyStudents() {
                     You haven't added any students to your list. Start by adding your first student to begin managing your classes.
                   </p>
                   <Link href="/tutor/createStudent">
-                    <button className="mt-6 px-4 sm:px-6 py-2 sm:py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors inline-flex items-center text-sm sm:text-base">
+                    <button className="mt-5 px-4 sm:px-6 py-2 sm:py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors inline-flex items-center text-sm sm:text-base">
                       <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>

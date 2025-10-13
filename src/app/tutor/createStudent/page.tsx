@@ -164,7 +164,7 @@ const AddStudentPage = () => {
       <div className="max-w-3xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Header */}
-          <div className="bg-orange-500 px-6 py-4">
+          <div className="bg-purple-700 px-6 py-4">
             <Link href="/tutor/myStudents" className="inline-flex items-center text-white hover:text-gray-200 transition-colors py-2 mb-4">
               <ArrowLeft className="mr-2 h-5 w-5" />
               Back
@@ -288,7 +288,7 @@ const AddStudentPage = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-800 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-700 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Processing..." : existingStudent.exists ? "Add to My Students" : "Add New Student"}
               </button>

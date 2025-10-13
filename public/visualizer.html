@@ -1851,7 +1851,7 @@ function applyScrollControl(){
 // Auto-follow inside sheet viewport
 function autoFollowPlayhead(){
   const VP_ID = 'alphaTab';
-  const LOOKAHEAD_RATIO = 0.35;
+  const LOOKAHEAD_RATIO = 0.15;
   const STICKY_TOP = 20;
   const SMOOTH = 0.05;
   const DEAD_BAND = 10;
@@ -2160,8 +2160,8 @@ function transposeToKey(targetKey) {
   if (!doTranspose) transposition = 0;
   
   // Normalize to [-6, 6] range
-  while (transposition > 6) transposition -= 12;
-  while (transposition < -6) transposition += 12;
+  while (transposition > 11) transposition -= 12;
+  while (transposition < -11) transposition += 12;
   
   const newKeySignature = keyToKeySignature(targetKey);
   AppState.currentTransposition = transposition;
