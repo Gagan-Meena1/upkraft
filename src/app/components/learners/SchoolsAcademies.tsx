@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import SchoolImg from '@/assets/schoolImg.png'
 import ModalSchool from './ModalSchool'
 
@@ -20,7 +20,7 @@ const SchoolsAcademies = () => {
                         <div className='heading-box text-start mb-5'>
                             <h2 className='mb-3'>UpKraft for <span>Schools & Academies</span></h2>
                             <p>AI-Powered Music Learning, Simplified for Academies & Schools</p>
-                            <Link to="" className='btn btn-orange' onClick={handleShow}>Express Interest</Link>
+                            <Link href="" className='btn btn-orange' onClick={handleShow}>Express Interest</Link>
                         </div>
                         <div className='img-box'>
                             <img src={SchoolImg.src} alt="" />

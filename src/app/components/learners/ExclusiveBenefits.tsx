@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import Exclusive01 from '@/assets/exclusive-01.png'
 import Exclusive02 from '@/assets/exclusive-02.png'
 import Exclusive03 from '@/assets/exclusive-03.png'
@@ -23,7 +23,7 @@ const ExclusiveBenefits = () => {
                     <div className='exclusive-left-text'>
                         <h2>Exclusive Benefits for Learners</h2>
                         <p>Master music faster with our AI Practice Studio delivering real-time feedback, guided by expert tutors aligned to your style and goals. Track measurable progress every week, practice the songs you truly love, and keep parents engaged with family-friendly features that celebrate every milestone.</p>
-                        <Link to="" className='btn btn-orange' onClick={handleShow}>Find my Tutor</Link>
+                        <Link href="" className='btn btn-orange' onClick={handleShow}>Find my Tutor</Link>
                     </div>
                 </div>
                 <div className='col-lg-8 col-md-7'>

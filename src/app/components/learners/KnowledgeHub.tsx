@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import VideoImg01 from '@/assets/video-placeholder.png'
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import ModalStudent from './ModalStudent';
 import Modal from 'react-bootstrap/Modal';
 import YTImage from '@/assets/yt-video.png';
@@ -42,7 +42,7 @@ const KnowledgeHub = () => {
 
                         {/* ---------------- Start Lessons Button ---------------- */}
                         <div className='w-100 d-flex justify-content-center mt-4'>
-                            <Link to="" className='btn btn-orange m-auto' onClick={handleShow}>
+                            <Link href="" className='btn btn-orange m-auto' onClick={handleShow}>
                                 Start Free Lessons Today
                             </Link>
                         </div>

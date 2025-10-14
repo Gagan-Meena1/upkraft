@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import BannerImg from "@/assets/banner-img.png"
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import ModalStudent from './ModalStudent';
 
 const Banner = () => {
@@ -21,7 +21,7 @@ const Banner = () => {
             <h1 className='mb-2'>Reimagine Music Learning with AI</h1>
             <h3 className='mb-2'>Built for Music Tutors & Students Worldwide</h3>
             <p>UpKraft is one stop solution to make music learning smarter, faster, and trackable.</p>
-            <Link to="" className='btn btn-orange' onClick={handleShow}>Express Interest</Link>
+            <Link href="" className='btn btn-orange' onClick={handleShow}>Express Interest</Link>
             <ul className='d-flex p-0 m-0 mt-xl-5 mt-4 list-unstyled justify-content-center'>
                 <li>Music</li>
                 <li>Vocals</li>
