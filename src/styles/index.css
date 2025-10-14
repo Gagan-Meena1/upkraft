@@ -1,0 +1,435 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+::selection {
+  background-color: var(--black);
+  color: var(--white);
+}
+
+:root {
+  --white: #ffffff;
+  --black: #000000;
+  --text-color: #202020;
+  --blue: #6E09BD;
+  --dark-blue: #4201eb;
+  --orange: #FFC357;
+  --red: #e53935;
+  --bg-grey: #FAF8F6 !important;
+  --bg-light-grey: #EEEEEEEE !important;
+  --Inter: "Inter", sans-serif;
+  --light-blur: #F5F5F5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  color: var(--text-color);
+  background-color: var(--bg-grey) !important;
+  font-family: var(--Inter);
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0px;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+/* Typography */
+h1,
+.h1 {
+  font-weight: 700;
+  font-size: 56px;
+  line-height: 64px;
+  letter-spacing: 0px;
+  color: var(--blue);
+}
+
+h2,
+.h2 {
+  font-weight: 500;
+  font-size: 56px;
+  line-height: 100%;
+  letter-spacing: 0px;
+  color: var(--black);
+}
+
+h3,
+.h3 {
+  font-weight: 500;
+  font-size: 35px;
+  line-height: 40px;
+  letter-spacing: 0px;
+}
+
+h4,
+.h4 {
+  font-weight: 600;
+  font-size: 24px;
+  line-height: 100%;
+  letter-spacing: 0px;
+}
+
+h5,
+.h5 {
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 100%;
+  letter-spacing: 0px;
+}
+
+h6,
+.h6 {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: 0px;
+}
+
+ul li,
+ol li,
+p {
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 28px;
+  letter-spacing: 0px;
+}
+
+a {
+  text-decoration: none;
+  color: var(--black);
+  font-weight: 400;
+  line-height: 28px;
+  font-size: 18px;
+  transition: all 0.5s ease;
+}
+
+a:hover,
+a:focus {
+  color: var(--blue);
+}
+
+a:focus,
+.btn:focus,
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: var(--black) !important;
+}
+
+button:focus:not(:focus-visible) {
+  outline: 0;
+  box-shadow: none;
+}
+
+/* Forms */
+form input,
+form select,
+form textarea,
+.form-select {
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 100%;
+  letter-spacing: 0px;
+  padding: 11px 10px;
+}
+
+/* Buttons */
+.btn {
+  transition: all 0.5s ease;
+}
+
+.btn-primary,
+.btn.btn-primary {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0;
+  padding: 10px 15px;
+  color: var(--white);
+  background-color: var(--blue);
+  border-radius: 8px;
+  border: 1px solid var(--blue);
+  min-width: 150px;
+  text-decoration: none;
+}
+
+.btn-primary:hover,
+.btn.btn-primary:hover {
+  background-color: var(--white);
+  color: var(--blue);
+  border-color: var(--blue);
+}
+
+.btn.btn-primary:focus {
+  background: transparent;
+  border: 1px solid var(--dark-blue) !important;
+}
+
+.btn.btn-primary span {
+  color: inherit;
+}
+
+.btn.btn-orange {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: 0;
+  padding: 10px 15px;
+  color: var(--text-color);
+  background-color: var(--orange);
+  border-radius: 8px;
+  border-color: var(--orange);
+  min-width: 230px;
+}
+
+.btn.btn-border {
+  background: transparent;
+  border: 1px solid var(--blue);
+  color: var(--blue);
+  padding: 6px 15px;
+}
+
+.btn.btn-border:hover {
+  background: var(--blue);
+  color: var(--white);
+}
+
+.btn.btn-border.btn-green,
+.btn.btn-border.btn-green:focus {
+  background: transparent;
+  color: #00bc7e;
+  border-color: #00bc7e !important;
+  border-radius: 4px;
+}
+
+.btn.btn-border.btn-green:hover {
+  background: #00bc7e;
+  color: var(--white);
+}
+
+.btn.btn-border.btn-green:hover svg path {
+  stroke: var(--white);
+}
+
+.btn.btn-border.btn-red,
+.btn.btn-border.btn-red:focus {
+  color: #e53935;
+  border-color: #e53935 !important;
+  background: transparent;
+  border-radius: 4px;
+}
+
+.btn.btn-border.btn-red:hover {
+  background: #e53935;
+  color: var(--white);
+}
+
+.btn.btn-border.btn-red:hover svg path {
+  stroke: var(--white);
+}
+
+.btn.btn-border.btn-red-border {
+  border-color: #e53935;
+  color: #e53935;
+}
+
+.btn.btn-border.btn-red-border:hover {
+  background: #e53935;
+  color: var(--white);
+}
+
+.btn.btn-border.btn-red-border:hover svg path {
+  fill: var(--white);
+}
+
+.btn.btn-border:hover svg path {
+  stroke: var(--white);
+}
+
+.btn.btn-border.fixed-width-box {
+  padding: 6px 8px !important;
+  width: max-content !important;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0px;
+}
+
+.btn.btn-border.fixed-width-box:hover svg path {
+  fill: var(--white);
+}
+
+.btn.btn-primary.small {
+  font-weight: 400;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+.btn-text {
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: 0px;
+  color: var(--blue);
+}
+
+/* Container */
+.container {
+  max-width: 1598px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Utility Classes */
+.red-text {
+  color: var(--red);
+}
+
+.green-text {
+  color: #00bc7e;
+}
+
+.yellow-text {
+  color: #ffc357;
+}
+
+.text-log-out {
+  color: #ffc357 !important;
+}
+
+.text-log-out:hover svg path {
+  stroke: #ffc357;
+}
+
+.w-1200 {
+  min-width: 1200px;
+}
+
+.mobile-width {
+  @media only screen and (min-width: 767px) {
+    width: auto !important;
+  }
+}
+
+/* Dropdown Styling */
+.dropdown .btn.show {
+  background-color: transparent !important;
+  border-color: var(--dark-blue) !important;
+  color: var(--dark-blue) !important;
+}
+
+/************mobile media only menu***********/
+
+@media only screen and (min-width: 992px) {
+  .offcanvas {
+    transform: none !important;
+    visibility: visible;
+    position: initial;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    width: max-content !important;
+    border: none !important;
+  }
+
+  .btn-menu-mobile {
+    display: none;
+  }
+
+  .offcanvas-header {
+    display: none;
+  }
+}
+
+/********end mobile media only menu*************/
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media only screen and (max-width: 1400px) {
+  h1,
+  .h1 {
+    font-size: 40px;
+    line-height: 46px;
+  }
+
+  h2,
+  .h2 {
+    font-size: 35px;
+  }
+
+  h3,
+  .h3 {
+    font-size: 25px;
+    line-height: 30px;
+  }
+
+  ul li,
+  ol li,
+  p {
+    font-size: 15px;
+    line-height: 22px;
+  }
+
+  a {
+    font-size: 15px;
+  }
+}
+
+@media only screen and (max-width: 1200px) {
+  .btn-primary {
+    font-size: 15px;
+    min-width: 100px;
+    padding: 4px;
+  }
+}
+
+@media only screen and (max-width: 992px) {
+  h1,
+  .h1 {
+    font-size: 30px;
+  }
+
+  h3,
+  .h3 {
+    font-size: 22px;
+  }
+
+  h2,
+  .h2 {
+    font-size: 27px;
+  }
+}
+
+@media only screen and (max-width: 767px) {
+  .btn-primary {
+    min-width: auto;
+    padding: 4px 11px;
+  }
+
+  h1,
+  .h1 {
+    font-size: 25px;
+    line-height: 29px;
+  }
+
+  h3,
+  .h3 {
+    font-size: 18px;
+    line-height: 140%;
+  }
+
+  .btn.btn-orange {
+    font-size: 15px;
+    padding: 6px;
+  }
+}

@@ -378,7 +378,7 @@ export default function CreateAssignmentModal({
                         {/* Song Search */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" ref={songInputRef}>
                             <div className="relative">
-                                <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                                <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
                                     <Music size={16} className="text-purple-600" /> Search Song
                                 </label>
                                 <input
@@ -530,7 +530,7 @@ export default function CreateAssignmentModal({
 
                             {/* Assignment File Upload */}
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                                     <Upload size={16} className="text-purple-600" /> Assignment File
                                 </label>
                                 <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-purple-400 transition-all bg-gray-50">
