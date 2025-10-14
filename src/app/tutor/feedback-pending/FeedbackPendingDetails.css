@@ -7,16 +7,16 @@
 }
 .feedback-pending-details-sec {
 	.feedback-left-box {
-		width: 320px;
-		padding-right: 10px;
-		padding-top: 25px;
+		width: 320px ;
+		padding-right: 10px !important;
+		padding-top: 25px !important;
         @media only screen and (max-width:889px) {
-            width: 100%;
-            padding-right: 0;
+            width: 100% !important;
+            padding-right: 0 !important;
         }
 		.feedback-box-scroll {
-			/* height: calc(100svh - 250px);
-            overflow-y: scroll; */
+			height: calc(100svh - 250px);
+            overflow-y: scroll;
             padding-right: 10px;
 			.card-feedback {
 				border-bottom: 1px solid #EEEEEE;

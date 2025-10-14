@@ -33,7 +33,7 @@ const ProfileProgress = ({ user }: { user: UserData }) => {
 
             {user?.profileImage ? (
               <Image 
-                style={{ width: 120, height: 120, borderRadius: "50%", objectFit: "cover"}} 
+                style={{ width: 120, height: 120, borderRadius: "50%", objectFit: "contain"}} 
                 src={user.profileImage}  
                 alt={user.username || "Profile"}
                 width={120}

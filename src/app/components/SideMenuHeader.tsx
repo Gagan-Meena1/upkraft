@@ -23,7 +23,7 @@ const SideMenuHeader = ({ role }) => {
       >
         <div className="offcanvas-body">
           <div className="img-logo">
-            <Link href="/" className="logo">
+            <Link href="/tutor" className="logo">
               <Image src={LogoHeader} alt="logo" />
             </Link>
           </div>
@@ -33,7 +33,7 @@ const SideMenuHeader = ({ role }) => {
                 <>
                   <li>
                     <Link
-                      href="/"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
                         pathname === "/" ? "active" : ""
                       }`}
@@ -140,6 +140,78 @@ const SideMenuHeader = ({ role }) => {
                       <span>Calendar</span>
                     </Link>
                   </li>
+                  <li>
+                    <Link
+                      href="/tutor/myArchieve"
+                      className={`d-flex align-items-center gap-2 ${
+                        isActive("/calendar") ? "active" : ""
+                      }`}
+                    >
+                      <span className="svg-icons">
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M2 12C2 8.229 2 6.343 3.172 5.172C4.344 4.001 6.229 4 10 4H14C17.771 4 19.657 4 20.828 5.172C21.999 6.344 22 8.229 22 12V14C22 17.771 22 19.657 20.828 20.828C19.656 21.999 17.771 22 14 22H10C6.229 22 4.343 22 3.172 20.828C2.001 19.656 2 17.771 2 14V12Z"
+                            stroke="white"
+                            strokeWidth="1.5"
+                          />
+                          <path
+                            d="M7 4V2.5M17 4V2.5M2.5 9H21.5"
+                            stroke="white"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M18 17C18 17.2652 17.8946 17.5196 17.7071 17.7071C17.5196 17.8946 17.2652 18 17 18C16.7348 18 16.4804 17.8946 16.2929 17.7071C16.1054 17.5196 16 17.2652 16 17C16 16.7348 16.1054 16.4804 16.2929 16.2929C16.4804 16.1054 16.7348 16 17 16C17.2652 16 17.5196 16.1054 17.7071 16.2929C17.8946 16.4804 18 16.7348 18 17ZM18 13C18 13.2652 17.8946 13.5196 17.7071 13.7071C17.5196 13.8946 17.2652 14 17 14C16.7348 14 16.4804 13.8946 16.2929 13.7071C16.1054 13.5196 16 13.2652 16 13C16 12.7348 16.1054 12.4804 16.2929 12.2929C16.4804 12.1054 16.7348 12 17 12C17.2652 12 17.5196 12.1054 17.7071 12.2929C17.8946 12.4804 18 12.7348 18 13ZM13 17C13 17.2652 12.8946 17.5196 12.7071 17.7071C12.5196 17.8946 12.2652 18 12 18C11.7348 18 11.4804 17.8946 11.2929 17.7071C11.1054 17.5196 11 17.2652 11 17C11 16.7348 11.1054 16.4804 11.2929 16.2929C11.4804 16.1054 11.7348 16 12 16C12.2652 16 12.5196 16.1054 12.7071 16.2929C12.8946 16.4804 13 16.7348 13 17ZM13 13C13 13.2652 12.8946 13.5196 12.7071 13.7071C12.5196 13.8946 12.2652 14 12 14C11.7348 14 11.4804 13.8946 11.2929 13.7071C11.1054 13.5196 11 13.2652 11 13C11 12.7348 11.1054 12.4804 11.2929 12.2929C11.4804 12.1054 11.7348 12 12 12C12.2652 12 12.5196 12.1054 12.7071 12.2929C12.8946 12.4804 13 12.7348 13 13ZM8 17C8 17.2652 7.89464 17.5196 7.70711 17.7071C7.51957 17.8946 7.26522 18 7 18C6.73478 18 6.48043 17.8946 6.29289 17.7071C6.10536 17.5196 6 17.2652 6 17C6 16.7348 6.10536 16.4804 6.29289 16.2929C6.48043 16.1054 6.73478 16 7 16C7.26522 16 7.51957 16.1054 7.70711 16.2929C7.89464 16.4804 8 16.7348 8 17ZM8 13C8 13.2652 7.89464 13.5196 7.70711 13.7071C7.51957 13.8946 7.26522 14 7 14C6.73478 14 6.48043 13.8946 6.29289 13.7071C6.10536 13.5196 6 13.2652 6 13C6 12.7348 6.10536 12.4804 6.29289 12.2929C6.48043 12.1054 6.73478 12 7 12C7.26522 12 7.51957 12.1054 7.70711 12.2929C7.89464 12.4804 8 12.7348 8 13Z"
+                            fill="white"
+                          />
+                        </svg>
+                      </span>
+                      <span>My Archive</span>
+                    </Link>
+                  </li>
+                    <li>
+                    <Link
+                      href="/tutor/performanceVideo"
+                      className={`d-flex align-items-center gap-2 ${
+                        isActive("/calendar") ? "active" : ""
+                      }`}
+                    >
+                      <span className="svg-icons">
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M2 12C2 8.229 2 6.343 3.172 5.172C4.344 4.001 6.229 4 10 4H14C17.771 4 19.657 4 20.828 5.172C21.999 6.344 22 8.229 22 12V14C22 17.771 22 19.657 20.828 20.828C19.656 21.999 17.771 22 14 22H10C6.229 22 4.343 22 3.172 20.828C2.001 19.656 2 17.771 2 14V12Z"
+                            stroke="white"
+                            strokeWidth="1.5"
+                          />
+                          <path
+                            d="M7 4V2.5M17 4V2.5M2.5 9H21.5"
+                            stroke="white"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M18 17C18 17.2652 17.8946 17.5196 17.7071 17.7071C17.5196 17.8946 17.2652 18 17 18C16.7348 18 16.4804 17.8946 16.2929 17.7071C16.1054 17.5196 16 17.2652 16 17C16 16.7348 16.1054 16.4804 16.2929 16.2929C16.4804 16.1054 16.7348 16 17 16C17.2652 16 17.5196 16.1054 17.7071 16.2929C17.8946 16.4804 18 16.7348 18 17ZM18 13C18 13.2652 17.8946 13.5196 17.7071 13.7071C17.5196 13.8946 17.2652 14 17 14C16.7348 14 16.4804 13.8946 16.2929 13.7071C16.1054 13.5196 16 13.2652 16 13C16 12.7348 16.1054 12.4804 16.2929 12.2929C16.4804 12.1054 16.7348 12 17 12C17.2652 12 17.5196 12.1054 17.7071 12.2929C17.8946 12.4804 18 12.7348 18 13ZM13 17C13 17.2652 12.8946 17.5196 12.7071 17.7071C12.5196 17.8946 12.2652 18 12 18C11.7348 18 11.4804 17.8946 11.2929 17.7071C11.1054 17.5196 11 17.2652 11 17C11 16.7348 11.1054 16.4804 11.2929 16.2929C11.4804 16.1054 11.7348 16 12 16C12.2652 16 12.5196 16.1054 12.7071 16.2929C12.8946 16.4804 13 16.7348 13 17ZM13 13C13 13.2652 12.8946 13.5196 12.7071 13.7071C12.5196 13.8946 12.2652 14 12 14C11.7348 14 11.4804 13.8946 11.2929 13.7071C11.1054 13.5196 11 13.2652 11 13C11 12.7348 11.1054 12.4804 11.2929 12.2929C11.4804 12.1054 11.7348 12 12 12C12.2652 12 12.5196 12.1054 12.7071 12.2929C12.8946 12.4804 13 12.7348 13 13ZM8 17C8 17.2652 7.89464 17.5196 7.70711 17.7071C7.51957 17.8946 7.26522 18 7 18C6.73478 18 6.48043 17.8946 6.29289 17.7071C6.10536 17.5196 6 17.2652 6 17C6 16.7348 6.10536 16.4804 6.29289 16.2929C6.48043 16.1054 6.73478 16 7 16C7.26522 16 7.51957 16.1054 7.70711 16.2929C7.89464 16.4804 8 16.7348 8 17ZM8 13C8 13.2652 7.89464 13.5196 7.70711 13.7071C7.51957 13.8946 7.26522 14 7 14C6.73478 14 6.48043 13.8946 6.29289 13.7071C6.10536 13.5196 6 13.2652 6 13C6 12.7348 6.10536 12.4804 6.29289 12.2929C6.48043 12.1054 6.73478 12 7 12C7.26522 12 7.51957 12.1054 7.70711 12.2929C7.89464 12.4804 8 12.7348 8 13Z"
+                            fill="white"
+                          />
+                        </svg>
+                      </span>
+                      <span>Class Snapshots</span>
+                    </Link>
+                  </li>
+
+
                   <li>
                     <Link
                       href="/tutor/assignments"
@@ -260,12 +332,12 @@ const SideMenuHeader = ({ role }) => {
                           />
                         </svg>
                       </span>
-                      <span>Upkraft Studio</span>
+                      <span>Knowledge Hub</span>
                     </Link>
                   </li>
                   <li>
                     <Link
-                      href="/payment-summary"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/payment-summary") ? "active" : ""
                       }`}
@@ -289,7 +361,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/Refer-Earn"
+                      href="/tutor/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/Refer-Earn") ? "active" : ""
                       }`}
@@ -317,7 +389,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/settings"
+                      href="/tutor/profile"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/settings") ? "active" : ""
                       }`}
@@ -353,7 +425,7 @@ const SideMenuHeader = ({ role }) => {
                 <>
                   <li>
                     <Link
-                      href="/"
+                      href="/student"
                       className={`d-flex align-items-center gap-2 ${
                         pathname === "/" ? "active" : ""
                       }`}
@@ -379,9 +451,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-tutor"
+                      href="/student/my-tutor"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/my-tuhrefr") ? "active" : ""
+                        isActive("/my-tutor") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -403,7 +475,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-courses"
+                      href="/student/my-courses"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-courses") ? "active" : ""
                       }`}
@@ -427,7 +499,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/calendar"
+                      href="/student/calendar"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/calendar") ? "active" : ""
                       }`}
@@ -462,7 +534,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/assignment"
+                      href="/student/assignment"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/assignment") ? "active" : ""
                       }`}
@@ -490,7 +562,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/music-library"
+                      href="/student/music-library"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/music-library") ? "active" : ""
                       }`}
@@ -514,7 +586,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/practice-studio"
+                      href="/student/practice-studio"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/practice-studio") ? "active" : ""
                       }`}
@@ -549,7 +621,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/payment-summary"
+                      href="/student/tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/payment-summary") ? "active" : ""
                       }`}
@@ -573,7 +645,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/Refer-Earn"
+                      href="/student/Refer-Earn"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/Refer-Earn") ? "active" : ""
                       }`}
@@ -601,7 +673,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/settings"
+                      href="/student/settings"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/settings") ? "active" : ""
                       }`}
@@ -748,8 +820,8 @@ const SideMenuHeader = ({ role }) => {
                 </>
               )}
             </ul>
-            <div className="log-out-btn d-flex align-items-center gap-2 mt-auhref">
-              <Link href="" className="text-log-out bg-transparent">
+            <div className="log-out-btn d-flex align-items-center gap-2 mt-auto">
+              <Link href="/" className="text-log-out bg-transparent">
                 <svg
                   width="24"
                   height="24"

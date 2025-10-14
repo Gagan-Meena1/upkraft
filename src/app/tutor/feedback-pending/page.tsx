@@ -327,11 +327,11 @@ const FeedbackPendingDetails = () => {
   }
 
   return (
-    <div className='feedback-pending-details-sec'>
+    <div className='feedback-pending-details-sec p-3 bg-white'>
       <div className='feed-back-heading'>
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-md-3 flex-xl-nowrap flex-wrap">
-            <div className='left-head'>
-                <h2 className='m-0'>Feedback Pending ({pendingFeedbacks.length} students)</h2>
+            <div className=''>
+                <h2 className='m-0 !text-md'>Feedback Pending ({pendingFeedbacks.length} students)</h2>
             </div>
             <div className='right-form'>
                <Link href="/tutor" className='link-text'>Back to Dashboard</Link>
