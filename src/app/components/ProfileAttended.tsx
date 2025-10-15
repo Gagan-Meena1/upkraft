@@ -11,7 +11,11 @@ import OnlineLesson from '../../assets/online-lesson.png'
 import Assignment from '../../assets/assignment.png'
 import Image from "next/image";
 
-const ProfileAttended = ({classesAttended, lessonsCompleted}) => {
+
+interface UserData {
+  instrument: string;
+}
+const ProfileAttended = ({classesAttended, lessonsCompleted, instrument}) => {
   return (
        <div className="">
          <div className="card-items-box">
@@ -47,8 +51,8 @@ const ProfileAttended = ({classesAttended, lessonsCompleted}) => {
               </CircularProgressbarWithChildren>
             </div>
             <div>
-              <h5 className="mb-0 fw-bold">7</h5>
-              <small className="text-muted">Lessons Completed</small>
+              <h5 className="mb-0 fw-bold">{instrument}</h5>
+              <small className="text-muted">Instrument</small>
             </div>
           </div>
         </div>
