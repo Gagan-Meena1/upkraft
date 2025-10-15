@@ -64,7 +64,7 @@ const Footer = () => {
 
                             {/* LinkedIn */}
                             <li>
-                                <Link href="#" className="footer-social-link">
+                                <Link href="https://www.linkedin.com/company/upkraft/" className="footer-social-link">
                                     <svg
                                         width="42"
                                         height="42"

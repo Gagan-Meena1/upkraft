@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
-import Exclusive01 from '@/assets/exclusive-01.png'
-import Exclusive02 from '@/assets/exclusive-02.png'
-import Exclusive03 from '@/assets/exclusive-03.png'
-import Exclusive04 from '@/assets/exclusive-04.png'
-import Exclusive05 from '@/assets/exclusive-05.png'
-import Exclusive06 from '@/assets/exclusive-06.png'
+import Exclusive01 from '@/assets/exclusive-01.jpg'
+import Exclusive02 from '@/assets/exclusive-02.jpg'
+import Exclusive03 from '@/assets/exclusive-03.jpg'
+import Exclusive04 from '@/assets/exclusive-04.jpg'
+import Exclusive05 from '@/assets/exclusive-05.jpg'
+import Exclusive06 from '@/assets/exclusive-06.jpg'
 import ModalStudent from './ModalStudent';
 
 const ExclusiveBenefits = () => {

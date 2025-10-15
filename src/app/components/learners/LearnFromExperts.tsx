@@ -2,7 +2,8 @@
 
 import React, { useRef } from "react";
 import Videoquality from "@/assets/Videoquality.png";
-import ReelImage from "@/assets/reel-image.png";
+import Reel1 from "@/assets/reel1.png";
+import Reel2 from "@/assets/reel2.png";
 
 declare global {
   interface Window {
@@ -25,10 +26,10 @@ const LearnFromExperts = () => {
 
   // List of tutor videos
   const tutorVideos: TutorVideo[] = [
-    { ref: video1, name: "Alfred", videoSrc: "/videos/dummy-video.mp4", poster: ReelImage.src },
-    { ref: video2, name: "Beatrice", videoSrc: "/videos/dummy-video.mp4", poster: ReelImage.src },
-    { ref: video3, name: "Charles", videoSrc: "/videos/dummy-video.mp4", poster: ReelImage.src },
-    { ref: video4, name: "Diana", videoSrc: "/videos/dummy-video.mp4", poster: ReelImage.src },
+    { ref: video1, name: "Alfred", videoSrc: "/videos/reel1.mp4", poster: Reel1.src },
+    { ref: video2, name: "Beatrice", videoSrc: "/videos/reel2.mp4", poster: Reel2.src },
+    { ref: video3, name: "Charles", videoSrc: "/videos/reel1.mp4", poster: Reel1.src },
+    { ref: video4, name: "Diana", videoSrc: "/videos/reel2.mp4", poster: Reel2.src },
   ];
 
   const handlePlay = (videoRef: React.RefObject<HTMLVideoElement>, tutorName: string) => {

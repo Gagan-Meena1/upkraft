@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import LogoHeader from "@/assets/LogoHeader.png";
+import "@/styles/style.css";
 
 const SideMenuHeader = ({ role }) => {
   const pathname = usePathname();

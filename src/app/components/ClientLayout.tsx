@@ -10,10 +10,10 @@ import "swiper/css/pagination";
 
 // Local CSS imports
 import "@/styles/globals.css";
-import "@/styles/index.css";
+//import "@/styles/index.css";
 //import "../../app/media.css";
 //import "../../app/custom.css";
-import "@/styles/style.css";
+//import "@/styles/style.css";
 
 import { Toaster } from "react-hot-toast";
 import Chat from "./Chat";

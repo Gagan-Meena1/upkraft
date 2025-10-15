@@ -4,9 +4,10 @@ import { Inter, Geist_Mono } from "next/font/google";
 import type { Metadata } from "next";
 import ClientLayout from "./components/ClientLayout";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "@/styles/index.css"; 
-import "@/styles/style.css";
-import "@/styles/custom.css";
+import "@/styles/globals.css";
+// import "@/styles/style 2.css"; 
+// import "@/styles/style.css";
+// import "@/styles/custom.css";
 //import "@/styles/media.css";
 
 const geistSans = Inter({

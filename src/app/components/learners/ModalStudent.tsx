@@ -33,10 +33,16 @@ const ModalStudent = ({ show, handleClose }) => {
         setMessage("");
 
         try {
+
+            const submissionData = {
+                ...formData,
+                userType: key, // <-- Add this line
+            };
+
             const res = await fetch("/Api/express-interest", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(submissionData),
             });
 
             const data = await res.json();

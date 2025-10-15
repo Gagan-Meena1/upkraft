@@ -40,6 +40,7 @@ import Button from "react-bootstrap/Button";
 import Author from "../../assets/author.png";
 import SideMenuHeader from "../components/SideMenuHeader";
 
+
 // Dynamically import VideoMeeting component with no SSR
 const VideoMeeting = dynamic(() => import("../components/VideoMeeting"), {
   ssr: false,
