@@ -15,6 +15,7 @@ interface FeedbackFormData {
     personalFeedback: string
 }
 
+
 const StudentFeedbackPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +50,73 @@ const StudentFeedbackPage = () => {
         // Check if required parameters exist
         if (!tutorId || !courseId || !classId) {
           setError('Missing required parameters: tutorId, courseId, or classId');
+          // Calculate pending feedback count
+try {
+  // Get all students for this tutor
+  const studentsResponse = await fetch('/Api/myStudents');
+  const studentsData = await studentsResponse.json();
+  
+  if (!studentsData.filteredUsers) {
+    throw new Error('Failed to load students data');
+  }
+  
+  const students = studentsData.filteredUsers;
+  
+  // Get all classes for this tutor's courses
+  const courseDetails = userData.courseDetails || [];
+  const classDetails = userData.classDetails || [];
+  
+  // Get all existing feedback
+  const feedbackPromises = courseDetails.map(async (course: any) => {
+    try {
+      // Handle possible 404 error if course has no classes
+      const response = await fetch(`/Api/studentFeedbackForTutor?courseId=${course._id}`);
+      if (response.status === 404) {
+        return { courseId: course._id, feedbacks: [] };
+      }
+      if (response.ok) {
+        const data = await response.json();
+        return { courseId: course._id, feedbacks: data.data || [] };
+      }
+      return { courseId: course._id, feedbacks: [] };
+    } catch (e) {
+      console.error(`Error fetching feedback for course ${course._id}:`, e);
+      return { courseId: course._id, feedbacks: [] };
+    }
+  });
+  
+  const feedbackResults = await Promise.all(feedbackPromises);
+  
+  // Create a map of classes with feedback
+  const classesWithFeedback = new Map();
+  feedbackResults.forEach(result => {
+    result.feedbacks.forEach((feedback: any) => {
+      // Create a unique key combining classId and studentId
+      const key = `${feedback.classId}-${feedback.userId}`;
+      classesWithFeedback.set(key, true);
+    });
+  });
+  
+  // Count all pending feedback instances
+  let pendingFeedbackCount = 0;
+  students.forEach((student: any) => {
+    // Find classes for this student that need feedback
+    classDetails.forEach((cls: any) => {
+      // Check if feedback exists for this class and student
+      const key = `${cls._id}-${student._id}`;
+      if (!classesWithFeedback.has(key)) {
+        pendingFeedbackCount++;
+      }
+    });
+  });
+  
+  // Set the pending feedback count in state
+  setPendingFeedbackCount(pendingFeedbackCount);
+  
+} catch (error) {
+  console.error("Error calculating pending feedback count:", error);
+  setPendingFeedbackCount(0);
+}
           setLoading(false);
           return;
         }

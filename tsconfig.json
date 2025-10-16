@@ -16,6 +16,7 @@
     "strictNullChecks": false,
     "strictFunctionTypes": false,
     "incremental": true,
+    "forceConsistentCasingInFileNames": true,
     "plugins": [
       {
         "name": "next"
