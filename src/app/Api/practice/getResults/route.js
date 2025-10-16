@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { connect } from '@/dbConnection/dbConfic'; // Adjust path as needed
 import { PianoResult, GuitarResult } from '@/models/practiceResult'; // Adjust path as needed
+import User from '@/models/userModel';
 import mongoose from 'mongoose';
 
 export async function GET(request) {
@@ -46,6 +47,7 @@ export async function GET(request) {
       );
     }
 
+    const user=await User.findById(userId).lean();
     // Get instrument filter if provided
     const instrument = searchParams.get('instrument');
 
@@ -86,6 +88,7 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       data: results,
+      category:user.category,
       stats
     });
 
