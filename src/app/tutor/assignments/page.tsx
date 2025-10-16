@@ -71,6 +71,8 @@ export default function TutorAssignments() {
   const [searchTerm, setSearchTerm] = useState('');
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
+
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -153,15 +155,47 @@ export default function TutorAssignments() {
   };
 
   const handleEdit = (assignmentId: string) => {
-    console.log('Edit assignment:', assignmentId);
-  };
+  const assignmentToEdit = assignments.find(a => a._id === assignmentId);
+  if (assignmentToEdit) {
+    setEditingAssignment(assignmentToEdit);
+    setIsModalOpen(true);
+  }
+};
+  const handleDelete = async (assignmentId: string) => {
+  if (confirm('Are you sure you want to delete this assignment?')) {
+    try {
+      const response = await fetch(`/Api/assignment?assignmentId=${assignmentId}`, {
+        method: 'DELETE',
+      });
 
-  const handleDelete = (assignmentId: string) => {
-    if (confirm('Are you sure you want to delete this assignment?')) {
-      console.log('Delete assignment:', assignmentId);
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Assignment deleted successfully!');
+        // Optionally refresh the page or update state to remove the deleted assignment
+        window.location.reload(); // or use state management to remove from list
+      } else {
+        alert(`Error: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      alert('Failed to delete assignment. Please try again.');
     }
-  };
+  }
+};
 
+// Update the modal closing handler
+const handleCloseModal = () => {
+  setIsModalOpen(false);
+  setEditingAssignment(null);
+};
+
+// Add success handler to refresh assignments
+const handleAssignmentSuccess = () => {
+  setIsModalOpen(false);
+  setEditingAssignment(null);
+  window.location.reload(); // or refetch assignments
+};
   const handleCreateAssignment = () => {
     setIsModalOpen(true); // open modal instead of redirect
   };
@@ -425,14 +459,16 @@ export default function TutorAssignments() {
       </div>
 
       {/* Create Assignment Modal */}
-      {isModalOpen && (
-        <CreateAssignmentModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          courses={coursesData}    // <-- pass actual courses array here
-          classes={classesData}    // <-- pass actual classes array here
-        />
-      )}
+     {isModalOpen && (
+  <CreateAssignmentModal
+    isOpen={isModalOpen}
+    onClose={handleCloseModal}
+    onSuccess={handleAssignmentSuccess}
+    courses={coursesData}
+    classes={classesData}
+    editingAssignment={editingAssignment} // Pass the assignment to edit
+  />
+)}
     </div>
   );
 }
