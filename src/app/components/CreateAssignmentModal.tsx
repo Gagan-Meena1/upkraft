@@ -23,12 +23,35 @@ interface Song {
     difficulty?: string;
 }
 
+interface Assignment {
+  _id: string;
+  title: string;
+  description: string;
+  deadline: string;
+  fileUrl?: string;
+  fileName?: string;
+  songName?: string;
+  practiceStudio?: boolean;
+  speed?: string;
+  metronome?: string;
+  loop?: string;
+  course: {
+    _id: string;
+    title: string;
+  };
+  class: {
+    _id: string;
+    title: string;
+  };
+}
+
 interface CreateAssignmentModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess?: () => void;
     courses: Course[];
     classes: Class[];
+    editingAssignment?: Assignment | null; // Add this
 }
 
 export default function CreateAssignmentModal({
@@ -36,8 +59,51 @@ export default function CreateAssignmentModal({
     onClose,
     onSuccess,
     courses,
-    classes
+    classes,
+    editingAssignment
 }: CreateAssignmentModalProps) {
+     useEffect(() => {
+    if (editingAssignment) {
+      // Parse the deadline to YYYY-MM-DD format
+      const deadlineDate = new Date(editingAssignment.deadline);
+      const formattedDeadline = deadlineDate.toISOString().split('T')[0];
+
+      setFormData({
+        title: editingAssignment.title || '',
+        deadline: formattedDeadline,
+        description: editingAssignment.description || '',
+        songName: editingAssignment.songName || '',
+        customSongName: '',
+        course: editingAssignment.course?._id || '',
+        class: editingAssignment.class?._id || '',
+        speed: editingAssignment.speed || '100%',
+        metronome: editingAssignment.metronome || '100%',
+        loop: editingAssignment.loop || 'Set A',
+      });
+      
+      setPracticeStudio(editingAssignment.practiceStudio || false);
+      
+      // Note: Existing files can't be pre-populated in file inputs
+      // You might want to show the existing file names
+    } else {
+      // Reset form for new assignment
+      setFormData({
+        title: '',
+        deadline: '',
+        description: '',
+        songName: '',
+        customSongName: '',
+        course: '',
+        class: '',
+        speed: '100%',
+        metronome: '100%',
+        loop: 'Set A',
+      });
+      setMusicSheet(null);
+      setAssignmentFile(null);
+      setPracticeStudio(false);
+    }
+  }, [editingAssignment]);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -195,78 +261,91 @@ export default function CreateAssignmentModal({
         if (e.target.files && e.target.files[0]) setAssignmentFile(e.target.files[0]);
     };
 
-    const handleSubmit = async () => {
-        if (!formData.title.trim()) return setError('Please enter an assignment title');
-        if (!formData.course) return setError('Please select a course');
-        if (!formData.class) return setError('Please select a class');
-        if (!formData.deadline) return setError('Please select a deadline');
-        if (!formData.description.trim()) return setError('Please enter a description');
+  // Update the handleSubmit function
+  const handleSubmit = async () => {
+    if (!formData.title.trim()) return setError('Please enter an assignment title');
+    if (!formData.course) return setError('Please select a course');
+    if (!formData.class) return setError('Please select a class');
+    if (!formData.deadline) return setError('Please select a deadline');
+    if (!formData.description.trim()) return setError('Please enter a description');
 
-        setIsSubmitting(true);
-        setError(null);
+    setIsSubmitting(true);
+    setError(null);
 
-        try {
-            const submitData = new FormData();
-            submitData.append('title', formData.title);
-            submitData.append('description', formData.description);
-            submitData.append('deadline', new Date(formData.deadline).toISOString());
-            submitData.append('courseId', formData.course);
-            submitData.append('classId', formData.class);
+    try {
+      const submitData = new FormData();
+      submitData.append('title', formData.title);
+      submitData.append('description', formData.description);
+      submitData.append('deadline', new Date(formData.deadline).toISOString());
+      submitData.append('courseId', formData.course);
+      submitData.append('classId', formData.class);
 
-            const finalSongName = selectedSong
-                ? `${selectedSong.title} - ${selectedSong.artist}`
-                : formData.customSongName || formData.songName;
-            if (finalSongName) submitData.append('songName', finalSongName);
+      const finalSongName = selectedSong
+        ? `${selectedSong.title} - ${selectedSong.artist}`
+        : formData.customSongName || formData.songName;
+      if (finalSongName) submitData.append('songName', finalSongName);
 
-            submitData.append('practiceStudio', practiceStudio ? 'true' : 'false');
-            submitData.append('speed', formData.speed);
-            submitData.append('metronome', formData.metronome);
-            submitData.append('loop', formData.loop);
+      submitData.append('practiceStudio', practiceStudio ? 'true' : 'false');
+      submitData.append('speed', formData.speed);
+      submitData.append('metronome', formData.metronome);
+      submitData.append('loop', formData.loop);
 
-            if (musicSheet) submitData.append('musicSheet', musicSheet);
-            if (assignmentFile) submitData.append('assignmentFile', assignmentFile);
+      if (musicSheet) submitData.append('musicSheet', musicSheet);
+      if (assignmentFile) submitData.append('assignmentFile', assignmentFile);
 
-            const res = await fetch(`/Api/assignment?classId=${formData.class}&courseId=${formData.course}`, {
-                method: 'POST',
-                body: submitData,
-            });
+      // Determine if we're editing or creating
+      const isEditing = !!editingAssignment;
+      const url = isEditing 
+        ? `/Api/assignment?assignmentId=${editingAssignment._id}`
+        : `/Api/assignment?classId=${formData.class}&courseId=${formData.course}`;
+      
+      const method = isEditing ? 'PUT' : 'POST';
 
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.message || 'Failed to create assignment');
-            }
+      const res = await fetch(url, {
+        method: method,
+        body: submitData,
+      });
 
-            const result = await res.json();
-            if (result.success) {
-                alert('Assignment created successfully!');
-                onClose();
-                setFormData({
-                    title: '',
-                    deadline: '',
-                    description: '',
-                    songName: '',
-                    customSongName: '',
-                    course: '',
-                    class: '',
-                    speed: '100%',
-                    metronome: '100%',
-                    loop: 'Set A',
-                });
-                setMusicSheet(null);
-                setAssignmentFile(null);
-                setPracticeStudio(false);
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || `Failed to ${isEditing ? 'update' : 'create'} assignment`);
+      }
 
-                if (onSuccess) onSuccess();
-            } else {
-                throw new Error(result.message || 'Failed to create assignment');
-            }
-        } catch (err) {
-            console.error(err);
-            setError(err instanceof Error ? err.message : 'Something went wrong');
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
+      const result = await res.json();
+      if (result.success) {
+        alert(`Assignment ${isEditing ? 'updated' : 'created'} successfully!`);
+        onClose();
+        
+        // Reset form
+        setFormData({
+          title: '',
+          deadline: '',
+          description: '',
+          songName: '',
+          customSongName: '',
+          course: '',
+          class: '',
+          speed: '100%',
+          metronome: '100%',
+          loop: 'Set A',
+        });
+        setMusicSheet(null);
+        setAssignmentFile(null);
+        setPracticeStudio(false);
+        setSelectedSong(null);
+
+        if (onSuccess) onSuccess();
+      } else {
+        throw new Error(result.message || `Failed to ${isEditing ? 'update' : 'create'} assignment`);
+      }
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
 
     if (!isOpen) return null;
 
@@ -284,10 +363,14 @@ export default function CreateAssignmentModal({
                     >
                         <X size={24} />
                     </button>
-                    <h2 className="text-3xl font-bold text-white mb-2">Create New Assignment</h2>
-                    <p className="text-purple-100 text-sm">
-                        Fill in the details below to create a new assignment for students
-                    </p>
+                   <h2 className="text-3xl font-bold text-white mb-2">
+    {editingAssignment ? 'Edit Assignment' : 'Create New Assignment'}
+  </h2>
+  <p className="text-purple-100 text-sm">
+    {editingAssignment 
+      ? 'Update the details below to modify this assignment'
+      : 'Fill in the details below to create a new assignment for students'}
+  </p>
                 </div>
 
                 {/* Error */}
@@ -529,39 +612,48 @@ export default function CreateAssignmentModal({
                             </div> */}
 
                             {/* Assignment File Upload */}
-                            <div>
-                                <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                    <Upload size={16} className="text-purple-600" /> Assignment File
-                                </label>
-                                <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-purple-400 transition-all bg-gray-50">
-                                    <input
-                                        type="file"
-                                        onChange={handleAssignmentFileChange}
-                                        disabled={isSubmitting}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        id="assignmentFileInput"
-                                    />
-                                    <div className="text-center">
-                                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                        <p className="text-sm text-gray-600 font-medium">
-                                            {assignmentFile ? assignmentFile.name : 'Click to upload or drag and drop'}
-                                        </p>
-                                        <p className="text-xs text-gray-400 mt-1">All file types accepted</p>
-                                    </div>
-                                </div>
-                            </div>
+<div>
+  <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+    <Upload size={16} className="text-purple-600" /> Assignment File
+  </label>
+  <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-purple-400 transition-all bg-gray-50">
+    <input
+      type="file"
+      onChange={handleAssignmentFileChange}
+      disabled={isSubmitting}
+      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      id="assignmentFileInput"
+    />
+    <div className="text-center">
+      <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+      <p className="text-sm text-gray-600 font-medium">
+        {assignmentFile ? assignmentFile.name : 'Click to upload or drag and drop'}
+      </p>
+      <p className="text-xs text-gray-400 mt-1">All file types accepted</p>
+    </div>
+  </div>
+  
+  {/* Shows existing file when editing */}
+  {editingAssignment?.fileName && !assignmentFile && (
+    <div className="text-sm text-gray-600 mt-2">
+      Current file: <span className="font-medium">{editingAssignment.fileName}</span>
+    </div>
+  )}
+</div>
                         </div>
 
                         {/* Submit Button */}
                         <div className="mt-6 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={handleSubmit}
-                                disabled={isSubmitting}
-                                className="px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-all disabled:opacity-50"
-                            >
-                                {isSubmitting ? 'Creating...' : 'Create Assignment'}
-                            </button>
+                           <button
+    type="button"
+    onClick={handleSubmit}
+    disabled={isSubmitting}
+    className="px-6 py-3 bg-purple-600 text-white rounded-xl font-semibold hover:bg-purple-700 transition-all disabled:opacity-50"
+  >
+    {isSubmitting 
+      ? (editingAssignment ? 'Updating...' : 'Creating...') 
+      : (editingAssignment ? 'Update Assignment' : 'Create Assignment')}
+  </button>
                         </div>
                     </div>
                 </div>
