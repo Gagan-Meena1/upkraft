@@ -173,6 +173,16 @@ const StudentCalendarView = () => {
 
   return (
     <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
+      {/* Mobile Overlay */}
+      {isMobile && sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      
 
       {/* Main Content */}
       <div className="flex-1 min-h-screen">

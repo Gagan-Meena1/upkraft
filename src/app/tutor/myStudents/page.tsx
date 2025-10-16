@@ -259,57 +259,21 @@ export default function MyStudents() {
           </h1>
 
           {/* Action Buttons - Stack on mobile, inline on larger screens */}
-          <div className="flex justify-between items-center">
-            <div className="right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap">
-              <Button
-                type="button"
-                className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
-                data-bs-toggle="modal"
-                data-bs-target="#AddStudentModal"
-              >
-                <span>Add Student </span>
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M11.9997 8.66536H8.66634V11.9987C8.66634 12.1755 8.5961 12.3451 8.47108 12.4701C8.34605 12.5951 8.17649 12.6654 7.99967 12.6654C7.82286 12.6654 7.65329 12.5951 7.52827 12.4701C7.40325 12.3451 7.33301 12.1755 7.33301 11.9987V8.66536H3.99967C3.82286 8.66536 3.65329 8.59513 3.52827 8.4701C3.40325 8.34508 3.33301 8.17551 3.33301 7.9987C3.33301 7.82189 3.40325 7.65232 3.52827 7.52729C3.65329 7.40227 3.82286 7.33203 3.99967 7.33203H7.33301V3.9987C7.33301 3.82189 7.40325 3.65232 7.52827 3.52729C7.65329 3.40227 7.82286 3.33203 7.99967 3.33203C8.17649 3.33203 8.34605 3.40227 8.47108 3.52729C8.5961 3.65232 8.66634 3.82189 8.66634 3.9987V7.33203H11.9997C12.1765 7.33203 12.3461 7.40227 12.4711 7.52729C12.5961 7.65232 12.6663 7.82189 12.6663 7.9987C12.6663 8.17551 12.5961 8.34508 12.4711 8.4701C12.3461 8.59513 12.1765 8.66536 11.9997 8.66536Z"
-                    fill="white"
-                  />
-                </svg>
-              </Button>
-              <div className="search-box">
-                <Form.Group className="position-relative mb-0">
-                  <Form.Label className="d-none">search</Form.Label>
-                  <Form.Control type="text" placeholder="Search here" />
-                  <Button variant="link" className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute !top-[10px]">
-                    <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M17.4995 17.5L13.8828 13.8833"
-                        stroke="#505050"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
-                        stroke="#505050"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </Button>
-                </Form.Group>
-              </div>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <Link href="/tutor/createStudent" className="flex-1 sm:flex-none">
+    <button
+      className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition flex items-center justify-center hover:cursor-grab"
+      style={{
+      background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
+      color: '#ffffff',
+      border: 'none',
+      boxShadow: '0 0 20px rgba(168, 85, 247, 0.6), 0 0 40px rgba(168, 85, 247, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2)',
+      cursor: 'pointer',
+    }}
+    >
+      <span className="mr-2">+</span> Add Student
+    </button>
+            </Link>
           </div>
         </div>
 
@@ -375,19 +339,9 @@ export default function MyStudents() {
                     your first student to begin managing your classes.
                   </p>
                   <Link href="/tutor/createStudent">
-                    <button className="mt-6 px-4 sm:px-6 py-2 sm:py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors inline-flex items-center text-sm sm:text-base">
-                      <svg
-                        className="w-4 h-4 sm:w-5 sm:h-5 mr-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                        />
+                    <button className="mt-5 px-4 sm:px-6 py-2 sm:py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors inline-flex items-center text-sm sm:text-base">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
                       Add Your First Student
                     </button>
@@ -467,22 +421,18 @@ export default function MyStudents() {
                             )}
                           </td>
                           <td className="px-3 py-3">
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                student.performanceAverage &&
-                                student.performanceAverage > 0
-                                  ? student.performanceAverage >= 80
-                                    ? "bg-green-100 text-green-800"
-                                    : student.performanceAverage >= 60
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                  : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              {student.performanceAverage &&
-                              student.performanceAverage > 0
-                                ? `${student.performanceAverage}`
-                                : "N/A"}
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              student.performanceAverage && student.performanceAverage > 0
+                                ? student.performanceAverage >= 8
+                                  ? 'bg-green-100 text-green-800'
+                                  : student.performanceAverage >= 6
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {student.performanceAverage && student.performanceAverage > 0 
+                                ? `${student.performanceAverage}` 
+                                : 'N/A'}
                             </span>
                           </td>
                           <td className="px-3 py-3">
@@ -605,25 +555,19 @@ export default function MyStudents() {
 
                           {/* Performance Average */}
                           <div>
-                            <span className="text-sm font-medium text-gray-500 block mb-1">
-                              Performance Avg:
-                            </span>
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                student.performanceAverage &&
-                                student.performanceAverage > 0
-                                  ? student.performanceAverage >= 80
-                                    ? "bg-green-100 text-green-800"
-                                    : student.performanceAverage >= 60
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : "bg-red-100 text-red-800"
-                                  : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              {student.performanceAverage &&
-                              student.performanceAverage > 0
-                                ? `${student.performanceAverage}`
-                                : "N/A"}
+                            <span className="text-sm font-medium text-gray-500 block mb-1">Performance Avg:</span>
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              student.performanceAverage && student.performanceAverage > 0
+                                ? student.performanceAverage >= 8
+                                  ? 'bg-green-100 text-green-800'
+                                  : student.performanceAverage >= 6
+                                  ? 'bg-yellow-100 text-yellow-800'
+                                  : 'bg-red-100 text-red-800'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {student.performanceAverage && student.performanceAverage > 0 
+                                ? `${student.performanceAverage}` 
+                                : 'N/A'}
                             </span>
                           </div>
 

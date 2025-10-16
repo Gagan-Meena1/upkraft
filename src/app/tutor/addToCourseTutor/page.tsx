@@ -11,6 +11,9 @@ interface Course {
   createdAt: string;
   duration: string;
   instructor: string;
+  price?: number;
+  category?: string;
+  // Add other fields as needed
 }
 
 export default function TutorCoursesPage() {
@@ -150,17 +153,17 @@ const toggleExpanded = (courseId: string) => {
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
       {/* Navigation - keep as is */}
-      <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
-        <div className="font-extrabold text-2xl text-gray-800">
-        </div>
-        <div className="flex space-x-4">
-          <Link href={`/tutor/myStudents`}>
-            <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition">
-              Back 
-            </button>
-          </Link>
-        </div>
-      </nav>
+        {/* <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
+          <div className="font-extrabold text-2xl text-gray-800">
+          </div>
+          <div className="flex space-x-4">
+            <Link href={`/tutor/myStudents`}>
+              <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition">
+                Back 
+              </button>
+            </Link>
+          </div>
+        </nav> */}
 
       {/* Main Content */}
       <div className="flex-1 w-full max-w-6xl mx-auto px-8 py-12">
@@ -234,21 +237,21 @@ const toggleExpanded = (courseId: string) => {
                               </span>
                             </div>
                           </div>
-                          <p className={`text-gray-600 text-sm mb-3 ${!expandedCourses[course._id] ? "line-clamp-1" : ""}`}>
+                          <p className={`!text-gray-600 !text-sm !leading-6 ${!expandedCourses[course._id] ? "line-clamp-1" : ""}`}>
                             {course.description || 'No description available'}
                           </p>
                           {course.description && course.description.length > 60 && (
                             <button
-                              className="text-blue-600 text-xs underline cursor-pointer"
+                              className="!text-blue-800 !text-xs underline cursor-pointer mb-3"
                               onClick={() => toggleExpanded(course._id)}
                             >
                               {!expandedCourses[course._id] ? "Show more..." : "Show less"}
                             </button>
                           )}
                           <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>Fees: Rs 3000</span>
-                            <span>Lessons: 2 Lessons</span>
-                            <span>Student: Eunice Robel</span>
+                            <span>Fees: Rs {course.price ?? "N/A"}</span>
+                            <span>Lessons: {course.curriculum ? course.curriculum.length : "N/A"} Lessons</span>
+                            <span>Category: {course.category ?? "N/A"}</span>
                           </div>
                         </div>
 

@@ -39,6 +39,8 @@ export default function StudentDetails() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [removingCourseId, setRemovingCourseId] = useState<string | null>(null);
+  // NEW: assignment count from API
+  const [assignmentCount, setAssignmentCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,6 +50,23 @@ export default function StudentDetails() {
         const response = await fetch(`/Api/studentCourses?studentId=${userId}`);
         const data = await response.json();
         setStudentData(data);
+
+        // Fetch tutor's assignments and count only those assigned to this student
+        if (userId) {
+          const tutorAssignmentsRes = await fetch(`/Api/assignment`); // token → current tutor
+          const tutorAssignmentsJson = await tutorAssignmentsRes.json();
+
+          if (tutorAssignmentsRes.ok && tutorAssignmentsJson?.success) {
+            const assignments = tutorAssignmentsJson?.data?.assignments ?? [];
+            const countForStudent = assignments.filter(
+              (a: any) => (a.assignedStudents || []).some((s: any) => s.userId === userId)
+            ).length;
+            setAssignmentCount(countForStudent);
+          } else {
+            setAssignmentCount(0);
+          }
+        }
+
         setLoading(false);
       } catch (error) {
         console.error("Error fetching student data:", error);
@@ -191,7 +210,8 @@ export default function StudentDetails() {
 
   return (
     <div className="student-profile-details-sec">
-      <StudentProfileDetails data={studentData} />
+      {/* pass assignmentCount down */}
+      <StudentProfileDetails data={studentData} assignmentCount={assignmentCount} />
     </div>
   );
 }

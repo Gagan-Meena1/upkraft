@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -247,6 +247,8 @@ const StudentsCountBox = ({ studentCount }: { studentCount: number }) => {
   );
 };
 
+
+
 export default function Dashboard() {
   const router = useRouter();
   const pathname = usePathname(); // Add this hook
@@ -267,6 +269,9 @@ export default function Dashboard() {
   const [studentPerformance, setStudentPerformance] = useState<number>(0);
   const [pendingFeedbackCount, setPendingFeedbackCount] = useState<number>(0);
   const [assignmentCompletionPercentage, setAssignmentCompletionPercentage] = useState<number>(0);
+  const [overallPerformanceScore, setOverallPerformanceScore] = useState<number>(0);
+  const [averageCourseQuality, setAverageCourseQuality] = useState<number>(0);
+  const [pendingFeedbackLoading, setPendingFeedbackLoading] = useState<boolean>(true);
 
   const role = "tutor";
   const isActive = (path: string) => {
@@ -274,6 +279,10 @@ export default function Dashboard() {
   };
   const classesPerPage = isMobile ? 1 : 3; // Show 1 class per page on mobile
   const totalPages = Math.ceil(classData.length / classesPerPage);
+
+//   const LoadingSkeleton = ({ height = "h-8", width = "w-16" }) => (
+//   <div className={`animate-pulse ${height} ${width} bg-gray-200 rounded`} />
+// );
 
   // Check if mobile
   useEffect(() => {
@@ -298,249 +307,230 @@ export default function Dashboard() {
       return classStartTime > now;
     });
   };
+const fetchInProgress = useRef(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userResponse = await fetch("/Api/users/user");
-        const userData = await userResponse.json();
+useEffect(() => {
+  const fetchEssentialData = async () => {
+    try {
+      if (fetchInProgress.current) {
+        console.log("Fetch already in progress, skipping");
+        return;
+      }
+      
+      fetchInProgress.current = true;
 
-        const assignmentResponse = await fetch("/Api/assignment");
-        const assignmentResponseData = await assignmentResponse.json();
+      console.log("Phase 1: Loading essential data...");
+      const [essentialsResponse, assignmentResponse, perfResponse] = await Promise.allSettled([
+        fetch("/Api/users/user"), // Changed from "/Api/users/essentials" to "/Api/users/user"
+        fetch("/Api/assignment"),
+        fetch("/Api/overallPerformanceScore")
+      ]);
 
-        setUserData(userData.user);
+      const essentialsData = essentialsResponse.status === 'fulfilled' 
+        ? await essentialsResponse.value.json() 
+        : null;
+      
+      const assignmentResponseData = assignmentResponse.status === 'fulfilled' 
+        ? await assignmentResponse.value.json() 
+        : null;
 
-        setStudentCount(userData.studentCount || 0);
-
-        if (userData.classDetails && userData.classDetails.length > 0) {
-          const sortedClasses = userData.classDetails.sort(
-            (a: ClassData, b: ClassData) =>
-              new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-          );
-
-          const futureClasses = filterFutureClasses(sortedClasses);
-          setClassData(futureClasses);
+      if (perfResponse.status === 'fulfilled') {
+        const perfData = await perfResponse.value.json();
+        
+        if (perfData.success) {
+          setOverallPerformanceScore(perfData.overallScore);
+          setAverageCourseQuality(perfData.averageCourseQuality);
         } else {
-          setClassData([]);
+          setOverallPerformanceScore(0);
+          setAverageCourseQuality(0);
         }
-console.log("Fetched Assignments:", assignmentResponseData);
-        if (assignmentResponseData?.data.assignments) {
-          setAssignmentData(assignmentResponseData.data.assignments);
+      } else {
+        setOverallPerformanceScore(0);
+        setAverageCourseQuality(0);
+      }
 
-          const assignments = assignmentResponseData.data.assignments;
-          const completedAssignments = assignments.filter(assignment => assignment.status === true).length;
-          const percentage = Math.round((completedAssignments / assignments.length) * 100);
-          console.log("Calculated Assignment Completion Percentage:", percentage);
-          setAssignmentCompletionPercentage(percentage);
+      if (!essentialsData?.user) {
+        setLoading(false);
+        fetchInProgress.current = false;
+        return;
+      }
+
+      setUserData(essentialsData.user);
+
+      if (essentialsData.classDetails && essentialsData.classDetails.length > 0) {
+        setClassData(essentialsData.classDetails);
+      } else {
+        setClassData([]);
+      }
+
+      // Handle assignments
+      if (assignmentResponseData?.data?.assignments) {
+        setAssignmentData(assignmentResponseData.data.assignments);
+
+        const assignments = assignmentResponseData.data.assignments;
+        const completedAssignments = assignments.filter(
+          assignment => assignment.status === true
+        ).length;
+        const percentage = Math.round((completedAssignments / assignments.length) * 100);
+        setAssignmentCompletionPercentage(percentage);
+      }
+
+      // ✅ SHOW PAGE IMMEDIATELY - Student count and feedback will load in background
+      console.log("Phase 1 complete - showing page with loading states");
+      setLoading(false);
+      fetchInProgress.current = false;
+
+      // ✅ PHASE 2: Load non-critical data in background
+      console.log("Phase 2: Loading additional data in background...");
+      loadAdditionalData(essentialsData.user._id);
+
+    } catch (error) {
+      console.error("Error fetching essential data:", error);
+      setLoading(false);
+      fetchInProgress.current = false;
+    }
+  };
+
+ const loadAdditionalData = async (userId: string) => {
+  try {
+    // Fetch students and pending feedback in parallel
+    const [studentsResponse, feedbackResponse] = await Promise.allSettled([
+      fetch("/Api/myStudents"),
+      fetch("/Api/pendingFeedback")
+    ]);
+
+    // Handle students data
+    if (studentsResponse.status === 'fulfilled') {
+      const studentsData = await studentsResponse.value.json();
+      if (studentsData.success) {
+        setStudentCount(studentsData.userCount || 0);
+        console.log("Student count updated:", studentsData.userCount);
+      } else {
+        setStudentCount(0);
+      }
+    } else {
+      setStudentCount(0);
+    }
+
+    // Handle feedback data
+    if (feedbackResponse.status === 'fulfilled') {
+      try {
+        const response = feedbackResponse.value;
+        
+        if (!response.ok) {
+          console.error("Feedback API error:", response.status, response.statusText);
+          setPendingFeedbackCount(0);
+          setPendingFeedbackLoading(false);
+          return;
         }
         
-        if (userData.user?.courses?.length > 0) {
-          const defaultCourseId = userData.user.courses[0]; // Use the first course as default
-
-          try {
-            const courseQualityResponse = await fetch(
-              `/Api/courseQuality?courseId=${defaultCourseId}`
-            );
-            const courseQualityData = await courseQualityResponse.json();
-
-            if (courseQualityData && !courseQualityData.error) {
-              if (courseQualityData.overall_quality_score !== undefined) {
-                setCoursePerformance(courseQualityData.overall_quality_score);
-              } else if (courseQualityData.hasEvaluation) {
-                const metrics = [
-                  courseQualityData.session_focus_clarity_score || 0,
-                  courseQualityData.content_delivery_score || 0,
-                  courseQualityData.student_engagement_score || 0,
-                  courseQualityData.student_progress_score || 0,
-                  courseQualityData.key_performance_score || 0,
-                  courseQualityData.communication_score || 0,
-                ];
-
-                const availableMetrics = metrics.filter((score) => score > 0);
-                const avgScore =
-                  availableMetrics.length > 0
-                    ? availableMetrics.reduce((a, b) => a + b, 0) /
-                      availableMetrics.length
-                    : 0;
-
-                setCoursePerformance(parseFloat(avgScore.toFixed(2)));
-              } else {
-                setCoursePerformance(0); // No evaluations yet
-              }
-            } else {
-              console.log(
-                "Course quality data not available:",
-                courseQualityData?.error || "Unknown error"
-              );
-              setCoursePerformance(0);
-            }
-          } catch (error) {
-            console.error("Error fetching course quality:", error);
-            setCoursePerformance(0);
-          }
-
-          // Fetch student performance data - WITH courseId parameter
-          try {
-            const performanceResponse = await fetch(
-              `/Api/studentFeedbackForTutor?courseId=${defaultCourseId}`
-            );
-
-            if (performanceResponse.status === 404) {
-              setStudentPerformance(0);
-              return;
-            }
-
-            if (!performanceResponse.ok) {
-              throw new Error("Failed to fetch performance data");
-            }
-
-            const performanceData = await performanceResponse.json();
-
-            if (
-              performanceData?.success &&
-              performanceData?.data &&
-              performanceData.data.length > 0
-            ) {
-              // Calculate weighted scores using the same formula as in viewPerformance
-              let totalWeightedScore = 0;
-
-              performanceData.data.forEach((item) => {
-                // Parse all performance metrics to numbers
-                const rhythm = typeof item.rhythm === 'string' ? parseFloat(item.rhythm) : (item.rhythm || 0);
-                const theoreticalUnderstanding = typeof item.theoreticalUnderstanding === 'string' ? 
-                  parseFloat(item.theoreticalUnderstanding) : (item.theoreticalUnderstanding || 0);
-                const performance = typeof item.performance === 'string' ? 
-                  parseFloat(item.performance) : (item.performance || 0);
-                const earTraining = typeof item.earTraining === 'string' ? 
-                  parseFloat(item.earTraining) : (item.earTraining || 0);
-                const assignment = typeof item.assignment === 'string' ? 
-                  parseFloat(item.assignment) : (item.assignment || 0);
-                const technique = typeof item.technique === 'string' ? 
-                  parseFloat(item.technique) : (item.technique || 0);
-                
-                // Define weights for each category (same as in viewPerformance)
-                const rhythmWeight = 1/6;
-                const theoreticalWeight = 1/6;
-                const performanceWeight = 1/6;
-                const earTrainingWeight = 1/6;
-                const assignmentWeight = 1/6;
-                const techniqueWeight = 1/6;
-
-                // Calculate weighted score for this feedback item
-                const weightedScore = 
-                  (rhythm * rhythmWeight) +
-                  (theoreticalUnderstanding * theoreticalWeight) +
-                  (performance * performanceWeight) +
-                  (earTraining * earTrainingWeight) +
-                  (assignment * assignmentWeight) +
-                  (technique * techniqueWeight);
-
-                totalWeightedScore += weightedScore;
-              });
-
-              // Calculate average weighted score across all feedback items
-              const averageScore = performanceData.data.length > 0 ? 
-                totalWeightedScore / performanceData.data.length : 0;
-
-              // Log calculation details for debugging
-              console.log("Student Performance Calculation:", {
-                totalWeightedScore,
-                dataPoints: performanceData.data.length,
-                averageScore,
-                roundedScore: parseFloat(averageScore.toFixed(1)),
-              });
-
-              // Set the performance value with 1 decimal place
-              setStudentPerformance(parseFloat(averageScore.toFixed(1)));
-            } else {
-              // No feedback data
-              console.log("Student performance data not available");
-              setStudentPerformance(0);
-            }
-          } catch (error) {
-            console.error("Error fetching student performance:", error);
-            setStudentPerformance(0);
-          }
+        const feedbackData = await response.json();
+        
+        if (feedbackData.success) {
+          setPendingFeedbackCount(feedbackData.count || 0);
+          console.log("Pending feedback count:", feedbackData.count);
         } else {
-          console.log("No courses available for this tutor. Using default values.");
-          setCoursePerformance(0);
-          setStudentPerformance(0);
+          setPendingFeedbackCount(0);
         }
-
-        await calculatePendingFeedback(userData);
-
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setLoading(false);
-      }
-    };
-
-    const calculatePendingFeedback = async (userData: any) => {
-      try {
-        // Get all students for this tutor
-        const studentsResponse = await fetch("/Api/myStudents");
-        const studentsData = await studentsResponse.json();
-
-        if (!studentsData.filteredUsers) {
-          throw new Error("Failed to load students data");
-        }
-
-        const students = studentsData.filteredUsers;
-
-        const courseDetails = userData?.courseDetails || [];
-        const classDetails = userData?.classDetails || [];
-
-        const feedbackPromises = courseDetails.map(async (course: any) => {
-          try {
-            const response = await fetch(
-              `/Api/studentFeedbackForTutor?courseId=${course._id}`
-            );
-            if (response.status === 404) {
-              return { courseId: course._id, feedbacks: [] };
-            }
-            if (response.ok) {
-              const data = await response.json();
-              return { courseId: course._id, feedbacks: data.data || [] };
-            }
-            return { courseId: course._id, feedbacks: [] };
-          } catch (e) {
-            console.error(`Error fetching feedback for course ${course._id}:`, e);
-            return { courseId: course._id, feedbacks: [] };
-          }
-        });
-
-        const feedbackResults = await Promise.all(feedbackPromises);
-
-        const classesWithFeedback = new Map();
-        feedbackResults.forEach((result) => {
-          result.feedbacks.forEach((feedback: any) => {
-            const key = `${feedback.classId}-${feedback.userId}`;
-            classesWithFeedback.set(key, true);
-          });
-        });
-
-        // Count all pending feedback instances
-        let pendingCount = 0;
-        students.forEach((student: any) => {
-          classDetails.forEach((cls: any) => {
-            const key = `${cls._id}-${student._id}`;
-            if (!classesWithFeedback.has(key)) {
-              pendingCount++;
-            }
-          });
-        });
-
-        // Set the pending feedback count in state
-        setPendingFeedbackCount(pendingCount);
-      } catch (error) {
-        console.error("Error calculating pending feedback count:", error);
+      } catch (parseError) {
+        console.error("Error parsing feedback response:", parseError);
         setPendingFeedbackCount(0);
+      } finally {
+        setPendingFeedbackLoading(false);
       }
-    };
+    } else {
+      console.error("Feedback fetch failed:", feedbackResponse.reason);
+      setPendingFeedbackCount(0);
+      setPendingFeedbackLoading(false);
+    }
+  } catch (error) {
+    console.error("Error loading additional data:", error);
+    setStudentCount(0);
+    setPendingFeedbackCount(0);
+    setPendingFeedbackLoading(false);
+  }
+};
 
-    fetchData();
-  }, []);
+  // const calculatePendingFeedback = async (courseDetails: any[], studentsData: any) => {
+  //   try {
+  //     if (!courseDetails || courseDetails.length === 0) {
+  //       setPendingFeedbackCount(0);
+  //       return;
+  //     }
+
+  //     // Get students from the already fetched data
+  //     const students = studentsData?.filteredUsers || [];
+
+  //     if (students.length === 0) {
+  //       setPendingFeedbackCount(0);
+  //       return;
+  //     }
+
+  //     // Get all class IDs from courses
+  //     const classIds = courseDetails.reduce((acc, course) => {
+  //       return acc.concat(course.class || []);
+  //     }, []);
+
+  //     if (classIds.length === 0) {
+  //       setPendingFeedbackCount(0);
+  //       return;
+  //     }
+
+  //     // Fetch all feedback for all courses in parallel
+  //     const courseIds = courseDetails.map((c: any) => c._id);
+      
+  //     const feedbackPromises = courseIds.map((courseId: string) =>
+  //       fetch(`/Api/studentFeedbackForTutor?courseId=${courseId}`)
+  //         .then(async (response) => {
+  //           if (response.status === 404 || !response.ok) {
+  //             return null;
+  //           }
+            
+  //           try {
+  //             const data = await response.json();
+  //             return data.data || [];
+  //           } catch (e) {
+  //             return null;
+  //           }
+  //         })
+  //         .catch(() => null)
+  //     );
+
+  //     const feedbackResults = await Promise.all(feedbackPromises);
+
+  //     // Process feedback results
+  //     const classesWithFeedback = new Map();
+      
+  //     feedbackResults.forEach((feedbacks) => {
+  //       if (feedbacks && Array.isArray(feedbacks)) {
+  //         feedbacks.forEach((feedback: any) => {
+  //           const key = `${feedback.classId}-${feedback.userId}`;
+  //           classesWithFeedback.set(key, true);
+  //         });
+  //       }
+  //     });
+
+  //     // Count pending feedback using classIds
+  //     let pendingCount = 0;
+  //     students.forEach((student: any) => {
+  //       classIds.forEach((classId: any) => {
+  //         const key = `${classId}-${student._id}`;
+  //         if (!classesWithFeedback.has(key)) {
+  //           pendingCount++;
+  //         }
+  //       });
+  //     });
+
+  //     console.log("Pending feedback count calculated:", pendingCount);
+  //     setPendingFeedbackCount(pendingCount);
+  //   } catch (error) {
+  //     console.error("Error calculating pending feedback:", error);
+  //     setPendingFeedbackCount(0);
+  //   }
+  // };
+
+  fetchEssentialData();
+}, []);
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -712,8 +702,14 @@ console.log("Fetched Assignments:", assignmentResponseData);
                       </span>
                       <span className="text-dark-blue text-box">Students</span>
                       <span className="text-black text-box">
-                        {studentCount}
-                      </span>
+                      {/* {studentCount === 0 ? (
+                        <LoadingSkeleton height="h-5" width="w-12" />
+                            ) : (
+                              <span className="text-black text-box">{studentCount}</span>
+                            )}  */}
+                                                          <span className="text-black text-box">{studentCount}</span>
+
+                        </span>
                     </li>
                     <li className="btn-white d-flex align-items-center gap-2 w-100">
                       <span className="icons">
@@ -769,8 +765,22 @@ console.log("Fetched Assignments:", assignmentResponseData);
               <div className="row">
                 <div className="col-md-12 mb-4">
                   <div className="card-box">
-                    <h2 className="top-text">{studentCount}</h2>
-                    <p className="bottom-text">Total Active Students</p>
+                    
+                   {/* {studentCount === 0 ? (
+                    <>
+                      <LoadingSkeleton height="h-8" width="w-16" />
+                      <LoadingSkeleton height="h-4" width="w-32" />
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="top-text">{studentCount}</h2>
+                      <p className="bottom-text">Total Active Students</p>
+                    </>
+                  )} */}
+                  {/* <span className="text-black text-box">{studentCount}</span> */}
+
+ <h2 className="top-text">{studentCount}</h2>
+                      <p className="bottom-text">Total Active Students</p>
                   </div>
                 </div>
                 <div className="col-md-12 mb-4">
@@ -826,22 +836,28 @@ console.log("Fetched Assignments:", assignmentResponseData);
             <div className="card-box">
               <div className="top-progress mb-4">
                 <SemiCircleProgress
-                  value={coursePerformance}
+                  value={averageCourseQuality}
                   label="Class Quality Score"
                 />
               </div>
               <div className="bottom-progress">
-                <SemiCircleProgress
-                  value={studentPerformance}
-                  label="Overall Student Performance"
-                />
+               <SemiCircleProgress
+                value={overallPerformanceScore}
+                label="Overall Performance Score"
+              />
               </div>
             </div>
           </div>
           <div className="col-xxl-3 col-md-6 mb-4">
             <div className="card-box">
-              <FeedbackPending count={pendingFeedbackCount} />
-            </div>
+  {/* pendingFeedbackCount === 0 ?  */}
+              {/* // <div className="p-4">
+              //   <LoadingSkeleton height="h-8" width="w-24" />
+              //   <LoadingSkeleton height="h-4" width="w-full" />
+              // </div> */}
+            {/* ) :  */}
+              <FeedbackPending count={pendingFeedbackCount} loading={pendingFeedbackLoading} />
+                      </div>
           </div>
         </div>
       </div>

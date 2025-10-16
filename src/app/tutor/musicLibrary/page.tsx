@@ -12,134 +12,134 @@ import { useRouter } from 'next/navigation';
 import { Button } from 'react-bootstrap';
 
 // Sidebar Component
-const Sidebar = ({ isOpen, onToggle, isMobile }) => {
-  const router = useRouter();
+// const Sidebar = ({ isOpen, onToggle, isMobile }) => {
+//   const router = useRouter();
   
-  return (
-    <>
-      {/* Mobile Overlay */}
-      {isMobile && isOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-          onClick={onToggle}
-        />
-      )}
+//   return (
+//     <>
+//       {/* Mobile Overlay */}
+//       {isMobile && isOpen && (
+//         <div 
+//           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+//           onClick={onToggle}
+//         />
+//       )}
       
-      {/* Sidebar */}
-      <div className={`bg-white border-r border-gray-200 h-screen ${
-        isMobile 
-          ? `fixed top-0 left-0 z-50 w-64 transform transition-transform duration-300 ${
-              isOpen ? 'translate-x-0' : '-translate-x-full'
-            }`
-          : isOpen ? 'w-64' : 'w-16'
-      } transition-all duration-300 flex flex-col`}>
+//       {/* Sidebar */}
+//       <div className={`bg-white border-r border-gray-200 h-screen ${
+//         isMobile 
+//           ? `fixed top-0 left-0 z-50 w-64 transform transition-transform duration-300 ${
+//               isOpen ? 'translate-x-0' : '-translate-x-full'
+//             }`
+//           : isOpen ? 'w-64' : 'w-16'
+//       } transition-all duration-300 flex flex-col`}>
         
-        {/* Logo/Header */}
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <div className={`font-extrabold text-l text-orange-600 ${!isOpen && !isMobile && 'hidden'}`}>
-            <Link href="/tutor" className="cursor-pointer">
-              <Image 
-                src="/logo.png"
-                alt="UpKraft"
-                width={288}
-                height={72}
-                priority
-                className="object-contain w-36 h-auto" 
-              />
-            </Link>
-          </div>
-          <button 
-            onClick={onToggle} 
-            className="p-1 rounded-lg hover:bg-gray-100"
-          >
-            {isMobile ? (
-              isOpen ? <X size={20} /> : <Menu size={20} />
-            ) : (
-              isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />
-            )}
-          </button>
-        </div>
+//         {/* Logo/Header */}
+//         <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+//           <div className={`font-extrabold text-l text-orange-600 ${!isOpen && !isMobile && 'hidden'}`}>
+//             <Link href="/tutor" className="cursor-pointer">
+//               <Image 
+//                 src="/logo.png"
+//                 alt="UpKraft"
+//                 width={288}
+//                 height={72}
+//                 priority
+//                 className="object-contain w-36 h-auto" 
+//               />
+//             </Link>
+//           </div>
+//           <button 
+//             onClick={onToggle} 
+//             className="p-1 rounded-lg hover:bg-gray-100"
+//           >
+//             {isMobile ? (
+//               isOpen ? <X size={20} /> : <Menu size={20} />
+//             ) : (
+//               isOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />
+//             )}
+//           </button>
+//         </div>
 
-        {/* Navigation Links */}
-        <div className="flex flex-col h-full">
-          <nav className="flex-1 px-2 py-4">
-            <Link 
-              href="/tutor" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && onToggle()}
-            >
-              <User size={20} />
-              {(isOpen || isMobile) && <span className="ml-3">Dashboard</span>}
-            </Link>
+//         {/* Navigation Links */}
+//         <div className="flex flex-col h-full">
+//           <nav className="flex-1 px-2 py-4">
+//             <Link 
+//               href="/tutor" 
+//               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+//               onClick={() => isMobile && onToggle()}
+//             >
+//               <User size={20} />
+//               {(isOpen || isMobile) && <span className="ml-3">Dashboard</span>}
+//             </Link>
             
-            <Link 
-              href="/tutor/courses" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && onToggle()}
-            >
-              <BookOpen size={20} />
-              {(isOpen || isMobile) && <span className="ml-3">My Courses</span>}
-            </Link>
-            <Link 
-              href="/musicLibrary" 
-              className="flex items-center p-2 rounded-lg bg-orange-50 text-orange-600 mb-1 transition-all border-r-2 border-orange-600"
-              onClick={() => isMobile && onToggle()}
-            >
-              <Music size={20} />
-              {(isOpen || isMobile) && <span className="ml-3">Music Library</span>}
-            </Link>
+//             <Link 
+//               href="/tutor/courses" 
+//               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+//               onClick={() => isMobile && onToggle()}
+//             >
+//               <BookOpen size={20} />
+//               {(isOpen || isMobile) && <span className="ml-3">My Courses</span>}
+//             </Link>
+//             <Link 
+//               href="/musicLibrary" 
+//               className="flex items-center p-2 rounded-lg bg-orange-50 text-orange-600 mb-1 transition-all border-r-2 border-orange-600"
+//               onClick={() => isMobile && onToggle()}
+//             >
+//               <Music size={20} />
+//               {(isOpen || isMobile) && <span className="ml-3">Music Library</span>}
+//             </Link>
            
-            <Link 
-              href="/tutor/myStudents" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && onToggle()}
-            >
-              <Users size={20} />
-              {(isOpen || isMobile) && <span className="ml-3">My Students</span>}
-            </Link>
-            <Link 
-              href="/tutor/assignments" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && onToggle()}
-            >
-              <BookCheck size={20} />
-              {(isOpen || isMobile) && <span className="ml-3">Assignments</span>}
-            </Link>
-            <Link 
-              href="/visualizer.html" 
-              className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-              onClick={() => isMobile && onToggle()}
-            >
-              <BookCheck size={20} />
-              {(isOpen || isMobile) && <span className="ml-3">Practice Studio</span>}
-            </Link>
-            <button 
-              onClick={async () => {
-                try {
-                  const response = await fetch('/Api/users/logout');
-                  if (response.ok) {
-                    toast.success('Logged out successfully');
-                    router.push('/login');
-                  } else {
-                    toast.error('Failed to logout');
-                  }
-                } catch (error) {
-                  toast.error('Error during logout');
-                  console.error('Logout error:', error);
-                }
-                isMobile && onToggle();
-              }}
-              className="flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
-            >
-              <LogOut size={20} />
-              {(isOpen || isMobile) && <span className="ml-3">Logout</span>}
-            </button>
-          </nav>
-        </div>
-      </div>
-    </>
-  );
-};
+//             <Link 
+//               href="/tutor/myStudents" 
+//               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+//               onClick={() => isMobile && onToggle()}
+//             >
+//               <Users size={20} />
+//               {(isOpen || isMobile) && <span className="ml-3">My Students</span>}
+//             </Link>
+//             <Link 
+//               href="/tutor/assignments" 
+//               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+//               onClick={() => isMobile && onToggle()}
+//             >
+//               <BookCheck size={20} />
+//               {(isOpen || isMobile) && <span className="ml-3">Assignments</span>}
+//             </Link>
+//             <Link 
+//               href="/visualizer.html" 
+//               className="flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+//               onClick={() => isMobile && onToggle()}
+//             >
+//               <BookCheck size={20} />
+//               {(isOpen || isMobile) && <span className="ml-3">Practice Studio</span>}
+//             </Link>
+//             <button 
+//               onClick={async () => {
+//                 try {
+//                   const response = await fetch('/Api/users/logout');
+//                   if (response.ok) {
+//                     toast.success('Logged out successfully');
+//                     router.push('/login');
+//                   } else {
+//                     toast.error('Failed to logout');
+//                   }
+//                 } catch (error) {
+//                   toast.error('Error during logout');
+//                   console.error('Logout error:', error);
+//                 }
+//                 isMobile && onToggle();
+//               }}
+//               className="flex items-center w-full p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all"
+//             >
+//               <LogOut size={20} />
+//               {(isOpen || isMobile) && <span className="ml-3">Logout</span>}
+//             </button>
+//           </nav>
+//         </div>
+//       </div>
+//     </>
+//   );
+// };
 
 // Music Library Table Component
 const MusicLibraryTable = () => {
@@ -316,104 +316,124 @@ const MusicLibraryTable = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="text-right py-3 px-4 font-semibold text-gray-900">Actions</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Song</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Artist</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Instrument</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Genre</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Difficulty</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Year</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Notes</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">Skills</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {songs.map((song) => (
-                <tr key={song._id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-3 px-4 text-center">
-                    {song.url ? (
-                      <a
-                        className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium text-orange-600 bg-orange-100 hover:bg-orange-200 transition-colors"
-                        href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
-                        // target="_blank"
-                        // rel="noreferrer"
-                      >
-                        <Music className="w-3 h-3 mr-1" />
-                        Open
-                      </a>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4">
-                    <div className="flex items-center space-x-2">
-                      {getFileIcon(song.fileType, song.extension)}
-                      <span className="font-medium text-gray-900 truncate max-w-xs">
-                        {song.title}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-gray-800 max-w-xs truncate font-medium">
-                    {song.artist || 'Unknown'}
-                  </td>
-                  <td className="py-3 px-4 text-gray-800 max-w-xs truncate font-medium">
-                    {song.primaryInstrumentFocus || 'N/A'}
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-900">
-                      {song.genre || 'N/A'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      song.difficulty === 'Beginner' ? 'bg-green-100 text-green-900' :
-                      song.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-900' :
-                      song.difficulty === 'Advanced' ? 'bg-red-100 text-red-900' :
-                      'bg-gray-100 text-gray-900'
-                    }`}>
-                      {song.difficulty || 'N/A'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-gray-800 font-medium">
-                    {song.year || 'N/A'}
-                  </td>
-                  <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
-                    {song.notes || '-'}
-                  </td>
-                  <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
-                    {formatSkills(song.skills)}
-                  </td>
-                 
-                  
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <div className="overflow-x-auto">
+    <table className="w-full">
+      <thead className="bg-gray-50 border-b">
+        <tr>
+          <th className="text-left py-3 px-4 font-semibold text-gray-900">Actions</th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-900">Song</th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-900">Artist</th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-900">Instrument</th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-900">Genre</th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-900">Difficulty</th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-900">Year</th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-900">Notes</th>
+          <th className="text-left py-3 px-4 font-semibold text-gray-900">Skills</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200">
+        {songs.map((song) => (
+ <tr key={song._id} className="hover:bg-gray-50 transition-colors">
+  <td className="py-3 px-4">
+    {song.url ? (
+      <a
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          padding: '0.5rem 0.75rem',
+          borderRadius: '0.5rem',
+          fontSize: '0.875rem',
+          fontWeight: '500',
+          color: '#ffffff',
+          backgroundColor: '#06b6d4',
+          boxShadow: '0 4px 14px 0 rgba(6, 182, 212, 0.5)',
+          transition: 'all 0.3s',
+          textDecoration: 'none',
+          margin: '0.25rem 0'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = '#0891b2';
+          e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.boxShadow = '0 6px 20px 0 rgba(6, 182, 212, 0.6)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = '#06b6d4';
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 4px 14px 0 rgba(6, 182, 212, 0.5)';
+        }}
+        href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
+      >
+        <Music style={{ width: '0.75rem', height: '0.75rem', marginRight: '0.25rem' }} />
+        Open
+      </a>
+    ) : (
+      <span className="text-gray-400">-</span>
+    )}
+  </td>
 
-        {songs.length === 0 && !loading && (
-          <div className="text-center py-12">
-            <Music className="mx-auto w-12 h-12 text-gray-400 mb-4" />
-            <p className="text-gray-700 font-medium text-lg">No songs found</p>
-            {(searchTerm || filters.genre || filters.difficulty || filters.instrument) && (
-              <button 
-                onClick={() => {
-                  setSearchTerm('');
-                  setFilters({ genre: '', difficulty: '', instrument: '' });
-                }}
-                className="mt-2 text-orange-600 hover:text-orange-700 font-medium"
-              >
-                Clear filters
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+            <td className="py-3 px-4">
+              <div className="flex items-center space-x-2">
+                {getFileIcon(song.fileType, song.extension)}
+                <span className="font-medium text-gray-900 truncate max-w-xs">
+                  {song.title}
+                </span>
+              </div>
+            </td>
+            <td className="py-3 px-4 text-gray-800 max-w-xs truncate font-medium">
+              {song.artist || 'Unknown'}
+            </td>
+            <td className="py-3 px-4 text-gray-800 max-w-xs truncate font-medium">
+              {song.primaryInstrumentFocus || 'N/A'}
+            </td>
+            <td className="py-3 px-4">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-900">
+                {song.genre || 'N/A'}
+              </span>
+            </td>
+            <td className="py-3 px-4">
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                song.difficulty === 'Beginner' ? 'bg-green-100 text-green-900' :
+                song.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-900' :
+                song.difficulty === 'Advanced' ? 'bg-red-100 text-red-900' :
+                'bg-gray-100 text-gray-900'
+              }`}>
+                {song.difficulty || 'N/A'}
+              </span>
+            </td>
+            <td className="py-3 px-4 text-gray-800 font-medium">
+              {song.year || 'N/A'}
+            </td>
+            <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
+              {song.notes || '-'}
+            </td>
+            <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
+              {formatSkills(song.skills)}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  {songs.length === 0 && !loading && (
+    <div className="text-center py-12">
+      <Music className="mx-auto w-12 h-12 text-gray-400 mb-4" />
+      <p className="text-gray-700 font-medium text-lg">No songs found</p>
+      {(searchTerm || filters.genre || filters.difficulty || filters.instrument) && (
+        <button 
+          onClick={() => {
+            setSearchTerm('');
+            setFilters({ genre: '', difficulty: '', instrument: '' });
+          }}
+          className="mt-2 text-orange-600 hover:text-orange-700 font-medium"
+        >
+          Clear filters
+        </button>
+      )}
+    </div>
+  )}
+</div>
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
@@ -432,7 +452,7 @@ const MusicLibraryTable = () => {
             <button
               onClick={() => fetchSongs(pagination.currentPage + 1)}
               disabled={!pagination.hasNextPage || loading}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-800 font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-4 py-2 mr-15 border border-gray-300 rounded-lg text-gray-800 font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Next
             </button>

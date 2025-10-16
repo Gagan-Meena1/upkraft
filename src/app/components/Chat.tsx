@@ -270,9 +270,9 @@ export default function Chat() {
 
       <style jsx>{`
         .typing-indicator {
-          display: flex;
-          justify-content: center;
-          gap: 4px;
+          display: flex !important;
+          justify-content: center !important;
+          gap: 4px !important;
         }
 
         .typing-indicator span {
@@ -283,12 +283,12 @@ export default function Chat() {
           animation: bounce 1.4s infinite ease-in-out;
         }
 
-        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s !important; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s !important; }
 
         @keyframes bounce {
-          0%, 80%, 100% { transform: scale(0); }
-          40% { transform: scale(1); }
+          0%, 80%, 100% { transform: scale(0) !important; }
+          40% { transform: scale(1) !important; }
         }
       `}</style>
     </div>

@@ -163,8 +163,8 @@ export default function CreateCourse() {
           {/* Course Title */}
           <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2 sm:gap-3 mb-3">
-              <Book className="text-orange-500" size={20} />
-              <label className="text-orange-500 font-semibold text-sm sm:text-base">Course Title</label>
+              <Book className="text-purple-700" size={20} />
+              <label className="text-purple-700 font-semibold text-sm sm:text-base">Course Title</label>
             </div>
             <input 
               type="text"
@@ -179,13 +179,13 @@ export default function CreateCourse() {
           {/* Course Category */}
           <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2 sm:gap-3 mb-3">
-              <Tag className="text-orange-500" size={20} />
-              <label className="text-orange-500 font-semibold text-sm sm:text-base">Course Category</label>
+              <Tag className="text-purple-700" size={20} />
+              <label className="text-purple-700 font-semibold text-sm sm:text-base">Course Category</label>
             </div>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-gray-50 text-gray-800 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
+              className="w-full bg-gray-50 text-gray-800 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
               required
             >
               <option value="" disabled>Select a category</option>
@@ -198,8 +198,8 @@ export default function CreateCourse() {
           {/* Course Description */}
           <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
             <div className="flex items-center gap-2 sm:gap-3 mb-3">
-              <FileText className="text-orange-500" size={20} />
-              <label className="text-orange-500 font-semibold text-sm sm:text-base">Course Description</label>
+              <FileText className="text-purple-700" size={20} />
+              <label className="text-purple-700 font-semibold text-sm sm:text-base">Course Description</label>
             </div>
             <textarea 
               value={description}
@@ -215,15 +215,15 @@ export default function CreateCourse() {
             {/* Duration */}
             <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
               <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                <Clock className="text-orange-500" size={20} />
-                <label className="text-orange-500 font-semibold text-sm sm:text-base">Course Duration</label>
+                <Clock className="text-purple-700" size={20} />
+                <label className="text-purple-700 font-semibold text-sm sm:text-base">Course Duration</label>
               </div>
               <input 
                 type="text"
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="Total course duration (e.g., 4 weeks)"
-                className="w-full bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm sm:text-base"
+                className="w-full bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
                 required
               />
             </div>
@@ -231,8 +231,8 @@ export default function CreateCourse() {
             {/* Price */}
             <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
               <div className="flex items-center gap-2 sm:gap-3 mb-3">
-                <IndianRupee className="text-orange-500" size={20} />
-                <label className="text-orange-500 font-semibold text-sm sm:text-base">Price Per Month</label>
+                <IndianRupee className="text-purple-700" size={20} />
+                <label className="text-purple-700 font-semibold text-sm sm:text-base">Price Per Month</label>
               </div>
               <input 
                 type="number"
@@ -251,13 +251,13 @@ export default function CreateCourse() {
           <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
               <div className="flex items-center gap-2 sm:gap-3">
-                <List className="text-orange-500" size={20} />
-                <label className="text-orange-500 font-semibold text-sm sm:text-base">Curriculum</label>
+                <List className="text-purple-700" size={20} />
+                <label className="text-purple-700 font-semibold text-sm sm:text-base">Curriculum</label>
               </div>
               <button 
                 type="button"
                 onClick={addCurriculumSession}
-                className="bg-orange-100 text-orange-500 px-3 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-orange-200 transition-colors text-sm font-medium w-full sm:w-auto"
+                className="bg-purple-100 text-purple-500 px-3 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-purple-200 transition-colors text-sm font-medium w-full sm:w-auto"
               >
                 <Plus size={16} /> Add Lesson
               </button>
@@ -279,7 +279,7 @@ export default function CreateCourse() {
                           type="button"
                           onClick={() => removeCurriculumSession(index)}
                           className="bg-red-100 text-red-500 p-1.5 rounded-lg hover:bg-red-200 transition-colors"
-                          title="Remove this session"
+                          title="Remove this Lesson"
                         >
                           <X size={14} />
                         </button>
@@ -293,7 +293,7 @@ export default function CreateCourse() {
                         value={session.topic}
                         onChange={(e) => updateCurriculumSession(index, 'topic', e.target.value)}
                         placeholder={`Enter topic for Lesson ${session.sessionNo}`}
-                        className="w-full bg-white text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        className="w-full bg-white pl-10 text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm"
                         required
                       />
                     </div>
@@ -305,8 +305,8 @@ export default function CreateCourse() {
                         value={session.tangibleOutcome}
                         onChange={(e) => updateCurriculumSession(index, 'tangibleOutcome', e.target.value)}
                         placeholder={`Enter tangible outcome for Lesson ${session.sessionNo}`}
-                        className="w-full bg-white text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
-                        required
+                        className="w-full pl-10 bg-white text-gray-800 placeholder-gray-500 p-2.5 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm"
+                        
                       />
                     </div>
                   </div>
@@ -317,14 +317,14 @@ export default function CreateCourse() {
                       type="number"
                       value={session.sessionNo}
                       readOnly
-                      className="w-20 bg-gray-50 text-center text-gray-800 p-2 rounded-lg border border-gray-200 mt-1"
+                      className="w-20 pl-10 bg-gray-50 text-center text-gray-800 p-2 rounded-lg border border-gray-200 mt-1"
                     />
                     <input 
                       type="text"
                       value={session.topic}
                       onChange={(e) => updateCurriculumSession(index, 'topic', e.target.value)}
                       placeholder={`Enter topic for Lesson ${session.sessionNo}`}
-                      className="flex-1 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      className="flex-1 pl-10 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
                       required
                     />
                     <input 
@@ -332,8 +332,8 @@ export default function CreateCourse() {
                       value={session.tangibleOutcome}
                       onChange={(e) => updateCurriculumSession(index, 'tangibleOutcome', e.target.value)}
                       placeholder={`Enter tangible outcome for Lesson ${session.sessionNo}`}
-                      className="flex-1 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      required
+                      className="flex-1 pl-10 bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
+                      
                     />
                     {curriculum.length > 1 && (
                       <button
@@ -356,8 +356,8 @@ export default function CreateCourse() {
             <button 
               type="submit"
               disabled={isSubmitting}
-              className={`w-full sm:w-auto bg-orange-500 text-white px-6 sm:px-8 py-3 rounded-lg text-base sm:text-lg font-semibold 
-                ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-orange-600 transition-colors'}`}
+              className={`w-full sm:w-auto bg-purple-700 text-white px-6 sm:px-8 py-3 rounded-lg text-base sm:text-lg font-semibold 
+                ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700 transition-colors'}`}
             >
               {isSubmitting 
                 ? (isEditing ? 'Updating...' : 'Creating...') 

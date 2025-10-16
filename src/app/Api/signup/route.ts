@@ -56,6 +56,78 @@ export async function POST(request : NextRequest ){
         const savedUser = await newUser.save();
         console.log("[API/signup] Successfully saved new user.", { userId: savedUser._id });
 
+           // If the user is a Tutor, duplicate default courses
+        if (category === "Tutor") {
+            try {
+                console.log("[API/signup] User is a Tutor, duplicating default courses.");
+                
+                const courseIds = ['68d83ffadfe106de56ae841d', '68d8411fdfe106de56ae91cf'];
+                
+                for (const courseId of courseIds) {
+                    try {
+                        console.log(`[API/signup] Fetching course data for ID: ${courseId}`);
+                        
+                        // Fetch course data from the GET API
+                        const baseUrl = request.nextUrl.origin;
+                        const getCourseResponse = await fetch(`${baseUrl}/Api/tutors/courses/${courseId}`);
+                        
+                        if (!getCourseResponse.ok) {
+                            console.error(`[API/signup] Failed to fetch course ${courseId}:`, getCourseResponse.status);
+                            continue;
+                        }
+                        
+                        const courseResponse = await getCourseResponse.json();
+                        const originalCourse = courseResponse.courseDetails;
+                        
+                        if (!originalCourse) {
+                            console.error(`[API/signup] No course details found for ID: ${courseId}`);
+                            continue;
+                        }
+                        
+                        // Prepare course data for duplication
+                        const duplicatedCourseData = {
+                            title: originalCourse.title,
+                            description: originalCourse.description,
+                            duration: originalCourse.duration,
+                            price: originalCourse.price,
+                            curriculum: originalCourse.curriculum,
+                            category: originalCourse.category
+                        };
+                        
+                        console.log(`[API/signup] Duplicating course: ${originalCourse.title}`);
+                        
+                        // Create the duplicated course via POST API
+                        const createCourseResponse = await fetch(`${baseUrl}/Api/tutors/courses?tutorId=${savedUser._id}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(duplicatedCourseData)
+                        });
+                        
+                        if (!createCourseResponse.ok) {
+                            const errorText = await createCourseResponse.text();
+                            console.error(`[API/signup] Failed to create duplicated course ${originalCourse.title}:`, errorText);
+                            continue;
+                        }
+                        
+                        const createResponse = await createCourseResponse.json();
+                        console.log(`[API/signup] Successfully duplicated course: ${originalCourse.title}`);
+                        
+                    } catch (courseError) {
+                        console.error(`[API/signup] Error processing course ${courseId}:`, courseError);
+                        continue;
+                    }
+                }
+                
+                console.log("[API/signup] Finished processing default courses for tutor.");
+                
+            } catch (courseProcessingError) {
+                console.error("[API/signup] Error in course duplication process:", courseProcessingError);
+                // Don't fail the registration if course duplication fails
+            }
+        }
+
         // If this is a student invitation, send the invitation email
         if (emailType === "STUDENT_INVITATION" && instructorId) {
             // Get tutor information

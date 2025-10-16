@@ -26,14 +26,15 @@ export async function connect() {
     
     connectionPromise = mongoose.connect(MONGO_URL, {
       // Timeout settings
-      serverSelectionTimeoutMS: 15000,  // 15 seconds
-      connectTimeoutMS: 15000,          // 15 seconds
-      socketTimeoutMS: 45000,           // 45 seconds
+      serverSelectionTimeoutMS: 60000,  // 15 seconds
+      connectTimeoutMS: 60000,          // 15 seconds
+      socketTimeoutMS: 60000,           // 45 seconds
       
-      // Connection Pool Settings
-      maxPoolSize: 10,
-      minPoolSize: 2,
-      maxIdleTimeMS: 30000,
+       // Connection Pool Settings - CRITICAL for your user count
+        maxPoolSize: 100,                   // Increased significantly
+        minPoolSize: 10,                    // Keep minimum connections ready
+        maxIdleTimeMS: 30000,               // Close idle connections after 30s
+        waitQueueTimeoutMS: 10000,          // Queue timeout for getting connections
       
       // Reliability Settings
       retryWrites: true,

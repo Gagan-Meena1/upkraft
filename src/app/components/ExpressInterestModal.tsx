@@ -5,13 +5,6 @@ interface ExpressInterestModalProps {
   onClose: () => void;
 }
 
-const skillOptions = [
-  'Music (Instruments/ Vocals)',
-  'Dance',
-  'Sports',
-  'Drawing & Arts',
-  'Others',
-];
 
 const ExpressInterestModal: React.FC<ExpressInterestModalProps> = ({ isOpen, onClose }) => {
   const [form, setForm] = useState({
@@ -19,7 +12,6 @@ const ExpressInterestModal: React.FC<ExpressInterestModalProps> = ({ isOpen, onC
     city: '',
     phone: '',
     skill: '',
-    otherSkill: '',
   });
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -43,12 +35,12 @@ const ExpressInterestModal: React.FC<ExpressInterestModalProps> = ({ isOpen, onC
           name: form.name,
           city: form.city,
           phone: form.phone,
-          skill: form.skill === 'Others' ? form.otherSkill : form.skill,
+          skill: form.skill,
         }),
       });
       if (!res.ok) throw new Error('Failed to submit');
       setSuccess(true);
-      setForm({ name: '', city: '', phone: '', skill: '', otherSkill: '' });
+      setForm({ name: '', city: '', phone: '', skill: '' });
     } catch (err) {
       setError('Submission failed. Please try again.');
     } finally {
@@ -115,25 +107,8 @@ const ExpressInterestModal: React.FC<ExpressInterestModalProps> = ({ isOpen, onC
                 required
                 className="w-full border rounded px-3 py-2"
               >
-                <option value="">Select...</option>
-                {skillOptions.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
               </select>
             </div>
-            {form.skill === 'Others' && (
-              <div>
-                <label className="block mb-1 font-medium">Please specify:</label>
-                <input
-                  type="text"
-                  name="otherSkill"
-                  value={form.otherSkill}
-                  onChange={handleChange}
-                  required
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-            )}
             {error && <div className="text-red-600">{error}</div>}
             <button
               type="submit"

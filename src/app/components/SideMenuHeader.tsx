@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import LogoHeader from "@/assets/LogoHeader.png";
+import "@/styles/style.css";
 
 const SideMenuHeader = ({ role }) => {
   const pathname = usePathname();
@@ -451,7 +452,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student/my-tutor"
+                      href="/my-tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-tutor") ? "active" : ""
                       }`}
@@ -475,7 +476,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student/my-courses"
+                      href="/my-courses"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-courses") ? "active" : ""
                       }`}
@@ -499,7 +500,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student/calendar"
+                      href="/calendar"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/calendar") ? "active" : ""
                       }`}
@@ -534,7 +535,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student/assignment"
+                      href="/assignment"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/assignment") ? "active" : ""
                       }`}
@@ -562,7 +563,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student/music-library"
+                      href="/music-library"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/music-library") ? "active" : ""
                       }`}
@@ -586,7 +587,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student/practice-studio"
+                      href="/practice-studio"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/practice-studio") ? "active" : ""
                       }`}
@@ -621,7 +622,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student/tutor"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/payment-summary") ? "active" : ""
                       }`}
@@ -645,7 +646,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student/Refer-Earn"
+                      href="/Refer-Earn"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/Refer-Earn") ? "active" : ""
                       }`}
@@ -673,7 +674,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student/settings"
+                      href="/settings"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/settings") ? "active" : ""
                       }`}

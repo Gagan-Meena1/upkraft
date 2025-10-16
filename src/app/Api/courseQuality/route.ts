@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
 
+
 // Metrics we track for class quality
 const QUALITY_METRICS = [
   'session_focus_clarity_score',
@@ -44,6 +45,8 @@ export async function GET(request: NextRequest) {
     // Connect to database and get Class model
     await connect();
     const { default: Class } = await import('@/models/Class');
+    const { default: courseName } = await import('@/models/courseName'); // Import courseName model
+
 
     // Find all classes for this course with explicit field selection
     const classes = await Class.find(
@@ -95,6 +98,16 @@ export async function GET(request: NextRequest) {
     }, {});
 
     // Generate response
+      // UPDATE: Save the overall_quality_score to the courseName schema
+    if (averageScores.overall_quality_score !== undefined) {
+      await courseName.findByIdAndUpdate(
+        courseId,
+        { 
+          courseQuality: parseFloat(averageScores.overall_quality_score.toFixed(2))
+        },
+        { new: true }
+      );
+    }
     const justification = `This course quality score is based on ${classesWithEvaluation.length} evaluated ${
       classesWithEvaluation.length === 1 ? 'class' : 'classes'
     } out of ${totalClassCount} total ${

@@ -70,7 +70,7 @@ const formatDateTime = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
   // Use UTC methods to get the EXACT stored time
-  const year = date.getUTCFullYear();
+   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
   const day = date.getUTCDate();
   const hours = date.getUTCHours();
@@ -105,7 +105,7 @@ const extractDateTimeForForm = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
   // Use UTC methods to get the EXACT stored time
-  const year = date.getUTCFullYear();
+    const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
   const hours = String(date.getUTCHours()).padStart(2, '0');
@@ -350,7 +350,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
         
         console.log(`[${classId}] recordingUrl updated in mongoDB.`);
 
-        // 4. Trigger background processing
+          // 4. Trigger background processing
         toast('Video evaluation and performance video generation have started.');
 
         // Trigger evaluation process (fire-and-forget)
@@ -603,7 +603,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                             {classSession.recordingUrl && (
                               <Link 
                                 href={`/tutor/classQuality/${classSession._id}`}
-                                className="flex-1 !px-3 !py-2 !bg-purple-500 !hover:bg-purple-600 !text-white !rounded-lg !transition-colors !flex !items-center !justify-center !text-xs"
+                                className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
                               >
                                 <BarChart3 className="!mr-1" size={14} />
                                 Quality
@@ -614,10 +614,10 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                             <button
                               onClick={() => triggerFileInput(classSession._id)}
                               disabled={isUploading}
-                              className={`flex-1 !px-3 !py-2 ${
-                                isUploading ? '!bg-gray-400 !cursor-not-allowed' 
-                                  : '!bg-green-500 !hover:bg-green-600'
-                              } !text-white !rounded-lg !transition-colors !flex !items-center !justify-center !text-xs`}
+                              className={`flex-1 px-3 py-2 ${
+                                isUploading ? 'bg-gray-400 cursor-not-allowed' 
+                                  : 'bg-purple-500 hover:bg-purple-600'
+                              } text-white rounded-lg transition-colors flex items-center justify-center text-xs`}
                             >
                               <Upload className="!mr-1" size={14} />
                               {getButtonText(classSession, isUploading)}
@@ -625,13 +625,14 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                           </div>
 
                           {/* Assignment Button */}
-                          <Link 
-                            href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-                            className="!w-full !px-3 !py-2 !bg-amber-500 !hover:bg-amber-600 !text-white !rounded-lg !transition-colors !flex !items-center !justify-center !text-xs"
-                          >
-                            <FileText className="!mr-1" size={14} />
-                            Assignment
-                          </Link>
+                       <Link 
+  href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
+  className="w-full px-3 py-2 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-xs font-medium shadow-sm"
+>
+  <FileText className="mr-1" size={14} />
+  Add Assignment
+</Link>
                         </div>
                       </div>
 
@@ -677,49 +678,55 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                           </div>
 
                           {/* Actions */}
-                          <div className="!flex !justify-end !space-x-4">
-                            {/* Hidden file input */}
-                            <input
-                              type="file"
-                              accept="video/*"
-                              className="hidden"
-                              ref={el => { fileInputRefs.current[classSession._id] = el; }}
-                              onChange={(e) => handleFileChange(classSession._id, e)}
-                            />
+                          {/* Actions */}
+<div className="flex flex-col gap-3 min-w-[180px]">
+  {/* Hidden file input */}
+  <input
+    type="file"
+    accept="video/*"
+    className="hidden"
+    ref={el => { fileInputRefs.current[classSession._id] = el; }}
+    onChange={(e) => handleFileChange(classSession._id, e)}
+  />
 
-                            {/* Class Quality button */}
-                            {classSession.recordingUrl && (
-                              <Link 
-                                href={`/tutor/classQuality/${classSession._id}`}
-                                className="!px-2 !py-1 !bg-purple-500 !hover:bg-purple-600 !text-white !rounded-lg !transition-colors !flex !items-center !text-sm"
-                              >
-                                <BarChart3 className="!mr-1" size={16} />
-                                Class Quality
-                              </Link>
-                            )}
+  {/* Class Quality button */}
+  {classSession.recordingUrl && (
+    <Link 
+      href={`/tutor/classQuality/${classSession._id}`}
+      style={{ backgroundColor: 'purple', color: '#ffffff' }}
+      className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+    >
+      <BarChart3 className="mr-2" size={16} />
+      Class Quality
+    </Link>
+  )}
 
-                            {/* Upload Recording button */}
-                            <button
-                              onClick={() => triggerFileInput(classSession._id)}
-                              disabled={isUploading}
-                              className={`!px-2 !py-1 ${
-                                isUploading ? '!bg-gray-400 !cursor-not-allowed' 
-                                  : '!bg-green-500 !hover:bg-green-600'
-                              } !text-white !rounded-lg !transition-colors !flex !items-center !text-sm`}
-                            >
-                              <Upload className="!mr-1" size={16} />
-                              {getButtonText(classSession, isUploading)}
-                            </button>
+  {/* Upload Recording button */}
+  <button
+    onClick={() => triggerFileInput(classSession._id)}
+    disabled={isUploading}
+    style={{ 
+      backgroundColor: isUploading ? 'blueviolet' : 'blue',
+      color: '#ffffff'
+    }}
+    className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
+      isUploading ? 'cursor-not-allowed' : 'hover:opacity-90'
+    }`}
+  >
+    <Upload className="mr-2" size={16} />
+    {getButtonText(classSession, isUploading)}
+  </button>
 
-                            {/* Assignment Button */}
-                            <Link 
-                              href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-                              className="!px-2 !py-1 !bg-amber-500 !hover:bg-amber-600 !text-white !rounded-lg !transition-colors !flex !items-center !text-sm"
-                            >
-                              <FileText className="!mr-1" size={16} />
-                              Assignment
-                            </Link>
-                          </div>
+  {/* Assignment Button */}
+  <Link 
+    href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+    style={{ backgroundColor: 'blueviolet', color: '#ffffff' }}
+    className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+  >
+    <FileText className="mr-2" size={16} />
+    Add Assignment
+  </Link>
+</div>
                         </div>
                       </div>
                     </div>
@@ -741,10 +748,10 @@ const handleUpdateClass = async (e: React.FormEvent) => {
               {courseData.courseDetails.curriculum && courseData.courseDetails.curriculum.length > 0 ? (
                 <div className="!space-y-4">
                   {courseData.courseDetails.curriculum.map((item, index) => (
-                    <div key={index} className="!border-l-4 !border-blue-500 !pl-4 !py-3">
-                      <div className="!flex !flex-col !sm:flex-row !sm:items-center !gap-2 !sm:gap-4">
-                        <span className="!bg-blue-100 !text-blue-800 !px-2 !py-1 !rounded-full !text-xs !font-medium">
-                          Session {item.sessionNo}
+                    <div key={index} className="border-l-4 border-blue-500 pl-4 py-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                          Lesson {item.sessionNo}
                         </span>
                         <h3 className="!text-lg !font-semibold !text-gray-800">
                           {item.topic}

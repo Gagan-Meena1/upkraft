@@ -6,6 +6,10 @@ import Link from 'next/link'
 import StudentProfileImg from '../../../assets/student-profile-img.png'
 import './FeedbackPendingDetails.css'
 import Image from 'next/image';
+import { useRef } from 'react';
+import axios, { AxiosError } from 'axios';
+import { toast } from 'react-hot-toast';
+import { Upload } from 'lucide-react';
 
 interface Student {
   _id: string;
@@ -42,6 +46,8 @@ const FeedbackPendingDetails = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});  // ADD THIS
+  const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({}); 
   const [feedbackData, setFeedbackData] = useState({
     rhythm: 5,
     theoretical: 5,
@@ -55,93 +61,73 @@ const FeedbackPendingDetails = () => {
   
   // Fetch data on component mount
   useEffect(() => {
-    const fetchPendingFeedbacks = async () => {
-      try {
-        setLoading(true);
-        
-        // Step 1: Get the tutor data
-        const userResponse = await fetch('/Api/users/user');
-        const userData = await userResponse.json();
-        
-        if (!userData.user || !userData.courseDetails) {
-          throw new Error('Failed to load user data');
-        }
-        
-        // Step 2: Get all classes for this tutor's courses
-        const courseDetails = userData.courseDetails || [];
-        const classDetails = userData.classDetails || [];
-        
-        // Step 3: Get all students for this tutor
-        const studentsResponse = await fetch('/Api/myStudents');
-        const studentsData = await studentsResponse.json();
-        
-        if (!studentsData.filteredUsers) {
-          throw new Error('Failed to load students data');
-        }
-        
-        const students = studentsData.filteredUsers;
-        
-        // Step 4: Get all existing feedback
-        const feedbackPromises = courseDetails.map(async (course: Course) => {
-          try {
-            const response = await fetch(`/Api/studentFeedbackForTutor?courseId=${course._id}`);
-            if (response.ok) {
-              const data = await response.json();
-              return { courseId: course._id, feedbacks: data.data || [] };
-            }
-            return { courseId: course._id, feedbacks: [] };
-          } catch (e) {
-            console.error(`Error fetching feedback for course ${course._id}:`, e);
-            return { courseId: course._id, feedbacks: [] };
-          }
-        });
-        
-        const feedbackResults = await Promise.all(feedbackPromises);
-        
-        // Create a map of classes with feedback
-        const classesWithFeedback = new Map();
-        feedbackResults.forEach(result => {
-          result.feedbacks.forEach((feedback: any) => {
-            // Create a unique key combining classId and studentId
-            const key = `${feedback.classId}-${feedback.userId}`;
-            classesWithFeedback.set(key, true);
-          });
-        });
-        
-        // Find all students that need feedback
-        const pendingFeedbacks: PendingFeedback[] = [];
-        students.forEach((student: Student) => {
-          // Find classes for this student that need feedback
-          const studentClasses = classDetails.filter((cls: Class) => {
-            // Check if feedback exists for this class and student
-            const key = `${cls._id}-${student._id}`;
-            return !classesWithFeedback.has(key);
-          });
-          
-          if (studentClasses.length > 0) {
-            pendingFeedbacks.push({
-              student,
-              classes: studentClasses,
-              selectedClassIndex: 0
-            });
-          }
-        });
-        
-        setPendingFeedbacks(pendingFeedbacks);
-        if (pendingFeedbacks.length > 0) {
-          setSelectedFeedback(pendingFeedbacks[0]);
-        }
-        
-      } catch (err) {
-        console.error('Error fetching pending feedbacks:', err);
-        setError(err instanceof Error ? err.message : 'An unknown error occurred');
-      } finally {
-        setLoading(false);
+  const fetchPendingFeedbacks = async () => {
+    try {
+      setLoading(true);
+      
+      // Call the new API endpoint
+      const response = await fetch('/Api/pendingFeedback');
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to load pending feedbacks');
       }
-    };
-    
-    fetchPendingFeedbacks();
-  }, []);
+      
+      // Transform the API response to match our component structure
+      const pendingFeedbacks: PendingFeedback[] = [];
+      
+      // Group classes by student
+      const studentMap = new Map<string, { student: Student, classes: Class[] }>();
+      
+      data.missingFeedbackClasses.forEach((item: any) => {
+        const studentId = item.studentId;
+        
+        if (!studentMap.has(studentId)) {
+          studentMap.set(studentId, {
+            student: {
+              _id: item.studentId,
+              username: item.studentName,
+              email: '', // Not provided by API, but not needed for display
+            },
+            classes: []
+          });
+        }
+        
+        studentMap.get(studentId)!.classes.push({
+          _id: item.classId,
+          title: item.className,
+          description: '',
+          startTime: item.classDate || '',
+          endTime: '',
+          course: item.courseId,
+        });
+      });
+      
+      // Convert map to array with selectedClassIndex
+      studentMap.forEach((value) => {
+        pendingFeedbacks.push({
+          student: value.student,
+          classes: value.classes,
+          selectedClassIndex: 0
+        });
+      });
+      
+      setPendingFeedbacks(pendingFeedbacks);
+      
+      if (pendingFeedbacks.length > 0) {
+        setSelectedFeedback(pendingFeedbacks[0]);
+      }
+      
+    } catch (err) {
+      console.error('Error fetching pending feedbacks:', err);
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  fetchPendingFeedbacks();
+}, []);
   
   const handleSelectStudent = (feedback: PendingFeedback) => {
     setSelectedFeedback(feedback);
@@ -291,6 +277,96 @@ const FeedbackPendingDetails = () => {
       </div>
     );
   }
+
+  // Handle file upload
+const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+  if (!event.target.files || event.target.files.length === 0) {
+    return;
+  }
+
+  const file = event.target.files[0];
+  console.log("File selected:", { name: file.name, size: file.size, type: file.type });
+  const maxSize = 800 * 1024 * 1024; // 800MB
+  if (file.size > maxSize) {
+    toast.error('File size must be less than 800MB');
+    return;
+  }
+
+  setUploadLoading((prev) => ({ ...prev, [classId]: true }));
+  console.log(`[${classId}] Starting upload process...`);
+
+  try {
+    // 1. Get presigned URL
+    console.log(`[${classId}] Requesting presigned URL...`);
+    const presignedUrlResponse = await axios.post('/Api/upload/presigned-url', {
+      fileName: file.name,
+      fileType: file.type,
+      classId: classId,
+    });
+
+    const { publicUrl } = presignedUrlResponse.data;
+    console.log(`[${classId}] Public URL: ${publicUrl}`);
+
+    // 2. Upload file directly to S3
+    console.log(`[${classId}] Starting direct upload to S3...`);
+    await axios.put(presignedUrlResponse.data.uploadUrl, file, {
+      headers: { 'Content-Type': file.type },
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          console.log(`Upload progress: ${progress}%`);
+        }
+      },
+    });
+
+    toast.success('Recording uploaded successfully!');
+    console.log(`[${classId}] Direct upload to S3 completed.`);
+
+    // 3. save the public URL in mongoDB
+    console.log(`[${classId}] Notifying mongoDB to update class with public URL: ${publicUrl}`);
+    await axios.post('/Api/classes/update', { classId, recordingUrl: publicUrl });
+    
+    console.log(`[${classId}] recordingUrl updated in mongoDB.`);
+
+    // 4. Trigger background processing
+    toast('Video evaluation and performance video generation have started.');
+
+    // Trigger evaluation process (fire-and-forget)
+    axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`)
+      .catch((evalError) => {
+        console.error(`[${classId}] Failed to start evaluation:`, evalError.message);
+      });
+    
+    // Trigger highlight generation process (fire-and-forget)
+    axios.post(`/Api/proxy/generate-highlights?item_id=${classId}`)
+      .catch((highlightError) => {
+        console.error(`[${classId}] Failed to start highlight generation:`, highlightError.message);
+      });
+
+  } catch (err) {
+    const error = err as AxiosError<{ error: string }>;
+    console.error(`[${classId}] Upload process failed:`, error.message);
+    toast.error(error.response?.data?.error || 'Failed to upload recording.');
+  } finally {
+    setUploadLoading((prev) => ({ ...prev, [classId]: false }));
+    console.log(`[${classId}] Upload process finished.`);
+    const inputRef = fileInputRefs.current[classId];
+    if (inputRef) {
+      inputRef.value = '';
+    }
+  }
+};
+
+const triggerFileInput = (classId: string) => {
+  const inputRef = fileInputRefs.current[classId];
+  if (inputRef) inputRef.click();
+};
+
+const getButtonText = (classId: string, isUploading: boolean) => {
+  if (isUploading) return 'Uploading...';
+  // You can add logic here to check if recording exists
+  return 'Upload Recording';
+};
   
   if (error) {
     return (
@@ -327,11 +403,11 @@ const FeedbackPendingDetails = () => {
   }
 
   return (
-    <div className='feedback-pending-details-sec p-3 bg-white'>
+    <div className='feedback-pending-details-sec'>
       <div className='feed-back-heading'>
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-md-3 flex-xl-nowrap flex-wrap">
-            <div className=''>
-                <h2 className='m-0 !text-md'>Feedback Pending ({pendingFeedbacks.length} students)</h2>
+            <div className='left-head'>
+                <h2 className='m-0'>Feedback Pending ({pendingFeedbacks.length} students)</h2>
             </div>
             <div className='right-form'>
                <Link href="/tutor" className='link-text'>Back to Dashboard</Link>
@@ -414,10 +490,51 @@ const FeedbackPendingDetails = () => {
                   </p>
                 </div>
                 <div className='btn-right'>
-                  <Link href={`/tutor/video-recording?classId=${selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id}`} className='btn-link border-box d-flex align-items-center gap-2 justify-content-center'>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.3333 10.0001C13.5101 10.0001 13.6797 10.0703 13.8047 10.1953C13.9298 10.3203 14 10.4899 14 10.6667V13.3334C14 13.687 13.8595 14.0261 13.6095 14.2762C13.3594 14.5262 13.0203 14.6667 12.6667 14.6667H3.33333C2.97971 14.6667 2.64057 14.5262 2.39052 14.2762C2.14048 14.0261 2 13.687 2 13.3334V10.6667C2 10.4899 2.07024 10.3203 2.19526 10.1953C2.32029 10.0703 2.48986 10.0001 2.66667 10.0001C2.84348 10.0001 3.01305 10.0703 3.13807 10.1953C3.2631 10.3203 3.33333 10.4899 3.33333 10.6667V13.3334H12.6667V10.6667C12.6667 10.4899 12.7369 10.3203 12.8619 10.1953C12.987 10.0703 13.1565 10.0001 13.3333 10.0001ZM8.58933 2.31605L11.3 5.02672C11.3637 5.08822 11.4145 5.16178 11.4494 5.24312C11.4843 5.32445 11.5027 5.41193 11.5035 5.50045C11.5043 5.58897 11.4874 5.67676 11.4539 5.75869C11.4204 5.84062 11.3709 5.91506 11.3083 5.97765C11.2457 6.04025 11.1712 6.08975 11.0893 6.12327C11.0074 6.15679 10.9196 6.17366 10.8311 6.17289C10.7425 6.17212 10.6551 6.15373 10.5737 6.11879C10.4924 6.08385 10.4188 6.03306 10.3573 5.96939L8.66667 4.28006V10.6667C8.66667 10.8435 8.59643 11.0131 8.4714 11.1381C8.34638 11.2632 8.17681 11.3334 8 11.3334C7.82319 11.3334 7.65362 11.2632 7.5286 11.1381C7.40357 11.0131 7.33333 10.8435 7.33333 10.6667V4.27939L5.64267 5.96939C5.51693 6.09083 5.34853 6.15802 5.17373 6.1565C4.99893 6.15499 4.83173 6.08487 4.70812 5.96127C4.58452 5.83766 4.5144 5.67045 4.51288 5.49566C4.51136 5.32086 4.57856 5.15246 4.7 5.02672L7.41067 2.31605C7.48805 2.23865 7.57993 2.17725 7.68105 2.13535C7.78217 2.09346 7.89055 2.0719 8 2.0719C8.10945 2.0719 8.21783 2.09346 8.31895 2.13535C8.42007 2.17725 8.51195 2.23865 8.58933 2.31605Z" fill="#6E09BD"/></svg>
-                    <span>Upload Recording</span>
-                  </Link>
+                  <div className='btn-right d-flex gap-2'>
+  {/* Hidden file input */}
+  <input
+    type="file"
+    accept="video/*"
+    className="d-none"
+    ref={el => { 
+      if (selectedFeedback) {
+        fileInputRefs.current[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] = el; 
+      }
+    }}
+    onChange={(e) => {
+      if (selectedFeedback) {
+        handleFileChange(selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id, e);
+      }
+    }}
+  />
+  
+<button 
+    onClick={() => {
+      if (selectedFeedback) {
+        triggerFileInput(selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id);
+      }
+    }}
+    disabled={selectedFeedback ? uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] : false}
+    style={{ 
+      backgroundColor: selectedFeedback && uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] ? '#a855f7' : '#9333ea',
+      color: '#ffffff',
+      border: 'none',
+      boxShadow: selectedFeedback && !uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] 
+        ? '0 0 12px rgba(147, 51, 234, 0.4)' 
+        : 'none',
+      transition: 'all 0.3s ease'
+    }}
+    className='btn-link d-flex align-items-center gap-2 justify-content-center px-3 py-2 rounded'
+  >
+    <Upload size={16} />
+    <span>
+      {selectedFeedback && getButtonText(
+        selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id,
+        uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] || false
+      )}
+    </span>
+  </button>
+</div>
                 </div>
               </div>
               <div className='bottom-feedback-box row'>

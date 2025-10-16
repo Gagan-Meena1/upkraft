@@ -78,15 +78,30 @@ const UpcomingLessons = () => {
     }
   };
 
-  const formatTime = (startTime: string, endTime: string) => {
-    try {
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-      return `${format(start, "h:mm")} - ${format(end, "h:mm a")}`;
-    } catch (error) {
-      return "Invalid time";
-    }
-  };
+const formatTime = (startTime: string, endTime: string) => {
+  try {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    // Use UTC methods to get EXACT stored time (same as CourseDetailsPage)
+    const startHours = start.getUTCHours();
+    const startMinutes = start.getUTCMinutes();
+    const endHours = end.getUTCHours();
+    const endMinutes = end.getUTCMinutes();
+    
+    // Format manually
+    const formatTimeString = (hours: number, minutes: number) => {
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12; // Convert to 12-hour format
+      const displayMinutes = String(minutes).padStart(2, '0');
+      return `${displayHours}:${displayMinutes} ${period}`;
+    };
+    
+    return `${formatTimeString(startHours, startMinutes)} - ${formatTimeString(endHours, endMinutes)}`;
+  } catch (error) {
+    return "Invalid time";
+  }
+};
 
   const handleJoinMeeting = async (classId: string) => {
     try {
@@ -126,7 +141,7 @@ const UpcomingLessons = () => {
     return (
       <div className="card-box table-sec">
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-          <h2>Upcoming Lessons</h2>
+          <h2>Upcoming Sessions</h2>
         </div>
         <div className="text-center py-4">Loading...</div>
       </div>
@@ -137,7 +152,7 @@ const UpcomingLessons = () => {
     return (
       <div className="card-box table-sec">
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-          <h2>Upcoming Lessons</h2>
+          <h2>Upcoming Sessions</h2>
         </div>
         <div className="text-center py-4 text-danger">{error}</div>
       </div>
@@ -147,7 +162,7 @@ const UpcomingLessons = () => {
   return (
     <div className="card-box table-sec">
       <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-        <h2>Upcoming Lessons</h2>
+        <h2>Upcoming Sessions</h2>
         <Link href="/tutor/calendar" className="btn-text">
           View All
         </Link>
@@ -186,7 +201,7 @@ const UpcomingLessons = () => {
                   <td>
                     <button 
                       onClick={() => handleJoinMeeting(classItem._id)}
-                      className="bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-orange-700 transition-colors"
+                      className="bg-purple-700 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
                     >
                       Join
                     </button>

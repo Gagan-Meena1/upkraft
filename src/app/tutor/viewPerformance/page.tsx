@@ -747,14 +747,14 @@ const StudentFeedbackDashboard = () => {
                   variant=""
                   style={{ height: "8px", backgroundColor: "#eee" }}
                 >
-                  {/* <div
+                  <div
                     style={{
                       width: `${averageSkillScores.rhythm * 10}%`,
                       height: "100%",
                       backgroundColor: "#7b2ff7",
                       borderRadius: "6px",
                     }}
-                  ></div> */}
+                  ></div>
                 </ProgressBar>
               </div>
               <div className="right-text-box">

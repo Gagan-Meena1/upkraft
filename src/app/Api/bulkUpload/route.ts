@@ -5,7 +5,6 @@ import { Song } from '@/models/Songs';
 import { connect } from '@/dbConnection/dbConfic';
 import * as XLSX from 'xlsx';
 
-// Configure Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -19,7 +18,7 @@ export async function POST(request) {
     
     const data = await request.formData();
     const files = data.getAll('files');
-    const excelFile = data.get('excelFile'); // The Excel spreadsheet
+    const excelFile = data.get('excelFile');
     
     console.log(`📁 Received ${files.length} song files`);
     console.log(`📊 Excel file: ${excelFile ? excelFile.name : 'Not provided'}`);
@@ -32,7 +31,6 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Excel file is required' }, { status: 400 });
     }
 
-    // Parse Excel file
     let songDatabase = [];
     try {
       const excelBuffer = Buffer.from(await excelFile.arrayBuffer());
@@ -41,28 +39,31 @@ export async function POST(request) {
       const worksheet = workbook.Sheets[sheetName];
       const rawData = XLSX.utils.sheet_to_json(worksheet);
       
-      // Clean and normalize the Excel data
+      console.log('🔍 Excel Headers:', Object.keys(rawData[0] || {}));
+      
       songDatabase = rawData.map(row => ({
-        song: row.Song?.toString().trim() || '',
-        artist: row.Artist?.toString().trim() || '',
-        primaryInstrumentFocus: row.Primary_Instrument_Focus?.toString().trim() || '',
-        genre: row.Genre?.toString().trim() || '',
-        difficulty: row.Difficulty?.toString().trim() || '',
-        year: row.Year ? parseInt(row.Year) : null,
-        notes: row.Notes?.toString().trim() || '',
-        skills: row.Skills?.toString().trim() || '',
-        // Add more fields as they appear in your Excel
-      }));
+  song: row.Song?.toString().trim().replace(/\([^)]*\)/g, '').trim() || '',  // ← Remove brackets HERE
+  artist: row.Artist?.toString().trim() || '',
+  primaryInstrumentFocus: row.Primary_Instrument_Focus?.toString().trim() || '',
+  genre: row.Genre?.toString().trim() || '',
+  difficulty: row.Difficulty?.toString().trim() || '',
+  year: row.Year ? parseInt(row.Year) : null,
+  notes: row.Notes?.toString().trim() || '',
+  skills: row.Skills?.toString().trim() || '',
+}));
+      
       
       console.log(`📋 Parsed ${songDatabase.length} songs from Excel`);
-      console.log('📝 Sample Excel data:', songDatabase.slice(0, 2));
+      console.log('📝 First 3 songs:', songDatabase.slice(0, 3).map(s => `"${s.song}" by ${s.artist}`));
       
     } catch (error) {
       console.error('❌ Error parsing Excel file:', error);
-      return NextResponse.json({ error: 'Failed to parse Excel file' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Failed to parse Excel file',
+        details: error.message 
+      }, { status: 400 }); 
     }
 
-    // Define allowed file extensions
     const allowedExtensions = [
       '.mp3', '.gp', '.gp1', '.gp2', '.gp3', '.gp4', '.gp5', 
       '.gp6', '.gp7', '.gp8', '.gpx', '.dp', '.mxl'
@@ -80,104 +81,189 @@ export async function POST(request) {
       }
     };
 
-    // Helper function to find matching song data
-    const findSongData = (filename) => {
-      // Clean filename for matching (remove extension and clean up)
-      const cleanFilename = filename
-        .toLowerCase()
-        .replace(/\.(gp\d?|gpx?|dp|mp3)$/i, '') // Remove extensions
-        .replace(/[_-]/g, ' ') // Replace underscores/hyphens with spaces
-        .replace(/\s+/g, ' ') // Normalize whitespace
-        .trim();
+    const normalizeString = (str) => {
 
-      console.log(`🔍 Looking for match for: "${cleanFilename}"`);
+  return str
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\[[^\]]*\]/g, '')
+    .replace(/[''`]/g, '')
+    .replace(/\btumhi\b/g, 'tum hi')      // ← ADD THIS: normalize "tumhi" to "tum hi"
+    .replace(/[_-]/g, ' ')
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
 
-      // Try different matching strategies
-      const strategies = [
-        // Strategy 1: Exact match with song name
-        (clean, song) => clean === song.song.toLowerCase().replace(/\s+/g, ' ').trim(),
-        
-        // Strategy 2: Check if filename contains song name
-        (clean, song) => clean.includes(song.song.toLowerCase().replace(/\s+/g, ' ').trim()),
-        
-        // Strategy 3: Check if song name contains filename
-        (clean, song) => song.song.toLowerCase().replace(/\s+/g, ' ').trim().includes(clean),
-        
-        // Strategy 4: Fuzzy match - check if most words match
-        (clean, song) => {
-          const fileWords = clean.split(' ').filter(w => w.length > 2);
-          const songWords = song.song.toLowerCase().split(' ').filter(w => w.length > 2);
-          const matchedWords = fileWords.filter(word => 
-            songWords.some(songWord => songWord.includes(word) || word.includes(songWord))
-          );
-          return matchedWords.length >= Math.min(fileWords.length * 0.6, songWords.length * 0.6);
-        }
-      ];
+    // Add this improved findSongData function with better matching
 
-      // Try each strategy
-      for (let i = 0; i < strategies.length; i++) {
-        const match = songDatabase.find(song => strategies[i](cleanFilename, song));
-        if (match) {
-          console.log(`✅ Match found using strategy ${i + 1}: "${match.song}" by ${match.artist}`);
-          return match;
-        }
-      }
+const findSongData = (filename) => {
+  const cleanFilename = filename
+    .toLowerCase()
+    .replace(/\.(gp\d?|gpx?|dp|mp3|mxl)$/i, '')
+    .replace(/[_-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-      console.log(`❌ No match found for: "${cleanFilename}"`);
-      return null;
-    };
+  console.log(`\n🔍 Matching: "${filename}" → cleaned: "${cleanFilename}"`);
 
-    // Process each file
+  // Extract potential artist from filename (usually at end)
+  const filenameParts = cleanFilename.split(' ');
+  const possibleArtistInFilename = filenameParts.slice(-2).join(' '); // last 2 words
+
+  const strategies = [
+    // Strategy 1: Exact match (case-insensitive)
+    (clean, song) => {
+      const normalizedSong = normalizeString(song.song);
+      const normalizedFile = normalizeString(clean);
+      return normalizedSong === normalizedFile;
+    },
+    
+    // Strategy 2: File contains song title
+    (clean, song) => {
+      const normalizedSong = normalizeString(song.song);
+      const normalizedFile = normalizeString(clean);
+      return normalizedFile.length >= 3 && normalizedFile.includes(normalizedSong);
+    },
+    
+    // Strategy 3: Song title contains file
+    (clean, song) => {
+      const normalizedSong = normalizeString(song.song);
+      const normalizedFile = normalizeString(clean);
+      return normalizedSong.length >= 3 && normalizedSong.includes(normalizedFile);
+    },
+    
+    // Strategy 4: Check if artist name is in filename
+    (clean, song) => {
+      if (!song.artist || song.artist === 'Unknown Artist') return false;
+      
+      const normalizedArtist = normalizeString(song.artist);
+      const normalizedFile = normalizeString(clean);
+      
+      // Split artist by "/" or "&" to handle multiple artists
+      const artistNames = normalizedArtist.split(/[\/&]/).map(a => a.trim());
+      
+      // Check if any artist name is in filename
+      const artistInFilename = artistNames.some(artist => {
+        const artistWords = artist.split(' ').filter(w => w.length > 2);
+        return artistWords.some(word => normalizedFile.includes(word));
+      });
+      
+      if (!artistInFilename) return false;
+      
+      // Now check if song title words are in filename
+      const normalizedSong = normalizeString(song.song);
+      const songWords = normalizedSong.split(' ').filter(w => w.length > 2);
+      const fileWords = normalizedFile.split(' ');
+      
+      // Count matching words
+      const matchingWords = songWords.filter(songWord => 
+        fileWords.some(fileWord => {
+          // Handle "tumhi" vs "tum hi" - check if they're similar
+          if (songWord === fileWord) return true;
+          if (fileWord.includes(songWord) || songWord.includes(fileWord)) {
+            const longer = fileWord.length > songWord.length ? fileWord : songWord;
+            const shorter = fileWord.length > songWord.length ? songWord : fileWord;
+            return shorter.length >= 3 && shorter.length / longer.length >= 0.7;
+          }
+          return false;
+        })
+      );
+      
+      // Require at least 60% of song words to match
+      return matchingWords.length >= songWords.length * 0.6;
+    },
+    
+   // Strategy 5: Fuzzy word matching (70% threshold)
+(clean, song) => {
+  const normalizedSong = normalizeString(song.song);
+  const fileWords = normalizeString(clean).split(' ').filter(w => w.length > 2);
+  const songWords = normalizedSong.split(' ').filter(w => w.length > 2);
+  
+  if (fileWords.length === 0 || songWords.length === 0) return false;
+  
+  const matchedWords = fileWords.filter(word => 
+    songWords.some(songWord => {
+      const longer = word.length > songWord.length ? word : songWord;
+      const shorter = word.length > songWord.length ? songWord : word;
+      
+      // Exact match or very similar
+      return word === songWord || 
+             (shorter.length >= 3 && longer.startsWith(shorter) && shorter.length / longer.length >= 0.6);
+    })
+  );
+  
+  // Require 70% match (changed from 85%)
+  const matchThreshold = 0.70;
+  return matchedWords.length >= Math.min(fileWords.length, songWords.length) * matchThreshold;
+}
+  ];
+
+  // Try each strategy
+  for (let i = 0; i < strategies.length; i++) {
+    const match = songDatabase.find(song => strategies[i](cleanFilename, song));
+    if (match) {
+      console.log(`   ✅ Strategy ${i + 1} matched: "${match.song}" by ${match.artist}`);
+      console.log(`   📊 Fields: ${match.primaryInstrumentFocus} | ${match.genre} | ${match.difficulty}`);
+      return match;
+    }
+  }
+
+  console.log(`   ❌ No match found`);
+  return null;
+};
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`\n📤 Processing file ${i + 1}/${files.length}: ${file.name}`);
+      console.log(`\n${'='.repeat(70)}`);
+      console.log(`📤 [${i + 1}/${files.length}] Processing: ${file.name}`);
       
       try {
-        // Validate file extension
         const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
         if (!allowedExtensions.includes(fileExtension)) {
           throw new Error(`Invalid file type: ${fileExtension}`);
         }
 
-        // Check file size (max 15MB)
         const maxSize = 15 * 1024 * 1024;
         if (file.size > maxSize) {
           throw new Error(`File too large: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
         }
 
-        // Find matching song data from Excel
         const songMetadata = findSongData(file.name);
+        
         if (!songMetadata) {
           results.matchingStats.unmatched++;
-          console.log(`⚠️ No Excel match found for ${file.name}, using filename data`);
+          console.log(`   ⚠️ Using filename only (no Excel match)`);
         } else {
           results.matchingStats.matched++;
         }
 
-        // Check for duplicates in database
         const title = songMetadata?.song || file.name.split('.')[0].replace(/[_-]/g, ' ');
         const artist = songMetadata?.artist || 'Unknown Artist';
         
+        const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const escapedArtist = artist.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
         const existingSong = await Song.findOne({ 
-          title: { $regex: new RegExp(`^${title}$`, 'i') },
-          artist: { $regex: new RegExp(`^${artist}$`, 'i') }
+          title: { $regex: new RegExp(`^${escapedTitle}$`, 'i') },
+          artist: { $regex: new RegExp(`^${escapedArtist}$`, 'i') },
+          extension: fileExtension
         });
 
-        if (existingSong) {
-          results.matchingStats.duplicatesSkipped++;
-          console.log(`⏭️ Skipping duplicate: "${title}" by ${artist}`);
-          continue;
-        }
+        // if (existingSong) {
+        //   results.matchingStats.duplicatesSkipped++;
+        //   console.log(`   ⏭️ SKIPPED (duplicate): "${title}" by ${artist} [${fileExtension}]`);
+        //   continue;
+        // }
 
-        // Convert file to buffer
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
-        // Determine file type
         const isAudioFile = ['.mp3'].includes(fileExtension);
         const resourceType = isAudioFile ? 'video' : 'raw';
 
-        // Upload to Cloudinary
+        console.log(`   ☁️ Uploading to Cloudinary...`);
+
         const uploadResult = await new Promise((resolve, reject) => {
           const uploadOptions = {
             resource_type: resourceType,
@@ -202,10 +288,10 @@ export async function POST(request) {
             uploadOptions,
             (error, result) => {
               if (error) {
-                console.error('❌ Cloudinary error:', error);
+                console.error('   ❌ Cloudinary error:', error);
                 reject(error);
               } else {
-                console.log('✅ Upload successful:', result.public_id);
+                console.log('   ✅ Cloudinary success');
                 resolve(result);
               }
             }
@@ -214,9 +300,7 @@ export async function POST(request) {
           uploadStream.end(buffer);
         });
 
-        // Prepare song data with Excel metadata
         const songData = {
-          // Basic info
           title: title,
           artist: artist,
           filename: file.name,
@@ -226,12 +310,10 @@ export async function POST(request) {
           extension: fileExtension,
           fileSize: uploadResult.bytes,
           
-          // Cloudinary fields
           cloudinaryPublicId: uploadResult.public_id,
           cloudinaryResourceType: resourceType,
           cloudinaryFolder: 'music-app/songs',
           
-          // Excel metadata (use Excel data if available, fallback to defaults)
           primaryInstrumentFocus: songMetadata?.primaryInstrumentFocus || 'Guitar',
           genre: songMetadata?.genre || 'Unknown',
           difficulty: songMetadata?.difficulty || 'Beginner',
@@ -239,11 +321,9 @@ export async function POST(request) {
           notes: songMetadata?.notes || '',
           skills: songMetadata?.skills || '',
           
-          // Guitar Pro specific
           guitarProVersion: fileExtension.match(/gp(\d+)/)?.[1] || (fileExtension === '.gp' ? 'legacy' : null),
           duration: uploadResult.duration || null,
           
-          // Additional defaults
           tuning: 'E A D G B E',
           timeSignature: '4/4',
           capo: 0,
@@ -251,9 +331,11 @@ export async function POST(request) {
           isActive: true
         };
 
-        // Save to database
+        console.log(`   💾 Saving to database...`);
         const savedSong = await Song.create(songData);
-        console.log('💾 Saved to database:', savedSong._id);
+        
+        console.log(`   ✅ SAVED!`);
+        console.log(`   📊 Applied: ${savedSong.primaryInstrumentFocus} | ${savedSong.genre} | ${savedSong.difficulty} | Year: ${savedSong.year || 'N/A'}`);
 
         results.success++;
         results.uploadedFiles.push({
@@ -262,24 +344,35 @@ export async function POST(request) {
           artist: savedSong.artist,
           filename: file.name,
           url: uploadResult.secure_url,
+          primaryInstrumentFocus: savedSong.primaryInstrumentFocus,
           genre: savedSong.genre,
           difficulty: savedSong.difficulty,
           year: savedSong.year,
+          skills: savedSong.skills,
           matchedFromExcel: !!songMetadata,
           uploadedAt: new Date().toISOString()
         });
 
       } catch (error) {
-        console.error(`❌ Error uploading ${file.name}:`, error.message);
+        console.error(`   ❌ ERROR: ${error.message}`);
         results.failed++;
-        results.errors.push(`${file.name}: ${error.message}`);
+        results.errors.push({
+          filename: file.name,
+          error: error.message
+        });
       }
     }
 
-    console.log(`\n🎉 Enhanced batch upload complete!`);
-    console.log(`📊 Results:`, results.matchingStats);
+    console.log(`\n${'='.repeat(70)}`);
+    console.log(`🎉 BATCH UPLOAD COMPLETE!`);
+    console.log(`   ✅ Success: ${results.success}`);
+    console.log(`   ❌ Failed: ${results.failed}`);
+    console.log(`   🎯 Excel Matched: ${results.matchingStats.matched}`);
+    console.log(`   ⚠️ No Match: ${results.matchingStats.unmatched}`);
+    console.log(`   ⏭️ Duplicates Skipped: ${results.matchingStats.duplicatesSkipped}`);
     
     return NextResponse.json({
+      success: results.failed === 0,
       ...results,
       summary: {
         totalFiles: files.length,

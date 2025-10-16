@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { connect } from '@/dbConnection/dbConfic'; // Adjust path as needed
 import { PianoResult, GuitarResult } from '@/models/practiceResult'; // Adjust path as needed
+import mongoose from 'mongoose';
 
 export async function GET(request) {
   try {
@@ -13,17 +14,35 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     let userId = searchParams.get('userId');
 
-    // If no userId provided, get from JWT token
-    if (!userId) {
+    // Check if userId is null, undefined, or the string "null"
+    if (!userId || userId === 'null' || userId === 'undefined') {
+      // Get token from cookies
       const token = request.cookies.get("token")?.value;
-      const decodedToken = token ? jwt.decode(token) : null;
-      userId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+      if (!token) {
+        return NextResponse.json({ error: "No token found" }, { status: 401 });
+      }
+     
+      const decodedToken = jwt.decode(token);
+      if (!decodedToken || typeof decodedToken !== "object" || !decodedToken.id) {
+        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+      }
+     
+      userId = decodedToken.id;
     }
 
-    if (!userId) {
+    // Final validation - ensure we have a valid userId
+    if (!userId || userId === 'null' || userId === 'undefined') {
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 401 }
+      );
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return NextResponse.json(
+        { error: 'Invalid user ID format' },
+        { status: 400 }
       );
     }
 
@@ -78,4 +97,3 @@ export async function GET(request) {
     );
   }
 }
-

@@ -13,6 +13,11 @@ import "../../app/globals.css";
 import "../../app/media.css";
 import "../../app/custom.css";
 import "../../../style.css";
+import "@/styles/globals.css";
+//import "@/styles/index.css";
+//import "../../app/media.css";
+//import "../../app/custom.css";
+//import "@/styles/style.css";
 
 import { Toaster } from "react-hot-toast";
 import Chat from "./Chat";
