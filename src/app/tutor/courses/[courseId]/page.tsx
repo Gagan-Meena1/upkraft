@@ -417,8 +417,8 @@ const handleUpdateClass = async (e: React.FormEvent) => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 flex items-center justify-center p-4">
-        <div className="text-lg sm:text-2xl font-semibold text-gray-700 text-center">Loading Course Details...</div>
+      <div className="!min-h-screen !bg-gradient-to-br !from-gray-100 !via-gray-200 !to-gray-300 !flex !items-center !justify-center !p-4">
+        <div className="!text-lg !sm:text-2xl !font-semibold !text-gray-700 !text-center">Loading Course Details...</div>
       </div>
     );
   }
@@ -426,15 +426,15 @@ const handleUpdateClass = async (e: React.FormEvent) => {
   // Error state
   if (error || !courseData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 flex items-center justify-center p-4">
-        <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg text-center max-w-md w-full">
-          <div className="text-xl sm:text-2xl font-semibold text-red-600 mb-4">
+      <div className="!min-h-screen !bg-gradient-to-br !from-gray-100 !via-gray-200 !to-gray-300 !flex !items-center !justify-center !p-4">
+        <div className="!bg-white !p-6 !sm:p-8 !rounded-xl !shadow-lg !text-center !max-w-md !w-full">
+          <div className="!text-xl !sm:text-2xl !font-semibold !text-red-600 !mb-4">
             Error Loading Course
           </div>
-          <p className="text-gray-700 mb-6 text-sm sm:text-base">{error}</p>
+          <p className="!text-gray-700 !mb-6 !text-sm !sm:text-base">{error}</p>
           <Link 
             href="/tutor" 
-            className="inline-block px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-colors text-sm sm:text-base"
+            className="!inline-block !px-4 !sm:px-6 !py-2 !sm:py-3 !bg-gradient-to-r !from-blue-500 !to-purple-600 !text-white !rounded-lg !hover:from-blue-600 !hover:to-purple-700 !transition-colors !text-sm !sm:text-base"
           >
             Return to Home
           </Link>
@@ -444,34 +444,34 @@ const handleUpdateClass = async (e: React.FormEvent) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 p-3 sm:p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="!min-h-screen !bg-gradient-to-br !from-gray-100 !via-gray-200 !to-gray-300 !p-3 !sm:p-6">
+      <div className="!max-w-6xl !mx-auto">
         {/* Header with Back Button */}
-        <header className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div className="flex items-center space-x-3 sm:space-x-4">
+        <header className="!mb-6 !sm:mb-8">
+          <div className="!flex !flex-col !sm:flex-row !sm:justify-between !sm:items-center !gap-4">
+            <div className="!flex !items-center !space-x-3 !sm:space-x-4">
               <Link 
                 href={`/tutor/courses`} 
-                className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors shadow-md flex-shrink-0"
+                className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
               >
-                <ChevronLeft className="text-gray-700 w-5 h-5 sm:w-6 sm:h-6" />
+                <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
               </Link>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 break-words">
+              <h1 className="!text-xl !sm:text-2xl !lg:text-3xl !font-bold !text-gray-800 !break-words">
                 {courseData.courseDetails.title}
               </h1>
             </div>
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+            <div className="!flex !flex-col !sm:flex-row !items-stretch !sm:items-center !gap-2 !sm:gap-3">
               <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
-                <button className="w-full sm:w-auto bg-gray-700 hover:bg-gray-800 text-white px-3 sm:px-4 py-2 rounded-md font-medium transition-colors shadow-md flex items-center justify-center gap-2 text-sm sm:text-base">
-                  <Upload size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <button className="!w-full !sm:w-auto !bg-gray-700 !hover:bg-gray-800 !text-white !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-colors !shadow-md !flex !items-center !justify-center !gap-2 !text-sm !sm:text-base">
+                  <Upload size={16} className="!sm:w-[18px] !sm:h-[18px]" />
                   Create Class
                 </button>
               </Link>
               <button 
                 onClick={handleDeleteCourse}
-                className="w-full sm:w-auto border border-gray-300 bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 hover:border-red-200 px-3 sm:px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-sm text-sm sm:text-base"
+                className="!w-full !sm:w-auto !border !border-gray-300 !bg-white !text-gray-700 !hover:bg-red-50 !hover:text-red-600 !hover:border-red-200 !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-all !duration-200 !flex !items-center !justify-center !gap-2 !shadow-sm !text-sm !sm:text-base"
               >
-                <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <Trash2 size={16} className="!sm:w-[18px] !sm:h-[18px]" />
                 Delete Course
               </button>
             </div>
@@ -479,43 +479,43 @@ const handleUpdateClass = async (e: React.FormEvent) => {
         </header>
   
         {/* Course Overview */}
-        <section className="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-3">
+        <section className="!bg-white !rounded-xl !shadow-lg !p-4 !sm:p-6 !mb-6 !sm:mb-8">
+          <div className="!flex !flex-col !sm:flex-row !sm:justify-between !sm:items-center !mb-4 !gap-3">
             <div>
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-800 flex items-center">
-                <BookOpen className="mr-2 text-gray-600 w-5 h-5 sm:w-6 sm:h-6" />
+              <h2 className="!text-lg !sm:text-xl !font-semibold !text-gray-800 !flex !items-center">
+                <BookOpen className="!mr-2 !text-gray-600 !w-5 !h-5 !sm:w-6 !sm:h-6" />
                 Course Overview
               </h2>
             </div>
-            <div className="text-gray-600 text-sm sm:text-base">
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-                <span><span className="font-medium">Duration:</span> {courseData.courseDetails.duration}</span>
-                <span><span className="font-medium">Price:</span> <IndianRupee className='text-xs scale-70 inline-block transform'/>{courseData.courseDetails.price}</span>
+            <div className="!text-gray-600 !text-sm !sm:text-base">
+              <div className="!flex !flex-col !sm:flex-row !gap-2 !sm:gap-4">
+                <span><span className="!font-medium">Duration:</span> {courseData.courseDetails.duration}</span>
+                <span><span className="!font-medium">Price:</span> <IndianRupee className='!text-xs !scale-70 !inline-block !transform'/>{courseData.courseDetails.price}</span>
               </div>
             </div>
           </div>
-          <p className="text-gray-600 text-sm sm:text-base leading-relaxed">{courseData.courseDetails.description}</p>
+          <p className="!text-gray-600 !text-sm !sm:text-base !leading-relaxed">{courseData.courseDetails.description}</p>
         </section>
 
         {/* Tab Navigation */}
-        <div className="mb-6">
-          <div className="flex bg-white rounded-lg shadow-md p-1 max-w-md mx-auto sm:mx-0">
+        <div className="!mb-6">
+          <div className="!flex !bg-white !rounded-lg !shadow-md !p-1 !max-w-md !mx-auto !sm:mx-0">
             <button
               onClick={() => setActiveTab('classes')}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 text-sm sm:text-base ${
+              className={`!flex-1 !py-2 !px-4 !rounded-md !font-medium !transition-all !duration-200 !text-sm !sm:text-base ${
                 activeTab === 'classes'
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'text-gray-600 hover:text-gray-800'
+                  ? '!bg-blue-500 !text-white !shadow-md'
+                  : '!text-gray-600 !hover:text-gray-800'
               }`}
             >
               Classes
             </button>
             <button
               onClick={() => setActiveTab('curriculum')}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 text-sm sm:text-base ${
+              className={`!flex-1 !py-2 !px-4 !rounded-md !font-medium !transition-all !duration-200 !text-sm !sm:text-base ${
                 activeTab === 'curriculum'
-                  ? 'bg-blue-500 text-white shadow-md'
-                  : 'text-gray-600 hover:text-gray-800'
+                  ? '!bg-blue-500 !text-white !shadow-md'
+                  : '!text-gray-600 !hover:text-gray-800'
               }`}
             >
               Curriculum
@@ -526,11 +526,11 @@ const handleUpdateClass = async (e: React.FormEvent) => {
         {/* Classes Section */}
         {activeTab === 'classes' && (
           <section>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
+            <h2 className="!text-xl !sm:text-2xl !font-bold !text-gray-800 !mb-4 !sm:mb-6">
               Course Classes
             </h2>
             
-            <div className="space-y-4 sm:space-y-6">
+            <div className="!space-y-4 !sm:space-y-6">
               {courseData.classDetails.map((classSession) => {
                 const { date, time: startTime } = formatDateTime(classSession.startTime);
                 const { time: endTime } = formatDateTime(classSession.endTime);
@@ -539,17 +539,17 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                 return (
                   <div 
                     key={classSession._id} 
-                    className="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow"
+                    className="!bg-white !rounded-xl !shadow-md !hover:shadow-xl !transition-shadow"
                   >
-                    <div className="p-4 sm:p-6">
+                    <div className="!p-4 !sm:p-6">
                       {/* Mobile Layout */}
-                      <div className="block lg:hidden text-gray-800">
-                        <div className="flex gap-3">
+                      <div className="block lg:hidden !text-gray-800">
+                        <div className="!flex !gap-3">
                           {/* Edit/Delete Icons on extreme left */}
-                          <div className="flex flex-col gap-2">
+                          <div className="!flex !flex-col !gap-2">
                             <button
                               onClick={() => handleEditClass(classSession)}
-                              className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors group relative"
+                              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
                               title="Edit class"
                             >
                               <Edit size={16} />
@@ -557,7 +557,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                             </button>
                             <button
                               onClick={() => handleDeleteClass(classSession._id, classSession.title)}
-                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors group relative"
+                              className="!p-1 !text-red-500 !hover:text-red-700 !hover:bg-red-50 !rounded-full !transition-colors group relative"
                               title="Delete class"
                             >
                               <Trash2 size={16} />
@@ -566,21 +566,21 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                           </div>
 
                           {/* Content Area */}
-                          <div className="flex-1 space-y-4">
+                          <div className="flex-1 !space-y-4">
                             {/* Date and Time */}
-                            <div className="bg-gray-100 rounded-lg p-3 text-center">
-                              <div className="text-sm font-bold text-gray-800">{date}</div>
-                              <div className="text-xs text-gray-600">
+                            <div className="!bg-gray-100 !rounded-lg !p-3 !text-center">
+                              <div className="!text-sm !font-bold !text-gray-800">{date}</div>
+                              <div className="!text-xs !text-gray-600">
                                 {startTime} - {endTime}
                               </div>
                             </div>
 
                             {/* Session Details */}
                             <div>
-                              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                              <h3 className="!text-lg !font-semibold !text-gray-800 !mb-2">
                                 {classSession.title}
                               </h3>
-                              <p className="text-gray-600 text-sm leading-relaxed">
+                              <p className="!text-gray-600 !text-sm !leading-relaxed">
                                 {classSession.description}
                               </p>
                             </div>
@@ -588,7 +588,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-col gap-2 ml-10">
+                        <div className="!flex !flex-col !gap-2 !ml-10">
                           {/* Hidden file input */}
                           <input
                             type="file"
@@ -598,14 +598,14 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                             onChange={(e) => handleFileChange(classSession._id, e)}
                           />
 
-                          <div className="flex gap-2">
+                          <div className="!flex !gap-2">
                             {/* Class Quality button */}
                             {classSession.recordingUrl && (
                               <Link 
                                 href={`/tutor/classQuality/${classSession._id}`}
                                 className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
                               >
-                                <BarChart3 className="mr-1" size={14} />
+                                <BarChart3 className="!mr-1" size={14} />
                                 Quality
                               </Link>
                             )}
@@ -619,7 +619,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                                   : 'bg-purple-500 hover:bg-purple-600'
                               } text-white rounded-lg transition-colors flex items-center justify-center text-xs`}
                             >
-                              <Upload className="mr-1" size={14} />
+                              <Upload className="!mr-1" size={14} />
                               {getButtonText(classSession, isUploading)}
                             </button>
                           </div>
@@ -638,12 +638,12 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
 
                       {/* Desktop Layout */}
                       <div className="hidden lg:block">
-                        <div className="flex gap-6 items-center">
+                        <div className="!flex !gap-6 !items-center">
                           {/* Edit/Delete Icons on extreme left */}
-                          <div className="flex flex-col gap-2">
+                          <div className="!flex !flex-col !gap-2">
                             <button
                               onClick={() => handleEditClass(classSession)}
-                              className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors group relative"
+                              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
                               title="Edit class"
                             >
                               <Edit size={18} />
@@ -651,7 +651,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                             </button>
                             <button
                               onClick={() => handleDeleteClass(classSession._id, classSession.title)}
-                              className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors group relative"
+                              className="!p-1 !text-red-500 !hover:text-red-700 !hover:bg-red-50 !rounded-full !transition-colors group relative"
                               title="Delete class"
                             >
                               <Trash2 size={18} />
@@ -660,19 +660,19 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                           </div>
 
                           {/* Date and Time */}
-                          <div className="bg-gray-100 rounded-lg p-4 text-center min-w-[200px]">
-                            <div className="text-xl font-bold text-gray-800">{date}</div>
-                            <div className="text-gray-600">
+                          <div className="!bg-gray-100 !rounded-lg !p-4 !text-center !min-w-[200px]">
+                            <div className="!text-xl !font-bold !text-gray-800">{date}</div>
+                            <div className="!text-gray-600">
                               {startTime} - {endTime}
                             </div>
                           </div>
 
                           {/* Session Details */}
                           <div className="flex-1">
-                            <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                            <h3 className="!text-xl !font-semibold !text-gray-800 !mb-2">
                               {classSession.title}
                             </h3>
-                            <p className="text-gray-600">
+                            <p className="!text-gray-600">
                               {classSession.description}
                             </p>
                           </div>
@@ -740,34 +740,34 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
         {/* Curriculum Section */}
         {activeTab === 'curriculum' && (
           <section>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6">
+            <h2 className="!text-xl !sm:text-2xl !font-bold !text-gray-800 !mb-4 !sm:mb-6">
               Course Curriculum
             </h2>
             
-            <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+            <div className="!bg-white !rounded-xl !shadow-lg !p-4 !sm:p-6">
               {courseData.courseDetails.curriculum && courseData.courseDetails.curriculum.length > 0 ? (
-                <div className="space-y-4">
+                <div className="!space-y-4">
                   {courseData.courseDetails.curriculum.map((item, index) => (
                     <div key={index} className="border-l-4 border-blue-500 pl-4 py-3">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
                           Lesson {item.sessionNo}
                         </span>
-                        <h3 className="text-lg font-semibold text-gray-800">
+                        <h3 className="!text-lg !font-semibold !text-gray-800">
                           {item.topic}
                         </h3>
                       </div>
-                      <p className="text-gray-600 mt-2 text-sm sm:text-base">
-                        <span className="font-medium">Outcome:</span> {item.tangibleOutcome}
+                      <p className="!text-gray-600 !mt-2 !text-sm !sm:text-base">
+                        <span className="!font-medium">Outcome:</span> {item.tangibleOutcome}
                       </p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <BookOpen className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-500 text-lg">No curriculum available</p>
-                  <p className="text-gray-400 text-sm">The curriculum for this course hasn't been set up yet.</p>
+                <div className="!text-center !py-8">
+                  <BookOpen className="!mx-auto !h-12 !w-12 !text-gray-400 !mb-4" />
+                  <p className="!text-gray-500 !text-lg">No curriculum available</p>
+                  <p className="!text-gray-400 !text-sm">The curriculum for this course hasn't been set up yet.</p>
                 </div>
               )}
             </div>
@@ -777,19 +777,19 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
         {/* Edit Class Modal */}
         {showEditModal && editingClass && (
           <div className="fixed inset-0 bg-black text-gray-800 bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Edit Class</h3>
+            <div className="!bg-white !rounded-xl !shadow-xl !max-w-md !w-full !max-h-[90vh] !overflow-y-auto">
+              <div className="!p-6">
+                <div className="!flex !justify-between !items-center !mb-4">
+                  <h3 className="!text-lg !font-semibold !text-gray-800">Edit Class</h3>
                   <button
                     onClick={() => setShowEditModal(false)}
-                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    className="!p-1 !hover:bg-gray-100 !rounded-full !transition-colors"
                   >
-                    <X size={20} className="text-gray-500" />
+                    <X size={20} className="!text-gray-500" />
                   </button>
                 </div>
 
-                <form onSubmit={handleUpdateClass} className="space-y-4">
+                <form onSubmit={handleUpdateClass} className="!space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Title
@@ -863,12 +863,12 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                   </div>
 
                   {editError && (
-                    <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
+                    <div className="!text-red-600 !text-sm !bg-red-50 !p-3 !rounded-md">
                       {editError}
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-4">
+                  <div className="!flex !gap-3 !pt-4">
                     <button
                       type="button"
                       onClick={() => setShowEditModal(false)}
@@ -881,8 +881,8 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                       disabled={isUpdating || !!editError}
                       className={`flex-1 px-4 py-2 rounded-md transition-colors ${
                         isUpdating || editError
-                          ? 'bg-gray-400 cursor-not-allowed text-white'
-                          : 'bg-blue-500 hover:bg-blue-600 text-white'
+                          ? '!bg-gray-400 !cursor-not-allowed !text-white'
+                          : '!bg-blue-500 !hover:bg-blue-600 !text-white'
                       }`}
                     >
                       {isUpdating ? (

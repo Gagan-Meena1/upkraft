@@ -1,4 +1,4 @@
-"use client";
+ "use client";
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Download, Filter, RefreshCw, FileText, Music, 
@@ -9,6 +9,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { Button } from 'react-bootstrap';
 
 // Sidebar Component
 // const Sidebar = ({ isOpen, onToggle, isMobile }) => {
@@ -513,13 +514,13 @@ const MusicLibraryPage = () => {
             </div>
           </div>
           
-          <button 
+          <Button 
             onClick={() => window.location.reload()}
-            className="flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors"
+            className="btn btn-primary d-flex align-items-center "
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
-          </button>
+          </Button>
         </header>
         
         {/* Page Content */}

@@ -102,63 +102,122 @@ export default function Chat() {
   };
 
   return (
-    <div className="z-50">
-      {/* Chat Icon */}
+    <div className="position-relative">
+      {/* Chat Icon - Styled to match other header buttons */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="!relative !bg-orange-500 !hover:bg-orange-600 !text-white !rounded-full !p-2 !shadow-lg !transition-all !duration-200 !ease-in-out !ai-chat-icon"
+        className="btn-box d-flex align-items-center justify-content-center"
         aria-label="Open AI Chat Support"
+        style={{
+          background: '#c4b0f92b',
+          borderRadius: '100px',
+          width: '36px',
+          height: '36px',
+          border: 'none',
+          position: 'relative'
+        }}
       >
-        {/* AI Chat Icon with Glow and Badge */}
-        <span className="!absolute !-top-1 !-right-1 !bg-white !text-orange-500 !text-xs !font-bold !rounded-full !px-2 !py-0.25 !shadow-md !border !border-orange-500 !z-10" style={{letterSpacing: '1px'}}>AI</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 40 40"
-          fill="none"
-          className="w-7 h-7"
+        {/* AI Badge */}
+        <span 
+          className="position-absolute bg-white text-primary rounded-circle d-flex align-items-center justify-content-center"
+          style={{
+            top: '-2px',
+            right: '-2px',
+            width: '16px',
+            height: '16px',
+            fontSize: '8px',
+            fontWeight: 'bold',
+            zIndex: 10,
+            border: '1px solid #007bff'
+          }}
         >
-          {/* Chat bubble */}
-          <ellipse cx="20" cy="22" rx="15" ry="12" fill="#fff" stroke="#fb923c" strokeWidth="2.5" />
-          <path d="M12 32c0-2 2-2 4-2h8c2 0 4 0 4 2v2c0 1-1 2-2 2H14c-1 0-2-1-2-2v-2z" fill="#fb923c" opacity="0.15" />
-          {/* Robot face */}
-          <g>
-            {/* Antenna */}
-            <rect x="18.7" y="8" width="2.6" height="6" rx="1.3" fill="#fb923c" />
-            <circle cx="20" cy="7" r="1.3" fill="#fb923c" />
-            {/* Face outline */}
-            <ellipse cx="20" cy="20" rx="7" ry="6" fill="#fff" stroke="#fb923c" strokeWidth="1.5" />
-            {/* Eyes */}
-            <circle cx="17.5" cy="20" r="1.2" fill="#fb923c" />
-            <circle cx="22.5" cy="20" r="1.2" fill="#fb923c" />
-            {/* Smile */}
-            <path d="M18 23c1.2 1 2.8 1 4 0" stroke="#fb923c" strokeWidth="1.1" strokeLinecap="round" fill="none" />
-          </g>
+          AI
+        </span>
+        
+        {/* Chat Icon */}
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 20 20"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M17.5 8.33333C17.5 12.0152 14.3486 15 10.4167 15H7.08333L4.16667 17.5V5.83333C4.16667 4.26449 5.43449 3 7.08333 3H13.75C15.8211 3 17.5 4.67893 17.5 6.75V8.33333Z"
+            stroke="#007bff"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <circle cx="8.33333" cy="9.16667" r="0.833333" fill="#007bff"/>
+          <circle cx="11.6667" cy="9.16667" r="0.833333" fill="#007bff"/>
+          <circle cx="15" cy="9.16667" r="0.833333" fill="#007bff"/>
         </svg>
-        {/* Glow effect handled by CSS below */}
       </button>
 
       {/* Chat Interface */}
       {isOpen && (
-        <div className="!absolute !top-16 !right-16 !w-96 !bg-white !rounded-lg !shadow-xl !border !border-gray-200">
+        <div 
+          className="position-absolute bg-white rounded shadow-lg border"
+          style={{
+            top: '45px',
+            right: '0',
+            width: '320px',
+            zIndex: 1050,
+            maxHeight: '500px'
+          }}
+        >
           {/* Chat Header */}
-          <div className="!bg-orange-500 !p-4 !rounded-t-lg">
-            <h3 className="!font-bold !text-xl" style={{ color: '#ffffff' }}>AI Chat Support</h3>
+          <div className="bg-primary text-white p-3 rounded-top d-flex align-items-center justify-content-between">
+            <div className="d-flex align-items-center gap-2">
+              <div 
+                className="bg-white rounded-circle d-flex align-items-center justify-content-center"
+                style={{ width: '24px', height: '24px' }}
+              >
+                <span className="text-primary" style={{ fontSize: '10px', fontWeight: 'bold' }}>AI</span>
+              </div>
+              <h6 className="mb-0" style={{ fontSize: '14px' }}>AI Chat Support</h6>
+            </div>
+            <button 
+              onClick={() => setIsOpen(false)}
+              className="btn btn-sm text-white p-0"
+              style={{ fontSize: '18px', lineHeight: '1', border: 'none', background: 'none' }}
+            >
+              ×
+            </button>
           </div>
 
           {/* Messages Container */}
-          <div className="!h-96 !overflow-y-auto !p-4">
+          <div 
+            className="p-3"
+            style={{ 
+              height: '300px', 
+              overflowY: 'auto',
+              fontSize: '13px'
+            }}
+          >
+            {messages.length === 0 && (
+              <div className="text-center text-muted">
+                <small>Hi! How can I help you today?</small>
+              </div>
+            )}
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`!mb-4 ${message.isUser ? '!text-right' : '!text-left'}`}
+                className={`mb-3 ${message.isUser ? 'text-end' : 'text-start'}`}
               >
                 <div
-                  className={`!inline-block !p-3 !rounded-lg !whitespace-pre-wrap ${
+                  className={`d-inline-block p-2 rounded ${
                     message.isUser
-                      ? '!bg-orange-500 !text-white'
-                      : '!bg-gray-100 !text-gray-800'
+                      ? 'bg-primary text-white'
+                      : 'bg-light text-dark'
                   }`}
-                  style={{ maxWidth: '80%' }}
+                  style={{ 
+                    maxWidth: '80%',
+                    fontSize: '12px',
+                    whiteSpace: 'pre-wrap'
+                  }}
                 >
                   {message.text.split(/(\d+\.\s)/).map((part, i) => {
                     // If it's a numbered point (e.g., "1. "), add a line break before it
@@ -168,13 +227,13 @@ export default function Chat() {
                     return part;
                   })}
                 </div>
-                <div className="!text-xs !text-gray-500 mt-1">
+                <div className="text-muted mt-1" style={{ fontSize: '10px' }}>
                   {message.timestamp.toLocaleTimeString()}
                 </div>
               </div>
             ))}
             {isLoading && (
-              <div className="!text-center !text-gray-500">
+              <div className="text-center text-muted">
                 <div className="typing-indicator">
                   <span></span>
                   <span></span>
@@ -186,19 +245,21 @@ export default function Chat() {
           </div>
 
           {/* Message Input */}
-          <form onSubmit={handleSendMessage} className="!border-t !border-gray-200 !p-4">
-            <div className="!flex !space-x-2">
+          <form onSubmit={handleSendMessage} className="border-top p-2">
+            <div className="d-flex gap-2">
               <input
                 type="text"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Type your message..."
-                className="!border !border-gray-300 !rounded-lg !px-4 !py-2 !focus:outline-none !focus:border-orange-500 !text-gray-900 !bg-white !placeholder-gray-500 !min-w-full"
+                className="form-control form-control-sm"
+                style={{ fontSize: '12px' }}
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="!bg-orange-500 !text-white !px-4 !py-2 !rounded-lg !hover:bg-orange-600 !transition-colors !disabled:bg-orange-300"
+                className="btn btn-primary btn-sm px-3"
+                style={{ fontSize: '12px' }}
               >
                 Send
               </button>
@@ -215,11 +276,11 @@ export default function Chat() {
         }
 
         .typing-indicator span {
-          width: 8px !important;
-          height: 8px !important;
-          background-color: #d1d5db !important;
-          border-radius: 50% !important;
-          animation: bounce 1.4s infinite ease-in-out !important;
+          width: 6px;
+          height: 6px;
+          background-color: #6c757d;
+          border-radius: 50%;
+          animation: bounce 1.4s infinite ease-in-out;
         }
 
         .typing-indicator span:nth-child(1) { animation-delay: -0.32s !important; }
@@ -229,20 +290,7 @@ export default function Chat() {
           0%, 80%, 100% { transform: scale(0) !important; }
           40% { transform: scale(1) !important; }
         }
-        /* AI Chat Icon Glow */
-        .ai-chat-icon {
-          box-shadow: 0 0 0 0 #fb923c, 0 0 16px 4px #fb923c44 !important;
-          animation: ai-glow 2s infinite alternate !important;
-        }
-        @keyframes ai-glow {
-          0% {
-            box-shadow: 0 0 0 0 #fb923c, 0 0 16px 4px #fb923c44 !important;
-          }
-          100% {
-            box-shadow: 0 0 0 4px #fb923c55, 0 0 32px 8px #fb923c66 !important;
-          }
-        }
       `}</style>
     </div>
   );
-} 
+}

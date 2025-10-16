@@ -7,7 +7,6 @@ export async function GET(req: NextRequest)  {
     await connect();
  
 
-    // Fix database query - Ensure user is found
     const user = await User.find({ category: "Tutor" }).select("-password");
     console.log("2222222222222222222222222222222222222222222222222222222");
     console.log(user);

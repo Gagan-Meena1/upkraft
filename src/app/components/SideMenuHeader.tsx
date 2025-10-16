@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 import LogoHeader from "@/assets/LogoHeader.png";
+import "@/styles/style.css";
 
 const SideMenuHeader = ({ role }) => {
   const pathname = usePathname();
@@ -451,7 +452,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-tutor"
+                      href="/tutor"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-tutor") ? "active" : ""
                       }`}
@@ -475,7 +476,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/my-courses"
+                      href="student/courses"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/my-courses") ? "active" : ""
                       }`}
@@ -499,7 +500,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/calendar"
+                      href="tutor/calendar"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/calendar") ? "active" : ""
                       }`}
@@ -532,9 +533,80 @@ const SideMenuHeader = ({ role }) => {
                       <span>Calendar</span>
                     </Link>
                   </li>
+                   <li>
+                    <Link
+                      href="/tutor/myArchieve"
+                      className={`d-flex align-items-center gap-2 ${
+                        isActive("/calendar") ? "active" : ""
+                      }`}
+                    >
+                      <span className="svg-icons">
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M2 12C2 8.229 2 6.343 3.172 5.172C4.344 4.001 6.229 4 10 4H14C17.771 4 19.657 4 20.828 5.172C21.999 6.344 22 8.229 22 12V14C22 17.771 22 19.657 20.828 20.828C19.656 21.999 17.771 22 14 22H10C6.229 22 4.343 22 3.172 20.828C2.001 19.656 2 17.771 2 14V12Z"
+                            stroke="white"
+                            strokeWidth="1.5"
+                          />
+                          <path
+                            d="M7 4V2.5M17 4V2.5M2.5 9H21.5"
+                            stroke="white"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M18 17C18 17.2652 17.8946 17.5196 17.7071 17.7071C17.5196 17.8946 17.2652 18 17 18C16.7348 18 16.4804 17.8946 16.2929 17.7071C16.1054 17.5196 16 17.2652 16 17C16 16.7348 16.1054 16.4804 16.2929 16.2929C16.4804 16.1054 16.7348 16 17 16C17.2652 16 17.5196 16.1054 17.7071 16.2929C17.8946 16.4804 18 16.7348 18 17ZM18 13C18 13.2652 17.8946 13.5196 17.7071 13.7071C17.5196 13.8946 17.2652 14 17 14C16.7348 14 16.4804 13.8946 16.2929 13.7071C16.1054 13.5196 16 13.2652 16 13C16 12.7348 16.1054 12.4804 16.2929 12.2929C16.4804 12.1054 16.7348 12 17 12C17.2652 12 17.5196 12.1054 17.7071 12.2929C17.8946 12.4804 18 12.7348 18 13ZM13 17C13 17.2652 12.8946 17.5196 12.7071 17.7071C12.5196 17.8946 12.2652 18 12 18C11.7348 18 11.4804 17.8946 11.2929 17.7071C11.1054 17.5196 11 17.2652 11 17C11 16.7348 11.1054 16.4804 11.2929 16.2929C11.4804 16.1054 11.7348 16 12 16C12.2652 16 12.5196 16.1054 12.7071 16.2929C12.8946 16.4804 13 16.7348 13 17ZM13 13C13 13.2652 12.8946 13.5196 12.7071 13.7071C12.5196 13.8946 12.2652 14 12 14C11.7348 14 11.4804 13.8946 11.2929 13.7071C11.1054 13.5196 11 13.2652 11 13C11 12.7348 11.1054 12.4804 11.2929 12.2929C11.4804 12.1054 11.7348 12 12 12C12.2652 12 12.5196 12.1054 12.7071 12.2929C12.8946 12.4804 13 12.7348 13 13ZM8 17C8 17.2652 7.89464 17.5196 7.70711 17.7071C7.51957 17.8946 7.26522 18 7 18C6.73478 18 6.48043 17.8946 6.29289 17.7071C6.10536 17.5196 6 17.2652 6 17C6 16.7348 6.10536 16.4804 6.29289 16.2929C6.48043 16.1054 6.73478 16 7 16C7.26522 16 7.51957 16.1054 7.70711 16.2929C7.89464 16.4804 8 16.7348 8 17ZM8 13C8 13.2652 7.89464 13.5196 7.70711 13.7071C7.51957 13.8946 7.26522 14 7 14C6.73478 14 6.48043 13.8946 6.29289 13.7071C6.10536 13.5196 6 13.2652 6 13C6 12.7348 6.10536 12.4804 6.29289 12.2929C6.48043 12.1054 6.73478 12 7 12C7.26522 12 7.51957 12.1054 7.70711 12.2929C7.89464 12.4804 8 12.7348 8 13Z"
+                            fill="white"
+                          />
+                        </svg>
+                      </span>
+                      <span>My Archive</span>
+                    </Link>
+                  </li>
+                    <li>
+                    <Link
+                      href="/tutor/performanceVideo"
+                      className={`d-flex align-items-center gap-2 ${
+                        isActive("/calendar") ? "active" : ""
+                      }`}
+                    >
+                      <span className="svg-icons">
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M2 12C2 8.229 2 6.343 3.172 5.172C4.344 4.001 6.229 4 10 4H14C17.771 4 19.657 4 20.828 5.172C21.999 6.344 22 8.229 22 12V14C22 17.771 22 19.657 20.828 20.828C19.656 21.999 17.771 22 14 22H10C6.229 22 4.343 22 3.172 20.828C2.001 19.656 2 17.771 2 14V12Z"
+                            stroke="white"
+                            strokeWidth="1.5"
+                          />
+                          <path
+                            d="M7 4V2.5M17 4V2.5M2.5 9H21.5"
+                            stroke="white"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M18 17C18 17.2652 17.8946 17.5196 17.7071 17.7071C17.5196 17.8946 17.2652 18 17 18C16.7348 18 16.4804 17.8946 16.2929 17.7071C16.1054 17.5196 16 17.2652 16 17C16 16.7348 16.1054 16.4804 16.2929 16.2929C16.4804 16.1054 16.7348 16 17 16C17.2652 16 17.5196 16.1054 17.7071 16.2929C17.8946 16.4804 18 16.7348 18 17ZM18 13C18 13.2652 17.8946 13.5196 17.7071 13.7071C17.5196 13.8946 17.2652 14 17 14C16.7348 14 16.4804 13.8946 16.2929 13.7071C16.1054 13.5196 16 13.2652 16 13C16 12.7348 16.1054 12.4804 16.2929 12.2929C16.4804 12.1054 16.7348 12 17 12C17.2652 12 17.5196 12.1054 17.7071 12.2929C17.8946 12.4804 18 12.7348 18 13ZM13 17C13 17.2652 12.8946 17.5196 12.7071 17.7071C12.5196 17.8946 12.2652 18 12 18C11.7348 18 11.4804 17.8946 11.2929 17.7071C11.1054 17.5196 11 17.2652 11 17C11 16.7348 11.1054 16.4804 11.2929 16.2929C11.4804 16.1054 11.7348 16 12 16C12.2652 16 12.5196 16.1054 12.7071 16.2929C12.8946 16.4804 13 16.7348 13 17ZM13 13C13 13.2652 12.8946 13.5196 12.7071 13.7071C12.5196 13.8946 12.2652 14 12 14C11.7348 14 11.4804 13.8946 11.2929 13.7071C11.1054 13.5196 11 13.2652 11 13C11 12.7348 11.1054 12.4804 11.2929 12.2929C11.4804 12.1054 11.7348 12 12 12C12.2652 12 12.5196 12.1054 12.7071 12.2929C12.8946 12.4804 13 12.7348 13 13ZM8 17C8 17.2652 7.89464 17.5196 7.70711 17.7071C7.51957 17.8946 7.26522 18 7 18C6.73478 18 6.48043 17.8946 6.29289 17.7071C6.10536 17.5196 6 17.2652 6 17C6 16.7348 6.10536 16.4804 6.29289 16.2929C6.48043 16.1054 6.73478 16 7 16C7.26522 16 7.51957 16.1054 7.70711 16.2929C7.89464 16.4804 8 16.7348 8 17ZM8 13C8 13.2652 7.89464 13.5196 7.70711 13.7071C7.51957 13.8946 7.26522 14 7 14C6.73478 14 6.48043 13.8946 6.29289 13.7071C6.10536 13.5196 6 13.2652 6 13C6 12.7348 6.10536 12.4804 6.29289 12.2929C6.48043 12.1054 6.73478 12 7 12C7.26522 12 7.51957 12.1054 7.70711 12.2929C7.89464 12.4804 8 12.7348 8 13Z"
+                            fill="white"
+                          />
+                        </svg>
+                      </span>
+                      <span>Class Snapshots</span>
+                    </Link>
+                  </li>
+
                   <li>
                     <Link
-                      href="/assignment"
+                      href="student/assignments"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/assignment") ? "active" : ""
                       }`}
@@ -562,7 +634,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/music-library"
+                      href="student/musicLibrary"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/music-library") ? "active" : ""
                       }`}
@@ -586,7 +658,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/practice-studio"
+                      href="/visualizer.html"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/practice-studio") ? "active" : ""
                       }`}
@@ -619,9 +691,44 @@ const SideMenuHeader = ({ role }) => {
                       <span>Practice Studio</span>
                     </Link>
                   </li>
+                   <li>
+                    <Link
+                      href="/visualizer.html"
+                      className={`d-flex align-items-center gap-2 ${
+                        isActive("/practice-studio") ? "active" : ""
+                      }`}
+                    >
+                      <span className="svg-icons">
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M8 18V5.71599C7.99994 5.2382 8.17094 4.77617 8.48203 4.41353C8.79312 4.0509 9.22376 3.81161 9.696 3.73899L18.696 2.35399C18.981 2.31016 19.2721 2.32848 19.5494 2.40769C19.8267 2.48691 20.0836 2.62515 20.3024 2.81293C20.5212 3.00072 20.6969 3.23361 20.8173 3.49563C20.9377 3.75766 21 4.04262 21 4.33099V16"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          <path d="M8 9L21 7" stroke="white" strokeWidth="2" />
+                          <path
+                            d="M8 18C8 18.7956 7.68393 19.5587 7.12132 20.1213C6.55871 20.6839 5.79565 21 5 21C4.20435 21 3.44129 20.6839 2.87868 20.1213C2.31607 19.5587 2 18.7956 2 18C2 16.343 3.343 16 5 16C6.657 16 8 16.343 8 18ZM21 16C21 16.7956 20.6839 17.5587 20.1213 18.1213C19.5587 18.6839 18.7956 19 18 19C17.2044 19 16.4413 18.6839 15.8787 18.1213C15.3161 17.5587 15 16.7956 15 16C15 14.343 16.343 14 18 14C19.657 14 21 14.343 21 16Z"
+                            stroke="white"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </span>
+                      <span>Knowledge Hub</span>
+                    </Link>
+                  </li>
                   <li>
                     <Link
-                      href="/tutor"
+                      href="/student"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/payment-summary") ? "active" : ""
                       }`}
@@ -645,7 +752,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/Refer-Earn"
+                      href="tutor/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/Refer-Earn") ? "active" : ""
                       }`}
@@ -673,7 +780,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/settings"
+                      href="student/settings"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/settings") ? "active" : ""
                       }`}

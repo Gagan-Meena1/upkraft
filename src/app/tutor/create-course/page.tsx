@@ -340,7 +340,7 @@ export default function CreateCourse() {
                         type="button"
                         onClick={() => removeCurriculumSession(index)}
                         className="bg-red-100 text-red-500 p-2 rounded-lg hover:bg-red-200 transition-colors mt-1"
-                        title="Remove this session"
+                        title="Remove this Lesson"
                       >
                         <X size={16} />
                       </button>

@@ -15,7 +15,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ cour
     if (!courseId) {
       return NextResponse.json({ error: "Course ID is required" }, { status: 400 });
     }
-
+    
     // Fetch course details
     const courseDetails = await courseName.findById(courseId);
     const classDetails = await Class.find({ course: courseId });

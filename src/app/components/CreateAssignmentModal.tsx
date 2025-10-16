@@ -461,7 +461,7 @@ export default function CreateAssignmentModal({
                         {/* Song Search */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" ref={songInputRef}>
                             <div className="relative">
-                                <label className="block text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
+                                <label className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
                                     <Music size={16} className="text-purple-600" /> Search Song
                                 </label>
                                 <input
