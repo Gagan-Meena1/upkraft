@@ -35,7 +35,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, userData, viewPerforman
       <div className="p-6">
         {/* Header */}
         <div className="mb-4">
-          <h3 className="text-xl font-semibold text-gray-900 mb-2 leading-tight group-hover:text-orange-600 transition-colors truncate">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2 leading-tight group-hover:text-orange-600 transition-colors truncate !text-[20px]">
             {course.title}
           </h3>
           <p 

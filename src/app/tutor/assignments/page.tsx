@@ -374,7 +374,7 @@ const handleAssignmentSuccess = () => {
                       <User size={16} className="text-gray-400 flex-shrink-0" />
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm text-gray-600 whitespace-nowrap">Student:</span>
-                        {assignment.assignedStudents.length > 0 ? (
+                        {assignment?.assignedStudents?.length > 0 ? (
                           <div className="flex items-center gap-1.5 min-w-0">
                             <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
                               <span className="text-xs font-semibold text-purple-700">
