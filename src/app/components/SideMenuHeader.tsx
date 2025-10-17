@@ -535,7 +535,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                    <li>
                     <Link
-                      href="/tutor/myArchieve"
+                      href="/student/myArchive"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/calendar") ? "active" : ""
                       }`}
@@ -570,7 +570,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                     <li>
                     <Link
-                      href="/tutor/performanceVideo"
+                      href="/student/classSnapshots"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/calendar") ? "active" : ""
                       }`}
@@ -752,7 +752,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/tutor/refer-earn"
+                      href="/student/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/Refer-Earn") ? "active" : ""
                       }`}
