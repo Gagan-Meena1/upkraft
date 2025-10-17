@@ -144,7 +144,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       
       <div className="flex min-h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        <div 
+        {/* <div 
           id="mobile-sidebar"
           className={`
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -169,7 +169,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             onItemClick={handleSidebarItemClick}
             isMobile={isMobile}
           />
-        </div>
+        </div> */}
         
         {/* Main Content */}
         <main className="flex-1 p-3 md:p-4 lg:p-6 overflow-x-hidden">
