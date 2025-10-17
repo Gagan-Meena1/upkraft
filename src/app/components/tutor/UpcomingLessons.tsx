@@ -30,6 +30,7 @@ const UpcomingLessons = () => {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [studentsMap, setStudentsMap] = useState<{ [key: string]: any[] }>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -69,6 +70,25 @@ const UpcomingLessons = () => {
     fetchClasses();
   }, []);
 
+  useEffect(() => {
+    const fetchStudents = async () => {
+      const map: { [key: string]: any[] } = {};
+      for (let cls of classes) {
+        try {
+          const res = await fetch(`/Api/classes/${cls._id}/students`);
+          const data = await res.json();
+          map[cls._id] = data.students || [];
+        } catch (err) {
+          console.error("Error fetching students for class", cls._id, err);
+          map[cls._id] = [];
+        }
+      }
+      setStudentsMap(map);
+    };
+
+    if (classes.length > 0) fetchStudents();
+  }, [classes]);
+
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -78,30 +98,30 @@ const UpcomingLessons = () => {
     }
   };
 
-const formatTime = (startTime: string, endTime: string) => {
-  try {
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-    
-    // Use UTC methods to get EXACT stored time (same as CourseDetailsPage)
-    const startHours = start.getUTCHours();
-    const startMinutes = start.getUTCMinutes();
-    const endHours = end.getUTCHours();
-    const endMinutes = end.getUTCMinutes();
-    
-    // Format manually
-    const formatTimeString = (hours: number, minutes: number) => {
-      const period = hours >= 12 ? 'PM' : 'AM';
-      const displayHours = hours % 12 || 12; // Convert to 12-hour format
-      const displayMinutes = String(minutes).padStart(2, '0');
-      return `${displayHours}:${displayMinutes} ${period}`;
-    };
-    
-    return `${formatTimeString(startHours, startMinutes)} - ${formatTimeString(endHours, endMinutes)}`;
-  } catch (error) {
-    return "Invalid time";
-  }
-};
+  const formatTime = (startTime: string, endTime: string) => {
+    try {
+      const start = new Date(startTime);
+      const end = new Date(endTime);
+
+      // Use UTC methods to get EXACT stored time (same as CourseDetailsPage)
+      const startHours = start.getUTCHours();
+      const startMinutes = start.getUTCMinutes();
+      const endHours = end.getUTCHours();
+      const endMinutes = end.getUTCMinutes();
+
+      // Format manually
+      const formatTimeString = (hours: number, minutes: number) => {
+        const period = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours % 12 || 12; // Convert to 12-hour format
+        const displayMinutes = String(minutes).padStart(2, '0');
+        return `${displayHours}:${displayMinutes} ${period}`;
+      };
+
+      return `${formatTimeString(startHours, startMinutes)} - ${formatTimeString(endHours, endMinutes)}`;
+    } catch (error) {
+      return "Invalid time";
+    }
+  };
 
   const handleJoinMeeting = async (classId: string) => {
     try {
@@ -116,13 +136,13 @@ const formatTime = (startTime: string, endTime: string) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          classId: classId, 
-          userId: userData._id, 
-          userRole: userData.category 
+        body: JSON.stringify({
+          classId: classId,
+          userId: userData._id,
+          userRole: userData.category
         }),
       });
-      
+
       const data = await response.json();
       console.log("[Meeting] Server response:", data);
 
@@ -192,14 +212,20 @@ const formatTime = (startTime: string, endTime: string) => {
                   <td>{formatTime(classItem.startTime, classItem.endTime)}</td>
                   <th>{classItem.title}</th>
                   <td>
-                    {classItem.students && classItem.students.length > 0
-                      ? classItem.students
-                          .map((student) => student.username)
-                          .join(", ")
-                      : "No students assigned"}
+                    {studentsMap[classItem._id] && studentsMap[classItem._id].length > 0 ? (
+                      <span title={studentsMap[classItem._id].map(s => s.username).join(", ")}>
+                        {studentsMap[classItem._id]
+                          .slice(0, 2) // show first 2 students
+                          .map(s => s.username)
+                          .join(", ")}
+                        {studentsMap[classItem._id].length > 2 ? "..." : ""}
+                      </span>
+                    ) : (
+                      "No students assigned"
+                    )}
                   </td>
                   <td>
-                    <button 
+                    <button
                       onClick={() => handleJoinMeeting(classItem._id)}
                       className="bg-purple-700 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
                     >
