@@ -138,8 +138,8 @@ const tutorContent=(
       {/* Main Content */}
           {/* Page Header */}
           <div className="bg-gradient-to-r from-purple-700 to-purple-800 text-white rounded-xl shadow-md p-6 mb-6">
-          <h2 className="text-2xl font-bold">Tutors Directory</h2>
-          <p className="mt-1 opacity-90">Browse our expert tutors to find the perfect match for your learning needs</p>
+          <h2 className="text-2xl font-bold !text-[20px]">Tutors Directory</h2>
+          <p className="mt-1 opacity-90 !text-[16px]">Browse our expert tutors to find the perfect match for your learning needs</p>
         </div>
 
           
@@ -152,7 +152,7 @@ const tutorContent=(
                   <User size={24} className="text-purple-700" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{tutor.username}</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 !text-[24px]">{tutor.username}</h3>
                   <p className="text-sm text-gray-600">Tutor</p>
                 </div>
               </div>

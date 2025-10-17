@@ -41,7 +41,7 @@ const [pendingFeedbackCount, setpendingFeedbackCount] = useState<number>(0);  co
 
   return (
     <div className="text-center progress-bar-pending-sec">
-        <h2 className="mb-4">Assignment</h2>
+        <h2 className="mb-4 !text-[20px]">Assignment</h2>
         <div className="feedback-pending-sec">
             <div className="feedback-progress">
                 <div className="feedback-progress-box">

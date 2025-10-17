@@ -589,7 +589,7 @@ const StudentDashboard: React.FC = () => {
       <div className="row">
         <div className="col col-xxl-3 mb-4 order-md-1">
           <div className="card-box profile-card">
-            <h2 className="mb-4">Profile</h2>
+            <h2 className="mb-4 !text-[24px]">Profile</h2>
             <div className="com-profile d-flex align-items-center gap-2">
               <div className="col-img-profile">
                 <ProfileProgress user={userData as UserData} />
