@@ -90,7 +90,7 @@ function TutorProfileContent() {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     );
   }
@@ -117,7 +117,7 @@ function TutorProfileContent() {
         {/* Profile Card */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden mb-8">
           {/* Header Section */}
-          <div className="bg-gradient-to-r from-orange-400 to-orange-500 p-8">
+          <div className="bg-gradient-to-r from-blue-700 to-purple-700 p-8">
             <Link
               href='/student/tutors'
               className="mr-4 p-2 rounded-full bg-gray-200 hover:bg-gray-100 transition-colors"

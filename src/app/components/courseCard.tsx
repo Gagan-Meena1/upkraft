@@ -99,7 +99,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, userData, viewPerforman
             href={`${viewPerformanceRoutes[course.category as keyof typeof viewPerformanceRoutes] || "/student/performance/viewPerformance"}?courseId=${course._id}&studentId=${userData._id}`}
             className="group/btn"
           >
-            <button className="w-full flex items-center justify-between px-4 py-3 mb-2 bg-orange-500 hover:bg-orange-600 text-white rounded-xl transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer">
+            <button className="w-full flex items-center justify-between px-4 py-3 mb-2 bg-purple-700 hover:bg-purple-600 text-white rounded-xl transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer">
               <span className="font-medium">View Performance</span>
               <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
             </button>

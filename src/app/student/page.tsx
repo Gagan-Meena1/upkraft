@@ -23,7 +23,7 @@ import SemiCircleProgress from "../components/tutor/SemiCircleProgress";
 import VideoPoster from "@/assets/video-poster.png";
 import Image from "next/image";
 import "./Dashboard.css";
-import FeedbackPending from "../components/tutor/FeedbackPending";
+import AssignmentPending from "../components/tutor/AssignmentPending";
 import { Button } from "react-bootstrap";
 
 // Types
@@ -742,7 +742,7 @@ const StudentDashboard: React.FC = () => {
         </div>
         <div className="col-xxl-3 col-md-6 mb-4">
           <div className="card-box">
-            <FeedbackPending count={totalAssignments} />
+            <AssignmentPending count={totalAssignments} />
           </div>
         </div>
       </div>

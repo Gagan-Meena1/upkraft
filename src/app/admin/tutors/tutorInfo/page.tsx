@@ -37,12 +37,12 @@ const UserProfilePage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+  // const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  // const toggleSidebar = () => {
+  //   setIsSidebarOpen(!isSidebarOpen);
+  // };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -167,7 +167,7 @@ const UserProfilePage: React.FC = () => {
       <div className={`w-full transition-all duration-300 ${isSidebarOpen ? 'ml-64' : 'ml-20'}`}>
         <div className="bg-gray-50">
           {/* Header Section */}
-          <div className="relative mb-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white p-8  shadow-md">
+          <div className="relative mb-2 bg-gradient-to-r from-purple-500 to-purple-400 text-white p-8  shadow-md">
             <div className="absolute top-4 left-4">
               <Link href="/admin/tutors">
                 <button className="px-6 py-2 border border-gray-900 text-gray-900 font-medium  hover:bg-gray-100 transition">
