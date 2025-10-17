@@ -163,7 +163,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           `}
         >
           <Sidebar 
-            userType={userType} 
+            userType={"admin"} 
             studentId={effectiveStudentId} 
             courseId={effectiveCourseId}
             onItemClick={handleSidebarItemClick}
