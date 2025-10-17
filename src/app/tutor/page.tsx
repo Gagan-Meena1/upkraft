@@ -659,7 +659,7 @@ export default function Dashboard() {
     const fetchActualCourses = async () => {
       try {
         // Fetch the actual courses from the courses API
-        const response = await fetch("/Api/tutor/courses");
+        const response = await fetch("/Api/tutors/courses");
         const data = await response.json();
 
         if (data.success && data.courses) {
