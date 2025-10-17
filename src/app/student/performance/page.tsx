@@ -145,7 +145,7 @@ export default function TutorCoursesPage() {
                 <Link 
                 // href={`/student/performance/viewPerformance?courseId=${course._id}&studentId=${userData._id}`}
                 href={`${viewPerformanceRoutes[course.category as keyof typeof viewPerformanceRoutes] || "/student/performance/viewPerformance"}?courseId=${course._id}&studentId=${userData._id}`}>
-                  <button className="w-full bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors">
+                  <button className="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
                     View Performance
                   </button>
                 </Link>

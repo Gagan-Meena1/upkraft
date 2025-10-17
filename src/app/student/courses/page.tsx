@@ -108,7 +108,7 @@ export default function TutorCoursesPage() {
   const coursesContent = (
     <>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-orange-500">My Courses</h1>
+        <h1 className="text-3xl font-bold text-purple-600">My Courses</h1>
       </div>
       
       <Toaster />

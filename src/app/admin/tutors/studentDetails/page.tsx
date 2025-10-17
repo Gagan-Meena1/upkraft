@@ -39,7 +39,7 @@ function StudentDetails() {
     
   const [studentData, setStudentData] = useState<StudentData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  // const [sidebarOpen, setSidebarOpen] = useState(true);
   const [studentId, setStudentId] = useState('');
   const [tutorId, setTutorId] = useState('');
     
@@ -100,7 +100,7 @@ const fetchData = async () => {
           <h1 className="text-2xl font-bold text-gray-900">Student Details</h1>
           <Link href={`/admin/tutors/myStudents?tutorId=${tutorId}`} className="flex items-center p-2 rounded-lg bg-gray-100 text-orange-600 hover:bg-gray-200 transition-all">
             <ChevronLeft size={20} />
-            {sidebarOpen && <span className="ml-3">Back</span>}
+            {/* {sidebarOpen && <span className="ml-3">Back</span>} */}
           </Link>
         </header>
 

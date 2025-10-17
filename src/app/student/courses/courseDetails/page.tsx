@@ -229,7 +229,7 @@ const CourseDetailsPage = () => {
                     )}
                     <Link 
                       href={`/student/singleFeedback/${courseDetails?.category}?classId=${classItem._id}&studentId=${userData?._id}`}
-                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
+                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-700 to-purple-700 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
                     >
                       View Feedback
                     </Link>
