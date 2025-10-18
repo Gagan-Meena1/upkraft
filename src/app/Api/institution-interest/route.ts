@@ -6,8 +6,6 @@ import InstitutionRegistration from "@/models/InstitutionRegistration";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-
-    // 🪵 Log the raw body received from frontend
     console.log("📩 Received Registration Data:", body);
 
     const {
@@ -18,10 +16,9 @@ export async function POST(req: NextRequest) {
       institutionName,
       city,
       studentCount,
-      type, // "School" or "Academy"
+      type,
     } = body;
 
-    // ✅ Validate required fields
     if (!role || !name || !phone || !email || !institutionName || !city || !type) {
       console.warn("⚠️ Missing required fields:", {
         role,
@@ -39,11 +36,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ✅ Connect to MongoDB
     await connect();
     console.log("✅ Connected to MongoDB");
 
-    // ✅ Save to MongoDB
     const registration = await InstitutionRegistration.create({
       role,
       name,
@@ -57,7 +52,6 @@ export async function POST(req: NextRequest) {
 
     console.log("💾 Saved Registration Document:", registration);
 
-    // ✅ Set up Nodemailer transporter
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
@@ -66,7 +60,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // ✅ Compose Email (HTML template)
     const mailOptions = {
       from: process.env.MAIL_USER,
       to: process.env.ADMIN_EMAIL,
@@ -100,11 +93,9 @@ export async function POST(req: NextRequest) {
       `,
     };
 
-    // ✅ Send Email
     const emailResult = await transporter.sendMail(mailOptions);
     console.log("📧 Email sent successfully:", emailResult.response);
 
-    // ✅ Return success response
     return NextResponse.json({
       success: true,
       message: `${type} registration interest submitted successfully.`,
@@ -115,6 +106,65 @@ export async function POST(req: NextRequest) {
     console.error("❌ Error sending email or saving registration:", error);
     return NextResponse.json(
       { error: "Failed to process registration", details: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+// ✅ GET endpoint to fetch all institution registrations
+export async function GET(req: NextRequest) {
+  try {
+    await connect();
+    console.log("✅ Connected to MongoDB for GET request");
+
+    // Get query parameters for filtering
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get('type'); // 'School' or 'Academy'
+    const role = searchParams.get('role');
+    const city = searchParams.get('city');
+    const limit = parseInt(searchParams.get('limit') || '100');
+    const sortBy = searchParams.get('sortBy') || 'createdAt';
+    const order = searchParams.get('order') === 'asc' ? 1 : -1;
+
+    // Build query filter
+    const filter: any = {};
+    if (type && (type === 'School' || type === 'Academy')) {
+      filter.type = type;
+    }
+    if (role) {
+      filter.role = role;
+    }
+    if (city) {
+      filter.city = new RegExp(city, 'i'); // case-insensitive search
+    }
+
+    // Fetch registrations from database
+    const registrations = await InstitutionRegistration.find(filter)
+      .sort({ [sortBy]: order })
+      .limit(limit)
+      .lean();
+
+    console.log(`📊 Fetched ${registrations.length} institution registrations`);
+
+    // Get counts
+    const totalCount = await InstitutionRegistration.countDocuments(filter);
+    const schoolCount = await InstitutionRegistration.countDocuments({ type: 'School' });
+    const academyCount = await InstitutionRegistration.countDocuments({ type: 'Academy' });
+
+    return NextResponse.json({
+      success: true,
+      data: registrations,
+      meta: {
+        total: totalCount,
+        schools: schoolCount,
+        academies: academyCount,
+        returned: registrations.length,
+      },
+    });
+  } catch (error: any) {
+    console.error("❌ Error fetching institution registrations:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch registrations", details: error.message },
       { status: 500 }
     );
   }
