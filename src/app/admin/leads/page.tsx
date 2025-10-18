@@ -12,6 +12,8 @@ interface StudentTutorLead {
   contactNumber: string;
   instrument: string;
   createdAt: string;
+  email: string;              
+  countryCode: string; 
 }
 
 interface InstitutionLead {
@@ -109,14 +111,14 @@ export default function LeadsDashboard() {
     fetchInstitutionLeads();
   }, [institutionFilter]);
 
-  // Filter leads by search
-  const filteredIndividualLeads = individualLeads.filter(
-    (lead) =>
-      lead.name.toLowerCase().includes(individualSearch.toLowerCase()) ||
-      lead.city.toLowerCase().includes(individualSearch.toLowerCase()) ||
-      lead.instrument.toLowerCase().includes(individualSearch.toLowerCase()) ||
-      lead.contactNumber.includes(individualSearch)
-  );
+const filteredIndividualLeads = individualLeads.filter(
+  (lead) =>
+    lead.name.toLowerCase().includes(individualSearch.toLowerCase()) ||
+    lead.email.toLowerCase().includes(individualSearch.toLowerCase()) ||    // ← ADD THIS
+    lead.city.toLowerCase().includes(individualSearch.toLowerCase()) ||
+    lead.instrument.toLowerCase().includes(individualSearch.toLowerCase()) ||
+    lead.contactNumber.includes(individualSearch)
+);
 
   const filteredInstitutionLeads = institutionLeads.filter(
     (lead) =>
@@ -133,11 +135,11 @@ export default function LeadsDashboard() {
     
     let csv = "";
     if (type === "individual") {
-      csv = "Type,Name,City,Contact Number,Instrument,Registered At\n";
-      leads.forEach((lead: any) => {
-        csv += `${lead.userType},${lead.name},${lead.city},${lead.contactNumber},${lead.instrument},${new Date(lead.createdAt).toLocaleString()}\n`;
-      });
-    } else {
+  csv = "Type,Name,Email,Country Code,Contact Number,Instrument,City,Registered At\n";  // ← UPDATE THIS
+  leads.forEach((lead: any) => {
+    csv += `${lead.userType},${lead.name},${lead.email},${lead.countryCode},${lead.contactNumber},${lead.instrument},${lead.city},${new Date(lead.createdAt).toLocaleString()}\n`;  // ← UPDATE THIS
+  });
+} else {
       csv = "Type,Role,Name,Phone,Email,Institution Name,City,Student Count,Registered At\n";
       leads.forEach((lead: any) => {
         csv += `${lead.type},${lead.role},${lead.name},${lead.phone},${lead.email},${lead.institutionName},${lead.city},${lead.studentCount || "N/A"},${new Date(lead.createdAt).toLocaleString()}\n`;
@@ -268,7 +270,7 @@ export default function LeadsDashboard() {
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
-                    placeholder="Search by name, city, instrument, or contact..."
+                    placeholder="Search by name,email, city, instrument, or contact..."
                     value={individualSearch}
                     onChange={(e) => setIndividualSearch(e.target.value)}
                     className="w-full pl-12 pr-4 py-3.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all text-sm shadow-sm"
@@ -460,20 +462,33 @@ function IndividualLeadCard({ lead }: { lead: StudentTutorLead }) {
       </div>
 
       <div className="space-y-3.5 mb-5">
+        {/* ← ADD EMAIL FIELD */}
+        <div className="flex items-center gap-3 text-gray-600">
+          <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <Mail className="w-4 h-4 text-gray-500" />
+          </div>
+          <a href={`mailto:${lead.email}`} className="text-sm font-medium hover:text-purple-600 transition-colors truncate">
+            {lead.email}
+          </a>
+        </div>
+
         <div className="flex items-center gap-3 text-gray-600">
           <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
             <MapPin className="w-4 h-4 text-gray-500" />
           </div>
           <span className="text-sm font-medium">{lead.city}</span>
         </div>
+
+        {/* ← UPDATE PHONE FIELD TO SHOW COUNTRY CODE */}
         <div className="flex items-center gap-3 text-gray-600">
           <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
             <Phone className="w-4 h-4 text-gray-500" />
           </div>
-          <a href={`tel:${lead.contactNumber}`} className="text-sm font-medium hover:text-purple-600 transition-colors">
-            {lead.contactNumber}
+          <a href={`tel:${lead.countryCode}${lead.contactNumber}`} className="text-sm font-medium hover:text-purple-600 transition-colors">
+            {lead.countryCode} {lead.contactNumber}
           </a>
         </div>
+
         <div className="flex items-center gap-3 text-gray-600">
           <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
             <Filter className="w-4 h-4 text-gray-500" />
@@ -494,13 +509,23 @@ function IndividualLeadCard({ lead }: { lead: StudentTutorLead }) {
         </div>
       </div>
 
-      <a
-        href={`tel:${lead.contactNumber}`}
-        className="block w-full px-5 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-center rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all text-sm font-semibold shadow-md hover:shadow-lg"
-      >
-        <Phone className="w-4 h-4 inline mr-2" />
-        Call Now
-      </a>
+      {/* ← UPDATE CALL BUTTON TO INCLUDE COUNTRY CODE */}
+      <div className="flex gap-3">
+        <a
+          href={`tel:${lead.countryCode}${lead.contactNumber}`}
+          className="flex-1 px-5 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-center rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all text-sm font-semibold shadow-md hover:shadow-lg"
+        >
+          <Phone className="w-4 h-4 inline mr-2" />
+          Call Now
+        </a>
+        <a
+          href={`mailto:${lead.email}`}
+          className="flex-1 px-5 py-3.5 bg-gray-100 text-gray-700 text-center rounded-xl hover:bg-gray-200 transition-all text-sm font-semibold border border-gray-200"
+        >
+          <Mail className="w-4 h-4 inline mr-2" />
+          Email
+        </a>
+      </div>
     </div>
   );
 }
