@@ -5,6 +5,10 @@ import Registration from '@/models/Registration';
 
 export async function POST(req: NextRequest) {
   try {
+    
+// Connect to database
+    await connect();
+
     const body = await req.json();
     console.log("Received Body:", body);
 
@@ -12,26 +16,40 @@ export async function POST(req: NextRequest) {
     const name = body.name?.trim();
     const city = body.city?.trim();
     const contactNumber = body.phone?.trim();
+    const countryCode = body.countryCode?.trim();
+    const email = body.email?.trim();
     const instrument = body.skill?.trim();
 
-    if (![userType, name, city, contactNumber, instrument].every(f => f && f.length > 0)) {
+    // Validate all required fields
+    if (![userType, name, city, contactNumber, countryCode, email, instrument].every(f => f && f.length > 0)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Validate user type
     if (userType !== 'Student' && userType !== 'Tutor') {
       return NextResponse.json({ error: 'Invalid user type' }, { status: 400 });
     }
 
-    await connect();
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
 
+    
+
+    // Create registration record
     const registration = await Registration.create({
       userType,
       name,
       city,
       contactNumber,
+      countryCode,
+      email,
       instrument,
     });
 
+    // Setup email transporter
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -60,14 +78,37 @@ export async function POST(req: NextRequest) {
           
           <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
-              <tr><td><b>User Type:</b></td><td>${userType}</td></tr>
-              <tr><td><b>Name:</b></td><td>${name}</td></tr>
-              <tr><td><b>City:</b></td><td>${city}</td></tr>
-              <tr><td><b>Contact Number:</b></td><td>${contactNumber}</td></tr>
-              <tr><td><b>${instrumentLabel}:</b></td><td>${instrument}</td></tr>
-              <tr><td><b>Submitted At:</b></td><td>${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td></tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>User Type:</b></td>
+                <td style="padding: 8px 0;">${userType}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>Name:</b></td>
+                <td style="padding: 8px 0;">${name}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>Email:</b></td>
+                <td style="padding: 8px 0;"><a href="mailto:${email}">${email}</a></td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>Contact Number:</b></td>
+                <td style="padding: 8px 0;">${countryCode} ${contactNumber}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>${instrumentLabel}:</b></td>
+                <td style="padding: 8px 0;">${instrument}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>City:</b></td>
+                <td style="padding: 8px 0;">${city}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>Submitted At:</b></td>
+                <td style="padding: 8px 0;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+              </tr>
             </table>
           </div>
+          
           <div style="background-color: #e8f4f8; padding: 15px; border-radius: 8px; font-size: 12px; color: #666;">
             <p style="margin: 0;">Record ID: <code>${registration._id}</code></p>
           </div>
@@ -75,6 +116,7 @@ export async function POST(req: NextRequest) {
       `,
     };
 
+    // Send email notification
     await transporter.sendMail(mailOptions);
 
     return NextResponse.json({
@@ -97,7 +139,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ✅ GET endpoint to fetch all registrations
+// GET endpoint to fetch all registrations
 export async function GET(req: NextRequest) {
   try {
     await connect();

@@ -32,6 +32,16 @@ const RegistrationSchema: Schema = new Schema(
       required: [true, 'Contact number is required'],
       trim: true,
     },
+    countryCode: {
+      type: String,
+      required: [true, 'Contact number is required'],
+      trim: true,
+    },
+    email: {
+      type: String,
+      required: [true, 'Contact number is required'],
+      trim: true,
+    },
     instrument: {
       type: String,
       required: [true, 'Instrument is required'],
