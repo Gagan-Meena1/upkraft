@@ -11,6 +11,7 @@ interface ClassData {
   description: string;
   startTime: string;
   endTime: string;
+  instructorId?: string; // added to use tutor lookup
   students?: Array<{
     _id: string;
     username: string;
@@ -31,7 +32,8 @@ const UpcomingLessons = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [tutorData, setTutorData] = useState<UserData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [studentsMap, setStudentsMap] = useState<{ [key: string]: any[] }>({});
+  // replaced studentsMap with tutorsMap: maps classId -> tutor name (or null)
+  const [tutorsMap, setTutorsMap] = useState<{ [key: string]: string | null }>({});
   const router = useRouter();
 
   useEffect(() => {
@@ -72,22 +74,29 @@ const UpcomingLessons = () => {
   }, []);
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      const map: { [key: string]: any[] } = {};
+    const fetchTutors = async () => {
+      const map: { [key: string]: string | null } = {};
       for (let cls of classes) {
+        const instructorId = cls.instructorId || (cls as any).instructor;
+        if (!instructorId) {
+          map[cls._id] = null;
+          continue;
+        }
         try {
-          const res = await fetch(`/Api/classes/${cls._id}/students`);
+          const res = await fetch(`/Api/tutorInfoForStudent?tutorId=${encodeURIComponent(instructorId)}`);
           const data = await res.json();
-          map[cls._id] = data.students || [];
+          // Use tutor.username from API response
+          const name = data?.tutor?.username?.trim() || null;
+          map[cls._id] = name;
         } catch (err) {
-          console.error("Error fetching students for class", cls._id, err);
-          map[cls._id] = [];
+          console.error("Error fetching tutor for class", cls._id, err);
+          map[cls._id] = null;
         }
       }
-      setStudentsMap(map);
+      setTutorsMap(map);
     };
 
-    if (classes.length > 0) fetchStudents();
+    if (classes.length > 0) fetchTutors();
   }, [classes]);
 
 
@@ -152,7 +161,7 @@ const UpcomingLessons = () => {
         throw new Error(data.error || 'Failed to create meeting');
       }
 
-      router.push(`/tutor/video-call?url=${encodeURIComponent(data.url)}&userRole=${userData.category}&token=${encodeURIComponent(data.token || '')}`);
+      router.push(`/student/video-call?url=${encodeURIComponent(data.url)}&userRole=${userData.category}&token=${encodeURIComponent(data.token || '')}`);
     } catch (error: any) {
       console.error('[Meeting] Error details:', error);
       toast.error(error.message || 'Failed to create meeting. Please try again.');
@@ -196,7 +205,7 @@ const UpcomingLessons = () => {
               <th>Date</th>
               <th>Time</th>
               <th>Course</th>
-              <th>Student Name</th>
+              <th>Tutor Name</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -214,17 +223,9 @@ const UpcomingLessons = () => {
                   <td>{formatTime(classItem.startTime, classItem.endTime)}</td>
                   <th>{classItem.title}</th>
                   <td>
-                    {studentsMap[classItem._id] && studentsMap[classItem._id].length > 0 ? (
-                      <span title={studentsMap[classItem._id].map(s => s.username).join(", ")}>
-                        {studentsMap[classItem._id]
-                          .slice(0, 2) // show first 2 students
-                          .map(s => s.username)
-                          .join(", ")}
-                        {studentsMap[classItem._id].length > 2 ? "..." : ""}
-                      </span>
-                    ) : (
-                      "No students assigned"
-                    )}
+                    {tutorsMap[classItem._id]
+                      ? tutorsMap[classItem._id]
+                      : "No tutor assigned"}
                   </td>
                   <td>
                     <button
@@ -245,3 +246,4 @@ const UpcomingLessons = () => {
 };
 
 export default UpcomingLessons;
+

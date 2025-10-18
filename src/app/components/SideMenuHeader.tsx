@@ -24,9 +24,7 @@ const SideMenuHeader = ({ role }) => {
       >
         <div className="offcanvas-body">
           <div className="img-logo">
-            <Link href="/tutor" className="logo">
-              <Image src={LogoHeader} alt="logo" />
-            </Link>
+            <Image src={LogoHeader} alt="logo" />
           </div>
           <div className="side-menu d-flex flex-column">
             <ul className="list-unstyled mb-0 p-0">
@@ -176,7 +174,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>My Archive</span>
                     </Link>
                   </li>
-                    <li>
+                  <li>
                     <Link
                       href="/tutor/performanceVideo"
                       className={`d-flex align-items-center gap-2 ${
@@ -211,7 +209,6 @@ const SideMenuHeader = ({ role }) => {
                       <span>Class Snapshots</span>
                     </Link>
                   </li>
-
 
                   <li>
                     <Link
@@ -500,7 +497,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/tutor/calendar"
+                      href="/student/calendar"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/calendar") ? "active" : ""
                       }`}
@@ -533,7 +530,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>Calendar</span>
                     </Link>
                   </li>
-                   <li>
+                  <li>
                     <Link
                       href="/student/myArchive"
                       className={`d-flex align-items-center gap-2 ${
@@ -568,7 +565,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>My Archive</span>
                     </Link>
                   </li>
-                    <li>
+                  <li>
                     <Link
                       href="/student/classSnapshots"
                       className={`d-flex align-items-center gap-2 ${
@@ -634,7 +631,7 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/tutor/musicLibrary"
+                      href="/student/musicLibrary"
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/music-library") ? "active" : ""
                       }`}
@@ -691,7 +688,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>Practice Studio</span>
                     </Link>
                   </li>
-                   <li>
+                  <li>
                     <Link
                       href="/visualizer.html"
                       className={`d-flex align-items-center gap-2 ${
@@ -780,9 +777,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="student/profile"
+                      href="/student/profile"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/settings") ? "active" : ""
+                        isActive("/student/profile") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
