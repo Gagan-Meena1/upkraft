@@ -25,9 +25,9 @@ interface SidebarProps {
   isMobile?: boolean;
 }
 
-const SidebarItem: React.FC<SidebarItemProps> = ({ 
-  title, 
-  icon, 
+const SidebarItem: React.FC<SidebarItemProps> = ({
+  title,
+  icon,
   route,
   collapsed,
   onClick,
@@ -42,7 +42,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
     } else if (route) {
       router.push(route);
     }
-    
+
     // Call onItemClick to close mobile sidebar
     if (onItemClick) {
       onItemClick();
@@ -50,7 +50,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   };
 
   return (
-    <div 
+    <div
       className={`
         cursor-pointer hover:bg-gray-100 active:bg-gray-200 
         transition-colors duration-200 rounded-lg my-1
@@ -76,10 +76,10 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
   );
 };
 
-const Sidebar: React.FC<SidebarProps> = ({ 
-  userType, 
-  studentId = '', 
-  courseId = '', 
+const Sidebar: React.FC<SidebarProps> = ({
+  userType,
+  studentId = '',
+  courseId = '',
   onItemClick,
   isMobile = false
 }) => {
@@ -105,7 +105,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       toast.error('Error during logout');
       console.error('Logout error:', error);
     }
-    
+
     // Close mobile sidebar after logout
     if (onItemClick) {
       onItemClick();
@@ -117,88 +117,88 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (userType === 'student') {
       return (
         <>
-          <SidebarItem 
-            title="Home" 
+          <SidebarItem
+            title="Home"
             icon={<Home size={20} className="text-gray-700" />}
             route="/student"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Talent Identification Centre" 
+          <SidebarItem
+            title="Talent Identification Centre"
             icon={<BiBulb size={20} className="text-gray-700" />}
             route="/student/talent"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Student Profile" 
+          <SidebarItem
+            title="Student Profile"
             icon={<User size={20} className="text-gray-700" />}
             route="/student/profile"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Tutors Profile" 
+          <SidebarItem
+            title="Tutors Profile"
             icon={<Users size={20} className="text-gray-700" />}
             route="/student/tutors"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="My Courses" 
+          <SidebarItem
+            title="My Courses"
             icon={<Calendar size={20} className="text-gray-700" />}
             route="/student/courses"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Practice Studio" 
+          <SidebarItem
+            title="Practice Studio"
             icon={<Calendar size={20} className="text-gray-700" />}
             route="/visualizer.html?user=student"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Music Library" 
+          <SidebarItem
+            title="Music Library"
             icon={<Calendar size={20} className="text-gray-700" />}
             route="/student/musicLibrary"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Performance Video" 
+          <SidebarItem
+            title="Performance Video"
             icon={<Video size={20} className="text-gray-700" />}
             route="/student/performanceVideo"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Assignments" 
+          <SidebarItem
+            title="Assignments"
             icon={<MdAssignment size={20} className="text-gray-700" />}
             route="/student/assignments"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="My Archives" 
+          <SidebarItem
+            title="My Archives"
             icon={<MdAssignment size={20} className="text-gray-700" />}
             route="/tutor/myArchieve"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Logout" 
+          <SidebarItem
+            title="Logout"
             icon={<LogOut size={20} className="text-gray-700" />}
             collapsed={sidebarCollapsed}
             onClick={handleLogout}
@@ -209,40 +209,48 @@ const Sidebar: React.FC<SidebarProps> = ({
     } else if (userType === 'admin') {
       return (
         <>
-          <SidebarItem 
-            title="Dashboard" 
+          <SidebarItem
+            title="Dashboard"
             icon={<Home size={20} className="text-gray-700" />}
             route="/admin"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Students" 
+          <SidebarItem
+            title="Students"
             icon={<Users size={20} className="text-gray-700" />}
             route="/admin/students"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Tutors" 
+          <SidebarItem
+            title="Tutors"
             icon={<Users size={20} className="text-gray-700" />}
             route="/admin/tutors"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Approval Requests" 
+          <SidebarItem
+            title="Approval Requests"
             icon={<CheckCircle size={20} className="text-gray-700" />}
             route="/admin/approvalRequest"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
-          <SidebarItem 
-            title="Logout" 
+          <SidebarItem
+            title="Leads Dashboard"
+            icon={<TrendingUp size={20} className="text-gray-700" />}
+            route="/admin/leads"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem
+            title="Logout"
             icon={<LogOut size={20} className="text-gray-700" />}
             collapsed={sidebarCollapsed}
             onClick={handleLogout}
@@ -254,16 +262,16 @@ const Sidebar: React.FC<SidebarProps> = ({
     // Default menu items for tutor
     return (
       <>
-        <SidebarItem 
-          title="Home" 
+        <SidebarItem
+          title="Home"
           icon={<Home size={20} className="text-gray-700" />}
           route="/tutor"
           collapsed={sidebarCollapsed}
           onItemClick={onItemClick}
           isMobile={isMobile}
         />
-        <SidebarItem 
-          title="Logout" 
+        <SidebarItem
+          title="Logout"
           icon={<LogOut size={20} className="text-gray-700" />}
           collapsed={sidebarCollapsed}
           onClick={handleLogout}
@@ -286,8 +294,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Collapse button - hidden on mobile */}
         {!isMobile && (
           <div className="px-4 pb-4 flex justify-end">
-            <button 
-              onClick={toggleSidebarCollapse} 
+            <button
+              onClick={toggleSidebarCollapse}
               className="text-gray-500 hover:text-orange-500 transition-colors"
             >
               {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
@@ -303,7 +311,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             </h2>
           </div>
         )}
-        
+
         <div className={`space-y-1 px-2 flex-grow ${isMobile ? 'pt-2' : ''}`}>
           {getMenuItems()}
         </div>

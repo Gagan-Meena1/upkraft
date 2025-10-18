@@ -144,6 +144,34 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       
       <div className="flex min-h-[calc(100vh-64px)]">
         {/* Sidebar */}
+        {userType=="admin" && (
+           <div 
+          id="mobile-sidebar"
+          className={`
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            md:translate-x-0
+            fixed md:relative
+            top-0 md:top-0
+            left-0
+            z-40 md:z-auto
+            w-64 md:w-auto
+            h-full
+            pt-16 md:pt-0
+            transition-transform duration-300 ease-in-out
+            bg-white
+            shadow-xl md:shadow-sm
+            overflow-y-auto
+          `}
+        >
+          <Sidebar 
+            userType={userType} 
+            studentId={effectiveStudentId} 
+            courseId={effectiveCourseId}
+            onItemClick={handleSidebarItemClick}
+            isMobile={isMobile}
+          />
+        </div>
+        )}
         {/* <div 
           id="mobile-sidebar"
           className={`
