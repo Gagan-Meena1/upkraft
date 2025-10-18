@@ -171,27 +171,27 @@ function TutorProfileContent() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               <div className="space-y-4">
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Tutor Name</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 !text-[20px]">Tutor Name</h3>
                   <p className="text-lg text-gray-800">{tutor.username}</p>
                 </div>
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Relevant Education</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 !text-[20px]">Relevant Education</h3>
                   <p className="text-lg text-gray-800">{tutor.education || "Not specified"}</p>
                 </div>
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">City</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 !text-[20px]">City</h3>
                   <p className="text-lg text-gray-800">{tutor.city || tutor.address || "Not specified"}</p>
                 </div>
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Skill Expertise</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 !text-[20px]">Skill Expertise</h3>
                   <p className="text-lg text-gray-800">{tutor.skills || "Not specified"}</p>
                 </div>
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1"> Teaching Experience (years)</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 !text-[20px]">Teaching Experience (years)</h3>
                   <p className="text-lg text-gray-800">{tutor.experience || "Not specified"}</p>
                 </div>
               </div>
@@ -203,24 +203,24 @@ function TutorProfileContent() {
                 </div> */}
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Students Coached</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 !text-[20px]">Students Coached</h3>
                   <p className="text-lg text-gray-800">{tutor.studentsCoached || "Not specified"}</p>
                 </div>
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Pricing per Month</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 !text-[20px]">Pricing per Month</h3>
                   <p className="text-lg text-gray-800">
                     {courses.length > 0 ? `₹${courses[0].price.toLocaleString()}` : "Not specified"}
                   </p>
                 </div>
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Teaching Mode</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 !text-[20px]">Teaching Mode</h3>
                   <p className="text-lg text-gray-800">{tutor.teachingMode || "Not specified"}</p>
                 </div>
                 
                 <div className="bg-gray-100 rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">Social Media</h3>
+                  <h3 className="text-sm font-medium text-gray-500 mb-1 !text-[20px]">Social Media</h3>
                   <div className="flex space-x-3 mt-2">
                     {tutor.instagramLink && (
                       <a href={tutor.instagramLink} target="_blank" rel="noopener noreferrer" 

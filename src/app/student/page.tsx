@@ -16,8 +16,8 @@ import { toast } from "react-hot-toast";
 import DashboardLayout from "@/app/components/DashboardLayout";
 import ProfileProgress from "../components/tutor/ProfileProgress";
 import ProfileAttended from "../components/ProfileAttended";
-import ReferAndEarn from "../components/tutor/ReferAndEarn";
-import UpcomingLessons from "../components/tutor/UpcomingLessons";
+import ReferAndEarn from "../components/ReferAndEarn";
+import UpcomingLessons from "./UpcomingLessons";
 import SemiCircleProgress from "../components/tutor/SemiCircleProgress";
 // import FeedbackPendingDetails from '../tutor/feedback-pending/page';
 import VideoPoster from "@/assets/video-poster.png";
@@ -25,6 +25,8 @@ import Image from "next/image";
 import "./Dashboard.css";
 import AssignmentPending from "../components/tutor/AssignmentPending";
 import { Button } from "react-bootstrap";
+import Link from "next/link";
+import StudentProfileDetails from "../components/StudentProfileDetails";
 
 // Types
 interface UserData {
@@ -72,7 +74,30 @@ interface AssignmentData {
   createdAt: string;
   updatedAt: string;
 }
-
+interface StudentData {
+  message: string;
+  studentId: string;
+  username: string;
+  email: string;
+  contact?: string;
+  age?: number;
+  profileImage?: string;
+  courses: CourseData[];
+  city: string;
+}
+interface CourseData {
+  _id: string;
+  title: string;
+  description: string;
+  duration: string;
+  price: number;
+  curriculum: {
+    sessionNo: string;
+    topic: string;
+    tangibleOutcome: string;
+    _id: string;
+  }[];
+}
 // Components
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-[50vh] bg-gradient-to-br from-gray-50 to-white">
@@ -584,6 +609,18 @@ const StudentDashboard: React.FC = () => {
     incompleteAssignments.length / itemsPerPage
   );
 
+  // --- ADDED: compute a tutorId to link session summary ---
+  const firstTutorId =
+    (classData && classData.length > 0 && classData[0].instructor) ||
+    (userData?.courses && userData.courses.length > 0
+      ? // if courses include instructorId, adapt here
+        // @ts-ignore
+        userData.courses[0].instructorId || ""
+      : "");
+  const sessionSummaryUrl = `/student/session-summary?studentId=${
+    userData?._id || ""
+  }&tutorId=${firstTutorId || ""}`;
+
   return (
     <div className="container">
       <div className="row">
@@ -634,7 +671,9 @@ const StudentDashboard: React.FC = () => {
                       </svg>
                     </span>
                     <span className="text-dark-blue text-box">Course</span>
-                    <span className="text-black text-box">{userData?.courses?.length || 0}</span>
+                    <span className="text-black text-box">
+                      {userData?.courses?.length || 0}
+                    </span>
                   </li>
                   <li className="btn-white d-flex align-items-center gap-2 w-100">
                     <span className="icons">
@@ -655,7 +694,9 @@ const StudentDashboard: React.FC = () => {
                       </svg>
                     </span>
                     <span className="text-dark-blue text-box">City</span>
-                    <span className="text-black text-box">{userData?.city || ''}</span>
+                    <span className="text-black text-box">
+                      {userData?.city || ""}
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -713,7 +754,6 @@ const StudentDashboard: React.FC = () => {
             </div>
           </div>
         </div>
-
         <div className="col-xxl-3 col-md-6 mb-4 order-xxl-4  order-md-2">
           <div className="refer-and-earn-sec">
             <ReferAndEarn />
@@ -731,12 +771,35 @@ const StudentDashboard: React.FC = () => {
                 value={classQualityScore}
                 label="Class Quality Score"
               />
+              <div className="text-center ml-8">
+                
+                  <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={`/student/session-summary?tutorId=${firstTutorId}`}>
+                    Session Summary
+                  </Link>
+            
+              </div>
+              <div className="text-center ml-12">
+                <div className="student-profile-details-sec">
+                  {/* pass assignmentCount down */}
+                  {/* <StudentProfileDetails
+                    data={studentData}
+                    assignmentCount={assignmentCount}
+                  /> */}
+                </div>
+              </div>
             </div>
             <div className="bottom-progress">
               <SemiCircleProgress
                 value={studentPerformance}
                 label="Overall Student Performance"
               />
+              <div className="text-center ml-8">
+                
+                  <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={`/student/session-summary?tutorId=${firstTutorId}`}>
+                    View Performance
+                  </Link>
+            
+              </div>
             </div>
           </div>
         </div>
@@ -747,7 +810,7 @@ const StudentDashboard: React.FC = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
 export default StudentDashboard;
