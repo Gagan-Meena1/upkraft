@@ -194,7 +194,7 @@ const UpcomingLessons = () => {
     <div className="card-box table-sec">
       <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
         <h2 className="!text-[20px]">Upcoming Sessions</h2>
-        <Link href="/tutor/calendar" className="btn-text">
+        <Link href="/student/calendar" className="btn-text">
           View All
         </Link>
       </div>
