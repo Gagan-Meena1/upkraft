@@ -661,14 +661,14 @@ export default function Dashboard() {
         // Fetch the actual courses from the courses API
         const response = await fetch("/Api/tutors/courses");
         const data = await response.json();
+        console.log("Actual courses loaded:", data.course);
 
-        if (data.success && data.courses) {
-          setActualCourses(data.courses);
-          console.log("Actual courses loaded:", data.courses.length);
-        } else {
-          // Fallback to any available course data
-          console.warn("Unable to fetch actual courses, using fallback data");
-        }
+        setActualCourses(data.course);
+        // if (data.success && data.courses) {
+        // } else {
+        //   // Fallback to any available course data
+        //   console.warn("Unable to fetch actual courses, using fallback data");
+        // }
       } catch (error) {
         console.error("Error fetching actual courses:", error);
       }
@@ -766,13 +766,7 @@ export default function Dashboard() {
                       </span>
                       <span className="text-dark-blue text-box">Course</span>
                       <span className="text-black text-box">
-                        {actualCourses.length > 0
-                          ? actualCourses.length
-                          : userData?.courses
-                          ? Array.isArray(userData.courses)
-                            ? userData.courses.length
-                            : 0
-                          : 0}
+                        {actualCourses.length}
                       </span>
                     </li>
                     <li className="btn-white d-flex align-items-center gap-2 w-100">

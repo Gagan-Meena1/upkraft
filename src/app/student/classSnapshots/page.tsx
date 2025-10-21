@@ -96,7 +96,7 @@ const VideoCard = ({
                 onClick={() => onPlayVideo(videoUrl, classItem.title)}
                 className="bg-orange-500 rounded-full p-4 hover:bg-orange-600 transition-colors group"
               >
-                <Play size={24} className="text-white ml-1" />
+                <Play size={24} className="text-white ml-1"/>
               </button>
             </div>
           </div>
@@ -118,7 +118,7 @@ const VideoCard = ({
       {/* Video Info */}
       <div className="p-6">
         <div className="flex items-start justify-between mb-3">
-          <h3 className="text-xl font-semibold text-gray-900 line-clamp-2 flex-1">
+          <h3 className="text-xl font-semibold text-gray-900 line-clamp-2 flex-1 !text-[20px]">
             {classItem.title}
           </h3>
           <span className="ml-3 bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">

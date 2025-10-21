@@ -295,7 +295,7 @@ export default function TutorAssignments() {
                   <div className="flex items-start gap-4 flex-1">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className={`text-lg font-semibold ${
+                        <h3 className={`text-lg font-semibold !text-[20px] ${
                           assignment.status ? 'text-gray-500 ' : 'text-gray-900'
                         }`}>
                           {assignment.course.title} - {assignment.title}

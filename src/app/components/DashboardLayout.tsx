@@ -99,7 +99,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       )}
 
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
+      {/* <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="flex justify-between items-center px-4 py-3">
           <div className="flex items-center space-x-3">
             <button
@@ -120,10 +120,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 className="object-contain w-24 sm:w-32 md:w-36 h-auto" 
               />
             </Link>
-          </div>
+          </div> */}
           
           {/* Profile Section */}
-          <div
+          {/* <div
             className="flex items-center cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition-colors"
             onClick={handleProfileClick}
           >
@@ -140,7 +140,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </div>
           </div>
         </div>
-      </header>
+      </header> */}
       
       <div className="flex min-h-[calc(100vh-64px)]">
         {/* Sidebar */}

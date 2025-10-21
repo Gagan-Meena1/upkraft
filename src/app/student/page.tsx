@@ -551,8 +551,10 @@ const StudentDashboard: React.FC = () => {
           console.log("classData:", classResponse.data.classDetails);
         }
 
-        if (assignmentResponse.data?.assignments) {
-          setAssignmentData(assignmentResponse.data.assignments);
+        // FIX: parse assignments from data.assignments
+        const assignments = assignmentResponse.data?.data?.assignments;
+        if (assignments) {
+          setAssignmentData(assignments);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -647,8 +649,6 @@ const StudentDashboard: React.FC = () => {
                           fill="#7009BA"
                         />
                         <path
-                          d="M13.8928 11.4621C14.2888 11.1991 14.8658 10.9921 15.4758 11.1651C15.6358 11.2097 15.7948 11.2581 15.9528 11.3101L16.9118 11.6251C17.5082 11.8189 18.0459 12.1604 18.4749 12.6178C18.904 13.0751 19.2104 13.6335 19.3658 14.2411L19.3758 14.2811L19.7848 17.2311C19.9458 18.3951 19.3218 19.6241 18.0408 19.9291C16.8708 20.2081 14.9878 20.5001 12.2408 20.5001C9.49083 20.5001 7.60983 20.2081 6.43883 19.9301C5.15783 19.6241 4.53383 18.3951 4.69483 17.2321L5.10283 14.2821L5.11283 14.2421C5.26816 13.6342 5.5747 13.0756 6.00393 12.618C6.43316 12.1604 6.97114 11.8189 7.56783 11.6251L8.52783 11.3101C8.68583 11.2587 8.84449 11.2101 9.00383 11.1641C9.61383 10.9921 10.1918 11.1991 10.5868 11.4621C10.9468 11.7001 11.5288 11.9861 12.2398 11.9861C12.9508 11.9861 13.5338 11.7001 13.8928 11.4621ZM15.0678 12.6081C15.0198 12.5941 14.8968 12.5961 14.7228 12.7111C14.2208 13.0441 13.3498 13.4861 12.2398 13.4861C11.1298 13.4861 10.2588 13.0441 9.75783 12.7111C9.58283 12.5961 9.45983 12.5941 9.41183 12.6081C9.27183 12.6481 9.13316 12.6904 8.99583 12.7351L8.03583 13.0501C7.68585 13.1638 7.36947 13.3625 7.1149 13.6282C6.86032 13.8939 6.67547 14.2185 6.57683 14.5731L6.18083 17.4371C6.10583 17.9811 6.39083 18.3761 6.78683 18.4701C7.83383 18.7201 9.59783 19.0001 12.2398 19.0001C14.8818 19.0001 16.6468 18.7201 17.6928 18.4701C18.0888 18.3761 18.3738 17.9811 18.2988 17.4371L17.9028 14.5731C17.8041 14.2184 17.6191 13.8937 17.3643 13.628C17.1096 13.3622 16.793 13.1637 16.4428 13.0501L15.4848 12.7351C15.3468 12.6897 15.2077 12.6474 15.0678 12.6081Z"
-                          fill="#7009BA"
                         />
                       </svg>
                     </span>
@@ -744,7 +744,7 @@ const StudentDashboard: React.FC = () => {
                     >
                       <source
                         src="https://www.w3schools.com/html/mov_bbb.mp4"
-                        type="video/mp4"
+                       
                       />
                       Your browser does not support the video tag.
                     </video>
@@ -794,10 +794,10 @@ const StudentDashboard: React.FC = () => {
                 label="Overall Student Performance"
               />
               <div className="text-center ml-8">
-                
-                  <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={`/student/session-summary?tutorId=${firstTutorId}`}>
+{/* 
+                  <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={`/student/performance/viewPerformance?studentId=${data.studentId}&courseId=${course._id}`}>
                     View Performance
-                  </Link>
+                  </Link> */}
             
               </div>
             </div>
@@ -805,7 +805,7 @@ const StudentDashboard: React.FC = () => {
         </div>
         <div className="col-xxl-3 col-md-6 mb-4">
           <div className="card-box">
-            <AssignmentPending count={totalAssignments} />
+            <AssignmentPending count={incompleteAssignmentCount} />
           </div>
         </div>
       </div>
