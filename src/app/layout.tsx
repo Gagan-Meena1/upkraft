@@ -5,14 +5,11 @@ import type { Metadata } from "next";
 import ClientLayout from './components/ClientLayout';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-import "./media.css"
-import "./custom.css"
-import "../../style.css"
-
-
-
 import "bootstrap/dist/css/bootstrap.min.css";
 import "@/styles/globals.css";
+import "../../style.css"
+import "./custom.css"
+import "./media.css"
 // import "@/styles/style 2.css"; 
 // import "@/styles/style.css";
 // import "@/styles/custom.css";
