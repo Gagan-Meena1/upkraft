@@ -5,39 +5,51 @@ import Registration from '@/models/Registration';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    console.log("Received Body:", body); // 👈 Debugging
+    
+// Connect to database
+    await connect();
 
-    // Map frontend field names to backend model fields
-    const userType = body.userType || body.key; // Default to Student if not passed
+    const body = await req.json();
+    console.log("Received Body:", body);
+
+    const userType = body.userType || body.key;
     const name = body.name?.trim();
     const city = body.city?.trim();
-    const contactNumber = body.phone?.trim(); // renamed
-    const instrument = body.skill?.trim(); // renamed
+    const contactNumber = body.phone?.trim();
+    const countryCode = body.countryCode?.trim();
+    const email = body.email?.trim();
+    const instrument = body.skill?.trim();
 
-    // Validate required fields
-    if (![userType, name, city, contactNumber, instrument].every(f => f && f.length > 0)) {
+    // Validate all required fields
+    if (![userType, name, city, contactNumber, countryCode, email, instrument].every(f => f && f.length > 0)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Validate userType
+    // Validate user type
     if (userType !== 'Student' && userType !== 'Tutor') {
       return NextResponse.json({ error: 'Invalid user type' }, { status: 400 });
     }
 
-    // Connect to MongoDB
-    await connect();
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
+    }
 
-    // Save to MongoDB
+    
+
+    // Create registration record
     const registration = await Registration.create({
       userType,
       name,
       city,
       contactNumber,
+      countryCode,
+      email,
       instrument,
     });
 
-    // Set up Nodemailer transporter
+    // Setup email transporter
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -66,14 +78,37 @@ export async function POST(req: NextRequest) {
           
           <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin: 20px 0;">
             <table style="width: 100%; border-collapse: collapse;">
-              <tr><td><b>User Type:</b></td><td>${userType}</td></tr>
-              <tr><td><b>Name:</b></td><td>${name}</td></tr>
-              <tr><td><b>City:</b></td><td>${city}</td></tr>
-              <tr><td><b>Contact Number:</b></td><td>${contactNumber}</td></tr>
-              <tr><td><b>${instrumentLabel}:</b></td><td>${instrument}</td></tr>
-              <tr><td><b>Submitted At:</b></td><td>${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td></tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>User Type:</b></td>
+                <td style="padding: 8px 0;">${userType}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>Name:</b></td>
+                <td style="padding: 8px 0;">${name}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>Email:</b></td>
+                <td style="padding: 8px 0;"><a href="mailto:${email}">${email}</a></td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>Contact Number:</b></td>
+                <td style="padding: 8px 0;">${countryCode} ${contactNumber}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>${instrumentLabel}:</b></td>
+                <td style="padding: 8px 0;">${instrument}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>City:</b></td>
+                <td style="padding: 8px 0;">${city}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0;"><b>Submitted At:</b></td>
+                <td style="padding: 8px 0;">${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</td>
+              </tr>
             </table>
           </div>
+          
           <div style="background-color: #e8f4f8; padding: 15px; border-radius: 8px; font-size: 12px; color: #666;">
             <p style="margin: 0;">Record ID: <code>${registration._id}</code></p>
           </div>
@@ -81,6 +116,7 @@ export async function POST(req: NextRequest) {
       `,
     };
 
+    // Send email notification
     await transporter.sendMail(mailOptions);
 
     return NextResponse.json({
@@ -100,5 +136,58 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Failed to process registration' }, { status: 500 });
+  }
+}
+
+// GET endpoint to fetch all registrations
+export async function GET(req: NextRequest) {
+  try {
+    await connect();
+
+    // Get query parameters for filtering
+    const { searchParams } = new URL(req.url);
+    const userType = searchParams.get('userType'); // 'Student' or 'Tutor'
+    const limit = parseInt(searchParams.get('limit') || '100');
+    const sortBy = searchParams.get('sortBy') || 'createdAt'; // default sort by creation date
+    const order = searchParams.get('order') === 'asc' ? 1 : -1; // default descending
+
+    // Build query filter
+    const filter: any = {};
+    if (userType && (userType === 'Student' || userType === 'Tutor')) {
+      filter.userType = userType;
+    }
+
+    // Fetch registrations from database
+    const registrations = await Registration.find(filter)
+      .sort({ [sortBy]: order })
+      .limit(limit)
+      .lean(); // .lean() for better performance
+
+    // Get counts
+    const totalCount = await Registration.countDocuments(filter);
+    const studentCount = await Registration.countDocuments({ userType: 'Student' });
+    const tutorCount = await Registration.countDocuments({ userType: 'Tutor' });
+
+    return NextResponse.json({
+      success: true,
+      data: registrations,
+      meta: {
+        total: totalCount,
+        students: studentCount,
+        tutors: tutorCount,
+        returned: registrations.length,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching registrations:', error);
+
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: 'Failed to fetch registrations', details: error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ error: 'Failed to fetch registrations' }, { status: 500 });
   }
 }

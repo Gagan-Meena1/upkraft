@@ -226,7 +226,7 @@ const UserProfilePage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Profile Photo */}
               <div className="flex flex-col items-center">
-                <div className="relative w-40 h-40 mb-3">
+                <div className="relative w-40 h-40 mb-3 text-">
                   {user.profileImage ? (
                     <Image 
                       src={user.profileImage} 
@@ -243,8 +243,8 @@ const UserProfilePage: React.FC = () => {
                     </div>
                   )}
                 </div>
-                <h3 className="text-lg font-medium text-gray-800">{user.username}</h3>
-                <p className="text-sm text-gray-500">{user.category}</p>
+                <h3 className="text-lg font-medium text-gray-800 !text-[20px]">{user.username}</h3>
+                <p className="text-sm text-gray-500 !text-[20px]">{user.category}</p>
               </div>
               
               {/* User Details */}
@@ -303,7 +303,7 @@ const UserProfilePage: React.FC = () => {
                   <div key={course._id} className="p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900">{course.title}</h3>
+                        <h3 className="text-lg font-medium text-gray-900 !text-[20px]">{course.title}</h3>
                         <p className="mt-1 text-sm text-gray-600">{course.description}</p>
                       </div>
                       <div className="text-right">

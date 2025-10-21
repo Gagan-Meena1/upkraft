@@ -13,7 +13,7 @@ export async function GET(request) {
 
     // Get tutorId from query params or JWT token
     const { searchParams } = new URL(request.url);
-    let tutorId = searchParams.get('tutorId') || searchParams.get('userId');
+    let tutorId = searchParams.get('userId');
 
     // Check if tutorId is null, undefined, or the string "null"
     if (!tutorId || tutorId === 'null' || tutorId === 'undefined') {
@@ -66,7 +66,8 @@ export async function GET(request) {
 
     // Find all students who have this tutorId in their instructorId array
     const students = await User.find({
-      instructorId: tutorId
+      instructorId: tutorId,
+      category:"Student"
     }).select('_id username email profileImage').lean();
 
     if (!students || students.length === 0) {

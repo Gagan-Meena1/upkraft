@@ -29,6 +29,7 @@ const UpcomingLessons = () => {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [tutorData, setTutorData] = useState<UserData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [studentsMap, setStudentsMap] = useState<{ [key: string]: any[] }>({});
   const router = useRouter();
@@ -88,6 +89,7 @@ const UpcomingLessons = () => {
 
     if (classes.length > 0) fetchStudents();
   }, [classes]);
+
 
   const formatDate = (dateString: string) => {
     try {

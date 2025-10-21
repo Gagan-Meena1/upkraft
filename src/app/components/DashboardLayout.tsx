@@ -99,7 +99,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       )}
 
       {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
+      {/* <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="flex justify-between items-center px-4 py-3">
           <div className="flex items-center space-x-3">
             <button
@@ -120,10 +120,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 className="object-contain w-24 sm:w-32 md:w-36 h-auto" 
               />
             </Link>
-          </div>
+          </div> */}
           
           {/* Profile Section */}
-          <div
+          {/* <div
             className="flex items-center cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition-colors"
             onClick={handleProfileClick}
           >
@@ -140,11 +140,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </div>
           </div>
         </div>
-      </header>
+      </header> */}
       
       <div className="flex min-h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        <div 
+        {userType=="admin" && (
+           <div 
           id="mobile-sidebar"
           className={`
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -163,13 +164,40 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           `}
         >
           <Sidebar 
-            userType={"admin"} 
+            userType={userType} 
             studentId={effectiveStudentId} 
             courseId={effectiveCourseId}
             onItemClick={handleSidebarItemClick}
             isMobile={isMobile}
           />
         </div>
+        )}
+        {/* <div 
+          id="mobile-sidebar"
+          className={`
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+            md:translate-x-0
+            fixed md:relative
+            top-0 md:top-0
+            left-0
+            z-40 md:z-auto
+            w-64 md:w-auto
+            h-full
+            pt-16 md:pt-0
+            transition-transform duration-300 ease-in-out
+            bg-white
+            shadow-xl md:shadow-sm
+            overflow-y-auto
+          `}
+        >
+          <Sidebar 
+            userType={userType} 
+            studentId={effectiveStudentId} 
+            courseId={effectiveCourseId}
+            onItemClick={handleSidebarItemClick}
+            isMobile={isMobile}
+          />
+        </div> */}
         
         {/* Main Content */}
         <main className="flex-1 p-3 md:p-4 lg:p-6 overflow-x-hidden">
