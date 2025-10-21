@@ -248,34 +248,23 @@ export default function MyStudents() {
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
+    <div className="card-box">
 
       {/* Main Content */}
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <div className="assignments-list-sec">
         {/* Header Section */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-4 sm:mb-6">
-            My Students
-          </h1>
-
-          {/* Action Buttons - Stack on mobile, inline on larger screens */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <Link href="/tutor/createStudent" className="flex-1 sm:flex-none">
-    <button
-      className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-gray-900 text-gray-50 font-medium rounded-lg hover:bg-gray-800 transition flex items-center justify-center hover:cursor-grab"
-      style={{
-      background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-      color: '#ffffff',
-      border: 'none',
-      boxShadow: '0 0 20px rgba(168, 85, 247, 0.6), 0 0 40px rgba(168, 85, 247, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2)',
-      cursor: 'pointer',
-    }}
-    >
-      <span className="mr-2">+</span> Add Student
-    </button>
-            </Link>
+        <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
+          <div className="left-head">
+              <h2 className="m-0">
+                My Students
+              </h2>
+            </div>
+            <div className="right-form">
+              <Link href="/tutor/createStudent" className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"> <span className="mr-2">+</span> Add Student
+              </Link>
           </div>
         </div>
+        <hr className="hr-light"></hr>
 
         {loading ? (
           <div className="w-full flex justify-center py-12 sm:py-20">

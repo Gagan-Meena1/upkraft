@@ -108,14 +108,14 @@ export default function Chat() {
         onClick={() => setIsOpen(!isOpen)}
         className="btn-box d-flex align-items-center justify-content-center"
         aria-label="Open AI Chat Support"
-        style={{
-          background: '#c4b0f92b',
-          borderRadius: '100px',
-          width: '36px',
-          height: '36px',
-          border: 'none',
-          position: 'relative'
-        }}
+        // style={{
+        //   background: '#c4b0f92b',
+        //   borderRadius: '100px',
+        //   width: '36px',
+        //   height: '36px',
+        //   border: 'none',
+        //   position: 'relative'
+        // }}
       >
         {/* AI Badge */}
         <span 

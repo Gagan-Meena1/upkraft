@@ -14,7 +14,11 @@ const Banner = () => {
   return (
     <div className='banner-sec position-relative'>
       <div className='banner-img'>
-        <img src={BannerImg.src} alt=''></img>
+        {/* <img src={BannerImg.src} alt=''></img> */}
+          <video width='100%' height='300' autoPlay muted loop playsInline preload='auto'>                     
+            <source src='/videos/dashboard-video.mp4' type='video/mp4' />
+            Your browser does not support the video tag.
+        </video>
       </div>
       <div className='text-box-banner'>
         <div className='text-box'>

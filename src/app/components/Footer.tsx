@@ -13,7 +13,7 @@ const Footer = () => {
     ];
 
     return (
-        <footer className="footer-sec py-5">
+        <footer className="footer-sec py-5 m-0">
             <div className="container">
                 <div className="inner-footer d-flex flex-column flex-lg-row align-items-center justify-content-between gap-4">
 
