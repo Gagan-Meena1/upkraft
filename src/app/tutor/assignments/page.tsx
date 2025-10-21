@@ -72,6 +72,7 @@ export default function TutorAssignments() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
 
 
   useEffect(() => {
@@ -200,12 +201,23 @@ const handleAssignmentSuccess = () => {
     setIsModalOpen(true); // open modal instead of redirect
   };
 
-  const filteredAssignments = assignments.filter(assignment =>
+const filteredAssignments = assignments.filter(assignment => {
+  // Search filter - search by assignment title OR student name
+  const matchesSearch = 
     assignment.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     assignment.assignedStudents.some(student =>
-      student.username.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+      student.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  
+  // Status filter
+  const matchesStatus = 
+    statusFilter === 'all' ? true :
+    statusFilter === 'pending' ? !assignment.status :
+    assignment.status; // completed
+  
+  return matchesSearch && matchesStatus;
+});
 
   if (isLoading) {
     return (
@@ -265,7 +277,41 @@ const handleAssignmentSuccess = () => {
                   Total: {tutorInfo.totalAssignments} assignment{tutorInfo.totalAssignments !== 1 ? 's' : ''}
                 </p>
               )}
+              {/* Status Toggle Buttons */}
+<div className="flex gap-2 mt-3 bg-gray-200 p-1 rounded-lg">
+  <button
+    onClick={() => setStatusFilter('all')}
+    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+      statusFilter === 'all'
+        ? 'bg-white text-purple-600 shadow-sm'
+        : 'text-gray-600 hover:text-gray-900'
+    }`}
+  >
+    All ({assignments.length})
+  </button>
+  <button
+    onClick={() => setStatusFilter('pending')}
+    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+      statusFilter === 'pending'
+        ? 'bg-white text-amber-600 shadow-sm'
+        : 'text-gray-600 hover:text-gray-900'
+    }`}
+  >
+    Pending ({assignments.filter(a => !a.status).length})
+  </button>
+  <button
+    onClick={() => setStatusFilter('completed')}
+    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+      statusFilter === 'completed'
+        ? 'bg-white text-green-600 shadow-sm'
+        : 'text-gray-600 hover:text-gray-900'
+    }`}
+  >
+    Completed ({assignments.filter(a => a.status).length})
+  </button>
+</div>
             </div>
+            
 
             <div className="flex flex-wrap gap-3">
               {/* Search Bar */}
@@ -273,7 +319,7 @@ const handleAssignmentSuccess = () => {
                 <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search assignments..."
+                  placeholder="assignment or student "   
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full sm:w-64 pl-10 text-gray-700 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
@@ -281,7 +327,7 @@ const handleAssignmentSuccess = () => {
               </div>
 
               {/* Filter Dropdown */}
-              <select
+              {/* <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="px-4 py-2.5 border text-gray-700 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white"
@@ -289,7 +335,7 @@ const handleAssignmentSuccess = () => {
                 <option value="Monthly">Monthly</option>
                 <option value="Weekly">Weekly</option>
                 <option value="Daily">Daily</option>
-              </select>
+              </select> */}
 
               {/* Create Assignment Button */}
               <button
