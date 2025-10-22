@@ -716,7 +716,7 @@ export default function Dashboard() {
           <div className="col col-xxl-5 order-xxl-1 order-sm-1 col-md-6 order-md-1 mb-4">
             <div className="card-box profile-card">
               <h2 className="mb-4">Profile</h2>
-              <div className="com-profile d-flex align-items-center gap-23">
+              <div className="com-profile d-flex align-items-center flex-md-nowrap flex-wrap justify-content-center gap-2">
                 <div className="col-img-profile">
                   <ProfileProgress user={userData ? userData : null} />
                 </div>

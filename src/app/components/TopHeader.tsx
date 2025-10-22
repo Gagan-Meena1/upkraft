@@ -42,8 +42,8 @@ const TopHeader = ({ role, setRole }) => {
             <Image src={LogoHeader} alt='logo'/>
         </Link>
       </div>
-      <div className='right-top-header d-flex align-items-center justify-content-between gap-2'>
-        <div className='search-box'>
+      <div className='right-top-header d-flex align-items-center justify-content-lg-between justify-content-end gap-2'>
+        <div className='search-box d-lg-block d-none'>
              <Form>
                 <Form.Group className="position-relative mb-0">
                     <Form.Label className='d-none'>search</Form.Label>
@@ -55,7 +55,7 @@ const TopHeader = ({ role, setRole }) => {
             </Form>
         </div>
         <div className='right-head-details'>  
-            <div className='listing-details-author d-flex align-items-center'>
+            <div className='listing-details-author d-flex align-items-center justify-content-end'>
               
                 <ul className=' d-flex align-items-center gap-md-3 gap-2 mb-0 p-0 list-unstyled'>
                     <li>
@@ -72,7 +72,7 @@ const TopHeader = ({ role, setRole }) => {
                         </Link>
                     </li>
                 </ul>
-                <div className='right-head-details d-flex align-items-center gap-2'>
+                <div className='right-head-details d-md-flex align-items-center gap-2'>
                      <div className='img-admin'>
                         {userData?.profileImage ? (
                             <Image 
@@ -99,7 +99,7 @@ const TopHeader = ({ role, setRole }) => {
                             </div>
                         )}
                     </div>
-                    <div className='author-details'>
+                    <div className='author-details d-md-block d-none'>
                         <h6>{userData?.username}</h6>
                         <p>{userData?.category}</p>
                     </div>

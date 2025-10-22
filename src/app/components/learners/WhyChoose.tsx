@@ -5,7 +5,7 @@ import StudentDashboard from '@/assets/studentDashboard.png';
 // import StudentDashboard1 from '@/assets/StudentDashboard1.png';
 import StudentDashboard2 from '@/assets/StudentDashboard2.png';
 //import VideoPlay from '@/assets/dummy-video.mp4';
-import MobileImg from '@/assets/mobile-img.png'
+import MobileImg from '@/assets/mobile-img.jpeg'
 
 const WhyChoose = () => {
   return (

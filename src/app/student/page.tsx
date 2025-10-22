@@ -773,7 +773,7 @@ const StudentDashboard: React.FC = () => {
               />
               <div className="text-center ml-8">
                 
-                  <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={`/student/session-summary?tutorId=${firstTutorId}`}>
+                  <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={sessionSummaryUrl}>
                     Session Summary
                   </Link>
             

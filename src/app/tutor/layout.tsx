@@ -4,6 +4,7 @@ import SideMenuHeader from "../components/SideMenuHeader";
 import TopHeader from "../components/TopHeader";
 import "@/styles/style 2.css";
 import "@/styles/custom.css";
+import "../../app/media.css";
 
 export default function TutorLayout({
   children,

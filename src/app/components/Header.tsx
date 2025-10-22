@@ -67,7 +67,7 @@ const Header = () => {
             id="offcanvasExample"
             aria-labelledby="offcanvasExampleLabel"
           >
-            <div className="offcanvas-header d-lg-none">
+            <div className="offcanvas-header d-none">
               <h5 className="offcanvas-title" id="offcanvasExampleLabel">Menu</h5>
               <button
                 type="button"
@@ -84,7 +84,7 @@ const Header = () => {
                     <a
                       href="#learners"
                       onClick={(e) => scrollToSection(e, 'learners')}
-                      className={`d-flex align-items-center gap-2 ${activeSection === 'learners' ? 'active' : ''}`}
+                      className={`d-flex align-items-center gap-2 p-0 ${activeSection === 'learners' ? 'active' : ''}`}
                     >
                       <span>Learners</span>
                     </a>
@@ -93,7 +93,7 @@ const Header = () => {
                     <a
                       href="#tutors"
                       onClick={(e) => scrollToSection(e, 'tutors')}
-                      className={`d-flex align-items-center gap-2 ${activeSection === 'tutors' ? 'active' : ''}`}
+                      className={`d-flex align-items-center gap-2 p-0 ${activeSection === 'tutors' ? 'active' : ''}`}
                     >
                       <span>Tutors</span>
                     </a>
@@ -102,7 +102,7 @@ const Header = () => {
                     <a
                       href="#schools"
                       onClick={(e) => scrollToSection(e, 'schools')}
-                      className={`d-flex align-items-center gap-2 ${activeSection === 'schools' ? 'active' : ''}`}
+                      className={`d-flex align-items-center gap-2 p-0 ${activeSection === 'schools' ? 'active' : ''}`}
                     >
                       <span>Academies</span>
                     </a>
@@ -111,7 +111,7 @@ const Header = () => {
                     <a
                       href="#schools"
                       onClick={(e) => scrollToSection(e, 'schools')}
-                      className={`d-flex align-items-center gap-2 ${activeSection === 'schools' ? 'active' : ''}`}
+                      className={`d-flex align-items-center gap-2 p-0 ${activeSection === 'schools' ? 'active' : ''}`}
                     >
                       <span>Schools</span>
                     </a>
@@ -125,7 +125,7 @@ const Header = () => {
             <ul className="d-flex align-items-center gap-2 list-unstyled p-0 m-0">
               <li>
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary landing-primary"
                   onClick={() => router.push('/signup')}
                 >
                   <span>Sign Up</span>
@@ -133,7 +133,7 @@ const Header = () => {
               </li>
               <li>
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary landing-primary"
                   onClick={() => router.push('/login')}
                 >
                   <span>Login</span>

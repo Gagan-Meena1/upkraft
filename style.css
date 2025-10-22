@@ -210,17 +210,20 @@ html {
   max-width: 100%;
   padding: 0px;
 }
-
 main {
   overflow: hidden;
+}
+
+main.new-main {
+  overflow: initial;
 }
 
 .hr-light {border: 1px solid var(--bg-light-grey);}
 
 
 .btn-primary.add-assignments {
-    font-weight: 400;
-    padding: 4px 15px;
+    font-weight: 400 !important;
+    padding: 4px 15px !important;
 }
 
 .rs-picker-popup {
@@ -244,4 +247,100 @@ main {
 .btn.btn-border:hover {
     background: var(--dark-blue);
     color: var(--white);
+}
+
+
+
+
+
+
+
+
+
+.w-1450 table {
+    min-width: 1450px;
+}
+
+.active-first-tab{
+    .tab-sec-music {   
+        @media only screen and (max-width: 767px){
+            padding-top: 48px;
+        }
+        .nav-tabs {
+            width: calc(100% - 280px);
+            @media only screen and (max-width: 767px){
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+    }
+}
+
+.tab-sec-music {
+	.nav-tabs {
+		border-bottom: 1px solid #EEEEEE;
+        width: 100%;
+            @media only screen and (max-width: 767px){
+                width: 100%;
+                justify-content: space-between;
+            }
+
+		li {
+			&.nav-item {
+				margin-right: 50px;
+                @media only screen and (max-width: 1199px){
+                    margin-right: 12px;
+                    @media only screen and (max-width: 767px){
+                        margin: 0;
+                    }
+                }
+				button {
+					font-weight: 400;
+					font-size: 16px;
+					line-height: 100%;
+					letter-spacing: 0px;
+					color: #5d5d5d;
+					border: none;
+					padding: 15px 15px 24px 15px;
+					border-bottom: 4px solid transparent;
+					border-radius: 0;
+                    @media only screen and (max-width: 1199px){
+                        font-size: 15px;
+                        @media only screen and (max-width: 767px){
+                            padding: 10px 8px;
+                            font-size: 14px;
+                        }
+                    }
+					&.active {
+						border-bottom-color: var(--dark-blue);
+						font-weight: 600;
+						color: var(--black);
+					}
+				}
+			}
+		}
+	}
+}
+.practice-studio-sec {
+	.search-box-sec {
+		position: absolute;
+		top: 18px;
+		right: 15px;
+        @media only screen and (max-width: 767px){
+         right: 12px;
+         left: 12px;
+         margin: 0 auto;   
+        }
+	}
+}
+
+.list-my-library {
+    background: var(--light-blur);
+    padding: 16px 24px;
+    border-radius: 8px;
+
+    p {
+        margin: 0;
+        font-weight: 500;
+    }
 }
