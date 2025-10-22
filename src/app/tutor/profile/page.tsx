@@ -47,6 +47,14 @@ interface Tutor {
   aboutMyself?: string;
 }
 
+const teachingModeOptions = [
+  { value: "", label: "Select Mode" },
+  { value: "Online", label: "Online" },
+  { value: "In-person", label: "In-person" },
+  { value: "Both", label: "Both" },
+  { value: "Hybrid", label: "Hybrid" },
+];
+
 const TutorProfilePage = () => {
   const router = useRouter();
   const [tutor, setTutor] = useState<Tutor | null>(null);
@@ -118,33 +126,52 @@ const TutorProfilePage = () => {
     }
   };
 
-  const handleSaveChanges = async () => {
-    if (!editedTutor) return;
-    setIsSaving(true);
+ const handleSaveChanges = async () => {
+  if (!editedTutor) return;
+  setIsSaving(true);
 
-    try {
-      const formData = new FormData();
-      formData.append("userData", JSON.stringify(editedTutor));
-      if (profileImageFile) {
-        formData.append("profileImage", profileImageFile);
-      }
-
-      const response = await axios.put(
-        `/Api/userUpdate?userId=${tutor?._id}`,
-        formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-
-      setTutor(response.data.tutor);
-      closeEditModal();
-    } catch (error) {
-      console.error("Error updating tutor profile:", error);
-    } finally {
-      setIsSaving(false);
+  try {
+    const formData = new FormData();
+    
+    // Create a clean object with all fields
+    const tutorData = {
+      username: editedTutor.username,
+      email: editedTutor.email,
+      contact: editedTutor.contact,
+      city: editedTutor.city,
+      address: editedTutor.address,
+      education: editedTutor.education,
+      skills: editedTutor.skills,
+      experience: editedTutor.experience,
+      studentsCoached: editedTutor.studentsCoached, // Ensure this is included
+      teachingMode: editedTutor.teachingMode, // Ensure this is included
+      instagramLink: editedTutor.instagramLink,
+      aboutMyself: editedTutor.aboutMyself,
+    };
+    
+    formData.append("userData", JSON.stringify(tutorData));
+    
+    if (profileImageFile) {
+      formData.append("profileImage", profileImageFile);
     }
-  };
+
+    const response = await axios.put(
+      `/Api/userUpdate?userId=${tutor?._id}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+
+    setTutor(response.data.tutor);
+    closeEditModal();
+  } catch (error) {
+    console.error("Error updating tutor profile:", error);
+    alert("Failed to update profile. Please try again.");
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   if (loading)
     return (
@@ -233,6 +260,7 @@ const TutorProfilePage = () => {
                 <InfoBox label="City" value={tutor.city || tutor.address || "Not specified"} />
                 <InfoBox label="Skill Expertise" value={tutor.skills || "Not specified"} />
                 <InfoBox label="Teaching Experience (years)" value={tutor.experience || "Not specified"} />
+                
               </div>
               <div className="space-y-4">
                 <InfoBox label="Students Coached" value={tutor.studentsCoached || "Not specified"} />
@@ -330,7 +358,9 @@ const EditModal = ({
             { name: "email", label: "Email", type: "email" },
             { name: "contact", label: "Contact Number", type: "text" },
             { name: "city", label: "City", type: "text" },
-            { name: "address", label: "Address", type: "text" },
+            { name: "address", label: "Address/Academy", type: "text" },
+            { name: "teachingMode", label: "Teaching Mode", type: "text" },
+            { name: "studentsCoached", label: "Student Coached", type: "number" },
           ]}
           data={editedTutor}
           handleInputChange={handleInputChange}
@@ -408,14 +438,29 @@ const FormSection = ({
       {fields.map((field) => (
         <div key={field.name}>
           <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
-          <input
-            type={field.type}
-            name={field.name}
-            value={(data as any)[field.name] || ""}
-            onChange={handleInputChange}
-            placeholder={field.placeholder || ""}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#6307c9] outline-none"
-          />
+          {field.name === "teachingMode" ? (
+            <select
+              name="teachingMode"
+              value={data.teachingMode || ""}
+              onChange={handleInputChange}
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#6307c9] outline-none"
+            >
+              {teachingModeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type={field.type}
+              name={field.name}
+              value={(data as any)[field.name] || ""}
+              onChange={handleInputChange}
+              placeholder={field.placeholder || ""}
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#6307c9] outline-none"
+            />
+          )}
         </div>
       ))}
     </div>
