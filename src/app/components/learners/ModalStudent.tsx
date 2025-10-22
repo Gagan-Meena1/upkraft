@@ -7,7 +7,8 @@ import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
 import { Form } from "react-bootstrap";
 
-// Country codes data with phone length validation
+// Country codes data with phone length validation (COMMENTED OUT - can be restored)
+/*
 const countryCodes = [
     { code: "+1", country: "United States", flag: "🇺🇸", minLength: 10, maxLength: 10, popular: true },
     { code: "+1", country: "Canada", flag: "🇨🇦", minLength: 10, maxLength: 10, popular: true },
@@ -67,12 +68,10 @@ const countryCodes = [
     { code: "+90", country: "Turkey", flag: "🇹🇷", minLength: 10, maxLength: 10 },
     { code: "+84", country: "Vietnam", flag: "🇻🇳", minLength: 9, maxLength: 10 },
 ];
+*/
 
 // Format phone number based on country
 const formatPhoneNumber = (value, countryCode) => {
-    const country = countryCodes.find(c => c.code === countryCode);
-    if (!country) return value;
-
     const digits = value.replace(/\D/g, '');
     
     // Different formatting patterns based on country
@@ -104,6 +103,9 @@ const ModalStudent = ({ show, handleClose }) => {
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
+    
+    // COMMENTED OUT - Dropdown related state (can be restored)
+    /*
     const [countrySearch, setCountrySearch] = useState("");
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -113,7 +115,10 @@ const ModalStudent = ({ show, handleClose }) => {
     const dropdownRef = useRef(null);
     const countryInputRef = useRef(null);
     const phoneInputRef = useRef(null);
+    */
 
+    // COMMENTED OUT - Dropdown related useEffect hooks (can be restored)
+    /*
     // Detect mobile device
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth <= 768);
@@ -153,36 +158,23 @@ const ModalStudent = ({ show, handleClose }) => {
     }, [countrySearch]);
 
     const allFilteredCountries = [...popularCountries, ...otherCountries];
+    */
 
-    // Handle input changes dynamically
+    // Handle input changes
     const handleChange = (e) => {
         const { name, value } = e.target;
         
         if (name === 'phone') {
-            // Remove all non-digits
-            const digitsOnly = value.replace(/\D/g, '');
-            const country = countryCodes.find(c => c.code === formData.countryCode);
-            
-            // Validate length
-            if (country) {
-                if (digitsOnly.length > country.maxLength) {
-                    setPhoneError(`Phone number should be ${country.maxLength} digits`);
-                    return;
-                } else if (digitsOnly.length > 0 && digitsOnly.length < country.minLength) {
-                    setPhoneError(`Phone number should be at least ${country.minLength} digits`);
-                } else {
-                    setPhoneError("");
-                }
-            }
-            
-            // Format and update
-            const formatted = formatPhoneNumber(digitsOnly, formData.countryCode);
+            // Format phone number based on country code
+            const formatted = formatPhoneNumber(value, formData.countryCode);
             setFormData({ ...formData, phone: formatted });
         } else {
             setFormData({ ...formData, [name]: value });
         }
     };
 
+    // COMMENTED OUT - Dropdown related functions (can be restored)
+    /*
     // Handle country code selection
     const handleCountrySelect = (country) => {
         setFormData({ 
@@ -234,19 +226,11 @@ const ModalStudent = ({ show, handleClose }) => {
             element?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         }
     }, [highlightedIndex, showCountryDropdown]);
+    */
 
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        // Final phone validation
-        const digitsOnly = formData.phone.replace(/\D/g, '');
-        const country = countryCodes.find(c => c.code === formData.countryCode);
-        
-        if (country && digitsOnly.length !== country.maxLength) {
-            setPhoneError(`Phone number must be ${country.maxLength} digits`);
-            return;
-        }
         
         setLoading(true);
         setMessage("");
@@ -256,7 +240,7 @@ const ModalStudent = ({ show, handleClose }) => {
                 name: formData.name,
                 email: formData.email,
                 city: formData.city,
-                phone: digitsOnly, // Send only digits
+                phone: formData.phone,
                 countryCode: formData.countryCode,
                 skill: formData.skill,
                 userType: key,
@@ -277,10 +261,9 @@ const ModalStudent = ({ show, handleClose }) => {
                     email: "",
                     city: "",
                     phone: "",
-                    countryCode: "+91",
+                    countryCode: formData.countryCode, // Keep the selected country code
                     skill: "",
                 });
-                setPhoneError("");
             } else {
                 setMessage(`❌ ${data.error || "Failed to submit form"}`);
             }
@@ -292,6 +275,8 @@ const ModalStudent = ({ show, handleClose }) => {
         }
     };
 
+    // COMMENTED OUT - Country dropdown component (can be restored)
+    /*
     // Get selected country details
     const selectedCountry = countryCodes.find((c) => c.code === formData.countryCode);
 
@@ -495,6 +480,7 @@ const ModalStudent = ({ show, handleClose }) => {
 
         return null;
     };
+    */
 
     const renderForm = () => (
         <Form onSubmit={handleSubmit}>
@@ -531,35 +517,25 @@ const ModalStudent = ({ show, handleClose }) => {
                     <Form.Group className="mb-3">
                         <Form.Label>Contact Number</Form.Label>
                         <div style={{ display: "flex", gap: "10px" }}>
-                            <div style={{ position: "relative", width: isMobile ? "120px" : "140px" }}>
-                                <Form.Control
-                                    ref={countryInputRef}
-                                    type="text"
-                                    value={`${selectedCountry?.flag} ${formData.countryCode}`}
-                                    onClick={() => setShowCountryDropdown(true)}
-                                    readOnly
-                                    placeholder="Code"
-                                    style={{ cursor: "pointer" }}
-                                />
-                                <CountryDropdown />
-                            </div>
                             <Form.Control
-                                ref={phoneInputRef}
+                                type="text"
+                                name="countryCode"
+                                placeholder="+91, +1, +44, etc."
+                                value={formData.countryCode}
+                                onChange={handleChange}
+                                required
+                                style={{ width: "120px" }}
+                            />
+                            <Form.Control
                                 type="tel"
                                 name="phone"
-                                placeholder={`Phone (${selectedCountry?.minLength}-${selectedCountry?.maxLength} digits)`}
+                                placeholder="Phone number"
                                 value={formData.phone}
                                 onChange={handleChange}
                                 required
                                 style={{ flex: 1 }}
-                                isInvalid={!!phoneError}
                             />
                         </div>
-                        {phoneError && (
-                            <small style={{ color: '#dc3545', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                                {phoneError}
-                            </small>
-                        )}
                     </Form.Group>
                 </div>
 
@@ -598,7 +574,7 @@ const ModalStudent = ({ show, handleClose }) => {
                         type="submit"
                         variant="primary"
                         className="w-100"
-                        disabled={loading || !!phoneError}
+                        disabled={loading}
                     >
                         {loading ? "Submitting..." : "Submit"}
                     </Button>
@@ -629,10 +605,9 @@ const ModalStudent = ({ show, handleClose }) => {
                                     email: "",
                                     city: "",
                                     phone: "",
-                                    countryCode: "+91",
+                                    countryCode: formData.countryCode, // Keep the selected country code
                                     skill: "",
                                 });
-                                setPhoneError("");
                             }}
                         >
                             <Tab eventKey="Student" title="Student">
