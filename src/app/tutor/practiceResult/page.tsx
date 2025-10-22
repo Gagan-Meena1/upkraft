@@ -406,14 +406,14 @@ export default function ResultsPage() {
       )}
 
       {/* Sidebar */}
-      <div className={`bg-white border-r border-gray-200 h-screen ${
+      {/* <div className={`bg-white border-r border-gray-200 h-screen ${
         isMobile 
           ? `fixed top-0 left-0 z-50 w-64 transform transition-transform duration-300 ${
               sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             }`
           : sidebarOpen ? 'w-64' : 'w-16'
-      } transition-all duration-300 flex flex-col`}>
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+      } transition-all duration-300 flex flex-col`}> */}
+        {/* <div className="p-4 border-b border-gray-200 flex items-center justify-between">
           <div className={`font-extrabold text-xl text-orange-600 ${!sidebarOpen && !isMobile && 'hidden'}`}>
             UpKraft
           </div>
@@ -427,7 +427,7 @@ export default function ResultsPage() {
               sidebarOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />
             )}
           </button>
-        </div>
+        </div> */}
         
         {/* Navigation Links */}
         {/* <div className="flex flex-col h-full">
@@ -466,7 +466,7 @@ export default function ResultsPage() {
             </button>
           </nav>
         </div> */}
-      </div>
+      {/* </div> */}
 
       {/* Main Content */}
       <div className="flex-1 min-h-screen">
