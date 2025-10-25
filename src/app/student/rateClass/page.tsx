@@ -1,9 +1,10 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-const RateClassPage = () => {
+// Separate component that uses useSearchParams
+function RateClassForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const classId = searchParams.get('classId')
@@ -164,4 +165,30 @@ const RateClassPage = () => {
   )
 }
 
-export default RateClassPage
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="container py-5">
+      <div className="row justify-content-center">
+        <div className="col-lg-6 col-md-8">
+          <div className="card-box">
+            <div className="d-flex justify-content-center align-items-center" style={{ minHeight: '400px' }}>
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Main page component wrapped with Suspense
+export default function RateClassPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <RateClassForm />
+    </Suspense>
+  )
+}
