@@ -66,6 +66,11 @@ interface ClassData {
   startTime: string;
   endTime: string;
   recording: string | null;
+  csat?: Array<{  // Add this
+    userId: string;
+    rating: number;
+    feedback: string;
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -90,8 +95,47 @@ interface MeetingState {
   url: string | null;
   classId: string | null;
 }
-
+/**
+ * Calculate average CSAT rating from class data
+ * @param {Array} classData - Array of class objects with csat field
+ * @returns {number} - Average rating rounded to 1 decimal place
+ */
 // Progress Box Components
+
+const calculateAverageCSATRating = (classData: ClassData[]) => {  if (!classData || classData.length === 0) {
+    return 0;
+  }
+
+  let totalRating = 0;
+  let totalRatingsCount = 0;
+
+  // Iterate through each class
+  classData.forEach((classItem) => {
+    // Check if class has csat data
+    if (classItem.csat && Array.isArray(classItem.csat) && classItem.csat.length > 0) {
+      // Calculate average rating for this specific class
+      const classRatings = classItem.csat
+        .map(csatEntry => csatEntry.rating)
+        .filter(rating => rating != null && rating > 0); // Filter out null/undefined/0 ratings
+
+      if (classRatings.length > 0) {
+        const classAverageRating = classRatings.reduce((sum, rating) => sum + rating, 0) / classRatings.length;
+        
+        // Add to overall totals
+        totalRating += classAverageRating;
+        totalRatingsCount++;
+      }
+    }
+  });
+  if (totalRatingsCount === 0) {
+    return 0;
+  }
+
+  const overallAverage = totalRating / totalRatingsCount;
+  
+  // Return rounded to 1 decimal place
+  return Math.round(overallAverage * 10) / 10;
+};
 const ClassProgressBox = ({
   completedClasses,
   totalClasses,
@@ -258,6 +302,8 @@ export default function Dashboard() {
   const [activePage, setActivePage] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [averageCSATRating, setAverageCSATRating] = useState(0);
+
   const [meeting, setMeeting] = useState<MeetingState>({
     isActive: false,
     url: null,
@@ -301,6 +347,7 @@ export default function Dashboard() {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+  
 
   const filterFutureClasses = (classes: ClassData[]) => {
     const now = new Date();
@@ -544,6 +591,13 @@ export default function Dashboard() {
 
     fetchEssentialData();
   }, []);
+  useEffect(() => {
+  if (classData && classData.length > 0) {
+    const avgRating = calculateAverageCSATRating(classData);
+    setAverageCSATRating(avgRating);
+    console.log('Average CSAT Rating:', avgRating);
+  }
+}, [classData]);
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -829,34 +883,36 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="col-md-12 mb-4">
-                  <div className="card-box">
-                    <div className="d-flex flex-column align-items-left">
-                      <div className="stars-container mb-2 d-flex justify-content-left">
-                        {[...Array(5)].map((_, index) => (
-                          <span key={index} className="star-icon mx-1">
-                            <svg
-                              width="24"
-                              height="24"
-                              viewBox="0 0 24 24"
-                              fill={index < 4 ? "#FFD700" : "#E0E0E0"}
-                              xmlns="http://www.w3.org/2000/svg"
-                            >
-                              <path
-                                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
-                                stroke={index < 4 ? "#FFD700" : "#E0E0E0"}
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </span>
-                        ))}
-                      </div>
-                      <h2 className="top-text">4.0/5.0</h2>
-                      <p className="bottom-text">Tutor Rating</p>
-                    </div>
-                  </div>
-                </div>
+  <div className="card-box">
+    <div className="d-flex flex-column align-items-left">
+      <div className="stars-container mb-2 d-flex justify-content-left">
+        {[...Array(5)].map((_, index) => (
+          <span key={index} className="star-icon mx-1">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill={index < Math.floor(averageCSATRating) ? "#FFD700" : "#E0E0E0"}
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                stroke={index < Math.floor(averageCSATRating) ? "#FFD700" : "#E0E0E0"}
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        ))}
+      </div>
+      <h2 className="top-text">
+        {averageCSATRating > 0 ? `${averageCSATRating}/5.0` : 'No ratings yet'}
+      </h2>
+      <p className="bottom-text">Tutor Rating</p>
+    </div>
+  </div>
+</div>
               </div>
             </div>
           </div>
