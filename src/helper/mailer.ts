@@ -25,7 +25,6 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
 
     if (emailType === "MAGIC_LINK") {
       console.log("[Mailer] Storing verification token in database");
-      // Store the token in user document if they exist, or create a temporary one
       await User.findOneAndUpdate(
         { email },
         {
@@ -39,23 +38,38 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
       console.log("[Mailer] Token stored successfully");
     }
 
-    // Configure email transport
+    // Configure email transport with Google Workspace
     console.log("[Mailer] Configuring email transport");
     const transport = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // Use TLS
       auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
+        user: process.env.MAIL_USER, // Your Google Workspace email
+        pass: process.env.MAIL_PASS  // App password
+      },
+      // Optional: Add these for better reliability
+      tls: {
+        rejectUnauthorized: true
       }
     });
+
+    // Verify transporter configuration
+    await transport.verify();
+    console.log("[Mailer] SMTP connection verified");
 
     // Prepare email content based on email type
     console.log("[Mailer] Preparing email content");
     let mailOptions;
 
+    // Use your company email as sender
+    const fromEmail = process.env.MAIL_USER || 'upkraft@upkraft.in';
+    const fromName = 'UpKraft';
+    const fromAddress = `${fromName} <${fromEmail}>`;
+
     if (emailType === "STUDENT_INVITATION") {
       mailOptions = {
-        from: 'ankitsuthar8607@gmail.com',
+        from: fromAddress,
         to: email,
         subject: 'Welcome to UpKraft - Course Invitation',
         html: `
@@ -99,7 +113,7 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
       };
     } else if (emailType === "RESET_PASSWORD") {
       mailOptions = {
-        from: 'ankitsuthar8607@gmail.com',
+        from: fromAddress,
         to: email,
         subject: 'Reset Your UpKraft Password',
         html: `
@@ -139,9 +153,8 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
         `
       };
     } else if (emailType === "ADMIN_APPROVAL") {
-      // Email to admin for approval
       mailOptions = {
-        from: 'ankitsuthar8607@gmail.com',
+        from: fromAddress,
         to: process.env.ADMIN_EMAIL,
         subject: `New ${category} Registration Request - UpKraft`,
         html: `
@@ -171,9 +184,8 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
         `
       };
     } else if (emailType === "USER_CONFIRMATION") {
-      // Email to user confirming their request
       mailOptions = {
-        from: 'ankitsuthar8607@gmail.com',
+        from: fromAddress,
         to: email,
         subject: 'Welcome to UpKraft - Request Submitted',
         html: `
@@ -205,11 +217,9 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
           </div>
         `
       };
-    }
-    else if (emailType === "REQUEST_APPROVED") {
-      // Email to user confirming their request
+    } else if (emailType === "REQUEST_APPROVED") {
       mailOptions = {
-        from: 'ankitsuthar8607@gmail.com',
+        from: fromAddress,
         to: email,
         subject: 'Welcome to UpKraft - Request Approved',
         html: `
@@ -226,7 +236,7 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
                 </p>
               </div>
               <p style="font-size: 16px; color: #333;">
-                You will be able to login with your mail ID and Password. 
+                You can now login with your email and password.
               </p>
               <div style="text-align: center; margin: 25px 0;">
                 <a href="${process.env.DOMAIN}/login" style="background-color: #ff8c00; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">Login to UpKraft</a>
@@ -244,9 +254,9 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
         `
       };
     } else {
-      // Regular verification email (existing code)
+      // Regular verification email
       mailOptions = {
-        from: 'ankitsuthar8607@gmail.com',
+        from: fromAddress,
         to: email,
         subject: 'Verify your UpKraft Account',
         html: `

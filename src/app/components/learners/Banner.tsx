@@ -20,7 +20,8 @@ const Banner = () => {
           loop
           muted
           playsInline
-          className="w-100 h-100 object-cover"
+          className="object-cover"
+          width='100%' height='300' 
           style={{ objectFit: 'cover' }}
         />
       </div>

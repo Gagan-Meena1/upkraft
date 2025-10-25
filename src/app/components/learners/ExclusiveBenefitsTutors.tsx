@@ -19,7 +19,7 @@ const ExclusiveBenefitsTutors = () => {
     const handleClose = () => setShowModal(false);
 
     return (
-        <div className="benefit-tutors-sec py-12">
+        <div className="benefit-tutors-sec">
             <div className="container mx-auto px-4">
                 <div className="text-center mb-12">
                     <h2 className="text-3xl font-bold mb-3">
@@ -28,9 +28,9 @@ const ExclusiveBenefitsTutors = () => {
                     <p className="text-gray-600">Your All-in-One Teaching Toolkit</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-md-8">
                     {/* Left Column */}
-                    <div className="space-y-8">
+                    <div className=" order-md-1 order-1">
                         <div className="tutor-box mb-4 text-center border p-4 rounded">
                             <div className="img-box flex justify-center">
                                 <img src={tutors01.src} alt="Enroll New Students" />
@@ -57,8 +57,8 @@ const ExclusiveBenefitsTutors = () => {
                     </div>
 
                     {/* Middle Column */}
-                    <div className="space-y-8">
-                        <div className="tutor-box mb-4 text-center border p-4 rounded">
+                    <div className=" order-md-2 order-3">
+                        <div className="tutor-box mb-4 text-center border p-4 mx-md-4 rounded">
                             <div className="img-box flex justify-center">
                                 <img src={tutors04.src} alt="Payments & Scheduling" />
                             </div>
@@ -66,13 +66,13 @@ const ExclusiveBenefitsTutors = () => {
                             <p>Automated reminders & easy billing</p>
                         </div>
 
-                        <div className="tutor-full-img-box flex justify-center items-center my-4 p-4 rounded">
+                        <div className="tutor-full-img-box flex justify-center items-center p-md-4 rounded">
                             <img src={FullImg.src} alt="Tutor Teaching" className="max-w-full" />
                         </div>
                     </div>
 
                     {/* Right Column */}
-                    <div className="space-y-8">
+                    <div className=" order-md-3 order-2">
                         <div className="tutor-box mb-4 text-center border p-4 rounded">
                             <div className="img-box flex justify-center">
                                 <img src={tutors05.src} alt="Progress Dashboards" />

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
+// import "bootstrap/dist/css/bootstrap.min.css";
 import "@/styles/index.css";
 import "@/styles/style.css";
 
@@ -13,9 +13,9 @@ import Footer from './app/components/Footer';
 
 export default function Page() {
   return (
-    <div className={`position-relative menu-header-box`}>
+    <div className={`position-relative menu-header-box bg-white`}>
       <Header />
-      <main className={`main `}>
+      <main className={`main new-main`}>
         <Learners />
         <Tutors />
         <Schools />

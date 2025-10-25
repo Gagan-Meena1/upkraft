@@ -72,7 +72,9 @@ const LearnFromExperts = () => {
         </div>
         <div className="learn-text">
           <h5 style={{ cursor: "pointer" }} onClick={() => handleLearnClick(video.name)}>
-            Learn from {video.name}
+            {/* Learn from {video.name}
+             */}
+             Learn From Alfred
           </h5>
           <div className="d-flex align-items-center gap-2">
             <img src={Videoquality.src} alt="" />
