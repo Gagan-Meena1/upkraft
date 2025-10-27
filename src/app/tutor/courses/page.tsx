@@ -27,8 +27,7 @@ export default function TutorCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
-  const [copyingCourseId, setCopyingCourseId] = useState<string | null>(null);
+  
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -45,10 +44,10 @@ export default function TutorCoursesPage() {
         }
   
         const data = await response.json();
-        // console.log('Courses data:', data);
+        console.log('Courses data:', data);
         
         // Change this line to match the API response
-        setCourses(data.course); // Use 'course' instead of 'courses'
+        setCourses(data.course);
         setIsLoading(false);
       } catch (err) {
         console.error('Detailed error fetching courses:', err);
@@ -61,88 +60,7 @@ export default function TutorCoursesPage() {
     fetchCourses();
   }, []);
 
-  const handleDeleteCourse = async (courseId: string) => {
-    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      setDeletingCourseId(courseId);
-      
-      const response = await fetch(`/Api/tutors/courses?courseId=${courseId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete course');
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        toast.success(data.message || 'Course deleted successfully');
-        // Remove the deleted course from the local state
-        setCourses(prevCourses => prevCourses.filter(course => course._id !== courseId));
-      } else {
-        throw new Error(data.message || 'Failed to delete course');
-      }
-    } catch (error) {
-      console.error('Error deleting course:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete course');
-    } finally {
-      setDeletingCourseId(null);
-    }
-  };
-
-  const handleCopyCourse = async (course: Course) => {
-    if (!confirm(`Are you sure you want to create a copy of "${course.title}"?`)) {
-      return;
-    }
-
-    try {
-      setCopyingCourseId(course._id);
-      
-      // Create a copy of the course data with modified title
-      const courseDataToCopy = {
-        title: `(Copy) ${course.title} `,
-        description: course.description,
-        duration: course.duration,
-        price: course.price,
-        curriculum: course.curriculum,
-        category: course.category || ''
-      };
-
-      const response = await fetch('/Api/dublicateCourse', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(courseDataToCopy),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to copy course');
-      }
-
-      const data = await response.json();
-      
-      if (data.course) {
-        toast.success('Course copied successfully!');
-        // Add the new course to the local state
-        setCourses(prevCourses => [...prevCourses, ...data.course]);
-      } else {
-        toast.success('Course copied successfully!');
-        // If the API doesn't return the new course, refresh the courses list
-        window.location.reload();
-      }
-    } catch (error) {
-      console.error('Error copying course:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to copy course');
-    } finally {
-      setCopyingCourseId(null);
-    }
-  };
+  
 
   if (isLoading) {
     return (
@@ -169,7 +87,7 @@ export default function TutorCoursesPage() {
       
       {/* Header */}
        <div>
-      <MyCourse />
+      <MyCourse data={courses} />
     </div>
     </div>
   );
