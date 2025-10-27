@@ -251,97 +251,97 @@ function AddSessionPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-700 via-blue-300 to-pink-600 text-gray-100 p-3 sm:p-6">
+    <div className="min-h-screen bg-gray-50 text-gray-800 p-3 sm:p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header with back button */}
         <header className="mb-6 sm:mb-8 flex justify-between items-center">
           <div className="flex items-center gap-2 sm:gap-4">
             <Link 
               href={courseId ? `/tutor/courses/${courseId}` : "/tutor/courses"} 
-              className="p-2 rounded-lg bg-blue-900 hover:bg-blue-500 transition-colors"
+              className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors"
             >
               <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </Link>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-pink-200">Add New Session</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">Add New Session</h1>
           </div>
         </header>
         
         {/* Calendar container */}
-        <div className="bg-gradient-to-r from-blue-700 to-pink-800 rounded-xl p-4 sm:p-6 shadow-lg">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 shadow-sm">
           {/* Calendar header */}
           <div className="flex justify-between items-center mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-pink-100 flex items-center gap-2">
-              <Calendar className="w-5 h-5 sm:w-6 sm:h-6" />
-              <span className="hidden sm:inline">{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
-              <span className="sm:hidden">{monthNames[currentMonth.getMonth()].substring(0, 3)} {currentMonth.getFullYear()}</span>
-            </h2>
-            <div className="flex gap-1 sm:gap-2">
-              <button 
-                onClick={handlePrevMonth}
-                className="p-1.5 sm:p-2 rounded-lg bg-blue-600 hover:bg-blue-200 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-              <button 
-                onClick={handleNextMonth}
-                className="p-1.5 sm:p-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors"
-              >
-                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
-            </div>
-          </div>
-          
-          {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-2">
-            {/* Weekday headers */}
-            {weekdays.map((day, index) => (
-              <div key={day} className="text-center py-1 sm:py-2 font-medium text-blue-200 text-xs sm:text-base">
-                <span className="hidden sm:inline">{day}</span>
-                <span className="sm:hidden">{weekdaysMobile[index]}</span>
-              </div>
-            ))}
-            
-            {/* Calendar days */}
-            {calendarDays.map((day, index) => {
-              const year = currentMonth.getFullYear();
-              const month = currentMonth.getMonth();
-              
-              const isToday = day && 
-                year === new Date().getFullYear() &&
-                month === new Date().getMonth() &&
-                day === new Date().getDate();
-              
-              const isPastDate = day && isDateInPast(year, month, day);
-              
-              return (
-                <div 
-                  key={index} 
+            <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 flex items-center gap-2">
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
+               <span className="hidden sm:inline">{monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}</span>
+               <span className="sm:hidden">{monthNames[currentMonth.getMonth()].substring(0, 3)} {currentMonth.getFullYear()}</span>
+             </h2>
+             <div className="flex gap-1 sm:gap-2">
+               <button 
+                 onClick={handlePrevMonth}
+                className="p-1.5 sm:p-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+               >
+                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+               </button>
+               <button 
+                 onClick={handleNextMonth}
+                className="p-1.5 sm:p-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+               >
+                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+               </button>
+             </div>
+           </div>
+           
+           {/* Calendar grid */}
+           <div className="grid grid-cols-7 gap-1 sm:gap-2">
+             {/* Weekday headers */}
+             {weekdays.map((day, index) => (
+              <div key={day} className="text-center py-1 sm:py-2 font-medium text-gray-500 text-xs sm:text-base">
+                 <span className="hidden sm:inline">{day}</span>
+                 <span className="sm:hidden">{weekdaysMobile[index]}</span>
+               </div>
+             ))}
+             
+             {/* Calendar days */}
+             {calendarDays.map((day, index) => {
+               const year = currentMonth.getFullYear();
+               const month = currentMonth.getMonth();
+               
+               const isToday = day && 
+                 year === new Date().getFullYear() &&
+                 month === new Date().getMonth() &&
+                 day === new Date().getDate();
+               
+               const isPastDate = day && isDateInPast(year, month, day);
+               
+               return (
+                 <div 
+                   key={index} 
                   className={`relative p-2 sm:p-4 rounded-lg min-h-[3rem] sm:min-h-[4rem] ${
-                    day 
-                      ? isPastDate 
-                        ? 'bg-gray-600 opacity-50 cursor-not-allowed' 
-                        : 'bg-gradient-to-br from-blue-900 to-blue-700 hover:from-blue-500 hover:to-purple-500 cursor-pointer'
+                    day
+                      ? isPastDate
+                        ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed'
+                        : 'bg-white border border-gray-200 hover:bg-orange-50 cursor-pointer transition-colors'
                       : 'opacity-0'
                   }`}
-                  onClick={() => day && !isPastDate && handleDateClick(day)}
-                >
-                  {day && (
-                    <>
-                      <span className={`font-medium text-sm sm:text-base ${isPastDate ? 'text-gray-400' : ''} ${isToday ? 'text-yellow-300 font-bold' : ''}`}>
-                        {day}
-                      </span>
-                      {!isPastDate && (
-                        <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-pink-500 hover:bg-pink-400 rounded-full flex items-center justify-center text-white">
-                          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                   onClick={() => day && !isPastDate && handleDateClick(day)}
+                 >
+                   {day && (
+                     <>
+                      <span className={`font-medium text-sm sm:text-base ${isPastDate ? 'text-gray-400' : ''} ${isToday ? 'text-orange-600 font-bold' : ''}`}>
+                         {day}
+                       </span>
+                       {!isPastDate && (
+                        <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-orange-500 hover:bg-orange-600 text-white rounded-full flex items-center justify-center">
+                           <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                         </button>
+                       )}
+                     </>
+                   )}
+                 </div>
+               );
+             })}
+           </div>
+         </div>
         
         {/* Session Form Modal */}
         {showForm && (

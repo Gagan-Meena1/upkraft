@@ -16,6 +16,8 @@ const StudentCalendarView = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState('');
 
   // Check if mobile
   useEffect(() => {
@@ -66,6 +68,23 @@ const StudentCalendarView = () => {
       console.error('Error fetching classes:', error);
     }
   };
+
+  // Fetch tutor's courses
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch('/Api/tutors/courses');
+        const data = await response.json();
+        // Fix: use data.course instead of data.courses
+        if (data.course) {
+          setCourses(data.course);
+        }
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -189,6 +208,7 @@ const StudentCalendarView = () => {
         {/* Header */}
         <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tutor Calendar</h1>
+        
           {isMobile && (
             <button 
               onClick={toggleSidebar}
@@ -244,6 +264,38 @@ const StudentCalendarView = () => {
                   <option className="truncate">Custom...</option>
                 </select>
               </div>
+            </div>
+
+            {/* Course Dropdown and Create Class Button */}
+            <div className="flex items-center gap-4 mb-6">
+              <select
+                value={selectedCourseId}
+                onChange={(e) => setSelectedCourseId(e.target.value)}
+                className="w-[220px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-2 truncate focus:outline-none focus:ring-2 focus:ring-orange-500"
+                disabled={courses.length === 0}
+              >
+                <option value="" disabled>
+                  {courses.length === 0 ? "No courses found" : "Select a course"}
+                </option>
+                {courses.map((course) => (
+                  <option key={course._id} value={course._id}>
+                    {course.title || course.name || "Untitled Course"}
+                  </option>
+                ))}
+              </select>
+              <button
+                disabled={!selectedCourseId}
+                onClick={() => {
+                  if (selectedCourseId) {
+                    router.push(`/tutor/classes?page=add-session&courseId=${selectedCourseId}`);
+                   
+                  }
+                }}
+                className={`bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium ${!selectedCourseId ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <PlusCircle size={18} />
+                Create Class
+              </button>
             </div>
 
             {/* Calendar Grid */}

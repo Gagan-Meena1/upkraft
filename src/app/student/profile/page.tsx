@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import DashboardLayout from '@/app/components/DashboardLayout';
 import Image from 'next/image';
@@ -29,6 +29,7 @@ interface User {
   classes: any[];
   profileImage?: string;
   city?: string; // Added city field
+  timezone?: string; // Added timezone
 }
 
 const UserProfilePage: React.FC = () => {
@@ -43,6 +44,66 @@ const UserProfilePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [updateSuccess, setUpdateSuccess] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<{[key: string]: string}>({});
+  const [timezones, setTimezones] = useState<string[]>([]);
+  const [timezonesSearch, setTimezonesSearch] = useState<string>('');
+  const [tzOpen, setTzOpen] = useState<boolean>(false);
+  const tzDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const deviceTimeZone = React.useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    []
+  );
+
+  // Build the timezone list (with fallback if supportedValuesOf is unavailable)
+  useEffect(() => {
+    try {
+      const supported = (Intl as any).supportedValuesOf?.('timeZone') as string[] | undefined;
+      if (supported && Array.isArray(supported) && supported.length > 0) {
+        setTimezones(supported);
+      } else {
+        // Minimal fallback (not exhaustive)
+        setTimezones([
+          'UTC','Etc/UTC','Europe/London','Europe/Paris','Europe/Berlin','Europe/Madrid','Europe/Rome',
+          'Europe/Amsterdam','Europe/Zurich','Europe/Stockholm','Europe/Helsinki','Europe/Athens',
+          'Africa/Cairo','Africa/Johannesburg','Asia/Dubai','Asia/Kolkata','Asia/Karachi','Asia/Dhaka',
+          'Asia/Bangkok','Asia/Jakarta','Asia/Singapore','Asia/Kuala_Lumpur','Asia/Hong_Kong','Asia/Tokyo',
+          'Asia/Seoul','Australia/Sydney','Australia/Melbourne','Pacific/Auckland','America/St_Johns',
+          'America/Halifax','America/New_York','America/Chicago','America/Denver','America/Los_Angeles',
+          'America/Phoenix','America/Anchorage','Pacific/Honolulu','America/Sao_Paulo','America/Bogota',
+          'America/Mexico_City'
+        ]);
+      }
+    } catch {
+      setTimezones(['UTC', deviceTimeZone]);
+    }
+  }, [deviceTimeZone]);
+
+  // On modal open, default timezone to saved value or device timezone
+  useEffect(() => {
+    if (isEditModalOpen) {
+      setFormData(prev => ({
+        ...prev,
+        timezone: prev.timezone || deviceTimeZone
+      }));
+    }
+  }, [isEditModalOpen, deviceTimeZone]);
+
+  // Format timezone label with offset if available
+  const formatTimeZoneLabel = (tz: string) => {
+    try {
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'shortOffset'
+      }).formatToParts(new Date());
+      const tzn = parts.find(p => p.type === 'timeZoneName')?.value ?? '';
+      const offset = tzn.replace('GMT', 'UTC');
+      return `(${offset}) ${tz.replace('_', ' ')}`;
+    } catch {
+      return tz.replace('_', ' ');
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -83,7 +144,7 @@ const UserProfilePage: React.FC = () => {
     fetchUserData();
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
@@ -193,6 +254,30 @@ const UserProfilePage: React.FC = () => {
       setFormData(user);
     }
   };
+
+  // Filtered timezones based on search input
+  const filteredTimezones = timezones.filter(tz => {
+    const label = formatTimeZoneLabel(tz).toLowerCase();
+    return label.includes(timezonesSearch.toLowerCase());
+  });
+
+  // Close timezone dropdown on outside click or ESC
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (tzDropdownRef.current && !tzDropdownRef.current.contains(e.target as Node)) {
+        setTzOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTzOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (error) return <div className="min-h-screen flex items-center justify-center text-red-500">Error: {error}</div>;
@@ -444,6 +529,84 @@ const UserProfilePage: React.FC = () => {
                     {formErrors.city && (
                       <p className="mt-1 text-sm text-red-600 font-medium">{formErrors.city}</p>
                     )}
+                  </div>
+
+                  {/* Time Zone - Optional */}
+                  <div>
+                    <label className="block text-sm font-bold text-gray-900 mb-2">
+                      Time zone
+                    </label>
+                    <div className="relative" ref={tzDropdownRef}>
+                      <button
+                        type="button"
+                        className="w-full flex justify-between items-center px-4 py-3 border rounded-lg shadow-sm text-left bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        onClick={() => setTzOpen((v) => !v)}
+                      >
+                        <span className="truncate">
+                          {formData.timezone
+                            ? formatTimeZoneLabel(formData.timezone)
+                            : 'Select your time zone'}
+                        </span>
+                        <svg className={`w-4 h-4 transition-transform ${tzOpen ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.116l3.71-3.885a.75.75 0 111.08 1.04l-4.24 4.44a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+
+                      {tzOpen && (
+                        <div className="absolute z-10 mt-2 w-full rounded-lg border bg-white shadow-lg">
+                          {/* Search inside dropdown */}
+                          <div className="p-2 border-b sticky top-0 bg-white">
+                            <input
+                              autoFocus
+                              type="text"
+                              placeholder="Search timezone..."
+                              className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              value={timezonesSearch}
+                              onChange={(e) => setTimezonesSearch(e.target.value)}
+                            />
+                          </div>
+
+                          <ul className="max-h-64 overflow-auto py-1">
+                            {deviceTimeZone && (
+                              <li>
+                                <button
+                                  type="button"
+                                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                                  onClick={() => {
+                                    setFormData((p) => ({ ...p, timezone: deviceTimeZone }));
+                                    setTzOpen(false);
+                                  }}
+                                >
+                                  Use device time zone ({formatTimeZoneLabel(deviceTimeZone)})
+                                </button>
+                              </li>
+                            )}
+                            <li className="px-4 py-1 text-xs text-gray-400">──────────</li>
+                            {(filteredTimezones.length ? filteredTimezones : timezones)
+                              .filter((tz) => tz !== deviceTimeZone)
+                              .map((tz) => (
+                                <li key={tz}>
+                                  <button
+                                    type="button"
+                                    className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                                      formData.timezone === tz ? 'bg-orange-50 text-orange-700' : ''
+                                    }`}
+                                    onClick={() => {
+                                      setFormData((p) => ({ ...p, timezone: tz }));
+                                      setTzOpen(false);
+                                    }}
+                                  >
+                                    {formatTimeZoneLabel(tz)}
+                                  </button>
+                                </li>
+                              ))}
+                            {filteredTimezones.length === 0 && (
+                              <li className="px-4 py-3 text-sm text-gray-500">No matches</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Age - Optional */}
