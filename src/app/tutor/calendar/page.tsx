@@ -188,7 +188,7 @@ const StudentCalendarView = () => {
       <div className="flex-1 min-h-screen">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Student Calendar</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Tutor Calendar</h1>
           {isMobile && (
             <button 
               onClick={toggleSidebar}
