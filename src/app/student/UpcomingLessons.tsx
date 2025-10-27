@@ -1,9 +1,9 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
 
 interface ClassData {
   _id: string;
@@ -24,6 +24,7 @@ interface UserData {
   name?: string;
   email?: string;
   category: string;
+  timezone?: string; // add timezone from API
 }
 
 const UpcomingLessons = () => {
@@ -32,9 +33,9 @@ const UpcomingLessons = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [tutorData, setTutorData] = useState<UserData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // replaced studentsMap with tutorsMap: maps classId -> tutor name (or null)
   const [tutorsMap, setTutorsMap] = useState<{ [key: string]: string | null }>({});
   const router = useRouter();
+  const userTz = userData?.timezone || getUserTimeZone(); 
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -85,7 +86,6 @@ const UpcomingLessons = () => {
         try {
           const res = await fetch(`/Api/tutorInfoForStudent?tutorId=${encodeURIComponent(instructorId)}`);
           const data = await res.json();
-          // Use tutor.username from API response
           const name = data?.tutor?.username?.trim() || null;
           map[cls._id] = name;
         } catch (err) {
@@ -102,35 +102,9 @@ const UpcomingLessons = () => {
 
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      return format(date, "d MMM");
-    } catch (error) {
+      return formatInTz(dateString, userTz, { day: "numeric", month: "short" });
+    } catch {
       return "Invalid date";
-    }
-  };
-
-  const formatTime = (startTime: string, endTime: string) => {
-    try {
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-
-      // Use UTC methods to get EXACT stored time (same as CourseDetailsPage)
-      const startHours = start.getUTCHours();
-      const startMinutes = start.getUTCMinutes();
-      const endHours = end.getUTCHours();
-      const endMinutes = end.getUTCMinutes();
-
-      // Format manually
-      const formatTimeString = (hours: number, minutes: number) => {
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12; // Convert to 12-hour format
-        const displayMinutes = String(minutes).padStart(2, '0');
-        return `${displayHours}:${displayMinutes} ${period}`;
-      };
-
-      return `${formatTimeString(startHours, startMinutes)} - ${formatTimeString(endHours, endMinutes)}`;
-    } catch (error) {
-      return "Invalid time";
     }
   };
 
@@ -220,7 +194,11 @@ const UpcomingLessons = () => {
               classes.slice(0, 8).map((classItem) => (
                 <tr key={classItem._id}>
                   <th>{formatDate(classItem.startTime)}</th>
-                  <td>{formatTime(classItem.startTime, classItem.endTime)}</td>
+                  <td>
+                    <div className="text-xs text-gray-600">
+                      {formatTimeRangeInTz(classItem.startTime, classItem.endTime, userTz)}
+                    </div>
+                  </td>
                   <th>{classItem.title}</th>
                   <td>
                     {tutorsMap[classItem._id]
