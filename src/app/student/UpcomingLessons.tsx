@@ -3,7 +3,11 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
-import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
+import {
+  formatInTz,
+  formatTimeRangeInTz,
+  getUserTimeZone,
+} from "@/helper/time";
 
 interface ClassData {
   _id: string;
@@ -33,9 +37,11 @@ const UpcomingLessons = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [tutorData, setTutorData] = useState<UserData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tutorsMap, setTutorsMap] = useState<{ [key: string]: string | null }>({});
+  const [tutorsMap, setTutorsMap] = useState<{ [key: string]: string | null }>(
+    {}
+  );
   const router = useRouter();
-  const userTz = userData?.timezone || getUserTimeZone(); 
+  const userTz = userData?.timezone || getUserTimeZone();
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -49,7 +55,10 @@ const UpcomingLessons = () => {
           setUserData(userResponseData.user);
         }
 
-        if (userResponseData.classDetails && userResponseData.classDetails.length > 0) {
+        if (
+          userResponseData.classDetails &&
+          userResponseData.classDetails.length > 0
+        ) {
           const now = new Date();
           const futureClasses = userResponseData.classDetails
             .filter((cls: ClassData) => new Date(cls.startTime) > now)
@@ -84,7 +93,11 @@ const UpcomingLessons = () => {
           continue;
         }
         try {
-          const res = await fetch(`/Api/tutorInfoForStudent?tutorId=${encodeURIComponent(instructorId)}`);
+          const res = await fetch(
+            `/Api/tutorInfoForStudent?tutorId=${encodeURIComponent(
+              instructorId
+            )}`
+          );
           const data = await res.json();
           const name = data?.tutor?.username?.trim() || null;
           map[cls._id] = name;
@@ -98,7 +111,6 @@ const UpcomingLessons = () => {
 
     if (classes.length > 0) fetchTutors();
   }, [classes]);
-
 
   const formatDate = (dateString: string) => {
     try {
@@ -116,15 +128,15 @@ const UpcomingLessons = () => {
       }
 
       console.log("[Meeting] Creating meeting for class:", classId);
-      const response = await fetch('/Api/meeting/create', {
-        method: 'POST',
+      const response = await fetch("/Api/meeting/create", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           classId: classId,
           userId: userData._id,
-          userRole: userData.category
+          userRole: userData.category,
         }),
       });
 
@@ -132,13 +144,19 @@ const UpcomingLessons = () => {
       console.log("[Meeting] Server response:", data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create meeting');
+        throw new Error(data.error || "Failed to create meeting");
       }
 
-      router.push(`/student/video-call?url=${encodeURIComponent(data.url)}&userRole=${userData.category}&token=${encodeURIComponent(data.token || '')}`);
+      router.push(
+        `/student/video-call?url=${encodeURIComponent(data.url)}&userRole=${
+          userData.category
+        }&token=${encodeURIComponent(data.token || "")}`
+      );
     } catch (error: any) {
-      console.error('[Meeting] Error details:', error);
-      toast.error(error.message || 'Failed to create meeting. Please try again.');
+      console.error("[Meeting] Error details:", error);
+      toast.error(
+        error.message || "Failed to create meeting. Please try again."
+      );
     }
   };
 
@@ -167,7 +185,10 @@ const UpcomingLessons = () => {
   return (
     <div className="card-box table-sec">
       <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-        <h2 className="!text-[20px]">Upcoming Sessions</h2>
+        <div className="flex gap-2 items-center">
+          <h2 className="!text-[20px] !mb-0">Upcoming Sessions</h2>
+          <span className="!text-sm text-gray-500">(Timezone: {userData.timezone})</span>
+        </div>
         <Link href="/student/calendar" className="btn-text">
           View All
         </Link>
@@ -195,8 +216,14 @@ const UpcomingLessons = () => {
                 <tr key={classItem._id}>
                   <th>{formatDate(classItem.startTime)}</th>
                   <td>
-                    <div className="text-xs text-gray-600">
-                      {formatTimeRangeInTz(classItem.startTime, classItem.endTime, userTz)}
+                    <div className="text-xs flex flex-col gap-2 text-gray-600">
+                      <span>
+                        {formatTimeRangeInTz(
+                          classItem.startTime,
+                          classItem.endTime,
+                          userTz
+                        )}
+                      </span>
                     </div>
                   </td>
                   <th>{classItem.title}</th>
@@ -224,4 +251,3 @@ const UpcomingLessons = () => {
 };
 
 export default UpcomingLessons;
-
