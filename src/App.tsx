@@ -10,6 +10,7 @@ import Header from './app/components/Header';
 import Tutors from './app/components/Tutors'; 
 import Schools from './app/components/Schools'; 
 import Footer from './app/components/Footer';
+import Academies from "./app/components/Academies";
 
 export default function Page() {
   return (
@@ -19,6 +20,7 @@ export default function Page() {
         <Learners />
         <Tutors />
         <Schools />
+        <Academies/>
       </main>
       <Footer />
     </div>

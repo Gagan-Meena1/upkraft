@@ -354,7 +354,7 @@ html {
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */
-
+/* 
 @media only screen and (max-width: 1400px) {
   h1,
   .h1 {
@@ -432,4 +432,4 @@ html {
     font-size: 15px;
     padding: 6px;
   }
-}
+} */
