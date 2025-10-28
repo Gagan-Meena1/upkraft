@@ -1,9 +1,9 @@
-.w-800 {
+.w-1000 {
 	.modal-content {
 		border-radius: 16px !important;
 	}
 	.modal-dialog {
-		max-width: 800px !important;
+		min-width: 1300px !important;
 	}
 }
 .modal-common-sec {
@@ -20,6 +20,7 @@
 		}
 	}
 	.modal-dialog {
+		min-width: 800px !important;
 		.modal-content {
 			padding: 40px 20px !important;
             @media only screen and (max-width:767px){

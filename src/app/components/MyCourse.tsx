@@ -2,6 +2,21 @@
 import React, { useState } from "react";
 import Form from "react-bootstrap/Form";
 import { Button } from "react-bootstrap";
+import {
+  Book,
+  Clock,
+  IndianRupee,
+  List,
+  MessageCircle,
+  Trash2,
+  ChevronLeft,
+  BarChart3,
+  Pencil,
+  Edit,
+  Eye,
+  Copy,
+} from "lucide-react";
+
 import Student01 from "../../assets/student-01.png";
 import Link from "next/link";
 import Pagination from "react-bootstrap/Pagination";
@@ -52,10 +67,13 @@ const MyCourse = ({ data }) => {
   const handleEditCourse = (course: Course) => {
     const fixedCourse = {
       ...course,
-      curriculum: course.curriculum.map(item => ({
+      curriculum: course.curriculum.map((item) => ({
         ...item,
-        sessionNo: typeof item.sessionNo === 'string' ? Number(item.sessionNo) : item.sessionNo
-      }))
+        sessionNo:
+          typeof item.sessionNo === "string"
+            ? Number(item.sessionNo)
+            : item.sessionNo,
+      })),
     };
     setSelectedCourse(fixedCourse);
     setShowEditModal(true);
@@ -77,20 +95,119 @@ const MyCourse = ({ data }) => {
       }
       const data = await response.json();
       // Update the course in the local list
-      setCourses(prev =>
-        prev.map(course =>
-          course._id === updatedCourse._id ? { ...course, ...updatedCourse } : course
+      setCourses((prev) =>
+        prev.map((course) =>
+          course._id === updatedCourse._id
+            ? { ...course, ...updatedCourse }
+            : course
         )
       );
-      toast.success(data.message || "Course updated successfully!", { id: "update-course" });
+      toast.success(data.message || "Course updated successfully!", {
+        id: "update-course",
+      });
     } catch (error: any) {
-      toast.error(error.message || "Failed to update course", { id: "update-course" });
+      toast.error(error.message || "Failed to update course", {
+        id: "update-course",
+      });
     } finally {
       setShowEditModal(false);
       setUpdatingCourseId(null);
     }
   };
+  const handleCopyCourse = async (course: Course) => {
+    if (
+      !confirm(`Are you sure you want to create a copy of "${course.title}"?`)
+    ) {
+      return;
+    }
 
+    try {
+      setCopyingCourseId(course._id);
+
+      // Create a copy of the course data with modified title
+      const courseDataToCopy = {
+        title: `(Copy) ${course.title} `,
+        description: course.description,
+        duration: course.duration,
+        price: course.price,
+        curriculum: course.curriculum,
+        category: course.category || "",
+      };
+
+      const response = await fetch("/Api/dublicateCourse", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(courseDataToCopy),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to copy course");
+      }
+
+      const data = await response.json();
+
+      if (data.course) {
+        toast.success("Course copied successfully!");
+        // Add the new course to the local state
+        setCourses((prevCourses) => [...prevCourses, ...data.course]);
+      } else {
+        toast.success("Course copied successfully!");
+        // If the API doesn't return the new course, refresh the courses list
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error copying course:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to copy course"
+      );
+    } finally {
+      setCopyingCourseId(null);
+    }
+  };
+
+  const handleDeleteCourse = async (courseId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this course? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeletingCourseId(courseId);
+
+      const response = await fetch(`/Api/tutors/courses?courseId=${courseId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete course");
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(data.message || "Course deleted successfully");
+        // Remove the deleted course from the local state
+        setCourses((prevCourses) =>
+          prevCourses.filter((course) => course._id !== courseId)
+        );
+      } else {
+        throw new Error(data.message || "Failed to delete course");
+      }
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete course"
+      );
+    } finally {
+      setDeletingCourseId(null);
+    }
+  };
   return (
     <div className="card-box">
       <Toaster />
@@ -142,7 +259,7 @@ const MyCourse = ({ data }) => {
                   </Form.Select>
                 </div>
                 <Link
-                  href="/trinity-curriculum"
+                  href="/tutor/create-course"
                   role="button"
                   className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
                 >
@@ -198,10 +315,12 @@ const MyCourse = ({ data }) => {
                     </span>
                   </li>
                   <li className="d-flex align-items-center gap-2">
-                    <span className="student-text">Sessions :</span>
+                    <span className="student-text">Lessons :</span>
                     <span className="student-txt">
                       <strong>
-                        {course.class ? course.class.length : 0} Sessions
+                        <span className="text-gray-700">
+                          {course.curriculum.length} Lessons
+                        </span>
                       </strong>
                     </span>
                   </li>
@@ -232,9 +351,34 @@ const MyCourse = ({ data }) => {
                             fill="none"
                             xmlns="http://www.w3.org/2000/svg"
                           >
-                            <path d="M3.50195 21H21.502" stroke="#1E88E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            <path d="M5.50391 13.36V17H9.16241L19.5039 6.654L15.8514 3L5.50391 13.36Z" stroke="#1E88E5" strokeWidth="2" strokeLinejoin="round" />
+                            <path
+                              d="M3.50195 21H21.502"
+                              stroke="#1E88E5"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M5.50391 13.36V17H9.16241L19.5039 6.654L15.8514 3L5.50391 13.36Z"
+                              stroke="#1E88E5"
+                              strokeWidth="2"
+                              strokeLinejoin="round"
+                            />
                           </svg>
+                        )}
+                      </Button>
+                    </li>
+                    <li>
+                      <Button
+                        onClick={() => handleCopyCourse(course)}
+                        disabled={copyingCourseId === course._id}
+                        className="hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed !bg-transparent !border-0 !p-0"
+                        title="Copy course"
+                      >
+                        {copyingCourseId === course._id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-orange-500"></div>
+                        ) : (
+                          <Copy className="text-gray-600 hover:text-orange-500 h-5 w-5" />
                         )}
                       </Button>
                     </li>
