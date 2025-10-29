@@ -307,10 +307,10 @@ h3,
 }
 
 .learn-experts-sec .video-box-with-text .learn-video video {
-  width: 100%;
-  display: block;
-  height: 480px;
-  object-fit: cover;
+  width: 100%;           /* full width of container */
+  aspect-ratio: 9 / 16;  /* maintain 9:16 ratio */
+  object-fit: contain;    /* shows entire video without cutting */
+  border-radius: 12px;   /* optional: rounded corners */
 }
 
 .learn-experts-sec .video-box-with-text .learn-text {
@@ -695,10 +695,10 @@ h3,
     margin: 60px 0;
   }
 
-  h2,
+  /* h2,
   .h2 {
     font-size: 35px;
-  }
+  } */
 
   .heading-box {
     margin-bottom: 34px;
@@ -848,7 +848,7 @@ h3,
     min-height: 550px;
   }
 
-  h1,
+  /* h1,
   .h1 {
     font-size: 30px;
   }
@@ -860,8 +860,8 @@ h3,
 
   h2,
   .h2 {
-    font-size: 27px;
-  }
+    font-size: 25px;
+  } */
 
   .text-how-it-work .text-how-h h6 {
     font-size: 18px;

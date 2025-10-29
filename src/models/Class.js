@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import { type } from 'os';
+import feedback from './feedback';
 
 const ClassSchema = new mongoose.Schema({
   title: { 
@@ -54,6 +56,19 @@ const ClassSchema = new mongoose.Schema({
     type: String, // Public S3 URL for the performance video
   },
   performanceVideoFileName: String, // Original filename
+
+  csat:{
+    type:[{
+      userId:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"users"
+      },
+      rating:{
+        type:Number
+      },
+      feedback:String
+    }]
+  },
   
   // Class Quality Evaluation Data
   evaluation: {

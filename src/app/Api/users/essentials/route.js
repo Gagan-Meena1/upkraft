@@ -23,7 +23,7 @@ export async function GET(request) {
     const userId = decodedToken.id;
 
     const user = await User.findOne({ _id: userId })
-      .select("_id username email category age address contact courses createdAt")
+      .select("_id username email category age address contact courses createdAt timezone city")
       .lean();
     
     if (!user) {

@@ -208,7 +208,7 @@ html {
 
 .container {
   max-width: 100%;
-  padding: 0px;
+  /* padding: 0px; */
 }
 main {
   overflow: hidden;
