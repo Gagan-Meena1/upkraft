@@ -62,7 +62,7 @@ export default function LoginPage() {
 
       console.log("User category and verification:", userCategory, isVerified);
 
-      if ((userCategory === "Tutor" || userCategory === "Admin" || userCategory === "Student") && !isVerified) {
+      if ((userCategory === "Tutor" || userCategory === "Admin" || userCategory === "Student" || userCategory === "Academic") && !isVerified) {
         setNotApproved(true);
         toast.error("Admin has not approved your request yet");
         return;
@@ -75,6 +75,8 @@ export default function LoginPage() {
         router.push("/tutor");
       } else if (userCategory === "Admin") {
         router.push("/admin");
+      } else if (userCategory === "Academic") {
+        router.push("/academic");
       }
 
     } catch (error: any) {
