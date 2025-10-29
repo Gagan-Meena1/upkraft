@@ -23,6 +23,7 @@ import Image from "next/image";
 import { PiNutBold } from "react-icons/pi";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
 
 interface UserData {
   _id: string;
@@ -61,7 +62,6 @@ const StudentCalendarView = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Fetch logged-in user info
   useEffect(() => {
     async function fetchUser() {
       const res = await fetch("/Api/users/user");
@@ -74,8 +74,6 @@ const StudentCalendarView = () => {
     fetchUser();
   }, []);
 
-  // Remove fetchStudents/fetchAllClasses usage for student self-view
-  // Fetch current student's future classes + assignments
   useEffect(() => {
     const loadMyData = async () => {
       try {
@@ -160,23 +158,11 @@ const StudentCalendarView = () => {
     setCurrentDate(d);
   };
 
+  const userTz = userData?.timezone || getUserTimeZone();
+
   const formatTime = (startTime, endTime) => {
     if (!startTime) return "";
-    const start = new Date(startTime).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "UTC",
-    });
-    const end = endTime
-      ? new Date(endTime).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-          timeZone: "UTC",
-        })
-      : "";
-    return end ? `${start} - ${end}` : start;
+    return formatTimeRangeInTz(startTime, endTime, userTz);
   };
 
   const getInitials = (name) => {
@@ -243,7 +229,6 @@ const StudentCalendarView = () => {
     );
   }
 
-  // Grid template: keep label + 7 days
   const gridTemplate = {
     gridTemplateColumns: "200px repeat(7, minmax(0, 1fr))",
   };
@@ -342,10 +327,7 @@ const StudentCalendarView = () => {
                 {weekDays.map((day, idx) => (
                   <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
                     <div className="text-[16px] font-inter font-medium text-[#212121]">
-                      {day.toLocaleDateString("en-US", {
-                        day: "2-digit",
-                        weekday: "short",
-                      })}
+                      {formatInTz(day, userTz, { day: "2-digit", weekday: "short" })}
                     </div>
                   </div>
                 ))}
@@ -394,10 +376,10 @@ const StudentCalendarView = () => {
                                 {classItem.title || "Class"}
                               </div>
                               <div className="text-[11px] text-gray-600 truncate">
-                                {formatTime(
-                                  classItem.startTime,
-                                  classItem.endTime
-                                )}
+                                {formatInTz(classItem.startTime, userTz, {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
                               </div>
                             </div>
                           ))}

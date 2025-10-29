@@ -4,7 +4,15 @@ import axios from "axios";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Instagram, Facebook, Linkedin, Youtube, Pencil, X } from "lucide-react";
+import {
+  Instagram,
+  Facebook,
+  Linkedin,
+  Youtube,
+  Pencil,
+  X,
+} from "lucide-react";
+import { Button } from "react-bootstrap";
 
 interface Curriculum {
   _id: string;
@@ -102,7 +110,9 @@ const TutorProfilePage = () => {
 
   // Input changes
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     if (editedTutor) {
@@ -126,52 +136,52 @@ const TutorProfilePage = () => {
     }
   };
 
- const handleSaveChanges = async () => {
-  if (!editedTutor) return;
-  setIsSaving(true);
+  const handleSaveChanges = async () => {
+    if (!editedTutor) return;
+    setIsSaving(true);
 
-  try {
-    const formData = new FormData();
-    
-    // Create a clean object with all fields
-    const tutorData = {
-      username: editedTutor.username,
-      email: editedTutor.email,
-      contact: editedTutor.contact,
-      city: editedTutor.city,
-      address: editedTutor.address,
-      education: editedTutor.education,
-      skills: editedTutor.skills,
-      experience: editedTutor.experience,
-      studentsCoached: editedTutor.studentsCoached, // Ensure this is included
-      teachingMode: editedTutor.teachingMode, // Ensure this is included
-      instagramLink: editedTutor.instagramLink,
-      aboutMyself: editedTutor.aboutMyself,
-    };
-    
-    formData.append("userData", JSON.stringify(tutorData));
-    
-    if (profileImageFile) {
-      formData.append("profileImage", profileImageFile);
-    }
+    try {
+      const formData = new FormData();
 
-    const response = await axios.put(
-      `/Api/userUpdate?userId=${tutor?._id}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
+      // Create a clean object with all fields
+      const tutorData = {
+        username: editedTutor.username,
+        email: editedTutor.email,
+        contact: editedTutor.contact,
+        city: editedTutor.city,
+        address: editedTutor.address,
+        education: editedTutor.education,
+        skills: editedTutor.skills,
+        experience: editedTutor.experience,
+        studentsCoached: editedTutor.studentsCoached, // Ensure this is included
+        teachingMode: editedTutor.teachingMode, // Ensure this is included
+        instagramLink: editedTutor.instagramLink,
+        aboutMyself: editedTutor.aboutMyself,
+      };
+
+      formData.append("userData", JSON.stringify(tutorData));
+
+      if (profileImageFile) {
+        formData.append("profileImage", profileImageFile);
       }
-    );
 
-    setTutor(response.data.tutor);
-    closeEditModal();
-  } catch (error) {
-    console.error("Error updating tutor profile:", error);
-    alert("Failed to update profile. Please try again.");
-  } finally {
-    setIsSaving(false);
-  }
-};
+      const response = await axios.put(
+        `/Api/userUpdate?userId=${tutor?._id}`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      setTutor(response.data.tutor);
+      closeEditModal();
+    } catch (error) {
+      console.error("Error updating tutor profile:", error);
+      alert("Failed to update profile. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (loading)
     return (
@@ -197,17 +207,21 @@ const TutorProfilePage = () => {
   return (
     <>
       {/* Main Page Content */}
-      <div className={`min-h-screen bg-gray-50 transition-all duration-300 ${isEditModalOpen ? "blur-sm scale-[0.99]" : ""}`}>
+      <div
+        className={`min-h-screen bg-gray-50 transition-all duration-300 ${
+          isEditModalOpen ? "blur-sm scale-[0.99]" : ""
+        }`}
+      >
         {/* Header */}
         <div className="bg-white border-b border-gray-200 w-full top-0 z-20">
           <div className="px-6 py-4 flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-gray-800">My Profile</h1>
-            <button
+            <Button
               onClick={openEditModal}
-              className="flex items-center bg-[#6307c9] text-white px-4 py-2 rounded-md hover:bg-[#7a1fe6] transition-all shadow-sm"
+              className="!flex !items-center bg-[#6307c9] !text-white !px-4 !py-2 !rounded-md hover:!bg-[#7a1fe6] !transition-all !shadow-sm"
             >
               <Pencil className="w-4 h-4 mr-2" /> Edit Profile
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -235,11 +249,24 @@ const TutorProfilePage = () => {
                 </div>
               </div>
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-4xl font-bold mb-2">{tutor.username}</h1>
-                <p className="text-white text-opacity-90 text-lg">📧 {tutor.email}</p>
-                <p className="text-white text-opacity-90 text-lg">📞 {tutor.contact}</p>
+                <h1 className="!text-4xl !font-bold !mb-2">{tutor.username}</h1>
+                <p className="text-white !text-opacity-90 !text-lg">
+                  📧 {tutor.email}
+                </p>
+                <p className="text-white !text-opacity-90 !text-lg">
+                  📞 {tutor.contact}
+                </p>
                 <div className="flex space-x-4 mt-4 justify-center md:justify-start">
-                  {tutor.instagramLink && <a href={tutor.instagramLink} target="_blank" rel="noopener noreferrer" className="bg-white p-2 rounded-full hover:bg-pink-100 transition"><Instagram className="text-pink-600 w-5 h-5" /></a>}
+                  {tutor.instagramLink && (
+                    <a
+                      href={tutor.instagramLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="bg-white p-2 rounded-full hover:bg-pink-100 transition"
+                    >
+                      <Instagram className="text-pink-600 w-5 h-5" />
+                    </a>
+                  )}
                   {/* {tutor.facebookLink && <a href={tutor.facebookLink} target="_blank" rel="noopener noreferrer" className="bg-white p-2 rounded-full hover:bg-blue-100 transition"><Facebook className="text-blue-600 w-5 h-5" /></a>}
                   {tutor.linkedInLink && <a href={tutor.linkedInLink} target="_blank" rel="noopener noreferrer" className="bg-white p-2 rounded-full hover:bg-blue-200 transition"><Linkedin className="text-blue-700 w-5 h-5" /></a>}
                   {tutor.youtubeLink && <a href={tutor.youtubeLink} target="_blank" rel="noopener noreferrer" className="bg-white p-2 rounded-full hover:bg-red-100 transition"><Youtube className="text-red-600 w-5 h-5" /></a>} */}
@@ -256,23 +283,44 @@ const TutorProfilePage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <InfoBox label="Tutor Name" value={tutor.username} />
-                <InfoBox label="Relevant Education" value={tutor.education || "Not specified"} />
-                <InfoBox label="City" value={tutor.city || tutor.address || "Not specified"} />
-                <InfoBox label="Skill Expertise" value={tutor.skills || "Not specified"} />
-                <InfoBox label="Teaching Experience (years)" value={tutor.experience || "Not specified"} />
-                
+                <InfoBox
+                  label="Relevant Education"
+                  value={tutor.education || "Not specified"}
+                />
+                <InfoBox
+                  label="City"
+                  value={tutor.city || tutor.address || "Not specified"}
+                />
+                <InfoBox
+                  label="Skill Expertise"
+                  value={tutor.skills || "Not specified"}
+                />
+                <InfoBox
+                  label="Teaching Experience (years)"
+                  value={tutor.experience || "Not specified"}
+                />
               </div>
               <div className="space-y-4">
-                <InfoBox label="Students Coached" value={tutor.studentsCoached || "Not specified"} />
-                <InfoBox label="Teaching Mode" value={tutor.teachingMode || "Not specified"} />
+                <InfoBox
+                  label="Students Coached"
+                  value={tutor.studentsCoached || "Not specified"}
+                />
+                <InfoBox
+                  label="Teaching Mode"
+                  value={tutor.teachingMode || "Not specified"}
+                />
               </div>
             </div>
           </div>
 
           {/* About Me Section */}
           <div className="bg-white rounded-xl shadow-md p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">About Myself</h2>
-            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{tutor.aboutMyself || "No information provided."}</p>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
+              About Myself
+            </h2>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {tutor.aboutMyself || "No information provided."}
+            </p>
           </div>
         </div>
       </div>
@@ -323,7 +371,10 @@ const EditModal = ({
     <div className="relative bg-white rounded-2xl shadow-2xl w-full h-full md:h-auto md:max-w-5xl md:max-h-[95vh] overflow-y-auto z-10">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-5 flex justify-between items-center z-20">
         <h3 className="text-2xl font-semibold text-gray-800">Edit Profile</h3>
-        <button onClick={closeEditModal} className="text-gray-400 hover:text-gray-600">
+        <button
+          onClick={closeEditModal}
+          className="text-gray-400 hover:text-gray-600"
+        >
           <X className="w-6 h-6" />
         </button>
       </div>
@@ -337,17 +388,38 @@ const EditModal = ({
             className="relative w-36 h-36 rounded-full overflow-hidden cursor-pointer group border-4 border-dashed border-[#6307c9] hover:border-[#8142d8] transition-colors duration-300"
           >
             {previewImage ? (
-              <img src={previewImage} alt="Profile Preview" className="w-full h-full object-cover" />
+              <img
+                src={previewImage}
+                alt="Profile Preview"
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-[#6307c9]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-12 w-12 text-[#6307c9]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
                 </svg>
                 <span className="text-sm text-gray-500 mt-2">Add Photo</span>
               </div>
             )}
           </div>
-          <input ref={fileInputRef} type="file" onChange={handleProfileImageChange} accept="image/*" className="hidden" />
+          <input
+            ref={fileInputRef}
+            type="file"
+            onChange={handleProfileImageChange}
+            accept="image/*"
+            className="hidden"
+          />
         </div>
 
         {/* Form Sections */}
@@ -360,7 +432,11 @@ const EditModal = ({
             { name: "city", label: "City", type: "text" },
             { name: "address", label: "Address/Academy", type: "text" },
             { name: "teachingMode", label: "Teaching Mode", type: "text" },
-            { name: "studentsCoached", label: "Student Coached", type: "number" },
+            {
+              name: "studentsCoached",
+              label: "Student Coached",
+              type: "number",
+            },
           ]}
           data={editedTutor}
           handleInputChange={handleInputChange}
@@ -380,7 +456,12 @@ const EditModal = ({
         <FormSection
           title="Social Media Links"
           fields={[
-            { name: "instagramLink", label: "Instagram", type: "url", placeholder: "https://instagram.com/username" },
+            {
+              name: "instagramLink",
+              label: "Instagram",
+              type: "url",
+              placeholder: "https://instagram.com/username",
+            },
             // { name: "facebookLink", label: "Facebook", type: "url", placeholder: "https://facebook.com/username" },
             // { name: "linkedInLink", label: "LinkedIn", type: "url", placeholder: "https://linkedin.com/in/username" },
             // { name: "youtubeLink", label: "YouTube", type: "url", placeholder: "https://youtube.com/@username" },
@@ -404,13 +485,18 @@ const EditModal = ({
 
         {/* Save Buttons */}
         <div className="mt-8 flex justify-end space-x-4">
-          <button onClick={closeEditModal} className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+          <button
+            onClick={closeEditModal}
+            className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+          >
             Cancel
           </button>
           <button
             onClick={handleSaveChanges}
             disabled={isSaving}
-            className={`px-6 py-2 bg-[#6307c9] text-white rounded-md hover:bg-[#7a1fe6] transition flex items-center ${isSaving ? "opacity-70 cursor-not-allowed" : ""}`}
+            className={`px-6 py-2 bg-[#6307c9] text-white rounded-md hover:bg-[#7a1fe6] transition flex items-center ${
+              isSaving ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
             {isSaving ? "Saving..." : "Save Changes"}
           </button>
@@ -430,14 +516,20 @@ const FormSection = ({
   title: string;
   fields: { name: string; label: string; type: string; placeholder?: string }[];
   data: Tutor;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  handleInputChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => void;
 }) => (
   <div className="mt-6 text-gray-800">
     <h4 className="font-bold text-gray-700 mb-4">{title}</h4>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {fields.map((field) => (
         <div key={field.name}>
-          <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {field.label}
+          </label>
           {field.name === "teachingMode" ? (
             <select
               name="teachingMode"
