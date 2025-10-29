@@ -73,6 +73,8 @@ export default function TutorAssignments() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'completed'>('all');
+  const [updatingCompletion, setUpdatingCompletion] = useState<string | null>(null);
+
 
 
   useEffect(() => {
@@ -104,6 +106,52 @@ export default function TutorAssignments() {
 
     fetchAssignments();
   }, []);
+
+const handleToggleComplete = async (assignmentId: string, currentStatus: boolean) => {
+  const action = currentStatus ? 'incomplete' : 'complete';
+  const message = currentStatus 
+    ? 'Mark this assignment as incomplete for the entire class?' 
+    : 'Mark this assignment as complete for the entire class?';
+  
+  if (!confirm(message)) {
+    return;
+  }
+
+  setUpdatingCompletion(assignmentId);
+  
+  try {
+    const response = await fetch(
+      `/Api/assignment/assignmentCompleteWholeClass?assignmentId=${assignmentId}`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Update the local state to reflect the change - TOGGLE the status
+      setAssignments(prevAssignments =>
+        prevAssignments.map(assignment =>
+          assignment._id === assignmentId
+            ? { ...assignment, status: !currentStatus } // Changed from 'true' to '!currentStatus'
+            : assignment
+        )
+      );
+      alert(`Assignment marked as ${!currentStatus ? 'complete' : 'incomplete'} successfully!`);
+    } else {
+      alert(`Error: ${data.message}`);
+    }
+  } catch (error) {
+    console.error('Error updating assignment status:', error);
+    alert('Failed to update assignment status. Please try again.');
+  } finally {
+    setUpdatingCompletion(null);
+  }
+};
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -381,37 +429,56 @@ const filteredAssignments = assignments.filter(assignment => {
                 >
                   {/* Assignment Title */}
                   <div className="flex items-start justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 flex-1">
-                      {assignment.title}
-                    </h3>
+  <div className="flex items-center gap-3 flex-1">
+    {/* Checkbox for completion */}
+    <input
+      type="checkbox"
+      checked={assignment.status || false}
+      onChange={() => handleToggleComplete(assignment._id, assignment.status || false)}
+      disabled={updatingCompletion === assignment._id} // REMOVED: || assignment.status
+      className={`w-5 h-5 rounded border-2 cursor-pointer transition-colors ${
+        assignment.status
+          ? 'border-green-500 bg-green-500' // REMOVED: cursor-not-allowed
+          : 'border-gray-300 hover:border-purple-500'
+      } ${updatingCompletion === assignment._id ? 'opacity-50 cursor-wait' : ''}`}
+      title={assignment.status ? 'Mark as incomplete' : 'Mark as complete'} // Changed title
+    />
+    
+    <h3 className={`text-lg font-semibold flex-1 ${
+      assignment.status ? 'text-gray-500 line-through' : 'text-gray-900'
+    }`}>
+      {assignment.title}
+    </h3>
+  </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 ml-4">
-                      <button
-                        onClick={() => handleEdit(assignment._id)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        title="Edit"
-                      >
-                        <Edit size={18} />
-                      </button>
+  {/* Action Buttons */}
+  <div className="flex items-center gap-2 ml-4">
+    <button
+      onClick={() => handleEdit(assignment._id)}
+      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+      title="Edit"
+    >
+      <Edit size={18} />
+    </button>
 
-                      <button
-                        onClick={() => handleDelete(assignment._id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+    <button
+      onClick={() => handleDelete(assignment._id)}
+      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+      title="Delete"
+    >
+      <Trash2 size={18} />
+    </button>
 
-                      <button
-                        onClick={() => handleViewDetail(assignment._id)}
-                        className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
-                      >
-                        <Eye size={16} />
-                        <span>View Details</span>
-                      </button>
-                    </div>
-                  </div>
+    <button
+      onClick={() => handleViewDetail(assignment._id)}
+      className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+    >
+      <Eye size={16} />
+      <span>View Details</span>
+    </button>
+  </div>
+</div>
+                    
 
                   {/* Assignment Details Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
