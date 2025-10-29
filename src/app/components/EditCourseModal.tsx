@@ -127,11 +127,32 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
       show={show}
       onHide={onHide}
       centered
-      dialogClassName="w-800"
+      dialogClassName="w-1000"
       className="modal-common-sec assignment-modal-sec"
     >
       <Modal.Header closeButton>
-        {/* The close button is automatically handled */}
+        <Button
+          variant="link"
+          className="modal-close-btn"
+          onClick={onHide}
+          aria-label="Close"
+          style={{ position: "absolute", right: 16, top: 16, zIndex: 2 }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path
+              d="M18 6L6 18"
+              stroke="#333"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M6 6L18 18"
+              stroke="#333"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </Button>
       </Modal.Header>
       <Modal.Body>
         <div className="head-modal text-center">
@@ -310,7 +331,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
                       fill="#6E09BD"
                     />
                   </svg>
-                  <span>Add Session</span>
+                  <span>Add Lesson</span>
                 </Button>
               </div>
             </div>
