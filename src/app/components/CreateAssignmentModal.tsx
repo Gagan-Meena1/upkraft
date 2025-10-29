@@ -1,12 +1,18 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Upload, Calendar, Music, BookOpen, Users } from 'lucide-react';
+import { X, Upload, Calendar, Music, BookOpen, Users ,UserCheck} from 'lucide-react';
 
 interface Course {
     _id: string;
     title: string;
     category?: string;
+}
+
+interface Student {
+    _id: string;
+    username: string;
+    email: string;
 }
 
 interface Class {
@@ -43,6 +49,8 @@ interface Assignment {
     _id: string;
     title: string;
   };
+    userId?: string[]; // Add this line
+
 }
 
 interface CreateAssignmentModalProps {
@@ -64,6 +72,7 @@ export default function CreateAssignmentModal({
 }: CreateAssignmentModalProps) {
      useEffect(() => {
     if (editingAssignment) {
+        
       // Parse the deadline to YYYY-MM-DD format
       const deadlineDate = new Date(editingAssignment.deadline);
       const formattedDeadline = deadlineDate.toISOString().split('T')[0];
@@ -82,6 +91,9 @@ export default function CreateAssignmentModal({
       });
       
       setPracticeStudio(editingAssignment.practiceStudio || false);
+      if (editingAssignment.userId && Array.isArray(editingAssignment.userId)) {
+        setSelectedStudents(editingAssignment.userId);
+      }
       
       // Note: Existing files can't be pre-populated in file inputs
       // You might want to show the existing file names
@@ -98,10 +110,13 @@ export default function CreateAssignmentModal({
         speed: '100%',
         metronome: '100%',
         loop: 'Set A',
+
       });
       setMusicSheet(null);
       setAssignmentFile(null);
       setPracticeStudio(false);
+      setSelectedStudents([]); // ADD THIS LINE
+
     }
   }, [editingAssignment]);
 
@@ -139,6 +154,10 @@ export default function CreateAssignmentModal({
     const [selectedSong, setSelectedSong] = useState<Song | null>(null);
     const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const songInputRef = useRef<HTMLDivElement>(null);
+    // Students state
+const [students, setStudents] = useState<Student[]>([]);
+const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+const [loadingStudents, setLoadingStudents] = useState(false);
 
     // Fetch courses when modal opens
     useEffect(() => {
@@ -163,34 +182,66 @@ export default function CreateAssignmentModal({
         }
     };
 
-    // Fetch classes when a course is selected
-    useEffect(() => {
-        if (formData.course) {
-            fetchClasses(formData.course);
+ // REPLACE the existing useEffect and fetchClasses function with this:
+useEffect(() => {
+    if (formData.course) {
+        fetchClassesAndStudents(formData.course);
+    } else {
+        setClassesOptions([]);
+        setStudents([]);
+        setSelectedStudents([]);
+        setFormData({ ...formData, class: '' });
+    }
+}, [formData.course]);
+
+const fetchClassesAndStudents = async (courseId: string) => {
+    try {
+        setLoadingClasses(true);
+        setLoadingStudents(true);
+        const res = await fetch(`/Api/tutors/courses/${courseId}`);
+        if (!res.ok) throw new Error('Failed to fetch classes and students');
+        const data = await res.json();
+
+        console.log(`Classes and Students API response for course ${courseId}:`, data);
+
+        setClassesOptions(data.classDetails || data.classes || []);
+        setStudents(data.enrolledStudents || []);
+        
+        // If not editing, select all students by default
+        if (!editingAssignment) {
+            const allStudentIds = (data.enrolledStudents || []).map((student: Student) => student._id);
+            setSelectedStudents(allStudentIds);
+        }
+    } catch (err) {
+        console.error('Fetch classes and students error:', err);
+        setClassesOptions([]);
+        setStudents([]);
+        setSelectedStudents([]);
+    } finally {
+        setLoadingClasses(false);
+        setLoadingStudents(false);
+    }
+};
+
+// Student selection handlers
+const handleStudentToggle = (studentId: string) => {
+    setSelectedStudents(prev => {
+        if (prev.includes(studentId)) {
+            return prev.filter(id => id !== studentId);
         } else {
-            setClassesOptions([]);
-            setFormData({ ...formData, class: '' });
+            return [...prev, studentId];
         }
-    }, [formData.course]);
+    });
+};
 
-    const fetchClasses = async (courseId: string) => {
-        try {
-            setLoadingClasses(true);
-            const res = await fetch(`/Api/tutors/courses/${courseId}`);
-            if (!res.ok) throw new Error('Failed to fetch classes');
-            const data = await res.json();
+const handleSelectAllStudents = () => {
+    const allStudentIds = students.map(student => student._id);
+    setSelectedStudents(allStudentIds);
+};
 
-            console.log(`Classes API response for course ${courseId}:`, data);
-
-            setClassesOptions(data.classDetails || data.classes || []);
-        } catch (err) {
-            console.error('Fetch classes error:', err);
-            setClassesOptions([]);
-        } finally {
-            setLoadingClasses(false);
-        }
-    };
-
+const handleClearAllStudents = () => {
+    setSelectedStudents([]);
+};
     // Song search debounce
     useEffect(() => {
         const searchTerm = formData.songName.trim();
@@ -268,6 +319,8 @@ export default function CreateAssignmentModal({
     if (!formData.class) return setError('Please select a class');
     if (!formData.deadline) return setError('Please select a deadline');
     if (!formData.description.trim()) return setError('Please enter a description');
+    if (selectedStudents.length === 0) return setError('Please select at least one student'); // ADD THIS
+
 
     setIsSubmitting(true);
     setError(null);
@@ -279,6 +332,8 @@ export default function CreateAssignmentModal({
       submitData.append('deadline', new Date(formData.deadline).toISOString());
       submitData.append('courseId', formData.course);
       submitData.append('classId', formData.class);
+      submitData.append('studentIds', JSON.stringify(selectedStudents));
+
 
       const finalSongName = selectedSong
         ? `${selectedSong.title} - ${selectedSong.artist}`
@@ -431,6 +486,71 @@ export default function CreateAssignmentModal({
                                 </select>
                             </div>
                         </div>
+                        {/* Students Selection - ADD THIS ENTIRE SECTION */}
+{formData.course && (
+    <div>
+        <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+            <UserCheck size={16} className="text-purple-600" /> Select Students *
+        </label>
+        
+        {loadingStudents ? (
+            <div className="p-4 text-center border border-gray-200 rounded-xl">
+                <p className="text-sm text-gray-500">Loading students...</p>
+            </div>
+        ) : students.length > 0 ? (
+            <div className="border border-gray-200 rounded-xl p-4">
+                {/* Action Buttons */}
+                <div className="flex gap-2 mb-3 pb-3 border-b border-gray-200">
+                    <button
+                        type="button"
+                        onClick={handleSelectAllStudents}
+                        disabled={isSubmitting}
+                        className="px-4 py-2 text-sm bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100 transition-all font-medium disabled:opacity-50"
+                    >
+                        Select All ({students.length})
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleClearAllStudents}
+                        disabled={isSubmitting}
+                        className="px-4 py-2 text-sm bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-all font-medium disabled:opacity-50"
+                    >
+                        Clear All
+                    </button>
+                    <div className="ml-auto text-sm text-gray-600 flex items-center">
+                        Selected: <span className="font-semibold ml-1">{selectedStudents.length}</span>
+                    </div>
+                </div>
+                
+                {/* Students List */}
+                <div className="max-h-60 overflow-y-auto space-y-2">
+                    {students.map((student) => (
+                        <label
+                            key={student._id}
+                            className="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-all"
+                        >
+                            <input
+                                type="checkbox"
+                                checked={selectedStudents.includes(student._id)}
+                                onChange={() => handleStudentToggle(student._id)}
+                                disabled={isSubmitting}
+                                className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                            />
+                            <div className="flex-1">
+                                <div className="font-medium text-gray-800">{student.username}</div>
+                                <div className="text-xs text-gray-500">{student.email}</div>
+                            </div>
+                        </label>
+                    ))}
+                </div>
+            </div>
+        ) : (
+            <div className="p-4 text-center border border-gray-200 rounded-xl">
+                <p className="text-sm text-gray-500">No students enrolled in this course</p>
+            </div>
+        )}
+    </div>
+)}
 
                         {/* Deadline */}
                         <div>

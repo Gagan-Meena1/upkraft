@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
 import courseName from "@/models/courseName";
 import Class from "@/models/Class";
+import User from "@/models/userModel";
 
 // Type assertion approach using generic Next.js types
 export async function GET(request: Request, { params }: { params: Promise<{ courseId: string }> }) {
@@ -24,10 +25,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ cour
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
+    // Fetch all students enrolled in this course
+    const enrolledStudents = await User.find({
+      courses: courseId,
+      category: "Student"
+    }).select('-password -forgotPasswordToken -verifyToken'); 
+
     return NextResponse.json({ 
       courseId, 
       courseDetails,
       classDetails,
+      enrolledStudents,
+      totalStudents: enrolledStudents.length,
       message: "Course ID successfully extracted" 
     });
 
