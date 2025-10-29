@@ -307,10 +307,10 @@ h3,
 }
 
 .learn-experts-sec .video-box-with-text .learn-video video {
-  width: 100%;
-  display: block;
-  height: 480px;
-  object-fit: cover;
+  width: 100%;           /* full width of container */
+  aspect-ratio: 9 / 16;  /* maintain 9:16 ratio */
+  object-fit: contain;    /* shows entire video without cutting */
+  border-radius: 12px;   /* optional: rounded corners */
 }
 
 .learn-experts-sec .video-box-with-text .learn-text {
