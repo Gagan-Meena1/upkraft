@@ -2,10 +2,7 @@
 
 import SideMenuHeader from "../components/SideMenuHeader";
 import TopHeader from "../components/TopHeader";
-import "@/styles/style 2.css";
-import "@/styles/custom.css";
-import "../../app/media.css";
-// import "../../app/academyStyle.css"
+import TopHeaderAcademy from "../components/TopHeaderAcademy";
 
 export default function TutorLayout({
   children,
@@ -17,11 +14,12 @@ export default function TutorLayout({
     <>
       <div className="main-sec position-relative">
         <div className="top-header">
-          <TopHeader role="tutor" setRole={() => {}} />
+          <TopHeaderAcademy role="academy" setRole={() => {}}/>
+          {/* <TopHeader role="tutor" setRole={() => {}} /> */}
         </div>
         <div className="dashboard-sec position-relative d-flex flex-wrap">
           <div className="side-menu-sec">
-            <SideMenuHeader role={"tutor"} />
+            <SideMenuHeader role={"academy"} />
           </div>
           <div className="side-details-sec">{children}</div>
         </div>
