@@ -76,7 +76,7 @@ export default function LoginPage() {
       } else if (userCategory === "Admin") {
         router.push("/admin");
       } else if (userCategory === "Academic") {
-        router.push("/academic");
+        router.push("/academy");
       }
 
     } catch (error: any) {
