@@ -71,7 +71,18 @@ if (studentIdsJson) {
     message: 'No students selected'
   }, { status: 400 });
 }
-    
+    // ADD THIS SECTION - Get instructor ID from JWT token and add to UserIds
+const token = request.cookies.get("token")?.value;
+const decodedToken = token ? jwt.decode(token) : null;
+const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+
+if (instructorId) {
+  // Add instructor ID to the UserIds array if not already present
+  if (!UserIds.includes(instructorId)) {
+    UserIds.push(instructorId);
+    console.log("Instructor ID added to assignment:", instructorId);
+  }
+}
     console.log("Found students with courseId:", UserIds.length);
     
     // Create assignment object (without file info initially)
