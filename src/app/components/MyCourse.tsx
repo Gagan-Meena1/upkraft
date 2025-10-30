@@ -333,7 +333,7 @@ const MyCourse = ({ data }) => {
               </div>
               <div className="right-assignment my-course-student-right mt-xxl-0 mt-3">
                 <div className="student-assignment my-course-student d-flex align-items-center flex-wrap gap-xl-4 gap-2">
-                  <ul className="d-flex align-items-center gap-2 list-unstyled m-0 p-0">
+                  <ul className="d-flex align-items-center gap-2 list-unstyled m-0 p-0 action-icons-container">
                     <li>
                       <Button
                         type="button"
