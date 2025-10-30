@@ -6,6 +6,8 @@ import Performance from "./charts/Performance";
 import Technique from "./charts/Technique";
 import AssignmentCompletion from "./charts/AssignmentCompletion";
 
+console.log("IndividualProgress component loaded");
+
 interface IndividualProgressProps {
   feedbackData: any[];
   averageSkillScores: Record<string, number>;
@@ -17,7 +19,12 @@ const IndividualProgress: React.FC<IndividualProgressProps> = ({
   averageSkillScores,
   allStudentsFeedbackData,
 }) => {
+    console.log("[ FE ] IndividualProgress Component Rendered ]" );
+    console.log(" [ FE ] Feedback Data:", feedbackData);
+  console.log("[ FE ] Average Skill Scores:", averageSkillScores);
+  console.log(" [ FE ] All Students Feedback Data:", allStudentsFeedbackData);
   return (
+    
     <div className='card-box individual-progress-chart'>
         <div className="row">
             <div className="col-md-12 mb-5">

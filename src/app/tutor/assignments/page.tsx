@@ -445,7 +445,7 @@ const filteredAssignments = assignments.filter(assignment => {
     />
     
     <h3 className={`text-lg font-semibold flex-1 ${
-      assignment.status ? 'text-gray-500 line-through' : 'text-gray-900'
+      assignment.status ? 'text-gray-500 ' : 'text-gray-900'
     }`}>
       {assignment.title}
     </h3>
