@@ -283,13 +283,21 @@ const TutorProfilePage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <InfoBox label="Tutor Name" value={tutor.username} />
+                <InfoBox label="Email" value={tutor.email || "Not specified"} />
+                <InfoBox
+                  label="Contact Number"
+                  value={tutor.contact || "Not specified"}
+                />
+                <InfoBox
+                  label="Address"
+                  value={tutor.address || "Not specified"}
+                />
+                <InfoBox label="City" value={tutor.city || "Not specified"} />
+              </div>
+              <div className="space-y-4">
                 <InfoBox
                   label="Relevant Education"
                   value={tutor.education || "Not specified"}
-                />
-                <InfoBox
-                  label="City"
-                  value={tutor.city || tutor.address || "Not specified"}
                 />
                 <InfoBox
                   label="Skill Expertise"
@@ -299,8 +307,6 @@ const TutorProfilePage = () => {
                   label="Teaching Experience (years)"
                   value={tutor.experience || "Not specified"}
                 />
-              </div>
-              <div className="space-y-4">
                 <InfoBox
                   label="Students Coached"
                   value={tutor.studentsCoached || "Not specified"}
@@ -484,22 +490,23 @@ const EditModal = ({
         </div>
 
         {/* Save Buttons */}
-        <div className="mt-8 flex justify-end space-x-4">
-          <button
+        <div className="!mt-8 !flex !justify-end !space-x-4">
+          <Button
+            variant="outline-primary"
             onClick={closeEditModal}
-            className="px-6 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+            className="px-6 py-2 rounded-md !border-[#6307c9] !text-[#6307c9] hover:!bg-[#7a1fe6] hover:!text-white transition flex items-center"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSaveChanges}
             disabled={isSaving}
-            className={`px-6 py-2 bg-[#6307c9] text-white rounded-md hover:bg-[#7a1fe6] transition flex items-center ${
+            className={`px-6 py-2 !bg-[#6307c9] !text-white !rounded-md hover:bg-[#7a1fe6] transition flex items-center ${
               isSaving ? "opacity-70 cursor-not-allowed" : ""
             }`}
           >
             {isSaving ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

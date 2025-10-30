@@ -325,11 +325,11 @@ const MyCourse = ({ data }) => {
                     </span>
                   </li>
                 </ul>
-                <div className="student-img-name d-flex align-items-center gap-2">
+                {/* <div className="student-img-name d-flex align-items-center gap-2">
                   <p>Student :</p>
                   <Image src={Student01} alt="" />
                   <span className="name">You</span>
-                </div>
+                </div> */}
               </div>
               <div className="right-assignment my-course-student-right mt-xxl-0 mt-3">
                 <div className="student-assignment my-course-student d-flex align-items-center flex-wrap gap-xl-4 gap-2">

@@ -416,7 +416,7 @@ function AddSessionPage() {
         {/* Session Form Modal */}
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 p-4">
-            <div className="bg-gradient-to-r from-blue-800 to-purple-700 rounded-xl p-4 sm:p-6 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="bg-gradient-to-r bg-purple-40 rounded-xl p-4 sm:p-6 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4 sm:mb-6">
                 <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-pink-200">
                   <span className="hidden sm:inline">
