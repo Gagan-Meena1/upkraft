@@ -716,7 +716,9 @@ const StudentDashboard: React.FC = () => {
         <div className="col-xxl-3 col-md-6 mb-4 order-xxl-3 order-md-4">
           <div className="card-box card-inner-video-box">
             <div className="card-enrolled-video text-center pt-0">
+              <Link href="/student/classSnapshots" className="d-block mb-3">
               <h6 className="mb-4">Latest Class Highlight</h6>
+              </Link>
               <div className="video-box">
                 <div className="poster-video position-relative text-center">
                   {!isPlaying ? (

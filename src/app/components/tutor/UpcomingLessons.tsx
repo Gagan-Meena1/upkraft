@@ -94,8 +94,11 @@ const UpcomingLessons = () => {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return format(date, "d MMM");
-    } catch (error) {
+      const day = date.getUTCDate();
+      const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const month = monthNames[date.getUTCMonth()];
+      return `${day} ${month}`;
+    } catch {
       return "Invalid date";
     }
   };

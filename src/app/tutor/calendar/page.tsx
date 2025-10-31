@@ -166,7 +166,13 @@ const StudentCalendarView = () => {
     return studentClasses.classes.filter((classItem) => {
       if (!classItem.startTime) return false;
       const classDate = new Date(classItem.startTime);
-      return classDate.toDateString() === date.toDateString();
+      
+      // Compare UTC dates to avoid timezone shifts
+      return (
+        classDate.getUTCFullYear() === date.getFullYear() &&
+        classDate.getUTCMonth() === date.getMonth() &&
+        classDate.getUTCDate() === date.getDate()
+      );
     });
   };
 
