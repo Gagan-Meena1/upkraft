@@ -129,6 +129,8 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
       centered
       dialogClassName="w-1000"
       className="modal-common-sec assignment-modal-sec"
+      backdrop="static"
+      keyboard={false}
     >
       <Modal.Header closeButton>
         <Button
