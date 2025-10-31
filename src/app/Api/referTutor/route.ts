@@ -38,7 +38,6 @@ const referTutorSchema = new mongoose.Schema({
   },
   referralCode: {
     type: String,
-    required: [true, 'Please provide a referral code'],
   },
   createdAt: {
     type: Date,
@@ -70,7 +69,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!name || !email || !mobile || !cityAndCountry || !primaryInstrument || 
-        !experienceInYears || !preferredContactTime || !referralCode) {
+        !experienceInYears ) {
       return NextResponse.json({
         success: false,
         error: 'All fields are required'
