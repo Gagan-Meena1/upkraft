@@ -72,7 +72,7 @@ const userSchema = new mongoose.Schema({
     },
     timezone: {
         type: String,
-        default: ""
+        default: "Asia/Calcutta"
     },
    
     skills: {
