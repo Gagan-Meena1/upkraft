@@ -111,6 +111,7 @@ const StudentCalendarView = () => {
     loadMyData();
   }, []);
 
+  const userTz = userData?.timezone || getUserTimeZone();
   const cloneDate = (d) => new Date(d.getTime());
 
   // Get days for current week (Mon - Sun)
@@ -130,25 +131,40 @@ const StudentCalendarView = () => {
     return days;
   };
 
-  // Filter helpers for week/day
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
+  // Helper to get date components in user's timezone
+  const getDateComponentsInTz = (date: Date | string, tz: string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(d);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0');
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    return { year, month, day };
+  };
+
+  // Filter helpers for week/day - compare in user's timezone
+  const isSameDayInTz = (date1: Date | string, date2: Date, tz: string) => {
+    const d1 = getDateComponentsInTz(date1, tz);
+    const d2 = getDateComponentsInTz(date2, tz);
+    return d1.year === d2.year && d1.month === d2.month && d1.day === d2.day;
+  };
 
   const getMyClassesForDate = (date: Date) => {
     return myClasses.filter((cls) => {
       if (!cls?.startTime) return false;
-      const d = new Date(cls.startTime);
-      return isSameDay(d, date);
+      return isSameDayInTz(cls.startTime, date, userTz);
     });
   };
 
   const getMyAssignmentsForDate = (date: Date) => {
     return myAssignments.filter((a) => {
       if (!a?.deadline || a?.status === true) return false; // show only pending
-      const d = new Date(a.deadline);
-      return isSameDay(d, date);
+      return isSameDayInTz(a.deadline, date, userTz);
     });
   };
 
@@ -157,8 +173,6 @@ const StudentCalendarView = () => {
     d.setDate(d.getDate() + deltaDays);
     setCurrentDate(d);
   };
-
-  const userTz = userData?.timezone || getUserTimeZone();
 
   const formatTime = (startTime, endTime) => {
     if (!startTime) return "";
