@@ -2710,6 +2710,21 @@ body .wrap, body .wrap.pdf-active {
     </div>
   </div>
 
+  <!-- Analysis Loader -->
+<div id="analysisLoader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+  <div style="text-align: center;">
+    <div style="width: 60px; height: 60px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+    <p style="color: white; font-size: 18px; margin: 0;">Analyzing your performance...</p>
+    <p style="color: #ccc; font-size: 14px; margin-top: 10px;">This may take a moment</p>
+  </div>
+</div>
+
+<style>
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+</style>
   <div aria-hidden="true" id="ui-overlay-root"></div>
 
   <script>
@@ -4735,6 +4750,29 @@ $('#instrumentConfirmBtn')?.addEventListener('click', async () => {
     const up = document.getElementById('uploadLoading');
     if (up) up.style.display = 'flex';
     
+
+    //  Hide upload loader, show analysis loader
+  if (up) up.style.display = 'none';
+  
+  // Create and inject analysis loader
+  const analysisLoader = document.createElement('div');
+  analysisLoader.id = 'analysisLoader';
+  analysisLoader.innerHTML = `
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+    <div style="text-align: center;">
+      <div style="width: 60px; height: 60px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+      <p style="color: white; font-size: 18px; margin: 0;">Analyzing your performance...</p>
+      <p style="color: #ccc; font-size: 14px; margin-top: 10px;">This may take a moment</p>
+    </div>
+  `;
+  analysisLoader.style.cssText = 'display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;';
+  document.body.appendChild(analysisLoader);
+
     // STEP 1: Upload audio to Cloudinary first
     log('📤 Uploading audio to Cloudinary...');
     const cloudinaryFormData = new FormData();
@@ -4754,6 +4792,8 @@ $('#instrumentConfirmBtn')?.addEventListener('click', async () => {
     const cloudinaryResult = await cloudinaryResponse.json();
     log('☁️ Audio uploaded to Cloudinary successfully');
     
+
+
     // STEP 2: Call analysis API with Cloudinary URL
     log('🔍 Starting AI analysis...');
     const analysisFormData = new FormData();
@@ -4827,14 +4867,16 @@ if (queryString) {
   } catch(err) {
     console.error('Process failed:', err);
     alert(`Process failed: ${err.message}`);
-  } finally {
-    const up = document.getElementById('uploadLoading');
-    if (up) up.style.display = 'none';
-    hideInstrumentSelection();
-    hideRecordingConfirmation();
-    pendingBlob = null;
-    selectedInstrument = null;
-  }
+  }finally {
+  const up = document.getElementById('uploadLoading');
+  const analysisLoader = document.getElementById('analysisLoader');
+  if (up) up.style.display = 'none';
+  if (analysisLoader) analysisLoader.remove();
+  hideInstrumentSelection();
+  hideRecordingConfirmation();
+  pendingBlob = null;
+  selectedInstrument = null;
+}
 });
   $('#instrumentBackBtn')?.addEventListener('click', () => {
     hideInstrumentSelection();
@@ -6203,9 +6245,9 @@ if (queryString) {
     // ====== SONG SEARCH MODAL ======
     (function () {
       const DEFAULT_LIBRARY = [
-        { title: "Canon in D", artist: "Pachelbel", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/CanoninD.mid", type: "midi", tags: "classical wedding piano" },
-        { title: "Fur Elise", artist: "Beethoven", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/FurElise.mid", type: "midi", tags: "classical piano" },
-        { title: "Greensleeves", artist: "Traditional", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/greensleeves.mid", type: "midi", tags: "folk guitar" }
+        // { title: "Canon in D", artist: "Pachelbel", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/CanoninD.mid", type: "midi", tags: "classical wedding piano" },
+        // { title: "Fur Elise", artist: "Beethoven", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/FurElise.mid", type: "midi", tags: "classical piano" },
+        // { title: "Greensleeves", artist: "Traditional", url: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts/examples/midi/greensleeves.mid", type: "midi", tags: "folk guitar" }
       ];
 
       async function getLibrary() {
@@ -6235,56 +6277,93 @@ if (queryString) {
         m.setAttribute('aria-hidden', 'true');
       }
 
-      async function renderResults(query) {
+  async function renderResults(query){
+    const box = $('#songResults');
+    box.innerHTML = '<div class="loading">Searching...</div>';
+
+    try{
+      let results = [];
+      const q = (query||'').trim();
+      if (q) {
+        const apiUrl = (p) => {
+          const base = (window.UPKRAFT_API_BASE || window.API_BASE_URL || '').replace(/\/+$/, '');
+          const path = p.startsWith('/') ? p : `/${p}`;
+          return base ? `${base}${path}` : path;
+        };
+        const res = await fetch(apiUrl(`/Api/songs/search?q=${encodeURIComponent(q)}`));
+        if (!res.ok) throw new Error('Search API failed');
+        const data = await res.json();
+        results = Array.isArray(data?.items) ? data.items : [];
+      } else {
         const lib = await getLibrary();
-        const q = (query || '').toLowerCase().trim();
-        const results = lib.filter(s => {
-          if (!q) return true;
-          return (s.title || '').toLowerCase().includes(q) ||
-            (s.artist || '').toLowerCase().includes(q) ||
-            (s.tags || '').toLowerCase().includes(q);
-        });
-        const box = $('#songResults');
-        box.innerHTML = '';
-        results.forEach((s, idx) => {
-          const div = document.createElement('div');
-          div.className = 'song-result';
-          div.setAttribute('role', 'option');
-          div.dataset.index = String(idx);
-          div.innerHTML = '<div class="title">' + (s.title || 'Untitled') + '</div>' +
-            '<div class="meta">' + (s.artist || '') + ' · ' + (s.type || 'file') + '</div>';
-          div.addEventListener('click', () => loadSong(s));
-          box.appendChild(div);
-        });
-        const first = box.querySelector('.song-result');
-        if (first) first.setAttribute('aria-selected', 'true');
+        results = Array.isArray(lib) ? lib : [];
       }
 
-      async function loadSong(song) {
-        try {
-          const u = (song && song.url || '').toLowerCase();
-          if (u && (u.endsWith('.mid') || u.endsWith('.midi') || u.endsWith('.cap') || u.endsWith('.capx'))) {
-            throw new Error('MIDI (.mid, .midi) and Capella (.cap, .capx) files are not allowed.');
-          }
-        } catch (_) { }
-
-        try {
-          if (!at) throw new Error('AlphaTab not ready');
-          const res = await fetch(song.url);
-          if (!res.ok) throw new Error('Failed to fetch song: ' + res.status);
-          const buf = new Uint8Array(await res.arrayBuffer());
-          at.loadScore(buf);
-          const meta = $('#meta');
-          if (meta) meta.textContent = (song.title || 'Song') + ' — ' + (song.artist || '');
-          closeModal();
-          setTimeout(() => {
-            $('#play')?.click();
-          }, 300);
-        } catch (e) {
-          console.error(e);
-          alert('Could not load song: ' + e.message);
-        }
+      box.innerHTML = '';
+      if (results.length === 0) {
+        box.innerHTML = '<div class="no-results">No songs found</div>';
+        return;
       }
+
+      results.forEach((s, idx)=>{
+        const div = document.createElement('div');
+        div.className = 'song-result';
+        div.setAttribute('role','option');
+        div.dataset.index = String(idx);
+        div.innerHTML = '<div class="title">'+ (s.title||'Untitled') +'</div>' +
+                        '<div class="meta">'+ (s.artist||'') +' · '+ (s.type||'file') +'</div>';
+        div.addEventListener('click', ()=> loadSong(s));
+        box.appendChild(div);
+      });
+      const first = box.querySelector('.song-result');
+      if (first) first.setAttribute('aria-selected','true');
+    } catch(err){
+      console.error('Search error:', err);
+      box.innerHTML = '<div class="error">Search failed</div>';
+    }
+  }
+  
+  async function loadSong(song) {
+  try {
+    const url = song.url;
+    if (!url) throw new Error('No song URL provided');
+
+    const ext = url.split('.').pop().toLowerCase();
+
+    // Fetch the file
+    const apiUrl = (p) => {
+      const base = (window.UPKRAFT_API_BASE || window.API_BASE_URL || '').replace(/\/+$/, '');
+      const path = p.startsWith('/') ? p : `/${p}`;
+      return base ? `${base}${path}` : path;
+    };
+    const res = await fetch(url.startsWith('http') ? url : apiUrl(url));
+    if (!res.ok) throw new Error('Failed to fetch file: ' + res.status);
+
+    const buf = await res.arrayBuffer();
+
+    if (ext === 'pdf') {
+      // ✅ Call PDF loader
+      await showPdfFromBuffer(buf, song.title || url);
+    } else {
+      // ✅ Use AlphaTab for GP/GPX/MusicXML files
+      if (!window.at) throw new Error('AlphaTab not ready');
+      await window.at.load(buf);
+    }
+
+    // Update meta info
+    const meta = document.getElementById('meta');
+    if (meta) meta.textContent = `${song.title || 'Song'} — ${song.artist || ''}`;
+
+    closeModal();
+    
+    // Auto-play after loading
+    // setTimeout(() => document.getElementById('play')?.click(), 300);
+
+  } catch (e) {
+    console.error(e);
+    alert('Could not load song: ' + e.message);
+  }
+}
 
       $('#searchSong')?.addEventListener('click', openModal);
       $('#songModalClose')?.addEventListener('click', closeModal);
@@ -6403,6 +6482,35 @@ if (queryString) {
 
       // Initial button states
       updateButtonStates();
+
+        // Auto-load selected song if provided via query
+  try {
+    var sel = window.__UPKRAFT_SELECTED_SONG__;
+    if (sel) {
+      var apiUrl = function(p){
+        var base = (window.UPKRAFT_API_BASE || window.API_BASE_URL || '').replace(/\/+$/, '');
+        var path = p.startsWith('/') ? p : '/' + p;
+        return base ? (base + path) : path;
+      };
+      var url = /^https?:\/\//i.test(sel) ? sel : apiUrl(sel);
+      console.log('[Visualizer] Auto-loading selected song:', { sel, resolved: url, apiBase: (window.UPKRAFT_API_BASE || window.API_BASE_URL || '') });
+      // Reuse loadSong's logic pathway
+      loadSong({ title: 'Selected Song', artist: '', url }).catch(function(err){
+        console.error('[Visualizer] Auto-load failed:', err);
+        alert('Could not auto-load song: ' + (err && err.message ? err.message : err));
+      });
+    }
+  } catch(_){}
+  // Also support dynamic selection via postMessage from parent
+  window.addEventListener('message', function(e){
+    try{
+      if (e && e.data && e.data.type === 'upkraft:loadSong' && e.data.url){
+        var base = (window.UPKRAFT_API_BASE || window.API_BASE_URL || '').replace(/\/+$/, '');
+        var url = /^https?:\/\//i.test(e.data.url) ? e.data.url : (base ? base + (e.data.url.startsWith('/') ? e.data.url : '/' + e.data.url) : e.data.url);
+        loadSong({ title: 'Selected Song', url: url });
+      }
+    }catch(err){ console.warn('postMessage loadSong failed', err); }
+  });
     });
 
     // ====== ANNOTATION SYSTEM ======
