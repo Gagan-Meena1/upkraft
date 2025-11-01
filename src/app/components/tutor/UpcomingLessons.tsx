@@ -208,27 +208,11 @@ const UpcomingLessons = () => {
                   <td>
                     <div className="text-xs flex flex-col gap-2 text-gray-600">
                       <span>
-                        {(() => {
-                          // Display time in UTC like the calendar does
-                          const startDate = new Date(classItem.startTime);
-                          const start = startDate.toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                            timeZone: "UTC",
-                          });
-                          
-                          const end = classItem.endTime
-                            ? new Date(classItem.endTime).toLocaleTimeString("en-US", {
-                                hour: "numeric",
-                                minute: "2-digit",
-                                hour12: true,
-                                timeZone: "UTC",
-                              })
-                            : "";
-                          
-                          return end ? `${start} - ${end}` : start;
-                        })()}
+                        {formatTimeRangeInTz(
+                          classItem.startTime,
+                          classItem.endTime,
+                          userTz
+                        )}
                       </span>
                     </div>
                   </td>
