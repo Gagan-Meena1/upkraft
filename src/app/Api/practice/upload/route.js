@@ -65,40 +65,40 @@ export async function POST(request) {
     let mp3Result = null;
     let mp3Url = null;
 
-    try {
+    // try {
       // Generate MP3 transformation URL
-      mp3Url = cloudinary.url(uploadResult.public_id, {
-        resource_type: 'video', // Use video for audio transformations
-        format: 'mp3',
-        audio_codec: 'mp3',
-        audio_frequency: 44100,
-        bit_rate: '192k',
-        quality: 'auto:good'
-      });
+      // mp3Url = cloudinary.url(uploadResult.public_id, {
+      //   resource_type: 'video', // Use video for audio transformations
+      //   format: 'mp3',
+      //   audio_codec: 'mp3',
+      //   audio_frequency: 44100,
+      //   bit_rate: '192k',
+      //   quality: 'auto:good'
+      // });
 
       // Create a derived MP3 version explicitly
-      const mp3PublicId = `${uploadResult.public_id}_mp3`;
-      mp3Result = await cloudinary.uploader.explicit(uploadResult.public_id, {
-        resource_type: 'video',
-        type: 'upload',
-        public_id: mp3PublicId,
-        format: 'mp3',
-        audio_codec: 'mp3',
-        audio_frequency: 44100,
-        bit_rate: '192k',
-        overwrite: true
-      });
+      // const mp3PublicId = `${uploadResult.public_id}_mp3`;
+      // mp3Result = await cloudinary.uploader.explicit(uploadResult.public_id, {
+      //   resource_type: 'video',
+      //   type: 'upload',
+      //   public_id: mp3PublicId,
+      //   format: 'mp3',
+      //   audio_codec: 'mp3',
+      //   audio_frequency: 44100,
+      //   bit_rate: '192k',
+      //   overwrite: true
+      // });
 
-      console.log('MP3 conversion successful:', {
-        public_id: mp3Result.public_id,
-        format: mp3Result.format,
-        bytes: mp3Result.bytes
-      });
+      // console.log('MP3 conversion successful:', {
+      //   public_id: mp3Result.public_id,
+      //   format: mp3Result.format,
+      //   bytes: mp3Result.bytes
+      // });
 
-    } catch (conversionError) {
-      console.error('MP3 conversion failed:', conversionError);
-      // Continue without MP3 version
-    }
+    // } catch (conversionError) {
+    //   console.error('MP3 conversion failed:', conversionError);
+    //   // Continue without MP3 version
+    // }
 
     // STEP 3: Return both original and MP3 URLs
     const response = {
