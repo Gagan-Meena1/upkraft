@@ -24,6 +24,19 @@ import { PiNutBold } from "react-icons/pi";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Modal, Button } from "react-bootstrap"; // ADD
+import {
+  formatTimeRangeInTz,
+  getUserTimeZone,
+} from "@/helper/time";
+
+interface UserData {
+  _id: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  category: string;
+  timezone?: string;
+}
 
 const StudentCalendarView = () => {
   const router = useRouter();
@@ -37,6 +50,7 @@ const StudentCalendarView = () => {
   const [courses, setCourses] = useState([]);
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [showCourseModal, setShowCourseModal] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
 
   // Modal handlers
   const handleOpenCourseModal = () => {
@@ -125,6 +139,22 @@ const StudentCalendarView = () => {
     fetchCourses();
   }, []);
 
+  // Fetch user data to get timezone
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/Api/users/user");
+        const data = await response.json();
+        if (data.user) {
+          setUserData(data.user);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    fetchUserData();
+  }, []);
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -182,27 +212,12 @@ const StudentCalendarView = () => {
     setCurrentDate(d);
   };
 
+  const userTz = userData?.timezone || getUserTimeZone();
+
   const formatTime = (startTime, endTime) => {
     if (!startTime) return "";
-    // Use UTC methods to get the exact stored time
-    const startDate = new Date(startTime);
-    const start = startDate.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "UTC", // This ensures we read the UTC time correctly
-    });
-
-    const end = endTime
-      ? new Date(endTime).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-          timeZone: "UTC", // This ensures we read the UTC time correctly
-        })
-      : "";
-
-    return end ? `${start} - ${end}` : start;
+    // Use user's timezone for display
+    return formatTimeRangeInTz(startTime, endTime, userTz);
   };
 
   const getInitials = (name) => {

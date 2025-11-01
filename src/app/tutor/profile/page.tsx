@@ -53,6 +53,7 @@ interface Tutor {
   // youtubeLink?: string;
   profileImage?: string;
   aboutMyself?: string;
+  timezone?: string;
 }
 
 const teachingModeOptions = [
@@ -123,6 +124,11 @@ const TutorProfilePage = () => {
     }
   };
 
+  // Set a specific field (used by timezone dropdown)
+  const handleSetField = (name: string, value: any) => {
+    setEditedTutor((prev) => (prev ? { ...prev, [name]: value } : prev));
+  };
+
   const handleProfileImageClick = () => fileInputRef.current?.click();
 
   const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,6 +163,7 @@ const TutorProfilePage = () => {
         teachingMode: editedTutor.teachingMode, // Ensure this is included
         instagramLink: editedTutor.instagramLink,
         aboutMyself: editedTutor.aboutMyself,
+        timezone: editedTutor.timezone, // Save timezone
       };
 
       formData.append("userData", JSON.stringify(tutorData));
@@ -180,6 +187,37 @@ const TutorProfilePage = () => {
       alert("Failed to update profile. Please try again.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Helper: show timezone offset like "UTC+05:30"
+  const getUtcOffsetForDisplay = (tz?: string) => {
+    if (!tz) return "";
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "shortOffset",
+      }).formatToParts(new Date());
+      let tzn = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+      tzn = tzn.replace("GMT", "UTC");
+      if (!tzn.startsWith("UTC")) {
+        const now = new Date();
+        const utcStr = now.toLocaleString("en-US", { timeZone: "UTC" });
+        const tzStr = now.toLocaleString("en-US", { timeZone: tz });
+        const diffMin = Math.round(
+          (new Date(tzStr).getTime() - new Date(utcStr).getTime()) / 60000
+        );
+        const sign = diffMin >= 0 ? "+" : "-";
+        const abs = Math.abs(diffMin);
+        const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+        const mm = String(abs % 60).padStart(2, "0");
+        return `UTC${sign}${hh}:${mm}`;
+      }
+      return tzn;
+    } catch {
+      return "UTC";
     }
   };
 
@@ -293,6 +331,15 @@ const TutorProfilePage = () => {
                   value={tutor.address || "Not specified"}
                 />
                 <InfoBox label="City" value={tutor.city || "Not specified"} />
+                {/* Show timezone with UTC offset */}
+                <InfoBox
+                  label="Timezone"
+                  value={
+                    tutor.timezone
+                      ? `${getUtcOffsetForDisplay(tutor.timezone)} — ${tutor.timezone.replace(/_/g, " ")}`
+                      : "Not specified"
+                  }
+                />
               </div>
               <div className="space-y-4">
                 <InfoBox
@@ -340,6 +387,7 @@ const TutorProfilePage = () => {
           handleProfileImageClick={handleProfileImageClick}
           handleProfileImageChange={handleProfileImageChange}
           handleInputChange={handleInputChange}
+          handleSetField={handleSetField} // pass field setter
           handleSaveChanges={handleSaveChanges}
           closeEditModal={closeEditModal}
           isSaving={isSaving}
@@ -365,153 +413,375 @@ const EditModal = ({
   handleProfileImageClick,
   handleProfileImageChange,
   handleInputChange,
+  handleSetField,
   handleSaveChanges,
   closeEditModal,
   isSaving,
-}: any) => (
-  <div className="fixed inset-0 z-50 flex justify-center items-center">
-    {/* Blur Background */}
-    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+}: any) => {
+  // Timezone dropdown state (same behavior as student dialog)
+  const [timezones, setTimezones] = React.useState<{ label: string; value: string }[]>([]);
+  const [timezonesSearch, setTimezonesSearch] = React.useState<string>("");
+  const [tzOpen, setTzOpen] = React.useState<boolean>(false);
+  const tzDropdownRef = React.useRef<HTMLDivElement | null>(null);
+  const deviceTimeZone = React.useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone,
+    []
+  );
 
-    {/* Modal */}
-    <div className="relative bg-white rounded-2xl shadow-2xl w-full h-full md:h-auto md:max-w-5xl md:max-h-[95vh] overflow-y-auto z-10">
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-5 flex justify-between items-center z-20">
-        <h3 className="text-2xl font-semibold text-gray-800">Edit Profile</h3>
-        <button
-          onClick={closeEditModal}
-          className="text-gray-400 hover:text-gray-600"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
+  const curatedTimezones = [
+    { label: "London (UK)", value: "Europe/London" },
+    { label: "Paris (France)", value: "Europe/Paris" },
+    { label: "Berlin (Germany)", value: "Europe/Berlin" },
+    { label: "Madrid (Spain)", value: "Europe/Madrid" },
+    { label: "Rome (Italy)", value: "Europe/Rome" },
+    { label: "Zurich (Switzerland)", value: "Europe/Zurich" },
+    { label: "Athens (Greece)", value: "Europe/Athens" },
+    { label: "Dubai (UAE)", value: "Asia/Dubai" },
+    { label: "Riyadh (Saudi Arabia)", value: "Asia/Riyadh" },
+    { label: "Cairo (Egypt)", value: "Africa/Cairo" },
+    { label: "Johannesburg (South Africa)", value: "Africa/Johannesburg" },
+    { label: "Moscow (Russia)", value: "Europe/Moscow" },
+    { label: "Karachi (Pakistan)", value: "Asia/Karachi" },
+    { label: "Delhi (India)", value: "Asia/Kolkata" },
+    { label: "Dhaka (Bangladesh)", value: "Asia/Dhaka" },
+    { label: "Bangkok (Thailand)", value: "Asia/Bangkok" },
+    { label: "Singapore", value: "Asia/Singapore" },
+    { label: "Hong Kong", value: "Asia/Hong_Kong" },
+    { label: "Tokyo (Japan)", value: "Asia/Tokyo" },
+    { label: "Seoul (South Korea)", value: "Asia/Seoul" },
+    { label: "Beijing (China)", value: "Asia/Shanghai" },
+    { label: "Sydney (Australia)", value: "Australia/Sydney" },
+    { label: "Melbourne (Australia)", value: "Australia/Melbourne" },
+    { label: "Auckland (New Zealand)", value: "Pacific/Auckland" },
+    { label: "New York (USA)", value: "America/New_York" },
+    { label: "Chicago (USA)", value: "America/Chicago" },
+    { label: "Denver (USA)", value: "America/Denver" },
+    { label: "Los Angeles (USA)", value: "America/Los_Angeles" },
+    { label: "Toronto (Canada)", value: "America/Toronto" },
+    { label: "Vancouver (Canada)", value: "America/Vancouver" },
+    { label: "Mexico City (Mexico)", value: "America/Mexico_City" },
+    { label: "Bogotá (Colombia)", value: "America/Bogota" },
+    { label: "São Paulo (Brazil)", value: "America/Sao_Paulo" },
+    { label: "Buenos Aires (Argentina)", value: "America/Argentina/Buenos_Aires" },
+    { label: "Honolulu (Hawaii)", value: "Pacific/Honolulu" },
+    { label: "Anchorage (Alaska)", value: "America/Anchorage" },
+    { label: "UTC", value: "UTC" },
+  ];
 
-      {/* Modal Content */}
-      <div className="p-8">
-        {/* Image Upload */}
-        <div className="flex flex-col items-center mb-8">
-          <div
-            onClick={handleProfileImageClick}
-            className="relative w-36 h-36 rounded-full overflow-hidden cursor-pointer group border-4 border-dashed border-[#6307c9] hover:border-[#8142d8] transition-colors duration-300"
+  React.useEffect(() => {
+    setTimezones(curatedTimezones);
+  }, []);
+
+  // Default to device TZ if none set
+  React.useEffect(() => {
+    if (!editedTutor?.timezone && deviceTimeZone) {
+      handleSetField("timezone", deviceTimeZone);
+    }
+  }, [editedTutor?.timezone, deviceTimeZone, handleSetField]);
+
+  // Close dropdown on outside click or ESC
+  React.useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (tzDropdownRef.current && !tzDropdownRef.current.contains(e.target as Node)) {
+        setTzOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTzOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  const getUtcOffsetLabel = (tz: string) => {
+    try {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "shortOffset",
+      }).formatToParts(new Date());
+      let tzn = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+      tzn = tzn.replace("GMT", "UTC");
+      if (!tzn.startsWith("UTC")) {
+        const now = new Date();
+        const utcStr = now.toLocaleString("en-US", { timeZone: "UTC" });
+        const tzStr = now.toLocaleString("en-US", { timeZone: tz });
+        const utcDate = new Date(utcStr);
+        const tzDate = new Date(tzStr);
+        const diffMin = Math.round((tzDate.getTime() - utcDate.getTime()) / 60000);
+        const sign = diffMin >= 0 ? "+" : "-";
+        const abs = Math.abs(diffMin);
+        const hh = String(Math.floor(abs / 60)).padStart(2, "0");
+        const mm = String(abs % 60).padStart(2, "0");
+        return `UTC${sign}${hh}:${mm}`;
+      }
+      return tzn;
+    } catch {
+      return "UTC";
+    }
+  };
+
+  const getFriendlyPlaceLabel = (tzValue: string) => {
+    const item = timezones.find((t) => t.value === tzValue);
+    return item?.label ?? tzValue.replace(/_/g, " ");
+  };
+
+  const getTzDisplay = (tzValue: string) => {
+    const offset = getUtcOffsetLabel(tzValue);
+    const place = getFriendlyPlaceLabel(tzValue);
+    const idText = tzValue.replace(/_/g, " ");
+    return `${offset} — ${place} • ${idText}`;
+  };
+
+  const filteredTimezones = timezones.filter((tz) => {
+    const searchable = `${getTzDisplay(tz.value)} ${tz.label} ${tz.value}`.toLowerCase();
+    return searchable.includes(timezonesSearch.toLowerCase());
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-center items-center">
+      {/* Blur Background */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+
+      {/* Modal */}
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full h-full md:h-auto md:max-w-5xl md:max-h-[95vh] overflow-y-auto z-10">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-5 flex justify-between items-center z-20">
+          <h3 className="text-2xl font-semibold text-gray-800">Edit Profile</h3>
+          <button
+            onClick={closeEditModal}
+            className="text-gray-400 hover:text-gray-600"
           >
-            {previewImage ? (
-              <img
-                src={previewImage}
-                alt="Profile Preview"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center">
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="p-8">
+          {/* Image Upload */}
+          <div className="flex flex-col items-center mb-8">
+            <div
+              onClick={handleProfileImageClick}
+              className="relative w-36 h-36 rounded-full overflow-hidden cursor-pointer group border-4 border-dashed border-[#6307c9] hover:border-[#8142d8] transition-colors duration-300"
+            >
+              {previewImage ? (
+                <img
+                  src={previewImage}
+                  alt="Profile Preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-100 flex flex-col items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 text-[#6307c9]"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                  <span className="text-sm text-gray-500 mt-2">Add Photo</span>
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleProfileImageChange}
+              accept="image/*"
+              className="hidden"
+            />
+          </div>
+
+          {/* Form Sections */}
+          <FormSection
+            title="Basic Information"
+            fields={[
+              { name: "username", label: "Full Name", type: "text" },
+              { name: "email", label: "Email", type: "email" },
+              { name: "contact", label: "Contact Number", type: "text" },
+              { name: "city", label: "City", type: "text" },
+              { name: "address", label: "Address/Academy", type: "text" },
+              { name: "teachingMode", label: "Teaching Mode", type: "text" },
+              {
+                name: "studentsCoached",
+                label: "Student Coached",
+                type: "number",
+              },
+              // Removed plain text timezone field in favor of dropdown below
+            ]}
+            data={editedTutor}
+            handleInputChange={handleInputChange}
+          />
+
+          {/* Time zone dropdown (same UX as student dialog) */}
+          <div className="mt-6 text-gray-800">
+            <h4 className="font-bold text-gray-700 mb-3">Time zone</h4>
+            <div className="relative" ref={tzDropdownRef}>
+              <button
+                type="button"
+                className="w-full flex justify-between items-center px-4 py-3 border rounded-lg shadow-sm text-left bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#6307c9]"
+                onClick={() => setTzOpen((v) => !v)}
+              >
+                <span className="truncate">
+                  {editedTutor?.timezone ? getTzDisplay(editedTutor.timezone) : "Select your time zone"}
+                </span>
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-12 w-12 text-[#6307c9]"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+                  className={`w-4 h-4 transition-transform ${tzOpen ? "rotate-180" : ""}`}
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
                 >
                   <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.116l3.71-3.885a.75.75 0 111.08 1.04l-4.24 4.44a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
                   />
                 </svg>
-                <span className="text-sm text-gray-500 mt-2">Add Photo</span>
-              </div>
-            )}
+              </button>
+
+              {tzOpen && (
+                <div
+                  className="absolute z-50 mt-2 w-full rounded-lg border bg-white shadow-lg max-h-[70vh] overflow-y-auto overscroll-contain"
+                  role="listbox"
+                  aria-label="Time zones"
+                >
+                  <div className="p-2 border-b sticky top-0 bg-white z-10">
+                    <input
+                      autoFocus
+                      type="text"
+                      placeholder="Search timezone (city, country, UTC)..."
+                      className="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-[#6307c9]"
+                      value={timezonesSearch}
+                      onChange={(e) => setTimezonesSearch(e.target.value)}
+                    />
+                  </div>
+
+                  <ul className="py-1">
+                    {deviceTimeZone && (
+                      <li>
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                          onClick={() => {
+                            handleSetField("timezone", deviceTimeZone);
+                            setTzOpen(false);
+                          }}
+                        >
+                          Use device time zone ({getTzDisplay(deviceTimeZone)})
+                        </button>
+                      </li>
+                    )}
+                    <li className="px-4 py-1 text-xs text-gray-400">──────────</li>
+
+                    {(filteredTimezones.length ? filteredTimezones : timezones)
+                      .filter((tz) => tz.value !== deviceTimeZone)
+                      .map((tz) => (
+                        <li key={tz.value}>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={editedTutor?.timezone === tz.value}
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-100 ${
+                              editedTutor?.timezone === tz.value
+                                ? "bg-purple-50 text-purple-700"
+                                : ""
+                            }`}
+                            onClick={() => {
+                              handleSetField("timezone", tz.value);
+                              setTzOpen(false);
+                            }}
+                          >
+                            {getTzDisplay(tz.value)}
+                          </button>
+                        </li>
+                      ))}
+                    {(filteredTimezones.length ? filteredTimezones : timezones)
+                      .filter((tz) => tz.value !== deviceTimeZone).length === 0 && (
+                      <li className="px-4 py-3 text-sm text-gray-500">No matches</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            onChange={handleProfileImageChange}
-            accept="image/*"
-            className="hidden"
+
+          {/* Professional Information */}
+          <FormSection
+            title="Professional Information"
+            fields={[
+              { name: "education", label: "Education", type: "text" },
+              { name: "skills", label: "Skills", type: "text" },
+              { name: "experience", label: "Experience (years)", type: "number" },
+            ]}
+            data={editedTutor}
+            handleInputChange={handleInputChange}
           />
-        </div>
 
-        {/* Form Sections */}
-        <FormSection
-          title="Basic Information"
-          fields={[
-            { name: "username", label: "Full Name", type: "text" },
-            { name: "email", label: "Email", type: "email" },
-            { name: "contact", label: "Contact Number", type: "text" },
-            { name: "city", label: "City", type: "text" },
-            { name: "address", label: "Address/Academy", type: "text" },
-            { name: "teachingMode", label: "Teaching Mode", type: "text" },
-            {
-              name: "studentsCoached",
-              label: "Student Coached",
-              type: "number",
-            },
-          ]}
-          data={editedTutor}
-          handleInputChange={handleInputChange}
-        />
-
-        <FormSection
-          title="Professional Information"
-          fields={[
-            { name: "education", label: "Education", type: "text" },
-            { name: "skills", label: "Skills", type: "text" },
-            { name: "experience", label: "Experience (years)", type: "number" },
-          ]}
-          data={editedTutor}
-          handleInputChange={handleInputChange}
-        />
-
-        <FormSection
-          title="Social Media Links"
-          fields={[
-            {
-              name: "instagramLink",
-              label: "Instagram",
-              type: "url",
-              placeholder: "https://instagram.com/username",
-            },
-            // { name: "facebookLink", label: "Facebook", type: "url", placeholder: "https://facebook.com/username" },
-            // { name: "linkedInLink", label: "LinkedIn", type: "url", placeholder: "https://linkedin.com/in/username" },
-            // { name: "youtubeLink", label: "YouTube", type: "url", placeholder: "https://youtube.com/@username" },
-          ]}
-          data={editedTutor}
-          handleInputChange={handleInputChange}
-        />
-
-        {/* About Me */}
-        <div className="mt-6">
-          <h4 className="font-bold text-gray-700 mb-3">About Me</h4>
-          <textarea
-            name="aboutMyself"
-            value={editedTutor.aboutMyself || ""}
-            onChange={handleInputChange}
-            rows={5}
-            className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#6307c9] outline-none"
-            placeholder="Share your experience, achievements, and style of teaching..."
+          {/* Social Media Links */}
+          <FormSection
+            title="Social Media Links"
+            fields={[
+              {
+                name: "instagramLink",
+                label: "Instagram",
+                type: "url",
+                placeholder: "https://instagram.com/username",
+              },
+              // { name: "facebookLink", label: "Facebook", type: "url", placeholder: "https://facebook.com/username" },
+              // { name: "linkedInLink", label: "LinkedIn", type: "url", placeholder: "https://linkedin.com/in/username" },
+              // { name: "youtubeLink", label: "YouTube", type: "url", placeholder: "https://youtube.com/@username" },
+            ]}
+            data={editedTutor}
+            handleInputChange={handleInputChange}
           />
-        </div>
 
-        {/* Save Buttons */}
-        <div className="!mt-8 !flex !justify-end !space-x-4">
-          <Button
-            variant="outline-primary"
-            onClick={closeEditModal}
-            className="px-6 py-2 rounded-md !border-[#6307c9] !text-[#6307c9] hover:!bg-[#7a1fe6] hover:!text-white transition flex items-center"
-          >
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSaveChanges}
-            disabled={isSaving}
-            className={`px-6 py-2 !bg-[#6307c9] !text-white !rounded-md hover:bg-[#7a1fe6] transition flex items-center ${
-              isSaving ? "opacity-70 cursor-not-allowed" : ""
-            }`}
-          >
-            {isSaving ? "Saving..." : "Save Changes"}
-          </Button>
+          {/* About Me */}
+          <div className="mt-6">
+            <h4 className="font-bold text-gray-700 mb-3">About Me</h4>
+            <textarea
+              name="aboutMyself"
+              value={editedTutor.aboutMyself || ""}
+              onChange={handleInputChange}
+              rows={5}
+              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-[#6307c9] outline-none"
+              placeholder="Share your experience, achievements, and style of teaching..."
+            />
+          </div>
+
+          {/* Save Buttons */}
+          <div className="!mt-8 !flex !justify-end !space-x-4">
+            <Button
+              variant="outline-primary"
+              onClick={closeEditModal}
+              className="px-6 py-2 rounded-md !border-[#6307c9] !text-[#6307c9] hover:!bg-[#7a1fe6] hover:!text-white transition flex items-center"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSaveChanges}
+              disabled={isSaving}
+              className={`px-6 py-2 !bg-[#6307c9] !text-white !rounded-md hover:bg-[#7a1fe6] transition flex items-center ${
+                isSaving ? "opacity-70 cursor-not-allowed" : ""
+              }`}
+            >
+              {isSaving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Form Section Reusable Component
 const FormSection = ({
