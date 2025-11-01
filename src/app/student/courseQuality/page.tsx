@@ -213,7 +213,7 @@ function CourseQualityContent() {
                       <div className={`p-2 rounded-lg ${getScoreColor(metric.score || 0)}`}>
                         {metric.icon}
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-800">{metric.title}</h3>
+                      <h3 className="!text-xl font-semibold text-gray-800">{metric.title}</h3>
                     </div>
                     <div className="flex items-center space-x-2">
                       {getScoreIcon(metric.score || 0)}
