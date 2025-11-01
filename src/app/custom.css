@@ -704,5 +704,15 @@ button:focus:not(:focus-visible) {
 
 
 
+@media only screen and (max-width: 992px){
+
+    .dashboard-sec .side-details-sec {
+      width: 100%;
+      margin-top: 66px;
+      padding: 15px;
+  }
+
+}
+
 
 

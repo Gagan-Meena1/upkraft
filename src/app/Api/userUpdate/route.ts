@@ -41,6 +41,7 @@ export async function PUT(request: Request) {
       email: userData.email,
       contact: userData.contact,
       address: userData.address,
+      timezone: userData.timezone,
       // Add custom fields that are not in the original schema
       ...(userData.city && { city: userData.city }),
       ...(userData.education && { education: userData.education }),

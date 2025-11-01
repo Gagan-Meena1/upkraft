@@ -138,7 +138,7 @@ export default function SignupPage() {
             {/* Role Selection */}
             <div className="!mb-6">
               <div className="!flex !gap-3">
-                {["Student", "Admin", "Tutor"].map((role) => (
+                {["Student", "Admin", "Tutor", "Academic"].map((role) => (
                   <button
                     key={role}
                     onClick={() => handleRoleClick(role)}

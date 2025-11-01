@@ -13,7 +13,10 @@ import "swiper/css/pagination";
 import "@/styles/globals.css";
 import "../../app/custom.css";
 import "../../../style.css";
+import "../../app/academy.css"
+import "../../app/academyMedia.css"
 import "../../app/media.css";
+// import "../../app/academyStyle.css"
 //import "@/styles/index.css";
 //import "../../app/media.css";
 //import "../../app/custom.css";

@@ -229,6 +229,60 @@
     }
 }
 
+/* Fix for action icons spacing issue */
+.action-icons-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    min-width: auto !important;
+    max-width: fit-content !important;
+    flex-shrink: 0 !important;
+    
+    li {
+        flex-shrink: 0 !important;
+        width: auto !important;
+        margin: 0 !important;
+        
+        button {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 32px !important;
+            height: 32px !important;
+            padding: 4px !important;
+            min-width: 32px !important;
+        }
+    }
+}
+
+/* Additional constraint for the parent container */
+.student-assignment.my-course-student {
+    .action-icons-container {
+        flex-shrink: 0 !important;
+        width: auto !important;
+    }
+}
+
+/* Force immediate layout stability for action icons */
+.assignments-list-box {
+    .right-assignment {
+        .student-assignment {
+            .action-icons-container {
+                /* Ensure the container doesn't expand unnecessarily */
+                flex: 0 0 auto !important;
+                width: max-content !important;
+                
+                /* Force immediate rendering with correct spacing */
+                display: flex !important;
+                align-items: center !important;
+                gap: 8px !important;
+                flex-wrap: nowrap !important;
+            }
+        }
+    }
+}
+
 
 .course-quality-details-sec {
 	.course-quality {
