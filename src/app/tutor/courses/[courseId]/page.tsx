@@ -61,6 +61,7 @@ const CourseDetailsPage = () => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [editError, setEditError] = useState('');
+  const [userTimezone, setUserTimezone] = useState<string | null>(null);
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
   const params = useParams();
   const router = useRouter();
@@ -148,6 +149,22 @@ const extractDateTimeForForm = (dateTimeString: string) => {
       fetchCourseDetails();
     }
   }, [params.courseId]);
+
+  // Fetch user's timezone
+  useEffect(() => {
+    const fetchUserTimezone = async () => {
+      try {
+        const response = await fetch("/Api/users/user");
+        const data = await response.json();
+        if (data.user?.timezone) {
+          setUserTimezone(data.user.timezone);
+        }
+      } catch (error) {
+        console.error("Error fetching user timezone:", error);
+      }
+    };
+    fetchUserTimezone();
+  }, []);
 
   // Handle edit class
 const handleEditClass = (classSession: Class) => {
@@ -245,6 +262,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
         date: editForm.date,        // Send exact: "2024-01-15"
         startTime: editForm.startTime, // Send exact: "14:30"
         endTime: editForm.endTime,     // Send exact: "16:00"
+        timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       }),
     });
 

@@ -43,6 +43,7 @@ function AddSessionPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [userTimezone, setUserTimezone] = useState<string | null>(null);
   const [sessionForm, setSessionForm] = useState<SessionForm>({
     title: "",
     description: "",
@@ -68,6 +69,22 @@ function AddSessionPage() {
     const [year, month, day] = dateString.split("-").map(Number);
     return { year, month: month - 1, day }; // month is 0-indexed for Date constructor
   };
+
+  // Fetch user's timezone
+  useEffect(() => {
+    const fetchUserTimezone = async () => {
+      try {
+        const response = await fetch("/Api/users/user");
+        const data = await response.json();
+        if (data.user?.timezone) {
+          setUserTimezone(data.user.timezone);
+        }
+      } catch (error) {
+        console.error("Error fetching user timezone:", error);
+      }
+    };
+    fetchUserTimezone();
+  }, []);
 
   // Helper function to check if a date is in the past (without time consideration)
   const isDateInPast = (year: number, month: number, day: number): boolean => {
@@ -251,11 +268,9 @@ function AddSessionPage() {
       formData.append("startTime", sessionForm.startTime); // HH:MM format
       formData.append("endTime", sessionForm.endTime); // HH:MM format
 
-      // Add timezone information
-      formData.append(
-        "timezone",
-        Intl.DateTimeFormat().resolvedOptions().timeZone
-      );
+      // Add timezone information - use user's saved timezone, fallback to device timezone
+      const timezoneToSend = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      formData.append("timezone", timezoneToSend);
 
       if (sessionForm.video) {
         formData.append("video", sessionForm.video);
