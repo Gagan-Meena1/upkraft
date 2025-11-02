@@ -160,7 +160,7 @@
 </script> -->
 
 
-  <script>
+  <!-- <script>
     var ENCODED = "REPLACE_WITH_YOUR_BASE64_BLOB";
 
     function decodeAndInject(b64){
@@ -201,7 +201,7 @@
     })();
 
     setTimeout(function(){ if (ENCODED && ENCODED.length>10) decodeAndInject(ENCODED); else document.getElementById('app').textContent = 'No content configured.'; }, 120);
-  </script>
+  </script> -->
 
 
 <style>
@@ -2710,7 +2710,7 @@ body .wrap, body .wrap.pdf-active {
     </div>
   </div>
 
-  <!-- Analysis Loader -->
+  <!-- Analysis Loader
 <div id="analysisLoader" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
   <div style="text-align: center;">
     <div style="width: 60px; height: 60px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
@@ -2723,8 +2723,8 @@ body .wrap, body .wrap.pdf-active {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
-}
-</style>
+} -->
+<!-- </style> -->
   <div aria-hidden="true" id="ui-overlay-root"></div>
 
   <script>
@@ -6363,7 +6363,12 @@ if (queryString) {
     console.error(e);
     alert('Could not load song: ' + e.message);
   }
+
+
 }
+try { 
+  window.loadSong = loadSong; 
+} catch(_) {}
 
       $('#searchSong')?.addEventListener('click', openModal);
       $('#songModalClose')?.addEventListener('click', closeModal);
@@ -6470,20 +6475,20 @@ if (queryString) {
       }, { passive: true });
     })();
 
-    // ====== INITIALIZATION ON DOM READY ======
-    document.addEventListener('DOMContentLoaded', () => {
+// ====== INITIALIZATION ON DOM READY ======
+document.addEventListener('DOMContentLoaded', () => {
+  
+  // Start auto-follow
+  requestAnimationFrame(autoFollowPlayhead);
+  
+  // Align UI elements
+  setTimeout(alignUIElements, 100);
+  window.addEventListener('resize', alignUIElements);
+  
+  // Initial button states
+  updateButtonStates();
 
-      // Start auto-follow
-      requestAnimationFrame(autoFollowPlayhead);
-
-      // Align UI elements
-      setTimeout(alignUIElements, 100);
-      window.addEventListener('resize', alignUIElements);
-
-      // Initial button states
-      updateButtonStates();
-
-        // Auto-load selected song if provided via query
+  // Auto-load selected song if provided via query
   try {
     var sel = window.__UPKRAFT_SELECTED_SONG__;
     if (sel) {
@@ -6501,6 +6506,7 @@ if (queryString) {
       });
     }
   } catch(_){}
+
   // Also support dynamic selection via postMessage from parent
   window.addEventListener('message', function(e){
     try{
@@ -6511,7 +6517,7 @@ if (queryString) {
       }
     }catch(err){ console.warn('postMessage loadSong failed', err); }
   });
-    });
+});
 
     // ====== ANNOTATION SYSTEM ======
     class SheetAnnotation {

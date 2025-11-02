@@ -362,7 +362,7 @@ const MusicLibraryTable = () => {
           e.currentTarget.style.transform = 'scale(1)';
           e.currentTarget.style.boxShadow = '0 4px 14px 0 rgba(6, 182, 212, 0.5)';
         }}
-        href={`/visualizerMainWorkingFine.html?songUrl=${encodeURIComponent(song.url)}`}
+        href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
       >
         <Music style={{ width: '0.75rem', height: '0.75rem', marginRight: '0.25rem' }} />
         Open
