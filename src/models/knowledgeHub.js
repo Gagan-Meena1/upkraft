@@ -22,6 +22,11 @@ const knowledgeHubSchema = new mongoose.Schema({
   thumbnail: {
     type: String
   },
+    contentType: {
+    type: String,
+    enum: ['video', 'short'],
+    default: 'video'
+  },
   
 },
 { timestamps: true }
