@@ -147,6 +147,10 @@
   z-index: 1;
 }
 
+.banner-learners .text-box-banner p {
+  margin-bottom: 32px !important;
+}
+
 h3,
 .h3 {
   font-weight: 500;
@@ -659,7 +663,7 @@ h3,
   h1,
   .h1 {
     font-size: 40px;
-    line-height: 46px;
+    line-height: 1.2;
   }
 
   h3,
@@ -850,7 +854,8 @@ h3,
 
   /* h1,
   .h1 {
-    font-size: 30px;
+    font-size: 40px;
+    line-height: 1.2;
   }
 
   h3,

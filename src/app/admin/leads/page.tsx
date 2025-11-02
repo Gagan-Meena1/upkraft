@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Download, Filter, Phone, Mail, MapPin, User, Building2, GraduationCap, RefreshCw, ChevronLeft, Calendar, TrendingUp, Users, Building } from "lucide-react";
+import { Search, Download, Phone, Mail, MapPin, User, Building2, GraduationCap, RefreshCw, ChevronLeft, TrendingUp, Users, Building } from "lucide-react";
 
 // Types
 interface StudentTutorLead {
@@ -12,8 +12,9 @@ interface StudentTutorLead {
   contactNumber: string;
   instrument: string;
   createdAt: string;
-  email: string;              
-  countryCode: string; 
+  email: string;
+  countryCode: string;
+  tutorName?: string | null;
 }
 
 interface InstitutionLead {
@@ -31,13 +32,13 @@ interface InstitutionLead {
 
 export default function LeadsDashboard() {
   const [activeTab, setActiveTab] = useState<"individual" | "institution">("individual");
-  
+
   // Individual Leads State
   const [individualLeads, setIndividualLeads] = useState<StudentTutorLead[]>([]);
   const [individualFilter, setIndividualFilter] = useState<"All" | "Student" | "Tutor">("All");
   const [individualSearch, setIndividualSearch] = useState("");
   const [individualLoading, setIndividualLoading] = useState(false);
-  
+
   // Institution Leads State
   const [institutionLeads, setInstitutionLeads] = useState<InstitutionLead[]>([]);
   const [institutionFilter, setInstitutionFilter] = useState<"All" | "School" | "Academy">("All");
@@ -57,7 +58,7 @@ export default function LeadsDashboard() {
       const filterParam = individualFilter !== "All" ? `?userType=${individualFilter}` : "";
       const response = await fetch(`/Api/express-interest${filterParam}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setIndividualLeads(data.data);
         setStats(prev => ({
@@ -83,7 +84,7 @@ export default function LeadsDashboard() {
       const filterParam = institutionFilter !== "All" ? `?type=${institutionFilter}` : "";
       const response = await fetch(`/Api/institution-interest${filterParam}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setInstitutionLeads(data.data);
         setStats(prev => ({
@@ -132,7 +133,7 @@ export default function LeadsDashboard() {
   // Export to CSV
   const exportToCSV = (type: "individual" | "institution") => {
     const leads = type === "individual" ? filteredIndividualLeads : filteredInstitutionLeads;
-    
+
     let csv = "";
     if (type === "individual") {
       csv = "Type,Name,Email,Country Code,Contact Number,Instrument,City,Registered At\n";
@@ -156,7 +157,7 @@ export default function LeadsDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 p-4 md:p-8">
-      <div className="max-w-[1600px] mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -223,8 +224,8 @@ export default function LeadsDashboard() {
                 <Users className="w-5 h-5" />
                 <span>Students & Tutors</span>
                 <span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                  activeTab === "individual" 
-                    ? "bg-purple-600 text-white" 
+                  activeTab === "individual"
+                    ? "bg-purple-600 text-white"
                     : "bg-gray-200 text-gray-600"
                 }`}>
                   {stats.individual.total}
@@ -246,8 +247,8 @@ export default function LeadsDashboard() {
                 <Building2 className="w-5 h-5" />
                 <span>Schools & Academies</span>
                 <span className={`ml-2 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                  activeTab === "institution" 
-                    ? "bg-purple-600 text-white" 
+                  activeTab === "institution"
+                    ? "bg-purple-600 text-white"
                     : "bg-gray-200 text-gray-600"
                 }`}>
                   {stats.institution.total}
@@ -265,7 +266,7 @@ export default function LeadsDashboard() {
           <div className="space-y-6">
             {/* Filters & Search */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex flex-col lg:flex-row gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -298,7 +299,7 @@ export default function LeadsDashboard() {
                     className="px-6 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all flex items-center gap-2 shadow-md hover:shadow-lg font-medium"
                   >
                     <Download className="w-5 h-5" />
-                    <span className="hidden sm:inline">Export CSV</span>
+                    <span className="hidden sm:inline">Export</span>
                   </button>
                 </div>
               </div>
@@ -321,26 +322,27 @@ export default function LeadsDashboard() {
             ) : (
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200">
+                  <table className="w-full table-fixed" style={{ minWidth: '1400px' }}>
+                    <thead className="bg-gradient-to-r from-purple-50 to-blue-50 border-b-2 border-gray-200">
                       <tr>
-                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Name</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Email</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Instrument</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">City</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Registered</th>
-                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>Type</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '160px' }}>Name</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '140px' }}>Tutor Name</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '160px' }}>Contact</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '220px' }}>Email</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>Instrument</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>City</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>Registered</th>
+                        <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '140px' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {filteredIndividualLeads.map((lead) => (
-                        <tr key={lead._id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-full ${
-                              lead.userType === "Student" 
-                                ? "bg-blue-100 text-blue-700" 
+                        <tr key={lead._id} className="hover:bg-purple-50/50 transition-colors">
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full ${
+                              lead.userType === "Student"
+                                ? "bg-blue-100 text-blue-700"
                                 : "bg-purple-100 text-purple-700"
                             }`}>
                               {lead.userType === "Student" ? (
@@ -351,40 +353,51 @@ export default function LeadsDashboard() {
                               {lead.userType}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
                             <div className="text-sm font-semibold text-gray-900">{lead.name}</div>
                           </td>
-                          <td className="px-6 py-4">
-                            <a href={`mailto:${lead.email}`} className="text-sm text-gray-600 hover:text-purple-600 transition-colors flex items-center gap-2">
-                              <Mail className="w-4 h-4 flex-shrink-0" />
-                              <span className="truncate max-w-[200px]">{lead.email}</span>
-                            </a>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <a href={`tel:${lead.countryCode}${lead.contactNumber}`} className="text-sm text-gray-600 hover:text-purple-600 transition-colors flex items-center gap-2">
-                              <Phone className="w-4 h-4" />
-                              {lead.countryCode} {lead.contactNumber}
-                            </a>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm font-medium text-gray-900">{lead.instrument}</span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <MapPin className="w-4 h-4" />
-                              {lead.city}
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-700">
+                              {lead.userType === "Student" ? (lead.tutorName || "N/A") : "—"}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <a 
+                              href={`tel:${lead.countryCode}${lead.contactNumber}`} 
+                              className="text-sm text-gray-600 hover:text-purple-600 transition-colors flex items-center gap-1.5"
+                            >
+                              <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>{lead.countryCode} {lead.contactNumber}</span>
+                            </a>
+                          </td>
+                          <td className="px-4 py-4">
+                            <a 
+                              href={`mailto:${lead.email}`} 
+                              className="text-sm text-gray-600 hover:text-purple-600 transition-colors flex items-center gap-1.5"
+                            >
+                              <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate block">{lead.email}</span>
+                            </a>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span className="text-sm font-medium text-gray-900">{lead.instrument}</span>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                              <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>{lead.city}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
                             <div className="text-xs text-gray-500">
-                              {new Date(lead.createdAt).toLocaleDateString("en-IN", { 
+                              {new Date(lead.createdAt).toLocaleDateString("en-IN", {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric"
                               })}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
                             <div className="flex items-center justify-center gap-2">
                               <a
                                 href={`tel:${lead.countryCode}${lead.contactNumber}`}
@@ -417,7 +430,7 @@ export default function LeadsDashboard() {
           <div className="space-y-6">
             {/* Filters & Search */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex flex-col lg:flex-row gap-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
@@ -450,7 +463,7 @@ export default function LeadsDashboard() {
                     className="px-6 py-3.5 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all flex items-center gap-2 shadow-md hover:shadow-lg font-medium"
                   >
                     <Download className="w-5 h-5" />
-                    <span className="hidden sm:inline">Export CSV</span>
+                    <span className="hidden sm:inline">Export</span>
                   </button>
                 </div>
               </div>
@@ -473,61 +486,67 @@ export default function LeadsDashboard() {
             ) : (
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200">
+                  <table className="w-full table-fixed" style={{ minWidth: '1400px' }}>
+                    <thead className="bg-gradient-to-r from-purple-50 to-blue-50 border-b-2 border-gray-200">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Type</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Institution</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Contact Person</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Email</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Phone</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">City</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Students</th>
-                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Registered</th>
-                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Actions</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>Type</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '180px' }}>Institution</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '160px' }}>Contact Person</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '160px' }}>Phone</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '220px' }}>Email</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>City</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '100px' }}>Students</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>Registered</th>
+                        <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '140px' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {filteredInstitutionLeads.map((lead) => (
-                        <tr key={lead._id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-full ${
-                              lead.type === "School" 
-                                ? "bg-green-100 text-green-700" 
+                        <tr key={lead._id} className="hover:bg-purple-50/50 transition-colors">
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full ${
+                              lead.type === "School"
+                                ? "bg-green-100 text-green-700"
                                 : "bg-orange-100 text-orange-700"
                             }`}>
                               <Building2 className="w-3.5 h-3.5" />
                               {lead.type}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm font-semibold text-gray-900">{lead.institutionName}</div>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm font-semibold text-gray-900 truncate">{lead.institutionName}</div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 font-medium">{lead.name}</div>
-                            <div className="text-xs text-gray-500">{lead.role}</div>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 font-medium truncate">{lead.name}</div>
+                            <div className="text-xs text-gray-500 truncate">{lead.role}</div>
                           </td>
-                          <td className="px-6 py-4">
-                            <a href={`mailto:${lead.email}`} className="text-sm text-gray-600 hover:text-purple-600 transition-colors flex items-center gap-2">
-                              <Mail className="w-4 h-4 flex-shrink-0" />
-                              <span className="truncate max-w-[200px]">{lead.email}</span>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <a 
+                              href={`tel:${lead.phone}`} 
+                              className="text-sm text-gray-600 hover:text-purple-600 transition-colors flex items-center gap-1.5"
+                            >
+                              <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>{lead.phone}</span>
                             </a>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <a href={`tel:${lead.phone}`} className="text-sm text-gray-600 hover:text-purple-600 transition-colors flex items-center gap-2">
-                              <Phone className="w-4 h-4" />
-                              {lead.phone}
+                          <td className="px-4 py-4">
+                            <a 
+                              href={`mailto:${lead.email}`} 
+                              className="text-sm text-gray-600 hover:text-purple-600 transition-colors flex items-center gap-1.5"
+                            >
+                              <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span className="truncate block">{lead.email}</span>
                             </a>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <MapPin className="w-4 h-4" />
-                              {lead.city}
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                              <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>{lead.city}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
                             {lead.studentCount ? (
-                              <div className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                              <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
                                 <GraduationCap className="w-4 h-4 text-purple-600" />
                                 {lead.studentCount}
                               </div>
@@ -535,16 +554,16 @@ export default function LeadsDashboard() {
                               <span className="text-xs text-gray-400">N/A</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
                             <div className="text-xs text-gray-500">
-                              {new Date(lead.createdAt).toLocaleDateString("en-IN", { 
+                              {new Date(lead.createdAt).toLocaleDateString("en-IN", {
                                 day: "2-digit",
                                 month: "short",
                                 year: "numeric"
                               })}
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-4 py-4 whitespace-nowrap">
                             <div className="flex items-center justify-center gap-2">
                               <a
                                 href={`tel:${lead.phone}`}
