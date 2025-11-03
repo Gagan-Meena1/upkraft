@@ -149,10 +149,10 @@ function AddSessionPage() {
     const month = currentMonth.getMonth();
 
     // Check if date is in the past
-    if (isDateInPast(year, month, day)) {
-      alert("Cannot create sessions for past dates");
-      return;
-    }
+    // if (isDateInPast(year, month, day)) {
+    //   alert("Cannot create sessions for past dates");
+    //   return;
+    // }
 
     const dateString = formatDateToString(year, month, day);
     setSelectedDate(dateString);
@@ -193,9 +193,9 @@ function AddSessionPage() {
     const currentDateTime = new Date();
 
     // Check if start time is in the past
-    if (startDateTime <= currentDateTime) {
-      return "Start time cannot be in the past";
-    }
+    // if (startDateTime <= currentDateTime) {
+    //   return "Start time cannot be in the past";
+    // }
 
     // Check if end time is after start time
     if (endDateTime <= startDateTime) {
@@ -250,9 +250,9 @@ function AddSessionPage() {
       const currentDateTime = new Date();
 
       // Validation checks
-      if (sessionDateTime <= currentDateTime) {
-        throw new Error("Cannot create sessions for past date and time");
-      }
+      // if (sessionDateTime <= currentDateTime) {
+      //   throw new Error("Cannot create sessions for past date and time");
+      // }
 
       if (endDateTime <= sessionDateTime) {
         throw new Error("End time must be after start time");
@@ -400,22 +400,22 @@ function AddSessionPage() {
                   className={`relative p-2 sm:p-4 rounded-lg min-h-[3rem] sm:min-h-[4rem] ${
                     day
                       ? isPastDate
-                        ? "bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed"
+                        ?  "bg-white border border-gray-200 hover:bg-orange-50 cursor-pointer transition-colors"
                         : "bg-white border border-gray-200 hover:bg-orange-50 cursor-pointer transition-colors"
                       : "opacity-0"
                   }`}
-                  onClick={() => day && !isPastDate && handleDateClick(day)}
+                  onClick={() => day  && handleDateClick(day)}
                 >
                   {day && (
                     <>
                       <span
                         className={`font-medium text-sm sm:text-base ${
-                          isPastDate ? "text-gray-400" : ""
+                          ""
                         } ${isToday ? "text-orange-600 font-bold" : ""}`}
                       >
                         {day}
                       </span>
-                      {!isPastDate && (
+                      {(
                         <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-orange-500 hover:bg-orange-600 text-white rounded-full flex items-center justify-center">
                           <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
