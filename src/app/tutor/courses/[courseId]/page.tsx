@@ -6,6 +6,7 @@ import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2
 import { useParams, useRouter } from 'next/navigation';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
+import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from '@/helper/time';
 
 // TypeScript interfaces for type safety
 interface Curriculum {
@@ -67,6 +68,7 @@ const CourseDetailsPage = () => {
   const router = useRouter();
 
   // Helper function to format date and time
+  /*
 const formatDateTime = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
@@ -99,6 +101,25 @@ const formatDateTime = (dateTimeString: string) => {
     time: timeStr  // Exact stored time: "14:30"
   };
 };
+*/
+
+  const formatDateTime = (startTime: string, endTime: string) => {
+    const tz = userTimezone || getUserTimeZone();
+
+    const date = formatInTz(startTime, tz, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const timeRange = formatTimeRangeInTz(startTime, endTime, tz);
+
+    return {
+      date,
+      time: timeRange,
+    };
+  };
 
 
   // Helper function to extract date and time for form inputs
@@ -550,8 +571,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
             
             <div className="!space-y-4 !sm:space-y-6">
               {courseData.classDetails.map((classSession) => {
-                const { date, time: startTime } = formatDateTime(classSession.startTime);
-                const { time: endTime } = formatDateTime(classSession.endTime);
+                const { date, time } = formatDateTime(classSession.startTime, classSession.endTime);
                 const isUploading = uploadLoading[classSession._id] || false;
 
                 return (
@@ -589,7 +609,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                             <div className="!bg-gray-100 !rounded-lg !p-3 !text-center">
                               <div className="!text-sm !font-bold !text-gray-800">{date}</div>
                               <div className="!text-xs !text-gray-600">
-                                {startTime} - {endTime}
+                                {time}
                               </div>
                             </div>
 
@@ -681,7 +701,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                           <div className="!bg-gray-100 !rounded-lg !p-4 !text-center !min-w-[200px]">
                             <div className="!text-xl !font-bold !text-gray-800">{date}</div>
                             <div className="!text-gray-600">
-                              {startTime} - {endTime}
+                              {time}
                             </div>
                           </div>
 

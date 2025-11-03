@@ -654,7 +654,7 @@ const UserProfilePage: React.FC = () => {
                     )}
                   </div>
 
-                  <label className="cursor-pointer bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
+                  <label className="cursor-pointer bg-purple-700 hover:bg-purple-800 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors shadow-sm">
                     Change Profile Photo
                     <input
                       type="file"
@@ -936,7 +936,7 @@ const UserProfilePage: React.FC = () => {
                 <div className="mt-8">
                   <button
                     type="submit"
-                    className="w-full flex justify-center py-3 px-6 border border-transparent rounded-lg shadow-sm text-base font-bold text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="w-full flex justify-center py-3 px-6 border border-transparent rounded-lg shadow-sm text-base font-bold text-white bg-purple-700 hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? (
