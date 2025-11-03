@@ -60,7 +60,7 @@ const teachingModeOptions = [
   { value: "", label: "Select Mode" },
   { value: "Online", label: "Online" },
   { value: "In-person", label: "In-person" },
-  { value: "Both", label: "Both" },
+  // { value: "Both", label: "Both" },
   { value: "Hybrid", label: "Hybrid" },
 ];
 
@@ -82,7 +82,12 @@ const TutorProfilePage = () => {
     const fetchTutorInfo = async () => {
       try {
         const response = await axios.get("/Api/tutors/tutorInfo");
-        setTutor(response.data.tutor);
+        const tutorData = response.data.tutor;
+        // Convert "Both" to "Hybrid" for backward compatibility
+        if (tutorData && tutorData.teachingMode === "Both") {
+          tutorData.teachingMode = "Hybrid";
+        }
+        setTutor(tutorData);
         setCourses(response.data.courses);
       } catch (error) {
         console.error("Error fetching tutor info:", error);
@@ -287,7 +292,7 @@ const TutorProfilePage = () => {
                 </div>
               </div>
               <div className="flex-1 text-center md:text-left">
-                <h1 className="!text-4xl !font-bold !mb-2">{tutor.username}</h1>
+                <h1 className="!text-2xl !font-bold !mb-2 !text-white">{tutor.username}</h1>
                 <p className="text-white !text-opacity-90 !text-lg">
                   📧 {tutor.email}
                 </p>
