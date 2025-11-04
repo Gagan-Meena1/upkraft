@@ -25,6 +25,7 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Modal, Button } from "react-bootstrap"; // ADD
 import {
+  formatInTz,
   formatTimeRangeInTz,
   getUserTimeZone,
 } from "@/helper/time";
@@ -187,6 +188,31 @@ const StudentCalendarView = () => {
     return days;
   };
 
+  const userTz = userData?.timezone || getUserTimeZone();
+
+  // Helper to get date components in user's timezone
+  const getDateComponentsInTz = (date: Date | string, tz: string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(d);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0');
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    return { year, month, day };
+  };
+
+  // Filter helpers for week/day - compare in user's timezone
+  const isSameDayInTz = (date1: Date | string, date2: Date, tz: string) => {
+    const d1 = getDateComponentsInTz(date1, tz);
+    const d2 = getDateComponentsInTz(date2, tz);
+    return d1.year === d2.year && d1.month === d2.month && d1.day === d2.day;
+  };
+
   const getClassesForDate = (studentId, date) => {
     const studentClasses = allClasses.find(
       (item) => item.studentId === studentId
@@ -195,14 +221,8 @@ const StudentCalendarView = () => {
 
     return studentClasses.classes.filter((classItem) => {
       if (!classItem.startTime) return false;
-      const classDate = new Date(classItem.startTime);
-      
-      // Compare UTC dates to avoid timezone shifts
-      return (
-        classDate.getUTCFullYear() === date.getFullYear() &&
-        classDate.getUTCMonth() === date.getMonth() &&
-        classDate.getUTCDate() === date.getDate()
-      );
+      // Compare dates in user's timezone to ensure correct date matching
+      return isSameDayInTz(classItem.startTime, date, userTz);
     });
   };
 
@@ -211,8 +231,6 @@ const StudentCalendarView = () => {
     d.setDate(d.getDate() + deltaDays);
     setCurrentDate(d);
   };
-
-  const userTz = userData?.timezone || getUserTimeZone();
 
   const formatTime = (startTime, endTime) => {
     if (!startTime) return "";
