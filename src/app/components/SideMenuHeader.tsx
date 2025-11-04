@@ -597,6 +597,7 @@ const SideMenuHeader = ({ role }) => {
                       className={`d-flex align-items-center gap-2 ${
                         isActive("/payment-summary") ? "active" : ""
                       }`}
+                      style={{ whiteSpace: "nowrap" }}
                     >
                       <span className="svg-icons">
                         <svg
