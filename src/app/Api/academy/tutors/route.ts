@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     // Find all tutors where this academy is in their instructorId array
     const tutors = await User.find({
       category: "Tutor",
-      instructorId: academyId
+      academyId: academyId
     }).select("-password").lean();
 
     // For each tutor, calculate additional stats
@@ -40,12 +40,14 @@ export async function GET(req: NextRequest) {
         // Count students for this tutor
         const studentCount = await User.countDocuments({
           category: "Student",
-          instructorId: tutor._id
+          instructorId: tutor._id,
+          academyId: academyId
         });
 
         // Get tutor's courses
         const tutorCourses = await courseName.find({
-          instructorId: tutor._id
+          instructorId: tutor._id,
+          academyId: academyId
         }).lean();
 
         // Count total classes for this tutor
@@ -84,7 +86,8 @@ export async function GET(req: NextRequest) {
         for (const course of tutorCourses) {
           const enrolledStudents = await User.countDocuments({
             category: "Student",
-            courses: course._id
+            courses: course._id,
+            academyId: academyId
           });
           revenue += (course.price || 0) * enrolledStudents;
         }

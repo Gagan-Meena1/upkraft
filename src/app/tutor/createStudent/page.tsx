@@ -2,6 +2,7 @@
 import { useState, FormEvent, useEffect } from "react";
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 interface AddStudentFormData {
   username: string;
@@ -9,6 +10,8 @@ interface AddStudentFormData {
   password: string;
   contact: string;
   category: string;
+    addedBy: string; 
+
 }
 
 const AddStudentPage = () => {
@@ -18,12 +21,16 @@ const AddStudentPage = () => {
     password: "",
     contact: "",
     category: "Student",
+      addedBy: "self", 
+
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
   const [isSubmitSuccessful, setIsSubmitSuccessful] = useState(false);
   const [existingStudent, setExistingStudent] = useState<{ exists: boolean; username?: string }>({ exists: false });
+  const searchParams = useSearchParams();
+const academyId = searchParams.get('academyId');
 
   // Check if student exists when email changes
   useEffect(() => {
@@ -87,6 +94,8 @@ const AddStudentPage = () => {
         password: "",
         contact: "",
         category: "Student",
+        addedBy: prev.addedBy, // Preserve addedBy value
+
       }));
       setExistingStudent({ exists: false });
       setMessage({ text: "", type: "" });
@@ -146,6 +155,8 @@ const AddStudentPage = () => {
         password: "",
         contact: "",
         category: "Student",
+        addedBy: "", // Preserve addedBy value
+
       });
       setExistingStudent({ exists: false });
     } catch (error: any) {
@@ -204,6 +215,69 @@ const AddStudentPage = () => {
                   placeholder="Enter student's email address"
                 />
               </div>
+
+              {/* Added By Radio Buttons - Only show if academyId is present
+{academyId && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">
+      Added By
+    </label>
+    <div className="flex space-x-6">
+      <label className="inline-flex items-center">
+        <input
+          type="radio"
+          name="addedBy"
+          value="self"
+          checked={formData.addedBy === "self"}
+          onChange={handleChange}
+          className="h-4 w-4 text-purple-700 focus:ring-purple-500 border-gray-300"
+        />
+        <span className="ml-2 text-gray-700">Self</span>
+      </label>
+      <label className="inline-flex items-center">
+        <input
+          type="radio"
+          name="addedBy"
+          value="academy"
+          checked={formData.addedBy === "academy"}
+          onChange={handleChange}
+          className="h-4 w-4 text-purple-700 focus:ring-purple-500 border-gray-300"
+        />
+        <span className="ml-2 text-gray-700">Academy</span>
+      </label>
+    </div>
+  </div>
+)} */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Added By
+  </label>
+  <div className="flex space-x-6">
+    <label className="inline-flex items-center">
+      <input
+        type="radio"
+        name="addedBy"
+        value="self"
+        checked={formData.addedBy === "self"}
+        onChange={handleChange}
+        className="h-4 w-4 text-purple-700 focus:ring-purple-500 border-gray-300"
+      />
+      <span className="ml-2 text-gray-700">Self</span>
+    </label>
+    <label className={`inline-flex items-center ${!academyId ? 'cursor-not-allowed opacity-50' : ''}`}>
+      <input
+        type="radio"
+        name="addedBy"
+        value="academy"
+        checked={formData.addedBy === "academy"}
+        onChange={handleChange}
+        disabled={!academyId}
+        className={`h-4 w-4 text-purple-700 focus:ring-purple-500 border-gray-300 ${!academyId ? 'cursor-not-allowed' : ''}`}
+      />
+      <span className={`ml-2 ${!academyId ? 'text-gray-400' : 'text-gray-700'}`}>Academy</span>
+    </label>
+  </div>
+</div>
 
               {/* Full Name Input - Disabled if student exists */}
               <div>

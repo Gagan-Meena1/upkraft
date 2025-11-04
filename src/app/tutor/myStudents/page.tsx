@@ -63,6 +63,7 @@ export default function MyStudents() {
   const [deletingStudents, setDeletingStudents] = useState<Set<string>>(
     new Set()
   );
+  const [academyId, setAcademyId] = useState<string | null>(null);
   const [loadingAssignments, setLoadingAssignments] = useState<Set<string>>(
     new Set()
   );
@@ -155,6 +156,10 @@ export default function MyStudents() {
 
       const data = await response.json();
       console.log("API Response:", data);
+       // Store academyId
+    if (data.academyId) {
+      setAcademyId(data.academyId);
+    }
 
       if (data && data.filteredUsers) {
         const studentsWithDetails = await Promise.all(
@@ -259,10 +264,14 @@ export default function MyStudents() {
                 My Students
               </h2>
             </div>
-            <div className="right-form">
-              <Link href="/tutor/createStudent" className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"> <span className="mr-2">+</span> Add Student
-              </Link>
-          </div>
+          <div className="right-form">
+  <Link 
+    href={academyId ? `/tutor/createStudent?academyId=${academyId}` : "/tutor/createStudent"} 
+    className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
+  > 
+    <span className="mr-2">+</span> Add Student
+  </Link>
+</div>
         </div>
         <hr className="hr-light"></hr>
 
