@@ -29,8 +29,12 @@ const AddStudentPage = () => {
   const [message, setMessage] = useState({ text: "", type: "" });
   const [isSubmitSuccessful, setIsSubmitSuccessful] = useState(false);
   const [existingStudent, setExistingStudent] = useState<{ exists: boolean; username?: string }>({ exists: false });
-  const searchParams = useSearchParams();
-const academyId = searchParams.get('academyId');
+    const [academyId, setAcademyId] = useState<string | null>(null);
+
+   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setAcademyId(params.get('academyId'));
+  }, []);
 
   // Check if student exists when email changes
   useEffect(() => {
