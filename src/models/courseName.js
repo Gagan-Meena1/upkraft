@@ -54,7 +54,11 @@ const courseNameSchema = new mongoose.Schema({
       topic: String,
       tangibleOutcome:String
     }]
-  }
+  },
+  academyId:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"users"
+  },
 }, {
   timestamps: true
 });

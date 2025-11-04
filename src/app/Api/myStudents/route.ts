@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
       });
     }
     
+    const tutor = await User.findById(tutorId);
     const tutorCourses = await courseName.find({ instructorId: tutorId });
     const courseIds = tutorCourses.map(course => course._id);
     
@@ -119,7 +120,8 @@ export async function GET(request: NextRequest) {
       success: true,
       message: filteredUsers.length > 0 ? 'Students fetched successfully' : 'No students found',
       filteredUsers,
-      userCount: filteredUsers.length
+      userCount: filteredUsers.length,
+      academyId: tutor?.academyId || null
     });
     
   } catch (error: any) {

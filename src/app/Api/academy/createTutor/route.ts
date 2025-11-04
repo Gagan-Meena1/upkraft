@@ -80,12 +80,17 @@ export async function POST(request : NextRequest ){
             address: "",
             contact: "",
             isVerified: true, // Auto-verify tutors created by academies
-            instructorId: [academyId], // Link tutor to academy
+            // instructorId: [academyId], // Link tutor to academy
+            academyId: academyId
         });
 
         console.log("[API/academy/createTutor] Creating new tutor object.");
         const savedTutor = await newTutor.save();
         console.log("[API/academy/createTutor] Successfully saved new tutor.", { tutorId: savedTutor._id });
+        await academy.tutors.push(savedTutor._id);
+        await academy.save();
+        console.log("[API/academy/createTutor] Linked tutor to academy.");
+
 
         // If the user is a Tutor, duplicate default courses
         try {

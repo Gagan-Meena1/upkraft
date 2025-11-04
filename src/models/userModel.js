@@ -108,6 +108,24 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    academyId:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "users"
+    },
+    tutors:{
+        type:[{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "users"
+        }],
+
+    },
+    students:{
+        type:[{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "users"
+        }],
+
+    },
     forgotPasswordToken: String,
     forgotPasswordTokenExpiry: Date,
     verifyToken: String,
