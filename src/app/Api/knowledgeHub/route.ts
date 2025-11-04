@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, youtubeId, courseTitle, thumbnail } = body;
+const { title, description, youtubeId, courseTitle, thumbnail, contentType } = body;
 
     console.log("Received data:", { title, youtubeId, courseTitle });
 
@@ -95,14 +95,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create new video
-    const newVideo = new knowledgeHub({
-      title,
-      description: description || "",
-      youtubeId,
-      courseTitle: courseTitle || "",
-      thumbnail: thumbnail || "",
-    });
+ const newVideo = new knowledgeHub({
+  title,
+  description: description || "",
+  youtubeId,
+  courseTitle: courseTitle || "",
+  thumbnail: thumbnail || "",
+  contentType: contentType || 'video', // NEW
+});
 
     const savedVideo = await newVideo.save();
 
@@ -168,7 +168,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, youtubeId, courseTitle, thumbnail } = body;
+const { title, description, youtubeId, courseTitle, thumbnail, contentType } = body;
 
     console.log("Update data:", { title, youtubeId, courseTitle });
 
@@ -200,17 +200,17 @@ export async function PUT(request: NextRequest) {
     }
 
     const updatedVideo = await knowledgeHub.findByIdAndUpdate(
-      videoId,
-      {
-        title,
-        description: description || "",
-        youtubeId: youtubeId || "",
-        courseTitle: courseTitle || "",
-        thumbnail: thumbnail || "",
-      },
-      { new: true, runValidators: true }
-    );
-
+  videoId,
+  {
+    title,
+    description: description || "",
+    youtubeId: youtubeId || "",
+    courseTitle: courseTitle || "",
+    thumbnail: thumbnail || "",
+    contentType: contentType || 'video', // NEW
+  },
+  { new: true, runValidators: true }
+);
     console.log("Video updated successfully:", updatedVideo?._id);
 
     return NextResponse.json(
