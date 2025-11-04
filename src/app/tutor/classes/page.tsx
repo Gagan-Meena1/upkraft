@@ -430,10 +430,10 @@ function AddSessionPage() {
 
         {/* Session Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 p-4">
-            <div className="bg-gradient-to-r bg-purple-40 rounded-xl p-4 sm:p-6 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4 sm:mb-6">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-pink-200">
+          <div className="fixed inset-0 flex items-center justify-center z-10 p-4">
+            <div className="!bg-white-700 rounded-xl p-4 sm:p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4 sm:mb-6 bg-white">
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-white-200">
                   <span className="hidden sm:inline">
                     Create Session for {selectedDate}
                   </span>
@@ -441,7 +441,7 @@ function AddSessionPage() {
                 </h2>
                 <button
                   onClick={handleCloseForm}
-                  className="text-gray-300 hover:text-white p-1"
+                  className="text-white-300 hover:text-white p-1"
                 >
                   <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
@@ -452,7 +452,7 @@ function AddSessionPage() {
                   <div>
                     <label
                       htmlFor="title"
-                      className="block text-blue-200 mb-1 text-sm sm:text-base"
+                      className="block text-black mb-1 text-sm sm:text-base"
                     >
                       Class Title
                     </label>
@@ -462,7 +462,7 @@ function AddSessionPage() {
                       name="title"
                       value={sessionForm.title}
                       onChange={handleFormChange}
-                      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
+                      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-purple-900 border border-purple-700 text-white  text-sm sm:text-base"
                       placeholder="e.g., Advanced Mathematics"
                       required
                     />
@@ -471,7 +471,7 @@ function AddSessionPage() {
                   <div>
                     <label
                       htmlFor="description"
-                      className="block text-blue-200 mb-1 text-sm sm:text-base"
+                      className="block text-black mb-1 text-sm sm:text-base"
                     >
                       Description
                     </label>
@@ -480,7 +480,7 @@ function AddSessionPage() {
                       name="description"
                       value={sessionForm.description}
                       onChange={handleFormChange}
-                      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 h-20 sm:h-24 text-sm sm:text-base"
+                      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-purple-900 border border-purple-700 text-white h-20 sm:h-24 text-sm sm:text-base"
                       placeholder="Class description and notes..."
                       required
                     />
@@ -490,19 +490,19 @@ function AddSessionPage() {
                     <div>
                       <label
                         htmlFor="startTime"
-                        className="block text-blue-200 mb-1 text-sm sm:text-base"
+                        className="block text-black mb-1 text-sm sm:text-base"
                       >
                         Start Time
                       </label>
                       <div className="relative">
-                        <Clock className="absolute top-2.5 sm:top-3 left-3 text-blue-400 w-4 h-4 sm:w-5 sm:h-5" />
+                        <div className="absolute top-2.5 sm:top-3 left-3 w-4 h-4 sm:w-5 sm:h-5" />
                         <input
                           type="time"
                           id="startTime"
                           name="startTime"
                           value={sessionForm.startTime}
                           onChange={handleFormChange}
-                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
+                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 rounded-lg bg-purple-900 border border-purple-700 text-white text-sm sm:text-base"
                           required
                         />
                       </div>
@@ -511,19 +511,19 @@ function AddSessionPage() {
                     <div>
                       <label
                         htmlFor="endTime"
-                        className="block text-blue-200 mb-1 text-sm sm:text-base"
+                        className="block text-black mb-1 text-sm sm:text-base"
                       >
                         End Time
                       </label>
                       <div className="relative">
-                        <Clock className="absolute top-2.5 sm:top-3 left-3 text-blue-400 w-4 h-4 sm:w-5 sm:h-5" />
+                        <div className="absolute top-2.5 sm:top-3 left-3 text-blue-400 w-4 h-4 sm:w-5 sm:h-5" />
                         <input
                           type="time"
                           id="endTime"
                           name="endTime"
                           value={sessionForm.endTime}
                           onChange={handleFormChange}
-                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
+                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 rounded-lg bg-purple-900 border border-purple-700 text-white :ring-purple-500 text-sm sm:text-base"
                           required
                         />
                       </div>
@@ -531,8 +531,8 @@ function AddSessionPage() {
                   </div>
 
                   {/* Display selected date for confirmation */}
-                  <div className="bg-blue-900 p-3 rounded-lg">
-                    <span className="text-blue-200 text-sm">
+                  <div className="bg-purple-900 p-3 rounded-lg">
+                    <span className="text-white text-sm">
                       Selected Date:{" "}
                     </span>
                     <span className="text-white font-medium">
@@ -549,7 +549,7 @@ function AddSessionPage() {
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-400 hover:to-blue-400 rounded-lg font-semibold shadow-md transition-colors disabled:opacity-50 text-sm sm:text-base"
+                    className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r bg-purple-900 rounded-lg font-semibold shadow-md transition-colors disabled:opacity-50 text-sm sm:text-base"
                     disabled={isSubmitting || !!errorMessage}
                   >
                     {isSubmitting ? "Creating..." : "Create Session"}
