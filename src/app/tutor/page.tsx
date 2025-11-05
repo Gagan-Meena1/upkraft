@@ -862,7 +862,7 @@ export default function Dashboard() {
           <div className="col-xxl-4 col-md-12 order-xxl-2 order-sm-2 order-md-3 mb-4">
             <div className="details-student-box">
               <div className="row">
-                <div className="col-md-12 mb-4">
+                <div className="col-md-12 mb-3">
                   <div className="card-box">
                     {/* {studentCount === 0 ? (
                     <>
@@ -881,7 +881,7 @@ export default function Dashboard() {
                     <p className="bottom-text">Total Active Students</p>
                   </div>
                 </div>
-                <div className="col-md-12 mb-4">
+                <div className="col-md-12 mb-3">
                   <div className="card-box">
                     <h2 className="top-text">
                       {assignmentCompletionPercentage}%
@@ -889,7 +889,7 @@ export default function Dashboard() {
                     <p className="bottom-text">Assignment Completion %</p>
                   </div>
                 </div>
-                <div className="col-md-12 mb-4">
+                <div className="col-md-12 mb-3">
                   <div className="card-box">
                     <div className="d-flex flex-column align-items-left">
                       <div className="stars-container mb-2 d-flex justify-content-left">

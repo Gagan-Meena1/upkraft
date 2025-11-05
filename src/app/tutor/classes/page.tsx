@@ -324,14 +324,14 @@ function AddSessionPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header with back button */}
         <header className="mb-6 sm:mb-8 flex justify-between items-center">
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex !items-center gap-2 sm:gap-4">
             <Link
               href={"/tutor/calendar"}
               className="p-2 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors"
             >
               <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
             </Link>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 !mb-0">
               Add New Session
             </h1>
           </div>
@@ -355,13 +355,13 @@ function AddSessionPage() {
             <div className="flex gap-1 sm:gap-2">
               <button
                 onClick={handlePrevMonth}
-                className="p-1.5 sm:p-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+                className="p-1.5 sm:p-2 !rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
               >
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <button
                 onClick={handleNextMonth}
-                className="p-1.5 sm:p-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+                className="p-1.5 sm:p-2 !rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
               >
                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -430,131 +430,120 @@ function AddSessionPage() {
 
         {/* Session Form Modal */}
         {showForm && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 p-4">
-            <div className="bg-gradient-to-r bg-purple-40 rounded-xl p-4 sm:p-6 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              <div className="flex justify-between items-center mb-4 sm:mb-6">
-                <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-pink-200">
-                  <span className="hidden sm:inline">
-                    Create Session for {selectedDate}
-                  </span>
-                  <span className="sm:hidden">Create Session</span>
-                </h2>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gradient-to-br from-blue-50/80 via-purple-50/80 to-white/80 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto border border-white/20">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                    Create New Session
+                  </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    For date: {selectedDate}
+                  </p>
+                </div>
                 <button
                   onClick={handleCloseForm}
-                  className="text-gray-300 hover:text-white p-1"
+                  className="text-gray-400 hover:!text-gray-600 !p-1 !rounded-full hover:!bg-black/5 !transition-colors"
                 >
-                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit}>
-                <div className="space-y-3 sm:space-y-4">
-                  <div>
-                    <label
-                      htmlFor="title"
-                      className="block text-blue-200 mb-1 text-sm sm:text-base"
-                    >
-                      Class Title
-                    </label>
-                    <input
-                      type="text"
-                      id="title"
-                      name="title"
-                      value={sessionForm.title}
-                      onChange={handleFormChange}
-                      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
-                      placeholder="e.g., Advanced Mathematics"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="description"
-                      className="block text-blue-200 mb-1 text-sm sm:text-base"
-                    >
-                      Description
-                    </label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      value={sessionForm.description}
-                      onChange={handleFormChange}
-                      className="w-full px-3 sm:px-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 h-20 sm:h-24 text-sm sm:text-base"
-                      placeholder="Class description and notes..."
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                    <div>
-                      <label
-                        htmlFor="startTime"
-                        className="block text-blue-200 mb-1 text-sm sm:text-base"
-                      >
-                        Start Time
-                      </label>
-                      <div className="relative">
-                        <Clock className="absolute top-2.5 sm:top-3 left-3 text-blue-400 w-4 h-4 sm:w-5 sm:h-5" />
-                        <input
-                          type="time"
-                          id="startTime"
-                          name="startTime"
-                          value={sessionForm.startTime}
-                          onChange={handleFormChange}
-                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="endTime"
-                        className="block text-blue-200 mb-1 text-sm sm:text-base"
-                      >
-                        End Time
-                      </label>
-                      <div className="relative">
-                        <Clock className="absolute top-2.5 sm:top-3 left-3 text-blue-400 w-4 h-4 sm:w-5 sm:h-5" />
-                        <input
-                          type="time"
-                          id="endTime"
-                          name="endTime"
-                          value={sessionForm.endTime}
-                          onChange={handleFormChange}
-                          className="w-full pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 rounded-lg bg-blue-900 border border-blue-700 text-white focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Display selected date for confirmation */}
-                  <div className="bg-blue-900 p-3 rounded-lg">
-                    <span className="text-blue-200 text-sm">
-                      Selected Date:{" "}
-                    </span>
-                    <span className="text-white font-medium">
-                      {selectedDate}
-                    </span>
-                  </div>
-
-                  {/* Error message display */}
-                  {errorMessage && (
-                    <div className="bg-red-900 text-white p-2 sm:p-3 rounded-lg text-sm sm:text-base">
-                      {errorMessage}
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 sm:py-3 px-4 bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-400 hover:to-blue-400 rounded-lg font-semibold shadow-md transition-colors disabled:opacity-50 text-sm sm:text-base"
-                    disabled={isSubmitting || !!errorMessage}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div>
+                  <label
+                    htmlFor="title"
+                    className="block text-gray-600 mb-2 text-sm font-medium"
                   >
-                    {isSubmitting ? "Creating..." : "Create Session"}
-                  </button>
+                    Class Title
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={sessionForm.title}
+                    onChange={handleFormChange}
+                    className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    placeholder="e.g., Advanced Calculus"
+                    required
+                  />
                 </div>
+
+                <div>
+                  <label
+                    htmlFor="description"
+                    className="block text-gray-600 mb-2 text-sm font-medium"
+                  >
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={sessionForm.description}
+                    onChange={handleFormChange}
+                    className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28 transition-all"
+                    placeholder="Provide details about the session..."
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div>
+                    <label
+                      htmlFor="startTime"
+                      className="block text-gray-600 mb-2 text-sm font-medium"
+                    >
+                      Start Time
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="time"
+                        id="startTime"
+                        name="startTime"
+                        value={sessionForm.startTime}
+                        onChange={handleFormChange}
+                        className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                        required
+                      />
+                      {/* <Clock className="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 w-5 h-5 pointer-events-none" /> */}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="endTime"
+                      className="block text-gray-600 mb-2 text-sm font-medium"
+                    >
+                      End Time
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="time"
+                        id="endTime"
+                        name="endTime"
+                        value={sessionForm.endTime}
+                        onChange={handleFormChange}
+                        className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                        required
+                      />
+                      {/* <Clock className="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 w-5 h-5 pointer-events-none" /> */}
+                    </div>
+                  </div>
+                </div>
+
+                {errorMessage && (
+                  <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg text-sm text-center">
+                    {errorMessage}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-semibold text-white shadow-lg hover:shadow-purple-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
+                  disabled={isSubmitting || !!errorMessage}
+                >
+                  {isSubmitting ? "Creating..." : "Create Session"}
+                </button>
               </form>
             </div>
           </div>

@@ -226,6 +226,46 @@ const StudentCalendarView = () => {
     });
   };
 
+  const handleJoinMeeting = async (classId: string) => {
+    try {
+      if (!userData) {
+        toast.error("User data not available. Please refresh the page.");
+        return;
+      }
+
+      console.log("[Meeting] Creating meeting for class:", classId);
+      const response = await fetch("/Api/meeting/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          classId: classId,
+          userId: userData._id,
+          userRole: userData.category,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("[Meeting] Server response:", data);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create meeting");
+      }
+
+      router.push(
+        `/tutor/video-call?url=${encodeURIComponent(data.url)}&userRole=${
+          userData.category
+        }&token=${encodeURIComponent(data.token || "")}`
+      );
+    } catch (error: any) {
+      console.error("[Meeting] Error details:", error);
+      toast.error(
+        error.message || "Failed to create meeting. Please try again."
+      );
+    }
+  };
+
   const changeDay = (deltaDays) => {
     const d = cloneDate(currentDate);
     d.setDate(d.getDate() + deltaDays);
@@ -519,6 +559,9 @@ const StudentCalendarView = () => {
                                     classItem.startTime,
                                     classItem.endTime
                                   )}`}
+                                  onClick={() =>
+                                    handleJoinMeeting(classItem._id)
+                                  }
                                 >
                                   <div className="font-medium text-[13px] truncate">
                                     {classItem.title || "Class"}

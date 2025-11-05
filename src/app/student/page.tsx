@@ -773,7 +773,7 @@ const StudentDashboard: React.FC = () => {
                 value={classQualityScore}
                 label="Class Quality Score"
               />
-              <div className="text-center ml-8">
+              <div className="text-center">
                 
                   <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={sessionSummaryUrl}>
                     Session Summary
