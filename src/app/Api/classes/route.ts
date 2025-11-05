@@ -85,11 +85,8 @@ export async function POST(request: NextRequest) {
         return new Date(Date.UTC(y, m - 1, d, h, min, 0));
       }
 
-      // Create a date representing the desired local time in UTC (temporary, just for calculation)
-      // We'll use this to calculate the offset
-      const tempUTC = new Date(Date.UTC(y, m - 1, d, h, min, 0));
-      
-      // Format this UTC time in the target timezone to see what it represents there
+      // Calculate the offset by comparing what a known UTC time shows in the timezone
+      // Use a known UTC time (midnight UTC on the target date)
       const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone: tz,
         year: "numeric",
@@ -100,45 +97,68 @@ export async function POST(request: NextRequest) {
         hour12: false,
       });
       
-      const parts = formatter.formatToParts(tempUTC);
-      const tzHour = parseInt(parts.find(p => p.type === "hour")?.value || "0");
-      const tzMin = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+      const knownUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+      const knownParts = formatter.formatToParts(knownUTC);
+      const knownTzHour = parseInt(knownParts.find(p => p.type === "hour")?.value || "0");
+      const knownTzMin = parseInt(knownParts.find(p => p.type === "minute")?.value || "0");
       
-      // Calculate the difference: what we want vs what the UTC time shows in the timezone
+      // If midnight UTC shows as X:Y in timezone, then the offset is X:Y hours
+      // For IST (UTC+5:30), midnight UTC = 5:30 AM IST, so offset = +5:30
+      // To convert local to UTC: UTC = Local - Offset
+      // So: UTC = 18:30 - 5:30 = 13:00 (1 PM)
+      
+      const offsetHours = knownTzHour;
+      const offsetMinutes = knownTzMin;
+      const totalOffsetMinutes = offsetHours * 60 + offsetMinutes;
+      
+      // Convert desired local time to UTC
+      // UTC = Local - Offset
       const desiredTotalMinutes = h * 60 + min;
-      const tzTotalMinutes = tzHour * 60 + tzMin;
-      const offsetMinutes = desiredTotalMinutes - tzTotalMinutes;
+      const utcTotalMinutes = desiredTotalMinutes - totalOffsetMinutes;
       
-      // Apply the offset: subtract to get the correct UTC time
-      // If user wants 10 AM in TZ, and 10 AM UTC shows as 3:30 PM in TZ,
-      // we need to go back (10 AM - 15:30 = -5:30 hours = -330 minutes)
-      // So: 10 AM UTC - (-330 min) = 10 AM UTC + 330 min = but wait...
+      // Handle date rollover
+      let utcHours = Math.floor(utcTotalMinutes / 60);
+      let utcMins = utcTotalMinutes % 60;
+      let utcYear = y;
+      let utcMonth = m - 1; // 0-indexed
+      let utcDay = d;
       
-      // Actually, if 10 AM UTC shows as 3:30 PM (15:30) in TZ,
-      // then to get 10 AM in TZ, we need: 10 AM UTC - 5.5 hours = 4:30 AM UTC
-      // So: offsetMinutes = 10:00 - 15:30 = -330 minutes
-      // We subtract this from UTC: 10 AM UTC - (-330) = 10 AM + 330 = 3:30 PM (wrong!)
+      // Handle negative minutes (borrow from hours)
+      if (utcMins < 0) {
+        utcMins += 60;
+        utcHours--;
+      }
       
-      // The correct calculation:
-      // If we want h:min in TZ, and UTC shows as tzHour:tzMin in TZ,
-      // then the UTC time that shows as h:min in TZ is: UTC - (tzHour:tzMin - h:min)
-      // Which is: UTC - offsetMinutes
+      // Handle negative hours (previous day)
+      if (utcHours < 0) {
+        utcHours += 24;
+        utcDay--;
+        if (utcDay < 1) {
+          utcMonth--;
+          if (utcMonth < 0) {
+            utcMonth = 11;
+            utcYear--;
+          }
+          utcDay = new Date(utcYear, utcMonth + 1, 0).getDate();
+        }
+      }
       
-      // Actually, let me reverse the logic:
-      // We want to find UTC time such that when displayed in TZ, it shows h:min
-      // We know: tempUTC (10 AM UTC) displays as tzHour:tzMin (3:30 PM) in TZ
-      // We want: resultUTC displays as h:min (10 AM) in TZ
-      // Difference: resultUTC - tempUTC = (h:min - tzHour:tzMin) in terms of UTC
+      // Handle hours >= 24 (next day)
+      if (utcHours >= 24) {
+        utcHours -= 24;
+        utcDay++;
+        const daysInMonth = new Date(utcYear, utcMonth + 1, 0).getDate();
+        if (utcDay > daysInMonth) {
+          utcDay = 1;
+          utcMonth++;
+          if (utcMonth > 11) {
+            utcMonth = 0;
+            utcYear++;
+          }
+        }
+      }
       
-      // Since tempUTC displays as tzHour:tzMin in TZ,
-      // to get resultUTC that displays as h:min in TZ:
-      // resultUTC = tempUTC - (offset in minutes)
-      // where offset = (tzHour:tzMin - h:min) in minutes
-      
-      const timeDifferenceMinutes = tzTotalMinutes - desiredTotalMinutes;
-      const resultUTC = new Date(tempUTC.getTime() - timeDifferenceMinutes * 60 * 1000);
-      
-      return resultUTC;
+      return new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHours, utcMins, 0));
     };
 
     // Use the conversion function
@@ -383,7 +403,8 @@ export async function PUT(request: NextRequest) {
         return new Date(Date.UTC(y, m - 1, d, h, min, 0));
       }
 
-      const tempUTC = new Date(Date.UTC(y, m - 1, d, h, min, 0));
+      // Calculate the offset by comparing what a known UTC time shows in the timezone
+      // Use a known UTC time (midnight UTC on the target date)
       const formatter = new Intl.DateTimeFormat("en-US", {
         timeZone: tz,
         year: "numeric",
@@ -394,16 +415,68 @@ export async function PUT(request: NextRequest) {
         hour12: false,
       });
       
-      const parts = formatter.formatToParts(tempUTC);
-      const tzHour = parseInt(parts.find(p => p.type === "hour")?.value || "0");
-      const tzMin = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+      const knownUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+      const knownParts = formatter.formatToParts(knownUTC);
+      const knownTzHour = parseInt(knownParts.find(p => p.type === "hour")?.value || "0");
+      const knownTzMin = parseInt(knownParts.find(p => p.type === "minute")?.value || "0");
       
+      // If midnight UTC shows as X:Y in timezone, then the offset is X:Y hours
+      // For IST (UTC+5:30), midnight UTC = 5:30 AM IST, so offset = +5:30
+      // To convert local to UTC: UTC = Local - Offset
+      // So: UTC = 18:30 - 5:30 = 13:00 (1 PM)
+      
+      const offsetHours = knownTzHour;
+      const offsetMinutes = knownTzMin;
+      const totalOffsetMinutes = offsetHours * 60 + offsetMinutes;
+      
+      // Convert desired local time to UTC
+      // UTC = Local - Offset
       const desiredTotalMinutes = h * 60 + min;
-      const tzTotalMinutes = tzHour * 60 + tzMin;
-      const timeDifferenceMinutes = tzTotalMinutes - desiredTotalMinutes;
-      const resultUTC = new Date(tempUTC.getTime() - timeDifferenceMinutes * 60 * 1000);
+      const utcTotalMinutes = desiredTotalMinutes - totalOffsetMinutes;
       
-      return resultUTC;
+      // Handle date rollover
+      let utcHours = Math.floor(utcTotalMinutes / 60);
+      let utcMins = utcTotalMinutes % 60;
+      let utcYear = y;
+      let utcMonth = m - 1; // 0-indexed
+      let utcDay = d;
+      
+      // Handle negative minutes (borrow from hours)
+      if (utcMins < 0) {
+        utcMins += 60;
+        utcHours--;
+      }
+      
+      // Handle negative hours (previous day)
+      if (utcHours < 0) {
+        utcHours += 24;
+        utcDay--;
+        if (utcDay < 1) {
+          utcMonth--;
+          if (utcMonth < 0) {
+            utcMonth = 11;
+            utcYear--;
+          }
+          utcDay = new Date(utcYear, utcMonth + 1, 0).getDate();
+        }
+      }
+      
+      // Handle hours >= 24 (next day)
+      if (utcHours >= 24) {
+        utcHours -= 24;
+        utcDay++;
+        const daysInMonth = new Date(utcYear, utcMonth + 1, 0).getDate();
+        if (utcDay > daysInMonth) {
+          utcDay = 1;
+          utcMonth++;
+          if (utcMonth > 11) {
+            utcMonth = 0;
+            utcYear++;
+          }
+        }
+      }
+      
+      return new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHours, utcMins, 0));
     };
 
     const startDateTime = convertToUTC(year, month, day, startHour, startMinute, timezone || "UTC");

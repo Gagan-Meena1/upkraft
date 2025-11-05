@@ -149,10 +149,10 @@ function AddSessionPage() {
     const month = currentMonth.getMonth();
 
     // Check if date is in the past
-    if (isDateInPast(year, month, day)) {
-      alert("Cannot create sessions for past dates");
-      return;
-    }
+    // if (isDateInPast(year, month, day)) {
+    //   alert("Cannot create sessions for past dates");
+    //   return;
+    // }
 
     const dateString = formatDateToString(year, month, day);
     setSelectedDate(dateString);
@@ -193,9 +193,9 @@ function AddSessionPage() {
     const currentDateTime = new Date();
 
     // Check if start time is in the past
-    if (startDateTime <= currentDateTime) {
-      return "Start time cannot be in the past";
-    }
+    // if (startDateTime <= currentDateTime) {
+    //   return "Start time cannot be in the past";
+    // }
 
     // Check if end time is after start time
     if (endDateTime <= startDateTime) {
@@ -416,7 +416,7 @@ function AddSessionPage() {
                         {day}
                       </span>
                       {(
-                        <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-orange-500 hover:bg-orange-600 text-white !rounded-full flex items-center justify-center">
+                        <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-orange-500 hover:bg-orange-600 text-white rounded-full flex items-center justify-center">
                           <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       )}

@@ -9,6 +9,7 @@ interface VideoFormData {
   youtubeId: string;
   courseTitle: string;
   thumbnail?: string;
+  contentType: 'video' | 'short'; // NEW
 }
 
 const KnowledgeHubAdmin = () => {
@@ -17,12 +18,13 @@ const KnowledgeHubAdmin = () => {
     description: '',
     youtubeId: '',
     courseTitle: '',
-    thumbnail: ''
+    thumbnail: '',
+    contentType: 'video' // NEW DEFAULT
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -30,26 +32,35 @@ const KnowledgeHubAdmin = () => {
     }));
   };
 
-  const extractYoutubeId = (url: string): string => {
-    // Extract YouTube ID from various URL formats
-    const patterns = [
+  const extractYoutubeId = (url: string): { id: string, type: 'video' | 'short' } => {
+    // YouTube Shorts pattern
+    const shortsPattern = /(?:youtube\.com\/shorts\/)([^&\s?]+)/;
+    const shortsMatch = url.match(shortsPattern);
+    if (shortsMatch) {
+      return { id: shortsMatch[1], type: 'short' };
+    }
+
+    // Regular video patterns
+    const videoPatterns = [
       /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\s]+)/,
       /^([a-zA-Z0-9_-]{11})$/  // Direct ID
     ];
 
-    for (const pattern of patterns) {
+    for (const pattern of videoPatterns) {
       const match = url.match(pattern);
-      if (match) return match[1];
+      if (match) return { id: match[1], type: 'video' };
     }
-    return url; // Return as-is if no pattern matches
+    
+    return { id: url, type: 'video' }; // Default to video
   };
 
   const handleYoutubeUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    const extractedId = extractYoutubeId(value);
+    const { id: extractedId, type } = extractYoutubeId(value);
     setFormData(prev => ({
       ...prev,
-      youtubeId: extractedId
+      youtubeId: extractedId,
+      contentType: type // AUTO-DETECT
     }));
   };
 
@@ -64,24 +75,26 @@ const KnowledgeHubAdmin = () => {
         description: formData.description,
         youtubeId: formData.youtubeId,
         courseTitle: formData.courseTitle,
+        contentType: formData.contentType, // NEW
         thumbnail: formData.thumbnail || `https://img.youtube.com/vi/${formData.youtubeId}/maxresdefault.jpg`
       });
 
       if (response.data.success) {
-        setMessage({ type: 'success', text: 'Video added successfully!' });
+        setMessage({ type: 'success', text: `${formData.contentType === 'short' ? 'Short' : 'Video'} added successfully!` });
         // Reset form
         setFormData({
           title: '',
           description: '',
           youtubeId: '',
           courseTitle: '',
-          thumbnail: ''
+          thumbnail: '',
+          contentType: 'video'
         });
       }
     } catch (error: any) {
       setMessage({ 
         type: 'error', 
-        text: error.response?.data?.error || 'Failed to add video. Please try again.' 
+        text: error.response?.data?.error || 'Failed to add content. Please try again.' 
       });
     } finally {
       setLoading(false);
@@ -97,7 +110,7 @@ const KnowledgeHubAdmin = () => {
             <Youtube size={32} className="text-red-600" />
             <h1 className="text-3xl font-bold text-gray-900">Knowledge Hub Admin</h1>
           </div>
-          <p className="text-gray-600">Add new videos to the knowledge hub</p>
+          <p className="text-gray-600">Add videos and shorts to the knowledge hub</p>
         </div>
 
         {/* Alert Messages */}
@@ -124,34 +137,60 @@ const KnowledgeHubAdmin = () => {
             {/* YouTube URL/ID */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                YouTube Video URL or ID <span className="text-red-500">*</span>
+                YouTube Video/Short URL or ID <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="youtubeUrl"
                 onChange={handleYoutubeUrlChange}
-                placeholder="https://youtube.com/watch?v=VIDEO_ID or just VIDEO_ID"
+                placeholder="https://youtube.com/watch?v=... or https://youtube.com/shorts/..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 required
               />
               {formData.youtubeId && (
-                <p className="mt-2 text-sm text-gray-600">
-                  Extracted ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{formData.youtubeId}</span>
-                </p>
+                <div className="mt-2 space-y-1">
+                  <p className="text-sm text-gray-600">
+                    Extracted ID: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{formData.youtubeId}</span>
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Type: <span className={`font-semibold ${formData.contentType === 'short' ? 'text-purple-600' : 'text-blue-600'}`}>
+                      {formData.contentType === 'short' ? '🎬 Short' : '🎥 Video'}
+                    </span>
+                  </p>
+                </div>
               )}
+            </div>
+
+            {/* Content Type Manual Override */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Content Type
+              </label>
+              <select
+                name="contentType"
+                value={formData.contentType}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+              >
+                <option value="video">🎥 Regular Video</option>
+                <option value="short">🎬 YouTube Short</option>
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Auto-detected from URL. Change manually if needed.
+              </p>
             </div>
 
             {/* Title */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Video Title <span className="text-red-500">*</span>
+                {formData.contentType === 'short' ? 'Short' : 'Video'} Title <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                placeholder="Enter video title"
+                placeholder={`Enter ${formData.contentType} title`}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 required
               />
@@ -181,13 +220,10 @@ const KnowledgeHubAdmin = () => {
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
-                placeholder="Enter video description with emojis, line breaks, etc."
+                placeholder="Enter description with emojis, line breaks, etc."
                 rows={6}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                You can use emojis, line breaks, and bullet points
-              </p>
             </div>
 
             {/* Custom Thumbnail (Optional) */}
@@ -203,19 +239,18 @@ const KnowledgeHubAdmin = () => {
                 placeholder="Leave empty to use YouTube's thumbnail"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
               />
-              <p className="mt-1 text-xs text-gray-500">
-                If left empty, will automatically use YouTube's thumbnail
-              </p>
             </div>
 
             {/* Preview */}
             {formData.youtubeId && (
               <div className="border-t pt-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Preview</h3>
-                <div className="aspect-video rounded-lg overflow-hidden bg-gray-100">
+                <div className={`rounded-lg overflow-hidden bg-gray-100 ${
+                  formData.contentType === 'short' ? 'aspect-[9/16] max-w-xs mx-auto' : 'aspect-video'
+                }`}>
                   <img
                     src={formData.thumbnail || `https://img.youtube.com/vi/${formData.youtubeId}/maxresdefault.jpg`}
-                    alt="Video thumbnail"
+                    alt="Thumbnail"
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       e.currentTarget.src = `https://img.youtube.com/vi/${formData.youtubeId}/hqdefault.jpg`;
@@ -234,12 +269,12 @@ const KnowledgeHubAdmin = () => {
               {loading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Adding Video...
+                  Adding {formData.contentType === 'short' ? 'Short' : 'Video'}...
                 </>
               ) : (
                 <>
                   <Plus size={20} />
-                  Add Video to Knowledge Hub
+                  Add {formData.contentType === 'short' ? 'Short' : 'Video'} to Knowledge Hub
                 </>
               )}
             </button>
@@ -248,13 +283,20 @@ const KnowledgeHubAdmin = () => {
 
         {/* Instructions */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mt-6">
-          <h3 className="font-semibold text-blue-900 mb-3">How to add a video:</h3>
+          <h3 className="font-semibold text-blue-900 mb-3">How to add content:</h3>
           <ol className="list-decimal list-inside space-y-2 text-blue-800 text-sm">
-            <li>Copy the YouTube video URL or just the video ID</li>
-            <li>Paste it in the "YouTube Video URL or ID" field</li>
-            <li>Fill in the title (required) and other optional fields</li>
-            <li>Click "Add Video to Knowledge Hub"</li>
+            <li>Copy the YouTube video or short URL</li>
+            <li>Paste it - the type will be auto-detected</li>
+            <li>Fill in title and other fields</li>
+            <li>Click "Add to Knowledge Hub"</li>
           </ol>
+          <div className="mt-4 pt-4 border-t border-blue-300">
+            <p className="text-xs text-blue-700 font-medium mb-2">Supported URL formats:</p>
+            <ul className="text-xs text-blue-600 space-y-1">
+              <li>• Videos: youtube.com/watch?v=ID or youtu.be/ID</li>
+              <li>• Shorts: youtube.com/shorts/ID</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

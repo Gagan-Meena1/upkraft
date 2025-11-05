@@ -1,10 +1,76 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from 'next/image'
 import Link from 'next/link';
 import TutorTable from "../../components/academy/TutorTable";
+import AddNewTutorModal from "../../components/AddNewTutorModal";
 
 const Tutors = () => {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [stats, setStats] = useState({
+    totalTutors: 0,
+    activeTutors: 0,
+    totalStudents: 0,
+    monthlyRevenue: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, [refreshKey]);
+
+  const fetchStats = async () => {
+    try {
+      setLoadingStats(true);
+      const response = await fetch("/Api/academy/tutors");
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.success && data.tutors) {
+          const tutors = data.tutors;
+          const activeTutors = tutors.filter(t => t.isVerified).length;
+          const totalStudents = tutors.reduce((sum, t) => sum + (t.studentCount || 0), 0);
+          const monthlyRevenue = tutors.reduce((sum, t) => sum + (t.revenue || 0), 0);
+          
+          setStats({
+            totalTutors: tutors.length,
+            activeTutors,
+            totalStudents,
+            monthlyRevenue
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
+  const handleTutorAdded = () => {
+    // Trigger refresh of tutor table and stats
+    setRefreshKey(prev => prev + 1);
+  };
+
+  const handleAddTutorClick = () => {
+    // Open the modal using Bootstrap
+    const modalElement = document.getElementById("AddTutorModal");
+    if (modalElement) {
+      const bootstrap = require('bootstrap');
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    if (!amount) return "₹0";
+    if (amount >= 100000) {
+      return `₹${(amount / 100000).toFixed(1)}L`;
+    }
+    return `₹${amount.toLocaleString('en-IN')}`;
+  };
+
   return (
     <div className="dashboard">
       <div className="dashboard-sec container-fluid">
@@ -12,39 +78,48 @@ const Tutors = () => {
           <div className="left-head">
             <h2 className="m-0">Tutors Management</h2>
           </div>
+          <div className="right-form">
+            <button 
+              onClick={handleAddTutorClick}
+              className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
+            >
+              <span className="mr-2">+</span> Add Tutor
+            </button>
+          </div>
         </div>
         <div className='card-academy-box mt-4'>
             <div className='row'>
                 <div className='col-lg-3 col-6 mb-4'>
-                    <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3 '>
-                        <h2>24</h2>
+                    <div className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
+                        <h2>{loadingStats ? "..." : stats.totalTutors}</h2>
                         <p className='m-0 p-0 pt-2'>Total Tutors</p>
-                    </Link>
+                    </div>
                 </div>
                 <div className='col-lg-3 col-6 mb-4'>
-                    <Link href="/" className='card-box academy-card d-block  p-md-5 p-4 px-md-3 px-3'>
-                        <h2>22</h2>
+                    <div className='card-box academy-card d-block  p-md-5 p-4 px-md-3 px-3'>
+                        <h2>{loadingStats ? "..." : stats.activeTutors}</h2>
                         <p className='m-0 p-0 pt-2'>Active Now</p>
-                    </Link>
+                    </div>
                 </div>
                 <div className='col-lg-3 col-6 mb-4'>
-                    <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
-                        <h2>480</h2>
+                    <div className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
+                        <h2>{loadingStats ? "..." : stats.totalStudents}</h2>
                         <p className='m-0 p-0 pt-2'>Total Students</p>
-                    </Link>
+                    </div>
                 </div>
                 <div className='col-lg-3 col-6 mb-4'>
-                    <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
-                        <h2>₹8.4L</h2>
+                    <div className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
+                        <h2>{loadingStats ? "..." : formatCurrency(stats.monthlyRevenue)}</h2>
                         <p className='m-0 p-0 pt-2'>Monthly Revenue</p>
-                    </Link>
+                    </div>
                 </div>
             </div>
         </div>
       </div>
       <div className="table-box container-fluid">
-        <TutorTable />
+        <TutorTable key={refreshKey} />
       </div>
+      <AddNewTutorModal onTutorAdded={handleTutorAdded} />
     </div>
   );
 };
