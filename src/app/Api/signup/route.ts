@@ -143,30 +143,30 @@ export async function POST(request : NextRequest ){
         }
 
         // If this is a student invitation, send the invitation email
-        if (emailType === "STUDENT_INVITATION" && instructorId) {
-            // Get tutor information
-            const tutor = await User.findById(instructorId);
-            if (!tutor) {
-                console.error("[API/signup] Tutor not found for ID:", instructorId);
-                return NextResponse.json({
-                    error: "Tutor not found",
-                    success: false
-                });
-            }
+        // if (emailType === "STUDENT_INVITATION" && instructorId) {
+        //     // Get tutor information
+        //     const tutor = await User.findById(instructorId);
+        //     if (!tutor) {
+        //         console.error("[API/signup] Tutor not found for ID:", instructorId);
+        //         return NextResponse.json({
+        //             error: "Tutor not found",
+        //             success: false
+        //         });
+        //     }
 
-            // Get the latest course for this tutor
-            const tutorCourse = await courseName.findOne({ instructorId }).sort({ createdAt: -1 });
+        //     // Get the latest course for this tutor
+        //     const tutorCourse = await courseName.findOne({ instructorId }).sort({ createdAt: -1 });
             
-            // Send invitation email
-            await sendEmail({
-                email: normalizedEmail,
-                emailType: "STUDENT_INVITATION",
-                username: username,
-                tutorName: tutor.username,
-                courseName: tutorCourse ? tutorCourse.title : "Dance Course",
-                resetToken: password // Send the original password in the email
-            });
-        }
+        //     // Send invitation email
+        //     await sendEmail({
+        //         email: normalizedEmail,
+        //         emailType: "STUDENT_INVITATION",
+        //         username: username,
+        //         tutorName: tutor.username,
+        //         courseName: tutorCourse ? tutorCourse.title : "Dance Course",
+        //         resetToken: password // Send the original password in the email
+        //     });
+        // }
 
         return NextResponse.json({
             message: "User registered successfully",
