@@ -13,7 +13,7 @@ export async function POST(request : NextRequest ){
         await connect();
 
         const reqBody = await request.json();
-        const {username, email, password, category, contact, emailType} = reqBody;
+        const {username, email, password, category, contact, emailType,addedBy} = reqBody;
         console.log("[API/signup] Request body:", { username, email, category, contact, emailType });
 
         const normalizedEmail = email.toLowerCase();
@@ -51,10 +51,24 @@ export async function POST(request : NextRequest ){
         if (instructorId) {
             newUser.instructorId = Array.isArray(instructorId) ? instructorId : [instructorId];
         }
+        if( addedBy ==="academy"){
+            const tutor= await User.findById(instructorId);
+            if(tutor){
+                newUser.academyId= tutor.academyId;
+                
+            }
+            const academy= await User.findById(tutor?.academyId);
+            if(academy){
+                academy.students.push(newUser._id);
+                await academy.save();
+                console.log("[API/signup] Linked student to academy.");
+            }
+        }
         console.log("[API/signup] Creating new user object.", { user: newUser.toObject() });
 
         const savedUser = await newUser.save();
         console.log("[API/signup] Successfully saved new user.", { userId: savedUser._id });
+        // console.log("savedUser : ",savedUser);
 
            // If the user is a Tutor, duplicate default courses
         if (category === "Tutor") {
