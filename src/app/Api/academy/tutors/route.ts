@@ -41,13 +41,13 @@ export async function GET(req: NextRequest) {
         const studentCount = await User.countDocuments({
           category: "Student",
           instructorId: tutor._id,
-          academyId: academyId
+          // academyId: academyId
         });
 
         // Get tutor's courses
         const tutorCourses = await courseName.find({
           instructorId: tutor._id,
-          academyId: academyId
+          // academyId: academyId
         }).lean();
 
         // Count total classes for this tutor

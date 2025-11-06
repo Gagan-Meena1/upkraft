@@ -51,19 +51,28 @@ export async function POST(request : NextRequest ){
         if (instructorId) {
             newUser.instructorId = Array.isArray(instructorId) ? instructorId : [instructorId];
         }
-        if( addedBy ==="academy"){
-            const tutor= await User.findById(instructorId);
-            if(tutor){
-                newUser.academyId= tutor.academyId;
+        const instructor= await User.findById(instructorId);
+            if(instructor.category==="Academic"){
+                newUser.academyId= instructorId;
+                console.log("[API/signup] Linked student to academy.");
+                instructor.students.push(newUser._id);
+                await instructor.save();
+                console.log("[API/signup] Updated academy with new student.", { academyId: instructorId, studentId: newUser._id });
                 
             }
-            const academy= await User.findById(tutor?.academyId);
-            if(academy){
-                academy.students.push(newUser._id);
-                await academy.save();
-                console.log("[API/signup] Linked student to academy.");
-            }
-        }
+        // if( addedBy ==="academy"){
+        //     const tutor= await User.findById(instructorId);
+        //     if(tutor){
+        //         newUser.academyId= tutor.academyId;
+                
+        //     }
+        //     const academy= await User.findById(tutor?.academyId);
+        //     if(academy){
+        //         academy.students.push(newUser._id);
+        //         await academy.save();
+        //         console.log("[API/signup] Linked student to academy.");
+        //     }
+        // }
         console.log("[API/signup] Creating new user object.", { user: newUser.toObject() });
 
         const savedUser = await newUser.save();
