@@ -198,9 +198,9 @@ function AddSessionPage() {
     // }
 
     // Check if end time is after start time
-    if (endDateTime <= startDateTime) {
-      return "End time must be after start time";
-    }
+    // if (endDateTime <= startDateTime) {
+    //   return "End time must be after start time";
+    // }
 
     return "";
   };
@@ -254,9 +254,9 @@ function AddSessionPage() {
       //   throw new Error("Cannot create sessions for past date and time");
       // }
 
-      if (endDateTime <= sessionDateTime) {
-        throw new Error("End time must be after start time");
-      }
+      // if (endDateTime <= sessionDateTime) {
+      //   throw new Error("End time must be after start time");
+      // }
 
       // Create form data for submission
       const formData = new FormData();

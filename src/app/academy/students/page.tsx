@@ -11,11 +11,19 @@ const Students = () => {
     <div className="dashboard">
       <div className="container-fluid">
         <div className="dashboard-sec">
-          <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
-            <div className="left-head">
-              <h2 className="m-0">Students Management</h2>
-            </div>
-          </div>
+        <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
+  <div className="left-head">
+    <h2 className="m-0">Students Management</h2>
+  </div>
+  <div className="right-form">
+    <Link 
+      href="/academy/createStudent"
+      className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
+    >
+      <span className="mr-2">+</span> Add Student
+    </Link>
+  </div>
+</div>
           <div className='card-academy-box mt-4'>
               <div className='row'>
                   <div className='col-lg-3 col-6 mb-4'>
