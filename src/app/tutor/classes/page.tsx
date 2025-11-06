@@ -342,7 +342,7 @@ function AddSessionPage() {
           {/* Calendar header */}
           <div className="flex justify-between items-center mb-4 sm:mb-6">
             <h2 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900 flex items-center gap-2">
-              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
+              <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-purple-800" />
               <span className="hidden sm:inline">
                 {monthNames[currentMonth.getMonth()]}{" "}
                 {currentMonth.getFullYear()}
@@ -355,13 +355,13 @@ function AddSessionPage() {
             <div className="flex gap-1 sm:gap-2">
               <button
                 onClick={handlePrevMonth}
-                className="p-1.5 sm:p-2 !rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+                className="p-1.5 sm:p-2 !rounded-lg bg-purple-700 hover:bg-purple-600 text-white transition-colors"
               >
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <button
                 onClick={handleNextMonth}
-                className="p-1.5 sm:p-2 !rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors"
+                className="p-1.5 sm:p-2 !rounded-lg bg-purple-700 hover:bg-purple-600 text-white transition-colors"
               >
                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
@@ -411,12 +411,12 @@ function AddSessionPage() {
                       <span
                         className={`font-medium text-sm sm:text-base ${
                           ""
-                        } ${isToday ? "text-orange-600 font-bold" : ""}`}
+                        } ${isToday ? "text-purple-600 font-bold" : ""}`}
                       >
                         {day}
                       </span>
                       {(
-                        <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-orange-500 hover:bg-orange-600 text-white rounded-full flex items-center justify-center">
+                        <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-purple-600 hover:bg-purple-400 text-white rounded-full flex items-center justify-center">
                           <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       )}

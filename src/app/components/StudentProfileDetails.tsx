@@ -453,15 +453,15 @@ const StudentProfileDetails = ({ data, assignmentCount = 0, pendingAssignmentCou
               <div className="card-pro">
                 <ScoreCard
                   title="Class Quality Score"
-                  score={classQualityScore || 5.6}
-                  text={getQualityText(classQualityScore || 5.6)}
+                  score={classQualityScore}
+                  text={getQualityText(classQualityScore)}
                   image={
                     imageError || !data.profileImage
-                      ? null // Pass null so ScoreCard can handle initials
+                      ? null
                       : data.profileImage
                   }
                   data={data}
-                  link={`/tutor/courseQuality?courseId=${courses[0]._id}`}
+                  link={courses.length > 0 ? `/tutor/courseQuality?courseId=${courses[0]._id}` : ""}
                 />
                 <ScoreCard
                   title="Assignments"

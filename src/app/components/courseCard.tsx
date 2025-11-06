@@ -74,12 +74,12 @@ const CourseCard: React.FC<CourseCardProps> = ({
         <div className="assignments-list d-flex align-items-center gap-2 flex-wrap w-100 justify-content-between">
           <div className="left-assignment  d-flex align-items-center gap-xl-4 gap-2 flex-wrap">
             <ul className="d-flex align-items-center gap-xl-4 gap-2 flex-wrap p-0 m-0">
-              <li className="d-flex align-items-center gap-2">
+              {/* <li className="d-flex align-items-center gap-2">
                 <span className="student-text">Started From :</span>
                 <span className="student-txt">
                   <strong>25 July</strong>
                 </span>
-              </li>
+              </li> */}
               <li className="d-flex align-items-center gap-2">
                 <span className="student-text">Duration :</span>
                 <span className="student-txt">

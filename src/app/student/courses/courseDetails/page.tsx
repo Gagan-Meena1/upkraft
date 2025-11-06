@@ -229,7 +229,7 @@ const CourseDetailsPage = () => {
                     )}
                     <Link 
                       href={`/student/singleFeedback/${courseDetails?.category}?classId=${classItem._id}&studentId=${userData?._id}`}
-                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-700 to-purple-700 text-white rounded-md shadow-md hover:from-orange-600 hover:to-orange-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
+                      className="px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-700 to-purple-700 text-white rounded-md shadow-md hover:from-purple-600 hover:to-purple-700 transition-all duration-300 flex items-center justify-center text-xs sm:text-sm font-medium"
                     >
                       View Feedback
                     </Link>
@@ -271,7 +271,7 @@ const CourseDetailsPage = () => {
           {/* Course Header */}
           {courseDetails && (
             <div className="mb-6 sm:mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-orange-500 mb-3 sm:mb-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-purple-500 mb-3 sm:mb-4">
                 {courseDetails.title}
               </h1>
               <div className="bg-gray-100 p-4 sm:p-6 rounded-lg">
@@ -293,7 +293,7 @@ const CourseDetailsPage = () => {
                 onClick={() => setActiveTab('schedule')}
                 className={`flex-1 sm:flex-none px-4 sm:px-6 py-2 sm:py-3 rounded-md font-medium transition-all duration-300 text-sm sm:text-base ${
                   activeTab === 'schedule'
-                    ? 'bg-orange-500 text-white shadow-md'
+                    ? 'bg-purple-700 text-white shadow-md'
                     : 'text-gray-600 hover:text-gray-800'
                 }`}
               >

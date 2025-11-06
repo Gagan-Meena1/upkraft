@@ -394,7 +394,7 @@ const UserProfilePage: React.FC = () => {
       <div className="w-full bg-gray-50">
         {/* Header Section */}
         <div className="text-center mb-6 bg-gradient-to-r from-purple-800 to-purple-700 text-white p-8 rounded-lg shadow-md">
-          <h1 className="text-3xl font-bold">Student Profile</h1>
+          <h1 className="text-3xl font-bold !text-[24px] !text-white">Student Profile</h1>
           <p className="mt-3 max-w-md mx-auto">
             Your personal information and enrolled courses at a glance
           </p>

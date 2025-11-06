@@ -51,7 +51,7 @@ interface Tutor {
 function LoadingComponent() {
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
     </div>
   );
 }
@@ -139,17 +139,17 @@ function TutorProfileContent() {
                   </div>
                 ) : (
                   <div className="w-36 h-36 rounded-full bg-white flex items-center justify-center border-4 border-white shadow-md">
-                    <span className="text-5xl font-light text-orange-500">{tutor.username.charAt(0).toUpperCase()}</span>
+                    <span className="text-5xl font-light text-purple-500">{tutor.username.charAt(0).toUpperCase()}</span>
                   </div>
                 )}
               </div>
               <div className="text-center md:text-left">
-                <h1 className="text-4xl font-bold text-white mb-2">{tutor.username}</h1>
+                <h1 className="text-4xl font-bold text-white mb-2 !text-[20px]">{tutor.username}</h1>
                 <div className="flex flex-col md:flex-row items-center md:items-start space-y-1 md:space-y-0 md:space-x-4">
-                  <p className="text-white bg-gray-500 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center">
+                  <p className="text-white bg-purple-600 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center">
                     {tutor.email}
                   </p>
-                  <p className="text-white bg-gray-500 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center">
+                  <p className="text-white bg-purple-600 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center">
                     {tutor.contact}
                   </p>
                 </div>
@@ -159,8 +159,8 @@ function TutorProfileContent() {
 
           {/* Main Content */}
           <div className="p-8">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-              <span className="text-orange-500 mr-2">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center !text-[20px]">
+              <span className="text-purple-500 mr-2">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
@@ -261,7 +261,7 @@ function TutorProfileContent() {
             {/* About Section */}
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-                <span className="text-orange-500 mr-2">
+                <span className="text-purple-500 mr-2">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
