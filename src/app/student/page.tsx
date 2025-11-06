@@ -116,7 +116,7 @@ const ErrorDisplay = ({ message }: { message: string }) => (
 );
 
 const WelcomeBanner = ({ username }: { username?: string }) => (
-  <div className="bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-xl shadow-md p-4 md:p-6 mb-4 md:mb-6">
+  <div className="bg-gradient-to-r from-purple-500 to-purple-400 text-white rounded-xl shadow-md p-4 md:p-6 mb-4 md:mb-6">
     <h2 className="text-xl md:text-2xl font-bold">
       Welcome, {username || "Student"}!
     </h2>
@@ -261,7 +261,7 @@ const filterFutureClasses = (classes: ClassData[]) => {
 
 const ClassCard = ({
   classItem,
-  onJoinMeeting,
+onJoinMeeting
 }: {
   classItem: ClassData;
   onJoinMeeting: (id: string) => void;
@@ -290,7 +290,7 @@ const ClassCard = ({
               hour: "2-digit",
               minute: "2-digit",
             })}{" "}
-            -
+          
             {new Date(classItem.endTime).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -299,7 +299,7 @@ const ClassCard = ({
         </div>
         <button
           onClick={() => onJoinMeeting(classItem._id)}
-          className="bg-orange-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors w-full sm:w-auto"
+          className="bg-purple-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors w-full sm:w-auto"
         >
           Join Class
         </button>

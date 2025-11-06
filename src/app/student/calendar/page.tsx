@@ -377,7 +377,7 @@ const StudentCalendarView = () => {
                           {dayClasses.map((classItem, cIdx) => (
                             <div
                               key={classItem._id || `c-${cIdx}`}
-                              className="mb-2 p-2 bg-orange-50 border-l-4 border-orange-400 text-xs text-[#212121] rounded-md shadow-sm hover:cursor-pointer hover:bg-orange-100"
+                              className="mb-2 p-2 bg-orange-50 border-l-4 border-purple-400 text-xs text-[#212121] rounded-md shadow-sm hover:cursor-pointer hover:bg-purple-100"
                               title={`${
                                 classItem.title || "Class"
                               } - ${formatTime(

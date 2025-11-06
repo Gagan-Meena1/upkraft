@@ -260,7 +260,7 @@ const ClassSnapshotsPage: React.FC = () => {
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Video size={24} className="text-orange-500" />
+            <Video size={24} className="text-purple-500" />
             <h2 className="text-xl font-bold text-gray-900">Recorded Classes</h2>
           </div>
           <div className="text-sm text-gray-500">

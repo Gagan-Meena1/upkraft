@@ -526,7 +526,7 @@ const StudentCalendarView = () => {
                             className="w-10 h-10 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-medium text-orange-600">
+                          <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-sm font-medium text-purple-800">
                             {getInitials(student.username)}
                           </div>
                         )}
@@ -552,7 +552,7 @@ const StudentCalendarView = () => {
                               classes.map((classItem, cIdx) => (
                                 <div
                                   key={classItem._id || cIdx}
-                                  className="mb-2 last:mb-0 p-2 bg-orange-50 border-l-4 border-orange-400 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                  className="mb-2 last:mb-0 p-2 bg-purple-50 border-l-4 border-purple-400 hover:bg-purple-100 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                                   title={`${
                                     classItem.title || "Class"
                                   } - ${formatTime(
