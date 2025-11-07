@@ -64,6 +64,7 @@ const CourseDetailsPage = () => {
   const [editError, setEditError] = useState('');
   const [userTimezone, setUserTimezone] = useState<string | null>(null);
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
+  const [academyId, setAcademyId] = useState<string | null>(null);
   const params = useParams();
   const router = useRouter();
 
@@ -159,6 +160,7 @@ const extractDateTimeForForm = (dateTimeString: string) => {
         
         const data = await response.json();
         setCourseData(data);
+        setAcademyId(data.academyId || null); // Add this line
         setLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -500,19 +502,21 @@ const handleUpdateClass = async (e: React.FormEvent) => {
               </h1>
             </div>
             <div className="!flex !flex-col !sm:flex-row !items-stretch !sm:items-center !gap-2 !sm:gap-3">
-              <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
-                <button className="!w-full !sm:w-auto !bg-gray-700 !hover:bg-gray-800 !text-white !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-colors !shadow-md !flex !items-center !justify-center !gap-2 !text-sm !sm:text-base">
-                  <Upload size={16} className="!sm:w-[18px] !sm:h-[18px]" />
-                  Create Class
-                </button>
-              </Link>
-              <button 
+            {!academyId && (
+  <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
+    <button className="!w-full !sm:w-auto !bg-gray-700 !hover:bg-gray-800 !text-white !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-colors !shadow-md !flex !items-center !justify-center !gap-2 !text-sm !sm:text-base">
+      <Upload size={16} className="!sm:w-[18px] !sm:h-[18px]" />
+      Create Class
+    </button>
+  </Link>
+)}
+              {!academyId && (<button 
                 onClick={handleDeleteCourse}
                 className="!w-full !sm:w-auto !border !border-gray-300 !bg-white !text-gray-700 !hover:bg-red-50 !hover:text-red-600 !hover:border-red-200 !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-all !duration-200 !flex !items-center !justify-center !gap-2 !shadow-sm !text-sm !sm:text-base"
               >
                 <Trash2 size={16} className="!sm:w-[18px] !sm:h-[18px]" />
                 Delete Course
-              </button>
+              </button>)}
             </div>
           </div>
         </header>

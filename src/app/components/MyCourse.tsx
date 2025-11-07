@@ -43,8 +43,13 @@ interface Course {
   class?: any[];
 }
 
-const MyCourse = ({ data }) => {
-  const [courses, setCourses] = useState<Course[]>(data || []);
+interface MyCourseProps {
+  data: Course[];
+  academyId: string | null;
+}
+
+const MyCourse = ({ data, academyId }: MyCourseProps) => {
+   const [courses, setCourses] = useState<Course[]>(data || []);
   const [currentPage, setCurrentPage] = useState(1);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const [copyingCourseId, setCopyingCourseId] = useState<string | null>(null);
@@ -258,7 +263,7 @@ const MyCourse = ({ data }) => {
                     <option value="3">Yearly</option>
                   </Form.Select>
                 </div>
-                <Link
+                {!academyId && (<Link
                   href="/tutor/create-course"
                   role="button"
                   className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
@@ -276,7 +281,7 @@ const MyCourse = ({ data }) => {
                       fill="white"
                     />
                   </svg>
-                </Link>
+                </Link>)}
               </div>
             </Form>
           </div>

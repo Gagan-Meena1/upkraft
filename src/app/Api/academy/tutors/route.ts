@@ -28,85 +28,152 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Only academies can access this endpoint" }, { status: 403 });
     }
 
-    // Find all tutors where this academy is in their instructorId array
+    // Get all tutors
     const tutors = await User.find({
       category: "Tutor",
       academyId: academyId
     }).select("-password").lean();
 
-    // For each tutor, calculate additional stats
-    const tutorsWithStats = await Promise.all(
-      tutors.map(async (tutor) => {
-        // Count students for this tutor
-        const studentCount = await User.countDocuments({
+    if (tutors.length === 0) {
+      return NextResponse.json({
+        success: true,
+        tutors: [],
+        total: 0
+      });
+    }
+
+    const tutorIds = tutors.map(t => t._id);
+
+    // ========================================
+    // BATCH ALL QUERIES INSTEAD OF LOOPING
+    // ========================================
+
+    // 1. Get all student counts in one query using aggregation
+    const studentCounts = await User.aggregate([
+      {
+        $match: {
           category: "Student",
-          instructorId: tutor._id,
-          // academyId: academyId
-        });
-
-        // Get tutor's courses
-        const tutorCourses = await courseName.find({
-          instructorId: tutor._id,
-          // academyId: academyId
-        }).lean();
-
-        // Count total classes for this tutor
-        const classIds = tutorCourses.reduce((acc: any[], course: any) => {
-          return acc.concat(course.class || []);
-        }, []);
-
-        const classCount = await Class.countDocuments({
-          _id: { $in: classIds }
-        });
-
-        // Calculate CSAT score (average from classes)
-        const classes = await Class.find({
-          _id: { $in: classIds }
-        }).select("csat").lean();
-
-        let csatScore = 0;
-        let csatCount = 0;
-        
-        classes.forEach((cls: any) => {
-          if (cls.csat && Array.isArray(cls.csat) && cls.csat.length > 0) {
-            const ratings = cls.csat.map((c: any) => c.rating).filter((r: any) => r && r > 0);
-            if (ratings.length > 0) {
-              const avgRating = ratings.reduce((sum: number, r: number) => sum + r, 0) / ratings.length;
-              csatScore += avgRating;
-              csatCount++;
-            }
-          }
-        });
-
-        // Convert CSAT to percentage (assuming ratings are 1-5 scale)
-        const averageCSAT = csatCount > 0 ? Math.round((csatScore / csatCount) * 20) : 0;
-
-        // Calculate revenue (sum of course prices multiplied by student enrollments)
-        let revenue = 0;
-        for (const course of tutorCourses) {
-          const enrolledStudents = await User.countDocuments({
-            category: "Student",
-            courses: course._id,
-            academyId: academyId
-          });
-          revenue += (course.price || 0) * enrolledStudents;
+          instructorId: { $in: tutorIds }
         }
+      },
+      {
+        $group: {
+          _id: "$instructorId",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    const studentCountMap = new Map(studentCounts.map(sc => [sc._id.toString(), sc.count]));
 
-        return {
-          _id: tutor._id,
-          username: tutor.username,
-          email: tutor.email,
-          profileImage: tutor.profileImage || "",
-          skills: tutor.skills || "",
-          studentCount,
-          classCount,
-          csatScore: averageCSAT,
-          revenue: revenue,
-          isVerified: tutor.isVerified || false,
-          createdAt: tutor.createdAt,
-        };
-      })
-    );
+    // 2. Get all courses for these tutors in one query
+    const tutorCourses = await courseName.find({
+      academyInstructorId: { $in: tutorIds }
+    }).lean();
+
+    // Group courses by tutor
+    const coursesByTutor = new Map<string, any[]>();
+    tutorCourses.forEach(course => {
+      const tutorId = course.academyInstructorId.toString();
+      if (!coursesByTutor.has(tutorId)) {
+        coursesByTutor.set(tutorId, []);
+      }
+      coursesByTutor.get(tutorId)!.push(course);
+    });
+
+    // 3. Get all class IDs from courses
+    const allClassIds = tutorCourses.reduce((acc: any[], course: any) => {
+      return acc.concat(course.class || []);
+    }, []);
+
+    // 4. Get all classes with CSAT in one query
+    const allClasses = await Class.find({
+      _id: { $in: allClassIds }
+    }).select("csat").lean();
+
+    // Create a map of classId -> class for quick lookup
+    const classMap = new Map(allClasses.map(cls => [cls._id.toString(), cls]));
+
+    // 5. Get enrolled student counts per course in one aggregation
+    const enrollmentCounts = await User.aggregate([
+      {
+        $match: {
+          category: "Student",
+          academyId: academyId,
+          courses: { $in: tutorCourses.map(c => c._id) }
+        }
+      },
+      {
+        $unwind: "$courses"
+      },
+      {
+        $group: {
+          _id: "$courses",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    const enrollmentMap = new Map(enrollmentCounts.map(ec => [ec._id.toString(), ec.count]));
+
+    // ========================================
+    // NOW PROCESS TUTORS WITH CACHED DATA
+    // ========================================
+
+    const tutorsWithStats = tutors.map((tutor) => {
+      const tutorIdStr = tutor._id.toString();
+      
+      // Get student count from map
+      const studentCount = studentCountMap.get(tutorIdStr) || 0;
+
+      // Get tutor's courses from map
+      const courses = coursesByTutor.get(tutorIdStr) || [];
+
+      // Get class IDs for this tutor
+      const classIds = courses.reduce((acc: any[], course: any) => {
+        return acc.concat(course.class || []);
+      }, []);
+
+      // Count classes
+      const classCount = classIds.length;
+
+      // Calculate CSAT from cached classes
+      let csatScore = 0;
+      let csatCount = 0;
+      
+      classIds.forEach((classId: any) => {
+        const cls = classMap.get(classId.toString());
+        if (cls && cls.csat && Array.isArray(cls.csat) && cls.csat.length > 0) {
+          const ratings = cls.csat.map((c: any) => c.rating).filter((r: any) => r && r > 0);
+          if (ratings.length > 0) {
+            const avgRating = ratings.reduce((sum: number, r: number) => sum + r, 0) / ratings.length;
+            csatScore += avgRating;
+            csatCount++;
+          }
+        }
+      });
+
+      const averageCSAT = csatCount > 0 ? Math.round((csatScore / csatCount) * 20) : 0;
+
+      // Calculate revenue from cached enrollment data
+      let revenue = 0;
+      courses.forEach(course => {
+        const enrolledCount = enrollmentMap.get(course._id.toString()) || 0;
+        revenue += (course.price || 0) * enrolledCount;
+      });
+
+      return {
+        _id: tutor._id,
+        username: tutor.username,
+        email: tutor.email,
+        profileImage: tutor.profileImage || "",
+        skills: tutor.skills || "",
+        studentCount,
+        classCount,
+        csatScore: averageCSAT,
+        revenue: revenue,
+        isVerified: tutor.isVerified || false,
+        createdAt: tutor.createdAt,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -119,4 +186,3 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-

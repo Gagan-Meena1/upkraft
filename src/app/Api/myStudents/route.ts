@@ -101,7 +101,8 @@ export async function GET(request: NextRequest) {
         success: true,
         message: 'No students found',
         filteredUsers: [],
-        userCount: 0
+        userCount: 0,
+        academyId: tutor?.academyId || null
       });
     }
     
