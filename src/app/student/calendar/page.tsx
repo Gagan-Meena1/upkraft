@@ -23,6 +23,7 @@ import Image from "next/image";
 import { PiNutBold } from "react-icons/pi";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
 
 interface UserData {
   _id: string;
@@ -61,7 +62,6 @@ const StudentCalendarView = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Fetch logged-in user info
   useEffect(() => {
     async function fetchUser() {
       const res = await fetch("/Api/users/user");
@@ -74,8 +74,6 @@ const StudentCalendarView = () => {
     fetchUser();
   }, []);
 
-  // Remove fetchStudents/fetchAllClasses usage for student self-view
-  // Fetch current student's future classes + assignments
   useEffect(() => {
     const loadMyData = async () => {
       try {
@@ -113,6 +111,7 @@ const StudentCalendarView = () => {
     loadMyData();
   }, []);
 
+  const userTz = userData?.timezone || getUserTimeZone();
   const cloneDate = (d) => new Date(d.getTime());
 
   // Get days for current week (Mon - Sun)
@@ -132,25 +131,40 @@ const StudentCalendarView = () => {
     return days;
   };
 
-  // Filter helpers for week/day
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
+  // Helper to get date components in user's timezone
+  const getDateComponentsInTz = (date: Date | string, tz: string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(d);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0');
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    return { year, month, day };
+  };
+
+  // Filter helpers for week/day - compare in user's timezone
+  const isSameDayInTz = (date1: Date | string, date2: Date, tz: string) => {
+    const d1 = getDateComponentsInTz(date1, tz);
+    const d2 = getDateComponentsInTz(date2, tz);
+    return d1.year === d2.year && d1.month === d2.month && d1.day === d2.day;
+  };
 
   const getMyClassesForDate = (date: Date) => {
     return myClasses.filter((cls) => {
       if (!cls?.startTime) return false;
-      const d = new Date(cls.startTime);
-      return isSameDay(d, date);
+      return isSameDayInTz(cls.startTime, date, userTz);
     });
   };
 
   const getMyAssignmentsForDate = (date: Date) => {
     return myAssignments.filter((a) => {
       if (!a?.deadline || a?.status === true) return false; // show only pending
-      const d = new Date(a.deadline);
-      return isSameDay(d, date);
+      return isSameDayInTz(a.deadline, date, userTz);
     });
   };
 
@@ -162,21 +176,7 @@ const StudentCalendarView = () => {
 
   const formatTime = (startTime, endTime) => {
     if (!startTime) return "";
-    const start = new Date(startTime).toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: "UTC",
-    });
-    const end = endTime
-      ? new Date(endTime).toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-          timeZone: "UTC",
-        })
-      : "";
-    return end ? `${start} - ${end}` : start;
+    return formatTimeRangeInTz(startTime, endTime, userTz);
   };
 
   const getInitials = (name) => {
@@ -243,7 +243,6 @@ const StudentCalendarView = () => {
     );
   }
 
-  // Grid template: keep label + 7 days
   const gridTemplate = {
     gridTemplateColumns: "200px repeat(7, minmax(0, 1fr))",
   };
@@ -342,10 +341,7 @@ const StudentCalendarView = () => {
                 {weekDays.map((day, idx) => (
                   <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
                     <div className="text-[16px] font-inter font-medium text-[#212121]">
-                      {day.toLocaleDateString("en-US", {
-                        day: "2-digit",
-                        weekday: "short",
-                      })}
+                      {formatInTz(day, userTz, { day: "2-digit", weekday: "short" })}
                     </div>
                   </div>
                 ))}
@@ -381,7 +377,7 @@ const StudentCalendarView = () => {
                           {dayClasses.map((classItem, cIdx) => (
                             <div
                               key={classItem._id || `c-${cIdx}`}
-                              className="mb-2 p-2 bg-orange-50 border-l-4 border-orange-400 text-xs text-[#212121] rounded-md shadow-sm hover:cursor-pointer hover:bg-orange-100"
+                              className="mb-2 p-2 bg-orange-50 border-l-4 border-purple-400 text-xs text-[#212121] rounded-md shadow-sm hover:cursor-pointer hover:bg-purple-100"
                               title={`${
                                 classItem.title || "Class"
                               } - ${formatTime(
@@ -394,10 +390,10 @@ const StudentCalendarView = () => {
                                 {classItem.title || "Class"}
                               </div>
                               <div className="text-[11px] text-gray-600 truncate">
-                                {formatTime(
-                                  classItem.startTime,
-                                  classItem.endTime
-                                )}
+                                {formatInTz(classItem.startTime, userTz, {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
                               </div>
                             </div>
                           ))}

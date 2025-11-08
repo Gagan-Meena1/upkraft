@@ -240,7 +240,7 @@ const MusicLibraryTable = () => {
   if (loading && songs.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-8 h-8 animate-spin text-orange-500" />
+        <RefreshCw className="w-8 h-8 animate-spin text-purple-500" />
         <span className="ml-2 text-gray-700 font-medium">Loading music library...</span>
       </div>
     );

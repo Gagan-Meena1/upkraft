@@ -43,7 +43,7 @@ const Footer = () => {
                         <ul className="list-unstyled d-flex align-items-center gap-2 flex-wrap justify-content-center m-0 p-0">
                             {/* Facebook */}
                             <li>
-                                <Link href="#" className="footer-social-link">
+                                <Link href="https://www.facebook.com/share/17Tnt2hpem/?mibextid=wwXIfr" className="footer-social-link">
                                     <svg width="42" height="43" viewBox="0 0 42 43" fill="none" xmlns="http://www.w3.org/2000/svg">
                                         <circle cx="21" cy="21.4404" r="21" fill="#FFC357" />
                                         <path d="M22.2012 12.9404H22.2031C22.859 12.9373 23.5147 12.9656 24.168 13.0225V14.9287H22.9844C22.2527 14.9287 21.677 15.1031 21.3096 15.54C20.9587 15.9574 20.8975 16.5037 20.8975 16.9883V19.5322H24.0049L23.7217 21.7412H20.8975V29.9375H18.585V21.7354H15.832V19.5264H18.5791V16.6719C18.5791 15.4062 18.9648 14.487 19.5752 13.8848C20.1872 13.2811 21.0808 12.9404 22.2012 12.9404Z" fill="black" stroke="#202020" />

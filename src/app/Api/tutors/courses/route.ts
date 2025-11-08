@@ -86,11 +86,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const instructor=await User.findById(instructorId).select('academyId');
+    console.log("Academy ID:", instructor?.academyId);
     const courses = await courseName.find({ instructorId });
 
     return NextResponse.json({
       message: 'Courses retrieved successfully',
-      course: courses
+      course: courses,
+      academyId: instructor?.academyId || null
     }, { status: 200 });
 
   } catch (error) {

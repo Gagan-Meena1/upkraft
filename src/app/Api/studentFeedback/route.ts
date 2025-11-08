@@ -3,6 +3,7 @@ import { connect } from '@/dbConnection/dbConfic';
 import Class from '@/models/Class';
 import feedback from '@/models/feedback';
 import jwt from 'jsonwebtoken'
+import courseName from '@/models/courseName';
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
 
 await connect();
@@ -70,7 +71,68 @@ export async function POST(request: NextRequest) {
           message: 'Class not found'
         }, { status: 404 });
       }
-             
+              // Step 1: Get all classes for this course
+      const course = await courseName.findById(courseId).populate('class');
+      
+      if (!course) {
+        return NextResponse.json({
+          success: false,
+          message: 'Course not found'
+        }, { status: 404 });
+      }
+
+      // Step 2: Get all class IDs for this course
+      const classIds = course.class.map((cls: any) => cls._id);
+
+      // Step 3: Get all feedbacks for this student across all classes in this course
+      const studentFeedbacks = await feedback.find({
+        userId: studentId,
+        classId: { $in: classIds }
+      });
+
+    // Step 4: Calculate average score
+      if (studentFeedbacks.length > 0) {
+        const totalScores = studentFeedbacks.reduce((acc, fb) => {
+          // Convert string values to numbers, defaulting to 0 if invalid
+          const rhythmScore = Number(fb.rhythm) || 0;
+          const theoreticalScore = Number(fb.theoreticalUnderstanding) || 0;
+          const performanceScore = Number(fb.performance) || 0;
+          const earTrainingScore = Number(fb.earTraining) || 0;
+          const assignmentScore = Number(fb.assignment) || 0;
+          const techniqueScore = Number(fb.technique) || 0;
+          
+          return acc + 
+            rhythmScore + 
+            theoreticalScore + 
+            performanceScore + 
+            earTrainingScore + 
+            assignmentScore + 
+            techniqueScore;
+        }, 0);
+
+        // Average across all metrics and all feedbacks
+        const averageScore = totalScores / (studentFeedbacks.length * 6);
+
+        // Step 5: Update or add the performance score in the course
+        const existingScoreIndex = course.performanceScores.findIndex(
+          (score: any) => score.userId.toString() === studentId.toString()
+        );
+
+        if (existingScoreIndex !== -1) {
+          // Update existing score
+          course.performanceScores[existingScoreIndex].score = averageScore;
+          course.performanceScores[existingScoreIndex].date = new Date();
+        } else {
+          // Add new score
+          course.performanceScores.push({
+            userId: studentId,
+            score: averageScore,
+            date: new Date()
+          });
+        }
+
+        await course.save();
+      }
       return NextResponse.json({
         success: true,
         message: 'Feedback submitted successfully and class updated',

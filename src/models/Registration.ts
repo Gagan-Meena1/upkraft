@@ -5,7 +5,10 @@ export interface IRegistration extends Document {
   name: string;
   city: string;
   contactNumber: string;
+  countryCode: string;
+  email: string;
   instrument: string;
+  tutorName?: string | null; // ✅ add this
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +49,11 @@ const RegistrationSchema: Schema = new Schema(
       type: String,
       required: [true, 'Instrument is required'],
       trim: true,
+    },
+    tutorName: {
+      type: String,
+      trim: true,
+      default: null,
     },
   },
   {

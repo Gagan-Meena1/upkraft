@@ -116,7 +116,7 @@ const ErrorDisplay = ({ message }: { message: string }) => (
 );
 
 const WelcomeBanner = ({ username }: { username?: string }) => (
-  <div className="bg-gradient-to-r from-orange-500 to-orange-400 text-white rounded-xl shadow-md p-4 md:p-6 mb-4 md:mb-6">
+  <div className="bg-gradient-to-r from-purple-500 to-purple-400 text-white rounded-xl shadow-md p-4 md:p-6 mb-4 md:mb-6">
     <h2 className="text-xl md:text-2xl font-bold">
       Welcome, {username || "Student"}!
     </h2>
@@ -261,7 +261,7 @@ const filterFutureClasses = (classes: ClassData[]) => {
 
 const ClassCard = ({
   classItem,
-  onJoinMeeting,
+onJoinMeeting
 }: {
   classItem: ClassData;
   onJoinMeeting: (id: string) => void;
@@ -290,7 +290,7 @@ const ClassCard = ({
               hour: "2-digit",
               minute: "2-digit",
             })}{" "}
-            -
+          
             {new Date(classItem.endTime).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -299,7 +299,7 @@ const ClassCard = ({
         </div>
         <button
           onClick={() => onJoinMeeting(classItem._id)}
-          className="bg-orange-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors w-full sm:w-auto"
+          className="bg-purple-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors w-full sm:w-auto"
         >
           Join Class
         </button>
@@ -716,7 +716,9 @@ const StudentDashboard: React.FC = () => {
         <div className="col-xxl-3 col-md-6 mb-4 order-xxl-3 order-md-4">
           <div className="card-box card-inner-video-box">
             <div className="card-enrolled-video text-center pt-0">
+              <Link href="/student/classSnapshots" className="d-block mb-3">
               <h6 className="mb-4">Latest Class Highlight</h6>
+              </Link>
               <div className="video-box">
                 <div className="poster-video position-relative text-center">
                   {!isPlaying ? (
@@ -771,7 +773,7 @@ const StudentDashboard: React.FC = () => {
                 value={classQualityScore}
                 label="Class Quality Score"
               />
-              <div className="text-center ml-8">
+              <div className="text-center">
                 
                   <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={sessionSummaryUrl}>
                     Session Summary

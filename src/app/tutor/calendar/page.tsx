@@ -1,11 +1,43 @@
-"use client"
-import React, { useState, useEffect } from 'react';
+"use client";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { LogOut, ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, BookMarkedIcon, BookCheck, CheckCircle, Clock, AlertCircle, Menu, X, Home } from "lucide-react";
+import {
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  BookOpen,
+  Users,
+  PlusCircle,
+  User,
+  BookMarkedIcon,
+  BookCheck,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Menu,
+  X,
+  Home,
+} from "lucide-react";
 import Image from "next/image";
 import { PiNutBold } from "react-icons/pi";
-import { toast } from 'react-hot-toast';
-import { useRouter } from 'next/navigation';
+import { toast } from "react-hot-toast";
+import { useRouter } from "next/navigation";
+import { Modal, Button } from "react-bootstrap"; // ADD
+import {
+  formatInTz,
+  formatTimeRangeInTz,
+  getUserTimeZone,
+} from "@/helper/time";
+
+interface UserData {
+  _id: string;
+  username?: string;
+  name?: string;
+  email?: string;
+  category: string;
+  timezone?: string;
+}
 
 const StudentCalendarView = () => {
   const router = useRouter();
@@ -13,9 +45,33 @@ const StudentCalendarView = () => {
   const [allClasses, setAllClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [showCourseModal, setShowCourseModal] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  // Modal handlers
+  const handleOpenCourseModal = () => {
+    setShowCourseModal(true);
+    // Preselect first course if none selected
+    if (!selectedCourseId && courses.length > 0) {
+      setSelectedCourseId(courses[0]?._id || "");
+    }
+  };
+
+  const handleCloseCourseModal = () => setShowCourseModal(false);
+
+  const handleConfirmCreateClass = () => {
+    if (!selectedCourseId) {
+      toast.error("Please select a course");
+      return;
+    }
+    setShowCourseModal(false);
+    router.push(`/tutor/classes?page=add-session&courseId=${selectedCourseId}`);
+  };
 
   // Check if mobile
   useEffect(() => {
@@ -27,23 +83,23 @@ const StudentCalendarView = () => {
         setSidebarOpen(false);
       }
     };
-    
+
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Fetch students data
   const fetchStudents = async () => {
     try {
-      const response = await fetch('/Api/myStudents');
+      const response = await fetch("/Api/myStudents");
       const data = await response.json();
       if (data.success) {
         setStudents(data.filteredUsers || []);
         return data.filteredUsers || [];
       }
     } catch (error) {
-      console.error('Error fetching students:', error);
+      console.error("Error fetching students:", error);
       return [];
     }
   };
@@ -56,16 +112,49 @@ const StudentCalendarView = () => {
         const data = await response.json();
         return {
           studentId: student._id,
-          classes: data.classData || []
+          classes: data.classData || [],
         };
       });
 
       const results = await Promise.all(classPromises);
       setAllClasses(results);
     } catch (error) {
-      console.error('Error fetching classes:', error);
+      console.error("Error fetching classes:", error);
     }
   };
+
+  // Fetch tutor's courses
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch("/Api/tutors/courses");
+        const data = await response.json();
+        // Fix: use data.course instead of data.courses
+        if (data.course) {
+          setCourses(data.course);
+        }
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  // Fetch user data to get timezone
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/Api/users/user");
+        const data = await response.json();
+        if (data.user) {
+          setUserData(data.user);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -99,15 +188,82 @@ const StudentCalendarView = () => {
     return days;
   };
 
+  const userTz = userData?.timezone || getUserTimeZone();
+
+  // Helper to get date components in user's timezone
+  const getDateComponentsInTz = (date: Date | string, tz: string) => {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(d);
+    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
+    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0');
+    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    return { year, month, day };
+  };
+
+  // Filter helpers for week/day - compare in user's timezone
+  const isSameDayInTz = (date1: Date | string, date2: Date, tz: string) => {
+    const d1 = getDateComponentsInTz(date1, tz);
+    const d2 = getDateComponentsInTz(date2, tz);
+    return d1.year === d2.year && d1.month === d2.month && d1.day === d2.day;
+  };
+
   const getClassesForDate = (studentId, date) => {
-    const studentClasses = allClasses.find(item => item.studentId === studentId);
+    const studentClasses = allClasses.find(
+      (item) => item.studentId === studentId
+    );
     if (!studentClasses) return [];
 
-    return studentClasses.classes.filter(classItem => {
+    return studentClasses.classes.filter((classItem) => {
       if (!classItem.startTime) return false;
-      const classDate = new Date(classItem.startTime);
-      return classDate.toDateString() === date.toDateString();
+      // Compare dates in user's timezone to ensure correct date matching
+      return isSameDayInTz(classItem.startTime, date, userTz);
     });
+  };
+
+  const handleJoinMeeting = async (classId: string) => {
+    try {
+      if (!userData) {
+        toast.error("User data not available. Please refresh the page.");
+        return;
+      }
+
+      console.log("[Meeting] Creating meeting for class:", classId);
+      const response = await fetch("/Api/meeting/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          classId: classId,
+          userId: userData._id,
+          userRole: userData.category,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("[Meeting] Server response:", data);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create meeting");
+      }
+
+      router.push(
+        `/tutor/video-call?url=${encodeURIComponent(data.url)}&userRole=${
+          userData.category
+        }&token=${encodeURIComponent(data.token || "")}`
+      );
+    } catch (error: any) {
+      console.error("[Meeting] Error details:", error);
+      toast.error(
+        error.message || "Failed to create meeting. Please try again."
+      );
+    }
   };
 
   const changeDay = (deltaDays) => {
@@ -117,30 +273,13 @@ const StudentCalendarView = () => {
   };
 
   const formatTime = (startTime, endTime) => {
-    if (!startTime) return '';
-     // Use UTC methods to get the exact stored time
-  const startDate = new Date(startTime);
-  const start = startDate.toLocaleTimeString('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'UTC'  // This ensures we read the UTC time correctly
-  });
-  
-  const end = endTime
-    ? new Date(endTime).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-        timeZone: 'UTC'  // This ensures we read the UTC time correctly
-      })
-    : '';
-  
-  return end ? `${start} - ${end}` : start;
-};
+    if (!startTime) return "";
+    // Use user's timezone for display
+    return formatTimeRangeInTz(startTime, endTime, userTz);
+  };
 
   const getInitials = (name) => {
-    if (!name) return 'NA';
+    if (!name) return "NA";
     return name
       .split(" ")
       .map((n) => n[0] || "")
@@ -155,9 +294,12 @@ const StudentCalendarView = () => {
 
   const weekDays = getWeekDays();
 
-  const filteredStudents = students.filter(student =>
-    (student.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (student.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = students.filter(
+    (student) =>
+      (student.username || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (student.email || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -169,28 +311,32 @@ const StudentCalendarView = () => {
   }
 
   // Grid template: first column fixed 263px, then 7 equal columns
-  const gridTemplate = { gridTemplateColumns: '263px repeat(7, minmax(0, 1fr))' };
+  const gridTemplate = {
+    gridTemplateColumns: "263px repeat(7, minmax(0, 1fr))",
+  };
 
   return (
     <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
-      
 
       {/* Main Content */}
       <div className="flex-1 min-h-screen">
         {/* Header */}
         <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Student Calendar</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+            Tutor Calendar
+          </h1>
+
           {isMobile && (
-            <button 
+            <button
               onClick={toggleSidebar}
               className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
             >
@@ -206,7 +352,10 @@ const StudentCalendarView = () => {
             {/* Top Navigation Bar */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4 text-[20px] text-[#212121]">
-                <span onClick={() => changeDay(-1)} className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded">
+                <span
+                  onClick={() => changeDay(-1)}
+                  className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
+                >
                   {"<"}
                 </span>
                 <span className="font-medium text-[20px] text-[#212121]">
@@ -217,7 +366,10 @@ const StudentCalendarView = () => {
                     month: "long",
                   })}
                 </span>
-                <span onClick={() => changeDay(1)} className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded">
+                <span
+                  onClick={() => changeDay(1)}
+                  className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
+                >
                   {">"}
                 </span>
               </div>
@@ -246,108 +398,191 @@ const StudentCalendarView = () => {
               </div>
             </div>
 
+            {/* Course Dropdown and Create Class Button */}
+            <div className="flex items-center gap-4 mb-6">
+              <Button
+                onClick={handleOpenCourseModal}
+                className="!bg-purple-600 hover:!bg-purple-700 !text-white !px-4 !py-2 !rounded-lg !flex !items-center !gap-2 !text-sm !font-medium"
+              >
+                <PlusCircle size={18} />
+                Create Class
+              </Button>
+
+              {/* Course Select Modal */}
+              <Modal
+                show={showCourseModal}
+                onHide={handleCloseCourseModal}
+                centered
+                className="modal-common-sec"
+                animation
+                backdrop // click outside to dismiss
+                keyboard // press ESC to dismiss
+              >
+                <Modal.Header closeButton />
+                <Modal.Body>
+                  <div className="head-modal text-center">
+                    <h2>Select Course</h2>
+                    <p>Choose a course to create a new class session.</p>
+                  </div>
+                  <div className="form-box-modal label-strong-box">
+                    <div className="row">
+                      <div className="col-md-12">
+                        <label className="w-100 d-block mb-2">Course</label>
+                        <select
+                          value={selectedCourseId}
+                          onChange={(e) => setSelectedCourseId(e.target.value)}
+                          className="form-select"
+                        >
+                          {courses.length === 0 && (
+                            <option value="">No courses found</option>
+                          )}
+                          {courses.map((course) => (
+                            <option key={course._id} value={course._id}>
+                              {course.title || course.name || "Untitled Course"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button
+                    variant="outline-secondary"
+                    onClick={handleCloseCourseModal}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="primary"
+                    disabled={!selectedCourseId}
+                    onClick={handleConfirmCreateClass}
+                  >
+                    Continue
+                  </Button>
+                </Modal.Footer>
+              </Modal>
+            </div>
+
             {/* Calendar Grid */}
-   <div className="mt-2 rounded overflow-hidden">
-  {/* Header Row */}
-  <div
-    className="grid items-stretch bg-white"
-    style={gridTemplate}
-  >
-    {/* Search Input Cell */}
-    <div className="p-3 bg-white">
-      <input
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        type="text"
-        placeholder="Search Students"
-        className="w-full h-[48px] px-4 rounded 
+            <div className="mt-2 rounded overflow-hidden">
+              {/* Header Row */}
+              <div className="grid items-stretch bg-white" style={gridTemplate}>
+                {/* Search Input Cell */}
+                <div className="p-3 bg-white">
+                  <input
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    type="text"
+                    placeholder="Search Students"
+                    className="w-full h-[48px] px-4 rounded 
                   border border-[#505050] 
                   text-[14px] text-[#505050] 
                   bg-white 
                   font-inter font-normal
                   focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-      />
-    </div>
+                  />
+                </div>
 
-    {/* Week Day Headers */}
-    {weekDays.map((day, idx) => (
-      <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
-        <div className="text-[16px] font-inter font-medium text-[#212121]">
-          {day.toLocaleDateString('en-US', { day: '2-digit', weekday: 'short' })}
-        </div>
-      </div>
-    ))}
-  </div>
-
-  {/* Calendar Body */}
-  <div className="max-h-[70vh] overflow-auto">
-    {filteredStudents.length === 0 ? (
-      <div className="p-8 text-center">
-        <div className="text-[16px] text-[#9B9B9B] mb-2">No students to display</div>
-        <div className="text-[14px] text-[#C4C4C4]">
-          {searchTerm ? 'Try adjusting your search terms' : 'No students found in the system'}
-        </div>
-      </div>
-    ) : (
-      filteredStudents.map((student) => (
-        <div 
-          key={student._id} 
-          className="grid items-center hover:bg-gray-50 transition-colors" 
-          style={gridTemplate}
-        >
-          {/* Student Info Cell */}
-          <div className="p-3 flex items-center gap-3 min-h-[88px] border-r border-gray-200">
-            {student.profileImage ? (
-              <img 
-                src={student.profileImage} 
-                alt={student.username} 
-                className="w-10 h-10 rounded-full object-cover" 
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-sm font-medium text-orange-600">
-                {getInitials(student.username)}
+                {/* Week Day Headers */}
+                {weekDays.map((day, idx) => (
+                  <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
+                    <div className="text-[16px] font-inter font-medium text-[#212121]">
+                      {day.toLocaleDateString("en-US", {
+                        day: "2-digit",
+                        weekday: "short",
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-            <div>
-              <div className="text-[14px] text-[#212121] font-medium">
-                {student.username}
-              </div>
-            </div>
-          </div>
 
-          {/* Daily Schedule Cells */}
-          {weekDays.map((day, idx) => {
-            const classes = getClassesForDate(student._id, day);
-            return (
-              <div key={idx} className="p-3 min-h-[88px]">
-                {classes.length === 0 ? (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-[12px] text-[#E0E0E0]">No classes</div>
+              {/* Calendar Body */}
+              <div className="max-h-[70vh] overflow-auto">
+                {filteredStudents.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <div className="text-[16px] text-[#9B9B9B] mb-2">
+                      No students to display
+                    </div>
+                    <div className="text-[14px] text-[#C4C4C4]">
+                      {searchTerm
+                        ? "Try adjusting your search terms"
+                        : "No students found in the system"}
+                    </div>
                   </div>
                 ) : (
-                  classes.map((classItem, cIdx) => (
+                  filteredStudents.map((student) => (
                     <div
-                      key={classItem._id || cIdx}
-                      className="mb-2 last:mb-0 p-2 bg-orange-50 border-l-4 border-orange-400 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                      title={`${classItem.title || 'Class'} - ${formatTime(classItem.startTime, classItem.endTime)}`}
+                      key={student._id}
+                      className="grid items-center hover:bg-gray-50 transition-colors"
+                      style={gridTemplate}
                     >
-                      <div className="font-medium text-[13px] truncate">
-                        {classItem.title || 'Class'}
+                      {/* Student Info Cell */}
+                      <div className="p-3 flex items-center gap-3 min-h-[88px] border-r border-gray-200">
+                        {student.profileImage ? (
+                          <img
+                            src={student.profileImage}
+                            alt={student.username}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-sm font-medium text-purple-800">
+                            {getInitials(student.username)}
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-[14px] text-[#212121] font-medium">
+                            {student.username}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-[11px] text-gray-600 truncate">
-                        {formatTime(classItem.startTime, classItem.endTime)}
-                      </div>
+
+                      {/* Daily Schedule Cells */}
+                      {weekDays.map((day, idx) => {
+                        const classes = getClassesForDate(student._id, day);
+                        return (
+                          <div key={idx} className="p-3 min-h-[88px]">
+                            {classes.length === 0 ? (
+                              <div className="h-full flex items-center justify-center">
+                                <div className="text-[12px] text-[#E0E0E0]">
+                                  No classes
+                                </div>
+                              </div>
+                            ) : (
+                              classes.map((classItem, cIdx) => (
+                                <div
+                                  key={classItem._id || cIdx}
+                                  className="mb-2 last:mb-0 p-2 bg-purple-50 border-l-4 border-purple-400 hover:bg-purple-100 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                  title={`${
+                                    classItem.title || "Class"
+                                  } - ${formatTime(
+                                    classItem.startTime,
+                                    classItem.endTime
+                                  )}`}
+                                  onClick={() =>
+                                    handleJoinMeeting(classItem._id)
+                                  }
+                                >
+                                  <div className="font-medium text-[13px] truncate">
+                                    {classItem.title || "Class"}
+                                  </div>
+                                  <div className="text-[11px] text-gray-600 truncate">
+                                    {formatTime(
+                                      classItem.startTime,
+                                      classItem.endTime
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ))
                 )}
               </div>
-            );
-          })}
-        </div>
-      ))
-    )}
-  </div>
-</div>
+            </div>
           </div>
         </main>
       </div>

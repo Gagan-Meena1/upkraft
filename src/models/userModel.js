@@ -70,6 +70,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    timezone: {
+        type: String,
+        default: "Asia/Calcutta"
+    },
    
     skills: {
         type: String,
@@ -103,6 +107,24 @@ const userSchema = new mongoose.Schema({
     aboutMyself: {
         type: String,
         default: ""
+    },
+    academyId:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "users"
+    },
+    tutors:{
+        type:[{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "users"
+        }],
+
+    },
+    students:{
+        type:[{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "users"
+        }],
+
     },
     forgotPasswordToken: String,
     forgotPasswordTokenExpiry: Date,

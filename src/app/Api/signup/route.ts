@@ -13,7 +13,7 @@ export async function POST(request : NextRequest ){
         await connect();
 
         const reqBody = await request.json();
-        const {username, email, password, category, contact, emailType} = reqBody;
+        const {username, email, password, category, contact, emailType,addedBy} = reqBody;
         console.log("[API/signup] Request body:", { username, email, category, contact, emailType });
 
         const normalizedEmail = email.toLowerCase();
@@ -51,10 +51,33 @@ export async function POST(request : NextRequest ){
         if (instructorId) {
             newUser.instructorId = Array.isArray(instructorId) ? instructorId : [instructorId];
         }
+        const instructor= await User.findById(instructorId);
+            if(instructor.category==="Academic"){
+                newUser.academyId= instructorId;
+                console.log("[API/signup] Linked student to academy.");
+                instructor.students.push(newUser._id);
+                await instructor.save();
+                console.log("[API/signup] Updated academy with new student.", { academyId: instructorId, studentId: newUser._id });
+                
+            }
+        // if( addedBy ==="academy"){
+        //     const tutor= await User.findById(instructorId);
+        //     if(tutor){
+        //         newUser.academyId= tutor.academyId;
+                
+        //     }
+        //     const academy= await User.findById(tutor?.academyId);
+        //     if(academy){
+        //         academy.students.push(newUser._id);
+        //         await academy.save();
+        //         console.log("[API/signup] Linked student to academy.");
+        //     }
+        // }
         console.log("[API/signup] Creating new user object.", { user: newUser.toObject() });
 
         const savedUser = await newUser.save();
         console.log("[API/signup] Successfully saved new user.", { userId: savedUser._id });
+        // console.log("savedUser : ",savedUser);
 
            // If the user is a Tutor, duplicate default courses
         if (category === "Tutor") {
@@ -129,30 +152,30 @@ export async function POST(request : NextRequest ){
         }
 
         // If this is a student invitation, send the invitation email
-        if (emailType === "STUDENT_INVITATION" && instructorId) {
-            // Get tutor information
-            const tutor = await User.findById(instructorId);
-            if (!tutor) {
-                console.error("[API/signup] Tutor not found for ID:", instructorId);
-                return NextResponse.json({
-                    error: "Tutor not found",
-                    success: false
-                });
-            }
+        // if (emailType === "STUDENT_INVITATION" && instructorId) {
+        //     // Get tutor information
+        //     const tutor = await User.findById(instructorId);
+        //     if (!tutor) {
+        //         console.error("[API/signup] Tutor not found for ID:", instructorId);
+        //         return NextResponse.json({
+        //             error: "Tutor not found",
+        //             success: false
+        //         });
+        //     }
 
-            // Get the latest course for this tutor
-            const tutorCourse = await courseName.findOne({ instructorId }).sort({ createdAt: -1 });
+        //     // Get the latest course for this tutor
+        //     const tutorCourse = await courseName.findOne({ instructorId }).sort({ createdAt: -1 });
             
-            // Send invitation email
-            await sendEmail({
-                email: normalizedEmail,
-                emailType: "STUDENT_INVITATION",
-                username: username,
-                tutorName: tutor.username,
-                courseName: tutorCourse ? tutorCourse.title : "Dance Course",
-                resetToken: password // Send the original password in the email
-            });
-        }
+        //     // Send invitation email
+        //     await sendEmail({
+        //         email: normalizedEmail,
+        //         emailType: "STUDENT_INVITATION",
+        //         username: username,
+        //         tutorName: tutor.username,
+        //         courseName: tutorCourse ? tutorCourse.title : "Dance Course",
+        //         resetToken: password // Send the original password in the email
+        //     });
+        // }
 
         return NextResponse.json({
             message: "User registered successfully",

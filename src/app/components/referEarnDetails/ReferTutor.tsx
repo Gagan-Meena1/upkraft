@@ -247,7 +247,7 @@ const ReferTutor = () => {
                 name="referralCode"
                 value={formData.referralCode}
                 onChange={handleInputChange}
-                required
+                
               />
             </Form.Group>
           </div>

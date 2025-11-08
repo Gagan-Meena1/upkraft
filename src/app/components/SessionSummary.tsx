@@ -43,81 +43,107 @@ const StarRating = ({ rating }: { rating: number }) => {
 const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: string }) => {
   const [sessions, setSessions] = useState<SessionFeedback[]>([]);
   const [loading, setLoading] = useState(true);
-  const [classesCSAT, setClassesCSAT] = useState<Map<string, number | null>>(new Map()); // Add this
+  const [classesCSAT, setClassesCSAT] = useState<Map<string, number | null>>(new Map());
 
+  // Helper: choose endpoint by category (Music default)
+  const getFeedbackEndpoint = (category?: string) => {
+    switch ((category || '').toLowerCase()) {
+      case 'dance':
+        return '/Api/studentFeedbackForTutor/dance';
+      case 'drawing':
+        return '/Api/studentFeedbackForTutor/drawing';
+      default:
+        return '/Api/studentFeedbackForTutor'; // Music
+    }
+  };
 
   useEffect(() => {
-  async function fetchSummary() {
-    try {
-      setLoading(true);
+    async function fetchSummary() {
+      try {
+        setLoading(true);
 
-      // 1) Get tutor courses (existing code)
-      const tutorRes = await fetch(`/Api/tutorInfoForStudent?tutorId=${tutorId}`);
-      const tutorJson = await tutorRes.json();
-      const courses = Array.isArray(tutorJson?.courses) ? tutorJson.courses : [];
+        // 1) Get tutor’s courses shared with this student (must include category)
+        const tutorRes = await fetch(`/Api/tutorInfoForStudent?tutorId=${tutorId}`);
+        const tutorJson = await tutorRes.json();
+        const courses = Array.isArray(tutorJson?.courses) ? tutorJson.courses : [];
+        if (!courses.length) {
+          setSessions([]);
+          return;
+        }
 
-      if (!courses.length) {
-        setSessions([]);
-        setLoading(false);
-        return;
-      }
+        // 2) Fetch class meta and CSAT once, build maps
+        const classesRes = await fetch(`/Api/getClasses?tutorId=${tutorId}`);
+        const classesJson = await classesRes.json();
+        const csatMap = new Map<string, number | null>();
+        const classMeta = new Map<string, { title?: string; startTime?: string }>();
 
-      // 2) Fetch feedback per course for this student (existing code)
-      const feedbackResults = await Promise.all(
-        courses.map((c: any) =>
-          fetch(`/Api/studentFeedbackForTutor?courseId=${c._id}&studentId=${studentId}`)
-            .then(res => res.ok ? res.json() : null)
-            .catch(() => null)
-        )
-      );
-
-      // 3) Fetch classes for CSAT data (NEW)
-      const classesRes = await fetch(`/Api/getClasses?tutorId=${tutorId}`);
-      const classesJson = await classesRes.json();
-      
-      // Create a map of classId -> average CSAT
-      const csatMap = new Map<string, number | null>();
-      if (classesJson.success && Array.isArray(classesJson.classes)) {
-        classesJson.classes.forEach((cls: any) => {
-          const avgCSAT = calculateAverageCSAT(cls.csat || []);
-          csatMap.set(cls._id.toString(), avgCSAT);
-        });
-      }
-      setClassesCSAT(csatMap);
-
-      // 4) Flatten and map to table rows (existing code with modification)
-      const rows: SessionFeedback[] = [];
-      feedbackResults.forEach((fj: any) => {
-        if (fj?.success && Array.isArray(fj.data)) {
-          fj.data.forEach((item: any, idx: number) => {
-            const classId = item.class?._id || item.classId?._id || item.classId;
-            rows.push({
-              _id: item._id,
-              classId: classId?.toString(), // Store classId to look up CSAT
-              classTitle: item.class?.title || item.classId?.title || `Session ${idx + 1}`,
-              date: item.class?.startTime
-                ? new Date(item.class.startTime).toLocaleDateString()
-                : (item.createdAt ? new Date(item.createdAt).toLocaleDateString() : ""),
-              performanceScore: Number(item.performance ?? 0),
-              qualityScore: Number(item.qualityScore ?? 0),
-              tutorCSAT: classId ? (csatMap.get(classId.toString()) ?? null) : null, // Get CSAT from map
-              assignmentCompletionRate: Number(item.assignmentCompletionRate ?? 0),
-              tutorFeedback: item.personalFeedback ?? item.feedback ?? "",
-            });
+        if (classesJson?.success && Array.isArray(classesJson.classes)) {
+          classesJson.classes.forEach((cls: any) => {
+            const avgCSAT = calculateAverageCSAT(cls.csat || []);
+            const id = String(cls._id);
+            csatMap.set(id, avgCSAT);
+            classMeta.set(id, { title: cls.title, startTime: cls.startTime });
           });
         }
-      });
+        setClassesCSAT(csatMap);
 
-      // Optional: sort by date desc
-      rows.sort((a, b) => (new Date(b.date).getTime() || 0) - (new Date(a.date).getTime() || 0));
+        // 3) Fetch feedback per course using category-specific endpoint
+        const feedbackResults = await Promise.all(
+          courses.map(async (c: any) => {
+            const endpoint = getFeedbackEndpoint(c?.category);
+            try {
+              const res = await fetch(`${endpoint}?courseId=${c._id}&studentId=${studentId}`);
+              if (!res.ok) return null; // ignore 404s etc.
+              return await res.json();
+            } catch {
+              return null;
+            }
+          })
+        );
 
-      setSessions(rows);
-    } finally {
-      setLoading(false);
+        // 4) Flatten and normalize to table rows
+        const rows: SessionFeedback[] = [];
+        feedbackResults.forEach((fj: any) => {
+          if (fj?.success && Array.isArray(fj.data)) {
+            fj.data.forEach((item: any, idx: number) => {
+              const classIdRaw =
+                item.class?._id || item.classId?._id || item.classId || item.class || null;
+              const classId = classIdRaw ? String(classIdRaw) : undefined;
+
+              const meta = classId ? classMeta.get(classId) : undefined;
+              const start = meta?.startTime || item.class?.startTime || item.createdAt;
+
+              rows.push({
+                _id: String(item._id),
+                classId,
+                classTitle:
+                  item.class?.title ||
+                  item.classId?.title ||
+                  meta?.title ||
+                  `Session ${idx + 1}`,
+                date: start ? new Date(start).toLocaleDateString() : '',
+                // performance score exists across categories (music/dance/drawing)
+                performanceScore: Number(item.performance ?? 0),
+                // quality score not present in these APIs – default to 0 if missing
+                qualityScore: Number(item.qualityScore ?? 0),
+                tutorCSAT: classId ? (csatMap.get(classId) ?? null) : null,
+                // not available from these endpoints – default to 0 if missing
+                assignmentCompletionRate: Number(item.assignmentCompletionRate ?? 0),
+                tutorFeedback: item.personalFeedback ?? item.feedback ?? '',
+              });
+            });
+          }
+        });
+
+        // Sort by date desc
+        rows.sort((a, b) => (new Date(b.date).getTime() || 0) - (new Date(a.date).getTime() || 0));
+        setSessions(rows);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
-  if (studentId && tutorId) fetchSummary();
-}, [studentId, tutorId]);
+    if (studentId && tutorId) fetchSummary();
+  }, [studentId, tutorId]);
 
   return (
     <div className='card-box'>

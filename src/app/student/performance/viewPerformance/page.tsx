@@ -577,7 +577,7 @@ const StudentFeedbackDashboard = () => {
 
     return (
       <div key={field.key} className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3 text-center">
+        <h3 className="font-semibold text-gray-800 mb-3 text-center !text-[20px]">
           {field.name}
         </h3>
         <div className="h-52">
@@ -623,7 +623,7 @@ const StudentFeedbackDashboard = () => {
   const renderFieldGraph = (field: any) => {
     return (
       <div key={field.key} className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">
+        <h3 className="text-lg !text[20px] font-semibold text-gray-800 mb-3">
           {field.name}
         </h3>
         <div className="h-60">

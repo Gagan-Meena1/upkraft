@@ -45,12 +45,44 @@ export async function POST(request: NextRequest) {
     }
 
     // Find all users who have this courseId
-    const userWithCourse = await User.find({
-      courses: courseId 
-    }).select('_id');
+    // const userWithCourse = await User.find({
+    //   courses: courseId 
+    // }).select('_id');
 
-    const UserIds = userWithCourse.map(student => student._id);
-    
+    // const UserIds = userWithCourse.map(student => student._id);
+    // Get student IDs from request
+const studentIdsJson = formData.get('studentIds');
+let UserIds = [];
+
+if (studentIdsJson) {
+  try {
+    UserIds = JSON.parse(studentIdsJson as string);
+    console.log("Received student IDs from frontend:", UserIds.length);
+  } catch (error) {
+    console.error("Error parsing studentIds:", error);
+    return NextResponse.json({
+      success: false,
+      message: 'Invalid student IDs format'
+    }, { status: 400 });
+  }
+} else {
+  return NextResponse.json({
+    success: false,
+    message: 'No students selected'
+  }, { status: 400 });
+}
+    // ADD THIS SECTION - Get instructor ID from JWT token and add to UserIds
+const token = request.cookies.get("token")?.value;
+const decodedToken = token ? jwt.decode(token) : null;
+const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+
+if (instructorId) {
+  // Add instructor ID to the UserIds array if not already present
+  if (!UserIds.includes(instructorId)) {
+    UserIds.push(instructorId);
+    console.log("Instructor ID added to assignment:", instructorId);
+  }
+}
     console.log("Found students with courseId:", UserIds.length);
     
     // Create assignment object (without file info initially)
@@ -376,7 +408,7 @@ export async function PUT(request: NextRequest) {
       practiceStudio,
       speed: speed || '100%',
       metronome: metronome || '100%',
-      loop: loop || 'Set A'
+      loop: loop || 'Set A',
     };
     
     // Handle file upload with Cloudinary if a new file is provided
@@ -436,6 +468,69 @@ export async function PUT(request: NextRequest) {
       }
     }
     
+    const studentIdsJson = formData.get('studentIds');
+let newStudentIds = [];
+
+if (studentIdsJson) {
+  try {
+    newStudentIds = JSON.parse(studentIdsJson as string);
+    console.log("Received student IDs from frontend:", newStudentIds.length);
+  } catch (error) {
+    console.error("Error parsing studentIds:", error);
+    return NextResponse.json({
+      success: false,
+      message: 'Invalid student IDs format'
+    }, { status: 400 });
+  }
+} else {
+  return NextResponse.json({
+    success: false,
+    message: 'No students selected'
+  }, { status: 400 });
+}
+
+// Get old student IDs from existing assignment
+const oldStudentIds = existingAssignment.userId || [];
+
+// Find students to remove (in old but not in new)
+const studentsToRemove = oldStudentIds.filter(
+  (id: any) => !newStudentIds.includes(id.toString())
+);
+
+// Find students to add (in new but not in old)
+const studentsToAdd = newStudentIds.filter(
+  (id: string) => !oldStudentIds.some((oldId: any) => oldId.toString() === id)
+);
+
+// Add userId to updateData
+updateData.userId = newStudentIds;
+
+// NOW Update assignment in database
+// const updatedAssignment = await Assignment.findByIdAndUpdate(
+//   assignmentId,
+//   updateData,
+//   { new: true }
+// );
+
+// console.log("Assignment updated successfully");
+
+// Remove assignment from students who should no longer have it
+if (studentsToRemove.length > 0) {
+  await User.updateMany(
+    { _id: { $in: studentsToRemove } },
+    { $pull: { assignment: assignmentId } }
+  );
+  console.log(`Assignment removed from ${studentsToRemove.length} students`);
+}
+
+// Add assignment to new students
+if (studentsToAdd.length > 0) {
+  await User.updateMany(
+    { _id: { $in: studentsToAdd } },
+    { $push: { assignment: assignmentId } }
+  );
+  console.log(`Assignment added to ${studentsToAdd.length} students`);
+}
     // Update assignment in database
     const updatedAssignment = await Assignment.findByIdAndUpdate(
       assignmentId,
@@ -445,34 +540,7 @@ export async function PUT(request: NextRequest) {
     
     console.log("Assignment updated successfully");
     
-    // If course or class changed, update user assignments
-    if (courseId !== existingAssignment.courseId.toString()) {
-      // Remove assignment from old course students
-      await User.updateMany(
-        { assignment: assignmentId },
-        { $pull: { assignment: assignmentId } }
-      );
-      
-      // Add assignment to new course students
-      const userWithCourse = await User.find({
-        courses: courseId 
-      }).select('_id');
-
-      const UserIds = userWithCourse.map(student => student._id);
-      
-      if (UserIds.length > 0) {
-        await User.updateMany(
-          { _id: { $in: UserIds } },
-          { $push: { assignment: assignmentId } }
-        );
-        
-        // Update assignment's userId array
-        await Assignment.findByIdAndUpdate(
-          assignmentId,
-          { userId: UserIds }
-        );
-      }
-    }
+   
     
     // Update the Class document if class changed
     if (classId !== existingAssignment.classId.toString()) {
@@ -490,11 +558,14 @@ export async function PUT(request: NextRequest) {
       );
     }
     
-    return NextResponse.json({
-      success: true,
-      data: updatedAssignment,
-      message: 'Assignment updated successfully'
-    }, { status: 200 });
+   return NextResponse.json({
+  success: true,
+  data: updatedAssignment,
+  studentsAssigned: newStudentIds.length,
+  studentsAdded: studentsToAdd.length,
+  studentsRemoved: studentsToRemove.length,
+  message: 'Assignment updated successfully'
+}, { status: 200 });
     
   } catch (error: any) {
     console.error('Error in assignment update:', error);

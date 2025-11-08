@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
 import courseName from "@/models/courseName";
 import Class from "@/models/Class";
+import User from "@/models/userModel";
+import jwt from 'jsonwebtoken';
 
 // Type assertion approach using generic Next.js types
 export async function GET(request: Request, { params }: { params: Promise<{ courseId: string }> }) {
@@ -11,6 +13,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ cour
   try {
     const {courseId} = await params;
     console.log("courseId:", courseId);
+
+    const token = request.cookies.get("token")?.value;
+    const decodedToken = token ? jwt.decode(token) : null;
+    const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
 
     if (!courseId) {
       return NextResponse.json({ error: "Course ID is required" }, { status: 400 });
@@ -24,10 +30,23 @@ export async function GET(request: Request, { params }: { params: Promise<{ cour
       return NextResponse.json({ error: "Course not found" }, { status: 404 });
     }
 
+    // Fetch all students enrolled in this course
+    const enrolledStudents = await User.find({
+      courses: courseId,
+      category: "Student"
+    }).select('-password -forgotPasswordToken -verifyToken'); 
+
+    // fetching instructor is from academy or not
+
+    const instructor = await User.findById(instructorId).select('academyId');
+
     return NextResponse.json({ 
       courseId, 
       courseDetails,
       classDetails,
+      enrolledStudents,
+      totalStudents: enrolledStudents.length,
+      academyId:instructor?.academyId || null,
       message: "Course ID successfully extracted" 
     });
 

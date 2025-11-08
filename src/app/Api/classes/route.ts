@@ -71,35 +71,123 @@ export async function POST(request: NextRequest) {
       timezone,
     });
 
-    // FIXED: Create dates in UTC to prevent MongoDB timezone conversion
-    // Parse the date and time components separately
+    // Convert time from user's timezone to UTC for storage
+    // Parse the date and time components
     const [year, month, day] = date.split("-").map(Number);
     const [startHour, startMinute] = startTime.split(":").map(Number);
     const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    // Create Date objects in UTC (this prevents MongoDB from converting them)
-    const startDateTime = new Date(
-      Date.UTC(year, month - 1, day, startHour, startMinute)
-    );
-    const endDateTime = new Date(
-      Date.UTC(year, month - 1, day, endHour, endMinute)
-    );
+    // Function to convert a time in user's timezone to UTC
+    // This properly handles the conversion by calculating the timezone offset
+    const convertToUTC = (y: number, m: number, d: number, h: number, min: number, tz: string): Date => {
+      if (!tz || tz === "UTC") {
+        // If no timezone or UTC, treat as UTC
+        return new Date(Date.UTC(y, m - 1, d, h, min, 0));
+      }
 
-    console.log("Created DateTime objects in UTC:", {
+      // Calculate the offset by comparing what a known UTC time shows in the timezone
+      // Use a known UTC time (midnight UTC on the target date)
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      
+      const knownUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+      const knownParts = formatter.formatToParts(knownUTC);
+      const knownTzHour = parseInt(knownParts.find(p => p.type === "hour")?.value || "0");
+      const knownTzMin = parseInt(knownParts.find(p => p.type === "minute")?.value || "0");
+      
+      // If midnight UTC shows as X:Y in timezone, then the offset is X:Y hours
+      // For IST (UTC+5:30), midnight UTC = 5:30 AM IST, so offset = +5:30
+      // To convert local to UTC: UTC = Local - Offset
+      // So: UTC = 18:30 - 5:30 = 13:00 (1 PM)
+      
+      const offsetHours = knownTzHour;
+      const offsetMinutes = knownTzMin;
+      const totalOffsetMinutes = offsetHours * 60 + offsetMinutes;
+      
+      // Convert desired local time to UTC
+      // UTC = Local - Offset
+      const desiredTotalMinutes = h * 60 + min;
+      const utcTotalMinutes = desiredTotalMinutes - totalOffsetMinutes;
+      
+      // Handle date rollover
+      let utcHours = Math.floor(utcTotalMinutes / 60);
+      let utcMins = utcTotalMinutes % 60;
+      let utcYear = y;
+      let utcMonth = m - 1; // 0-indexed
+      let utcDay = d;
+      
+      // Handle negative minutes (borrow from hours)
+      if (utcMins < 0) {
+        utcMins += 60;
+        utcHours--;
+      }
+      
+      // Handle negative hours (previous day)
+      if (utcHours < 0) {
+        utcHours += 24;
+        utcDay--;
+        if (utcDay < 1) {
+          utcMonth--;
+          if (utcMonth < 0) {
+            utcMonth = 11;
+            utcYear--;
+          }
+          utcDay = new Date(utcYear, utcMonth + 1, 0).getDate();
+        }
+      }
+      
+      // Handle hours >= 24 (next day)
+      if (utcHours >= 24) {
+        utcHours -= 24;
+        utcDay++;
+        const daysInMonth = new Date(utcYear, utcMonth + 1, 0).getDate();
+        if (utcDay > daysInMonth) {
+          utcDay = 1;
+          utcMonth++;
+          if (utcMonth > 11) {
+            utcMonth = 0;
+            utcYear++;
+          }
+        }
+      }
+      
+      return new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHours, utcMins, 0));
+    };
+
+    // Use the conversion function
+    const startDateTime = convertToUTC(year, month, day, startHour, startMinute, timezone || "UTC");
+    const endDateTime = convertToUTC(year, month, day, endHour, endMinute, timezone || "UTC");
+
+    // Verify the conversion by formatting back
+    const verifyStart = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "UTC",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(startDateTime);
+    
+    const verifyEnd = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "UTC",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(endDateTime);
+
+    console.log("Created DateTime objects (converted from user timezone to UTC):", {
       inputTime: `${startTime} - ${endTime}`,
-      startDateTime: startDateTime.toString(),
-      endDateTime: endDateTime.toString(),
-      startDateTimeISO: startDateTime.toISOString(),
-      endDateTimeISO: endDateTime.toISOString(),
-      // This should show the SAME time as input
-      startTimeCheck: `${startDateTime.getUTCHours()}:${startDateTime
-        .getUTCMinutes()
-        .toString()
-        .padStart(2, "0")}`,
-      endTimeCheck: `${endDateTime.getUTCHours()}:${endDateTime
-        .getUTCMinutes()
-        .toString()
-        .padStart(2, "0")}`,
+      userTimezone: timezone,
+      startDateTimeUTC: startDateTime.toISOString(),
+      endDateTimeUTC: endDateTime.toISOString(),
+      verification: `Should display as ${verifyStart} - ${verifyEnd} in ${timezone}`,
+      startDateTimeUTC_Readable: startDateTime.toString(),
+      endDateTimeUTC_Readable: endDateTime.toString(),
     });
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
@@ -286,9 +374,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, date, startTime, endTime } = body;
+    const { title, description, date, startTime, endTime, timezone } = body;
 
-    console.log("RECEIVED:", { title, description, date, startTime, endTime });
+    console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone });
 
     if (!title || !description || !date || !startTime || !endTime) {
       return NextResponse.json(
@@ -304,18 +392,95 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // FORCE UTC CREATION - This ensures same time regardless of server timezone
+    // Convert time from user's timezone to UTC for storage
     const [year, month, day] = date.split("-").map(Number);
     const [startHour, startMinute] = startTime.split(":").map(Number);
     const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    // Create Date objects in UTC timezone - same time everywhere
-    const startDateTime = new Date(
-      Date.UTC(year, month - 1, day, startHour, startMinute, 0, 0)
-    );
-    const endDateTime = new Date(
-      Date.UTC(year, month - 1, day, endHour, endMinute, 0, 0)
-    );
+    // Use the same conversion function as POST
+    const convertToUTC = (y: number, m: number, d: number, h: number, min: number, tz: string): Date => {
+      if (!tz || tz === "UTC") {
+        return new Date(Date.UTC(y, m - 1, d, h, min, 0));
+      }
+
+      // Calculate the offset by comparing what a known UTC time shows in the timezone
+      // Use a known UTC time (midnight UTC on the target date)
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      
+      const knownUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+      const knownParts = formatter.formatToParts(knownUTC);
+      const knownTzHour = parseInt(knownParts.find(p => p.type === "hour")?.value || "0");
+      const knownTzMin = parseInt(knownParts.find(p => p.type === "minute")?.value || "0");
+      
+      // If midnight UTC shows as X:Y in timezone, then the offset is X:Y hours
+      // For IST (UTC+5:30), midnight UTC = 5:30 AM IST, so offset = +5:30
+      // To convert local to UTC: UTC = Local - Offset
+      // So: UTC = 18:30 - 5:30 = 13:00 (1 PM)
+      
+      const offsetHours = knownTzHour;
+      const offsetMinutes = knownTzMin;
+      const totalOffsetMinutes = offsetHours * 60 + offsetMinutes;
+      
+      // Convert desired local time to UTC
+      // UTC = Local - Offset
+      const desiredTotalMinutes = h * 60 + min;
+      const utcTotalMinutes = desiredTotalMinutes - totalOffsetMinutes;
+      
+      // Handle date rollover
+      let utcHours = Math.floor(utcTotalMinutes / 60);
+      let utcMins = utcTotalMinutes % 60;
+      let utcYear = y;
+      let utcMonth = m - 1; // 0-indexed
+      let utcDay = d;
+      
+      // Handle negative minutes (borrow from hours)
+      if (utcMins < 0) {
+        utcMins += 60;
+        utcHours--;
+      }
+      
+      // Handle negative hours (previous day)
+      if (utcHours < 0) {
+        utcHours += 24;
+        utcDay--;
+        if (utcDay < 1) {
+          utcMonth--;
+          if (utcMonth < 0) {
+            utcMonth = 11;
+            utcYear--;
+          }
+          utcDay = new Date(utcYear, utcMonth + 1, 0).getDate();
+        }
+      }
+      
+      // Handle hours >= 24 (next day)
+      if (utcHours >= 24) {
+        utcHours -= 24;
+        utcDay++;
+        const daysInMonth = new Date(utcYear, utcMonth + 1, 0).getDate();
+        if (utcDay > daysInMonth) {
+          utcDay = 1;
+          utcMonth++;
+          if (utcMonth > 11) {
+            utcMonth = 0;
+            utcYear++;
+          }
+        }
+      }
+      
+      return new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHours, utcMins, 0));
+    };
+
+    const startDateTime = convertToUTC(year, month, day, startHour, startMinute, timezone || "UTC");
+    const endDateTime = convertToUTC(year, month, day, endHour, endMinute, timezone || "UTC");
 
     console.log("STORING IN UTC:", {
       inputTime: `${startTime} - ${endTime}`,

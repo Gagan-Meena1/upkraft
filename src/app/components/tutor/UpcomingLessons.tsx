@@ -1,9 +1,13 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import {
+  formatInTz,
+  formatTimeRangeInTz,
+  getUserTimeZone,
+} from "@/helper/time";
 
 interface ClassData {
   _id: string;
@@ -23,6 +27,7 @@ interface UserData {
   name?: string;
   email?: string;
   category: string;
+  timezone?: string; // added timezone
 }
 
 const UpcomingLessons = () => {
@@ -33,6 +38,8 @@ const UpcomingLessons = () => {
   const [error, setError] = useState<string | null>(null);
   const [studentsMap, setStudentsMap] = useState<{ [key: string]: any[] }>({});
   const router = useRouter();
+
+  const userTz = userData?.timezone || getUserTimeZone();
 
   useEffect(() => {
     const fetchClasses = async () => {
@@ -46,20 +53,25 @@ const UpcomingLessons = () => {
           setUserData(userResponseData.user);
         }
 
-        if (userResponseData.classDetails && userResponseData.classDetails.length > 0) {
-          const now = new Date();
-          const futureClasses = userResponseData.classDetails
-            .filter((cls: ClassData) => new Date(cls.startTime) > now)
-            .sort(
-              (a: ClassData, b: ClassData) =>
-                new Date(a.startTime).getTime() -
-                new Date(b.startTime).getTime()
-            );
+        if (
+  userResponseData.classDetails &&
+  userResponseData.classDetails.length > 0
+) {
+  const now = new Date();
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  
+  const futureClasses = userResponseData.classDetails
+    .filter((cls: ClassData) => new Date(cls.startTime) > twentyFourHoursAgo)
+    .sort(
+      (a: ClassData, b: ClassData) =>
+        new Date(a.startTime).getTime() -
+        new Date(b.startTime).getTime()
+    );
 
-          setClasses(futureClasses);
-        } else {
-          setClasses([]);
-        }
+  setClasses(futureClasses);
+} else {
+  setClasses([]);
+}
       } catch (err) {
         console.error("Error fetching classes:", err);
         setError("Failed to load upcoming lessons");
@@ -90,38 +102,11 @@ const UpcomingLessons = () => {
     if (classes.length > 0) fetchStudents();
   }, [classes]);
 
-
   const formatDate = (dateString: string) => {
     try {
-      const date = new Date(dateString);
-      return format(date, "d MMM");
-    } catch (error) {
+      return formatInTz(dateString, userTz, { day: "numeric", month: "short" });
+    } catch {
       return "Invalid date";
-    }
-  };
-
-  const formatTime = (startTime: string, endTime: string) => {
-    try {
-      const start = new Date(startTime);
-      const end = new Date(endTime);
-
-      // Use UTC methods to get EXACT stored time (same as CourseDetailsPage)
-      const startHours = start.getUTCHours();
-      const startMinutes = start.getUTCMinutes();
-      const endHours = end.getUTCHours();
-      const endMinutes = end.getUTCMinutes();
-
-      // Format manually
-      const formatTimeString = (hours: number, minutes: number) => {
-        const period = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12; // Convert to 12-hour format
-        const displayMinutes = String(minutes).padStart(2, '0');
-        return `${displayHours}:${displayMinutes} ${period}`;
-      };
-
-      return `${formatTimeString(startHours, startMinutes)} - ${formatTimeString(endHours, endMinutes)}`;
-    } catch (error) {
-      return "Invalid time";
     }
   };
 
@@ -133,15 +118,15 @@ const UpcomingLessons = () => {
       }
 
       console.log("[Meeting] Creating meeting for class:", classId);
-      const response = await fetch('/Api/meeting/create', {
-        method: 'POST',
+      const response = await fetch("/Api/meeting/create", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           classId: classId,
           userId: userData._id,
-          userRole: userData.category
+          userRole: userData.category,
         }),
       });
 
@@ -149,13 +134,20 @@ const UpcomingLessons = () => {
       console.log("[Meeting] Server response:", data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create meeting');
+        throw new Error(data.error || "Failed to create meeting");
       }
 
-      router.push(`/tutor/video-call?url=${encodeURIComponent(data.url)}&userRole=${userData.category}&token=${encodeURIComponent(data.token || '')}`);
+      window.open(
+        `/tutor/video-call?url=${encodeURIComponent(data.url)}&userRole=${
+          userData.category
+        }&token=${encodeURIComponent(data.token || "")}`,
+        '_blank'
+      );
     } catch (error: any) {
-      console.error('[Meeting] Error details:', error);
-      toast.error(error.message || 'Failed to create meeting. Please try again.');
+      console.error("[Meeting] Error details:", error);
+      toast.error(
+        error.message || "Failed to create meeting. Please try again."
+      );
     }
   };
 
@@ -184,7 +176,12 @@ const UpcomingLessons = () => {
   return (
     <div className="card-box table-sec">
       <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-        <h2 className="!text-[20px]">Upcoming Sessions</h2>
+        <div className="flex gap-2 items-center">
+          <h2 className="!text-[20px] !mb-0">Upcoming Sessions</h2>
+          <span className="!text-sm text-gray-500">
+            (Timezone: {userData?.timezone || getUserTimeZone()})
+          </span>
+        </div>
         <Link href="/tutor/calendar" className="btn-text">
           View All
         </Link>
@@ -211,14 +208,29 @@ const UpcomingLessons = () => {
               classes.slice(0, 8).map((classItem) => (
                 <tr key={classItem._id}>
                   <th>{formatDate(classItem.startTime)}</th>
-                  <td>{formatTime(classItem.startTime, classItem.endTime)}</td>
+                  <td>
+                    <div className="text-xs flex flex-col gap-2 text-gray-600">
+                      <span>
+                        {formatTimeRangeInTz(
+                          classItem.startTime,
+                          classItem.endTime,
+                          userTz
+                        )}
+                      </span>
+                    </div>
+                  </td>
                   <th>{classItem.title}</th>
                   <td>
-                    {studentsMap[classItem._id] && studentsMap[classItem._id].length > 0 ? (
-                      <span title={studentsMap[classItem._id].map(s => s.username).join(", ")}>
+                    {studentsMap[classItem._id] &&
+                    studentsMap[classItem._id].length > 0 ? (
+                      <span
+                        title={studentsMap[classItem._id]
+                          .map((s) => s.username)
+                          .join(", ")}
+                      >
                         {studentsMap[classItem._id]
-                          .slice(0, 2) // show first 2 students
-                          .map(s => s.username)
+                          .slice(0, 2)
+                          .map((s) => s.username)
                           .join(", ")}
                         {studentsMap[classItem._id].length > 2 ? "..." : ""}
                       </span>

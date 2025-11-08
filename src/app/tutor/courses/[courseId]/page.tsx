@@ -6,6 +6,7 @@ import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2
 import { useParams, useRouter } from 'next/navigation';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
+import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from '@/helper/time';
 
 // TypeScript interfaces for type safety
 interface Curriculum {
@@ -61,11 +62,14 @@ const CourseDetailsPage = () => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [editError, setEditError] = useState('');
+  const [userTimezone, setUserTimezone] = useState<string | null>(null);
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
+  const [academyId, setAcademyId] = useState<string | null>(null);
   const params = useParams();
   const router = useRouter();
 
   // Helper function to format date and time
+  /*
 const formatDateTime = (dateTimeString: string) => {
   const date = new Date(dateTimeString);
   
@@ -98,6 +102,25 @@ const formatDateTime = (dateTimeString: string) => {
     time: timeStr  // Exact stored time: "14:30"
   };
 };
+*/
+
+  const formatDateTime = (startTime: string, endTime: string) => {
+    const tz = userTimezone || getUserTimeZone();
+
+    const date = formatInTz(startTime, tz, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
+    const timeRange = formatTimeRangeInTz(startTime, endTime, tz);
+
+    return {
+      date,
+      time: timeRange,
+    };
+  };
 
 
   // Helper function to extract date and time for form inputs
@@ -137,6 +160,7 @@ const extractDateTimeForForm = (dateTimeString: string) => {
         
         const data = await response.json();
         setCourseData(data);
+        setAcademyId(data.academyId || null); // Add this line
         setLoading(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -148,6 +172,22 @@ const extractDateTimeForForm = (dateTimeString: string) => {
       fetchCourseDetails();
     }
   }, [params.courseId]);
+
+  // Fetch user's timezone
+  useEffect(() => {
+    const fetchUserTimezone = async () => {
+      try {
+        const response = await fetch("/Api/users/user");
+        const data = await response.json();
+        if (data.user?.timezone) {
+          setUserTimezone(data.user.timezone);
+        }
+      } catch (error) {
+        console.error("Error fetching user timezone:", error);
+      }
+    };
+    fetchUserTimezone();
+  }, []);
 
   // Handle edit class
 const handleEditClass = (classSession: Class) => {
@@ -245,6 +285,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
         date: editForm.date,        // Send exact: "2024-01-15"
         startTime: editForm.startTime, // Send exact: "14:30"
         endTime: editForm.endTime,     // Send exact: "16:00"
+        timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       }),
     });
 
@@ -461,19 +502,21 @@ const handleUpdateClass = async (e: React.FormEvent) => {
               </h1>
             </div>
             <div className="!flex !flex-col !sm:flex-row !items-stretch !sm:items-center !gap-2 !sm:gap-3">
-              <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
-                <button className="!w-full !sm:w-auto !bg-gray-700 !hover:bg-gray-800 !text-white !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-colors !shadow-md !flex !items-center !justify-center !gap-2 !text-sm !sm:text-base">
-                  <Upload size={16} className="!sm:w-[18px] !sm:h-[18px]" />
-                  Create Class
-                </button>
-              </Link>
-              <button 
+            {!academyId && (
+  <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
+    <button className="!w-full !sm:w-auto !bg-gray-700 !hover:bg-gray-800 !text-white !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-colors !shadow-md !flex !items-center !justify-center !gap-2 !text-sm !sm:text-base">
+      <Upload size={16} className="!sm:w-[18px] !sm:h-[18px]" />
+      Create Class
+    </button>
+  </Link>
+)}
+              {!academyId && (<button 
                 onClick={handleDeleteCourse}
                 className="!w-full !sm:w-auto !border !border-gray-300 !bg-white !text-gray-700 !hover:bg-red-50 !hover:text-red-600 !hover:border-red-200 !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-all !duration-200 !flex !items-center !justify-center !gap-2 !shadow-sm !text-sm !sm:text-base"
               >
                 <Trash2 size={16} className="!sm:w-[18px] !sm:h-[18px]" />
                 Delete Course
-              </button>
+              </button>)}
             </div>
           </div>
         </header>
@@ -532,8 +575,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
             
             <div className="!space-y-4 !sm:space-y-6">
               {courseData.classDetails.map((classSession) => {
-                const { date, time: startTime } = formatDateTime(classSession.startTime);
-                const { time: endTime } = formatDateTime(classSession.endTime);
+                const { date, time } = formatDateTime(classSession.startTime, classSession.endTime);
                 const isUploading = uploadLoading[classSession._id] || false;
 
                 return (
@@ -571,7 +613,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                             <div className="!bg-gray-100 !rounded-lg !p-3 !text-center">
                               <div className="!text-sm !font-bold !text-gray-800">{date}</div>
                               <div className="!text-xs !text-gray-600">
-                                {startTime} - {endTime}
+                                {time}
                               </div>
                             </div>
 
@@ -663,7 +705,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                           <div className="!bg-gray-100 !rounded-lg !p-4 !text-center !min-w-[200px]">
                             <div className="!text-xl !font-bold !text-gray-800">{date}</div>
                             <div className="!text-gray-600">
-                              {startTime} - {endTime}
+                              {time}
                             </div>
                           </div>
 

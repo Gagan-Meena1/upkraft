@@ -36,10 +36,10 @@ const Banner = () => {
           </Link>
 
           <ul className='d-flex p-0 m-0 mt-xl-5 mt-4 list-unstyled justify-content-center'>
-            <li>Music</li>
-            <li>Vocals</li>
             <li>Guitar</li>
             <li>Piano</li>
+            <li>Drums</li>
+            <li>Vocals</li>
           </ul>
         </div>
       </div>

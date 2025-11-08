@@ -63,6 +63,7 @@ export default function MyStudents() {
   const [deletingStudents, setDeletingStudents] = useState<Set<string>>(
     new Set()
   );
+  const [academyId, setAcademyId] = useState<string | null>(null);
   const [loadingAssignments, setLoadingAssignments] = useState<Set<string>>(
     new Set()
   );
@@ -155,6 +156,11 @@ export default function MyStudents() {
 
       const data = await response.json();
       console.log("API Response:", data);
+       // Store academyId
+    if (data.academyId) {
+      setAcademyId(data.academyId);
+      console.log("Academy ID:", data.academyId);
+    }
 
       if (data && data.filteredUsers) {
         const studentsWithDetails = await Promise.all(
@@ -259,10 +265,16 @@ export default function MyStudents() {
                 My Students
               </h2>
             </div>
-            <div className="right-form">
-              <Link href="/tutor/createStudent" className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"> <span className="mr-2">+</span> Add Student
-              </Link>
-          </div>
+          <div className="right-form">
+  {!academyId && (
+    <Link 
+      href="/tutor/createStudent" 
+      className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
+    > 
+      <span className="mr-2">+</span> Add Student
+    </Link>
+  )}
+</div>
         </div>
         <hr className="hr-light"></hr>
 
@@ -327,14 +339,16 @@ export default function MyStudents() {
                     You haven't added any students to your list. Start by adding
                     your first student to begin managing your classes.
                   </p>
-                  <Link href="/tutor/createStudent">
-                    <button className="mt-5 px-4 sm:px-6 py-2 sm:py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors inline-flex items-center text-sm sm:text-base">
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Add Your First Student
-                    </button>
-                  </Link>
+                  {!academyId && (
+                    <Link href="/tutor/createStudent">
+                      <button className="mt-5 px-4 sm:px-6 py-2 sm:py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors inline-flex items-center text-sm sm:text-base">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Your First Student
+                      </button>
+                    </Link>
+                  )}
                 </div>
               </div>
             ) : (

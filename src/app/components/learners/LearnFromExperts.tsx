@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
+import ModalStudent from "./ModalStudent";
 import Videoquality from "@/assets/Videoquality.png";
 import Reel1 from "@/assets/reel1.png";
 import Reel2 from "@/assets/reel2.png";
+import Reel3 from "@/assets/reel3.png";
+import Reel4 from "@/assets/reel4.png";
 
 declare global {
   interface Window {
@@ -24,63 +27,83 @@ const LearnFromExperts = () => {
   const video3 = useRef<HTMLVideoElement>(null);
   const video4 = useRef<HTMLVideoElement>(null);
 
-  // List of tutor videos
+  const [showModal, setShowModal] = useState(false);
+  const [selectedTutor, setSelectedTutor] = useState<string | null>(null);
+
   const tutorVideos: TutorVideo[] = [
     { ref: video1, name: "Alfred", videoSrc: "/videos/reel1.mp4", poster: Reel1.src },
-    { ref: video2, name: "Beatrice", videoSrc: "/videos/reel2.mp4", poster: Reel2.src },
-    { ref: video3, name: "Charles", videoSrc: "/videos/reel1.mp4", poster: Reel1.src },
-    { ref: video4, name: "Diana", videoSrc: "/videos/reel2.mp4", poster: Reel2.src },
+    { ref: video2, name: "Alfred", videoSrc: "/videos/reel2.mp4", poster: Reel2.src },
+    { ref: video3, name: "Alfred", videoSrc: "/videos/reel3.mp4", poster: Reel3.src },
+    { ref: video4, name: "Hangshing", videoSrc: "/videos/reel4.mp4", poster: Reel4.src },
   ];
 
-  const handlePlay = (videoRef: React.RefObject<HTMLVideoElement>, tutorName: string) => {
-    if (videoRef.current) {
-      videoRef.current.play();
-
-      // Optional: track video play in GA4
-      if (window.gtag) {
-        window.gtag("event", "video_play", {
-          tutor_name: tutorName,
-          category: "Learn From Experts",
-          label: `Play ${tutorName}'s video`,
-        });
+  const pauseOtherVideos = (currentRef: React.RefObject<HTMLVideoElement>) => {
+    [video1, video2, video3, video4].forEach((ref) => {
+      if (ref.current && ref !== currentRef) {
+        ref.current.pause();
+        ref.current.currentTime = 0;
       }
+    });
+  };
+
+  const handlePlay = (videoRef: React.RefObject<HTMLVideoElement>, tutorName: string) => {
+    if (!videoRef.current) return;
+    pauseOtherVideos(videoRef);
+    videoRef.current.play();
+
+    if (window.gtag) {
+      window.gtag("event", "tutor_video_watch", {
+        tutor_name: tutorName,
+        category: "Learn From Experts",
+        label: `Started watching ${tutorName}'s video`,
+      });
     }
   };
 
   const handleLearnClick = (tutorName: string) => {
+    setSelectedTutor(tutorName);
+    setShowModal(true);
+
     if (window.gtag) {
       window.gtag("event", "learn_click", {
         tutor_name: tutorName,
         category: "Learn From Experts",
-        label: `Click on ${tutorName}`,
+        label: `Clicked on Learn From ${tutorName}`,
       });
     }
-
-    // Optional: redirect with UTM
-    // const url = `/learn?tutor=${encodeURIComponent(tutorName)}&utm_source=homepage&utm_medium=click&utm_campaign=learn_from_experts`;
-    // window.location.href = url;
   };
 
-  const renderVideoCard = (video: TutorVideo) => (
-    <div key={video.name} className="col-lg-3 col-md-6 mb-lg-0 mb-4">
+  const renderVideoCard = (video: TutorVideo, index: number) => (
+    <div key={`${video.name}-${index}`} className="col-lg-3 col-md-6 mb-lg-0 mb-4">
       <div className="video-box-with-text">
-        <div className="learn-video" onClick={() => handlePlay(video.ref, video.name)}>
-          <video ref={video.ref} width="720px" height="405" controls poster={video.poster} preload="none">
+        <div className="learn-video">
+          <video
+            ref={video.ref}
+            poster={video.poster}
+            preload="none"
+            controls
+            onPlay={() => handlePlay(video.ref, video.name)}
+          >
             <source src={video.videoSrc} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         </div>
-        <div className="learn-text">
-          <h5 style={{ cursor: "pointer" }} onClick={() => handleLearnClick(video.name)}>
-            {/* Learn from {video.name}
-             */}
-             Learn From Alfred
-          </h5>
-          <div className="d-flex align-items-center gap-2">
-            <img src={Videoquality.src} alt="" />
-            <h6>Trinity Certified Tutor</h6>
+        <div className="learn-text text-center mt-2">
+          {/* 👇 Changed text to a button */}
+          <button
+            className="btn btn-orange w-100"
+            onClick={() => handleLearnClick(video.name)}
+          >
+            Learn From {video.name}
+          </button>
+
+          <div className="d-flex align-items-center justify-content-center gap-2 mt-2">
+            <img src={Videoquality.src} alt="Quality Badge" />
+            <h6 className="m-0">Trinity Certified Tutor</h6>
           </div>
-          <div className="text d-flex align-items-center gap-1">YOE: 15 Years</div>
+          <div className="text d-flex align-items-center justify-content-center gap-1">
+            YOE: 15 Years
+          </div>
         </div>
       </div>
     </div>
@@ -89,22 +112,27 @@ const LearnFromExperts = () => {
   return (
     <div className="learn-experts-sec">
       <div className="container">
-        <div className="row">
-          <div className="col-md-12">
-            <div className="heading-box text-center">
-              <h2 className="mb-3">
-                Learn from <span>Experts</span>
-              </h2>
-              <p>
-                Check out bite-sized reels and lessons from expert tutors. Get inspired, try new techniques, and start learning in just a click.
-              </p>
-            </div>
-          </div>
+        <div className="heading-box text-center mb-4">
+          <h2 className="mb-3">
+            Learn from <span>Experts</span>
+          </h2>
+          <p>
+            Check out bite-sized reels and lessons from expert tutors. Get inspired, try new
+            techniques, and start learning in just a click.
+          </p>
         </div>
+
         <div className="row">
-          {tutorVideos.map((video) => renderVideoCard(video))}
+          {tutorVideos.map((video, index) => renderVideoCard(video, index))}
         </div>
       </div>
+
+      {/* ✅ Modal Student Component */}
+      <ModalStudent
+        show={showModal}
+        handleClose={() => setShowModal(false)}
+        tutorName={selectedTutor || ""}
+      />
     </div>
   );
 };

@@ -10,6 +10,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
+import { Ear } from "lucide-react";
 
 ChartJS.register(
   LineElement,
@@ -21,6 +22,7 @@ ChartJS.register(
   Filler
 );
 
+console.log("EarTraining component loaded");
 interface EarTrainingProps {
   feedbackData: any[];
   averageSkillScores: Record<string, number>;
@@ -32,6 +34,15 @@ const EarTraining: React.FC<EarTrainingProps> = ({
   averageSkillScores,
   allStudentsFeedbackData = [],
 }) => {
+
+    console.log("[ FE ] EarTraining Props:", {
+    feedbackData,
+    averageSkillScores,
+    allStudentsFeedbackData,
+    feedbackDataLength: feedbackData?.length,
+    topDataLength: allStudentsFeedbackData?.length
+  });
+  
   const labels = feedbackData.map((item, idx) => item.sessionNo ?? idx + 1);
   const yourScores = feedbackData.map(item => item.earTraining ?? 0);
   const topScores =

@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
     // Execute both queries in parallel for better performance
     const [verifiedTutors, unverifiedTutors] = await Promise.all([
     User.find({ 
-        category: { $in: ["Tutor", "Admin","Student"] }, 
+        category: { $in: ["Tutor", "Admin","Student", "Academic"] }, 
         isVerified: true 
       }),
 
       User.find({ 
-        category: { $in: ["Tutor", "Admin","Student"] }, 
+        category: { $in: ["Tutor", "Admin","Student", "Academic"] }, 
         isVerified: { $ne: true } 
       })
     ]);

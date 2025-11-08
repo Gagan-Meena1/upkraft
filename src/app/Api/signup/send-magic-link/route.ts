@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if the category requires admin approval
-    if (category.toLowerCase() === "tutor" || category.toLowerCase() === "admin" || category.toLowerCase() === "student") {
+    if (category.toLowerCase() === "tutor" || category.toLowerCase() === "admin"  || category.toLowerCase() === "academic") {
       // Send notification email to admin
       await sendEmail({
         email,
@@ -54,12 +54,12 @@ export async function POST(request: NextRequest) {
       );
     } else {
       // For regular users (students), send normal magic link
-      await sendEmail({
-        email,
-        emailType: "MAGIC_LINK",
-        username,
-        category
-      });
+      // await sendEmail({
+      //   email,
+      //   emailType: "MAGIC_LINK",
+      //   username,
+      //   category
+      // });
 
       return NextResponse.json(
         { 

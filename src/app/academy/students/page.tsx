@@ -1,12 +1,66 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from 'next/link';
 import StudentGrowthTrend from "../../components/academy/StudentGrowthTrend";
 import StudentTable from "../../components/academy/StudentTable";
-// import TutorTable from "../components/TutorTable";
 
+interface Student {
+  _id: string;
+  username: string;
+  email: string;
+  profileImage: string;
+  contact: string;
+  city: string;
+  tutor: string;
+  course: string;
+  lastClass: string | null;
+  progress: number;
+  attendance: number;
+  status: string;
+}
+
+interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalStudents: number;
+  limit: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+}
 
 const Students = () => {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const fetchStudents = async (page: number) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/Api/academy/students?page=${page}&limit=10`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch students');
+      }
+
+      const data = await response.json();
+      setStudents(data.students);
+      setPagination(data.pagination);
+    } catch (error) {
+      console.error('Error fetching students:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudents(currentPage);
+  }, [currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="dashboard">
       <div className="container-fluid">
@@ -15,79 +69,78 @@ const Students = () => {
             <div className="left-head">
               <h2 className="m-0">Students Management</h2>
             </div>
-          </div>
-          <div className='card-academy-box mt-4'>
-              <div className='row'>
-                  <div className='col-lg-3 col-6 mb-4'>
-                      <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3 '>
-                          <h2>487</h2>
-                          <p className='m-0 p-0 pt-2'>Total Students</p>
-                          <span className="badge tag-exam">↑ 8.5%</span>
-                      </Link>
-                  </div>
-                  <div className='col-lg-3 col-6 mb-4'>
-                      <Link href="/" className='card-box academy-card d-block  p-md-5 p-4 px-md-3 px-3'>
-                          <h2>452</h2>
-                          <p className='m-0 p-0 pt-2'>Active Students</p>
-                          <span className="badge tag-exam">↑ 12 new</span>
-                      </Link>
-                  </div>
-                  <div className='col-lg-3 col-6 mb-4'>
-                      <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
-                          <h2>35</h2>
-                          <p className='m-0 p-0 pt-2'>Trial Students</p>
-                          <span className="badge tag-exam">↑ 5 this week</span>
-                      </Link>
-                  </div>
-                  <div className='col-lg-3 col-6 mb-4'>
-                      <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
-                          <h2>91%</h2>
-                          <p className='m-0 p-0 pt-2'>Retention Rate</p>
-                          <span className="badge tag-exam">↑ 2.3%</span>
-                      </Link>
-                  </div>
-              </div>
-          </div>
-        </div>
-        
-          <div className="chart-sec mb-4">
-            <div className="row align-ite">
-                <div className="col-lg-12 mb-lg-0 mb-4">
-                  <div className="card-box">
-                      <StudentGrowthTrend />
-                  </div>
-                </div>
-                {/* <div className="col-lg-3">
-                  <div className="chart-text-right card-box h-100 d-flex align-items-center">
-                    <ul className="p-0 m-0 list-unstyled">
-                      <li>
-                        <span className="top-data">Inquiries</span>
-                        <span className="bottom-data">542</span>
-                      </li>
-                      <li>
-                        <span className="top-data">Trial Started</span>
-                        <span className="bottom-data">461</span>
-                      </li>
-                      <li>
-                        <span className="top-data">Converted</span>
-                        <span className="bottom-data">382</span>
-                      </li>
-                      <li className="mb-0">
-                        <span className="top-data">Active (3+ mo)</span>
-                        <span className="bottom-data">298</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div> */}
+            <div className="right-form">
+              <Link 
+                href="/academy/createStudent"
+                className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
+              >
+                <span className="mr-2">+</span> Add Student
+              </Link>
             </div>
           </div>
 
+          <div className='card-academy-box mt-4'>
+            <div className='row'>
+              <div className='col-lg-3 col-6 mb-4'>
+                <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3 '>
+                  <h2>{pagination?.totalStudents || 0}</h2>
+                  <p className='m-0 p-0 pt-2'>Total Students</p>
+                  <span className="badge tag-exam">↑ 8.5%</span>
+                </Link>
+              </div>
+              <div className='col-lg-3 col-6 mb-4'>
+                <Link href="/" className='card-box academy-card d-block  p-md-5 p-4 px-md-3 px-3'>
+                  <h2>452</h2>
+                  <p className='m-0 p-0 pt-2'>Active Students</p>
+                  <span className="badge tag-exam">↑ 12 new</span>
+                </Link>
+              </div>
+              <div className='col-lg-3 col-6 mb-4'>
+                <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
+                  <h2>35</h2>
+                  <p className='m-0 p-0 pt-2'>Trial Students</p>
+                  <span className="badge tag-exam">↑ 5 this week</span>
+                </Link>
+              </div>
+              <div className='col-lg-3 col-6 mb-4'>
+                <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
+                  <h2>91%</h2>
+                  <p className='m-0 p-0 pt-2'>Retention Rate</p>
+                  <span className="badge tag-exam">↑ 2.3%</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="chart-sec mb-4">
+          <div className="row align-ite">
+            <div className="col-lg-12 mb-lg-0 mb-4">
+              <div className="card-box">
+                <StudentGrowthTrend />
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="table-box">
-          <StudentTable />
+          {loading ? (
+            <div className="text-center p-5">
+              <div className="spinner-border" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+            </div>
+          ) : (
+            <StudentTable 
+              students={students} 
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Students
+export default Students;

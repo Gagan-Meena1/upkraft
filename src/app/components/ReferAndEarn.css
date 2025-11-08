@@ -1,16 +1,16 @@
 .refer-and-earn-box {
 	.text-bottom-box {
 		background: var(--dark-blue);
-		padding: 14px;
-		border-radius: 8px;
+		padding: 14px !important;
+		border-radius: 8px !important;
 		h2 {
 			color: var(--white);
 			font-weight: 600;
-			font-size: 24px;
+			font-size: 24px !important;
 			line-height: 100%;
 			letter-spacing: 0px;
             @media only screen and (max-width: 1750px) {
-                font-size: 17px;
+                font-size: 17px !important;
             }
 		}
 		p {
@@ -18,12 +18,12 @@
 			line-height: 18px;
 			font-size: 14px;
 			@media only screen and (max-width: 1499px) {
-				font-size: 13px;
+				font-size: 13px !important;
 			}
 		}
 		.blue-box {
-			max-width: 250px;
-			margin: 0 auto;
+			max-width: 250px !important;
+			margin: 0 auto !important;
 		}
 	}
 	.img-box {

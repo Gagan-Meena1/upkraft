@@ -15,7 +15,7 @@ const WhyChoose = () => {
           <div className='col-md-12'>
             <div className='heading-box text-center'>
               <h2 className='mb-3'>
-                Why Choose <span>UpKraft ?</span>
+                Why Choose <span>UpKraft?</span>
               </h2>
               <p>Learners, tutors, parents—Upkraft is built for all.</p>
             </div>

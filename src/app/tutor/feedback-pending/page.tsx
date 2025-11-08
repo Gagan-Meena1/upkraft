@@ -441,7 +441,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                           width: '40px',
                           height: '40px',
                           borderRadius: '50%',
-                          backgroundColor: '#ff8c00',
+                          backgroundColor: 'purple',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',

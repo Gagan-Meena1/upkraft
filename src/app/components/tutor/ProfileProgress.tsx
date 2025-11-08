@@ -68,7 +68,7 @@ const ProfileProgress = ({ user }: { user: UserData }) => {
         </div>
         <div className="text-center mt-3">
             <h1 className="mb-2 !text-[24px] !leading-[100%]">{user?.username}</h1>
-            <h3 className="!text-[20px] !leading-[100%]">{user?.category}</h3>
+            <h3 className="!text-[18px] !leading-[100%]">{user?.category}</h3>
         </div>
     </>
   );
