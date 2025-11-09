@@ -15,6 +15,8 @@ import {
   Edit,
   Eye,
   Copy,
+  UserPlus, 
+  User
 } from "lucide-react";
 
 import Student01 from "../../assets/student-01.png";
@@ -46,9 +48,12 @@ interface Course {
 interface MyCourseProps {
   data: Course[];
   academyId: string | null;
+  category: string | null;  
 }
 
-const MyCourse = ({ data, academyId }: MyCourseProps) => {
+const MyCourse = ({ data, academyId,category }: MyCourseProps) => {
+    console.log("MyCourse received props:", { data, academyId, category }); // ADD THIS
+
    const [courses, setCourses] = useState<Course[]>(data || []);
   const [currentPage, setCurrentPage] = useState(1);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
@@ -56,6 +61,8 @@ const MyCourse = ({ data, academyId }: MyCourseProps) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [updatingCourseId, setUpdatingCourseId] = useState<string | null>(null);
+
+  console.log("category in MyCourse:",category);
 
   // Pagination logic
   const totalCourses = courses.length;
@@ -292,7 +299,27 @@ const MyCourse = ({ data, academyId }: MyCourseProps) => {
         {paginatedCourses.map((course) => (
           <div key={course._id} className="assignments-list-box">
             <div className="w-100">
-              <h3>{course.title}</h3>
+  <div className="d-flex align-items-center justify-content-left mb-3 flex-wrap gap-3">
+    <h3 className="mb-0">{course.title}</h3>
+    {category === "Academic" && (
+      <div className="d-flex align-items-center gap-2 flex-wrap">
+        <Link
+          href={`/academy/assignCourseToStudent?courseId=${course._id}`}
+          className="btn btn-border !py-2 !px-3 d-flex align-items-center justify-content-center gap-2"
+        >
+          <UserPlus className="h-4 w-4" />
+          <span>Assign Students</span>
+        </Link>
+        <Link
+          href={`/academy/assignCourseToTutor?courseId=${course._id}`}
+          className="btn btn-border !py-2 !px-3 d-flex align-items-center justify-content-center gap-2"
+        >
+          <User className="h-4 w-4" />
+          <span>Assign Tutor</span>
+        </Link>
+      </div>
+    )}
+  </div>
             </div>
             <div className="assignments-list d-flex align-items-center gap-2 flex-wrap w-100 justify-content-between">
               <div className="left-assignment d-flex align-items-center gap-xl-4 gap-2 flex-wrap">
@@ -451,6 +478,51 @@ const MyCourse = ({ data, academyId }: MyCourseProps) => {
                         </svg>
                       </Link>
                     </li>
+                    
+                    {/* {category === "Academic" && (
+  <>
+    <li>
+      <Link
+        href={`/academy/assignCourseToStudent?courseId=${course._id}`}
+        className="btn btn-success d-flex align-items-center justify-content-center gap-2"
+      >
+        <span>Assign Student</span>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.9997 8.66536H8.66634V11.9987C8.66634 12.1755 8.5961 12.3451 8.47108 12.4701C8.34605 12.5951 8.17649 12.6654 7.99967 12.6654C7.82286 12.6654 7.65329 12.5951 7.52827 12.4701C7.40325 12.3451 7.33301 12.1755 7.33301 11.9987V8.66536H3.99967C3.82286 8.66536 3.65329 8.59513 3.52827 8.4701C3.40325 8.34508 3.33301 8.17551 3.33301 7.9987C3.33301 7.82189 3.40325 7.65232 3.52827 7.52729C3.65329 7.40227 3.82286 7.33203 3.99967 7.33203H7.33301V3.9987C7.33301 3.82189 7.40325 3.65232 7.52827 3.52729C7.65329 3.40227 7.82286 3.33203 7.99967 3.33203C8.17649 3.33203 8.34605 3.40227 8.47108 3.52729C8.5961 3.65232 8.66634 3.82189 8.66634 3.9987V7.33203H11.9997C12.1765 7.33203 12.3461 7.40227 12.4711 7.52729C12.5961 7.65232 12.6663 7.82189 12.6663 7.9987C12.6663 8.17551 12.5961 8.34508 12.4711 8.4701C12.3461 8.59513 12.1765 8.66536 11.9997 8.66536Z"
+            fill="white"
+          />
+        </svg>
+      </Link>
+    </li>
+    <li>
+      <Link
+        href={`/academy/assignCourseToTutor?courseId=${course._id}`}
+        className="btn btn-info d-flex align-items-center justify-content-center gap-2"
+      >
+        <span>Assign Tutor</span>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M11.9997 8.66536H8.66634V11.9987C8.66634 12.1755 8.5961 12.3451 8.47108 12.4701C8.34605 12.5951 8.17649 12.6654 7.99967 12.6654C7.82286 12.6654 7.65329 12.5951 7.52827 12.4701C7.40325 12.3451 7.33301 12.1755 7.33301 11.9987V8.66536H3.99967C3.82286 8.66536 3.65329 8.59513 3.52827 8.4701C3.40325 8.34508 3.33301 8.17551 3.33301 7.9987C3.33301 7.82189 3.40325 7.65232 3.52827 7.52729C3.65329 7.40227 3.82286 7.33203 3.99967 7.33203H7.33301V3.9987C7.33301 3.82189 7.40325 3.65232 7.52827 3.52729C7.65329 3.40227 7.82286 3.33203 7.99967 3.33203C8.17649 3.33203 8.34605 3.40227 8.47108 3.52729C8.5961 3.65232 8.66634 3.82189 8.66634 3.9987V7.33203H11.9997C12.1765 7.33203 12.3461 7.40227 12.4711 7.52729C12.5961 7.65232 12.6663 7.82189 12.6663 7.9987C12.6663 8.17551 12.5961 8.34508 12.4711 8.4701C12.3461 8.59513 12.1765 8.66536 11.9997 8.66536Z"
+            fill="white"
+          />
+        </svg>
+      </Link>
+    </li>
+  </>
+)} */}
                   </ul>
                 </div>
               </div>
