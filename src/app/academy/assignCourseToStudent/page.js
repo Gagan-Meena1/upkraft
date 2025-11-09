@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button, Form } from "react-bootstrap";
 import Pagination from "react-bootstrap/Pagination";
@@ -7,7 +7,20 @@ import { toast, Toaster } from "react-hot-toast";
 import Image from "next/image";
 import Profile from "../../../assets/Mask-profile.png";
 
-const AssignStudentsToCourse = () => {
+// Loading component
+const LoadingFallback = () => (
+  <div className="card-box">
+    <div className="text-center py-5">
+      <div className="spinner-border text-primary" role="status">
+        <span className="visually-hidden">Loading...</span>
+      </div>
+      <p className="mt-2 mb-0">Loading...</p>
+    </div>
+  </div>
+);
+
+// Main component content
+const AssignStudentsContent = () => {
   const searchParams = useSearchParams();
   const courseId = searchParams.get("courseId");
 
@@ -344,6 +357,15 @@ const AssignStudentsToCourse = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Export wrapped component
+const AssignStudentsToCourse = () => {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <AssignStudentsContent />
+    </Suspense>
   );
 };
 

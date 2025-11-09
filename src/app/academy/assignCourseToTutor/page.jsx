@@ -1,12 +1,12 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button, Form } from "react-bootstrap";
 import { toast, Toaster } from "react-hot-toast";
 import Image from "next/image";
 import Profile from "../../../assets/Mask-profile.png";
 
-const AssignTutorsToCourse = () => {
+function AssignTutorsContent() {
   const searchParams = useSearchParams();
   const courseId = searchParams.get("courseId");
 
@@ -246,6 +246,22 @@ const AssignTutorsToCourse = () => {
       </div>
     </div>
   );
-};
+}
 
-export default AssignTutorsToCourse;
+export default function AssignTutorsToCourse() {
+  return (
+    <Suspense fallback={
+      <div className="card-box">
+        <div className="assignments-list-sec">
+          <div className="d-flex justify-content-center align-items-center py-5">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <AssignTutorsContent />
+    </Suspense>
+  );
+};
