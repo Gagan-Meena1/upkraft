@@ -4,6 +4,7 @@ import jwt  from 'jsonwebtoken';
 import courseName from "@/models/courseName";
 import {connect} from '@/dbConnection/dbConfic'
 import User from "@/models/userModel"
+import { ca } from 'date-fns/locale';
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,14 +87,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const instructor=await User.findById(instructorId).select('academyId');
-    console.log("Academy ID:", instructor?.academyId);
-    const courses = await courseName.find({ instructorId });
+    // Get courses where user is the main instructor OR courses in user's courses array
+const instructor = await User.findById(instructorId).select('academyId category courses');
+
+const courses = await courseName.find({
+  $or: [
+    { instructorId: instructorId },
+    { _id: { $in: instructor?.courses || [] } }
+  ]
+});
 
     return NextResponse.json({
       message: 'Courses retrieved successfully',
       course: courses,
-      academyId: instructor?.academyId || null
+      academyId: instructor?.academyId || null,
+      category: instructor?.category || null
     }, { status: 200 });
 
   } catch (error) {
