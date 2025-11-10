@@ -23,16 +23,21 @@ export async function GET(req: NextRequest) {
     }
 
     // Verify the user is an Academy
-    const academy = await User.findById(academyId);
-    if (!academy || academy.category !== "Academic") {
+ const academy = await User.findById(academyId)
+      .populate({
+        path: 'tutors',
+        select: '-password'
+      })
+      .lean();    if (!academy || academy.category !== "Academic") {
       return NextResponse.json({ error: "Only academies can access this endpoint" }, { status: 403 });
     }
+    const tutors = academy.tutors || [];
 
     // Get all tutors
-    const tutors = await User.find({
-      category: "Tutor",
-      academyId: academyId
-    }).select("-password").lean();
+    // const tutors = await User.find({
+    //   category: "Tutor",
+    //   academyId: academyId
+    // }).select("-password").lean();
 
     if (tutors.length === 0) {
       return NextResponse.json({
@@ -71,14 +76,20 @@ export async function GET(req: NextRequest) {
     }).lean();
 
     // Group courses by tutor
-    const coursesByTutor = new Map<string, any[]>();
-    tutorCourses.forEach(course => {
-      const tutorId = course.academyInstructorId.toString();
-      if (!coursesByTutor.has(tutorId)) {
-        coursesByTutor.set(tutorId, []);
+   // Group courses by tutor
+const coursesByTutor = new Map<string, any[]>();
+tutorCourses.forEach(course => {
+  // academyInstructorId is an array, so iterate through it
+  if (course.academyInstructorId && Array.isArray(course.academyInstructorId)) {
+    course.academyInstructorId.forEach((tutorId: any) => {
+      const tutorIdStr = tutorId.toString();
+      if (!coursesByTutor.has(tutorIdStr)) {
+        coursesByTutor.set(tutorIdStr, []);
       }
-      coursesByTutor.get(tutorId)!.push(course);
+      coursesByTutor.get(tutorIdStr)!.push(course);
     });
+  }
+});
 
     // 3. Get all class IDs from courses
     const allClassIds = tutorCourses.reduce((acc: any[], course: any) => {
@@ -172,6 +183,7 @@ export async function GET(req: NextRequest) {
         revenue: revenue,
         isVerified: tutor.isVerified || false,
         createdAt: tutor.createdAt,
+        tutorCourses: courses
       };
     });
 
