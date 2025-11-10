@@ -366,6 +366,10 @@ function AssignmentDetailContent() {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Assigned Students ({assignment?.totalAssignedStudents || 0})
           </h2>
+          <div className="flex items-center gap-4 mb-4">
+          <button className="hover:bg-purple-100">Completed</button>
+          <button className="hover:bg-purple-100">Pending</button>
+          </div>
           {assignment?.assignedStudents?.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {assignment.assignedStudents.map((student) => (

@@ -279,6 +279,7 @@ export default function TutorAssignments() {
       </div>
 
       {/* Assignments List */}
+      
       <div className="bg-white rounded-lg shadow-sm">
         {(activeTab === 'pending' ? pendingAssignments : completedAssignments).length === 0 ? (
           <div className="p-12 text-center">
@@ -293,11 +294,24 @@ export default function TutorAssignments() {
               <div key={assignment._id} className="p-6 hover:bg-purple-100 transition-colors">
                 <div className="flex justify-between items-start">
                   <div className="flex items-start gap-4 flex-1">
+                    <input
+                      type="checkbox"
+                      checked={assignment.status || false}
+                      onChange={() => handleStatusChange(assignment._id, assignment.status || false)}
+                      disabled={updatingStatus === assignment._id}
+                      className={`mt-1 w-5 h-5 rounded border-2 cursor-pointer transition-colors ${
+                        assignment.status
+                          ? 'border-green-500 bg-green-500'
+                          : 'border-gray-300 hover:border-purple-500'
+                      } ${updatingStatus === assignment._id ? 'opacity-50 cursor-wait' : ''}`}
+                      title={assignment.status ? 'Mark as Incomplete' : 'Mark as Complete'}
+                    />
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className={`text-lg font-semibold !text-[20px] ${
                           assignment.status ? 'text-gray-500 ' : 'text-gray-900'
                         }`}>
+                          
                           {assignment.course.title} - {assignment.title}
                         </h3>
                         <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
