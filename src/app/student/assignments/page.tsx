@@ -1,8 +1,22 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Calendar, Clock, User, FileText, Eye, Edit, Trash2, Plus, Filter, ChevronLeft } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Calendar,
+  Clock,
+  User,
+  FileText,
+  Eye,
+  Edit,
+  Trash2,
+  Plus,
+  Filter,
+  ChevronLeft,
+  X,
+} from "lucide-react";
+import { Button } from "react-bootstrap";
+import Modal from "react-bootstrap/Modal";
 
 interface Student {
   userId: string;
@@ -16,6 +30,7 @@ interface Assignment {
   description: string;
   deadline: string;
   status?: boolean;
+  currentAssignmentStatus: "PENDING" | "SUBMITTED" | "APPROVED" | "CORRECTION";
   fileUrl?: string;
   fileName?: string;
   createdAt: string;
@@ -52,34 +67,47 @@ export default function TutorAssignments() {
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState('Monthly');
-  const [tutorInfo, setTutorInfo] = useState<{username: string; totalAssignments: number} | null>(null);
-  const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
+  const [selectedMonth, setSelectedMonth] = useState("Monthly");
+  const [tutorInfo, setTutorInfo] = useState<{
+    username: string;
+    totalAssignments: number;
+  } | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    "pending" | "completed" | "correction"
+  >("pending");
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [submitFile, setSubmitFile] = useState<File | null>(null);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<
+    string | null
+  >(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmittingModal, setIsSubmittingModal] = useState(false);
 
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
         // No need to get userId - API will extract from token
-        const response = await fetch('/Api/assignment');
-        
+        const response = await fetch("/Api/assignment");
+
         if (!response.ok) {
-          throw new Error('Failed to fetch assignments');
+          throw new Error("Failed to fetch assignments");
         }
 
         const data: ApiResponse = await response.json();
-        
+
         if (data.success) {
           setAssignments(data.data.assignments);
           setTutorInfo({
             username: data.data.username,
-            totalAssignments: data.data.totalAssignments
+            totalAssignments: data.data.totalAssignments,
           });
         } else {
-          throw new Error(data.message || 'Failed to fetch assignments');
+          throw new Error(data.message || "Failed to fetch assignments");
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+        setError(err instanceof Error ? err.message : "An error occurred");
       } finally {
         setIsLoading(false);
       }
@@ -89,63 +117,81 @@ export default function TutorAssignments() {
   }, []);
 
   // Filter assignments based on status
-  const pendingAssignments = assignments.filter(assignment => !assignment.status);
-  const completedAssignments = assignments.filter(assignment => assignment.status);
+  const pendingAssignments = assignments.filter((assignment) =>
+    assignment.currentAssignmentStatus === "PENDING"
+  );
+
+  const submittedAssignments = assignments.filter((assignment) =>
+    assignment.currentAssignmentStatus === "SUBMITTED"
+  );
+
+  const correctionAssignments = assignments.filter(
+    (assignment) => assignment.currentAssignmentStatus === "CORRECTION"
+  );
 
   // Function to handle assignment status update
-  const handleStatusChange = async (assignmentId: string, currentStatus: boolean) => {
+  const handleStatusChange = async (
+    assignmentId: string,
+    currentStatus: boolean
+  ) => {
     setUpdatingStatus(assignmentId);
-    
+
     try {
-      const response = await fetch(`/Api/assignment?assignmentId=${assignmentId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          status: !currentStatus
-        }),
-      });
-      
+      const response = await fetch(
+        `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            currentAssignmentStatus: "SUBMITTED",
+            studentSubmissionMessage: submitMessage,
+          }),
+        }
+      );
+
       if (!response.ok) {
-        throw new Error('Failed to update assignment status');
+        throw new Error("Failed to update assignment status");
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         // Update the local state
-        setAssignments(prevAssignments =>
-          prevAssignments.map(assignment =>
+        setAssignments((prevAssignments) =>
+          prevAssignments.map((assignment) =>
             assignment._id === assignmentId
               ? { ...assignment, status: !currentStatus }
               : assignment
           )
         );
       } else {
-        throw new Error(data.message || 'Failed to update assignment status');
+        throw new Error(data.message || "Failed to update assignment status");
       }
     } catch (err) {
-      console.error('Error updating assignment status:', err);
-      alert('Failed to update assignment status. Please try again.');
+      console.error("Error updating assignment status:", err);
+      alert("Failed to update assignment status. Please try again.");
     } finally {
       setUpdatingStatus(null);
     }
   };
-  
+
   const handleViewDetail = (assignmentId: string) => {
-  router.push(`/student/assignments/singleAssignment?assignmentId=${assignmentId}`);
+    router.push(
+      `/student/assignments/singleAssignment?assignmentId=${assignmentId}`
+    );
   };
-  
+
   const handleBackToTutor = () => {
-    router.push('/student');
+    router.push("/student");
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      day: 'numeric',
-      month: 'short'
+    return new Intl.DateTimeFormat("en-US", {
+      day: "numeric",
+      month: "short",
     }).format(date);
   };
 
@@ -154,21 +200,21 @@ export default function TutorAssignments() {
     const now = new Date();
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) {
-      return 'Overdue';
+      return "Overdue";
     } else if (diffDays === 0) {
-      return 'Due Today';
+      return "Due Today";
     } else if (diffDays === 1) {
-      return '1 Day';
+      return "1 Day";
     } else if (diffDays <= 7) {
       return `${diffDays} Days`;
     } else if (diffDays <= 30) {
       const weeks = Math.ceil(diffDays / 7);
-      return `${weeks} Week${weeks > 1 ? 's' : ''}`;
+      return `${weeks} Week${weeks > 1 ? "s" : ""}`;
     } else {
       const months = Math.ceil(diffDays / 30);
-      return `${months} Month${months > 1 ? 's' : ''}`;
+      return `${months} Month${months > 1 ? "s" : ""}`;
     }
   };
 
@@ -177,10 +223,73 @@ export default function TutorAssignments() {
     const now = new Date();
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) return 'text-red-600';
-    if (diffDays <= 2) return 'text-orange-600';
-    return 'text-gray-600';
+
+    if (diffDays < 0) return "text-red-600";
+    if (diffDays <= 2) return "text-orange-600";
+    return "text-gray-600";
+  };
+
+  // Open modal instead of direct status change
+  const handleCheckboxClick = (assignmentId: string) => {
+    setSelectedAssignmentId(assignmentId);
+    setShowSubmitModal(true);
+    setSubmitMessage("");
+    setSubmitFile(null);
+    setSubmitError(null);
+  };
+
+  // Modal submit handler
+  const handleModalSubmit = async () => {
+    if (!submitMessage.trim()) {
+      setSubmitError("Please enter a message.");
+      return;
+    }
+
+    setIsSubmittingModal(true);
+    setSubmitError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("submissionMessage", submitMessage);
+      if (submitFile) {
+        formData.append("submissionFile", submitFile);
+      }
+
+      const response = await fetch(
+        `/Api/assignment/singleAssignment?assignmentId=${selectedAssignmentId}`,
+        {
+          method: "PUT",
+          body: formData, // Use FormData instead of JSON
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to submit assignment");
+      }
+
+      // Update local state to reflect the submission
+      setAssignments((prevAssignments) =>
+        prevAssignments.map((assignment) =>
+          assignment._id === selectedAssignmentId
+            ? { 
+                ...assignment, 
+                currentAssignmentStatus: 'SUBMITTED',
+                studentSubmissionMessage: submitMessage,
+                submissionFileUrl: data.data.submissions?.find(s => s.studentId === assignment.class?._id)?.fileUrl || ''
+              }
+          : assignment
+        )
+      );
+      setShowSubmitModal(false);
+    } catch (err: any) {
+      setSubmitError(
+        err.message || "Failed to submit assignment. Please try again."
+      );
+    } finally {
+      setIsSubmittingModal(false);
+    }
   };
 
   if (isLoading) {
@@ -197,13 +306,15 @@ export default function TutorAssignments() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <FileText size={48} className="text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Assignments</h2>
-          <p className="text-red-600">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+        <div className="!bg-red-50 !border !border-red-200 !rounded-lg !p-6 !text-center">
+          <FileText size={48} className="!text-red-400 !mx-auto !mb-4" />
+          <h2 className="!text-xl !font-semibold !text-red-800 !mb-2">
+            Error Loading Assignments
+          </h2>
+          <p className="!text-red-600">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="!mt-4 !px-4 !py-2 !bg-red-600 !text-white !rounded !hover:bg-red-700 !transition-colors"
           >
             Retry
           </button>
@@ -215,63 +326,88 @@ export default function TutorAssignments() {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-6">
+      <div className="!mb-6">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={handleBackToTutor}
-              className="p-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center"
+              className="!p-2 !bg-gray-600 !text-white !rounded-lg !hover:bg-gray-700 !transition-colors !flex !items-center !justify-center"
             >
               <ChevronLeft size={20} />
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
+            <h1 className="!text-2xl !font-bold !text-gray-900">Assignments</h1>
           </div>
         </div>
         {tutorInfo && (
-          <p className="text-gray-600 mt-2">
-            Welcome back, {tutorInfo.username}! 
+          <p className="!text-gray-600 !mt-2">
+            Welcome back, {tutorInfo.username}!
           </p>
         )}
       </div>
 
       {/* Status Toggle Tabs */}
-      <div className="mb-6">
-        <div className="flex bg-gray-100 p-1 rounded-lg w-fit">
+      <div className="!mb-6">
+        <div className="!flex !bg-gray-100 !p-1 !rounded-lg !w-fit">
           <button
-            onClick={() => setActiveTab('pending')}
-            className={`px-6 py-3 rounded-md font-medium transition-all duration-300 flex items-center gap-2 ${
-              activeTab === 'pending'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-gray-600 hover:text-gray-800'
+            onClick={() => setActiveTab("pending")}
+            className={`!px-6 !py-3 !rounded-md !font-medium !transition-all !duration-300 !flex !items-center !justify-center !gap-2 ${
+              activeTab === "pending"
+                ? "!bg-purple-600 !text-white !shadow-md"
+                : "!text-gray-600 !hover:text-gray-800"
             }`}
           >
             Pending Assignments
             {pendingAssignments.length > 0 && (
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                activeTab === 'pending' 
-                  ? 'bg-purple-300 bg-opacity-20 text-gray-900' 
-                  : 'bg-white text-grey-600'
-              }`}>
+              <span
+                className={`!px-2 !py-1 !text-xs !rounded-full ${
+                  activeTab === "pending"
+                    ? "!bg-purple-300 !bg-opacity-20 !text-gray-900"
+                    : "!bg-white !text-grey-600"
+                }`}
+              >
                 {pendingAssignments.length}
               </span>
             )}
           </button>
           <button
-            onClick={() => setActiveTab('completed')}
-            className={`px-6 py-3 rounded-md font-medium transition-all duration-300 flex items-center gap-2 ${
-              activeTab === 'completed'
-                ? 'bg-purple-600 text-white shadow-md'
-                : 'text-gray-600 hover:text-gray-800'
+            onClick={() => setActiveTab("completed")}
+            className={`!px-6 !py-3 !rounded-md !font-medium !transition-all !duration-300 !flex !items-center !justify-center !gap-2 ${
+              activeTab === "completed"
+                ? "!bg-purple-600 !text-white !shadow-md"
+                : "!text-gray-600 !hover:text-gray-800"
             }`}
           >
             Completed Assignments
-            {completedAssignments.length > 0 && (
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                activeTab === 'completed' 
-                 ? 'bg-purple-300 bg-opacity-20 text-gray-900' 
-                  : 'bg-white text-grey-600'
-              }`}>
-                {completedAssignments.length}
+            {submittedAssignments.length > 0 && (
+              <span
+                className={`!px-2 !py-1 !text-xs !rounded-full ${
+                  activeTab === "completed"
+                    ? "!bg-purple-300 !bg-opacity-20 !text-gray-900"
+                    : "!bg-white !text-grey-600"
+                }`}
+              >
+                {submittedAssignments.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("correction")}
+            className={`!px-6 !py-3 !rounded-md !font-medium !transition-all !duration-300 !flex !items-center !justify-center !gap-2 ${
+              activeTab === "correction"
+                ? "!bg-orange-600 !text-white !shadow-md"
+                : "!text-gray-600 !hover:text-orange-800"
+            }`}
+          >
+            Sent for Correction
+            {correctionAssignments.length > 0 && (
+              <span
+                className={`!px-2 !py-1 !text-xs !rounded-full ${
+                  activeTab === "correction"
+                    ? "!bg-orange-300 !bg-opacity-20 !text-gray-900"
+                    : "!bg-white !text-grey-600"
+                }`}
+              >
+                {correctionAssignments.length}
               </span>
             )}
           </button>
@@ -279,101 +415,157 @@ export default function TutorAssignments() {
       </div>
 
       {/* Assignments List */}
-      
       <div className="bg-white rounded-lg shadow-sm">
-        {(activeTab === 'pending' ? pendingAssignments : completedAssignments).length === 0 ? (
+        {(activeTab === "pending"
+          ? pendingAssignments
+          : activeTab === "completed"
+          ? submittedAssignments
+          : correctionAssignments
+        ).length === 0 ? (
           <div className="p-12 text-center">
             <FileText size={48} className="text-gray-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              {activeTab === 'pending' ? 'No Pending Assignments' : 'No Completed Assignments'}
+              {activeTab === "pending"
+                ? "No Pending Assignments"
+                : activeTab === "completed"
+                ? "No Completed Assignments"
+                : "No Assignments for Correction"}
             </h2>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {(activeTab === 'pending' ? pendingAssignments : completedAssignments).map((assignment) => (
-              <div key={assignment._id} className="p-6 hover:bg-purple-100 transition-colors">
-                <div className="flex justify-between items-start">
-                  <div className="flex items-start gap-4 flex-1">
+          <div className="!divide-y !divide-gray-100">
+            {(activeTab === "pending"
+              ? pendingAssignments
+              : activeTab === "completed"
+              ? submittedAssignments
+              : correctionAssignments
+            ).map((assignment) => (
+              <div
+                key={assignment._id}
+                className="!p-6 hover:!bg-purple-100 !transition-colors"
+              >
+                <div className="!flex !justify-between !items-start">
+                  <div className="!flex !items-start !gap-4 !flex-1">
+                    {/* Checkbox for marking as completed */}
                     <input
                       type="checkbox"
-                      checked={assignment.status || false}
-                      onChange={() => handleStatusChange(assignment._id, assignment.status || false)}
-                      disabled={updatingStatus === assignment._id}
-                      className={`mt-1 w-5 h-5 rounded border-2 cursor-pointer transition-colors ${
-                        assignment.status
-                          ? 'border-green-500 bg-green-500'
-                          : 'border-gray-300 hover:border-purple-500'
-                      } ${updatingStatus === assignment._id ? 'opacity-50 cursor-wait' : ''}`}
-                      title={assignment.status ? 'Mark as Incomplete' : 'Mark as Complete'}
+                      checked={assignment.currentAssignmentStatus === 'SUBMITTED' || assignment.currentAssignmentStatus === 'APPROVED'}
+                      disabled={
+                        assignment.currentAssignmentStatus === 'SUBMITTED' || 
+                        assignment.currentAssignmentStatus === 'APPROVED' || 
+                        updatingStatus === assignment._id
+                      }
+                      onChange={() => handleCheckboxClick(assignment._id)}
+                      className="mr-3 accent-purple-600 w-5 h-5"
+                      title={
+                        assignment.currentAssignmentStatus === 'SUBMITTED' || assignment.currentAssignmentStatus === 'APPROVED'
+                          ? "Already submitted"
+                          : "Submit assignment"
+                      }
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className={`text-lg font-semibold !text-[20px] ${
-                          assignment.status ? 'text-gray-500 ' : 'text-gray-900'
-                        }`}>
-                          
+                    <div className="!flex-1">
+                      <div className="!flex !items-center !gap-3 !mb-2">
+                        <h3
+                          className={`!text-lg !font-semibold !text-[20px] ${
+                            assignment.status
+                              ? "text-gray-500 "
+                              : "text-gray-900"
+                          }`}
+                        >
                           {assignment.course.title} - {assignment.title}
                         </h3>
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        <span className="!px-2 !py-1 !text-xs !rounded-full">
                           {assignment.course.category}
                         </span>
                         {assignment.status && (
-                          <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full flex items-center gap-1">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          <span className="!px-2 !py-1 !text-xs !font-medium !bg-green-100 !text-green-800 !rounded-full !flex !items-center !gap-1">
+                            <svg
+                              className="w-3 h-3"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
                             </svg>
                             Completed
                           </span>
                         )}
                       </div>
-                      
-                      <div className="flex items-center gap-6 text-sm text-gray-600 mb-3">
-                        <div className="flex items-center gap-2">
-                          <Calendar size={16} className="text-purple-500" />
-                          <span>Assigned Date: {formatDate(assignment.createdAt)}</span>
+
+                      <div className="!flex !items-center !gap-6 !text-sm !text-gray-600 !mb-3">
+                        <div className="!flex !items-center !gap-2">
+                          <Calendar size={16} className="!text-purple-500" />
+                          <span>
+                            Assigned Date: {formatDate(assignment.createdAt)}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock size={16} className="text-orange-500" />
-                          <span className={`font-medium ${getDeadlineColor(assignment.deadline)}`}>
+                        <div className="!flex !items-center !gap-2">
+                          <Clock size={16} className="!text-orange-500" />
+                          <span
+                            className={`!font-medium ${getDeadlineColor(
+                              assignment.deadline
+                            )}`}
+                          >
                             Deadline: {formatDeadline(assignment.deadline)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span>Last date of Submission: {formatDate(assignment.deadline)}</span>
+                        <div className="!flex !items-center !gap-2">
+                          <span>
+                            Last date of Submission:{" "}
+                            {formatDate(assignment.deadline)}
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 mb-4">
-                        <User size={16} className="text-gray-500" />
-                        <span className="text-sm text-gray-600">
-                          Students: 
+                      <div className="!flex !items-center !gap-2 !mb-4">
+                        <User size={16} className="!text-gray-500" />
+                        <span className="!text-sm !text-gray-600">
+                          Students:
                         </span>
-                        <div className="flex items-center gap-2">
+                        <div className="!flex !items-center !gap-2">
                           {/* Fixed: Add null check and default empty array */}
-                          {(assignment.assignedStudents || []).slice(0, 3).map((student, index) => (
-                            <div key={student.userId} className="flex items-center">
-                              <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
-                                <span className="text-xs font-medium text-purple-700">
-                                  {student.username.charAt(0).toUpperCase()}
+                          {(assignment.assignedStudents || [])
+                            .slice(0, 3)
+                            .map((student, index) => (
+                              <div
+                                key={student.userId}
+                                className="!flex !items-center !gap-2"
+                              >
+                                <div className="!w-6 !h-6 !rounded-full !bg-purple-100 !flex !items-center !justify-center">
+                                  <span className="!text-xs !font-medium !text-purple-700">
+                                    {student.username.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <span className="!ml-1 !text-sm !text-gray-700">
+                                  {student.username}
                                 </span>
+                                {index <
+                                  Math.min(
+                                    (assignment.assignedStudents || []).length,
+                                    3
+                                  ) -
+                                    1 && (
+                                  <span className="!mx-1 !text-gray-400">
+                                    •
+                                  </span>
+                                )}
                               </div>
-                              <span className="ml-1 text-sm text-gray-700">{student.username}</span>
-                              {index < Math.min((assignment.assignedStudents || []).length, 3) - 1 && (
-                                <span className="mx-1 text-gray-400">•</span>
-                              )}
-                            </div>
-                          ))}
+                            ))}
                           {/* Fixed: Add null check for totalAssignedStudents and assignedStudents */}
                           {(assignment.totalAssignedStudents || 0) > 3 && (
-                            <span className="text-sm text-gray-500">
-                              +{(assignment.totalAssignedStudents || 0) - 3} more
+                            <span className="!text-sm !text-gray-500">
+                              +{(assignment.totalAssignedStudents || 0) - 3}{" "}
+                              more
                             </span>
                           )}
                         </div>
                       </div>
 
                       {assignment.fileUrl && (
-                        <div className="flex items-center gap-2 text-sm text-purple-600 mb-4">
+                        <div className="!flex !items-center !gap-2 !text-sm !text-purple-600 !mb-4">
                           <FileText size={16} />
                           <span>Attachment: {assignment.fileName}</span>
                         </div>
@@ -381,33 +573,113 @@ export default function TutorAssignments() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 ml-4">
-                    <button className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  <div className="!flex !items-center !gap-2 !ml-4">
+                    <button className="!p-2 !text-gray-600 !hover:text-purple-600 !hover:bg-purple-50 !rounded-lg !transition-colors">
                       <Eye size={16} />
                     </button>
-                    <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                    <button className="!p-2 !text-gray-600 !hover:text-blue-600 !hover:bg-blue-50 !rounded-lg !transition-colors">
                       <Edit size={16} />
                     </button>
-                    <button className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <button className="!p-2 !text-gray-600 !hover:text-red-600 !hover:bg-red-50 !rounded-lg !transition-colors">
                       <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                  <button 
+                  <Button
                     onClick={() => handleViewDetail(assignment._id)}
-                    className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                    className="!px-4 !py-2 !bg-purple-600 !text-white !text-sm !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2"
                   >
                     <Eye size={16} />
                     View Detail
-                  </button>
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Custom Assignment Submission Modal */}
+      {showSubmitModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSubmitModal(false)}
+          />
+          {/* Modal Panel */}
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden z-10">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-600 to-purple-700">
+              <h2 className="text-lg font-bold text-white">
+                Submit Assignment
+              </h2>
+              <button
+                onClick={() => setShowSubmitModal(false)}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                disabled={isSubmittingModal}
+              >
+                <X size={22} />
+              </button>
+            </div>
+            {/* Body */}
+            <div className="px-6 py-6">
+              <div className="mb-4">
+                <label className="block font-medium mb-2 text-gray-700">
+                  Message
+                </label>
+                <textarea
+                  className="!w-full !border !rounded !p-2 focus:!ring-2 focus:!ring-purple-500 focus:!border-transparent !transition-all"
+                  rows={4}
+                  value={submitMessage}
+                  onChange={(e) => setSubmitMessage(e.target.value)}
+                  disabled={isSubmittingModal}
+                  placeholder="Enter a message for your tutor..."
+                />
+              </div>
+              <div className="mb-4">
+                <label className="!block !font-medium !mb-2 !text-gray-700">
+                  Upload File (max 10MB)
+                </label>
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                  onChange={(e) => setSubmitFile(e.target.files?.[0] || null)}
+                  disabled={isSubmittingModal}
+                  className="!block !w-full !text-sm !text-gray-700 file:!mr-4 file:!py-2 file:!px-4 file:!rounded file:!border-0 file:!text-sm file:!font-semibold file:!bg-purple-50 file:!text-purple-700 hover:file:!bg-purple-100"
+                />
+                {submitFile && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    {submitFile.name}
+                  </div>
+                )}
+              </div>
+              {submitError && (
+                <div className="text-red-600 text-sm mb-2">{submitError}</div>
+              )}
+            </div>
+            {/* Footer */}
+            <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50">
+              <button
+                onClick={() => setShowSubmitModal(false)}
+                disabled={isSubmittingModal}
+                className="!px-4 !py-2 !rounded-lg !text-gray-700 !bg-gray-100 hover:!bg-gray-200 !font-medium !transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleModalSubmit}
+                disabled={isSubmittingModal}
+                className="!px-4 !py-2 !rounded-lg !bg-purple-600 !text-white !font-semibold hover:!bg-purple-700 !transition-all disabled:!opacity-50"
+              >
+                {isSubmittingModal ? "Submitting..." : "Submit Assignment"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
