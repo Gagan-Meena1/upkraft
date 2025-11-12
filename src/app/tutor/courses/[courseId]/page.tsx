@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2, Edit, X, Clock } from 'lucide-react';
+import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2, Edit, X, Clock, Copy } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
@@ -65,6 +65,7 @@ const CourseDetailsPage = () => {
   const [userTimezone, setUserTimezone] = useState<string | null>(null);
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
   const [academyId, setAcademyId] = useState<string | null>(null);
+  const [copyingClassId, setCopyingClassId] = useState<string | null>(null);
   const params = useParams();
   const router = useRouter();
 
@@ -120,7 +121,7 @@ const formatDateTime = (dateTimeString: string) => {
       date,
       time: timeRange,
     };
-  };
+  }
 
 
   // Helper function to extract date and time for form inputs
@@ -455,6 +456,68 @@ const handleUpdateClass = async (e: React.FormEvent) => {
     }
   };
 
+  // Add copy class handler (create exact copy, preserve timezone & times)
+  const copyClass = async (classId: string) => {
+    try {
+      if (!confirm("Create an identical copy of this class?")) return;
+
+      setCopyingClassId(classId);
+
+      // fetch original class
+      const resp = await axios.get(`/Api/classes?classId=${classId}`);
+      const original = resp.data?.class || resp.data;
+
+      if (!original) {
+        throw new Error("Original class not found");
+      }
+
+      // Extract date/time strings exactly as backend expects using helper
+      const startParts = extractDateTimeForForm(original.startTime);
+      const endParts = extractDateTimeForForm(original.endTime);
+
+      const formData = new FormData();
+      formData.append("title", original.title || "");
+      formData.append("description", original.description || "");
+      // Backend expects separate date + startTime + endTime fields
+      formData.append("date", startParts.dateStr);       // "YYYY-MM-DD"
+      formData.append("startTime", startParts.timeStr);  // "HH:MM"
+      formData.append("endTime", endParts.timeStr);      // "HH:MM"
+      // Include timezone — prefer original if available, fallback to tutor's timezone
+      const tzToSend = original.timezone || userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      formData.append("timezone", tzToSend);
+
+      // Course id field (API accepts `course` or `courseId` in various places)
+      formData.append("course", params.courseId || original.course || original.courseId || "");
+      formData.append("courseId", params.courseId || original.course || original.courseId || "");
+
+      // If recording URL or other metadata needs to be preserved, include them
+      if (original.recordingUrl) {
+        formData.append("recordingUrl", original.recordingUrl);
+      }
+      if (original.instructor || original.instructorId) {
+        formData.append("instructor", original.instructor || original.instructorId);
+      }
+
+      // POST as multipart/form-data — let browser set Content-Type boundary
+      await axios.post("/Api/classes", formData);
+
+      toast.success("Class copied (identical).");
+
+      // refresh course data
+      const refreshed = await fetch(`/Api/tutors/courses/${params.courseId}`);
+      if (refreshed.ok) {
+        const refreshedData = await refreshed.json();
+        setCourseData(refreshedData);
+      } else {
+        router.refresh();
+      }
+    } catch (err: any) {
+      console.error("Copy class error:", err);
+      toast.error(err?.response?.data?.message || err.message || "Failed to copy class");
+    } finally {
+      setCopyingClassId(null);
+    }
+  };
   // Loading state
   if (loading) {
     return (
@@ -595,7 +658,6 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                               title="Edit class"
                             >
                               <Edit size={16} />
-                              
                             </button>
                             <button
                               onClick={() => handleDeleteClass(classSession._id, classSession.title)}
@@ -603,7 +665,20 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                               title="Delete class"
                             >
                               <Trash2 size={16} />
-                             
+                            </button>
+
+                            {/* Copy icon below Delete (mobile) - icon only */}
+                            <button
+                              onClick={() => copyClass(classSession._id)}
+                              className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
+                              title="Copy class"
+                              disabled={!!copyingClassId}
+                            >
+                              {copyingClassId === classSession._id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
+                              ) : (
+                                <Copy size={16} />
+                              )}
                             </button>
                           </div>
 
@@ -664,6 +739,8 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                               <Upload className="!mr-1" size={14} />
                               {getButtonText(classSession, isUploading)}
                             </button>
+
+                            {/* Copy moved to icon column - removed duplicate textual copy button */}
                           </div>
 
                           {/* Assignment Button */}
@@ -699,6 +776,19 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                               <Trash2 size={18} />
                               
                             </button>
+                            {/* Copy icon below Delete (desktop) - icon only */}
+                          <button
+                            onClick={() => copyClass(classSession._id)}
+                            className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
+                            title="Copy class"
+                            disabled={!!copyingClassId}
+                          >
+                            {copyingClassId === classSession._id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
+                            ) : (
+                              <Copy size={18} />
+                            )}
+                          </button>
                           </div>
 
                           {/* Date and Time */}
@@ -720,8 +810,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                           </div>
 
                           {/* Actions */}
-                          {/* Actions */}
-<div className="flex flex-col gap-3 min-w-[180px]">
+                          <div className="flex flex-col gap-3 min-w-[180px]">
   {/* Hidden file input */}
   <input
     type="file"
@@ -757,6 +846,21 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
   >
     <Upload className="mr-2" size={16} />
     {getButtonText(classSession, isUploading)}
+  </button>
+
+  {/* Copy Class button */}
+  <button
+    onClick={() => copyClass(classSession._id)}
+    disabled={!!copyingClassId}
+    title="Copy class"
+    className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm flex items-center gap-2 justify-center"
+  >
+    {copyingClassId === classSession._id ? (
+      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
+    ) : (
+      <Copy className="mr-2" size={16} />
+    )}
+    Copy
   </button>
 
   {/* Assignment Button */}

@@ -52,6 +52,10 @@ function AddSessionPage() {
     date: "",
     video: null,
   });
+  // Add these state hooks near your other form state:
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [repeatCount, setRepeatCount] = useState<number>(1);
+  const [repeatUntil, setRepeatUntil] = useState<string | null>(null);
 
   // Helper function to format date as YYYY-MM-DD without timezone issues
   const formatDateToString = (
@@ -301,6 +305,68 @@ function AddSessionPage() {
     }
   };
 
+  // Modify your create/submit handler to create multiple weekly copies
+  const handleCreateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const basePayload = {
+        title: sessionForm.title,
+        description: sessionForm.description,
+        course: courseId,
+        startTime: new Date(sessionForm.startTime).toISOString(),
+        endTime: new Date(sessionForm.endTime).toISOString(),
+        // include other required fields...
+      };
+
+      const createdItems = [];
+      if (repeatWeekly && (repeatCount > 1 || repeatUntil)) {
+        for (let i = 0; i < Math.max(1, repeatCount); i++) {
+          const start = new Date(basePayload.startTime);
+          const end = new Date(basePayload.endTime);
+          start.setDate(start.getDate() + 7 * i);
+          end.setDate(end.getDate() + 7 * i);
+
+          if (repeatUntil) {
+            const until = new Date(repeatUntil);
+            if (start > until) break;
+          }
+
+          const payload = {
+            ...basePayload,
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
+            title:
+              i === 0
+                ? basePayload.title
+                : `${basePayload.title} (Copy ${i})`,
+          };
+
+          const res = await fetch("/Api/classes", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error("Failed to create class");
+          createdItems.push(await res.json());
+        }
+      } else {
+        const res = await fetch("/Api/classes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(basePayload),
+        });
+        if (!res.ok) throw new Error("Failed to create class");
+        createdItems.push(await res.json());
+      }
+
+      alert("Class(es) created");
+      // refresh your list / calendar here
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create class");
+    }
+  };
+
   const calendarDays = generateCalendarDays();
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const weekdaysMobile = ["S", "M", "T", "W", "T", "F", "S"];
@@ -529,6 +595,54 @@ function AddSessionPage() {
                       {/* <Clock className="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 w-5 h-5 pointer-events-none" /> */}
                     </div>
                   </div>
+                </div>
+
+                {/* ...existing JSX: add recurrence controls near date/time inputs... */}
+                <div className="mt-3">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={repeatWeekly}
+                      onChange={(e) => setRepeatWeekly(e.target.checked)}
+                    />
+                    <span className="text-sm">Repeat weekly</span>
+                  </label>
+
+                  {repeatWeekly && (
+                    <div className="mt-2 space-y-2">
+                      <div>
+                        <label className="text-sm block mb-1">
+                          Occurrences
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          value={repeatCount}
+                          onChange={(e) =>
+                            setRepeatCount(
+                              parseInt(e.target.value || "1", 10)
+                            )
+                          }
+                          className="w-24 p-2 border rounded"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm block mb-1">
+                          Or repeat until (date)
+                        </label>
+                        <input
+                          type="date"
+                          value={repeatUntil ?? ""}
+                          onChange={(e) => setRepeatUntil(e.target.value || null)}
+                          className="p-2 border rounded"
+                        />
+                        <div className="text-xs text-gray-500 mt-1">
+                          If set, repeats stop after this date.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {errorMessage && (
