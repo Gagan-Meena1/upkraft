@@ -274,7 +274,7 @@ export default function TutorAssignments() {
   const handleAssignmentSuccess = () => {
     setIsModalOpen(false);
     setEditingAssignment(null);
-    window.location.reload(); // or refetch assignments
+    // window.location.reload(); // or refetch assignments
   };
   const handleCreateAssignment = () => {
     setIsModalOpen(true); // open modal instead of redirect

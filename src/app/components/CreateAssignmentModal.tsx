@@ -10,6 +10,7 @@ import {
   Users,
   UserCheck,
 } from "lucide-react";
+import { useRouter } from "next/navigation"; // ADD THIS
 
 interface Course {
   _id: string;
@@ -77,6 +78,8 @@ export default function CreateAssignmentModal({
   classes,
   editingAssignment,
 }: CreateAssignmentModalProps) {
+  const router = useRouter(); // ADD THIS
+
   useEffect(() => {
     if (editingAssignment) {
       // Parse the deadline to YYYY-MM-DD format
@@ -375,11 +378,10 @@ export default function CreateAssignmentModal({
       const url = isEditing
         ? `/Api/assignment?assignmentId=${editingAssignment._id}`
         : `/Api/assignment?classId=${formData.class}&courseId=${formData.course}`;
-
       const method = isEditing ? "PUT" : "POST";
 
       const res = await fetch(url, {
-        method: method,
+        method,
         body: submitData,
       });
 
@@ -392,29 +394,35 @@ export default function CreateAssignmentModal({
       }
 
       const result = await res.json();
+
       if (result.success) {
-        alert(`Assignment ${isEditing ? "updated" : "created"} successfully!`);
-        onClose();
-
-        // Reset form
-        setFormData({
-          title: "",
-          deadline: "",
-          description: "",
-          songName: "",
-          customSongName: "",
-          course: "",
-          class: "",
-          speed: "100%",
-          metronome: "100%",
-          loop: "Set A",
-        });
-        setMusicSheet(null);
-        setAssignmentFile(null);
-        setPracticeStudio(false);
-        setSelectedSong(null);
-
-        if (onSuccess) onSuccess();
+        const assignmentId =
+          result?.data?._id || editingAssignment?._id; // Ensure we have ID from both POST and PUT
+        if (assignmentId) {
+          // Optional: reset form before redirect
+          setFormData({
+            title: "",
+            deadline: "",
+            description: "",
+            songName: "",
+            customSongName: "",
+            course: "",
+            class: "",
+            speed: "100%",
+            metronome: "100%",
+            loop: "Set A",
+          });
+          setMusicSheet(null);
+          setAssignmentFile(null);
+          setPracticeStudio(false);
+          setSelectedSong(null);
+          if (onSuccess) onSuccess();
+          onClose();
+          router.push(
+            `/tutor/assignments/singleAssignment?assignmentId=${assignmentId}`
+          ); // REDIRECT
+          return;
+        }
       } else {
         throw new Error(
           result.message ||

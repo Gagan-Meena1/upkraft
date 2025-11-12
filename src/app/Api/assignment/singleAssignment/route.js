@@ -56,7 +56,6 @@ export async function GET(request) {
         );
       }
 
-      // Transform the data to match your frontend interface
       const transformedAssignment = {
         _id: assignment._id,
         title: assignment.title,
@@ -90,7 +89,6 @@ export async function GET(request) {
           assignment.userId
             ?.filter((user) => user.category !== "Tutor")
             .map((user) => {
-              // Find this student's submission for this assignment
               const studentSubmission = assignment.submissions?.find(
                 (sub) =>
                   sub.studentId?._id?.toString() === user._id.toString() ||
@@ -162,7 +160,6 @@ export async function PUT(request) {
       );
     }
 
-    // Get user ID from token
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     const userId =
@@ -179,7 +176,148 @@ export async function PUT(request) {
 
     const contentType = request.headers.get("content-type") || "";
 
-    // Handle JSON requests (for tutor actions)
+    let submissionMessage, submissionFile;
+
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+
+      const actionEntry = formData.get("action");
+      const action = actionEntry ? actionEntry.toString() : null;
+
+      if (action) {
+        const studentIdEntry = formData.get("studentId");
+        const studentId = studentIdEntry ? studentIdEntry.toString() : null;
+        const tutorRemarksEntry = formData.get("tutorRemarks");
+        const tutorRemarks = tutorRemarksEntry ? tutorRemarksEntry.toString() : "";
+
+        if (!studentId) {
+          return NextResponse.json(
+            { success: false, message: "Student ID is required for tutor actions" },
+            { status: 400 }
+          );
+        }
+
+        if (action === "CORRECTION") {
+          const correctionFile = formData.get("correctionFile");
+
+          const assignment = await Assignment.findById(assignmentId);
+          if (!assignment) {
+            return NextResponse.json(
+              { success: false, message: "Assignment not found" },
+              { status: 404 }
+            );
+          }
+
+          const submissionIndex = assignment.submissions.findIndex(
+            (sub) => sub.studentId.toString() === studentId
+          );
+
+          if (submissionIndex === -1) {
+            return NextResponse.json(
+              { success: false, message: "Submission not found for this student" },
+              { status: 404 }
+            );
+          }
+
+          // Upload correction file if present
+          let correctionFileUrl = "";
+          let correctionFileName = "";
+          if (
+            correctionFile &&
+            correctionFile instanceof File &&
+            correctionFile.size > 0
+          ) {
+            try {
+              const fileBuffer = Buffer.from(await correctionFile.arrayBuffer());
+              const uploadResult = await new Promise((resolve, reject) => {
+                cloudinary.uploader
+                  .upload_stream(
+                    {
+                      resource_type: "raw",
+                      folder: "assignment-corrections",
+                      public_id: `${Date.now()}-${correctionFile.name.split(".")[0]}`,
+                      use_filename: true,
+                      unique_filename: false,
+                    },
+                    (error, result) => {
+                      if (error) reject(error);
+                      else resolve(result);
+                    }
+                  )
+                  .end(fileBuffer);
+              });
+              correctionFileUrl = uploadResult.secure_url;
+              correctionFileName = correctionFile.name;
+            } catch (uploadError) {
+              console.error("Correction file upload error:", uploadError);
+              return NextResponse.json(
+                { success: false, message: "Correction file upload failed" },
+                { status: 500 }
+              );
+            }
+          }
+
+          // Update submission with correction info
+          assignment.submissions[submissionIndex].status = "CORRECTION";
+          assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks || "";
+          if (correctionFileUrl) {
+            assignment.submissions[submissionIndex].correctionFileUrl = correctionFileUrl;
+            assignment.submissions[submissionIndex].correctionFileName = correctionFileName;
+          }
+
+          await assignment.save();
+
+          return NextResponse.json({
+            success: true,
+            message: "Correction sent successfully",
+            data: assignment,
+          });
+        }
+
+        if (action === "APPROVED") {
+          const assignment = await Assignment.findById(assignmentId);
+          if (!assignment) {
+            return NextResponse.json(
+              { success: false, message: "Assignment not found" },
+              { status: 404 }
+            );
+          }
+
+          const submissionIndex = assignment.submissions.findIndex(
+            (sub) => sub.studentId.toString() === studentId
+          );
+
+          if (submissionIndex === -1) {
+            return NextResponse.json(
+              { success: false, message: "Submission not found for this student" },
+              { status: 404 }
+            );
+          }
+
+          assignment.submissions[submissionIndex].status = "APPROVED";
+          if (tutorRemarks) assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
+
+          await assignment.save();
+
+          return NextResponse.json({
+            success: true,
+            message: `Submission approved successfully`,
+            data: assignment,
+          });
+        }
+
+        // Unrecognized action
+        return NextResponse.json(
+          { success: false, message: "Invalid tutor action" },
+          { status: 400 }
+        );
+      } else {
+        submissionMessage =
+          formData.get("submissionMessage") || formData.get("message");
+        submissionFile = formData.get("submissionFile") || formData.get("file");
+      }
+    }
+
     if (contentType.includes("application/json")) {
       const body = await request.json();
       const { studentId, action, tutorRemarks } = body;
@@ -225,21 +363,12 @@ export async function PUT(request) {
       });
     }
 
-    // Handle FormData or JSON for student submissions
-    let submissionMessage, submissionFile;
-
-    if (contentType.includes("multipart/form-data")) {
-      // Handle FormData
-      const formData = await request.formData();
-      submissionMessage =
-        formData.get("submissionMessage") || formData.get("message");
-      submissionFile = formData.get("submissionFile") || formData.get("file");
-    } else {
-      // Handle JSON
-      const body = await request.json();
-      submissionMessage =
-        body.submissionMessage || body.message || body.studentSubmissionMessage;
-      // File won't be available in JSON, that's okay
+    if (!submissionMessage) {
+      if (contentType.includes("application/json")) {
+        const body = await request.json();
+        submissionMessage =
+          body.submissionMessage || body.message || body.studentSubmissionMessage;
+      }
     }
 
     if (!submissionMessage || !submissionMessage.toString().trim()) {
@@ -257,7 +386,6 @@ export async function PUT(request) {
       );
     }
 
-    // Handle file upload if present
     let fileData = {};
     if (
       submissionFile &&
@@ -312,13 +440,11 @@ export async function PUT(request) {
     };
 
     if (existingSubmissionIndex >= 0) {
-      // Update existing submission
       assignment.submissions[existingSubmissionIndex] = {
         ...assignment.submissions[existingSubmissionIndex].toObject(),
         ...submissionData,
       };
     } else {
-      // Add new submission
       assignment.submissions.push(submissionData);
     }
 

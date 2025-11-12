@@ -117,12 +117,12 @@ export default function TutorAssignments() {
   }, []);
 
   // Filter assignments based on status
-  const pendingAssignments = assignments.filter((assignment) =>
-    assignment.currentAssignmentStatus === "PENDING"
+  const pendingAssignments = assignments.filter(
+    (assignment) => assignment.currentAssignmentStatus === "PENDING"
   );
 
-  const submittedAssignments = assignments.filter((assignment) =>
-    assignment.currentAssignmentStatus === "SUBMITTED"
+  const submittedAssignments = assignments.filter(
+    (assignment) => assignment.currentAssignmentStatus === "SUBMITTED"
   );
 
   const correctionAssignments = assignments.filter(
@@ -273,13 +273,16 @@ export default function TutorAssignments() {
       setAssignments((prevAssignments) =>
         prevAssignments.map((assignment) =>
           assignment._id === selectedAssignmentId
-            ? { 
-                ...assignment, 
-                currentAssignmentStatus: 'SUBMITTED',
+            ? {
+                ...assignment,
+                currentAssignmentStatus: "SUBMITTED",
                 studentSubmissionMessage: submitMessage,
-                submissionFileUrl: data.data.submissions?.find(s => s.studentId === assignment.class?._id)?.fileUrl || ''
+                submissionFileUrl:
+                  data.data.submissions?.find(
+                    (s) => s.studentId === assignment.class?._id
+                  )?.fileUrl || "",
               }
-          : assignment
+            : assignment
         )
       );
       setShowSubmitModal(false);
@@ -449,16 +452,20 @@ export default function TutorAssignments() {
                     {/* Checkbox for marking as completed */}
                     <input
                       type="checkbox"
-                      checked={assignment.currentAssignmentStatus === 'SUBMITTED' || assignment.currentAssignmentStatus === 'APPROVED'}
+                      checked={
+                        assignment.currentAssignmentStatus === "SUBMITTED" ||
+                        assignment.currentAssignmentStatus === "APPROVED"
+                      }
                       disabled={
-                        assignment.currentAssignmentStatus === 'SUBMITTED' || 
-                        assignment.currentAssignmentStatus === 'APPROVED' || 
+                        assignment.currentAssignmentStatus === "SUBMITTED" ||
+                        assignment.currentAssignmentStatus === "APPROVED" ||
                         updatingStatus === assignment._id
                       }
                       onChange={() => handleCheckboxClick(assignment._id)}
                       className="mr-3 accent-purple-600 w-5 h-5"
                       title={
-                        assignment.currentAssignmentStatus === 'SUBMITTED' || assignment.currentAssignmentStatus === 'APPROVED'
+                        assignment.currentAssignmentStatus === "SUBMITTED" ||
+                        assignment.currentAssignmentStatus === "APPROVED"
                           ? "Already submitted"
                           : "Submit assignment"
                       }
@@ -570,6 +577,37 @@ export default function TutorAssignments() {
                           <span>Attachment: {assignment.fileName}</span>
                         </div>
                       )}
+
+                      {activeTab === "correction" &&
+                        assignment.tutorRemarks && (
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-orange-700 mb-1">
+                              Tutor Remarks:
+                            </label>
+                            <div className="bg-orange-50 border-l-4 border-orange-400 p-3 rounded text-gray-800 whitespace-pre-line">
+                              {assignment.tutorRemarks}
+                            </div>
+                          </div>
+                        )}
+                      {activeTab === "correction" &&
+                        assignment.correctionFileUrl &&
+                        assignment.correctionFileName && (
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-orange-700 mb-1">
+                              Correction File from Tutor:
+                            </label>
+                            <a
+                              href={assignment.correctionFileUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg text-orange-800 hover:bg-orange-100 transition-colors font-medium"
+                              download={assignment.correctionFileName}
+                            >
+                              <FileText size={18} className="text-orange-500" />
+                              {assignment.correctionFileName}
+                            </a>
+                          </div>
+                        )}
                     </div>
                   </div>
 
@@ -586,7 +624,7 @@ export default function TutorAssignments() {
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="border-t border-gray-100">
                   <Button
                     onClick={() => handleViewDetail(assignment._id)}
                     className="!px-4 !py-2 !bg-purple-600 !text-white !text-sm !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2"
@@ -645,7 +683,6 @@ export default function TutorAssignments() {
                 </label>
                 <input
                   type="file"
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
                   onChange={(e) => setSubmitFile(e.target.files?.[0] || null)}
                   disabled={isSubmittingModal}
                   className="!block !w-full !text-sm !text-gray-700 file:!mr-4 file:!py-2 file:!px-4 file:!rounded file:!border-0 file:!text-sm file:!font-semibold file:!bg-purple-50 file:!text-purple-700 hover:file:!bg-purple-100"

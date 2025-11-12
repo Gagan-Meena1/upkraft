@@ -273,6 +273,8 @@ export async function GET(request: NextRequest) {
     tutorRemarks: mySubmission?.tutorRemarks || '',
     submissionFileUrl: mySubmission?.fileUrl || '',
     submissionFileName: mySubmission?.fileName || '',
+    correctionFileUrl: mySubmission?.correctionFileUrl || '',      // ADD THIS
+    correctionFileName: mySubmission?.correctionFileName || '',    // ADD THIS
     fileUrl: assignment.fileUrl,
     fileName: assignment.fileName,
     songName: assignment.songName,
@@ -333,6 +335,8 @@ export async function GET(request: NextRequest) {
     submissionMessage: studentSubmission?.message || '',
     submissionFileUrl: studentSubmission?.fileUrl || '',
     submissionFileName: studentSubmission?.fileName || '',
+    correctionFileUrl: studentSubmission?.correctionFileUrl || '',      // ADD THIS
+    correctionFileName: studentSubmission?.correctionFileName || '',    // ADD THIS
     tutorRemarks: studentSubmission?.tutorRemarks || '',
     submittedAt: studentSubmission?.submittedAt || null
   };

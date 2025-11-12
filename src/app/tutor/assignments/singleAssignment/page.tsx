@@ -15,6 +15,8 @@ import {
   Gauge,
   Zap,
   Home,
+  X,
+  Upload
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "react-bootstrap";
@@ -24,7 +26,7 @@ interface Student {
   username: string;
   email: string;
   submissionStatus: 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'CORRECTION';
-  submissionMessage: string;
+  submissionMessage: string; // will hold API studentMessage
   submissionFileUrl: string;
   submissionFileName: string;
   tutorRemarks: string;
@@ -74,6 +76,76 @@ function AssignmentDetailContent() {
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [approvalLoading, setApprovalLoading] = useState(false);
 
+  // NEW: correction modal state
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+  const [correctionMessage, setCorrectionMessage] = useState("");
+  const [correctionForStudentId, setCorrectionForStudentId] = useState<string | null>(null);
+  const [correctionError, setCorrectionError] = useState<string | null>(null);
+  const [correctionFile, setCorrectionFile] = useState<File | null>(null); // NEW
+
+  // Helper to safely merge server payload with local state
+  const mergeAssignment = (
+    prev: Assignment | null,
+    server: any
+  ): Assignment => {
+    const base: Assignment = {
+      ...(prev as any),
+      ...(server as any),
+    };
+
+    const assigned =
+      (server?.assignedStudents?.length ? server.assignedStudents : prev?.assignedStudents) || [];
+
+    const submissions =
+      server?.submissions !== undefined
+        ? server.submissions
+        : prev?.submissions || [];
+
+    const mergedStudents: Student[] = assigned.map((st: any) => {
+      const sub = submissions.find((s: any) => {
+        const sid =
+          s?.studentId?._id?.toString?.() ??
+          s?.studentId?.toString?.() ??
+          s?.studentId;
+        return sid === st.userId;
+      });
+
+      return {
+        userId: st.userId,
+        username: st.username,
+        email: st.email,
+        submissionStatus:
+          sub?.status ??
+          st.submissionStatus ??
+          "PENDING",
+        submissionMessage:
+          sub?.studentMessage ??
+          st.submissionMessage ??
+          "",
+        submissionFileUrl:
+          sub?.fileUrl ??
+          st.submissionFileUrl ??
+          "",
+        submissionFileName:
+          sub?.fileName ??
+          st.submissionFileName ??
+          "",
+        tutorRemarks:
+          sub?.tutorRemarks ??
+          st.tutorRemarks ??
+          "",
+        submittedAt:
+          sub?.submittedAt ?? st.submittedAt,
+      };
+    });
+
+    return {
+      ...base,
+      assignedStudents: mergedStudents,
+      submissions,
+    };
+  };
+
   useEffect(() => {
     const fetchAssignmentDetail = async () => {
       if (!assignmentId) {
@@ -83,7 +155,6 @@ function AssignmentDetailContent() {
       }
 
       try {
-        // Fetch specific assignment details using query parameter
         const response = await fetch(
           `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`
         );
@@ -95,28 +166,8 @@ function AssignmentDetailContent() {
         const data = await response.json();
 
         if (data.success) {
-          const assignmentData = data.data;
-          
-          // Merge submissions data with assigned students
-          if (assignmentData.submissions && assignmentData.assignedStudents) {
-            assignmentData.assignedStudents = assignmentData.assignedStudents.map(student => {
-              const submission = assignmentData.submissions.find(sub => 
-                (sub.studentId._id || sub.studentId) === student.userId
-              );
-              
-              return {
-                ...student,
-                submissionStatus: submission?.status || 'PENDING',
-                submissionMessage: submission?.submissionMessage || '',
-                submissionFileUrl: submission?.fileUrl || '',
-                submissionFileName: submission?.fileName || '',
-                tutorRemarks: submission?.tutorRemarks || '',
-                submittedAt: submission?.submittedAt || null
-              };
-            });
-          }
-          
-          setAssignment(assignmentData);
+          // Merge server data with submission details
+          setAssignment(prev => mergeAssignment(prev, data.data));
         } else {
           throw new Error(data.message || "Failed to fetch assignment details");
         }
@@ -139,7 +190,11 @@ function AssignmentDetailContent() {
   const selectedSubmission = assignment?.assignedStudents?.find(s => s.userId === selectedStudentId);
 
   // Handle tutor actions (approve/correction)
-  const handleTutorAction = async (studentId: string, action: 'APPROVED' | 'CORRECTION') => {
+  const handleTutorAction = async (
+    studentId: string,
+    action: 'APPROVED' | 'CORRECTION',
+    tutorRemarks?: string
+  ) => {
     setApprovalLoading(true);
     try {
       const response = await fetch(`/Api/assignment/singleAssignment?assignmentId=${assignmentId}`, {
@@ -148,7 +203,7 @@ function AssignmentDetailContent() {
         body: JSON.stringify({ 
           studentId, 
           action, 
-          tutorRemarks: action === 'CORRECTION' ? 'Please revise and resubmit.' : 'Well done!' 
+          tutorRemarks: tutorRemarks ?? (action === 'CORRECTION' ? 'Please revise and resubmit.' : 'Well done!')
         })
       });
       
@@ -156,42 +211,77 @@ function AssignmentDetailContent() {
       if (!response.ok || !data.success) {
         throw new Error(data.message || 'Update failed');
       }
-      
-      // Refresh assignment data from server
-      setAssignment(data.data);
-      
-      // Also update local state safely (handle missing arrays)
-      setAssignment(prev => {
-        if (!prev) return prev;
 
-        const updatedStudents = (prev.assignedStudents || []).map(student =>
-          student.userId === studentId
-            ? { 
-                ...student, 
-                submissionStatus: action as any, 
-                tutorRemarks: action === 'CORRECTION' ? 'Please revise and resubmit.' : 'Well done!' 
-              }
-            : student
-        );
-
-        const updatedSubmissions = prev.submissions
-          ? prev.submissions.map((sub: any) =>
-              (sub.studentId?._id?.toString?.() || sub.studentId?.toString?.()) === studentId
-                ? { ...sub, status: action, tutorRemarks: action === 'CORRECTION' ? 'Please revise and resubmit.' : 'Well done!' }
-                : sub
-            )
-          : prev.submissions;
-
-        return {
-          ...prev,
-          assignedStudents: updatedStudents,
-          submissions: updatedSubmissions,
-        };
-      });
+      setAssignment(prev => mergeAssignment(prev, data.data));
       
     } catch (error: any) {
       console.error('Error updating submission:', error);
       alert(error.message || 'Failed to update submission status');
+    } finally {
+      setApprovalLoading(false);
+    }
+  };
+
+  // NEW: open/close helpers
+  const openCorrectionModal = (studentId: string) => {
+    setCorrectionForStudentId(studentId);
+    setCorrectionMessage("");
+    setCorrectionError(null);
+    setShowCorrectionModal(true);
+  };
+  const closeCorrectionModal = () => {
+    if (!approvalLoading) {
+      setShowCorrectionModal(false);
+      setCorrectionForStudentId(null);
+      setCorrectionMessage("");
+      setCorrectionError(null);
+    }
+  };
+  const submitCorrection = async () => {
+    if (!correctionMessage.trim()) {
+      setCorrectionError("Please enter a message.");
+      return;
+    }
+    if (!correctionForStudentId) return;
+
+    setApprovalLoading(true);
+    try {
+      let response, data;
+      if (correctionFile) {
+        // Use FormData if file is attached
+        const formData = new FormData();
+        formData.append("studentId", correctionForStudentId);
+        formData.append("action", "CORRECTION");
+        formData.append("tutorRemarks", correctionMessage);
+        formData.append("correctionFile", correctionFile);
+        formData.append("submissionMessage", "SUBMITTED")
+
+        response = await fetch(`/Api/assignment/singleAssignment?assignmentId=${assignmentId}`, {
+          method: "PUT",
+          body: formData,
+        });
+      } else {
+        // Fallback to JSON if no file
+        response = await fetch(`/Api/assignment/singleAssignment?assignmentId=${assignmentId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId: correctionForStudentId,
+            action: "CORRECTION",
+            tutorRemarks: correctionMessage,
+          }),
+        });
+      }
+      data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to send correction");
+      }
+      setAssignment((prev) => mergeAssignment(prev, data.data));
+      setShowCorrectionModal(false);
+      setCorrectionForStudentId(null);
+      setCorrectionFile(null);
+    } catch (err: any) {
+      setCorrectionError(err.message || "Failed to send correction");
     } finally {
       setApprovalLoading(false);
     }
@@ -623,9 +713,9 @@ function AssignmentDetailContent() {
                       {/* Student Message */}
                       {student.submissionMessage && (
                         <div className="mb-4">
-                          <label className="text-sm font-medium text-gray-600 block mb-2">Student Message:</label>
-                          <div className="bg-gray-50 p-3 rounded-lg text-gray-800 whitespace-pre-wrap">
-                            {student.studentMessage}
+                          <label className="!text-sm !font-medium !text-gray-600 !block !mb-2">Student Message:</label>
+                          <div className="!bg-gray-50 !p-3 !rounded-lg !text-gray-800 !whitespace-pre-wrap">
+                            {student.submissionMessage} {/* FIX: was student.studentMessage */}
                           </div>
                         </div>
                       )}
@@ -637,8 +727,8 @@ function AssignmentDetailContent() {
                           <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
                             <FileText size={20} className="text-purple-500" />
                             <div className="flex-1">
-                              <p className="font-medium text-gray-900">{student.submissionFileName || 'Submitted file'}</p>
-                              <p className="text-sm text-gray-600">
+                              <p className="!font-medium !text-gray-900">{student.submissionFileName || 'Submitted file'}</p>
+                              <p className="!text-sm !text-gray-600">
                                 {student.submittedAt ? `Submitted on ${new Date(student.submittedAt).toLocaleDateString()}` : 'Submission file'}
                               </p>
                             </div>
@@ -647,7 +737,7 @@ function AssignmentDetailContent() {
                                 e.stopPropagation();
                                 handleDownloadSubmission(student.submissionFileUrl, student.submissionFileName);
                               }}
-                              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                              className="!px-4 !py-3 !bg-purple-600 !text-white !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2"
                             >
                               <Download size={16} />
                               Download
@@ -675,17 +765,17 @@ function AssignmentDetailContent() {
                               handleTutorAction(student.userId, 'APPROVED');
                             }}
                             disabled={approvalLoading}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="!px-4 !py-3 !bg-green-600 !text-white !rounded-lg hover:!bg-green-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
                           >
                             {approvalLoading ? 'Processing...' : 'Approve'}
                           </button>
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleTutorAction(student.userId, 'CORRECTION');
+                              openCorrectionModal(student.userId); // CHANGED: open modal
                             }}
                             disabled={approvalLoading}
-                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            className="!px-4 !py-3 !bg-orange-600 !text-white !rounded-lg hover:!bg-orange-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
                           >
                             {approvalLoading ? 'Processing...' : 'Send for Correction'}
                           </button>
@@ -703,6 +793,97 @@ function AssignmentDetailContent() {
           )}
         </div>
       </div>
+
+      {/* NEW: Correction Message Modal */}
+      {showCorrectionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Overlay */}
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={closeCorrectionModal}
+          />
+          {/* Panel */}
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden z-10">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-600 to-purple-700">
+              <h2 className="text-lg font-bold text-white">Send for Correction</h2>
+              <button
+                onClick={closeCorrectionModal}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                disabled={approvalLoading}
+              >
+                <X size={22} />
+              </button>
+            </div>
+            {/* Body */}
+            <div className="px-6 py-6">
+              <div className="mb-4">
+                <label className="block font-medium mb-2 text-gray-700">
+                  Message to student
+                </label>
+                <textarea
+                  className="!w-full !border !rounded !p-2 focus:!ring-2 focus:!ring-purple-500 focus:!border-transparent !transition-all"
+                  rows={4}
+                  placeholder="Explain what needs to be improved..."
+                  value={correctionMessage}
+                  onChange={(e) => setCorrectionMessage(e.target.value)}
+                  disabled={approvalLoading}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block font-medium mb-2 text-gray-700">
+                  Attach File (optional)
+                </label>
+                <label
+                  htmlFor="correctionFileInput"
+                  className="block cursor-pointer border-2 border-dashed border-purple-300 rounded-xl p-6 bg-gray-50 hover:border-purple-500 transition-all text-center"
+                >
+                  <div className="flex flex-col items-center justify-center">
+                    <Upload className="w-8 h-8 text-purple-400 mb-2" />
+                    <span className="text-gray-600 font-medium">
+                      {correctionFile ? correctionFile.name : "Click to upload or drag and drop"}
+                    </span>
+                    <span className="text-xs text-gray-400 mt-1">All file types accepted</span>
+                  </div>
+                  <input
+                    id="correctionFileInput"
+                    type="file"
+                    onChange={(e) => setCorrectionFile(e.target.files?.[0] || null)}
+                    disabled={approvalLoading}
+                    className="opacity-0 cursor-pointer"
+                    tabIndex={-1}
+                  />
+                </label>
+                {correctionFile && (
+                  <div className="text-sm text-gray-600 mt-2">
+                    Selected file: <span className="font-medium">{correctionFile.name}</span>
+                  </div>
+                )}
+              </div>
+              {correctionError && (
+                <div className="text-red-600 text-sm mb-2">{correctionError}</div>
+              )}
+            </div>
+            {/* Footer */}
+            <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50">
+              <button
+                onClick={closeCorrectionModal}
+                disabled={approvalLoading}
+                className="!px-4 !py-2 !rounded-lg !text-gray-700 !bg-gray-100 hover:!bg-gray-200 !font-medium !transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitCorrection}
+                disabled={approvalLoading}
+                className="!px-4 !py-2 !rounded-lg !bg-orange-600 !text-white !font-semibold hover:!bg-orange-700 !transition-all disabled:!opacity-50"
+              >
+                {approvalLoading ? "Sending..." : "Send Correction"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
