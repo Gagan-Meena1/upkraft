@@ -15,6 +15,18 @@ const courseNameSchema = new mongoose.Schema({
     ref:"users",
     required:true
   },
+  academyInstructorId:{
+    type:[{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"users"
+    }]
+  },
+  students:{
+    type:[{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"users"
+    }]    
+  },
   class: { 
     type: [
         {
@@ -55,10 +67,7 @@ const courseNameSchema = new mongoose.Schema({
       tangibleOutcome:String
     }]
   },
-  academyId:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"users"
-  },
+  
 }, {
   timestamps: true
 });

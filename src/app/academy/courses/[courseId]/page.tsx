@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2, Edit, X, Clock } from 'lucide-react';
+import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2, Edit, X, Clock ,User,ChevronUp,ChevronDown} from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
 import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from '@/helper/time';
+import Image from 'next/image';
+
 
 // TypeScript interfaces for type safety
 interface Curriculum {
@@ -45,6 +47,20 @@ interface EditClassForm {
   date: string;
 }
 
+interface CourseUser {
+  _id: string;
+  username: string;
+  category: string;
+  email: string;
+  profileImage: string;
+}
+
+interface CourseUsersData {
+  tutors: CourseUser[];
+  students: CourseUser[];
+  loading: boolean;
+}
+
 const CourseDetailsPage = () => {
   const [courseData, setCourseData] = useState<CourseDetailsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,6 +84,19 @@ const CourseDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
 
+  const [courseUsersData, setCourseUsersData] = useState<CourseUsersData>({
+  tutors: [],
+  students: [],
+  loading: false
+});
+const [activeToggle, setActiveToggle] = useState<'students' | 'tutors' | null>(null);
+const [showMore, setShowMore] = useState<{students: boolean; tutors: boolean}>({
+  students: false,
+  tutors: false
+});
+const [category, setCategory] = useState<string | null>(null);
+const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
+const [isRemoving, setIsRemoving] = useState(false);
   // Helper function to format date and time
   /*
 const formatDateTime = (dateTimeString: string) => {
@@ -162,6 +191,15 @@ const extractDateTimeForForm = (dateTimeString: string) => {
         setCourseData(data);
         setAcademyId(data.academyId || null); // Add this line
         setLoading(false);
+
+        const tutorIds = data.courseDetails.academyInstructorId || [];
+        const studentIds = data.courseDetails.students || [];
+        
+        if (tutorIds.length > 0 || studentIds.length > 0) {
+          fetchCourseUsers(tutorIds, studentIds);
+        }
+      
+
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
         setLoading(false);
@@ -172,6 +210,103 @@ const extractDateTimeForForm = (dateTimeString: string) => {
       fetchCourseDetails();
     }
   }, [params.courseId]);
+
+  // Handle user selection for removal
+
+  const handleSelectUser = (userId: string) => {
+  setSelectedUsers(prev => {
+    const newSet = new Set(prev);
+    if (newSet.has(userId)) {
+      newSet.delete(userId);
+    } else {
+      newSet.add(userId);
+    }
+    return newSet;
+  });
+};
+
+const handleSelectAll = (users: CourseUser[]) => {
+  if (selectedUsers.size === users.length) {
+    setSelectedUsers(new Set());
+  } else {
+    setSelectedUsers(new Set(users.map(u => u._id)));
+  }
+};
+
+const handleRemoveUsers = async () => {
+  if (selectedUsers.size === 0) {
+    toast.error('Please select users to remove');
+    return;
+  }
+
+  if (!window.confirm(`Are you sure you want to remove ${selectedUsers.size} ${activeToggle}(s) from this course?`)) {
+    return;
+  }
+
+  setIsRemoving(true);
+  try {
+    const endpoint = activeToggle === 'students' 
+      ? '/Api/academy/assignStudentsToCourse'
+      : '/Api/academy/assignTutorsToCourse';
+    
+    const body = activeToggle === 'students'
+      ? { studentIds: Array.from(selectedUsers) }
+      : { tutorIds: Array.from(selectedUsers) };
+
+    const response = await fetch(`${endpoint}?courseId=${params.courseId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to remove users');
+    }
+
+    const data = await response.json();
+    toast.success(data.message || 'Users removed successfully');
+    
+    // Clear selection first
+    setSelectedUsers(new Set());
+    
+    // Refresh course data FIRST
+    const refreshResponse = await fetch(`/Api/tutors/courses/${params.courseId}`);
+    if (refreshResponse.ok) {
+      const refreshedData = await refreshResponse.json();
+      setCourseData(refreshedData);
+      
+      // NOW fetch the updated user data with the NEW tutorIds and studentIds
+      const updatedTutorIds = refreshedData.courseDetails.academyInstructorId || [];
+      const updatedStudentIds = refreshedData.courseDetails.students || [];
+      
+      // Only fetch if there are users to fetch
+      if (updatedTutorIds.length > 0 || updatedStudentIds.length > 0) {
+        await fetchCourseUsers(updatedTutorIds, updatedStudentIds);
+      } else {
+        // If no users left, clear the data
+        setCourseUsersData({
+          tutors: [],
+          students: [],
+          loading: false
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error removing users:', error);
+    toast.error(error instanceof Error ? error.message : 'Failed to remove users');
+  } finally {
+    setIsRemoving(false);
+  }
+};
+
+  const handleToggleSection = (section: 'students' | 'tutors') => {
+  if (activeToggle === section) {
+    setActiveToggle(null);
+  } else {
+    setActiveToggle(section);
+  }
+};
 
   // Fetch user's timezone
   useEffect(() => {
@@ -334,12 +469,45 @@ const handleUpdateClass = async (e: React.FormEvent) => {
       if (refreshResponse.ok) {
         const refreshedData = await refreshResponse.json();
         setCourseData(refreshedData);
+        
       }
     } catch (error) {
       console.error('Error deleting class:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete class');
     }
   };
+
+  const fetchCourseUsers = async (tutorIds: any[], studentIds: any[]) => {
+  try {
+    setCourseUsersData(prev => ({ ...prev, loading: true }));
+
+    const response = await fetch('/Api/academy/courseUsers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tutorIds, studentIds })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch course users');
+    }
+
+    const data = await response.json();
+    
+    setCourseUsersData({
+      tutors: data.tutors || [],
+      students: data.students || [],
+      loading: false
+    });
+  } catch (error) {
+    console.error('Error fetching course users:', error);
+    setCourseUsersData({
+      tutors: [],
+      students: [],
+      loading: false
+    });
+    toast.error('Failed to load assigned users');
+  }
+};
 
   // Handle file upload
   const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLInputElement>) => {
@@ -539,6 +707,177 @@ const handleUpdateClass = async (e: React.FormEvent) => {
           </div>
           <p className="!text-gray-600 !text-sm !sm:text-base !leading-relaxed">{courseData.courseDetails.description}</p>
         </section>
+
+        {/* Assigned Users Section - Only for Academic category */}
+{category === "Academic" || (
+  <section className="!bg-white !rounded-xl !shadow-lg !p-4 !sm:p-6 !mb-6 !sm:mb-8">
+    <h2 className="!text-lg !sm:text-xl !font-semibold !text-gray-800 !mb-4">
+      Assigned Users
+    </h2>
+    
+    <div className="!flex !gap-2 !mb-4 !flex-wrap">
+      <button
+        onClick={() => handleToggleSection('students')}
+        className={`!px-4 !py-2 !rounded-lg !font-medium !transition-all !duration-200 !flex !items-center !gap-2 !text-sm !sm:text-base ${
+          activeToggle === 'students'
+            ? '!bg-blue-500 !text-white !shadow-md'
+            : '!bg-gray-100 !text-gray-700 !hover:bg-gray-200'
+        }`}
+      >
+        <User className="!h-4 !w-4" />
+        <span>Assigned Students ({courseUsersData.students.length})</span>
+        {activeToggle === 'students' ? (
+          <ChevronUp className="!h-4 !w-4" />
+        ) : (
+          <ChevronDown className="!h-4 !w-4" />
+        )}
+      </button>
+      
+      <button
+        onClick={() => handleToggleSection('tutors')}
+        className={`!px-4 !py-2 !rounded-lg !font-medium !transition-all !duration-200 !flex !items-center !gap-2 !text-sm !sm:text-base ${
+          activeToggle === 'tutors'
+            ? '!bg-blue-500 !text-white !shadow-md'
+            : '!bg-gray-100 !text-gray-700 !hover:bg-gray-200'
+        }`}
+      >
+        <User className="!h-4 !w-4" />
+        <span>Assigned Tutors ({courseUsersData.tutors.length})</span>
+        {activeToggle === 'tutors' ? (
+          <ChevronUp className="!h-4 !w-4" />
+        ) : (
+          <ChevronDown className="!h-4 !w-4" />
+        )}
+      </button>
+    </div>
+
+    {/* Display Users Table */}
+    {activeToggle && (
+      <div className="!mt-4">
+        {courseUsersData.loading ? (
+          <div className="!text-center !py-8">
+            <span className="!spinner-border !spinner-border-sm"></span>
+            <span className="!ms-2">Loading...</span>
+          </div>
+        ) : (
+          <>
+            {(() => {
+              const users = activeToggle === 'students' 
+                ? courseUsersData.students
+                : courseUsersData.tutors;
+              
+              const displayUsers = showMore[activeToggle]
+                ? users
+                : users.slice(0, 3);
+
+              return users.length > 0 ? (
+                <>
+                  <div className="!overflow-x-auto">
+  <table className="!w-full !border-collapse">
+    <thead>
+      <tr className="!bg-gray-50">
+        <th className="!px-4 !py-3 !text-left !text-sm !font-medium !text-gray-700 !border-b">
+          <input
+            type="checkbox"
+            checked={selectedUsers.size === users.length && users.length > 0}
+            onChange={() => handleSelectAll(users)}
+            className="!w-4 !h-4 !rounded !border-gray-300"
+          />
+        </th>
+        <th className="!px-4 !py-3 !text-left !text-sm !font-medium !text-gray-700 !border-b">Profile</th>
+        <th className="!px-4 !py-3 !text-left !text-sm !font-medium !text-gray-700 !border-b">Name</th>
+        <th className="!px-4 !py-3 !text-left !text-sm !font-medium !text-gray-700 !border-b">Email</th>
+        <th className="!px-4 !py-3 !text-left !text-sm !font-medium !text-gray-700 !border-b">Category</th>
+      </tr>
+    </thead>
+    <tbody>
+      {displayUsers.map((user) => (
+        <tr key={user._id} className="!hover:bg-gray-50 !transition-colors">
+          <td className="!px-4 !py-3 !border-b">
+            <input
+              type="checkbox"
+              checked={selectedUsers.has(user._id)}
+              onChange={() => handleSelectUser(user._id)}
+              className="!w-4 !h-4 !rounded !border-gray-300"
+            />
+          </td>
+          <td className="!px-4 !py-3 !border-b">
+            {user.profileImage ? (
+              <Image
+                src={user.profileImage}
+                alt={user.username}
+                width={40}
+                height={40}
+                className="!rounded-full !object-cover"
+              />
+            ) : (
+              <div className="!w-10 !h-10 !bg-gray-200 !rounded-full !flex !items-center !justify-center">
+                <User className="!text-gray-400 !w-5 !h-5" />
+              </div>
+            )}
+          </td>
+          <td className="!px-4 !py-3 !border-b !text-sm !text-gray-800">{user.username}</td>
+          <td className="!px-4 !py-3 !border-b !text-sm !text-gray-600">{user.email}</td>
+          <td className="!px-4 !py-3 !border-b">
+            <span className="!inline-block !px-3 !py-1 !rounded-full !text-xs !font-medium !bg-blue-100 !text-blue-800">
+              {user.category}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+{/* Remove Button */}
+{selectedUsers.size > 0 && (
+  <div className="!mt-4 !flex !justify-end">
+    <button
+      onClick={handleRemoveUsers}
+      disabled={isRemoving}
+      className={`!px-4 !py-2 !rounded-lg !flex !items-center !gap-2 !text-white !font-medium !transition-colors ${
+        isRemoving 
+          ? '!bg-gray-400 !cursor-not-allowed' 
+          : '!bg-red-500 !hover:bg-red-600'
+      }`}
+    >
+      <Trash2 className="!h-4 !w-4" />
+      {isRemoving ? 'Removing...' : `Remove ${selectedUsers.size} Selected`}
+    </button>
+  </div>
+)}
+                  
+                  {users.length > 3 && (
+                    <div className="!text-center !mt-4">
+                      <button
+                        onClick={() => setShowMore(prev => ({
+                          ...prev,
+                          [activeToggle]: !prev[activeToggle]
+                        }))}
+                        className="!px-4 !py-2 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-lg !transition-colors !font-medium !text-sm"
+                      >
+                        {showMore[activeToggle]
+                          ? 'Show Less'
+                          : `Show More (${users.length - 3} more)`}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="!text-center !py-8">
+                  <User className="!mx-auto !h-12 !w-12 !text-gray-400 !mb-2" />
+                  <p className="!text-gray-500">
+                    No {activeToggle} assigned yet
+                  </p>
+                </div>
+              );
+            })()}
+          </>
+        )}
+      </div>
+    )}
+  </section>
+)}
 
         {/* Tab Navigation */}
         <div className="!mb-6">

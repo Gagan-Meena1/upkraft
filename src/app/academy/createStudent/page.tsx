@@ -180,7 +180,7 @@ const AddStudentPage = () => {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           {/* Header */}
           <div className="bg-purple-700 px-6 py-4">
-            <Link href="/tutor/myStudents" className="inline-flex items-center text-white hover:text-gray-200 transition-colors py-2 mb-4">
+            <Link href="/academy/students" className="inline-flex items-center text-white hover:text-gray-200 transition-colors py-2 mb-4">
               <ArrowLeft className="mr-2 h-5 w-5" />
               Back
             </Link>

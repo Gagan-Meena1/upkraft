@@ -165,6 +165,19 @@ if (instructorId) {
     );
     console.log("Assignment ID added to Class document");
     
+    // Add assignment to academy's assignment array if tutor belongs to an academy
+    if (instructorId) {
+      const tutor = await User.findById(instructorId).select('academyId');
+      if (tutor && tutor.academyId) {
+        await User.findByIdAndUpdate(
+          tutor.academyId,
+          { $push: { assignment: assignment._id } },
+          { new: true }
+        );
+        console.log(`Assignment ID added to academy's assignment array: ${tutor.academyId}`);
+      }
+    }
+    
     return NextResponse.json({
       success: true,
       data: assignment,
@@ -357,11 +370,99 @@ export async function GET(request: NextRequest) {
         }
       });
       
+    } else if (user.category.toLowerCase() === 'academic') {
+      // For Academies: Get assignments from all tutors under this academy
+      // First, get all tutors under this academy
+      const tutors = await User.find({
+        category: "Tutor",
+        academyId: userId
+      }).select('_id username email');
+      
+      const tutorIds = tutors.map(tutor => tutor._id.toString());
+      
+      if (tutorIds.length === 0) {
+        return NextResponse.json({
+          success: true,
+          message: "No tutors found under this academy",
+          data: {
+            userId: user._id,
+            username: user.username,
+            userCategory: user.category,
+            totalAssignments: 0,
+            assignments: []
+          }
+        });
+      }
+      
+      // Get all assignments from tutors under this academy
+      // We can either use the academy's assignment array or find assignments where the creator (instructorId) is in tutorIds
+      // Using academy's assignment array is more efficient
+      const assignments = await Assignment.find({
+        _id: { $in: user.assignment || [] }
+      })
+      .populate('classId', 'title description startTime endTime')
+      .populate('courseId', 'title category')
+      .populate('userId', 'username email')
+      .sort({ deadline: 1 });
+      
+      // Transform the data to include tutor and student information
+      const assignmentsWithDetails = assignments.map(assignment => {
+        // Find the tutor who created this assignment (first tutor in userId array)
+        const tutorInAssignment = assignment.userId.find((u: any) => 
+          tutorIds.includes(u._id.toString())
+        );
+        
+        // Filter out tutors from the student list
+        const studentsOnly = assignment.userId.filter((u: any) => 
+          !tutorIds.includes(u._id.toString())
+        );
+        
+        return {
+          _id: assignment._id,
+          title: assignment.title,
+          description: assignment.description,
+          deadline: assignment.deadline,
+          status: assignment.status,
+          fileUrl: assignment.fileUrl,
+          fileName: assignment.fileName,
+          songName: assignment.songName,
+          practiceStudio: assignment.practiceStudio,
+          speed: assignment.speed,
+          metronome: assignment.metronome,
+          createdAt: assignment.createdAt,
+          class: assignment.classId,
+          course: assignment.courseId,
+          tutor: tutorInAssignment ? {
+            userId: tutorInAssignment._id,
+            username: tutorInAssignment.username,
+            email: tutorInAssignment.email
+          } : null,
+          assignedStudents: studentsOnly.map((student: any) => ({
+            userId: student._id,
+            username: student.username,
+            email: student.email
+          })),
+          totalAssignedStudents: studentsOnly.length
+        };
+      });
+      
+      return NextResponse.json({
+        success: true,
+        message: "Academy assignments retrieved successfully",
+        data: {
+          userId: user._id,
+          username: user.username,
+          userCategory: user.category,
+          totalAssignments: assignmentsWithDetails.length,
+          assignments: assignmentsWithDetails
+        }
+      });
+      
     } else {
       // Handle other categories if any
       return NextResponse.json({
         success: false,
-        message: "Invalid user category. Must be either 'student' or 'tutor'"
+        message: "Invalid user category. Must be either 'student', 'tutor', or 'academic'"
       }, { status: 400 });
     }
     
@@ -642,7 +743,7 @@ export async function DELETE(request: NextRequest) {
       }
     }
 
-    // Remove assignment ID from all users' assignment arrays
+    // Remove assignment ID from all users' assignment arrays (including academy)
     await User.updateMany(
       { assignment: assignmentId },
       { $pull: { assignment: assignmentId } }

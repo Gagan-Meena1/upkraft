@@ -27,6 +27,7 @@ export default function TutorCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [academyId, setAcademyId] = useState<string | null>(null);
   
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function TutorCoursesPage() {
         
         // Change this line to match the API response
         setCourses(data.course);
+        setAcademyId(data.academyId || null);
         setIsLoading(false);
       } catch (err) {
         console.error('Detailed error fetching courses:', err);
@@ -87,8 +89,7 @@ export default function TutorCoursesPage() {
       
       {/* Header */}
        <div>
-      <MyCourse data={courses} />
-    </div>
+<MyCourse data={courses} academyId={academyId} />    </div>
     </div>
   );
 }
