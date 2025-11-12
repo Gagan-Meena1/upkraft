@@ -269,22 +269,36 @@ export async function GET(request: NextRequest) {
           username: user.username,
           userCategory: user.category,
           totalAssignments: assignments.length,
-          assignments: assignments.map(assignment => ({
-            _id: assignment._id,
-            title: assignment.title,
-            description: assignment.description,
-            deadline: assignment.deadline,
-            status: assignment.status,
-            fileUrl: assignment.fileUrl,
-            fileName: assignment.fileName,
-            songName: assignment.songName,
-            practiceStudio: assignment.practiceStudio,
-            speed: assignment.speed,
-            metronome: assignment.metronome,
-            createdAt: assignment.createdAt,
-            class: assignment.classId,
-            course: assignment.courseId
-          }))
+          assignments: assignments.map(assignment => {
+  // Find this student's submission for this assignment
+  const mySubmission = assignment.submissions?.find(
+    sub => sub.studentId?.toString() === user._id.toString()
+  );
+
+  return {
+    _id: assignment._id,
+    title: assignment.title,
+    description: assignment.description,
+    deadline: assignment.deadline,
+    status: assignment.status,
+    currentAssignmentStatus: mySubmission?.status || 'PENDING',
+    studentSubmissionMessage: mySubmission?.message || '',
+    tutorRemarks: mySubmission?.tutorRemarks || '',
+    submissionFileUrl: mySubmission?.fileUrl || '',
+    submissionFileName: mySubmission?.fileName || '',
+    correctionFileUrl: mySubmission?.correctionFileUrl || '',      // ADD THIS
+    correctionFileName: mySubmission?.correctionFileName || '',    // ADD THIS
+    fileUrl: assignment.fileUrl,
+    fileName: assignment.fileName,
+    songName: assignment.songName,
+    practiceStudio: assignment.practiceStudio,
+    speed: assignment.speed,
+    metronome: assignment.metronome,
+    createdAt: assignment.createdAt,
+    class: assignment.classId,
+    course: assignment.courseId
+  };
+})
         }
       });
       
@@ -321,11 +335,25 @@ export async function GET(request: NextRequest) {
           createdAt: assignment.createdAt,
           class: assignment.classId,
           course: assignment.courseId,
-          assignedStudents: studentsOnly.map(student => ({
-            userId: student._id,
-            username: student.username,
-            email: student.email
-          })),
+          assignedStudents: studentsOnly.map(student => {
+  const studentSubmission = assignment.submissions?.find(
+    sub => sub.studentId?.toString() === student._id.toString()
+  );
+
+  return {
+    userId: student._id,
+    username: student.username,
+    email: student.email,
+    submissionStatus: studentSubmission?.status || 'PENDING',
+    submissionMessage: studentSubmission?.message || '',
+    submissionFileUrl: studentSubmission?.fileUrl || '',
+    submissionFileName: studentSubmission?.fileName || '',
+    correctionFileUrl: studentSubmission?.correctionFileUrl || '',      // ADD THIS
+    correctionFileName: studentSubmission?.correctionFileName || '',    // ADD THIS
+    tutorRemarks: studentSubmission?.tutorRemarks || '',
+    submittedAt: studentSubmission?.submittedAt || null
+  };
+}),
           totalAssignedStudents: studentsOnly.length
         };
       });
