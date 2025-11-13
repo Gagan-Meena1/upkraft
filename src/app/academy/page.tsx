@@ -4,14 +4,27 @@ import Link from 'next/link';
 import StudentTutorChart from "../components/academy/StudentTutorChart";
 import PerformingTutors from "../components/academy/PerformingTutors";
 
+type RangeOption = "thisMonth" | "lastMonth";
+
 const Dashboard = () => {
+  const [selectedRange, setSelectedRange] = useState<RangeOption>("thisMonth");
   const [activeTutorsCount, setActiveTutorsCount] = useState<number | null>(null);
   const [newTutorsThisMonth, setNewTutorsThisMonth] = useState<number | null>(null);
+  const [newTutorsLastMonth, setNewTutorsLastMonth] = useState<number | null>(null);
   const [tutorStatsError, setTutorStatsError] = useState<string | null>(null);
   const [isTutorStatsLoading, setIsTutorStatsLoading] = useState<boolean>(false);
+  const [activeTutorsLastMonthCount, setActiveTutorsLastMonthCount] = useState<number | null>(null);
 
   const [totalStudentsCount, setTotalStudentsCount] = useState<number | null>(null);
-  const [studentsPercentageChange, setStudentsPercentageChange] = useState<number | null>(null);
+  const [totalStudentsLastMonthCount, setTotalStudentsLastMonthCount] = useState<number | null>(null);
+  const [studentsPercentageChange, setStudentsPercentageChange] = useState<Record<RangeOption, number | null>>({
+    thisMonth: null,
+    lastMonth: null,
+  });
+  const [studentsNewCounts, setStudentsNewCounts] = useState<Record<RangeOption, number | null>>({
+    thisMonth: null,
+    lastMonth: null,
+  });
   const [studentsStatsError, setStudentsStatsError] = useState<string | null>(null);
   const [isStudentsStatsLoading, setIsStudentsStatsLoading] = useState<boolean>(false);
 
@@ -37,17 +50,31 @@ const Dashboard = () => {
           typeof data?.total === "number" ? data.total : tutors.length;
 
         const now = new Date();
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
         const tutorsJoinedThisMonth = tutors.filter((tutor: any) => {
           if (!tutor?.createdAt) return false;
           const createdAt = new Date(tutor.createdAt);
-          return (
-            createdAt.getFullYear() === now.getFullYear() &&
-            createdAt.getMonth() === now.getMonth()
-          );
+          return createdAt >= thisMonthStart;
+        }).length;
+
+        const tutorsJoinedLastMonth = tutors.filter((tutor: any) => {
+          if (!tutor?.createdAt) return false;
+          const createdAt = new Date(tutor.createdAt);
+          return createdAt >= lastMonthStart && createdAt < thisMonthStart;
+        }).length;
+
+        const totalTutorsLastMonth = tutors.filter((tutor: any) => {
+          if (!tutor?.createdAt) return true;
+          const createdAt = new Date(tutor.createdAt);
+          return createdAt < thisMonthStart;
         }).length;
 
         setActiveTutorsCount(totalTutors);
+        setActiveTutorsLastMonthCount(totalTutorsLastMonth);
         setNewTutorsThisMonth(tutorsJoinedThisMonth);
+        setNewTutorsLastMonth(tutorsJoinedLastMonth);
       } catch (error: any) {
         console.error("Error while fetching active tutors:", error);
         setTutorStatsError(
@@ -92,7 +119,16 @@ const Dashboard = () => {
 
         if (!allStudentsResponse.ok) {
           // If we can't fetch all students, just use the count
-          setStudentsPercentageChange(null);
+          setStudentsStatsError("Unable to load detailed student stats");
+          setStudentsPercentageChange({
+            thisMonth: null,
+            lastMonth: null,
+          });
+          setStudentsNewCounts({
+            thisMonth: null,
+            lastMonth: null,
+          });
+          setTotalStudentsLastMonthCount(null);
           return;
         }
 
@@ -103,6 +139,7 @@ const Dashboard = () => {
         const now = new Date();
         const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const monthBeforeLastStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
 
         // Count students created this month
         const studentsThisMonth = students.filter((student: any) => {
@@ -118,16 +155,42 @@ const Dashboard = () => {
           return createdAt >= lastMonthStart && createdAt < thisMonthStart;
         }).length;
 
-        // Calculate percentage change
-        let percentageChange: number | null = null;
+        // Count students created in month before last
+        const studentsMonthBeforeLast = students.filter((student: any) => {
+          if (!student?.createdAt) return false;
+          const createdAt = new Date(student.createdAt);
+          return createdAt >= monthBeforeLastStart && createdAt < lastMonthStart;
+        }).length;
+
+        const totalStudentsLastMonth = students.filter((student: any) => {
+          if (!student?.createdAt) return true;
+          const createdAt = new Date(student.createdAt);
+          return createdAt < thisMonthStart;
+        }).length;
+
+        let thisMonthPercentage: number | null = null;
         if (studentsLastMonth > 0) {
-          percentageChange = ((studentsThisMonth - studentsLastMonth) / studentsLastMonth) * 100;
+          thisMonthPercentage = ((studentsThisMonth - studentsLastMonth) / studentsLastMonth) * 100;
         } else if (studentsThisMonth > 0) {
-          // If last month had 0 students but this month has some, it's 100% growth
-          percentageChange = 100;
+          thisMonthPercentage = 100;
         }
 
-        setStudentsPercentageChange(percentageChange);
+        let lastMonthPercentage: number | null = null;
+        if (studentsMonthBeforeLast > 0) {
+          lastMonthPercentage = ((studentsLastMonth - studentsMonthBeforeLast) / studentsMonthBeforeLast) * 100;
+        } else if (studentsLastMonth > 0) {
+          lastMonthPercentage = 100;
+        }
+
+        setStudentsNewCounts({
+          thisMonth: studentsThisMonth,
+          lastMonth: studentsLastMonth,
+        });
+        setTotalStudentsLastMonthCount(totalStudentsLastMonth);
+        setStudentsPercentageChange({
+          thisMonth: thisMonthPercentage,
+          lastMonth: lastMonthPercentage,
+        });
         
       } catch (error: any) {
         console.error("Error while fetching student stats:", error);
@@ -135,7 +198,15 @@ const Dashboard = () => {
           error?.message || "Something went wrong while fetching student stats."
         );
         setTotalStudentsCount(null);
-        setStudentsPercentageChange(null);
+        setTotalStudentsLastMonthCount(null);
+        setStudentsPercentageChange({
+          thisMonth: null,
+          lastMonth: null,
+        });
+        setStudentsNewCounts({
+          thisMonth: null,
+          lastMonth: null,
+        });
       } finally {
         setIsStudentsStatsLoading(false);
       }
@@ -143,6 +214,21 @@ const Dashboard = () => {
 
     fetchStudentStats();
   }, []);
+
+  const displayedActiveTutors =
+    selectedRange === "thisMonth" || activeTutorsLastMonthCount === null
+      ? activeTutorsCount
+      : activeTutorsLastMonthCount;
+  const tutorNewCount =
+    selectedRange === "thisMonth" ? newTutorsThisMonth : newTutorsLastMonth;
+
+  const displayedStudentsTotal =
+    selectedRange === "thisMonth" || totalStudentsLastMonthCount === null
+      ? totalStudentsCount
+      : totalStudentsLastMonthCount;
+  const studentsPercentage = studentsPercentageChange[selectedRange];
+  const studentsNewCount = studentsNewCounts[selectedRange];
+  const rangeLabel = selectedRange === "thisMonth" ? "this month" : "last month";
 
   return (
     <div className="dashboard">
@@ -155,16 +241,32 @@ const Dashboard = () => {
         <div className="listing-time-box">
           <ul className="d-flex flex-md-nowrap flex-wrap align-items-center gap-2 list-unstyled p-0 m-0">
             <li>
-              <Link href="/" className="btn btn-white btn-active">This Month</Link>
+              <button
+                type="button"
+                className={`btn btn-white ${selectedRange === "thisMonth" ? "btn-active" : ""}`}
+                onClick={() => setSelectedRange("thisMonth")}
+              >
+                This Month
+              </button>
             </li>
             <li>
-              <Link href="/" className="btn btn-white">Last Month</Link>
+              <button
+                type="button"
+                className={`btn btn-white ${selectedRange === "lastMonth" ? "btn-active" : ""}`}
+                onClick={() => setSelectedRange("lastMonth")}
+              >
+                Last Month
+              </button>
             </li>
             <li>
-              <Link href="/" className="btn btn-white">Last 3 Months</Link>
+              <button type="button" className="btn btn-white" disabled>
+                Last 3 Months
+              </button>
             </li>
             <li>
-              <Link href="/" className="btn btn-white">Custom Range</Link>
+              <button type="button" className="btn btn-white" disabled>
+                Custom Range
+              </button>
             </li>
           </ul>
         </div>
@@ -179,8 +281,8 @@ const Dashboard = () => {
                         <h2>
                           {isTutorStatsLoading
                             ? "--"
-                            : activeTutorsCount !== null
-                            ? activeTutorsCount
+                            : displayedActiveTutors !== null
+                            ? displayedActiveTutors
                             : "N/A"}
                         </h2>
                         <p className='m-0 p-0'>Active Tutors</p>
@@ -189,9 +291,9 @@ const Dashboard = () => {
                             ? "Loading..."
                             : tutorStatsError
                             ? "Unable to load stats"
-                            : newTutorsThisMonth && newTutorsThisMonth > 0
-                            ? `↑ ${newTutorsThisMonth} new this month`
-                            : "No new tutors this month"}
+                            : tutorNewCount !== null && tutorNewCount > 0
+                            ? `↑ ${tutorNewCount} new ${rangeLabel}`
+                            : `No new tutors ${rangeLabel}`}
                         </span>
                     </Link>
                 </div>
@@ -203,8 +305,8 @@ const Dashboard = () => {
                         <h2>
                           {isStudentsStatsLoading
                             ? "--"
-                            : totalStudentsCount !== null
-                            ? totalStudentsCount
+                            : displayedStudentsTotal !== null
+                            ? displayedStudentsTotal
                             : "N/A"}
                         </h2>
                         <p className='m-0 p-0'>Total Students</p>
@@ -213,11 +315,13 @@ const Dashboard = () => {
                             ? "Loading..."
                             : studentsStatsError
                             ? "Unable to load stats"
-                            : studentsPercentageChange !== null
-                            ? studentsPercentageChange >= 0
-                              ? `↑ ${studentsPercentageChange.toFixed(1)}%`
-                              : `↓ ${Math.abs(studentsPercentageChange).toFixed(1)}%`
-                            : "No change"}
+                            : studentsPercentage !== null
+                            ? studentsPercentage >= 0
+                              ? `↑ ${studentsPercentage.toFixed(1)}%`
+                              : `↓ ${Math.abs(studentsPercentage).toFixed(1)}%`
+                            : studentsNewCount !== null && studentsNewCount > 0
+                            ? `↑ ${studentsNewCount} new ${rangeLabel}`
+                            : `No new students ${rangeLabel}`}
                         </span>
                     </Link>
                 </div>
