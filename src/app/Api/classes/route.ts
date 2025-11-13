@@ -15,51 +15,56 @@ await connect();
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("1111111111111111111111111111111111111111111111111111111111111111111");
+    console.log(
+      "1111111111111111111111111111111111111111111111111111111111111111111"
+    );
 
     const referer = request.headers.get("referer");
+
     console.log("Full Referer:", referer);
 
     // Parse the courseId from the Referer URL
-    let courseId: string | null = null;
+    let courseId = null;
     if (referer) {
       try {
         const refererUrl = new URL(referer);
-        // 1) Try query param first
         courseId = refererUrl.searchParams.get("courseId");
-        console.log("Extracted CourseId (query):", courseId);
 
-        // 2) Fallback: extract from pathname /tutor/courses/:courseId
-        if (!courseId) {
-          const match = refererUrl.pathname.match(/\/tutor\/courses\/([^/]+)/);
-          if (match?.[1]) {
-            courseId = match[1];
-            console.log("Extracted CourseId (pathname):", courseId);
-          }
-        }
+        console.log("Extracted CourseId:", courseId);
       } catch (error) {
         console.error("Error parsing Referer URL:", error);
       }
     }
 
-    const uploadDir = path.join(process.cwd(), "public/uploads");
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
+    // NOTE: Do not validate courseId here yet — we may get it from formData below (copy requests)
+ 
+     const uploadDir = path.join(process.cwd(), "public/uploads");
+ 
+     // Ensure upload directory exists
+     if (!existsSync(uploadDir)) {
+       await mkdir(uploadDir, { recursive: true });
+     }
+ 
+     // Parse the FormData in App Router
+     const formData = await request.formData();
 
-    // Parse the FormData
-    const formData = await request.formData();
+     // Extract form fields
+     const title = formData.get("title") as string;
+     const description = formData.get("description") as string;
+     const date = formData.get("date") as string;
+     const startTime = formData.get("startTime") as string;
+     const endTime = formData.get("endTime") as string;
+     const timezone = formData.get("timezone") as string; // Get timezone from frontend
 
-    // 3) Final fallback: read from formData
+    // Accept courseId from referer OR formData OR query param (covers client copy flows)
     if (!courseId) {
-      courseId = 
-        (formData.get("courseId") as string) || 
-        (formData.get("course") as string) || 
-        null;
-      console.log("Extracted CourseId (formData):", courseId);
+      const url = new URL(request.url);
+      const courseIdFromQuery = url.searchParams.get("courseId");
+      const courseFromForm = (formData.get("course") as string) || (formData.get("courseId") as string);
+      courseId = courseFromForm || courseIdFromQuery || null;
     }
 
-    // Validate courseId (after all fallbacks)
+    // Validate courseId after parsing FormData / query fallback
     if (!courseId) {
       return NextResponse.json(
         { error: "Course ID is required" },
@@ -67,37 +72,133 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract form fields
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const date = formData.get("date") as string;
-    const startTime = formData.get("startTime") as string;
-    const endTime = formData.get("endTime") as string;
-    const timezone = formData.get("timezone") as string; // Get timezone from frontend
-
-    console.log("Received data:", {
-      title,
-      description,
-      date,
-      startTime,
-      endTime,
-      timezone,
-    });
-
-    // DIRECT UTC CONVERSION (same as PUT route)
+     console.log("Received data:", {
+       title,
+       description,
+       date,
+       startTime,
+       endTime,
+       timezone,
+     });
+ 
+    // Convert time from user's timezone to UTC for storage
+    // Parse the date and time components
     const [year, month, day] = date.split("-").map(Number);
     const [startHour, startMinute] = startTime.split(":").map(Number);
     const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    // Create UTC dates directly from the form values (no timezone conversion)
-    const startDateTime = new Date(Date.UTC(year, month - 1, day, startHour, startMinute, 0));
-    const endDateTime = new Date(Date.UTC(year, month - 1, day, endHour, endMinute, 0));
+    // Function to convert a time in user's timezone to UTC
+    // This properly handles the conversion by calculating the timezone offset
+    const convertToUTC = (y: number, m: number, d: number, h: number, min: number, tz: string): Date => {
+      if (!tz || tz === "UTC") {
+        // If no timezone or UTC, treat as UTC
+        return new Date(Date.UTC(y, m - 1, d, h, min, 0));
+      }
 
-    console.log("POST - Storing UTC times:", {
-      startDateTime: startDateTime.toISOString(),
-      endDateTime: endDateTime.toISOString()
+      // Calculate the offset by comparing what a known UTC time shows in the timezone
+      // Use a known UTC time (midnight UTC on the target date)
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      
+      const knownUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+      const knownParts = formatter.formatToParts(knownUTC);
+      const knownTzHour = parseInt(knownParts.find(p => p.type === "hour")?.value || "0");
+      const knownTzMin = parseInt(knownParts.find(p => p.type === "minute")?.value || "0");
+      
+      // If midnight UTC shows as X:Y in timezone, then the offset is X:Y hours
+      // For IST (UTC+5:30), midnight UTC = 5:30 AM IST, so offset = +5:30
+      // To convert local to UTC: UTC = Local - Offset
+      // So: UTC = 18:30 - 5:30 = 13:00 (1 PM)
+      
+      const offsetHours = knownTzHour;
+      const offsetMinutes = knownTzMin;
+      const totalOffsetMinutes = offsetHours * 60 + offsetMinutes;
+      
+      // Convert desired local time to UTC
+      // UTC = Local - Offset
+      const desiredTotalMinutes = h * 60 + min;
+      const utcTotalMinutes = desiredTotalMinutes - totalOffsetMinutes;
+      
+      // Handle date rollover
+      let utcHours = Math.floor(utcTotalMinutes / 60);
+      let utcMins = utcTotalMinutes % 60;
+      let utcYear = y;
+      let utcMonth = m - 1; // 0-indexed
+      let utcDay = d;
+      
+      // Handle negative minutes (borrow from hours)
+      if (utcMins < 0) {
+        utcMins += 60;
+        utcHours--;
+      }
+      
+      // Handle negative hours (previous day)
+      if (utcHours < 0) {
+        utcHours += 24;
+        utcDay--;
+        if (utcDay < 1) {
+          utcMonth--;
+          if (utcMonth < 0) {
+            utcMonth = 11;
+            utcYear--;
+          }
+          utcDay = new Date(utcYear, utcMonth + 1, 0).getDate();
+        }
+      }
+      
+      // Handle hours >= 24 (next day)
+      if (utcHours >= 24) {
+        utcHours -= 24;
+        utcDay++;
+        const daysInMonth = new Date(utcYear, utcMonth + 1, 0).getDate();
+        if (utcDay > daysInMonth) {
+          utcDay = 1;
+          utcMonth++;
+          if (utcMonth > 11) {
+            utcMonth = 0;
+            utcYear++;
+          }
+        }
+      }
+      
+      return new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHours, utcMins, 0));
+    };
+
+    // Use the conversion function
+    const startDateTime = convertToUTC(year, month, day, startHour, startMinute, timezone || "UTC");
+    const endDateTime = convertToUTC(year, month, day, endHour, endMinute, timezone || "UTC");
+
+    // Verify the conversion by formatting back
+    const verifyStart = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "UTC",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(startDateTime);
+    
+    const verifyEnd = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone || "UTC",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).format(endDateTime);
+
+    console.log("Created DateTime objects (converted from user timezone to UTC):", {
+      inputTime: `${startTime} - ${endTime}`,
+      userTimezone: timezone,
+      startDateTimeUTC: startDateTime.toISOString(),
+      endDateTimeUTC: endDateTime.toISOString(),
+      verification: `Should display as ${verifyStart} - ${verifyEnd} in ${timezone}`,
+      startDateTimeUTC_Readable: startDateTime.toString(),
+      endDateTimeUTC_Readable: endDateTime.toString(),
     });
-
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
@@ -251,56 +352,188 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    console.log("Updating class...");
+
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
 
     if (!classId) {
-      return NextResponse.json({ error: "Class ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Class ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const token = request.cookies.get("token")?.value;
+    const decodedToken = token ? jwt.decode(token) : null;
+    const instructorId =
+      decodedToken && typeof decodedToken === "object" && "id" in decodedToken
+        ? decodedToken.id
+        : null;
+
+    if (!instructorId) {
+      return NextResponse.json(
+        { error: "Unauthorized - Invalid token" },
+        { status: 401 }
+      );
+    }
+
+    const existingClass = await Class.findById(classId);
+    if (!existingClass) {
+      return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
 
     const body = await request.json();
     const { title, description, date, startTime, endTime, timezone } = body;
 
-    console.log("PUT - Received data:", { date, startTime, endTime, timezone });
+    console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone });
 
-    // DIRECT UTC CONVERSION (no double conversion)
+    if (!title || !description || !date || !startTime || !endTime) {
+      return NextResponse.json(
+        { error: "All fields are required" },
+        { status: 400 }
+      );
+    }
+
+    if (endTime <= startTime) {
+      return NextResponse.json(
+        { error: "End time must be after start time" },
+        { status: 400 }
+      );
+    }
+
+    // Convert time from user's timezone to UTC for storage
     const [year, month, day] = date.split("-").map(Number);
     const [startHour, startMinute] = startTime.split(":").map(Number);
     const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    // Create UTC dates directly from the form values
-    const startDateTime = new Date(Date.UTC(year, month - 1, day, startHour, startMinute, 0));
-    const endDateTime = new Date(Date.UTC(year, month - 1, day, endHour, endMinute, 0));
+    // Use the same conversion function as POST
+    const convertToUTC = (y: number, m: number, d: number, h: number, min: number, tz: string): Date => {
+      if (!tz || tz === "UTC") {
+        return new Date(Date.UTC(y, m - 1, d, h, min, 0));
+      }
 
-    console.log("PUT - Storing UTC times:", {
-      startDateTime: startDateTime.toISOString(),
-      endDateTime: endDateTime.toISOString()
+      // Calculate the offset by comparing what a known UTC time shows in the timezone
+      // Use a known UTC time (midnight UTC on the target date)
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: tz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      
+      const knownUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
+      const knownParts = formatter.formatToParts(knownUTC);
+      const knownTzHour = parseInt(knownParts.find(p => p.type === "hour")?.value || "0");
+      const knownTzMin = parseInt(knownParts.find(p => p.type === "minute")?.value || "0");
+      
+      // If midnight UTC shows as X:Y in timezone, then the offset is X:Y hours
+      // For IST (UTC+5:30), midnight UTC = 5:30 AM IST, so offset = +5:30
+      // To convert local to UTC: UTC = Local - Offset
+      // So: UTC = 18:30 - 5:30 = 13:00 (1 PM)
+      
+      const offsetHours = knownTzHour;
+      const offsetMinutes = knownTzMin;
+      const totalOffsetMinutes = offsetHours * 60 + offsetMinutes;
+      
+      // Convert desired local time to UTC
+      // UTC = Local - Offset
+      const desiredTotalMinutes = h * 60 + min;
+      const utcTotalMinutes = desiredTotalMinutes - totalOffsetMinutes;
+      
+      // Handle date rollover
+      let utcHours = Math.floor(utcTotalMinutes / 60);
+      let utcMins = utcTotalMinutes % 60;
+      let utcYear = y;
+      let utcMonth = m - 1; // 0-indexed
+      let utcDay = d;
+      
+      // Handle negative minutes (borrow from hours)
+      if (utcMins < 0) {
+        utcMins += 60;
+        utcHours--;
+      }
+      
+      // Handle negative hours (previous day)
+      if (utcHours < 0) {
+        utcHours += 24;
+        utcDay--;
+        if (utcDay < 1) {
+          utcMonth--;
+          if (utcMonth < 0) {
+            utcMonth = 11;
+            utcYear--;
+          }
+          utcDay = new Date(utcYear, utcMonth + 1, 0).getDate();
+        }
+      }
+      
+      // Handle hours >= 24 (next day)
+      if (utcHours >= 24) {
+        utcHours -= 24;
+        utcDay++;
+        const daysInMonth = new Date(utcYear, utcMonth + 1, 0).getDate();
+        if (utcDay > daysInMonth) {
+          utcDay = 1;
+          utcMonth++;
+          if (utcMonth > 11) {
+            utcMonth = 0;
+            utcYear++;
+          }
+        }
+      }
+      
+      return new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHours, utcMins, 0));
+    };
+
+    const startDateTime = convertToUTC(year, month, day, startHour, startMinute, timezone || "UTC");
+    const endDateTime = convertToUTC(year, month, day, endHour, endMinute, timezone || "UTC");
+
+    console.log("STORING IN UTC:", {
+      inputTime: `${startTime} - ${endTime}`,
+      storedStartUTC: startDateTime.toISOString(),
+      storedEndUTC: endDateTime.toISOString(),
+      // Verify what time will be retrieved
+      retrievedStart: `${String(startDateTime.getUTCHours()).padStart(
+        2,
+        "0"
+      )}:${String(startDateTime.getUTCMinutes()).padStart(2, "0")}`,
+      retrievedEnd: `${String(endDateTime.getUTCHours()).padStart(
+        2,
+        "0"
+      )}:${String(endDateTime.getUTCMinutes()).padStart(2, "0")}`,
     });
 
-    // Update the class
     const updatedClass = await Class.findByIdAndUpdate(
       classId,
       {
         title,
         description,
-        startTime: startDateTime,
-        endTime: endDateTime,
+        startTime: startDateTime, // Store in UTC
+        endTime: endDateTime, // Store in UTC
       },
-      { new: true }
+      { new: true, runValidators: true }
     );
 
-    if (!updatedClass) {
-      return NextResponse.json({ error: "Class not found" }, { status: 404 });
-    }
+    console.log("STORED SUCCESSFULLY IN UTC");
 
-    return NextResponse.json({
-      message: "Class updated successfully",
-      classData: updatedClass,
-    });
-  } catch (error) {
-    console.error("Error updating class:", error);
     return NextResponse.json(
-      { error: "Failed to update class" },
+      {
+        message: "Class updated successfully",
+        classData: updatedClass,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Server error:", error);
+    return NextResponse.json(
+      {
+        message: "Server error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -365,11 +598,13 @@ export async function DELETE(request: NextRequest) {
     console.log("Class deleted successfully");
 
     return NextResponse.json(
-      { message: "Class deleted successfully" },
+      {
+        message: "Class deleted successfully",
+      },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Server error:", error);
+    console.error("Server error while deleting class:", error);
     return NextResponse.json(
       {
         message: "Server error",
