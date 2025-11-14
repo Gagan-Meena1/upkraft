@@ -37,14 +37,14 @@ export async function POST(request: NextRequest) {
     }
 
     // NOTE: Do not validate courseId here yet — we may get it from formData below (copy requests)
- 
+
      const uploadDir = path.join(process.cwd(), "public/uploads");
- 
+
      // Ensure upload directory exists
      if (!existsSync(uploadDir)) {
        await mkdir(uploadDir, { recursive: true });
      }
- 
+
      // Parse the FormData in App Router
      const formData = await request.formData();
 

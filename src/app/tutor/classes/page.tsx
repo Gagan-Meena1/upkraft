@@ -52,10 +52,16 @@ function AddSessionPage() {
     date: "",
     video: null,
   });
-  // Add these state hooks near your other form state:
-  const [repeatWeekly, setRepeatWeekly] = useState(false);
-  const [repeatCount, setRepeatCount] = useState<number>(1);
-  const [repeatUntil, setRepeatUntil] = useState<string | null>(null);
+  // NEW: recurrence state
+  const [repeatType, setRepeatType] = useState<"none" | "daily" | "weekly" | "weekdays">("none");
+  const [repeatCount, setRepeatCount] = useState<number>(1); // number of occurrences (including first)
+  const [repeatUntil, setRepeatUntil] = useState<string>(""); // yyyy-mm-dd
+
+  // helper: is weekday (Mon-Fri)
+  const isWeekday = (date: Date) => {
+    const d = date.getDay();
+    return d !== 0 && d !== 6;
+  };
 
   // Helper function to format date as YYYY-MM-DD without timezone issues
   const formatDateToString = (
@@ -235,71 +241,136 @@ function AddSessionPage() {
     setErrorMessage("");
 
     try {
-      // Parse date and time components
+      // Parse base date/time
       const { year, month, day } = parseDateString(sessionForm.date);
-      const [startHour, startMinute] = sessionForm.startTime
-        .split(":")
-        .map(Number);
+      const [startHour, startMinute] = sessionForm.startTime.split(":").map(Number);
       const [endHour, endMinute] = sessionForm.endTime.split(":").map(Number);
 
-      // Create datetime objects for validation
-      const sessionDateTime = new Date(
-        year,
-        month,
-        day,
-        startHour,
-        startMinute
-      );
-      const endDateTime = new Date(year, month, day, endHour, endMinute);
-      const currentDateTime = new Date();
+      const baseStart = new Date(year, month, day, startHour, startMinute, 0);
+      const baseEnd = new Date(year, month, day, endHour, endMinute, 0);
 
-      // Validation checks
-      // if (sessionDateTime <= currentDateTime) {
-      //   throw new Error("Cannot create sessions for past date and time");
-      // }
-
-      // if (endDateTime <= sessionDateTime) {
-      //   throw new Error("End time must be after start time");
-      // }
-
-      // Create form data for submission
-      const formData = new FormData();
-      formData.append("title", sessionForm.title);
-      formData.append("description", sessionForm.description);
-
-      // Send date and time as separate values to maintain precision
-      formData.append("date", sessionForm.date); // YYYY-MM-DD format
-      formData.append("startTime", sessionForm.startTime); // HH:MM format
-      formData.append("endTime", sessionForm.endTime); // HH:MM format
-
-      // Add timezone information - use user's saved timezone, fallback to device timezone
-      const timezoneToSend = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-      formData.append("timezone", timezoneToSend);
-
-      if (sessionForm.video) {
-        formData.append("video", sessionForm.video);
+      // Build occurrences array depending on recurrence
+      const occurrences: { start: Date; end: Date }[] = [];
+      if (repeatType === "none") {
+        occurrences.push({ start: baseStart, end: baseEnd });
+      } else if (repeatType === "weekdays") {
+        // Create occurrences only on Mon-Fri
+        if (repeatCount && repeatCount > 1) {
+          let added = 0;
+          let offset = 0;
+          while (added < repeatCount && offset < 1000) {
+            const s = new Date(baseStart);
+            const e2 = new Date(baseEnd);
+            s.setDate(s.getDate() + offset);
+            e2.setDate(e2.getDate() + offset);
+            const day = s.getDay();
+            if (day !== 0 && day !== 6) {
+              occurrences.push({ start: new Date(s), end: new Date(e2) });
+              added++;
+            }
+            offset++;
+          }
+        } else if (repeatUntil) {
+          const untilDate = new Date(repeatUntil);
+          let offset = 0;
+          while (true && offset < 1000) {
+            const s = new Date(baseStart);
+            const e2 = new Date(baseEnd);
+            s.setDate(s.getDate() + offset);
+            e2.setDate(e2.getDate() + offset);
+            if (s > untilDate) break;
+            const day = s.getDay();
+            if (day !== 0 && day !== 6) occurrences.push({ start: new Date(s), end: new Date(e2) });
+            offset++;
+          }
+        } else {
+          occurrences.push({ start: baseStart, end: baseEnd });
+        }
+      } else {
+        // daily or weekly
+        const intervalDays = repeatType === "daily" ? 1 : 7;
+        const count = repeatCount && repeatCount > 0 ? repeatCount : 1;
+        if (count > 1) {
+          for (let i = 0; i < count; i++) {
+            const s = new Date(baseStart);
+            const e2 = new Date(baseEnd);
+            s.setDate(s.getDate() + intervalDays * i);
+            e2.setDate(e2.getDate() + intervalDays * i);
+            if (repeatUntil) {
+              const untilDate = new Date(repeatUntil);
+              if (s > untilDate) break;
+            }
+            occurrences.push({ start: s, end: e2 });
+          }
+        } else if (repeatUntil) {
+          const untilDate = new Date(repeatUntil);
+          let i = 0;
+          while (true) {
+            const s = new Date(baseStart);
+            const e2 = new Date(baseEnd);
+            s.setDate(s.getDate() + intervalDays * i);
+            e2.setDate(e2.getDate() + intervalDays * i);
+            if (s > untilDate) break;
+            occurrences.push({ start: s, end: e2 });
+            i++;
+            if (i > 365) break;
+          }
+        } else {
+          occurrences.push({ start: baseStart, end: baseEnd });
+        }
       }
 
-      // Submit to the API
-      const response = await fetch("/Api/classes", {
-        method: "POST",
-        body: formData,
-      });
+      // Helper to format date/time strings for backend
+      const pad = (n: number) => String(n).padStart(2, "0");
+      const toDateStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      const toTimeStr = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
-      const data = await response.json();
+      let created = 0;
+      for (let idx = 0; idx < occurrences.length; idx++) {
+        const occ = occurrences[idx];
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to create session");
+        const formData = new FormData();
+        formData.append("title", sessionForm.title || "");
+        formData.append("description", sessionForm.description || "");
+        formData.append("date", toDateStr(occ.start)); // YYYY-MM-DD
+        formData.append("startTime", toTimeStr(occ.start)); // HH:MM
+        formData.append("endTime", toTimeStr(occ.end)); // HH:MM
+
+        // timezone: prefer fetched user timezone, fallback to system
+        const timezoneToSend = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        formData.append("timezone", timezoneToSend);
+
+        // include course id
+        if (courseId) {
+          formData.append("course", courseId);
+          formData.append("courseId", courseId);
+        }
+
+        // Attach video only for the first occurrence (optional)
+        if (sessionForm.video && idx === 0) {
+          formData.append("video", sessionForm.video);
+        }
+
+        const response = await fetch("/Api/classes", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response.json().catch(() => ({ message: "Invalid response" }));
+
+        if (!response.ok) {
+          throw new Error(result?.message || `Failed creating occurrence ${toDateStr(occ.start)}`);
+        }
+
+        created++;
       }
 
-      // Success!
-      alert("Session created successfully!");
+      alert(`${created} session(s) created`);
+      // navigate back to course page or refresh
       router.push(`/tutor/courses/${courseId}`);
-    } catch (error) {
-      console.error("Error creating session:", error);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Failed to create session"
-      );
+    } catch (err: any) {
+      console.error("Error creating session(s):", err);
+      setErrorMessage(err?.message || "Failed to create session(s)");
     } finally {
       setIsSubmitting(false);
     }
@@ -597,52 +668,44 @@ function AddSessionPage() {
                   </div>
                 </div>
 
-                {/* ...existing JSX: add recurrence controls near date/time inputs... */}
-                <div className="mt-3">
-                  <label className="inline-flex items-center gap-2">
+                {/* Recurrence Controls */}
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Repeat</label>
+                    <select
+                      value={repeatType}
+                      onChange={(e) => setRepeatType(e.target.value as any)}
+                      className="w-full px-3 py-2 border rounded"
+                    >
+                      <option value="none">Does not repeat</option>
+                      <option value="daily">Daily</option>
+                      <option value="weekdays">Weekdays (Mon–Fri)</option>
+                      <option value="weekly">Weekly</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Occurrences</label>
                     <input
-                      type="checkbox"
-                      checked={repeatWeekly}
-                      onChange={(e) => setRepeatWeekly(e.target.checked)}
+                      type="number"
+                      min={1}
+                      value={repeatCount}
+                      onChange={(e) => setRepeatCount(Math.max(1, Number(e.target.value || 1)))}
+                      disabled={repeatType === "none"}
+                      className="w-full px-3 py-2 border rounded"
                     />
-                    <span className="text-sm">Repeat weekly</span>
-                  </label>
+                  </div>
 
-                  {repeatWeekly && (
-                    <div className="mt-2 space-y-2">
-                      <div>
-                        <label className="text-sm block mb-1">
-                          Occurrences
-                        </label>
-                        <input
-                          type="number"
-                          min={1}
-                          value={repeatCount}
-                          onChange={(e) =>
-                            setRepeatCount(
-                              parseInt(e.target.value || "1", 10)
-                            )
-                          }
-                          className="w-24 p-2 border rounded"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-sm block mb-1">
-                          Or repeat until (date)
-                        </label>
-                        <input
-                          type="date"
-                          value={repeatUntil ?? ""}
-                          onChange={(e) => setRepeatUntil(e.target.value || null)}
-                          className="p-2 border rounded"
-                        />
-                        <div className="text-xs text-gray-500 mt-1">
-                          If set, repeats stop after this date.
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Or repeat until</label>
+                    <input
+                      type="date"
+                      value={repeatUntil}
+                      onChange={(e) => setRepeatUntil(e.target.value)}
+                      disabled={repeatType === "none"}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                  </div>
                 </div>
 
                 {errorMessage && (

@@ -146,23 +146,37 @@ const formatDateTime = (dateTimeString: string) => {
   // Helper function to extract date and time for form inputs
   const extractDateTimeForForm = (dateTimeString: string) => {
     const date = new Date(dateTimeString);
+    const tz = userTimezone || getUserTimeZone();
 
-    // Use UTC methods to get the EXACT stored time
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    const hours = String(date.getUTCHours()).padStart(2, "0");
-    const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+    // Extract date and time in user's timezone (not UTC)
+    // This ensures the time shown to the user is preserved when duplicating
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
 
-    console.log("EXTRACTING FROM UTC:", {
+    const parts = formatter.formatToParts(date);
+    const year = parts.find((p) => p.type === "year")?.value || "";
+    const month = parts.find((p) => p.type === "month")?.value || "";
+    const day = parts.find((p) => p.type === "day")?.value || "";
+    const hours = parts.find((p) => p.type === "hour")?.value || "";
+    const minutes = parts.find((p) => p.type === "minute")?.value || "";
+
+    console.log("EXTRACTING FROM USER TIMEZONE:", {
       originalString: dateTimeString,
+      timezone: tz,
       extractedTime: `${hours}:${minutes}`,
       extractedDate: `${year}-${month}-${day}`,
     });
 
     return {
-      dateStr: `${year}-${month}-${day}`, // Exact: "2024-01-15"
-      timeStr: `${hours}:${minutes}`, // Exact: "14:30"
+      dateStr: `${year}-${month}-${day}`, // Date in user's timezone
+      timeStr: `${hours}:${minutes}`, // Time in user's timezone
     };
   };
 
