@@ -21,52 +21,68 @@ export async function POST(req: NextRequest) {
       if (!instrument) return "guitar-ratings"; // fallback
       const key = instrument.toLowerCase();
 
-      // Map supported instruments explicitly (extendable)
       const ratingPathMap: Record<string, string> = {
         guitar: "guitar-ratings",
         piano: "piano-ratings",
+        drums: "drums-ratings",
+        vocals: "vocals-ratings",
       };
 
-      // If not found, build dynamically as "<instrument>-ratings"
       return ratingPathMap[key] || `${key}-ratings`;
     };
 
     const ratingPath = normalizeRatingPath(rawRatingPath);
 
     // 3️⃣ Convert File → Buffer for axios FormData
-
-    // After parsing formData
     const fileBuffer = Buffer.from(await audioFile.arrayBuffer());
     const fileName = audioFile.name;
 
-    // If the type is video/webm, rename or change the extension
-    const mimeType =
-      audioFile.type === "video/webm" ? "audio/webm" : audioFile.type;
+    // ✅ Handle both webm and mp3 files properly
+    let mimeType = audioFile.type;
+    
+    console.log('📝 Original file type:', mimeType);
+    console.log('📝 File name:', fileName);
+    console.log('📝 File size:', fileBuffer.length, 'bytes');
+    
+    // Normalize MIME type
+    if (mimeType === "video/webm" || mimeType === "audio/webm" || fileName.endsWith('.webm')) {
+      mimeType = "audio/webm";
+    } else if (mimeType === "audio/mpeg" || fileName.endsWith('.mp3')) {
+      mimeType = "audio/mpeg";
+    } else if (fileName.endsWith('.wav')) {
+      mimeType = "audio/wav";
+    }
+    
+    console.log('📝 Normalized MIME type:', mimeType);
 
     const forwardForm = new FormData();
     forwardForm.append("audio_file", fileBuffer, {
-      filename: fileName.replace(/^practice_recording.*$/, fileName),
+      filename: fileName,
       contentType: mimeType,
     });
     forwardForm.append("ratingPath", ratingPath);
 
-    // const fileBuffer = Buffer.from(await audioFile.arrayBuffer());
-    // const forwardForm = new FormData();
-    // forwardForm.append("audio_file", fileBuffer, audioFile.name);
-    // forwardForm.append("ratingPath", ratingPath);
-
     // 4️⃣ Forward to external API
-    const url = `http://168.231.103.13:8000/audio/${ratingPath}/upload`;
+    const url = `https://wjyumkogkkfxtoq4j4bmhyqznu0mmdkd.lambda-url.ap-south-1.on.aws/audio/${ratingPath}/upload`;
+    
+    console.log('📤 Forwarding to:', url);
+    console.log('📤 Rating path:', ratingPath);
+    
     const response = await axios.post(url, forwardForm, {
       headers: forwardForm.getHeaders(),
-      maxBodyLength: Infinity, // Support large uploads
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      timeout: 120000, // 2 minutes timeout for large files
     });
+
+    console.log('✅ External API response:', response.status);
+    console.log('✅ Response data:', response.data);
 
     // 5️⃣ Send upstream response back to client
     return NextResponse.json(response.data, { status: response.status });
   } catch (error: any) {
     console.error(
-      "Proxy upload failed:",
+      "❌ Proxy upload failed:",
       error.response?.data || error.message
     );
 
