@@ -1073,8 +1073,10 @@ const [courseDetails, setCourseDetails] = useState<any[]>([]); // ✅ ADD this
         </div>
         <div className="row">
           <div className="col-xxl-6 col-md-12 mb-4">
-            <UpcomingLessons />
-          </div>
+<UpcomingLessons 
+  classDetails={classData} 
+  userData={userData}
+/>          </div>
           <div className="col-xxl-3 col-md-6 mb-4">
             <div className="card-box">
               <div className="top-progress mb-4">
