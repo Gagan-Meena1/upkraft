@@ -32,7 +32,7 @@ const Banner = () => {
           <h3 className='mb-2'>Built for Music Tutors & Students Worldwide</h3>
           <p>UpKraft is one stop solution to make music learning smarter, faster, and trackable.</p>
           <Link href="" className='btn btn-orange' onClick={handleShow}>
-            Express Interest
+            Request Demo
           </Link>
 
           <ul className='d-flex p-0 m-0 mt-xl-5 mt-4 list-unstyled justify-content-center'>

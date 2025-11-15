@@ -41,7 +41,7 @@ const Learners = () => {
           letterSpacing: "2px",
         }}
       >
-        Express Interest
+        Request Demo
       </button>
 
       {/* Modal */}
