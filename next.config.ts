@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    compress: true, // ✅ Enable gzip compression
+
   // Disable ESLint during builds
   eslint: {
     ignoreDuringBuilds: true,
@@ -15,6 +17,7 @@ const nextConfig = {
   
   // Experimental features
   experimental: {
+    optimizePackageImports: ['@/models', '@/dbConnection'],
     serverActions: {
       bodySizeLimit: '1000mb'
     },
