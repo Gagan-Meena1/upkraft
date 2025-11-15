@@ -237,6 +237,14 @@ export async function POST(request: NextRequest) {
       { new: true }
     );
 
+    await User.findByIdAndUpdate(
+      tutorId,
+      { $push: { students: student._id } },
+      { new: true }
+    );
+
+
+
     return NextResponse.json({
       success: true,
       message: "Student added to your list successfully",

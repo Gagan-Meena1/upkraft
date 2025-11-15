@@ -2,6 +2,7 @@
 // models/userModel.js
 
 import mongoose from "mongoose";
+import { type } from "os";
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -108,6 +109,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    state:{
+        type:String,
+        enum:["active","inactive","vacation","dormant","blocked"],
+        default:"active"
+    },
     academyId:{
         type: mongoose.Schema.Types.ObjectId,
         ref: "users"
@@ -134,7 +140,7 @@ const userSchema = new mongoose.Schema({
 {timestamps: true}
 );
 
-// db.users.createIndex({ instructorId: 1, category: 1 });
+userSchema.index({ instructorId: 1, category: 1 });
 
 const User = mongoose.models.users || mongoose.model("users", userSchema);
 export default User;

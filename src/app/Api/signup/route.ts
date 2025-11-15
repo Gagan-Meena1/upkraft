@@ -47,18 +47,26 @@ export async function POST(request : NextRequest ){
             address,
             contact,
         });
+              
+        const instructor= await User.findById(instructorId);
+
 
         if (instructorId) {
             newUser.instructorId = Array.isArray(instructorId) ? instructorId : [instructorId];
         }
-        const instructor= await User.findById(instructorId);
             if(instructor.category==="Academic"){
                 newUser.academyId= instructorId;
                 console.log("[API/signup] Linked student to academy.");
+                if(newUser.category==="Student"){
                 instructor.students.push(newUser._id);
                 await instructor.save();
                 console.log("[API/signup] Updated academy with new student.", { academyId: instructorId, studentId: newUser._id });
-                
+                }
+                else if(newUser.category==="Tutor"){
+                    instructor.tutors.push(newUser._id);
+                    await instructor.save();
+                    console.log("[API/signup] Updated academy with new tutor.", { academyId: instructorId, tutorId: newUser._id });
+                }
             }
         // if( addedBy ==="academy"){
         //     const tutor= await User.findById(instructorId);

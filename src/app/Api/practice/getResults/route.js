@@ -1,8 +1,8 @@
 // pages/api/practice/getResults.js or app/api/practice/getResults/route.js
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import { connect } from '@/dbConnection/dbConfic'; // Adjust path as needed
-import { PianoResult, GuitarResult } from '@/models/practiceResult'; // Adjust path as needed
+import { connect } from '@/dbConnection/dbConfic';
+import { PianoResult, GuitarResult } from '@/models/practiceResult';
 import User from '@/models/userModel';
 import mongoose from 'mongoose';
 
@@ -47,38 +47,41 @@ export async function GET(request) {
       );
     }
 
-    const user=await User.findById(userId).lean();
-    // Get instrument filter if provided
-    const instrument = searchParams.get('instrument');
+    const user = await User.findById(userId).lean();
 
-    let results = {};
+    // Fetch all results from both collections
+    const pianoResults = await PianoResult.find({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    const guitarResults = await GuitarResult.find({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    if (!instrument || instrument === 'piano') {
-      // Fetch piano results
-      const pianoResults = await PianoResult.find({ userId })
-        .sort({ createdAt: -1 })
-        .lean();
-      results.piano = pianoResults;
-    }
+    // Combine all results
+    const allResults = [...pianoResults, ...guitarResults];
 
-    if (!instrument || instrument === 'guitar') {
-      // Fetch guitar results
-      const guitarResults = await GuitarResult.find({ userId })
-        .sort({ createdAt: -1 })
-        .lean();
-      results.guitar = guitarResults;
-    }
+    // Separate results by instrument type
+    const results = {
+      piano: allResults.filter(r => r.instrument === 'piano'),
+      guitar: allResults.filter(r => r.instrument === 'guitar'),
+      drums: allResults.filter(r => r.instrument === 'drums'),
+      vocals: allResults.filter(r => r.instrument === 'vocals'),
+      other: allResults.filter(r => r.instrument === 'other')
+    };
 
-    // Calculate some stats
+    // Calculate stats
     const stats = {
-      totalSessions: (results.piano?.length || 0) + (results.guitar?.length || 0),
-      pianoSessions: results.piano?.length || 0,
-      guitarSessions: results.guitar?.length || 0,
+      totalSessions: allResults.length,
+      pianoSessions: results.piano.length,
+      guitarSessions: results.guitar.length,
+      drumsSessions: results.drums.length,
+      vocalsSessions: results.vocals.length,
+      otherSessions: results.other.length,
       lastActivity: null
     };
 
     // Find last activity
-    const allResults = [...(results.piano || []), ...(results.guitar || [])];
     if (allResults.length > 0) {
       stats.lastActivity = allResults.reduce((latest, current) => {
         return new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest;
@@ -88,7 +91,7 @@ export async function GET(request) {
     return NextResponse.json({
       success: true,
       data: results,
-      category:user.category,
+      category: user.category,
       stats
     });
 
