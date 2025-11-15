@@ -12,6 +12,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Helper function to add field only if it exists
+const addIfExists = (target, source, fieldName) => {
+  if (source && source[fieldName] !== undefined && source[fieldName] !== null) {
+    target[fieldName] = source[fieldName];
+  }
+};
+
 export async function POST(request) {
   try {
     // Connect to database
@@ -36,25 +43,30 @@ export async function POST(request) {
     } = body;
 
     // Validate required fields
-    if (!instrument || !analysisResults ) {
+    if (!instrument) {
       return NextResponse.json({ 
-        error: 'Missing required fields: instrument, analysisResults, cloudinaryPublicId, audioFileUrl' 
+        error: 'Missing required field: instrument' 
       }, { status: 400 });
     }
 
     // If user doesn't want to save, delete the Cloudinary file
     if (!shouldSave) {
-      try {
-        await cloudinary.uploader.destroy(cloudinaryPublicId);
-        return NextResponse.json({ 
-          message: 'Practice session discarded and file deleted successfully' 
-        });
-      } catch (cloudinaryError) {
-        console.error('Error deleting Cloudinary file:', cloudinaryError);
-        return NextResponse.json({ 
-          error: 'Failed to delete audio file' 
-        }, { status: 500 });
+      if (cloudinaryPublicId) {
+        try {
+          await cloudinary.uploader.destroy(cloudinaryPublicId);
+          return NextResponse.json({ 
+            message: 'Practice session discarded and file deleted successfully' 
+          });
+        } catch (cloudinaryError) {
+          console.error('Error deleting Cloudinary file:', cloudinaryError);
+          return NextResponse.json({ 
+            error: 'Failed to delete audio file' 
+          }, { status: 500 });
+        }
       }
+      return NextResponse.json({ 
+        message: 'Practice session discarded' 
+      });
     }
 
     // Get current practice count for this user to generate title
@@ -65,105 +77,126 @@ export async function POST(request) {
     // Generate title
     const title = `Practice Session ${practiceNumber} - ${new Date().toLocaleDateString()}`;
 
-    // Prepare the data structure based on instrument
+    // Prepare the base data structure
     let practiceData = {
       userId,
       title,
       instrument: instrument.toLowerCase(),
-      audioFileUrl,
-      cloudinaryPublicId,
-      analysisResults: {
-        overall_rating: analysisResults.overall_rating,
-        places_to_improve: analysisResults.places_to_improve
-      }
     };
 
-    // Add instrument-specific analysis
-    if (instrument.toLowerCase() === 'piano') {
-      practiceData.pianoAnalysis = {
+    // Add optional fields only if they exist
+    if (audioFileUrl) practiceData.audioFileUrl = audioFileUrl;
+    if (cloudinaryPublicId) practiceData.cloudinaryPublicId = cloudinaryPublicId;
+
+    // Add analysisResults only if present
+    if (analysisResults) {
+      practiceData.analysisResults = {};
+      addIfExists(practiceData.analysisResults, analysisResults, 'overall_rating');
+      addIfExists(practiceData.analysisResults, analysisResults, 'places_to_improve');
+    }
+
+    // Add instrument-specific analysis only if analysisResults exists
+    if (analysisResults) {
+      if (instrument.toLowerCase() === 'piano') {
+        practiceData.pianoAnalysis = {};
+        
         // FUNDAMENTAL TECHNIQUE
-        scales_major_minor_pentatonic: analysisResults.scales_major_minor_pentatonic,
-        chords_and_arpeggios: analysisResults.chords_and_arpeggios,
-        arpeggiated_patterns: analysisResults.arpeggiated_patterns,
-        hanon_czerny_exercises: analysisResults.hanon_czerny_exercises,
-        octave_jumps: analysisResults.octave_jumps,
-        timing_metronome_practice: analysisResults.timing_metronome_practice,
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'scales_major_minor_pentatonic');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'chords_and_arpeggios');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'arpeggiated_patterns');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'hanon_czerny_exercises');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'octave_jumps');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'timing_metronome_practice');
         
         // EXPRESSION & ARTICULATION
-        legato_staccato_dynamics: analysisResults.legato_staccato_dynamics,
-        articulation_and_phrasing: analysisResults.articulation_and_phrasing,
-        right_hand_ornamentation: analysisResults.right_hand_ornamentation,
-        trills_and_fast_alternations: analysisResults.trills_and_fast_alternations,
-        tempo_rubato_control: analysisResults.tempo_rubato_control,
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'legato_staccato_dynamics');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'articulation_and_phrasing');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'right_hand_ornamentation');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'trills_and_fast_alternations');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'tempo_rubato_control');
         
         // MUSICAL APPLICATION
-        melody_playing_riffs: analysisResults.melody_playing_riffs,
-        genre_specific_riffs: analysisResults.genre_specific_riffs,
-        chord_progressions: analysisResults.chord_progressions,
-        left_hand_accompaniment_styles: analysisResults.left_hand_accompaniment_styles,
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'melody_playing_riffs');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'genre_specific_riffs');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'chord_progressions');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'left_hand_accompaniment_styles');
         
         // ADVANCED MUSICIANSHIP
-        sight_reading_with_known_midi: analysisResults.sight_reading_with_known_midi,
-        polyphonic_counterpoint: analysisResults.polyphonic_counterpoint,
-        voice_leading: analysisResults.voice_leading,
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'sight_reading_with_known_midi');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'polyphonic_counterpoint');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'voice_leading');
         
         // ADDITIONAL PERFORMANCE VIEW
-        dynamic_control: analysisResults.dynamic_control,
-        fluency_and_sync: analysisResults.fluency_and_sync,
-        understanding_of_the_style_matching_the_genre: analysisResults.understanding_of_the_style_matching_the_genre,
-        qulaity_of_sound_basis_instrument_sound: analysisResults.qulaity_of_sound_basis_instrument_sound,
-        note_accuracy: analysisResults.note_accuracy,
-        // Newly added fields
-        song_identification: analysisResults.song_identification,
-        timestamp_improvements: analysisResults.timestamp_improvements,
-      };
-    } else if (instrument.toLowerCase() === 'guitar') {
-      practiceData.guitarAnalysis = {
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'dynamic_control');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'fluency_and_sync');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'understanding_of_the_style_matching_the_genre');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'qulaity_of_sound_basis_instrument_sound');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'note_accuracy');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'song_identification');
+        addIfExists(practiceData.pianoAnalysis, analysisResults, 'timestamp_improvements');
+
+        // Remove pianoAnalysis if empty
+        if (Object.keys(practiceData.pianoAnalysis).length === 0) {
+          delete practiceData.pianoAnalysis;
+        }
+        
+      } else if (instrument.toLowerCase() === 'guitar') {
+        practiceData.guitarAnalysis = {};
+        
         // TECHNICAL FOUNDATION
-        scales_major_minor_pentatonic: analysisResults.scales_major_minor_pentatonic,
-        chords_and_arpeggios: analysisResults.chords_and_arpeggios,
-        strumming_patterns: analysisResults.strumming_patterns,
-        chord_progressions: analysisResults.chord_progressions,
-        hammer_ons_pull_offs_slides_bends_combined: analysisResults.hammer_ons_pull_offs_slides_bends_combined,
-        hammer_ons: analysisResults.hammer_ons,
-        pull_offs: analysisResults.pull_offs,
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'scales_major_minor_pentatonic');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'chords_and_arpeggios');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'strumming_patterns');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'chord_progressions');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'hammer_ons_pull_offs_slides_bends_combined');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'hammer_ons');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'pull_offs');
         
         // LEAD GUITAR TECHNIQUES
-        slides: analysisResults.slides,
-        bends: analysisResults.bends,
-        pre_bends: analysisResults.pre_bends,
-        vibrato_control: analysisResults.vibrato_control,
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'slides');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'bends');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'pre_bends');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'vibrato_control');
         
         // MUSICAL EXPRESSION & PERFORMANCE
-        melody_playing_riffs: analysisResults.melody_playing_riffs,
-        improvisation_with_midi_backing: analysisResults.improvisation_with_midi_backing,
-        improvisation_freeform: analysisResults.improvisation_freeform,
-        genre_specific_riffs: analysisResults.genre_specific_riffs,
-        articulation_and_phrasing: analysisResults.articulation_and_phrasing,
-        expressive_intent_musicality: analysisResults.expressive_intent_musicality,
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'melody_playing_riffs');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'improvisation_with_midi_backing');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'improvisation_freeform');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'genre_specific_riffs');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'articulation_and_phrasing');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'expressive_intent_musicality');
         
         // READING & INTERPRETATION SKILLS
-        sight_reading_with_known_midi: analysisResults.sight_reading_with_known_midi,
-        sight_reading_unseen_piece: analysisResults.sight_reading_unseen_piece,
-        reading_notation_tabs: analysisResults.reading_notation_tabs,
-        palm_muting: analysisResults.palm_muting,
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'sight_reading_with_known_midi');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'sight_reading_unseen_piece');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'reading_notation_tabs');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'palm_muting');
         
         // ADVANCED TECHNIQUES
-        sweep_picking: analysisResults.sweep_picking,
-        pinch_harmonics: analysisResults.pinch_harmonics,
-        natural_harmonics: analysisResults.natural_harmonics,
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'sweep_picking');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'pinch_harmonics');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'natural_harmonics');
         
         // ADDITIONAL PERFORMANCE VIEW
-        dynamic_control: analysisResults.dynamic_control,
-        fluency: analysisResults.fluency,
-        genre: analysisResults.genre,
-        quality: analysisResults.quality,
-        note_accuracy: analysisResults.note_accuracy,
-        sound: analysisResults.sound,
-        // Newly added fields
-        song_identification: analysisResults.song_identification,
-        timestamp_improvements: analysisResults.timestamp_improvements,
-      };
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'dynamic_control');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'fluency');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'genre');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'quality');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'note_accuracy');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'sound');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'song_identification');
+        addIfExists(practiceData.guitarAnalysis, analysisResults, 'timestamp_improvements');
+
+        // Remove guitarAnalysis if empty
+        if (Object.keys(practiceData.guitarAnalysis).length === 0) {
+          delete practiceData.guitarAnalysis;
+        }
+      }
+    }
+
+    // Remove analysisResults if empty
+    if (practiceData.analysisResults && Object.keys(practiceData.analysisResults).length === 0) {
+      delete practiceData.analysisResults;
     }
 
     // Save to database
@@ -208,6 +241,160 @@ export async function DELETE(request) {
     console.error('Error deleting audio file:', error);
     return NextResponse.json({ 
       error: 'Failed to delete audio file',
+      details: error.message 
+    }, { status: 500 });
+  }
+}
+
+// ✅ NEW: PUT handler for updating existing results with AI analysis
+export async function PUT(request) {
+  try {
+    await connect();
+
+    // Get user ID from JWT token
+    const token = request.cookies.get("token")?.value;
+    const decodedToken = token ? jwt.decode(token) : null;
+    const userId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const {
+      resultId,
+      instrument,
+      analysisData
+    } = body;
+
+    // Validate required fields
+    if (!resultId || !instrument || !analysisData) {
+      return NextResponse.json({ 
+        error: 'Missing required fields: resultId, instrument, or analysisData' 
+      }, { status: 400 });
+    }
+
+    // Select the correct model
+    const Model = instrument.toLowerCase() === 'piano' ? PianoResult : GuitarResult;
+
+    // Prepare update data
+    const updateData = {};
+
+    // Add analysisResults
+    updateData.analysisResults = {};
+    addIfExists(updateData.analysisResults, analysisData, 'overall_rating');
+    addIfExists(updateData.analysisResults, analysisData, 'places_to_improve');
+
+    // Add instrument-specific analysis
+    if (instrument.toLowerCase() === 'piano') {
+      updateData.pianoAnalysis = {};
+      
+      // FUNDAMENTAL TECHNIQUE
+      addIfExists(updateData.pianoAnalysis, analysisData, 'scales_major_minor_pentatonic');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'chords_and_arpeggios');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'arpeggiated_patterns');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'hanon_czerny_exercises');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'octave_jumps');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'timing_metronome_practice');
+      
+      // EXPRESSION & ARTICULATION
+      addIfExists(updateData.pianoAnalysis, analysisData, 'legato_staccato_dynamics');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'articulation_and_phrasing');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'right_hand_ornamentation');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'trills_and_fast_alternations');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'tempo_rubato_control');
+      
+      // MUSICAL APPLICATION
+      addIfExists(updateData.pianoAnalysis, analysisData, 'melody_playing_riffs');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'genre_specific_riffs');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'chord_progressions');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'left_hand_accompaniment_styles');
+      
+      // ADVANCED MUSICIANSHIP
+      addIfExists(updateData.pianoAnalysis, analysisData, 'sight_reading_with_known_midi');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'polyphonic_counterpoint');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'voice_leading');
+      
+      // ADDITIONAL PERFORMANCE VIEW
+      addIfExists(updateData.pianoAnalysis, analysisData, 'dynamic_control');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'fluency_and_sync');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'understanding_of_the_style_matching_the_genre');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'qulaity_of_sound_basis_instrument_sound');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'note_accuracy');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'song_identification');
+      addIfExists(updateData.pianoAnalysis, analysisData, 'timestamp_improvements');
+
+    } else if (instrument.toLowerCase() === 'guitar') {
+      updateData.guitarAnalysis = {};
+      
+      // TECHNICAL FOUNDATION
+      addIfExists(updateData.guitarAnalysis, analysisData, 'scales_major_minor_pentatonic');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'chords_and_arpeggios');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'strumming_patterns');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'chord_progressions');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'hammer_ons_pull_offs_slides_bends');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'hammer_ons');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'pull_offs');
+      
+      // LEAD GUITAR TECHNIQUES
+      addIfExists(updateData.guitarAnalysis, analysisData, 'slides');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'bends');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'pre_bends');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'vibrato_control');
+      
+      // MUSICAL EXPRESSION & PERFORMANCE
+      addIfExists(updateData.guitarAnalysis, analysisData, 'melody_playing_riffs');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'improvisation_with_midi_backing');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'improvisation_freeform');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'genre_specific_riffs');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'articulation_and_phrasing');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'expressive_intent_musicality');
+      
+      // READING & INTERPRETATION SKILLS
+      addIfExists(updateData.guitarAnalysis, analysisData, 'sight_reading_with_known_midi');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'sight_reading_unseen_piece');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'reading_notation_tabs');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'palm_muting');
+      
+      // ADVANCED TECHNIQUES
+      addIfExists(updateData.guitarAnalysis, analysisData, 'sweep_picking');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'pinch_harmonics');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'natural_harmonics');
+      
+      // ADDITIONAL PERFORMANCE VIEW
+      addIfExists(updateData.guitarAnalysis, analysisData, 'dynamic_control');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'fluency_and_sync');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'understanding_of_the_style_matching_the_genre');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'qulaity_of_sound_basis_instrument_sound');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'note_accuracy');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'song_identification');
+      addIfExists(updateData.guitarAnalysis, analysisData, 'timestamp_improvements');
+    }
+
+    // Update the document
+    const updatedResult = await Model.findOneAndUpdate(
+      { _id: resultId, userId }, // Ensure the result belongs to the user
+      updateData,
+      { new: true, runValidators: false } // Don't validate required fields on update
+    );
+
+    if (!updatedResult) {
+      return NextResponse.json({ 
+        error: 'Result not found or unauthorized' 
+      }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'AI analysis updated successfully',
+      practiceId: updatedResult._id,
+      title: updatedResult.title
+    }, { status: 200 });
+
+  } catch (error) {
+    console.error('Error updating AI analysis:', error);
+    return NextResponse.json({ 
+      error: 'Internal server error',
       details: error.message 
     }, { status: 500 });
   }
