@@ -2666,7 +2666,7 @@ body .wrap, body .wrap.pdf-active {
         <div style="display: flex; gap: 12px; justify-content: center;">
           <button class="btn" id="recordAIBtn"
             style="background: var(--accent2); color: white; padding: 12px 24px; line-height: 1.4; min-width: 180px;">
-            🤖 Save Recording<br>Get AI Feedback
+            🤖 Save Recording<br>
           </button>
           <button class="btn" id="recordAgainBtn" style="padding: 12px 24px;">
             🎤 Record Again
@@ -2690,12 +2690,15 @@ body .wrap, body .wrap.pdf-active {
       <div class="song-modal-body" style="text-align: center; padding: 24px;">
         <p style="margin-bottom: 20px; color: var(--fg);">Which instrument did you record with?</p>
         <div style="display: flex; justify-content: center; margin-bottom: 20px;">
-          <select id="instrumentSelect"
-            style="width: 220px; padding: 10px 12px; border-radius: 8px; background: var(--button-bg); color: var(--fg); border: 1px solid var(--border); font-size: 14px; text-align: center;">
-            <option value="">-- Select Instrument --</option>
-            <option value="guitar">🎸 Guitar</option>
-            <option value="piano">🎹 Piano</option>
-          </select>
+       <select id="instrumentSelect"
+        style="width: 220px; padding: 10px 12px; border-radius: 8px; background: var(--button-bg); color: var(--fg); border: 1px solid var(--border); font-size: 14px; text-align: center;">
+  <option value="">-- Select Instrument --</option>
+  <option value="guitar">🎸 Guitar</option>
+  <option value="piano">🎹 Piano</option>
+  <option value="drums">🥁 Drums</option>
+  <option value="vocals">🎤 Vocals</option>
+  <option value="other">🎵 Other</option>
+</select>
         </div>
         <div style="display: flex; gap: 12px; justify-content: center;">
           <button class="btn" id="instrumentConfirmBtn"
@@ -4773,61 +4776,119 @@ $('#instrumentConfirmBtn')?.addEventListener('click', async () => {
   analysisLoader.style.cssText = 'display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;';
   document.body.appendChild(analysisLoader);
 
-    // STEP 1: Upload audio to Cloudinary first
-    log('📤 Uploading audio to Cloudinary...');
-    const cloudinaryFormData = new FormData();
-    cloudinaryFormData.append('audio', pendingBlob, 'practice_recording.webm');
-    cloudinaryFormData.append('instrument', selectedInstrument);
+    // // STEP 1: Upload audio to Cloudinary first
+    // log('📤 Uploading audio to Cloudinary...');
+    // const cloudinaryFormData = new FormData();
+    // cloudinaryFormData.append('audio', pendingBlob, 'practice_recording.webm');
+    // cloudinaryFormData.append('instrument', selectedInstrument);
     
-    const cloudinaryResponse = await fetch('/Api/practice/upload', {
-      method: 'POST',
-      body: cloudinaryFormData
-    });
+    // const cloudinaryResponse = await fetch('/Api/practice/upload', {
+    //   method: 'POST',
+    //   body: cloudinaryFormData
+    // });
     
-    if (!cloudinaryResponse.ok) {
-      const errorData = await cloudinaryResponse.json().catch(() => ({}));
-      throw new Error(errorData.error || `Cloudinary upload failed: ${cloudinaryResponse.status}`);
-    }
+    // if (!cloudinaryResponse.ok) {
+    //   const errorData = await cloudinaryResponse.json().catch(() => ({}));
+    //   throw new Error(errorData.error || `Cloudinary upload failed: ${cloudinaryResponse.status}`);
+    // }
     
-    const cloudinaryResult = await cloudinaryResponse.json();
-    log('☁️ Audio uploaded to Cloudinary successfully');
+    // const cloudinaryResult = await cloudinaryResponse.json();
+    // log('☁️ Audio uploaded to Cloudinary successfully');
     
 
 
-    // STEP 2: Call analysis API with Cloudinary URL
-    log('🔍 Starting AI analysis...');
-    const analysisFormData = new FormData();
-    analysisFormData.append('audio_file', pendingBlob, 'practice_recording.webm');
-    analysisFormData.append('ratingPath', selectedInstrument);
+    // // STEP 2: Call analysis API with Cloudinary URL
+    // log('🔍 Starting AI analysis...');
+    // const analysisFormData = new FormData();
+    // analysisFormData.append('audio_file', pendingBlob, 'practice_recording.webm');
+    // analysisFormData.append('ratingPath', selectedInstrument);
     
-    const analysisResponse = await fetch('/Api/proxy/practice', {
-      method: 'POST',
-      body: analysisFormData
-    });
+    // const analysisResponse = await fetch('/Api/proxy/practice', {
+    //   method: 'POST',
+    //   body: analysisFormData
+    // });
     
-    if (!analysisResponse.ok) {
-      // If analysis fails, clean up the Cloudinary file
-      try {
-        await fetch('/Api/practice/cleanup', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cloudinaryPublicId: cloudinaryResult.public_id })
-        });
-        log('🗑️ Cleaned up Cloudinary file due to analysis failure');
-      } catch (cleanupError) {
-        console.error('Failed to cleanup Cloudinary file:', cleanupError);
-      }
+    // if (!analysisResponse.ok) {
+    //   // If analysis fails, clean up the Cloudinary file
+    //   try {
+    //     await fetch('/Api/practice/cleanup', {
+    //       method: 'DELETE',
+    //       headers: { 'Content-Type': 'application/json' },
+    //       body: JSON.stringify({ cloudinaryPublicId: cloudinaryResult.public_id })
+    //     });
+    //     log('🗑️ Cleaned up Cloudinary file due to analysis failure');
+    //   } catch (cleanupError) {
+    //     console.error('Failed to cleanup Cloudinary file:', cleanupError);
+    //   }
       
-      const errorData = await analysisResponse.json().catch(() => ({}));
-      throw new Error(errorData.error || `Analysis failed: ${analysisResponse.status}`);
-    }
+    //   const errorData = await analysisResponse.json().catch(() => ({}));
+    //   throw new Error(errorData.error || `Analysis failed: ${analysisResponse.status}`);
+    // }
     
-    const analysisResult = await analysisResponse.json();
-    log('✅ AI analysis completed successfully');
+    // const analysisResult = await analysisResponse.json();
+    // log('✅ AI analysis completed successfully');
     
     // STEP 3: Store results with Cloudinary info in sessionStorage
-    const analysisData = {
-  ...analysisResult,
+//     const analysisData = {
+//   ...analysisResult,
+//   instrument: selectedInstrument,
+//   timestamp: Date.now(),
+//   audioFile: {
+//     // Original file info
+//     url: cloudinaryResult.secure_url,
+//     publicId: cloudinaryResult.public_id,
+//     assetId: cloudinaryResult.asset_id,
+//     size: cloudinaryResult.bytes,
+//     type: 'audio/webm',
+    
+//     // MP3 info (if available)
+//     mp3_url: cloudinaryResult.mp3_url,
+//     mp3_public_id: cloudinaryResult.mp3_public_id,
+//     has_mp3_version: cloudinaryResult.has_mp3_version,
+    
+//     // Preferred URLs for playback and download
+//     playback_url: cloudinaryResult.playback_url,
+//     download_url: cloudinaryResult.download_url
+//   }
+// };
+    
+    // sessionStorage.setItem('practiceAnalysisResults', JSON.stringify(analysisData));
+    // sessionStorage.setItem('practiceAnalysisInstrument', selectedInstrument);
+    
+    // log('💾 Results stored in session storage with Cloudinary info');
+    
+    // Navigate to results page and preserve query parameters
+// const urlParams = new URLSearchParams(window.location.search);
+// const queryString = urlParams.toString();
+
+// if (queryString) {
+//   window.location.href = `/tutor/practiceResult?${queryString}`;
+// } else {
+//   window.location.href = '/tutor/practiceResult';
+// }
+
+// STEP 1: Upload audio to Cloudinary
+// STEP 1: Upload audio to Cloudinary
+log('📤 Uploading audio to Cloudinary...');
+const cloudinaryFormData = new FormData();
+cloudinaryFormData.append('audio', pendingBlob, 'practice_recording.webm');
+cloudinaryFormData.append('instrument', selectedInstrument);
+
+const cloudinaryResponse = await fetch('/Api/practice/upload', {
+  method: 'POST',
+  body: cloudinaryFormData
+});
+
+if (!cloudinaryResponse.ok) {
+  const errorData = await cloudinaryResponse.json().catch(() => ({}));
+  throw new Error(errorData.error || `Cloudinary upload failed: ${cloudinaryResponse.status}`);
+}
+
+const cloudinaryResult = await cloudinaryResponse.json();
+log('☁️ Audio uploaded to Cloudinary successfully');
+
+// STEP 2: Store results with Cloudinary info in sessionStorage (WITHOUT ANALYSIS)
+const practiceData = {
   instrument: selectedInstrument,
   timestamp: Date.now(),
   audioFile: {
@@ -4848,13 +4909,13 @@ $('#instrumentConfirmBtn')?.addEventListener('click', async () => {
     download_url: cloudinaryResult.download_url
   }
 };
-    
-    sessionStorage.setItem('practiceAnalysisResults', JSON.stringify(analysisData));
-    sessionStorage.setItem('practiceAnalysisInstrument', selectedInstrument);
-    
-    log('💾 Results stored in session storage with Cloudinary info');
-    
-    // Navigate to results page and preserve query parameters
+
+sessionStorage.setItem('practiceAnalysisResults', JSON.stringify(practiceData));
+sessionStorage.setItem('practiceAnalysisInstrument', selectedInstrument);
+
+log('💾 Results stored in session storage with Cloudinary info');
+
+// Navigate to results page and preserve query parameters
 const urlParams = new URLSearchParams(window.location.search);
 const queryString = urlParams.toString();
 
@@ -4863,11 +4924,11 @@ if (queryString) {
 } else {
   window.location.href = '/tutor/practiceResult';
 }
-    
-  } catch(err) {
-    console.error('Process failed:', err);
-    alert(`Process failed: ${err.message}`);
-  }finally {
+
+} catch(err) {
+  console.error('Process failed:', err);
+  alert(`Process failed: ${err.message}`);
+} finally {
   const up = document.getElementById('uploadLoading');
   const analysisLoader = document.getElementById('analysisLoader');
   if (up) up.style.display = 'none';

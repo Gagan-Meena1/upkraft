@@ -36,7 +36,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate courseId
+    // NOTE: Do not validate courseId here yet — we may get it from formData below (copy requests)
+
+     const uploadDir = path.join(process.cwd(), "public/uploads");
+
+     // Ensure upload directory exists
+     if (!existsSync(uploadDir)) {
+       await mkdir(uploadDir, { recursive: true });
+     }
+
+     // Parse the FormData in App Router
+     const formData = await request.formData();
+
+     // Extract form fields
+     const title = formData.get("title") as string;
+     const description = formData.get("description") as string;
+     const date = formData.get("date") as string;
+     const startTime = formData.get("startTime") as string;
+     const endTime = formData.get("endTime") as string;
+     const timezone = formData.get("timezone") as string; // Get timezone from frontend
+
+    // Accept courseId from referer OR formData OR query param (covers client copy flows)
+    if (!courseId) {
+      const url = new URL(request.url);
+      const courseIdFromQuery = url.searchParams.get("courseId");
+      const courseFromForm = (formData.get("course") as string) || (formData.get("courseId") as string);
+      courseId = courseFromForm || courseIdFromQuery || null;
+    }
+
+    // Validate courseId after parsing FormData / query fallback
     if (!courseId) {
       return NextResponse.json(
         { error: "Course ID is required" },
@@ -44,33 +72,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uploadDir = path.join(process.cwd(), "public/uploads");
-
-    // Ensure upload directory exists
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    // Parse the FormData in App Router
-    const formData = await request.formData();
-
-    // Extract form fields
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const date = formData.get("date") as string;
-    const startTime = formData.get("startTime") as string;
-    const endTime = formData.get("endTime") as string;
-    const timezone = formData.get("timezone") as string; // Get timezone from frontend
-
-    console.log("Received data:", {
-      title,
-      description,
-      date,
-      startTime,
-      endTime,
-      timezone,
-    });
-
+     console.log("Received data:", {
+       title,
+       description,
+       date,
+       startTime,
+       endTime,
+       timezone,
+     });
+ 
     // Convert time from user's timezone to UTC for storage
     // Parse the date and time components
     const [year, month, day] = date.split("-").map(Number);

@@ -3,12 +3,12 @@ import { useState, useEffect } from 'react';
 import { 
   LogOut, ChevronLeft, ChevronRight, User, BookOpen, PlusCircle, Users, BookCheck, Menu, X,
   Download, Calendar, Music, Guitar, Piano, TrendingUp, Clock, Star, ChevronDown, ChevronUp,
-  Play, Pause, Volume2, UserCircle
+  Play, Pause, Volume2, UserCircle, Drum, Mic
 } from "lucide-react";
 
 export default function PracticeHistoryPage() {
   const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState({ piano: [], guitar: [] });
+  const [results, setResults] = useState({ piano: [], guitar: [], drums: [], vocals: [], other: [] });
   const [stats, setStats] = useState({});
   const [activeTab, setActiveTab] = useState('all');
   const [error, setError] = useState(null);
@@ -22,6 +22,7 @@ export default function PracticeHistoryPage() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [userCategory, setUserCategory] = useState(null);
+  const [evaluatingAI, setEvaluatingAI] = useState({});
 
   useEffect(() => {
     const checkMobile = () => {
@@ -60,7 +61,6 @@ export default function PracticeHistoryPage() {
         setResults(data.data);
         setStats(data.stats);
         setUserCategory(data.category);
-        // console.log('User category:', data.category); // Debug log
       } else {
         throw new Error(data.error || 'Failed to fetch results');
       }
@@ -167,6 +167,89 @@ export default function PracticeHistoryPage() {
     }));
   };
 
+const handleAIEvaluation = async (audioFileUrl, instrument, resultId) => {
+  try {
+    setEvaluatingAI(prev => ({ ...prev, [resultId]: true }));
+    
+    // Fetch the original audio file from Cloudinary URL
+    const audioResponse = await fetch(audioFileUrl);
+    if (!audioResponse.ok) throw new Error('Failed to fetch audio file');
+    
+    const audioBlob = await audioResponse.blob();
+    const fileName = `practice_recording_${Date.now()}.webm`;
+    const audioFile = new File([audioBlob], fileName, { 
+      type: audioBlob.type || 'audio/webm'
+    });
+    
+    // Create FormData
+    const formData = new FormData();
+    formData.append('audio_file', audioFile);
+    formData.append('ratingPath', instrument);
+    
+    console.log('Sending AI evaluation request for instrument:', instrument);
+    
+    const response = await fetch('/Api/proxy/practice', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API call failed: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    console.log('✅ AI Evaluation Response:', data);
+    
+    // ✅ Update the database with analysis results
+    await updateResultWithAnalysis(resultId, data.ratings, instrument);
+    
+    // ✅ Refresh the results
+    if (archiveMode === 'my') {
+      await fetchResults();
+    } else {
+      await fetchStudentsResults();
+    }
+    
+    alert('AI Evaluation completed successfully! The analysis has been saved.');
+    
+  } catch (error) {
+    console.error('❌ Error during AI evaluation:', error);
+    alert(`Failed to evaluate: ${error.message}`);
+  } finally {
+    setEvaluatingAI(prev => ({ ...prev, [resultId]: false }));
+  }
+};
+
+// ✅ UPDATED: Use PUT method for updating analysis
+const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
+  try {
+    const response = await fetch('/Api/practice/saveResult', {
+      method: 'PUT', 
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        resultId,
+        instrument,
+        analysisData
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to update analysis: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log('✅ Analysis saved to database:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Error updating analysis:', error);
+    throw error;
+  }
+};
+
   const getFeedbackColor = (feedback) => {
     switch (feedback?.toLowerCase()) {
       case 'excellent':
@@ -198,8 +281,20 @@ export default function PracticeHistoryPage() {
           return studentResults.piano || [];
         case 'guitar':
           return studentResults.guitar || [];
+        case 'drums':
+          return studentResults.drums || [];
+        case 'vocals':
+          return studentResults.vocals || [];
+        case 'other':
+          return studentResults.other || [];
         default:
-          return [...(studentResults.piano || []), ...(studentResults.guitar || [])].sort((a, b) => 
+          return [
+            ...(studentResults.piano || []), 
+            ...(studentResults.guitar || []),
+            ...(studentResults.drums || []),
+            ...(studentResults.vocals || []),
+            ...(studentResults.other || [])
+          ].sort((a, b) => 
             new Date(b.createdAt) - new Date(a.createdAt)
           );
       }
@@ -209,8 +304,20 @@ export default function PracticeHistoryPage() {
           return results.piano || [];
         case 'guitar':
           return results.guitar || [];
+        case 'drums':
+          return results.drums || [];
+        case 'vocals':
+          return results.vocals || [];
+        case 'other':
+          return results.other || [];
         default:
-          return [...(results.piano || []), ...(results.guitar || [])].sort((a, b) => 
+          return [
+            ...(results.piano || []), 
+            ...(results.guitar || []),
+            ...(results.drums || []),
+            ...(results.vocals || []),
+            ...(results.other || [])
+          ].sort((a, b) => 
             new Date(b.createdAt) - new Date(a.createdAt)
           );
       }
@@ -269,12 +376,6 @@ export default function PracticeHistoryPage() {
 
       <div className="flex-1 min-h-screen">
         <main className="p-4 sm:p-6">
-          {/* Debug info - remove after testing */}
-          {/* <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm">Debug: User Category = {userCategory || 'null'}</p>
-            <p className="text-sm">Condition check: {userCategory === 'Tutor' ? 'TRUE' : 'FALSE'}</p>
-          </div> */}
-
           {userCategory === 'Tutor' && (
             <div className="mb-6 flex justify-center">
               <div className="bg-white rounded-lg border-2 border-gray-200 p-1 inline-flex shadow-sm">
@@ -349,7 +450,7 @@ export default function PracticeHistoryPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
                 <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
                   <div className="flex items-center justify-between">
                     <div>
@@ -363,7 +464,7 @@ export default function PracticeHistoryPage() {
                 <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Piano Sessions</p>
+                      <p className="text-sm text-gray-600">Piano</p>
                       <p className="text-2xl font-bold text-gray-900">{currentStats.pianoSessions || 0}</p>
                     </div>
                     <Piano className="h-8 w-8 text-blue-500" />
@@ -373,10 +474,30 @@ export default function PracticeHistoryPage() {
                 <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-gray-600">Guitar Sessions</p>
+                      <p className="text-sm text-gray-600">Guitar</p>
                       <p className="text-2xl font-bold text-gray-900">{currentStats.guitarSessions || 0}</p>
                     </div>
                     <Guitar className="h-8 w-8 text-green-500" />
+                  </div>
+                </div>
+                
+                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Drums</p>
+                      <p className="text-2xl font-bold text-gray-900">{currentStats.drumsSessions || 0}</p>
+                    </div>
+                    <Drum className="h-8 w-8 text-orange-500" />
+                  </div>
+                </div>
+                
+                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">Vocals</p>
+                      <p className="text-2xl font-bold text-gray-900">{currentStats.vocalsSessions || 0}</p>
+                    </div>
+                    <Mic className="h-8 w-8 text-pink-500" />
                   </div>
                 </div>
                 
@@ -388,25 +509,25 @@ export default function PracticeHistoryPage() {
                         {currentStats.lastActivity ? new Date(currentStats.lastActivity).toLocaleDateString() : 'No activity'}
                       </p>
                     </div>
-                    <Clock className="h-8 w-8 text-orange-500" />
+                    <Clock className="h-8 w-8 text-indigo-500" />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg border border-gray-200 p-1 mb-8 inline-flex shadow-sm">
+              <div className="bg-white rounded-lg border border-gray-200 p-1 mb-8 inline-flex shadow-sm overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('all')}
-                  className={`px-6 py-2 rounded-md font-medium transition-all duration-200 ${
+                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 whitespace-nowrap ${
                     activeTab === 'all' 
                       ? 'bg-purple-500 text-white shadow-sm' 
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
-                  All Results ({currentStats.totalSessions || 0})
+                  All ({currentStats.totalSessions || 0})
                 </button>
                 <button
                   onClick={() => setActiveTab('piano')}
-                  className={`px-6 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
                     activeTab === 'piano' 
                       ? 'bg-blue-500 text-white shadow-sm' 
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -417,7 +538,7 @@ export default function PracticeHistoryPage() {
                 </button>
                 <button
                   onClick={() => setActiveTab('guitar')}
-                  className={`px-6 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
+                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
                     activeTab === 'guitar' 
                       ? 'bg-green-500 text-white shadow-sm' 
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -425,6 +546,39 @@ export default function PracticeHistoryPage() {
                 >
                   <Guitar size={16} />
                   Guitar ({currentStats.guitarSessions || 0})
+                </button>
+                <button
+                  onClick={() => setActiveTab('drums')}
+                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                    activeTab === 'drums' 
+                      ? 'bg-orange-500 text-white shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Drum size={16} />
+                  Drums ({currentStats.drumsSessions || 0})
+                </button>
+                <button
+                  onClick={() => setActiveTab('vocals')}
+                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                    activeTab === 'vocals' 
+                      ? 'bg-pink-500 text-white shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Mic size={16} />
+                  Vocals ({currentStats.vocalsSessions || 0})
+                </button>
+                <button
+                  onClick={() => setActiveTab('other')}
+                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                    activeTab === 'other' 
+                      ? 'bg-indigo-500 text-white shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <Music size={16} />
+                  Other ({currentStats.otherSessions || 0})
                 </button>
               </div>
 
@@ -445,11 +599,11 @@ export default function PracticeHistoryPage() {
                       <div className="p-6 border-b border-gray-200">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-4">
-                            {result.instrument === 'piano' ? (
-                              <Piano className="h-6 w-6 text-blue-500" />
-                            ) : (
-                              <Guitar className="h-6 w-6 text-green-500" />
-                            )}
+                            {result.instrument === 'piano' && <Piano className="h-6 w-6 text-blue-500" />}
+                            {result.instrument === 'guitar' && <Guitar className="h-6 w-6 text-green-500" />}
+                            {result.instrument === 'drums' && <Drum className="h-6 w-6 text-orange-500" />}
+                            {result.instrument === 'vocals' && <Mic className="h-6 w-6 text-pink-500" />}
+                            {result.instrument === 'other' && <Music className="h-6 w-6 text-indigo-500" />}
                             <div>
                               <h3 className="text-lg font-semibold text-gray-900">{result.title}</h3>
                               <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
@@ -463,6 +617,27 @@ export default function PracticeHistoryPage() {
                           </div>
                           
                           <div className="flex items-center gap-2">
+                            {(result.instrument === 'piano' || result.instrument === 'guitar') && (
+                              <button
+                                onClick={() => handleAIEvaluation(result.audioFileUrl, result.instrument, result._id)}
+                                disabled={evaluatingAI[result._id]}
+                                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm flex items-center gap-2"
+                                title="Get AI Evaluation"
+                              >
+                                {evaluatingAI[result._id] ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                    Evaluating...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Star size={16} />
+                                    AI Evaluation
+                                  </>
+                                )}
+                              </button>
+                            )}
+                            
                             <button
                               onClick={() => toggleAudioPlayback(result.audioFileUrl, result._id)}
                               className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"

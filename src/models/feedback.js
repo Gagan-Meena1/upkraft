@@ -42,4 +42,7 @@ const feedbackSchema = new mongoose.Schema({
   timestamps: true
 });
 
+feedbackSchema.index({ userId: 1, classId: 1 });
+
+
 export default mongoose.models.feedback || mongoose.model('feedback', feedbackSchema);
