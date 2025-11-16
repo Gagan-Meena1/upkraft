@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import RevenueTrend from "../../components/academy/RevenueTrend";
 
 export default function RevenueManagement() {
   const [activePeriod, setActivePeriod] = useState("This Month");
@@ -327,20 +328,7 @@ export default function RevenueManagement() {
           <div style={{ fontSize: "18px", fontWeight: "600", color: "#1a1a1a", marginBottom: "20px" }}>
             Revenue Trend
           </div>
-          <div
-            style={{
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              height: "300px",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontSize: "16px",
-            }}
-          >
-            📈 Monthly Revenue Growth Chart
-          </div>
+          <RevenueTrend />
         </div>
 
         <div
