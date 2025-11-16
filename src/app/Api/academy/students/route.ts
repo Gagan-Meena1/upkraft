@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
       lastClass: student.classes && student.classes.length > 0
         ? student.classes[0]?.startTime || null
         : null,
+      createdAt: student.createdAt || null,
       // Hardcoded values as per requirement
       progress: 0,
       attendance: 0,
