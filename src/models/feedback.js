@@ -36,7 +36,10 @@ const feedbackSchema = new mongoose.Schema({
   },
   personalFeedback:{
     type:String
-  }
+  },
+  feedbackRating:{
+    type:Number
+  },
 
 }, {
   timestamps: true

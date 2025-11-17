@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { resultId, score, instrument } = await request.json();
+    const { resultId, score, instrument, feedback } = await request.json();
 
     if (!resultId || score === undefined || !instrument) {
       return NextResponse.json(
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     
     const updatedResult = await Model.findByIdAndUpdate(
       resultId,
-      { $set: { tutorScore: numericScore } },
+      { $set: { tutorScore: numericScore, tutorFeedback: feedback } },
       { new: true }
     );
 

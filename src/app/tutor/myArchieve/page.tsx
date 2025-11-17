@@ -303,14 +303,14 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
     setFeedbackForm({ openFor: null, score: 8 });
   };
 
-  const submitFeedback = async (resultId, instrument) => {
+  const submitFeedback = async (resultId, instrument, feedback) => {
     if (!feedbackForm.openFor || feedbackForm.openFor !== resultId) return;
     setFeedbackSubmitting(true);
     try {
       const response = await fetch('/Api/practice/submitFeedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resultId, score: feedbackForm.score, instrument })
+        body: JSON.stringify({ resultId, score: feedbackForm.score, instrument, feedback })
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
@@ -318,6 +318,7 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
       }
 
       updateResultInState(resultId, (r) => ({ ...r, tutorScore: feedbackForm.score }));
+      updateResultInState(resultId, (r) => ({ ...r, tutorFeedback: feedback }));
       closeFeedbackForm();
     } catch (err) {
       console.error('Error submitting feedback:', err);
@@ -693,9 +694,11 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
 
                                 {feedbackForm.openFor === result._id && (
                                   <div className="absolute right-0 mt-2 w-60 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50">
+
                                     <label className="text-xs font-semibold text-gray-600">Score (1-10)</label>
                                     <div className="flex items-center gap-2 mt-1">
                                       <input
+                                      
                                         type="range"
                                         min="1"
                                         max="10"
@@ -704,7 +707,16 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                                         className="w-full"
                                       />
                                       <div className="w-10 text-center text-sm font-bold text-purple-700">{feedbackForm.score}</div>
+
                                     </div>
+                                    
+                                      <textarea
+                                        value={feedbackForm.feedback}
+                                        onChange={(e) => setFeedbackForm(prev => ({ ...prev, feedback: e.target.value }))}
+                                        className="w-full mt-2 p-1 border border-gray-300 rounded-md !text-sm"
+                                        rows={3}
+                                        placeholder="Optional feedback notes..."
+                                      />
                                     <div className="mt-3 flex justify-end gap-2">
                                       <button
                                         onClick={closeFeedbackForm}
@@ -714,7 +726,7 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                                         Cancel
                                       </button>
                                       <button
-                                        onClick={() => submitFeedback(result._id, result.instrument)}
+                                        onClick={() => submitFeedback(result._id, result.instrument, feedbackForm.feedback)}
                                         disabled={feedbackSubmitting}
                                         className="px-3 py-1 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium disabled:opacity-50"
                                         type="button"
@@ -816,7 +828,16 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                             </p>
                           </div>
                         )}
+                        { result.tutorFeedback && (
+                          <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400">
+                            <h4 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                              Tutor Feedback
+                            </h4>
+                            <p className="text-yellow-900">{result.tutorFeedback}</p>
+                          </div>
+                        )}
                       </div>
+
 
                       {expandedCards[result._id] && (
                         <div className="p-6 bg-gray-50">
