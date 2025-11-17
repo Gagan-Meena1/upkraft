@@ -39,6 +39,8 @@ import Dropdown from "react-bootstrap/Dropdown";
 import Button from "react-bootstrap/Button";
 import Author from "../../assets/author.png";
 import SideMenuHeader from "../components/SideMenuHeader";
+import { useUserData } from "../providers/UserData/page";
+
 
 // Dynamically import VideoMeeting component with no SSR
 const VideoMeeting = dynamic(() => import("../components/VideoMeeting"), {
@@ -302,10 +304,10 @@ const StudentsCountBox = ({ studentCount }: { studentCount: number }) => {
 export default function Dashboard() {
   const router = useRouter();
   const pathname = usePathname(); // Add this hook
-  const [userData, setUserData] = useState<UserData | null>(null);
+  // const [userData, setUserData] = useState<UserData | null>(null);
   const [classData, setClassData] = useState<ClassData[]>([]);
   const [assignmentData, setAssignmentData] = useState<AssignmentData[]>([]);
-  const [studentCount, setStudentCount] = useState<number>(0);
+  // const [studentCount, setStudentCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -327,7 +329,9 @@ export default function Dashboard() {
   const [averageCourseQuality, setAverageCourseQuality] = useState<number>(0);
   const [pendingFeedbackLoading, setPendingFeedbackLoading] =
     useState<boolean>(true);
-const [courseDetails, setCourseDetails] = useState<any[]>([]); // ✅ ADD this
+// const [courseDetails, setCourseDetails] = useState<any[]>([]); // ✅ ADD this
+  const { userData, courseDetails,classDetails, studentCount, loading: contextLoading } = useUserData();
+
 
   const role = "tutor";
   const isActive = (path: string) => {
@@ -609,23 +613,19 @@ const [courseDetails, setCourseDetails] = useState<any[]>([]); // ✅ ADD this
       fetchInProgress.current = true;
 
       console.log("Phase 1: Loading essential data...");
-      const [essentialsResponse, assignmentResponse, perfResponse] =
-        await Promise.allSettled([
-          fetch("/Api/users/user"), // ✅ This already returns courseDetails and studentCount
-          fetch("/Api/assignment"),
-          fetch("/Api/overallPerformanceScore"),
-        ]);
-
-      const essentialsData =
-        essentialsResponse.status === "fulfilled"
-          ? await essentialsResponse.value.json()
-          : null;
+      
+      // ✅ FIXED: Only fetch assignment and performance (removed user fetch)
+      const [assignmentResponse, perfResponse] = await Promise.allSettled([
+        fetch("/Api/assignment"),
+        fetch("/Api/overallPerformanceScore"),
+      ]);
 
       const assignmentResponseData =
         assignmentResponse.status === "fulfilled"
           ? await assignmentResponse.value.json()
           : null;
 
+      // ✅ Handle performance response
       if (perfResponse.status === "fulfilled") {
         const perfData = await perfResponse.value.json();
 
@@ -641,31 +641,17 @@ const [courseDetails, setCourseDetails] = useState<any[]>([]); // ✅ ADD this
         setAverageCourseQuality(0);
       }
 
-      if (!essentialsData?.user) {
+      // ✅ Use data from context (userData, courseDetails, studentCount are already available)
+      if (!userData) {
         setLoading(false);
         fetchInProgress.current = false;
         return;
       }
 
-      // ✅ Set all data from the single API response
-      setUserData(essentialsData.user);
-      
-      // ✅ Set course details (no need for separate API call)
-      if (essentialsData.courseDetails && essentialsData.courseDetails.length > 0) {
-        setCourseDetails(essentialsData.courseDetails);
-      } else {
-        setCourseDetails([]);
-      }
-
-      // ✅ Set student count (no need for separate API call)
-      setStudentCount(essentialsData.studentCount || 0);
-
-      // Set class details
-      if (essentialsData.classDetails && essentialsData.classDetails.length > 0) {
-        setClassData(essentialsData.classDetails);
-      } else {
-        setClassData([]);
-      }
+      // ✅ Set class details from context if available
+      // Note: You'll need to add classDetails to your context provider
+      // For now, you might need to keep a separate API call for class details
+      // OR add it to the /Api/users/user endpoint response
 
       // Handle assignments
       if (assignmentResponseData?.data?.assignments) {
@@ -681,7 +667,6 @@ const [courseDetails, setCourseDetails] = useState<any[]>([]); // ✅ ADD this
         setAssignmentCompletionPercentage(percentage);
       }
 
-      // ✅ SHOW PAGE IMMEDIATELY
       console.log("Phase 1 complete - showing page");
       setLoading(false);
       fetchInProgress.current = false;
@@ -697,7 +682,6 @@ const [courseDetails, setCourseDetails] = useState<any[]>([]); // ✅ ADD this
     }
   };
 
-  // ✅ Simplified - only fetch pending feedback
   const loadPendingFeedback = async () => {
     try {
       const feedbackResponse = await fetch("/Api/pendingFeedback");
@@ -725,8 +709,16 @@ const [courseDetails, setCourseDetails] = useState<any[]>([]); // ✅ ADD this
     }
   };
 
-  fetchEssentialData();
-}, []);
+  // ✅ Only fetch when userData is available from context
+  if (userData) {
+    fetchEssentialData();
+  }
+}, [userData]); // ✅ Add dependency on userData from context
+useEffect(() => {
+  if (classDetails && classDetails.length > 0) {
+    setClassData(classDetails);
+  }
+}, [classDetails]);
   
   useEffect(() => {
     if (classData && classData.length > 0) {
