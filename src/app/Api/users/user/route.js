@@ -88,7 +88,6 @@ export async function GET(request) {
       // Remove duplicates and fetch
       const uniqueClassIds = [...new Set(classIds.map(id => id.toString()))];
       classDetails = await Class.find({ _id: { $in: uniqueClassIds } })
-        .select("_id title name description date scheduledDate duration status")
         .lean();
     }
 
