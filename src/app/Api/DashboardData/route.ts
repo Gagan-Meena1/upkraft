@@ -5,151 +5,91 @@ import { connect } from "@/dbConnection/dbConfic";
 import jwt from "jsonwebtoken";
 import courseName from "@/models/courseName";
 
-// Add caching for 60 seconds
-export const revalidate = 60;
-
 export async function GET(request) {
   try {
-    // Connect to DB once
     await connect();
+    console.log("Fetching user...");
 
-    // Get and verify token
+    // Get token from cookies
     const token = request.cookies.get("token")?.value;
     if (!token) {
       return NextResponse.json({ error: "No token found" }, { status: 401 });
     }
 
-    // Verify token (use verify instead of decode for security)
-    let decodedToken;
-    try {
-      decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
+    const decodedToken = jwt.decode(token);
+    if (!decodedToken || typeof decodedToken !== "object" || !decodedToken.id) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
 
     const userId = decodedToken.id;
 
-    // OPTIMIZATION 1: Super-optimized single aggregation query
-    const [result] = await User.aggregate([
-      // Match the user
-      { $match: { _id: userId } },
-      
-      // Lookup courses with nested class lookup
-      {
-        $lookup: {
-          from: "coursenames",
-          localField: "courses",
-          foreignField: "_id",
-          as: "courseDetails",
-          pipeline: [
-            { $project: { _id: 1, category: 1, class: 1 } },
-            // Nested lookup for classes
-            {
-              $lookup: {
-                from: "classes", // Your Class collection name
-                localField: "class",
-                foreignField: "_id",
-                as: "classData",
-                pipeline: [
-                  { $project: { _id: 1, name: 1, description: 1, schedule: 1 } }
-                ]
-              }
-            }
-          ]
-        }
-      },
-      
-      // Add student count as a facet
-      {
-        $facet: {
-          userData: [
-            {
-              $project: {
-                _id: 1,
-                username: 1,
-                email: 1,
-                category: 1,
-                profileImage: 1,
-                courses: 1,
-                courseDetails: 1
-              }
-            }
-          ],
-          studentCount: [
-            {
-              $lookup: {
-                from: "users",
-                let: { userId: "$_id" },
-                pipeline: [
-                  {
-                    $match: {
-                      $expr: {
-                        $and: [
-                          { $eq: ["$instructorId", "$userId"] },
-                          { $eq: ["$category", "Student"] }
-                        ]
-                      }
-                    }
-                  },
-                  { $count: "count" }
-                ],
-                as: "studentCountData"
-              }
-            },
-            { $unwind: { path: "$studentCountData", preserveNullAndEmptyArrays: true } },
-            { $project: { count: { $ifNull: ["$studentCountData.count", 0] } } }
-          ]
-        }
-      },
-      
-      // Reshape the output
-      {
-        $project: {
-          user: { $arrayElemAt: ["$userData", 0] },
-          studentCount: { $ifNull: [{ $arrayElemAt: ["$studentCount.count", 0] }, 0] }
-        }
-      }
-    ]);
-
-    if (!result || !result.user) {
+    // Fetch user with lean() for better performance
+    const user = await User.findOne({ _id: userId })
+      .select("_id username email category profileImage courses")
+      .lean();
+    
+    if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Extract and deduplicate class details
-    const allClassData = result.user.courseDetails
-      .flatMap(course => course.classData || []);
-    
-    // Deduplicate classes by ID
-    const classMap = new Map();
-    allClassData.forEach(cls => {
-      classMap.set(cls._id.toString(), cls);
-    });
-    const classDetails = Array.from(classMap.values());
+    // Early return if user has no courses
+    if (!user.courses || user.courses.length === 0) {
+      const studentCount = await User.countDocuments({
+        instructorId: userId,
+        category: "Student"
+      });
 
-    // Clean up courseDetails (remove nested classData)
-    const courseDetails = result.user.courseDetails.map(({ classData, ...course }) => course);
-    const { courseDetails: _, ...userData } = result.user;
+      return NextResponse.json({
+        success: true,
+        message: "Sent user successfully",
+        user,
+        courseDetails: [],
+        classDetails: [],
+        studentCount
+      });
+    }
+
+    // Fetch course details and student count in parallel
+    const [courseDetails, studentCount] = await Promise.all([
+      courseName.find({ _id: { $in: user.courses } })
+        .select("_id category class")
+        .lean(),
+      User.countDocuments({
+        instructorId: userId,
+        category: "Student"
+      })
+    ]);
+
+    // Collect all class IDs from all courses
+    const classIds = [];
+    
+    courseDetails.forEach(course => {
+      // Collect class IDs from each course
+      if (course.class && course.class.length > 0) {
+        classIds.push(...course.class);
+      }
+    });
+
+    // Fetch class details only if there are classes
+    let classDetails = [];
+    if (classIds.length > 0) {
+      // Remove duplicates and fetch
+      const uniqueClassIds = [...new Set(classIds.map(id => id.toString()))];
+      classDetails = await Class.find({ _id: { $in: uniqueClassIds } })
+        .lean();
+    }
 
     return NextResponse.json({
       success: true,
       message: "Sent user successfully",
-      user: userData,
-      courseDetails: courseDetails,
-      classDetails: classDetails,
-      studentCount: result.studentCount
-    }, {
-      // OPTIMIZATION 4: Add cache headers
-      headers: {
-        'Cache-Control': 'private, max-age=60',
-      }
+      user,
+      courseDetails,
+      classDetails,
+      studentCount
     });
 
   } catch (error) {
     console.error("Error:", error);
-    return NextResponse.json({ 
-      error: error.message 
-    }, { 
-      status: 500 
-    });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
