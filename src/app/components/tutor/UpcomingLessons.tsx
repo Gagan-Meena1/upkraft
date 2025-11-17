@@ -46,7 +46,7 @@ const UpcomingLessons = ({ classDetails, userData }: UpcomingLessonsProps) => {
   useEffect(() => {
     // ✅ No API call needed - use props directly
     if (classDetails && classDetails.length > 0) {
-      console.log("Received classDetails prop:", classDetails);
+      // console.log("Received classDetails prop:", classDetails);
       const now = new Date();
       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       
