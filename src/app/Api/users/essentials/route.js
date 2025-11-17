@@ -38,10 +38,10 @@ export async function GET(request) {
       return acc.concat(course.class || []);
     }, []);
 
-    const now = new Date();
+    // const now = new Date();
     const futureClasses = await Class.find({
       _id: { $in: classIds },
-      startTime: { $gt: now }
+      // startTime: { $gt: now }
     })
     .sort({ startTime: 1 })
     .lean();

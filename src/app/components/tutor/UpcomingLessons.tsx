@@ -30,58 +30,39 @@ interface UserData {
   timezone?: string; // added timezone
 }
 
-const UpcomingLessons = () => {
+interface UpcomingLessonsProps {
+  classDetails: ClassData[];
+  userData: UserData | null;
+}
+
+const UpcomingLessons = ({ classDetails, userData }: UpcomingLessonsProps) => {
   const [classes, setClasses] = useState<ClassData[]>([]);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [tutorData, setTutorData] = useState<UserData | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [studentsMap, setStudentsMap] = useState<{ [key: string]: any[] }>({});
-  const router = useRouter();
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const userTz = userData?.timezone || getUserTimeZone();
 
   useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        setLoading(true);
-        const userResponse = await fetch("/Api/users/user");
-        const userResponseData = await userResponse.json();
+    // ✅ No API call needed - use props directly
+    if (classDetails && classDetails.length > 0) {
+      console.log("Received classDetails prop:", classDetails);
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      const futureClasses = classDetails
+        .filter((cls: ClassData) => new Date(cls.startTime) > twentyFourHoursAgo)
+        .sort(
+          (a: ClassData, b: ClassData) =>
+            new Date(a.startTime).getTime() -
+            new Date(b.startTime).getTime()
+        );
 
-        // Save user data
-        if (userResponseData.user) {
-          setUserData(userResponseData.user);
-        }
-
-        if (
-  userResponseData.classDetails &&
-  userResponseData.classDetails.length > 0
-) {
-  const now = new Date();
-  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  
-  const futureClasses = userResponseData.classDetails
-    .filter((cls: ClassData) => new Date(cls.startTime) > twentyFourHoursAgo)
-    .sort(
-      (a: ClassData, b: ClassData) =>
-        new Date(a.startTime).getTime() -
-        new Date(b.startTime).getTime()
-    );
-
-  setClasses(futureClasses);
-} else {
-  setClasses([]);
-}
-      } catch (err) {
-        console.error("Error fetching classes:", err);
-        setError("Failed to load upcoming lessons");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClasses();
-  }, []);
+      setClasses(futureClasses);
+    } else {
+      setClasses([]);
+    }
+  }, [classDetails]); // ✅ Re-run when props change
 
   useEffect(() => {
     const fetchStudents = async () => {
