@@ -23,6 +23,9 @@ export default function PracticeHistoryPage() {
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [userCategory, setUserCategory] = useState(null);
 
+  const [feedbackForm, setFeedbackForm] = useState<{ openFor: string | null, score: number }>({ openFor: null, score: 8 });
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -185,6 +188,59 @@ export default function PracticeHistoryPage() {
         return 'bg-gray-50 border-gray-200 text-gray-600';
       default:
         return 'bg-gray-50 border-gray-200 text-gray-600';
+    }
+  };
+
+  const updateResultInState = (resultId, updater) => {
+    if (archiveMode === 'students' && selectedStudent) {
+      const updatedStudents = (studentsData?.students || []).map(s => {
+        if (s.studentId !== selectedStudent.studentId) return s;
+        const updatedResults = {
+          piano: (s.results.piano || []).map(r => r._id === resultId ? updater(r) : r),
+          guitar: (s.results.guitar || []).map(r => r._id === resultId ? updater(r) : r)
+        };
+        return { ...s, results: updatedResults };
+      });
+      setStudentsData(prev => ({ ...prev, students: updatedStudents }));
+      const newSelected = updatedStudents.find(s => s.studentId === selectedStudent.studentId);
+      if (newSelected) setSelectedStudent(newSelected);
+    } else {
+      setResults(prev => ({
+        piano: (prev.piano || []).map(r => r._id === resultId ? updater(r) : r),
+        guitar: (prev.guitar || []).map(r => r._id === resultId ? updater(r) : r)
+      }));
+    }
+  };
+
+  const openFeedbackForm = (resultId, currentScore?) => {
+    setFeedbackForm({ openFor: resultId, score: currentScore ?? 8 });
+  };
+
+  const closeFeedbackForm = () => {
+    setFeedbackForm({ openFor: null, score: 8 });
+  };
+
+  const submitFeedback = async (resultId, instrument) => {
+    if (!feedbackForm.openFor || feedbackForm.openFor !== resultId) return;
+    setFeedbackSubmitting(true);
+    try {
+      const response = await fetch('/Api/practice/submitFeedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resultId, score: feedbackForm.score, instrument })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to submit feedback');
+      }
+
+      updateResultInState(resultId, (r) => ({ ...r, tutorScore: feedbackForm.score }));
+      closeFeedbackForm();
+    } catch (err) {
+      console.error('Error submitting feedback:', err);
+      alert(err.message || 'Failed to submit feedback');
+    } finally {
+      setFeedbackSubmitting(false);
     }
   };
 
@@ -441,7 +497,7 @@ export default function PracticeHistoryPage() {
               ) : (
                 <div className="space-y-4">
                   {filteredResults.map((result) => (
-                    <div key={result._id} className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <div key={result._id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
                       <div className="p-6 border-b border-gray-200">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-4">
@@ -457,12 +513,65 @@ export default function PracticeHistoryPage() {
                                   <Calendar size={14} />
                                   {new Date(result.createdAt).toLocaleDateString()}
                                 </span>
+                                
+                                {result.tutorScore !== undefined && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                    {result.tutorScore}/10
+                                  </span>
+                                )}
                                 <span className="capitalize">{result.instrument}</span>
                               </div>
                             </div>
                           </div>
                           
                           <div className="flex items-center gap-2">
+                            
+                            {archiveMode === 'students' && (
+                              <div className="relative">
+                                <button
+                                  onClick={() => openFeedbackForm(result._id, result.tutorScore)}
+                                  title="Give Feedback"
+                                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                                >
+                                  <PlusCircle size={16} />
+                                </button>
+
+                                {feedbackForm.openFor === result._id && (
+                                  <div className="absolute right-0 mt-2 w-60 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-50">
+                                    <label className="text-xs font-semibold text-gray-600">Score (1-10)</label>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <input
+                                        type="range"
+                                        min="1"
+                                        max="10"
+                                        value={feedbackForm.score}
+                                        onChange={(e) => setFeedbackForm(prev => ({ ...prev, score: parseInt(e.target.value, 10) }))}
+                                        className="w-full"
+                                      />
+                                      <div className="w-10 text-center text-sm font-bold text-purple-700">{feedbackForm.score}</div>
+                                    </div>
+                                    <div className="mt-3 flex justify-end gap-2">
+                                      <button
+                                        onClick={closeFeedbackForm}
+                                        className="px-3 py-1 rounded-md bg-gray-100 hover:bg-gray-200 text-sm font-medium"
+                                        type="button"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        onClick={() => submitFeedback(result._id, result.instrument)}
+                                        disabled={feedbackSubmitting}
+                                        className="px-3 py-1 rounded-md bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium disabled:opacity-50"
+                                        type="button"
+                                      >
+                                        {feedbackSubmitting ? 'Saving...' : 'Save'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             <button
                               onClick={() => toggleAudioPlayback(result.audioFileUrl, result._id)}
                               className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
