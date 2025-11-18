@@ -152,7 +152,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>My Archive</span>
                     </Link>
                   </li>
-                  <li>
+                  {/* <li>
                     <Link
                       href="/tutor/performanceVideo"
                       className={`d-flex align-items-center gap-2 ${
@@ -164,7 +164,7 @@ const SideMenuHeader = ({ role }) => {
                       </span>
                       <span>Class Snapshots</span>
                     </Link>
-                  </li>
+                  </li> */}
 
                   <li>
                     <Link
@@ -291,7 +291,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>Payment Summary</span>
                     </Link>
                   </li>
-                  <li>
+                  {/* <li>
                     <Link
                       href="/tutor/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
@@ -318,7 +318,7 @@ const SideMenuHeader = ({ role }) => {
                       </span>
                       <span>Refer & Earn</span>
                     </Link>
-                  </li>
+                  </li> */}
                   <li>
                     <Link
                       href="/tutor/profile"
@@ -477,7 +477,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>My Archive</span>
                     </Link>
                   </li>
-                  <li>
+                  {/* <li>
                     <Link
                       href="/student/classSnapshots"
                       className={`d-flex align-items-center gap-2 ${
@@ -489,7 +489,7 @@ const SideMenuHeader = ({ role }) => {
                       </span>
                       <span>Class Snapshots</span>
                     </Link>
-                  </li>
+                  </li> */}
 
                   <li>
                     <Link
@@ -616,7 +616,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>Payment Summary</span>
                     </Link>
                   </li>
-                  <li>
+                  {/* <li>
                     <Link
                       href="/student/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
@@ -643,7 +643,7 @@ const SideMenuHeader = ({ role }) => {
                       </span>
                       <span>Refer & Earn</span>
                     </Link>
-                  </li>
+                  </li> */}
                   <li>
                     <Link
                       href="/student/profile"
