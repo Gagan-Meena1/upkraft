@@ -717,6 +717,7 @@ export default function Dashboard() {
 useEffect(() => {
   if (classDetails && classDetails.length > 0) {
     setClassData(classDetails);
+    // console.log("Class details set from context:", classDetails);
   }
 }, [classDetails]);
   

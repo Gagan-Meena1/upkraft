@@ -36,7 +36,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("/Api/users/user");
+        const response = await fetch("/Api/DashboardData");
         const data = await response.json();
         
         setUserData(data.user);
