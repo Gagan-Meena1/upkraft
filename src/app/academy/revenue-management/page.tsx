@@ -751,6 +751,9 @@ export default function RevenueManagement() {
                 Date
               </th>
               <th style={{ textAlign: "left", padding: "16px", background: "#f8f9fa", color: "#666", fontWeight: "600", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Valid Upto
+              </th>
+              <th style={{ textAlign: "left", padding: "16px", background: "#f8f9fa", color: "#666", fontWeight: "600", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 Student
               </th>
               <th style={{ textAlign: "left", padding: "16px", background: "#f8f9fa", color: "#666", fontWeight: "600", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -777,6 +780,7 @@ export default function RevenueManagement() {
             <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
               <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8472</td>
               <td style={{ padding: "16px", color: "#333" }}>Oct 28, 2025</td>
+              <td style={{ padding: "16px", color: "#333" }}>Nov 28, 2025</td>
               <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>Eunice Robel</td>
               <td style={{ padding: "16px", color: "#333" }}>Sherry Wolf</td>
               <td style={{ padding: "16px", color: "#333" }}>Piano Basics</td>
@@ -801,6 +805,7 @@ export default function RevenueManagement() {
             <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
               <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8471</td>
               <td style={{ padding: "16px", color: "#333" }}>Oct 28, 2025</td>
+              <td style={{ padding: "16px", color: "#333" }}>Nov 28, 2025</td>
               <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>James Wilson</td>
               <td style={{ padding: "16px", color: "#333" }}>Rahul Joshi</td>
               <td style={{ padding: "16px", color: "#333" }}>Guitar Advanced</td>
@@ -825,6 +830,7 @@ export default function RevenueManagement() {
             <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
               <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8470</td>
               <td style={{ padding: "16px", color: "#333" }}>Oct 27, 2025</td>
+              <td style={{ padding: "16px", color: "#333" }}>Nov 27, 2025</td>
               <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>Sarah Kumar</td>
               <td style={{ padding: "16px", color: "#333" }}>Rahul Joshi</td>
               <td style={{ padding: "16px", color: "#333" }}>Guitar Basics</td>
@@ -849,6 +855,7 @@ export default function RevenueManagement() {
             <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
               <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8469</td>
               <td style={{ padding: "16px", color: "#333" }}>Oct 27, 2025</td>
+              <td style={{ padding: "16px", color: "#333" }}>Nov 27, 2025</td>
               <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>Michael Patel</td>
               <td style={{ padding: "16px", color: "#333" }}>Priya Kumar</td>
               <td style={{ padding: "16px", color: "#333" }}>Vocals Beginner</td>
@@ -873,6 +880,7 @@ export default function RevenueManagement() {
             <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
               <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8468</td>
               <td style={{ padding: "16px", color: "#333" }}>Oct 26, 2025</td>
+              <td style={{ padding: "16px", color: "#333" }}>Nov 26, 2025</td>
               <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>Lisa Singh</td>
               <td style={{ padding: "16px", color: "#333" }}>Aditya Mehta</td>
               <td style={{ padding: "16px", color: "#333" }}>Drums Intermediate</td>
