@@ -317,8 +317,12 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
         throw new Error(data.error || 'Failed to submit feedback');
       }
 
-      updateResultInState(resultId, (r) => ({ ...r, tutorScore: feedbackForm.score }));
-      updateResultInState(resultId, (r) => ({ ...r, tutorFeedback: feedback }));
+      // Combine state updates into a single call
+      updateResultInState(resultId, (r) => ({ 
+        ...r, 
+        tutorScore: feedbackForm.score,
+        tutorFeedback: feedback 
+      }));
       closeFeedbackForm();
     } catch (err) {
       console.error('Error submitting feedback:', err);
