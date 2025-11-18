@@ -2,9 +2,7 @@
 
 import React from 'react';
 import StudentDashboard from '@/assets/studentDashboard.png';
-// import StudentDashboard1 from '@/assets/StudentDashboard1.png';
 import StudentDashboard2 from '@/assets/StudentDashboard2.png';
-//import VideoPlay from '@/assets/dummy-video.mp4';
 import MobileImg from '@/assets/mobile-img.jpeg'
 
 const WhyChoose = () => {
@@ -30,10 +28,35 @@ const WhyChoose = () => {
               <div className='mid-choose-box'>
                 <div className='mobile-view-mobile'>
                     <div className='learn-video'>
-                    <video width='100%' height='300' autoPlay muted loop playsInline preload='auto'>                     
+                      {/* Desktop video - hidden on mobile */}
+                      <video 
+                        className='d-none d-md-block'
+                        width='100%' 
+                        height='300' 
+                        autoPlay 
+                        muted 
+                        loop 
+                        playsInline 
+                        preload='auto'
+                      >                     
                         <source src='/videos/dashboard-video.mp4' type='video/mp4' />
                         Your browser does not support the video tag.
-                    </video>
+                      </video>
+                      
+                      {/* Mobile video - hidden on desktop */}
+                      <video 
+                        className='d-block d-md-none'
+                        width='100%' 
+                        height='300' 
+                        autoPlay 
+                        muted 
+                        loop 
+                        playsInline 
+                        preload='auto'
+                      >                     
+                        <source src='/videos/dashboard-video-mobile.mp4' type='video/mp4' />
+                        Your browser does not support the video tag.
+                      </video>
                     </div>
                     <div className='mobile-shape d-md-none d-block'>
                         <img src={MobileImg.src} alt="" />
