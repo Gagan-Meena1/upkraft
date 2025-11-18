@@ -535,11 +535,12 @@ const StudentDashboard: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [userResponse, classResponse, assignmentResponse] =
+        const [userResponse, classResponse, assignmentResponse, perResponse] =
           await Promise.all([
             axios.get("/Api/users/user"),
             axios.get("/Api/student/tutors"),
             axios.get("/Api/assignment"),
+            axios.get("Api/studentOverallPerformance")
           ]);
 
         if (userResponse.data?.user) {
@@ -555,6 +556,12 @@ const StudentDashboard: React.FC = () => {
         const assignments = assignmentResponse.data?.data?.assignments;
         if (assignments) {
           setAssignmentData(assignments);
+        }
+
+        const perScore = perResponse.data?.averageScore
+        if(perScore)
+        {
+          setStudentPerformance(perScore);
         }
       } catch (error) {
         console.error("Error fetching data:", error);
