@@ -1,22 +1,7 @@
 // app/api/songs/search/route.js - MongoDB version
 import { NextResponse } from 'next/server';
 import { Song } from '@/models/Songs'; // Adjust path as needed
-import mongoose from 'mongoose';
-import {connect} from '@/dbConnection/dbConfic'
-// Connect to MongoDB if not already connected
-async function connect() {
-  if (mongoose.connections[0].readyState) {
-    return;
-  }
-  
-  try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    throw error;
-  }
-}
+import { connect } from '@/dbConnection/dbConfic';
 
 export async function GET(req) {
   try {
@@ -32,29 +17,22 @@ export async function GET(req) {
     console.log(`🔍 Searching for: "${q}"`);
 
     // Build search query
-    let searchQuery = { isActive: { $ne: false } }; // Only active songs
+    let searchQuery: any = { isActive: { $ne: false } }; // Only active songs
 
     // Add file type filter if specified
     if (fileType && ['audio', 'tablature'].includes(fileType)) {
       searchQuery.fileType = fileType;
     }
 
-    // Add text search if query provided
+    // Add text search if query provided - use regex search (more reliable, no index required)
     if (q && q.length >= 1) {
-      // Use MongoDB text search if available, otherwise use regex
-      try {
-        // Try text search first (requires text index)
-        searchQuery.$text = { $search: q };
-      } catch (textSearchError) {
-        // Fallback to regex search
-        const searchRegex = new RegExp(q, 'i');
-        searchQuery.$or = [
-          { title: searchRegex },
-          { artist: searchRegex },
-          { filename: searchRegex },
-          { tags: { $in: [searchRegex] } }
-        ];
-      }
+      const searchRegex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      searchQuery.$or = [
+        { title: searchRegex },
+        { artist: searchRegex },
+        { filename: searchRegex },
+        { tags: { $in: [searchRegex] } }
+      ];
     }
 
     // Execute search with pagination
@@ -143,15 +121,20 @@ export async function GET(req) {
 
     return response;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Search error:", error);
+    console.error("❌ Error details:", {
+      message: error?.message,
+      name: error?.name,
+      stack: error?.stack?.split('\n').slice(0, 3).join('\n')
+    });
     
     const fallbackResponse = NextResponse.json({
       items: [],
       total: 0,
       totalCount: 0,
       error: "Search temporarily unavailable",
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      details: process.env.NODE_ENV === 'development' ? error?.message : undefined
     }, { status: 500 });
 
     fallbackResponse.headers.set("Access-Control-Allow-Origin", "*");
