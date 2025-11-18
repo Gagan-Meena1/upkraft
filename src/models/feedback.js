@@ -36,10 +36,16 @@ const feedbackSchema = new mongoose.Schema({
   },
   personalFeedback:{
     type:String
-  }
+  },
+  feedbackRating:{
+    type:Number
+  },
 
 }, {
   timestamps: true
 });
+
+feedbackSchema.index({ userId: 1, classId: 1 });
+
 
 export default mongoose.models.feedback || mongoose.model('feedback', feedbackSchema);

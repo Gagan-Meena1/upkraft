@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Play, BookOpen, Video, Menu, X } from 'lucide-react';
+import Link from 'next/link';
 
 // Types
 interface VideoData {
@@ -238,6 +239,8 @@ const YouTubeVideoGallery: React.FC = () => {
       <div className="flex-1 min-h-screen">
         <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 !text-[20px]">Video Gallery</h1>
+
+
           {isMobile && (
             <button 
               onClick={toggleSidebar}
@@ -246,6 +249,11 @@ const YouTubeVideoGallery: React.FC = () => {
               <Menu size={24} />
             </button>
           )}
+            <Link href="/tutor/performanceVideo" className="text-xl sm:text-2xl font-bold text-gray-900 !text-[20px]">
+              Class Snapshots
+            </Link>
+            
+
         </header>
 
         <main className="p-4 sm:p-6">

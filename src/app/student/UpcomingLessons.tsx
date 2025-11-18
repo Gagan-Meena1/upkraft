@@ -59,14 +59,16 @@ const UpcomingLessons = () => {
           userResponseData.classDetails &&
           userResponseData.classDetails.length > 0
         ) {
-          const now = new Date();
-          const futureClasses = userResponseData.classDetails
-            .filter((cls: ClassData) => new Date(cls.startTime) > now)
-            .sort(
-              (a: ClassData, b: ClassData) =>
-                new Date(a.startTime).getTime() -
-                new Date(b.startTime).getTime()
-            );
+         const now = new Date();
+        const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+        const futureClasses = userResponseData.classDetails
+          .filter((cls: ClassData) => new Date(cls.startTime) > twentyFourHoursAgo)
+          .sort(
+            (a: ClassData, b: ClassData) =>
+              new Date(a.startTime).getTime() -
+              new Date(b.startTime).getTime()
+          );
 
           setClasses(futureClasses);
         } else {

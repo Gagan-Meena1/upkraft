@@ -41,6 +41,16 @@ const ClassSchema = new mongoose.Schema({
     required: true 
   },
 
+  recurrenceType: {
+    type: String,
+    enum: ['daily', 'weekly', 'weekdays', null],
+    default: null
+  },
+  recurrenceUntil: {
+    type: Date,
+    default: null
+  },
+
   recording:{
     type: mongoose.Schema.Types.ObjectId,
     ref: "GridFSFile" // Reference to GridFS file
