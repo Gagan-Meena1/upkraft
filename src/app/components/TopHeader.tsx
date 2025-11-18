@@ -6,6 +6,8 @@ import { Button, Dropdown, Form } from 'react-bootstrap'
 import Author from '../../assets/Author.png'
 import Image from 'next/image'
 import Chat from './Chat'
+import { useUserData } from "../providers/UserData/page";
+
 
 interface UserData {
   _id: string;
@@ -20,21 +22,8 @@ interface UserData {
   profileImage?: string;
 }
 const TopHeader = ({ role, setRole }) => {
-  const [userData, setUserData] = useState<UserData | null>(null);
-   useEffect(() => {
-      const fetchData = async () => {
-         try {
-            // Fetch all data from single endpoint
-            const userResponse = await fetch("/Api/users/user");
-            const userData = await userResponse.json();
-            setUserData(userData.user);
-         } catch (error) {
-            console.error("Error fetching user data:", error);
-         }
-      };
+    const { userData } = useUserData();
 
-      fetchData();
-   }, []);
   return (
     <div className='top-header-sec d-flex align-items-center w-100'>
       <div className='logo-box d-lg-none d-block'>

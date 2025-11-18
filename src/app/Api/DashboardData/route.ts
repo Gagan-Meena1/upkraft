@@ -25,7 +25,7 @@ export async function GET(request) {
 
     // Fetch user with lean() for better performance
     const user = await User.findOne({ _id: userId })
-      .select("-password")
+      .select("_id username email category profileImage courses")
       .lean();
     
     if (!user) {
@@ -45,15 +45,14 @@ export async function GET(request) {
         user,
         courseDetails: [],
         classDetails: [],
-        studentCount,
-        courseTitleMap: {}
+        studentCount
       });
     }
 
     // Fetch course details and student count in parallel
     const [courseDetails, studentCount] = await Promise.all([
       courseName.find({ _id: { $in: user.courses } })
-        .select("_id title category description duration price curriculum class")
+        .select("_id category class")
         .lean(),
       User.countDocuments({
         instructorId: userId,
@@ -61,22 +60,11 @@ export async function GET(request) {
       })
     ]);
 
-    // Build course title map and collect all class IDs in one pass
-    const courseTitleMap = {};
+    // Collect all class IDs from all courses
     const classIds = [];
     
     courseDetails.forEach(course => {
-      const courseId = course._id.toString();
-      courseTitleMap[courseId] = {
-        title: course.title,
-        category: course.category,
-        description: course.description,
-        duration: course.duration,
-        price: course.price,
-        curriculum: course.curriculum
-      };
-      
-      // Collect class IDs
+      // Collect class IDs from each course
       if (course.class && course.class.length > 0) {
         classIds.push(...course.class);
       }
@@ -97,8 +85,7 @@ export async function GET(request) {
       user,
       courseDetails,
       classDetails,
-      studentCount,
-      courseTitleMap
+      studentCount
     });
 
   } catch (error) {
