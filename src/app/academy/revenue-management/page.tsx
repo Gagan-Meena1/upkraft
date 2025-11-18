@@ -1,12 +1,161 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import RevenueTrend from "../../components/academy/RevenueTrend";
+import { Modal, Button } from "react-bootstrap";
+import { toast } from "react-hot-toast";
+
+interface Student {
+  _id: string;
+  username: string;
+  email: string;
+}
+
+interface Tutor {
+  _id: string;
+  username: string;
+  email: string;
+}
+
+interface Course {
+  _id: string;
+  title: string;
+}
 
 export default function RevenueManagement() {
   const [activePeriod, setActivePeriod] = useState("This Month");
+  const [showAddRevenueModal, setShowAddRevenueModal] = useState(false);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    transactionDate: "",
+    validUpto: "",
+    studentId: "",
+    tutorId: "",
+    courseId: "",
+    amount: "",
+    commission: "",
+    status: "Paid",
+    paymentMethod: "Cash",
+  });
 
   const periods = ["Today", "This Week", "This Month", "This Quarter", "This Year", "Custom"];
+
+  // Fetch students, tutors, and courses when modal opens
+  useEffect(() => {
+    if (showAddRevenueModal) {
+      fetchStudents();
+      fetchTutors();
+      fetchCourses();
+    }
+  }, [showAddRevenueModal]);
+
+  const fetchStudents = async () => {
+    try {
+      const response = await fetch("/Api/academy/students?page=1&limit=1000");
+      const data = await response.json();
+      if (data.success) {
+        setStudents(data.students || []);
+      }
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      toast.error("Failed to load students");
+    }
+  };
+
+  const fetchTutors = async () => {
+    try {
+      const response = await fetch("/Api/academy/tutors");
+      const data = await response.json();
+      if (data.success) {
+        setTutors(data.tutors || []);
+      }
+    } catch (error) {
+      console.error("Error fetching tutors:", error);
+      toast.error("Failed to load tutors");
+    }
+  };
+
+  const fetchCourses = async () => {
+    try {
+      const response = await fetch("/Api/tutors/courses");
+      const data = await response.json();
+      if (data.course) {
+        setCourses(data.course || []);
+      }
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      toast.error("Failed to load courses");
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Auto-calculate commission (15% of amount)
+    if (name === "amount" && value) {
+      const amount = parseFloat(value);
+      if (!isNaN(amount)) {
+        const commission = (amount * 0.15).toFixed(2);
+        setFormData((prev) => ({ ...prev, commission }));
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Here you would make an API call to save the transaction
+      // For now, we'll just show a success message
+      console.log("Form data:", formData);
+      
+      // TODO: Replace with actual API call
+      // const response = await fetch("/Api/academy/revenue", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify(formData),
+      // });
+
+      toast.success("Revenue transaction added successfully!");
+      setShowAddRevenueModal(false);
+      setFormData({
+        transactionDate: "",
+        validUpto: "",
+        studentId: "",
+        tutorId: "",
+        courseId: "",
+        amount: "",
+        commission: "",
+        status: "Paid",
+        paymentMethod: "Cash",
+      });
+    } catch (error) {
+      console.error("Error adding revenue:", error);
+      toast.error("Failed to add revenue transaction");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setShowAddRevenueModal(false);
+    setFormData({
+      transactionDate: "",
+      validUpto: "",
+      studentId: "",
+      tutorId: "",
+      courseId: "",
+      amount: "",
+      commission: "",
+      status: "Paid",
+      paymentMethod: "Cash",
+    });
+  };
 
   return (
     <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif", background: "#f5f5f7", minHeight: "100vh", padding: "30px" }}>
@@ -34,6 +183,28 @@ export default function RevenueManagement() {
             }}
           >
             Export Report
+          </button>
+          <button
+            onClick={() => setShowAddRevenueModal(true)}
+            style={{
+              padding: "12px 24px",
+              border: "2px solid #6200EA",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "600",
+              background: "white",
+              color: "#6200EA",
+              transition: "all 0.3s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#f3e5f5";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "white";
+            }}
+          >
+            Add Revenue
           </button>
           <button
             style={{
@@ -905,6 +1076,230 @@ export default function RevenueManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* Add Revenue Modal */}
+      <Modal show={showAddRevenueModal} onHide={handleClose} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Add Revenue Transaction</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px", marginBottom: "20px" }}>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Transaction Date <span style={{ color: "red" }}>*</span>
+                </label>
+                <input
+                  type="date"
+                  name="transactionDate"
+                  value={formData.transactionDate}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Valid Upto <span style={{ color: "red" }}>*</span>
+                </label>
+                <input
+                  type="date"
+                  name="validUpto"
+                  value={formData.validUpto}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Student Name <span style={{ color: "red" }}>*</span>
+                </label>
+                <select
+                  name="studentId"
+                  value={formData.studentId}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                >
+                  <option value="">Select Student</option>
+                  {students.map((student) => (
+                    <option key={student._id} value={student._id}>
+                      {student.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Tutor <span style={{ color: "red" }}>*</span>
+                </label>
+                <select
+                  name="tutorId"
+                  value={formData.tutorId}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                >
+                  <option value="">Select Tutor</option>
+                  {tutors.map((tutor) => (
+                    <option key={tutor._id} value={tutor._id}>
+                      {tutor.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Course <span style={{ color: "red" }}>*</span>
+                </label>
+                <select
+                  name="courseId"
+                  value={formData.courseId}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                >
+                  <option value="">Select Course</option>
+                  {courses.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Amount <span style={{ color: "red" }}>*</span>
+                </label>
+                <input
+                  type="number"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleInputChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter amount"
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Commission
+                </label>
+                <input
+                  type="number"
+                  name="commission"
+                  value={formData.commission}
+                  onChange={handleInputChange}
+                  readOnly
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    background: "#f5f5f5",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Status <span style={{ color: "red" }}>*</span>
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                >
+                  <option value="Paid">Paid</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Payment Method
+                </label>
+                <input
+                  type="text"
+                  name="paymentMethod"
+                  value={formData.paymentMethod}
+                  readOnly
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    background: "#f5f5f5",
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "20px" }}>
+              <Button variant="secondary" onClick={handleClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={loading}
+                style={{
+                  background: "linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)",
+                  border: "none",
+                }}
+              >
+                {loading ? "Adding..." : "Add Transaction"}
+              </Button>
+            </div>
+          </form>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }
