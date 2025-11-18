@@ -115,8 +115,9 @@ export async function GET(request) {
 
     // Fetch all classes in one query
     const classes = await Class.find({
-      _id: { $in: Array.from(allClassIds) }
-    }).select("_id title name date scheduledDate").lean();
+  _id: { $in: Array.from(allClassIds) },
+  endTime: { $lt: new Date() }  // ✅ Only classes where endTime is in the past
+}).select("_id title description startTime endTime").lean();
 
     // Create a map for quick class lookup
     const classMap = new Map(classes.map(c => [c._id.toString(), c]));
