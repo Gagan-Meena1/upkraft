@@ -107,6 +107,8 @@ export async function GET(request) {
                 submissionFileUrl: studentSubmission?.fileUrl || "",
                 submissionFileName: studentSubmission?.fileName || "",
                 tutorRemarks: studentSubmission?.tutorRemarks || "",
+                rating: studentSubmission?.rating || null,
+                ratingMessage: studentSubmission?.ratingMessage || "",
                 submittedAt: studentSubmission?.submittedAt || null,
               };
             }) || [],
@@ -320,7 +322,7 @@ export async function PUT(request) {
 
     if (contentType.includes("application/json")) {
       const body = await request.json();
-      const { studentId, action, tutorRemarks } = body;
+      const { studentId, action, tutorRemarks, rating, ratingMessage } = body;
 
       if (!studentId || !["APPROVED", "CORRECTION"].includes(action)) {
         return NextResponse.json(
@@ -352,6 +354,16 @@ export async function PUT(request) {
       assignment.submissions[submissionIndex].status = action;
       if (tutorRemarks) {
         assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
+      }
+
+      // Only allow rating/ratingMessage when APPROVED
+      if (action === "APPROVED") {
+        if (typeof rating === "number") {
+          assignment.submissions[submissionIndex].rating = rating;
+        }
+        if (typeof ratingMessage === "string") {
+          assignment.submissions[submissionIndex].ratingMessage = ratingMessage;
+        }
       }
 
       await assignment.save();

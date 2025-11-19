@@ -425,6 +425,11 @@ export default function StudentArchivePage() {
                               <Calendar size={14} />
                               {new Date(result.createdAt).toLocaleDateString()}
                             </span>
+                            {result.tutorScore !== undefined && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                Tutor Score: {result.tutorScore}/10
+                              </span>
+                            )}
                             <span className="capitalize">{result.instrument}</span>
                           </div>
                         </div>
@@ -508,6 +513,14 @@ export default function StudentArchivePage() {
                         <p className="text-sm text-gray-700 flex-1">
                           {result.analysisResults.overall_rating.suggestion}
                         </p>
+                      </div>
+                    )}
+                    { result.tutorFeedback && (
+                      <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+                        <h4 className="font-semibold text-yellow-800 mb-1 flex items-center gap-2">
+                          Tutor Feedback
+                        </h4>
+                        <p className="text-sm text-yellow-900">{result.tutorFeedback}</p>
                       </div>
                     )}
                   </div>

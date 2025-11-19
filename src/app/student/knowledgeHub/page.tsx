@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Play, BookOpen, Video, Menu, X } from 'lucide-react';
-
+import Link from 'next/link';
 // Types
 interface VideoData {
   id: string;
@@ -246,6 +246,9 @@ const YouTubeVideoGallery: React.FC = () => {
               <Menu size={24} />
             </button>
           )}
+          <Link href="/student/performanceVideo" className="text-xl sm:text-2xl font-bold text-gray-900 !text-[20px]">
+                        Class Snapshots
+                      </Link>
         </header>
 
         <main className="p-4 sm:p-6">

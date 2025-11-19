@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -16,7 +16,8 @@ import {
   Zap,
   Home,
   X,
-  Upload
+  Upload,
+  Star, // Add Star icon
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "react-bootstrap";
@@ -25,12 +26,14 @@ interface Student {
   userId: string;
   username: string;
   email: string;
-  submissionStatus: 'PENDING' | 'SUBMITTED' | 'APPROVED' | 'CORRECTION';
+  submissionStatus: "PENDING" | "SUBMITTED" | "APPROVED" | "CORRECTION";
   submissionMessage: string; // will hold API studentMessage
   submissionFileUrl: string;
   submissionFileName: string;
   tutorRemarks: string;
   submittedAt?: string;
+  rating?: number; // ADD THIS
+  ratingMessage?: string; // ADD THIS
 }
 
 interface Assignment {
@@ -72,16 +75,78 @@ function AssignmentDetailContent() {
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"all" | "submitted" | "approved" | "pending" | "correction">("all");
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    "all" | "submitted" | "approved" | "pending" | "correction"
+  >("all");
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
+    null
+  );
   const [approvalLoading, setApprovalLoading] = useState(false);
 
   // NEW: correction modal state
   const [showCorrectionModal, setShowCorrectionModal] = useState(false);
   const [correctionMessage, setCorrectionMessage] = useState("");
-  const [correctionForStudentId, setCorrectionForStudentId] = useState<string | null>(null);
+  const [correctionForStudentId, setCorrectionForStudentId] = useState<
+    string | null
+  >(null);
   const [correctionError, setCorrectionError] = useState<string | null>(null);
   const [correctionFile, setCorrectionFile] = useState<File | null>(null); // NEW
+
+  const [showRatingPopover, setShowRatingPopover] = useState<string | null>(
+    null
+  );
+  const [ratingValue, setRatingValue] = useState<number>(5);
+  const [ratingMessage, setRatingMessage] = useState<string>("");
+  const [ratingLoading, setRatingLoading] = useState(false);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
+
+  // Close popover on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target as Node)
+      ) {
+        setShowRatingPopover(null);
+      }
+    }
+    if (showRatingPopover) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showRatingPopover]);
+
+  const handleSubmitRating = async (studentId: string) => {
+    setRatingLoading(true);
+    try {
+      const response = await fetch(
+        `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId,
+            action: "APPROVED",
+            rating: ratingValue,
+            ratingMessage,
+          }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to submit rating");
+      }
+      setShowRatingPopover(null);
+      setRatingMessage("");
+      setRatingValue(5);
+      // Optionally update assignment state here
+      setAssignment((prev) => mergeAssignment(prev, data.data));
+    } catch (err: any) {
+      alert(err.message || "Failed to submit rating");
+    } finally {
+      setRatingLoading(false);
+    }
+  };
 
   // Helper to safely merge server payload with local state
   const mergeAssignment = (
@@ -94,7 +159,9 @@ function AssignmentDetailContent() {
     };
 
     const assigned =
-      (server?.assignedStudents?.length ? server.assignedStudents : prev?.assignedStudents) || [];
+      (server?.assignedStudents?.length
+        ? server.assignedStudents
+        : prev?.assignedStudents) || [];
 
     const submissions =
       server?.submissions !== undefined
@@ -114,28 +181,14 @@ function AssignmentDetailContent() {
         userId: st.userId,
         username: st.username,
         email: st.email,
-        submissionStatus:
-          sub?.status ??
-          st.submissionStatus ??
-          "PENDING",
-        submissionMessage:
-          sub?.studentMessage ??
-          st.submissionMessage ??
-          "",
-        submissionFileUrl:
-          sub?.fileUrl ??
-          st.submissionFileUrl ??
-          "",
-        submissionFileName:
-          sub?.fileName ??
-          st.submissionFileName ??
-          "",
-        tutorRemarks:
-          sub?.tutorRemarks ??
-          st.tutorRemarks ??
-          "",
-        submittedAt:
-          sub?.submittedAt ?? st.submittedAt,
+        submissionStatus: sub?.status ?? st.submissionStatus ?? "PENDING",
+        submissionMessage: sub?.studentMessage ?? st.submissionMessage ?? "",
+        submissionFileUrl: sub?.fileUrl ?? st.submissionFileUrl ?? "",
+        submissionFileName: sub?.fileName ?? st.submissionFileName ?? "",
+        tutorRemarks: sub?.tutorRemarks ?? st.tutorRemarks ?? "",
+        submittedAt: sub?.submittedAt ?? st.submittedAt,
+        rating: sub?.rating, // ADD THIS
+        ratingMessage: sub?.ratingMessage, // ADD THIS
       };
     });
 
@@ -167,7 +220,7 @@ function AssignmentDetailContent() {
 
         if (data.success) {
           // Merge server data with submission details
-          setAssignment(prev => mergeAssignment(prev, data.data));
+          setAssignment((prev) => mergeAssignment(prev, data.data));
         } else {
           throw new Error(data.message || "Failed to fetch assignment details");
         }
@@ -182,41 +235,50 @@ function AssignmentDetailContent() {
   }, [assignmentId]);
 
   // Filter students based on submission status
-  const filteredStudents = assignment?.assignedStudents?.filter((student) => {
-    if (activeTab === "all") return true;
-    return student.submissionStatus === activeTab.toUpperCase();
-  }) || [];
+  const filteredStudents =
+    assignment?.assignedStudents?.filter((student) => {
+      if (activeTab === "all") return true;
+      return student.submissionStatus === activeTab.toUpperCase();
+    }) || [];
 
-  const selectedSubmission = assignment?.assignedStudents?.find(s => s.userId === selectedStudentId);
+  const selectedSubmission = assignment?.assignedStudents?.find(
+    (s) => s.userId === selectedStudentId
+  );
 
   // Handle tutor actions (approve/correction)
   const handleTutorAction = async (
     studentId: string,
-    action: 'APPROVED' | 'CORRECTION',
+    action: "APPROVED" | "CORRECTION",
     tutorRemarks?: string
   ) => {
     setApprovalLoading(true);
     try {
-      const response = await fetch(`/Api/assignment/singleAssignment?assignmentId=${assignmentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          studentId, 
-          action, 
-          tutorRemarks: tutorRemarks ?? (action === 'CORRECTION' ? 'Please revise and resubmit.' : 'Well done!')
-        })
-      });
-      
+      const response = await fetch(
+        `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentId,
+            action,
+            tutorRemarks:
+              tutorRemarks ??
+              (action === "CORRECTION"
+                ? "Please revise and resubmit."
+                : "Well done!"),
+          }),
+        }
+      );
+
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Update failed');
+        throw new Error(data.message || "Update failed");
       }
 
-      setAssignment(prev => mergeAssignment(prev, data.data));
-      
+      setAssignment((prev) => mergeAssignment(prev, data.data));
     } catch (error: any) {
-      console.error('Error updating submission:', error);
-      alert(error.message || 'Failed to update submission status');
+      console.error("Error updating submission:", error);
+      alert(error.message || "Failed to update submission status");
     } finally {
       setApprovalLoading(false);
     }
@@ -254,23 +316,29 @@ function AssignmentDetailContent() {
         formData.append("action", "CORRECTION");
         formData.append("tutorRemarks", correctionMessage);
         formData.append("correctionFile", correctionFile);
-        formData.append("submissionMessage", "SUBMITTED")
+        formData.append("submissionMessage", "SUBMITTED");
 
-        response = await fetch(`/Api/assignment/singleAssignment?assignmentId=${assignmentId}`, {
-          method: "PUT",
-          body: formData,
-        });
+        response = await fetch(
+          `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`,
+          {
+            method: "PUT",
+            body: formData,
+          }
+        );
       } else {
         // Fallback to JSON if no file
-        response = await fetch(`/Api/assignment/singleAssignment?assignmentId=${assignmentId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            studentId: correctionForStudentId,
-            action: "CORRECTION",
-            tutorRemarks: correctionMessage,
-          }),
-        });
+        response = await fetch(
+          `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              studentId: correctionForStudentId,
+              action: "CORRECTION",
+              tutorRemarks: correctionMessage,
+            }),
+          }
+        );
       }
       data = await response.json();
       if (!response.ok || !data.success) {
@@ -630,7 +698,11 @@ function AssignmentDetailContent() {
                   : "!text-gray-700 hover:!text-gray-600 !bg-gray-100"
               }`}
             >
-              Pending ({assignment?.assignedStudents?.filter(s => s.submissionStatus === 'PENDING').length || 0})
+              Pending (
+              {assignment?.assignedStudents?.filter(
+                (s) => s.submissionStatus === "PENDING"
+              ).length || 0}
+              )
             </Button>
             <Button
               onClick={() => setActiveTab("submitted")}
@@ -640,7 +712,11 @@ function AssignmentDetailContent() {
                   : "!text-gray-700 hover:!text-blue-600 !bg-gray-100"
               }`}
             >
-              Submitted ({assignment?.assignedStudents?.filter(s => s.submissionStatus === 'SUBMITTED').length || 0})
+              Submitted (
+              {assignment?.assignedStudents?.filter(
+                (s) => s.submissionStatus === "SUBMITTED"
+              ).length || 0}
+              )
             </Button>
             <Button
               onClick={() => setActiveTab("approved")}
@@ -650,7 +726,11 @@ function AssignmentDetailContent() {
                   : "!text-gray-700 hover:!text-green-700 !bg-gray-100"
               }`}
             >
-              Approved ({assignment?.assignedStudents?.filter(s => s.submissionStatus === 'APPROVED').length || 0})
+              Approved (
+              {assignment?.assignedStudents?.filter(
+                (s) => s.submissionStatus === "APPROVED"
+              ).length || 0}
+              )
             </Button>
             <Button
               onClick={() => setActiveTab("correction")}
@@ -660,7 +740,11 @@ function AssignmentDetailContent() {
                   : "!text-gray-700 hover:!text-orange-600 !bg-gray-100"
               }`}
             >
-              Correction ({assignment?.assignedStudents?.filter(s => s.submissionStatus === 'CORRECTION').length || 0})
+              Correction (
+              {assignment?.assignedStudents?.filter(
+                (s) => s.submissionStatus === "CORRECTION"
+              ).length || 0}
+              )
             </Button>
           </div>
 
@@ -671,9 +755,17 @@ function AssignmentDetailContent() {
                 <div
                   key={student.userId}
                   className={`border rounded-lg p-4 cursor-pointer transition-all hover:shadow-md ${
-                    selectedStudentId === student.userId ? 'border-purple-500 bg-purple-50' : 'border-gray-200'
+                    selectedStudentId === student.userId
+                      ? "border-purple-500 bg-purple-50"
+                      : "border-gray-200"
                   }`}
-                  onClick={() => setSelectedStudentId(student.userId === selectedStudentId ? null : student.userId)}
+                  onClick={() =>
+                    setSelectedStudentId(
+                      student.userId === selectedStudentId
+                        ? null
+                        : student.userId
+                    )
+                  }
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -681,20 +773,24 @@ function AssignmentDetailContent() {
                         <User size={20} className="!text-purple-600" />
                       </div>
                       <div>
-                        <p className="!font-medium !text-gray-900">{student.username}</p>
-                        <p className="!text-sm !text-gray-600">{student.email}</p>
+                        <p className="!font-medium !text-gray-900">
+                          {student.username}
+                        </p>
+                        <p className="!text-sm !text-gray-600">
+                          {student.email}
+                        </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 relative">
                       <span
                         className={`px-3 py-1 text-xs font-medium rounded-full ${
-                          student.submissionStatus === 'APPROVED'
-                            ? 'bg-green-100 text-green-700'
-                            : student.submissionStatus === 'CORRECTION'
-                              ? 'bg-orange-100 text-orange-700'
-                              : student.submissionStatus === 'SUBMITTED'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-gray-100 text-gray-600'
+                          student.submissionStatus === "APPROVED"
+                            ? "bg-green-100 text-green-700"
+                            : student.submissionStatus === "CORRECTION"
+                            ? "bg-orange-100 text-orange-700"
+                            : student.submissionStatus === "SUBMITTED"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-gray-100 text-gray-600"
                         }`}
                       >
                         {student.submissionStatus}
@@ -702,87 +798,215 @@ function AssignmentDetailContent() {
                       {student.submissionFileName && (
                         <FileText size={16} className="text-purple-500" />
                       )}
-                    </div>
-                  </div>
-
-                  {/* Submission Details (shown when selected) */}
-                  {selectedStudentId === student.userId && student.submissionStatus !== 'PENDING' && (
-                    <div className="mt-4 p-4 bg-white border rounded-lg">
-                      <h4 className="font-semibold text-gray-900 mb-3">Submission Details</h4>
-                      
-                      {/* Student Message */}
-                      {student.submissionMessage && (
-                        <div className="mb-4">
-                          <label className="!text-sm !font-medium !text-gray-600 !block !mb-2">Student Message:</label>
-                          <div className="!bg-gray-50 !p-3 !rounded-lg !text-gray-800 !whitespace-pre-wrap">
-                            {student.submissionMessage} {/* FIX: was student.studentMessage */}
-                          </div>
-                        </div>
+                      {/* Rating Button (only for APPROVED) */}
+                      {student.submissionStatus === "APPROVED" && (
+                        <button
+                          type="button"
+                          className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 text-xs font-medium transition"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Pre-fill popover with existing data if available
+                            if (student.rating !== undefined) {
+                              setRatingValue(student.rating);
+                            }
+                            if (student.ratingMessage) {
+                              setRatingMessage(student.ratingMessage);
+                            }
+                            setShowRatingPopover(
+                              showRatingPopover === student.userId
+                                ? null
+                                : student.userId
+                            );
+                          }}
+                        >
+                          {student.rating !== undefined
+                            ? "View/Edit Rating"
+                            : "Rate Student"}
+                        </button>
                       )}
-
-                      {/* File Download */}
-                      {student.submissionFileUrl && (
-                        <div className="mb-4">
-                          <label className="text-sm font-medium text-gray-600 block mb-2">Submitted File:</label>
-                          <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                            <FileText size={20} className="text-purple-500" />
-                            <div className="flex-1">
-                              <p className="!font-medium !text-gray-900">{student.submissionFileName || 'Submitted file'}</p>
-                              <p className="!text-sm !text-gray-600">
-                                {student.submittedAt ? `Submitted on ${new Date(student.submittedAt).toLocaleDateString()}` : 'Submission file'}
-                              </p>
-                            </div>
+                      {/* Popover */}
+                      {showRatingPopover === student.userId && (
+                        <div
+                          ref={popoverRef}
+                          className="absolute right-0 top-10 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-6 w-80"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <h4 className="font-semibold text-gray-900 mb-2">
+                            Rate Student
+                          </h4>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Rating:{" "}
+                            <span className="font-bold text-purple-700">
+                              {ratingValue}
+                            </span>
+                          </label>
+                          <input
+                            type="range"
+                            min={1}
+                            max={10}
+                            value={ratingValue}
+                            onChange={(e) =>
+                              setRatingValue(Number(e.target.value))
+                            }
+                            className="w-full mb-3"
+                          />
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Message
+                          </label>
+                          <textarea
+                            rows={3}
+                            className="w-full border rounded p-2 mb-3"
+                            value={ratingMessage}
+                            onChange={(e) => setRatingMessage(e.target.value)}
+                            placeholder="Write feedback for the student..."
+                          />
+                          <div className="flex justify-end gap-2">
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownloadSubmission(student.submissionFileUrl, student.submissionFileName);
-                              }}
-                              className="!px-4 !py-3 !bg-purple-600 !text-white !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2"
+                              className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
+                              onClick={() => setShowRatingPopover(null)}
+                              disabled={ratingLoading}
                             >
-                              <Download size={16} />
-                              Download
+                              Cancel
+                            </button>
+                            <button
+                              className="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700"
+                              onClick={() => handleSubmitRating(student.userId)}
+                              disabled={ratingLoading}
+                            >
+                              {ratingLoading ? "Submitting..." : "Submit"}
                             </button>
                           </div>
                         </div>
                       )}
-
-                      {/* Tutor Remarks */}
-                      {student.tutorRemarks && (
-                        <div className="mb-4">
-                          <label className="text-sm font-medium text-gray-600 block mb-2">Tutor Remarks:</label>
-                          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded text-gray-800">
-                            {student.tutorRemarks}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Action Buttons (only for submitted assignments) */}
-                      {student.submissionStatus === 'SUBMITTED' && (
-                        <div className="flex gap-3 pt-3 border-t">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTutorAction(student.userId, 'APPROVED');
-                            }}
-                            disabled={approvalLoading}
-                            className="!px-4 !py-3 !bg-green-600 !text-white !rounded-lg hover:!bg-green-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
-                          >
-                            {approvalLoading ? 'Processing...' : 'Approve'}
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openCorrectionModal(student.userId); // CHANGED: open modal
-                            }}
-                            disabled={approvalLoading}
-                            className="!px-4 !py-3 !bg-orange-600 !text-white !rounded-lg hover:!bg-orange-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
-                          >
-                            {approvalLoading ? 'Processing...' : 'Send for Correction'}
-                          </button>
-                        </div>
-                      )}
                     </div>
-                  )}
+                  </div>
+
+                  {/* Submission Details (shown when selected) */}
+                  {selectedStudentId === student.userId &&
+                    student.submissionStatus !== "PENDING" && (
+                      <div className="mt-4 p-4 bg-white border rounded-lg">
+                        <h4 className="font-semibold text-gray-900 mb-3">
+                          Submission Details
+                        </h4>
+
+                        {/* RATING AND FEEDBACK (NEW) */}
+                        {student.submissionStatus === "APPROVED" &&
+                          student.rating !== undefined && (
+                            <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                              <label className="text-sm font-medium text-purple-800 block mb-2">
+                                Final Rating & Feedback
+                              </label>
+                              <div className="flex items-center gap-2 mb-2">
+                                <Star
+                                  className="text-yellow-500"
+                                  fill="currentColor"
+                                  size={20}
+                                />
+                                <span className="text-lg font-bold text-purple-900">
+                                  {student.rating}
+                                </span>
+                                <span className="text-gray-600">/ 10</span>
+                              </div>
+                              {student.ratingMessage && (
+                                <div className="text-gray-800 whitespace-pre-wrap text-sm">
+                                  {student.ratingMessage}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                        {/* Student Message */}
+                        {student.submissionMessage && (
+                          <div className="mb-4">
+                            <label className="!text-sm !font-medium !text-gray-600 !block !mb-2">
+                              Student Message:
+                            </label>
+                            <div className="!bg-gray-50 !p-3 !rounded-lg !text-gray-800 !whitespace-pre-wrap">
+                              {student.submissionMessage}{" "}
+                              {/* FIX: was student.studentMessage */}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* File Download */}
+                        {student.submissionFileUrl && (
+                          <div className="mb-4">
+                            <label className="text-sm font-medium text-gray-600 block mb-2">
+                              Submitted File:
+                            </label>
+                            <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                              <FileText size={20} className="text-purple-500" />
+                              <div className="flex-1">
+                                <p className="!font-medium !text-gray-900">
+                                  {student.submissionFileName ||
+                                    "Submitted file"}
+                                </p>
+                                <p className="!text-sm !text-gray-600">
+                                  {student.submittedAt
+                                    ? `Submitted on ${new Date(
+                                        student.submittedAt
+                                      ).toLocaleDateString()}`
+                                    : "Submission file"}
+                                </p>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownloadSubmission(
+                                    student.submissionFileUrl,
+                                    student.submissionFileName
+                                  );
+                                }}
+                                className="!px-4 !py-3 !bg-purple-600 !text-white !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2"
+                              >
+                                <Download size={16} />
+                                Download
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Tutor Remarks */}
+                        {student.tutorRemarks && (
+                          <div className="mb-4">
+                            <label className="text-sm font-medium text-gray-600 block mb-2">
+                              Tutor Remarks:
+                            </label>
+                            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded text-gray-800">
+                              {student.tutorRemarks}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons (only for submitted assignments) */}
+                        {student.submissionStatus === "SUBMITTED" && (
+                          <div className="flex gap-3 pt-3 border-t">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTutorAction(student.userId, "APPROVED");
+                              }}
+                              disabled={approvalLoading}
+                              className="!px-4 !py-3 !bg-green-600 !text-white !rounded-lg hover:!bg-green-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
+                            >
+                              {approvalLoading ? "Processing..." : "Approve"}
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openCorrectionModal(student.userId); // CHANGED: open modal
+                              }}
+                              disabled={approvalLoading}
+                              className="!px-4 !py-3 !bg-orange-600 !text-white !rounded-lg hover:!bg-orange-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
+                            >
+                              {approvalLoading
+                                ? "Processing..."
+                                : "Send for Correction"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                 </div>
               ))}
             </div>
@@ -806,7 +1030,9 @@ function AssignmentDetailContent() {
           <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden z-10">
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-600 to-purple-700">
-              <h2 className="text-lg font-bold text-white">Send for Correction</h2>
+              <h2 className="text-lg font-bold text-white">
+                Send for Correction
+              </h2>
               <button
                 onClick={closeCorrectionModal}
                 className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all"
@@ -841,14 +1067,20 @@ function AssignmentDetailContent() {
                   <div className="flex flex-col items-center justify-center">
                     <Upload className="w-8 h-8 text-purple-400 mb-2" />
                     <span className="text-gray-600 font-medium">
-                      {correctionFile ? correctionFile.name : "Click to upload or drag and drop"}
+                      {correctionFile
+                        ? correctionFile.name
+                        : "Click to upload or drag and drop"}
                     </span>
-                    <span className="text-xs text-gray-400 mt-1">All file types accepted</span>
+                    <span className="text-xs text-gray-400 mt-1">
+                      All file types accepted
+                    </span>
                   </div>
                   <input
                     id="correctionFileInput"
                     type="file"
-                    onChange={(e) => setCorrectionFile(e.target.files?.[0] || null)}
+                    onChange={(e) =>
+                      setCorrectionFile(e.target.files?.[0] || null)
+                    }
                     disabled={approvalLoading}
                     className="opacity-0 cursor-pointer"
                     tabIndex={-1}
@@ -856,12 +1088,15 @@ function AssignmentDetailContent() {
                 </label>
                 {correctionFile && (
                   <div className="text-sm text-gray-600 mt-2">
-                    Selected file: <span className="font-medium">{correctionFile.name}</span>
+                    Selected file:{" "}
+                    <span className="font-medium">{correctionFile.name}</span>
                   </div>
                 )}
               </div>
               {correctionError && (
-                <div className="text-red-600 text-sm mb-2">{correctionError}</div>
+                <div className="text-red-600 text-sm mb-2">
+                  {correctionError}
+                </div>
               )}
             </div>
             {/* Footer */}

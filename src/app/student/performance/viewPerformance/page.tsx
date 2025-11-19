@@ -930,7 +930,7 @@ const StudentFeedbackDashboard = () => {
                             {session.performanceLevel.charAt(0).toUpperCase() + session.performanceLevel.slice(1)}
                           </span>
                         </td>
-                        <td>{session.recommendedImprovement}</td>
+                        <td>{session.personalFeedback}</td>
                       </tr>
                     ))}
                   </tbody>
