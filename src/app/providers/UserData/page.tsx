@@ -1,6 +1,15 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  ReactNode,
+} from "react";
+import { usePathname } from "next/navigation";
 
 interface UserData {
   _id: string;
@@ -18,7 +27,7 @@ interface UserData {
 interface UserDataContextType {
   userData: UserData | null;
   courseDetails: any[];
-    classDetails: any[];
+  classDetails: any[];
   studentCount: number;
   loading: boolean;
 }
@@ -31,31 +40,61 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const [studentCount, setStudentCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [classDetails, setClassDetails] = useState<any[]>([]);
+  const pathname = usePathname();
+  const prevPathRef = useRef<string | null>(null);
 
-
-  useEffect(() => {
-    const fetchData = async () => {
+  const fetchData = useCallback(
+    async (options: { silent?: boolean } = {}) => {
+      const { silent = false } = options;
       try {
-        const response = await fetch("/Api/DashboardData");
+        if (!silent) {
+          setLoading(true);
+        }
+
+        const response = await fetch("/Api/DashboardData", {
+          cache: "no-store",
+        });
         const data = await response.json();
-        
+
         setUserData(data.user);
         setCourseDetails(data.courseDetails || []);
         setStudentCount(data.studentCount || 0);
         setClassDetails(data.classDetails || []);
-
       } catch (error) {
-        console.error("Error:", error);
+        console.error("Error fetching dashboard data:", error);
       } finally {
-        setLoading(false);
+        if (!silent) {
+          setLoading(false);
+        }
       }
-    };
-    
+    },
+    []
+  );
+
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (!pathname) {
+      return;
+    }
+
+    if (
+      prevPathRef.current !== null &&
+      pathname === "/tutor" &&
+      prevPathRef.current !== "/tutor"
+    ) {
+      fetchData({ silent: true });
+    }
+
+    prevPathRef.current = pathname;
+  }, [pathname, fetchData]);
 
   return (
-    <UserDataContext.Provider value={{ userData, courseDetails, studentCount, loading ,classDetails}}>
+    <UserDataContext.Provider
+      value={{ userData, courseDetails, studentCount, loading, classDetails }}
+    >
       {children}
     </UserDataContext.Provider>
   );
