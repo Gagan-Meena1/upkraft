@@ -4,7 +4,7 @@ import { User, CheckCircle, XCircle, Clock, UserCheck, ArrowLeft ,Trash} from 'l
 
 interface Tutor {
   _id: string;
-  name: string;
+  username: string;
   email: string;
   category: string;
   isVerified: boolean;
@@ -244,7 +244,7 @@ const TutorManagement = () => {
                     <div key={tutor._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h3 className="text-lg font-medium text-gray-900">{tutor.name}</h3>
+                          <h3 className="text-lg font-medium text-gray-900">{tutor.username}</h3>
                           <p className="text-sm text-gray-600">{tutor.email}</p>
                           <p className="text-xs text-gray-500 mt-1">
                             Category: {tutor.category} | ID: {tutor._id}
@@ -299,7 +299,7 @@ const TutorManagement = () => {
           <div key={tutor._id} className="border border-gray-200 rounded-lg p-4 bg-green-50">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <h3 className="text-lg font-medium text-gray-900">{tutor.name}</h3>
+                <h3 className="text-lg font-medium text-gray-900">{tutor.username}</h3>
                 <p className="text-sm text-gray-600">{tutor.email}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   Category: {tutor.category} | ID: {tutor._id}
