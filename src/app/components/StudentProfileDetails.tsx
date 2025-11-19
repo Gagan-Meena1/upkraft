@@ -307,8 +307,8 @@ const StudentProfileDetails = ({ data, assignmentCount = 0, pendingAssignmentCou
                                     Performance :
                                   </span>
                                   <span className="student-txt">
-                                    <strong>
-                                      {studentPerformanceScore.score}/10
+                                   <strong>
+                                      {Number(studentPerformanceScore.score).toFixed(1)}/10
                                     </strong>
                                   </span>
                                 </li>

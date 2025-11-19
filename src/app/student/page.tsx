@@ -601,9 +601,11 @@ const StudentDashboard: React.FC = () => {
   // Filter upcoming classes (no recording)
   const upcomingClasses = classData ? filterFutureClasses(classData) : [];
 
-  // Filter incomplete assignments (assuming no status field means incomplete)
+  // Filter incomplete assignments based on the correct status field
   const incompleteAssignments =
-    assignmentData?.filter((assignment) => !assignment.status) || [];
+    assignmentData?.filter(
+      (assignment) => assignment.currentAssignmentStatus === "PENDING"
+    ) || [];
 
   // Calculate progress
   const totalClasses = classData?.length || 0;
@@ -632,11 +634,11 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <div className="container">
-      <div className="row">
-        <div className="col col-xxl-3 mb-4 order-md-1">
+      <div className="row !w-full">
+        <div className="col col-xxl-4 mb-4 order-md-1">
           <div className="card-box profile-card">
             <h2 className="mb-4 !text-[24px]">Profile</h2>
-            <div className="com-profile d-flex align-items-center gap-2">
+            <div className="com-profile d-flex align-items-center gap-4">
               <div className="col-img-profile">
                 <ProfileProgress user={userData as UserData} />
               </div>
@@ -711,7 +713,7 @@ const StudentDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="col-xxl-3 col-md-6 mb-4 order-xxl-2 order-md-3">
+        <div className="col-xxl-4 col-md-6 mb-4 order-xxl-2 order-md-3">
           <div className="profile-attended-box card-box">
             <ProfileAttended
               classesAttended={completedClasses}
@@ -720,7 +722,7 @@ const StudentDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="col-xxl-3 col-md-6 mb-4 order-xxl-3 order-md-4">
+        {/* <div className="col-xxl-3 col-md-6 mb-4 order-xxl-3 order-md-4">
           <div className="card-box card-inner-video-box">
             <div className="card-enrolled-video text-center pt-0">
               <Link href="/student/classSnapshots" className="d-block mb-3">
@@ -762,8 +764,8 @@ const StudentDashboard: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
-        <div className="col-xxl-3 col-md-6 mb-4 order-xxl-4  order-md-2">
+        </div> */}
+        <div className="col-xxl-4 col-md-6 mb-4 order-xxl-4  order-md-2">
           <div className="refer-and-earn-sec">
             <ReferAndEarn />
           </div>
