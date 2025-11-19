@@ -84,6 +84,8 @@ const AssignmentSchema = new mongoose.Schema({
       correctionFileUrl: { type: String },
       correctionFileName: { type: String },
       status: { type: String, enum: ['SUBMITTED', 'APPROVED', 'CORRECTION'], default: 'SUBMITTED' },
+      rating: { type: Number, min: 1, max: 10 },
+      ratingMessage: { type: String },
       submittedAt: { type: Date, default: Date.now }
     }
   ],

@@ -1,13 +1,31 @@
-"use client"
+"use client";
 
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Calendar, Clock, User, FileText, Download, Users, BookOpen, Music, Gauge, Zap, Home } from 'lucide-react';
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowLeft,
+  Calendar,
+  Clock,
+  User,
+  FileText,
+  Download,
+  Users,
+  BookOpen,
+  Music,
+  Gauge,
+  Zap,
+  Home,
+  Star, // ADD THIS
+} from "lucide-react";
 
 interface Student {
   userId: string;
   username: string;
   email: string;
+  submissionStatus?: "PENDING" | "SUBMITTED" | "APPROVED" | "CORRECTION";
+  rating?: number | null;
+  ratingMessage?: string;
+  tutorRemarks?: string;
 }
 
 interface Assignment {
@@ -20,7 +38,7 @@ interface Assignment {
   fileName?: string;
   createdAt: string;
   songName?: string;
-  metronome?: number;       // Percentage value
+  metronome?: number; // Percentage value
   speed?: number;
   practiceStudio?: boolean;
   class: {
@@ -36,15 +54,21 @@ interface Assignment {
     category: string;
   };
   assignedStudents: Student[];
-  totalAssignedStudents: number;
+  // keep these top-level (will be derived)
+  submissionStatus?: "PENDING" | "SUBMITTED" | "APPROVED" | "CORRECTION";
+  rating?: number | null;
+  ratingMessage?: string;
+  tutorRemarks?: string;
+  // also keep raw submissions if needed
+  submissions?: any[];
 }
 
 // Separate component that uses useSearchParams
 function AssignmentDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const assignmentId = searchParams.get('assignmentId');
-  
+  const assignmentId = searchParams.get("assignmentId");
+
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,28 +76,78 @@ function AssignmentDetailContent() {
   useEffect(() => {
     const fetchAssignmentDetail = async () => {
       if (!assignmentId) {
-        setError('Assignment ID not provided');
+        setError("Assignment ID not provided");
         setIsLoading(false);
         return;
       }
-      
+
       try {
-        // Fetch specific assignment details using query parameter
-        const response = await fetch(`/Api/assignment/singleAssignment?assignmentId=${assignmentId}`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch assignment details');
+        const resp = await fetch(
+          `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`
+        );
+        if (!resp.ok) throw new Error("Failed to fetch assignment details");
+        const json = await resp.json();
+        if (!json.success) throw new Error(json.message || "Failed to fetch assignment");
+
+        const raw = json.data;
+
+        // Fetch current user (reliable way to know student id)
+        let currentUserId: string | null = null;
+        try {
+          const meResp = await fetch("/Api/users/user");
+          if (meResp.ok) {
+            const me = await meResp.json();
+              // adjust field name if different
+            currentUserId = me?.data?._id || me?._id || null;
+          }
+        } catch (e) {
+          console.warn("Could not fetch current user:", e);
         }
 
-        const data = await response.json();
-        
-        if (data.success) {
-          setAssignment(data.data);
-        } else {
-          throw new Error(data.message || 'Failed to fetch assignment details');
+        // Map assignedStudents to keep status + rating
+        const mappedStudents: Student[] = (raw.assignedStudents || []).map((st: any) => ({
+          userId: st.userId,
+          username: st.username,
+          email: st.email,
+          submissionStatus: st.submissionStatus,
+          rating: st.rating,
+          ratingMessage: st.ratingMessage,
+          tutorRemarks: st.tutorRemarks,
+        }));
+
+        const submissions = raw.submissions || [];
+
+        // Find submission for current user OR fallback to first APPROVED
+        let chosenSubmission = submissions.find(
+          (s: any) => s.studentId?._id?.toString() === currentUserId
+        );
+        if (!chosenSubmission) {
+          chosenSubmission = submissions.find((s: any) => s.status === "APPROVED");
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred');
+
+        const assignmentWithMerged: Assignment = {
+          ...raw,
+          assignedStudents: mappedStudents,
+          submissions,
+          submissionStatus: chosenSubmission?.status || "PENDING",
+          rating: chosenSubmission?.rating ?? mappedStudents.find(ms => ms.userId === currentUserId)?.rating ?? null,
+          ratingMessage: chosenSubmission?.ratingMessage ?? mappedStudents.find(ms => ms.userId === currentUserId)?.ratingMessage ?? "",
+          tutorRemarks: chosenSubmission?.tutorRemarks ?? mappedStudents.find(ms => ms.userId === currentUserId)?.tutorRemarks ?? "",
+        };
+
+        console.log("DEBUG assignment merged:", {
+          currentUserId,
+          chosenSubmission,
+          topLevel: {
+            submissionStatus: assignmentWithMerged.submissionStatus,
+            rating: assignmentWithMerged.rating,
+            ratingMessage: assignmentWithMerged.ratingMessage,
+          },
+        });
+
+        setAssignment(assignmentWithMerged);
+      } catch (err: any) {
+        setError(err.message || "An error occurred");
       } finally {
         setIsLoading(false);
       }
@@ -85,10 +159,10 @@ function AssignmentDetailContent() {
   const handleDownloadFile = () => {
     if (assignment?.fileUrl) {
       // Create a temporary anchor element to trigger download
-      const link = document.createElement('a');
+      const link = document.createElement("a");
       link.href = assignment.fileUrl;
-      link.download = assignment.fileName || 'assignment-file';
-      link.target = '_blank';
+      link.download = assignment.fileName || "assignment-file";
+      link.target = "_blank";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -97,19 +171,19 @@ function AssignmentDetailContent() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    return new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     }).format(date);
   };
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
+    return new Intl.DateTimeFormat("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(date);
   };
 
@@ -118,21 +192,21 @@ function AssignmentDetailContent() {
     const now = new Date();
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) {
-      return 'Overdue';
+      return "Overdue";
     } else if (diffDays === 0) {
-      return 'Due Today';
+      return "Due Today";
     } else if (diffDays === 1) {
-      return '1 Day Left';
+      return "1 Day Left";
     } else if (diffDays <= 7) {
       return `${diffDays} Days Left`;
     } else if (diffDays <= 30) {
       const weeks = Math.ceil(diffDays / 7);
-      return `${weeks} Week${weeks > 1 ? 's' : ''} Left`;
+      return `${weeks} Week${weeks > 1 ? "s" : ""} Left`;
     } else {
       const months = Math.ceil(diffDays / 30);
-      return `${months} Month${months > 1 ? 's' : ''} Left`;
+      return `${months} Month${months > 1 ? "s" : ""} Left`;
     }
   };
 
@@ -141,10 +215,10 @@ function AssignmentDetailContent() {
     const now = new Date();
     const diffTime = date.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) return 'text-red-600 bg-red-50';
-    if (diffDays <= 2) return 'text-orange-600 bg-orange-50';
-    return 'text-green-600 bg-green-50';
+
+    if (diffDays < 0) return "text-red-600 bg-red-50";
+    if (diffDays <= 2) return "text-orange-600 bg-orange-50";
+    return "text-green-600 bg-green-50";
   };
 
   if (isLoading) {
@@ -180,10 +254,12 @@ function AssignmentDetailContent() {
           </button>
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <FileText size={48} className="text-red-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-red-800 mb-2">Assignment Not Found</h2>
+            <h2 className="text-xl font-semibold text-red-800 mb-2">
+              Assignment Not Found
+            </h2>
             <p className="text-red-600">{error}</p>
-            <button 
-              onClick={() => router.back()} 
+            <button
+              onClick={() => router.back()}
               className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
             >
               Go Back
@@ -215,10 +291,14 @@ function AssignmentDetailContent() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                  {assignment?.title || 'Loading...'}
+                  {assignment?.title || "Loading..."}
                 </h1>
                 <p className="text-gray-600">
-                  {assignment?.course?.title || ''} {assignment?.course?.title && assignment?.class?.title ? '•' : ''} {assignment?.class?.title || ''}
+                  {assignment?.course?.title || ""}{" "}
+                  {assignment?.course?.title && assignment?.class?.title
+                    ? "•"
+                    : ""}{" "}
+                  {assignment?.class?.title || ""}
                 </p>
               </div>
             </div>
@@ -228,7 +308,7 @@ function AssignmentDetailContent() {
                   {assignment.course.category}
                 </span>
               )}
-              {assignment?.status && (
+              {assignment?.submissionStatus === "APPROVED" && ( // Check submission status
                 <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
                   Completed
                 </span>
@@ -245,21 +325,25 @@ function AssignmentDetailContent() {
                 <div>
                   <p className="text-sm text-gray-600">Assigned Date</p>
                   <p className="font-medium text-gray-800">
-                    {assignment?.createdAt ? formatDate(assignment.createdAt) : 'Loading...'}
+                    {assignment?.createdAt
+                      ? formatDate(assignment.createdAt)
+                      : "Loading..."}
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <Clock size={20} className="text-orange-500" />
                 <div>
                   <p className="text-sm text-gray-600">Deadline</p>
                   <p className="font-medium text-gray-800">
-                    {assignment?.deadline ? formatDate(assignment.deadline) : 'Loading...'}
+                    {assignment?.deadline
+                      ? formatDate(assignment.deadline)
+                      : "Loading..."}
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 <Users size={20} className="text-blue-500" />
                 <div>
@@ -279,7 +363,7 @@ function AssignmentDetailContent() {
                 <div>
                   <p className="text-sm text-gray-600">Song Name</p>
                   <p className="font-medium text-gray-800">
-                    {assignment?.songName || 'Not specified'}
+                    {assignment?.songName || "Not specified"}
                   </p>
                 </div>
               </div>
@@ -290,7 +374,9 @@ function AssignmentDetailContent() {
                 <div>
                   <p className="text-sm text-gray-600">Metronome</p>
                   <p className="font-medium text-gray-800">
-                    {assignment?.metronome !== undefined ? `${assignment.metronome}%` : 'Not specified'}
+                    {assignment?.metronome !== undefined
+                      ? `${assignment.metronome}%`
+                      : "Not specified"}
                   </p>
                 </div>
               </div>
@@ -301,7 +387,7 @@ function AssignmentDetailContent() {
                 <div>
                   <p className="text-sm text-gray-600">Speed</p>
                   <p className="font-medium text-gray-800">
-                    {assignment?.speed || 'Not specified'}
+                    {assignment?.speed || "Not specified"}
                   </p>
                 </div>
               </div>
@@ -312,7 +398,11 @@ function AssignmentDetailContent() {
                 <div>
                   <p className="text-sm text-gray-600">Practice Studio</p>
                   <p className="font-medium text-gray-800">
-                    {assignment?.practiceStudio !== undefined ? (assignment.practiceStudio ? 'Yes' : 'No') : 'Not specified'}
+                    {assignment?.practiceStudio !== undefined
+                      ? assignment.practiceStudio
+                        ? "Yes"
+                        : "No"
+                      : "Not specified"}
                   </p>
                 </div>
               </div>
@@ -322,7 +412,11 @@ function AssignmentDetailContent() {
           {/* Deadline Status */}
           <div className="mt-4">
             {assignment?.deadline && (
-              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getDeadlineColor(assignment.deadline)}`}>
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${getDeadlineColor(
+                  assignment.deadline
+                )}`}
+              >
                 <Clock size={16} />
                 {formatDeadline(assignment.deadline)}
               </div>
@@ -330,27 +424,76 @@ function AssignmentDetailContent() {
           </div>
         </div>
 
+        {/* NEW: Tutor Feedback & Rating Card */}
+        {assignment.submissionStatus === "APPROVED" && assignment.rating != null && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Star className="text-yellow-500" />
+              Tutor Feedback & Rating
+            </h2>
+            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-baseline">
+                  <span className="text-3xl font-bold text-purple-600">
+                    {assignment.rating}
+                  </span>
+                  <span className="text-lg text-gray-500">/10</span>
+                </div>
+                <div className="flex">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <Star
+                      key={i}
+                      size={20}
+                      className={
+                        i < (assignment.rating || 0)
+                          ? "text-yellow-400 fill-current"
+                          : "text-gray-300"
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+              {assignment.ratingMessage && (
+                <p className="text-gray-700 whitespace-pre-wrap">
+                  {assignment.ratingMessage}
+                </p>
+              )}
+              {assignment.tutorRemarks && !assignment.ratingMessage && (
+                <p className="text-gray-600 italic whitespace-pre-wrap">
+                  {assignment.tutorRemarks}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Assignment Instructions */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Assignment Instructions</h2>
-          
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Assignment Instructions
+          </h2>
+
           {/* Assignment description from API */}
           <div className="text-gray-700 whitespace-pre-wrap">
-            {assignment?.description || 'No instructions provided'}
+            {assignment?.description || "No instructions provided"}
           </div>
         </div>
 
         {/* File Attachment */}
         {assignment?.fileUrl && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Assignment Files</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Assignment Files
+            </h2>
             <div className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg">
               <FileText size={24} className="text-purple-500" />
               <div className="flex-1">
-                <p className="font-medium text-gray-900">{assignment.fileName || 'Attached file'}</p>
+                <p className="font-medium text-gray-900">
+                  {assignment.fileName || "Attached file"}
+                </p>
                 <p className="text-sm text-gray-600">Attached file</p>
               </div>
-              <button 
+              <button
                 onClick={handleDownloadFile}
                 className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
               >
@@ -369,12 +512,17 @@ function AssignmentDetailContent() {
           {assignment?.assignedStudents?.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {assignment.assignedStudents.map((student) => (
-                <div key={student.userId} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                <div
+                  key={student.userId}
+                  className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg"
+                >
                   <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
                     <User size={20} className="text-purple-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{student.username}</p>
+                    <p className="font-medium text-gray-900">
+                      {student.username}
+                    </p>
                     <p className="text-sm text-gray-600">{student.email}</p>
                   </div>
                 </div>

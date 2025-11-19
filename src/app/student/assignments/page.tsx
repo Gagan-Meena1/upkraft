@@ -14,6 +14,7 @@ import {
   Filter,
   ChevronLeft,
   X,
+  CheckCircle, // Add this
 } from "lucide-react";
 import { Button } from "react-bootstrap";
 import Modal from "react-bootstrap/Modal";
@@ -73,7 +74,7 @@ export default function TutorAssignments() {
     totalAssignments: number;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "pending" | "completed" | "correction"
+    "pending" | "completed" | "correction" | "approved" // Add 'approved'
   >("pending");
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -127,6 +128,11 @@ export default function TutorAssignments() {
 
   const correctionAssignments = assignments.filter(
     (assignment) => assignment.currentAssignmentStatus === "CORRECTION"
+  );
+
+  // NEW: Filter for approved assignments
+  const approvedAssignments = assignments.filter(
+    (assignment) => assignment.currentAssignmentStatus === "APPROVED"
   );
 
   // Function to handle assignment status update
@@ -393,6 +399,29 @@ export default function TutorAssignments() {
               </span>
             )}
           </button>
+          {/* NEW: Approved Tab Button */}
+          <button
+            onClick={() => setActiveTab("approved")}
+            className={`!px-6 !py-3 !rounded-md !font-medium !transition-all !duration-300 !flex !items-center !justify-center !gap-2 ${
+              activeTab === "approved"
+                ? "!bg-green-600 !text-white !shadow-md"
+                : "!text-gray-600 !hover:text-green-800"
+            }`}
+          >
+            <CheckCircle size={18} />
+            Approved
+            {approvedAssignments.length > 0 && (
+              <span
+                className={`!px-2 !py-1 !text-xs !rounded-full ${
+                  activeTab === "approved"
+                    ? "!bg-green-300 !bg-opacity-20 !text-gray-900"
+                    : "!bg-white !text-grey-600"
+                }`}
+              >
+                {approvedAssignments.length}
+              </span>
+            )}
+          </button>
           <button
             onClick={() => setActiveTab("correction")}
             className={`!px-6 !py-3 !rounded-md !font-medium !transition-all !duration-300 !flex !items-center !justify-center !gap-2 ${
@@ -423,6 +452,8 @@ export default function TutorAssignments() {
           ? pendingAssignments
           : activeTab === "completed"
           ? submittedAssignments
+          : activeTab === "approved" // Add this condition
+          ? approvedAssignments
           : correctionAssignments
         ).length === 0 ? (
           <div className="p-12 text-center">
@@ -432,6 +463,8 @@ export default function TutorAssignments() {
                 ? "No Pending Assignments"
                 : activeTab === "completed"
                 ? "No Completed Assignments"
+                : activeTab === "approved" // Add this message
+                ? "No Approved Assignments"
                 : "No Assignments for Correction"}
             </h2>
           </div>
@@ -441,6 +474,8 @@ export default function TutorAssignments() {
               ? pendingAssignments
               : activeTab === "completed"
               ? submittedAssignments
+              : activeTab === "approved" // Add this condition
+              ? approvedAssignments
               : correctionAssignments
             ).map((assignment) => (
               <div

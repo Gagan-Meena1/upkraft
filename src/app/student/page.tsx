@@ -627,7 +627,7 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <div className="container">
-      <div className="row">
+      <div className="row !w-full">
         <div className="col col-xxl-4 mb-4 order-md-1">
           <div className="card-box profile-card">
             <h2 className="mb-4 !text-[24px]">Profile</h2>
@@ -706,7 +706,7 @@ const StudentDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="col-xxl-3 col-md-6 mb-4 order-xxl-2 order-md-3">
+        <div className="col-xxl-4 col-md-6 mb-4 order-xxl-2 order-md-3">
           <div className="profile-attended-box card-box">
             <ProfileAttended
               classesAttended={completedClasses}
@@ -758,7 +758,7 @@ const StudentDashboard: React.FC = () => {
             </div>
           </div>
         </div> */}
-        <div className="col-xxl-3 col-md-6 mb-4 order-xxl-4  order-md-2">
+        <div className="col-xxl-4 col-md-6 mb-4 order-xxl-4  order-md-2">
           <div className="refer-and-earn-sec">
             <ReferAndEarn />
           </div>
