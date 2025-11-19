@@ -15,7 +15,7 @@ import {
   Gauge,
   Zap,
   Home,
-  Star, // ADD THIS
+  Star, 
 } from "lucide-react";
 
 interface Student {
@@ -38,7 +38,7 @@ interface Assignment {
   fileName?: string;
   createdAt: string;
   songName?: string;
-  metronome?: number; // Percentage value
+  metronome?: number;
   speed?: number;
   practiceStudio?: boolean;
   class: {
@@ -54,16 +54,13 @@ interface Assignment {
     category: string;
   };
   assignedStudents: Student[];
-  // keep these top-level (will be derived)
   submissionStatus?: "PENDING" | "SUBMITTED" | "APPROVED" | "CORRECTION";
   rating?: number | null;
   ratingMessage?: string;
   tutorRemarks?: string;
-  // also keep raw submissions if needed
   submissions?: any[];
 }
 
-// Separate component that uses useSearchParams
 function AssignmentDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -72,6 +69,9 @@ function AssignmentDetailContent() {
   const [assignment, setAssignment] = useState<Assignment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [studentSubmission, setStudentSubmission] = useState<any | null>(null);
 
   useEffect(() => {
     const fetchAssignmentDetail = async () => {
@@ -91,20 +91,20 @@ function AssignmentDetailContent() {
 
         const raw = json.data;
 
-        // Fetch current user (reliable way to know student id)
-        let currentUserId: string | null = null;
+        let currentUserIdLocal: string | null = null;
         try {
           const meResp = await fetch("/Api/users/user");
           if (meResp.ok) {
             const me = await meResp.json();
-              // adjust field name if different
-            currentUserId = me?.data?._id || me?._id || null;
+       
+            currentUserIdLocal =
+              me?.data?._id || me?.user?._id || me?._id || null;
+            setCurrentUserId(currentUserIdLocal);
           }
         } catch (e) {
           console.warn("Could not fetch current user:", e);
         }
 
-        // Map assignedStudents to keep status + rating
         const mappedStudents: Student[] = (raw.assignedStudents || []).map((st: any) => ({
           userId: st.userId,
           username: st.username,
@@ -117,26 +117,28 @@ function AssignmentDetailContent() {
 
         const submissions = raw.submissions || [];
 
-        // Find submission for current user OR fallback to first APPROVED
-        let chosenSubmission = submissions.find(
-          (s: any) => s.studentId?._id?.toString() === currentUserId
-        );
-        if (!chosenSubmission) {
-          chosenSubmission = submissions.find((s: any) => s.status === "APPROVED");
-        }
+        const normalizeStudentId = (s: any) =>
+          s?.studentId?._id?.toString?.() ??
+          (typeof s?.studentId === "string" ? s.studentId : null);
+
+        const chosenSubmission =
+          currentUserIdLocal != null
+            ? submissions.find((s: any) => normalizeStudentId(s) === currentUserIdLocal)
+            : null;
+        setStudentSubmission(chosenSubmission || null);
 
         const assignmentWithMerged: Assignment = {
           ...raw,
           assignedStudents: mappedStudents,
           submissions,
           submissionStatus: chosenSubmission?.status || "PENDING",
-          rating: chosenSubmission?.rating ?? mappedStudents.find(ms => ms.userId === currentUserId)?.rating ?? null,
-          ratingMessage: chosenSubmission?.ratingMessage ?? mappedStudents.find(ms => ms.userId === currentUserId)?.ratingMessage ?? "",
-          tutorRemarks: chosenSubmission?.tutorRemarks ?? mappedStudents.find(ms => ms.userId === currentUserId)?.tutorRemarks ?? "",
+          rating: chosenSubmission?.rating ?? null,
+          ratingMessage: chosenSubmission?.ratingMessage ?? "",
+          tutorRemarks: chosenSubmission?.tutorRemarks ?? "",
         };
 
         console.log("DEBUG assignment merged:", {
-          currentUserId,
+          currentUserId: currentUserIdLocal,
           chosenSubmission,
           topLevel: {
             submissionStatus: assignmentWithMerged.submissionStatus,
@@ -158,7 +160,6 @@ function AssignmentDetailContent() {
 
   const handleDownloadFile = () => {
     if (assignment?.fileUrl) {
-      // Create a temporary anchor element to trigger download
       const link = document.createElement("a");
       link.href = assignment.fileUrl;
       link.download = assignment.fileName || "assignment-file";
@@ -270,6 +271,19 @@ function AssignmentDetailContent() {
     );
   }
 
+  const submissionOwnerId =
+    studentSubmission?.studentId?._id?.toString?.() ??
+    (typeof studentSubmission?.studentId === "string"
+      ? studentSubmission.studentId
+      : null);
+  const isOwner = !!currentUserId && submissionOwnerId === currentUserId;
+  const showRatingCard =
+    studentSubmission?.status === "APPROVED" &&
+    isOwner &&
+    (studentSubmission?.rating != null ||
+      studentSubmission?.ratingMessage ||
+      studentSubmission?.tutorRemarks);
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-4xl mx-auto">
@@ -308,7 +322,7 @@ function AssignmentDetailContent() {
                   {assignment.course.category}
                 </span>
               )}
-              {assignment?.submissionStatus === "APPROVED" && ( // Check submission status
+              {assignment?.submissionStatus === "APPROVED" && ( 
                 <span className="px-3 py-1 text-sm font-medium bg-green-100 text-green-800 rounded-full">
                   Completed
                 </span>
@@ -424,8 +438,8 @@ function AssignmentDetailContent() {
           </div>
         </div>
 
-        {/* NEW: Tutor Feedback & Rating Card */}
-        {assignment.submissionStatus === "APPROVED" && assignment.rating != null && (
+        {/* NEW: Tutor Feedback & Rating Card - render only when allowed */}
+        {showRatingCard && (
           <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Star className="text-yellow-500" />
@@ -435,7 +449,7 @@ function AssignmentDetailContent() {
               <div className="flex items-center gap-3 mb-3">
                 <div className="flex items-baseline">
                   <span className="text-3xl font-bold text-purple-600">
-                    {assignment.rating}
+                    {studentSubmission.rating ?? assignment.rating}
                   </span>
                   <span className="text-lg text-gray-500">/10</span>
                 </div>
@@ -445,7 +459,7 @@ function AssignmentDetailContent() {
                       key={i}
                       size={20}
                       className={
-                        i < (assignment.rating || 0)
+                        i < ((studentSubmission?.rating ?? assignment.rating) || 0)
                           ? "text-yellow-400 fill-current"
                           : "text-gray-300"
                       }
@@ -453,14 +467,15 @@ function AssignmentDetailContent() {
                   ))}
                 </div>
               </div>
-              {assignment.ratingMessage && (
+              {(studentSubmission?.ratingMessage ||
+                studentSubmission?.tutorRemarks ||
+                assignment.ratingMessage ||
+                assignment.tutorRemarks) && (
                 <p className="text-gray-700 whitespace-pre-wrap">
-                  {assignment.ratingMessage}
-                </p>
-              )}
-              {assignment.tutorRemarks && !assignment.ratingMessage && (
-                <p className="text-gray-600 italic whitespace-pre-wrap">
-                  {assignment.tutorRemarks}
+                  {studentSubmission?.ratingMessage ||
+                    studentSubmission?.tutorRemarks ||
+                    assignment.ratingMessage ||
+                    assignment.tutorRemarks}
                 </p>
               )}
             </div>
