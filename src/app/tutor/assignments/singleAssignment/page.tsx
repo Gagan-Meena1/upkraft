@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useRef } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
@@ -92,32 +92,39 @@ function AssignmentDetailContent() {
   const [correctionError, setCorrectionError] = useState<string | null>(null);
   const [correctionFile, setCorrectionFile] = useState<File | null>(null); // NEW
 
-  const [showRatingPopover, setShowRatingPopover] = useState<string | null>(
-    null
-  );
-  const [ratingValue, setRatingValue] = useState<number>(5);
-  const [ratingMessage, setRatingMessage] = useState<string>("");
-  const [ratingLoading, setRatingLoading] = useState(false);
-  const popoverRef = useRef<HTMLDivElement | null>(null);
+  // NEW: approve modal state
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approveForStudentId, setApproveForStudentId] = useState<string | null>(null);
+  const [approveRatingValue, setApproveRatingValue] = useState<number>(5);
+  const [approveRatingMessage, setApproveRatingMessage] = useState<string>("");
+  const [approveError, setApproveError] = useState<string | null>(null);
 
-  // Close popover on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(event.target as Node)
-      ) {
-        setShowRatingPopover(null);
-      }
-    }
-    if (showRatingPopover) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showRatingPopover]);
+  // ADD: helper to detect editing mode
+  const isEditingRating = approveForStudentId
+    ? assignment?.assignedStudents.find(s => s.userId === approveForStudentId)?.submissionStatus === "APPROVED"
+    : false;
 
-  const handleSubmitRating = async (studentId: string) => {
-    setRatingLoading(true);
+  // UPDATED: openApproveModal (accept edit flag)
+  const openApproveModal = (studentId: string, isEdit = false) => {
+    setApproveForStudentId(studentId);
+    const existing = assignment?.assignedStudents.find(s => s.userId === studentId);
+    if (isEdit && existing) {
+      if (existing.rating != null) setApproveRatingValue(existing.rating);
+      else setApproveRatingValue(5);
+      setApproveRatingMessage(existing.ratingMessage || "");
+    } else {
+      // fresh approval
+      setApproveRatingValue(5);
+      setApproveRatingMessage("");
+    }
+    setApproveError(null);
+    setShowApproveModal(true);
+  };
+
+  const submitApprove = async () => {
+    if (!approveForStudentId) return;
+    setApprovalLoading(true);
+    setApproveError(null);
     try {
       const response = await fetch(
         `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`,
@@ -125,26 +132,27 @@ function AssignmentDetailContent() {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            studentId,
+            studentId: approveForStudentId,
             action: "APPROVED",
-            rating: ratingValue,
-            ratingMessage,
+            rating: approveRatingValue,
+            ratingMessage: approveRatingMessage,
+            tutorRemarks: approveRatingMessage || "Well done!",
           }),
         }
       );
       const data = await response.json();
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to submit rating");
+        throw new Error(data.message || "Failed to save rating");
       }
-      setShowRatingPopover(null);
-      setRatingMessage("");
-      setRatingValue(5);
-      // Optionally update assignment state here
-      setAssignment((prev) => mergeAssignment(prev, data.data));
+      setAssignment(prev => mergeAssignment(prev, data.data)); // immediate UI update
+      setShowApproveModal(false);
+      setApproveForStudentId(null);
+      setApproveRatingValue(5);
+      setApproveRatingMessage("");
     } catch (err: any) {
-      alert(err.message || "Failed to submit rating");
+      setApproveError(err.message || "Failed to save rating");
     } finally {
-      setRatingLoading(false);
+      setApprovalLoading(false);
     }
   };
 
@@ -798,86 +806,6 @@ function AssignmentDetailContent() {
                       {student.submissionFileName && (
                         <FileText size={16} className="text-purple-500" />
                       )}
-                      {/* Rating Button (only for APPROVED) */}
-                      {student.submissionStatus === "APPROVED" && (
-                        <button
-                          type="button"
-                          className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200 text-xs font-medium transition"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Pre-fill popover with existing data if available
-                            if (student.rating !== undefined) {
-                              setRatingValue(student.rating);
-                            }
-                            if (student.ratingMessage) {
-                              setRatingMessage(student.ratingMessage);
-                            }
-                            setShowRatingPopover(
-                              showRatingPopover === student.userId
-                                ? null
-                                : student.userId
-                            );
-                          }}
-                        >
-                          {student.rating !== undefined
-                            ? "View/Edit Rating"
-                            : "Rate Student"}
-                        </button>
-                      )}
-                      {/* Popover */}
-                      {showRatingPopover === student.userId && (
-                        <div
-                          ref={popoverRef}
-                          className="absolute right-0 top-10 z-50 bg-white border border-gray-200 rounded-xl shadow-lg p-6 w-80"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <h4 className="font-semibold text-gray-900 mb-2">
-                            Rate Student
-                          </h4>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Rating:{" "}
-                            <span className="font-bold text-purple-700">
-                              {ratingValue}
-                            </span>
-                          </label>
-                          <input
-                            type="range"
-                            min={1}
-                            max={10}
-                            value={ratingValue}
-                            onChange={(e) =>
-                              setRatingValue(Number(e.target.value))
-                            }
-                            className="w-full mb-3"
-                          />
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Message
-                          </label>
-                          <textarea
-                            rows={3}
-                            className="w-full border rounded p-2 mb-3"
-                            value={ratingMessage}
-                            onChange={(e) => setRatingMessage(e.target.value)}
-                            placeholder="Write feedback for the student..."
-                          />
-                          <div className="flex justify-end gap-2">
-                            <button
-                              className="px-4 py-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200"
-                              onClick={() => setShowRatingPopover(null)}
-                              disabled={ratingLoading}
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              className="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700"
-                              onClick={() => handleSubmitRating(student.userId)}
-                              disabled={ratingLoading}
-                            >
-                              {ratingLoading ? "Submitting..." : "Submit"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -891,11 +819,24 @@ function AssignmentDetailContent() {
 
                         {/* RATING AND FEEDBACK (NEW) */}
                         {student.submissionStatus === "APPROVED" &&
-                          student.rating !== undefined && (
+                          student.rating != null && (
                             <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                              <label className="text-sm font-medium text-purple-800 block mb-2">
-                                Final Rating & Feedback
-                              </label>
+                              <div className="flex items-start justify-between">
+                                <label className="text-sm font-medium text-purple-800 block mb-2">
+                                  Final Rating & Feedback
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openApproveModal(student.userId, true);
+                                  }}
+                                  className="text-xs px-3 py-1 rounded bg-purple-600 text-white hover:bg-purple-700 transition"
+                                  disabled={approvalLoading}
+                                >
+                                  Edit
+                                </button>
+                              </div>
                               <div className="flex items-center gap-2 mb-2">
                                 <Star
                                   className="text-yellow-500"
@@ -984,22 +925,24 @@ function AssignmentDetailContent() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleTutorAction(student.userId, "APPROVED");
+                                openApproveModal(student.userId, false);
                               }}
                               disabled={approvalLoading}
                               className="!px-4 !py-3 !bg-green-600 !text-white !rounded-lg hover:!bg-green-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
                             >
-                              {approvalLoading ? "Processing..." : "Approve"}
+                              {approvalLoading && approveForStudentId === student.userId
+                                ? "Opening..."
+                                : "Approve"}
                             </button>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openCorrectionModal(student.userId); // CHANGED: open modal
+                                openCorrectionModal(student.userId);
                               }}
                               disabled={approvalLoading}
                               className="!px-4 !py-3 !bg-orange-600 !text-white !rounded-lg hover:!bg-orange-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
                             >
-                              {approvalLoading
+                              {approvalLoading && correctionForStudentId === student.userId
                                 ? "Processing..."
                                 : "Send for Correction"}
                             </button>
@@ -1115,6 +1058,80 @@ function AssignmentDetailContent() {
               >
                 {approvalLoading ? "Sending..." : "Send Correction"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NEW: Approve (rating) modal */}
+      {showApproveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !approvalLoading && setShowApproveModal(false)}
+          />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden z-10">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-green-600 to-green-700">
+              <h2 className="text-lg font-bold text-white">
+                {isEditingRating ? "Edit Rating" : "Approve & Rate"}
+              </h2>
+              <button
+                onClick={() => !approvalLoading && setShowApproveModal(false)}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                disabled={approvalLoading}
+              >
+                <X size={22} />
+              </button>
+            </div>
+            <div className="px-6 py-6">
+              <label className="block font-medium mb-2 text-gray-700">
+                Rating:{" "}
+                <span className="text-purple-700 font-semibold">
+                  {approveRatingValue}
+                </span>
+                /10
+              </label>
+              <input
+                type="range"
+                min={1}
+                max={10}
+                value={approveRatingValue}
+                onChange={(e) => setApproveRatingValue(Number(e.target.value))}
+                disabled={approvalLoading}
+                className="w-full mb-4"
+              />
+              <label className="block font-medium mb-2 text-gray-700">
+                {isEditingRating ? "Update Feedback Message" : "Feedback Message (optional)"}
+              </label>
+              <textarea
+                rows={4}
+                className="w-full border rounded p-2 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                placeholder="Write constructive feedback..."
+                value={approveRatingMessage}
+                onChange={(e) => setApproveRatingMessage(e.target.value)}
+                disabled={approvalLoading}
+              />
+              {approveError && (
+                <div className="text-red-600 text-sm mt-2">{approveError}</div>
+              )}
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  onClick={() => !approvalLoading && setShowApproveModal(false)}
+                  disabled={approvalLoading}
+                  className="px-4 py-2 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 font-medium transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitApprove}
+                  disabled={approvalLoading}
+                  className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-all disabled:opacity-50"
+                >
+                  {approvalLoading
+                    ? (isEditingRating ? "Updating..." : "Saving...")
+                    : (isEditingRating ? "Update Rating" : "Approve & Save")}
+                </button>
+              </div>
             </div>
           </div>
         </div>
