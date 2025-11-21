@@ -1,11 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { MdDelete } from "react-icons/md";
-import { ChevronLeft } from "lucide-react";
-import AddNewStudentModal from "../../components/AddNewStudentModal";
-import { Button, Dropdown, Form } from "react-bootstrap";
 
 interface Course {
   _id: string;
@@ -45,11 +41,6 @@ interface Student {
   courseQualityAverage?: number;
 }
 
-interface ApiResponse {
-  message: string;
-  filteredUsers: Student[];
-}
-
 interface AssignmentDetail {
   _id: string;
   title: string;
@@ -75,7 +66,6 @@ export default function MyStudents() {
 
     student.courses.forEach((course) => {
       if (course.performanceScores && course.performanceScores.length > 0) {
-        // Find the student's score in this course
         const studentScore = course.performanceScores.find(
           (score) => score.userId._id === student._id
         );
@@ -91,7 +81,7 @@ export default function MyStudents() {
     const average =
       studentScores.reduce((sum, score) => sum + score, 0) /
       studentScores.length;
-    return Math.round(average * 100) / 100; // Round to 2 decimal places
+    return Math.round(average * 100) / 100;
   };
 
   const calculateCourseQualityAverage = (student: Student): number => {
@@ -106,14 +96,20 @@ export default function MyStudents() {
     const average =
       validCourses.reduce((sum, course) => sum + course.courseQuality, 0) /
       validCourses.length;
-    return Math.round(average * 100) / 100; // Round to 2 decimal places
+    return Math.round(average * 100) / 100;
   };
 
   const fetchAssignmentDetails = async (
+    studentId: string,
     assignmentIds: string[]
-  ): Promise<{ pending: number }> => {
+  ): Promise<void> => {
     if (!assignmentIds || assignmentIds.length === 0) {
-      return { pending: 0 };
+      setStudents((prev) =>
+        prev.map((s) =>
+          s._id === studentId ? { ...s, pendingAssignments: 0 } : s
+        )
+      );
+      return;
     }
 
     try {
@@ -138,10 +134,25 @@ export default function MyStudents() {
         (assignment) => !assignment.status
       ).length;
 
-      return { pending };
+      // Update the specific student's pending assignments
+      setStudents((prev) =>
+        prev.map((s) =>
+          s._id === studentId ? { ...s, pendingAssignments: pending } : s
+        )
+      );
     } catch (error) {
       console.error("Error fetching assignment details:", error);
-      return { pending: 0 };
+      setStudents((prev) =>
+        prev.map((s) =>
+          s._id === studentId ? { ...s, pendingAssignments: 0 } : s
+        )
+      );
+    } finally {
+      setLoadingAssignments((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(studentId);
+        return newSet;
+      });
     }
   };
 
@@ -156,47 +167,39 @@ export default function MyStudents() {
 
       const data = await response.json();
       console.log("API Response:", data);
-       // Store academyId
-    if (data.academyId) {
-      setAcademyId(data.academyId);
-      console.log("Academy ID:", data.academyId);
-    }
+
+      if (data.academyId) {
+        setAcademyId(data.academyId);
+        console.log("Academy ID:", data.academyId);
+      }
 
       if (data && data.filteredUsers) {
-        const studentsWithDetails = await Promise.all(
-          data.filteredUsers.map(async (student: Student) => {
-            setLoadingAssignments((prev) => new Set(prev).add(student._id));
+        // First, set students with basic data and averages (fast)
+        const studentsWithAverages = data.filteredUsers.map((student: Student) => {
+          const performanceAverage = calculatePerformanceAverage(student);
+          const courseQualityAverage = calculateCourseQualityAverage(student);
 
-            const assignmentCounts = await fetchAssignmentDetails(
-              student.assignment || []
-            );
+          return {
+            ...student,
+            performanceAverage,
+            courseQualityAverage,
+            pendingAssignments: undefined, // Will be loaded later
+          };
+        });
 
-            // Calculate averages
-            const performanceAverage = calculatePerformanceAverage(student);
-            const courseQualityAverage = calculateCourseQualityAverage(student);
+        setStudents(studentsWithAverages);
+        setLoading(false); // Hide initial loading state
 
-            setLoadingAssignments((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(student._id);
-              return newSet;
-            });
-
-            return {
-              ...student,
-              pendingAssignments: assignmentCounts.pending,
-              performanceAverage,
-              courseQualityAverage,
-            };
-          })
-        );
-
-        setStudents(studentsWithDetails);
+        // Then, fetch assignment details in the background for each student
+        studentsWithAverages.forEach((student: Student) => {
+          setLoadingAssignments((prev) => new Set(prev).add(student._id));
+          fetchAssignmentDetails(student._id, student.assignment || []);
+        });
       } else {
         console.error("filteredUsers not found in API response:", data);
         setError("Invalid response format from server");
+        setLoading(false);
       }
-
-      setLoading(false);
     } catch (err) {
       console.error("Error fetching students:", err);
       setError(
@@ -229,7 +232,6 @@ export default function MyStudents() {
       const data = await response.json();
 
       if (data.success) {
-        // Remove the student from the local state
         setStudents((prev) =>
           prev.filter((student) => student._id !== studentId)
         );
@@ -255,26 +257,22 @@ export default function MyStudents() {
 
   return (
     <div className="card-box">
-
-      {/* Main Content */}
       <div className="assignments-list-sec">
         {/* Header Section */}
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
           <div className="left-head">
-              <h2 className="m-0">
-                My Students
-              </h2>
-            </div>
+            <h2 className="m-0">My Students</h2>
+          </div>
           <div className="right-form">
-  {!academyId && (
-    <Link 
-      href="/tutor/createStudent" 
-      className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
-    > 
-      <span className="mr-2">+</span> Add Student
-    </Link>
-  )}
-</div>
+            {!academyId && (
+              <Link
+                href="/tutor/createStudent"
+                className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
+              >
+                <span className="mr-2">+</span> Add Student
+              </Link>
+            )}
+          </div>
         </div>
         <hr className="hr-light"></hr>
 
@@ -342,8 +340,18 @@ export default function MyStudents() {
                   {!academyId && (
                     <Link href="/tutor/createStudent">
                       <button className="mt-5 px-4 sm:px-6 py-2 sm:py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors inline-flex items-center text-sm sm:text-base">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        <svg
+                          className="w-4 h-4 sm:w-5 sm:h-5 mr-2"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                          />
                         </svg>
                         Add Your First Student
                       </button>
@@ -353,7 +361,7 @@ export default function MyStudents() {
               </div>
             ) : (
               <>
-                {/* Desktop Table View - Hidden on mobile */}
+                {/* Desktop Table View */}
                 <div className="hidden lg:block overflow-x-auto">
                   <table className="w-full table-fixed">
                     <thead className="bg-gray-50 border-b border-gray-100">
@@ -418,31 +426,27 @@ export default function MyStudents() {
                             {loadingAssignments.has(student._id) ? (
                               <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium  text-gray-800">
-                                {student.pendingAssignments || 0}
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-gray-800">
+                                {student.pendingAssignments ?? "—"}
                               </span>
                             )}
                           </td>
                           <td className="px-3 py-3">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              student.performanceAverage 
-                            }`}>
-                              {student.performanceAverage && student.performanceAverage > 0 
-                                ? `${student.performanceAverage}` 
-                                : 'N/A'}
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                student.performanceAverage
+                              }`}
+                            >
+                              {student.performanceAverage &&
+                              student.performanceAverage > 0
+                                ? `${student.performanceAverage}`
+                                : "N/A"}
                             </span>
                           </td>
                           <td className="px-3 py-3">
                             <span
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                student.courseQualityAverage 
-                                // student.courseQualityAverage > 0
-                                //   ? student.courseQualityAverage >= 4
-                                //     ? "bg-green-100 text-green-800"
-                                //     : student.courseQualityAverage >= 3
-                                //     ? "bg-yellow-100 text-yellow-800"
-                                //     : "bg-red-100 text-red-800"
-                                //   : "bg-gray-100 text-gray-600"
+                                student.courseQualityAverage
                               }`}
                             >
                               {student.courseQualityAverage &&
@@ -491,7 +495,7 @@ export default function MyStudents() {
                   </table>
                 </div>
 
-                {/* Mobile Card View - Visible on small and medium screens */}
+                {/* Mobile Card View */}
                 <div className="lg:hidden">
                   {students.map((student) => (
                     <div
@@ -499,14 +503,12 @@ export default function MyStudents() {
                       className="border-b border-gray-100 p-4 sm:p-6 hover:bg-gray-50 transition-colors"
                     >
                       <div className="space-y-3">
-                        {/* Student Name */}
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
                             {student.username}
                           </h3>
                         </div>
 
-                        {/* Student Details */}
                         <div className="space-y-2">
                           <div className="flex flex-col sm:flex-row sm:items-center">
                             <span className="text-sm font-medium text-gray-500 sm:w-24">
@@ -534,9 +536,7 @@ export default function MyStudents() {
                           </div>
                         </div>
 
-                        {/* Performance Metrics */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                          {/* Pending Assignments */}
                           <div>
                             <span className="text-sm font-medium text-gray-500 block mb-1">
                               Pending Assignments:
@@ -545,31 +545,34 @@ export default function MyStudents() {
                               <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
                             ) : (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                {student.pendingAssignments || 0}
+                                {student.pendingAssignments ?? "—"}
                               </span>
                             )}
                           </div>
 
-                          {/* Performance Average */}
                           <div>
-                            <span className="text-sm font-medium text-gray-500 block mb-1">Performance Avg:</span>
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              student.performanceAverage 
-                            }`}>
-                              {student.performanceAverage && student.performanceAverage > 0 
-                                ? `${student.performanceAverage}` 
-                                : 'N/A'}
+                            <span className="text-sm font-medium text-gray-500 block mb-1">
+                              Performance Avg:
+                            </span>
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                student.performanceAverage
+                              }`}
+                            >
+                              {student.performanceAverage &&
+                              student.performanceAverage > 0
+                                ? `${student.performanceAverage}`
+                                : "N/A"}
                             </span>
                           </div>
 
-                          {/* Course Quality Average */}
                           <div>
                             <span className="text-sm font-medium text-gray-500 block mb-1">
                               Quality Avg:
                             </span>
                             <span
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                student.courseQualityAverage 
+                                student.courseQualityAverage
                               }`}
                             >
                               {student.courseQualityAverage &&
@@ -580,7 +583,6 @@ export default function MyStudents() {
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t border-gray-100">
                           <Link
                             href={`/tutor/addToCourseTutor?studentId=${student._id}`}
@@ -628,7 +630,6 @@ export default function MyStudents() {
           </div>
         )}
       </div>
-      <AddNewStudentModal />
     </div>
   );
 }
