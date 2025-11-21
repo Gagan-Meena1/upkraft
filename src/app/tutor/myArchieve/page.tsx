@@ -743,36 +743,50 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                               </div>
                             )}
 
-                             {/* AI Evaluation Button - Only for piano and guitar */}
-                        {(result.instrument === 'piano' || result.instrument === 'guitar') && (
-                          <button
-                            onClick={() => handleAIEvaluation(result.audioFileUrl, result.instrument, result._id)}
-                            disabled={evaluatingAI[result._id] || (result.analysisResults && Object.keys(result.analysisResults).length > 0)}
-                            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm flex items-center gap-2"
-                            title={
-                              (result.analysisResults && Object.keys(result.analysisResults).length > 0) 
-                                ? "Analysis already completed" 
-                                : "Get AI Evaluation"
-                            }
-                          >
-                            {evaluatingAI[result._id] ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                Evaluating...
-                              </>
-                            ) : (result.analysisResults && Object.keys(result.analysisResults).length > 0) ? (
-                              <>
-                                <Star size={16} />
-                                Evaluated
-                              </>
-                            ) : (
-                              <>
-                                <Star size={16} />
-                                AI Evaluation
-                              </>
-                            )}
-                          </button>
-                        )}
+                            {/* AI Evaluation Button - Only for piano and guitar */}
+{(result.instrument === 'piano' || result.instrument === 'guitar') && (
+  <button
+    onClick={() => handleAIEvaluation(result.audioFileUrl, result.instrument, result._id)}
+    disabled={
+      evaluatingAI[result._id] || 
+      (result.instrument === 'piano' 
+        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
+        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
+      )
+    }
+    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm flex items-center gap-2"
+    title={
+      (result.instrument === 'piano' 
+        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
+        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
+      ) 
+        ? "Analysis already completed" 
+        : "Get AI Evaluation"
+    }
+  >
+    {evaluatingAI[result._id] ? (
+      <>
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        Evaluating...
+      </>
+    ) : (
+      (result.instrument === 'piano' 
+        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
+        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
+      )
+    ) ? (
+      <>
+        <Star size={16} />
+        Evaluated
+      </>
+    ) : (
+      <>
+        <Star size={16} />
+        AI Evaluation
+      </>
+    )}
+  </button>
+)}
                             
                             <button
                               onClick={() => toggleAudioPlayback(result.audioFileUrl, result._id)}
