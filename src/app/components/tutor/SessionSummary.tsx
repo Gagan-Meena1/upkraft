@@ -181,21 +181,16 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
                       <td className='text-center'>{session.performanceScore}/<span>10</span></td>
                       <td className='text-center'>{session.qualityScore}/<span>10</span></td>
                       <td className='text-center'>
-                      {session.tutorCSAT !== null ? (
-                        <StarRating rating={session.tutorCSAT} />
-                      ) : (
-                        <Link 
-                          href={`/student/rateClass?classId=${session.classId}`} 
-                          className='btn btn-sm btn-outline-primary'
-                        >
-                          Give Rating
-                        </Link>
-                      )}
-                    </td>
+                        {session.tutorCSAT !== null && session.tutorCSAT > 0 ? (
+                          <StarRating rating={session.tutorCSAT} />
+                        ) : (
+                          <span className="text-muted small">Not Rated</span>
+                        )}
+                      </td>
                       <td className='text-center'>{session.assignmentCompletionRate}%</td>
                       <td>{session.tutorFeedback}</td>
                       <td>
-                        <Link href={`/student`} className='btn btn-primary d-flex align-items-center gap-2 justify-content-center small'>
+                        <Link href={`/tutor`} className='btn btn-primary d-flex align-items-center gap-2 justify-content-center small'>
                           <span>Notify</span>
                         </Link>
                       </td>
