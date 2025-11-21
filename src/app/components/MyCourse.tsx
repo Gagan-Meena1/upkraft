@@ -427,7 +427,7 @@ const MyCourse = ({ data, academyId,category }: MyCourseProps) => {
                       </Button>
                     </li>
                     <li>
-                      <Button
+                      {/* <Button
                         onClick={() => handleDeleteCourse(course._id)}
                         className="!bg-transparent !border-0 !p-0"
                       >
@@ -446,7 +446,7 @@ const MyCourse = ({ data, academyId,category }: MyCourseProps) => {
                             strokeLinejoin="round"
                           />
                         </svg>
-                      </Button>
+                      </Button> */}
                     </li>
                   </ul>
                   <ul className="d-flex align-items-center w-full-width gap-2 list-unstyled flex-wrap m-0 p-0">
