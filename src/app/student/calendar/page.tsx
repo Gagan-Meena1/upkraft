@@ -220,10 +220,11 @@ const StudentCalendarView = () => {
         throw new Error(data.error || "Failed to create meeting");
       }
 
-      router.push(
+      window.open(
         `/student/video-call?url=${encodeURIComponent(data.url)}&userRole=${
           userData.category
-        }&token=${encodeURIComponent(data.token || "")}`
+        }&token=${encodeURIComponent(data.token || "")}`,
+        '_blank'
       );
     } catch (error: any) {
       console.error("[Meeting] Error details:", error);
