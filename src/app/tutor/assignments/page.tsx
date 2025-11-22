@@ -502,6 +502,10 @@ export default function TutorAssignments() {
                       >
                         {assignment.title}
                       </h3>
+                      <div className="!text-sm !text-gray-600 !space-x-16">
+                        <span>Submitted:</span>
+                        <span className="mr-10">Completed: {assignment.length}</span>
+                      </div>
                     </div>
 
                     {/* Action Buttons */}

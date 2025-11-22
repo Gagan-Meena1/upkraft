@@ -254,7 +254,11 @@ export default function MyStudents() {
   }, []);
 
   return (
+    <div className='right-form'>
+              <Link href="/tutor" className='link-text'>←</Link>
+           
     <div className="card-box">
+      
 
       {/* Main Content */}
       <div className="assignments-list-sec">
@@ -630,5 +634,6 @@ export default function MyStudents() {
       </div>
       <AddNewStudentModal />
     </div>
+     </div>
   );
 }

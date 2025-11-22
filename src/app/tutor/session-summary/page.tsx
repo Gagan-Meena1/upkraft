@@ -1,7 +1,7 @@
 "use client";
 import React, { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import SessionSummary from "../../components/SessionSummary";
+import SessionSummary from "../../components/tutor/SessionSummary";
 
 function SessionSummaryContent() {
   const searchParams = useSearchParams();
