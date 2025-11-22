@@ -16,6 +16,11 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import TimePicker from 'react-time-picker';
+// ADD these
+import * as dateFnsTz from 'date-fns-tz';
+import { format } from 'date-fns';import { parseISO, addDays } from 'date-fns';
+
 
 // Create a non-SSR version of the components
 const StudentFeedbackDashboardClient = dynamic(
@@ -108,6 +113,27 @@ function AddSessionPage() {
     return compareDate < todayDate;
   };
 
+  // Add this helper function in your component
+const handleTimeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  let value = e.target.value;
+  
+  // Remove everything except digits and colon
+  value = value.replace(/[^\d:]/g, '');
+  
+  // Auto-add colon after 2 digits
+  if (value.length === 2 && !value.includes(':')) {
+    value = value + ':';
+  }
+  
+  // Limit to 5 characters (HH:MM)
+  if (value.length > 5) {
+    value = value.slice(0, 5);
+  }
+  
+  e.target.value = value;
+  handleFormChange(e);
+};
+
   // Generate calendar days for current month view
   const generateCalendarDays = () => {
     const year = currentMonth.getFullYear();
@@ -164,7 +190,7 @@ function AddSessionPage() {
     //   return;
     // }
 
-    const dateString = formatDateToString(year, month, day);
+const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
     setSelectedDate(dateString);
     setSessionForm({ ...sessionForm, date: dateString });
     setShowForm(true);
@@ -186,34 +212,50 @@ function AddSessionPage() {
   };
 
   // Fixed validateDateTime function to avoid timezone issues
-  const validateDateTime = (
-    date: string,
-    startTime: string,
-    endTime: string
-  ) => {
-    if (!date || !startTime || !endTime) return "";
+  // const validateDateTime = (
+  //   date: string,
+  //   startTime: string,
+  //   endTime: string
+  // ) => {
+  //   if (!date || !startTime || !endTime) return "";
 
-    const { year, month, day } = parseDateString(date);
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const [endHour, endMinute] = endTime.split(":").map(Number);
+  //   const { year, month, day } = parseDateString(date);
+  //   const [startHour, startMinute] = startTime.split(":").map(Number);
+  //   const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    // Create date objects using local timezone
-    const startDateTime = new Date(year, month, day, startHour, startMinute);
-    const endDateTime = new Date(year, month, day, endHour, endMinute);
-    const currentDateTime = new Date();
+  //   // Create date objects using local timezone
+  //   const startDateTime = new Date(year, month, day, startHour, startMinute);
+  //   const endDateTime = new Date(year, month, day, endHour, endMinute);
+  //   const currentDateTime = new Date();
 
-    // Check if start time is in the past
-    // if (startDateTime <= currentDateTime) {
-    //   return "Start time cannot be in the past";
-    // }
+  //   // Check if start time is in the past
+  //   // if (startDateTime <= currentDateTime) {
+  //   //   return "Start time cannot be in the past";
+  //   // }
 
-    // Check if end time is after start time
-    // if (endDateTime <= startDateTime) {
-    //   return "End time must be after start time";
-    // }
+  //   // Check if end time is after start time
+  //   // if (endDateTime <= startDateTime) {
+  //   //   return "End time must be after start time";
+  //   // }
 
-    return "";
-  };
+  //   return "";
+  // };
+  const validateDateTime = (date: string, startTime: string, endTime: string) => {
+  if (!date || !startTime || !endTime) return "";
+  
+  // Simple check: end time must be after start time
+  const [startHour, startMin] = startTime.split(':').map(Number);
+  const [endHour, endMin] = endTime.split(':').map(Number);
+  
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+  
+  if (endMinutes <= startMinutes) {
+    return "End time must be after start time";
+  }
+  
+  return "";
+};
 
   const handleFormChange = (
     e: React.ChangeEvent<
@@ -235,146 +277,151 @@ function AddSessionPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrorMessage("");
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setErrorMessage("");
 
-    try {
-      // Parse base date/time
-      const { year, month, day } = parseDateString(sessionForm.date);
-      const [startHour, startMinute] = sessionForm.startTime.split(":").map(Number);
-      const [endHour, endMinute] = sessionForm.endTime.split(":").map(Number);
+  try {
+    // Build occurrences array based on recurrence type
+    const occurrences: { date: string; startTime: string; endTime: string }[] = [];
 
-      const baseStart = new Date(year, month, day, startHour, startMinute, 0);
-      const baseEnd = new Date(year, month, day, endHour, endMinute, 0);
+    if (repeatType === "none") {
+      // Single occurrence
+      occurrences.push({
+        date: sessionForm.date,
+        startTime: sessionForm.startTime,
+        endTime: sessionForm.endTime,
+      });
+    } else if (repeatType === "weekdays") {
+      // Weekdays only (Mon-Fri)
+      let currentDate = parseISO(sessionForm.date);
+      let added = 0;
 
-      // Build occurrences array depending on recurrence
-      const occurrences: { start: Date; end: Date }[] = [];
-      if (repeatType === "none") {
-        occurrences.push({ start: baseStart, end: baseEnd });
-      } else if (repeatType === "weekdays") {
-        // Create occurrences only on Mon-Fri
-        if (repeatCount && repeatCount > 1) {
-          let added = 0;
-          let offset = 0;
-          while (added < repeatCount && offset < 1000) {
-            const s = new Date(baseStart);
-            const e2 = new Date(baseEnd);
-            s.setDate(s.getDate() + offset);
-            e2.setDate(e2.getDate() + offset);
-            const day = s.getDay();
-            if (day !== 0 && day !== 6) {
-              occurrences.push({ start: new Date(s), end: new Date(e2) });
-              added++;
-            }
-            offset++;
-          }
-        } else if (repeatUntil) {
-          const untilDate = new Date(repeatUntil);
-          let offset = 0;
-          while (true && offset < 1000) {
-            const s = new Date(baseStart);
-            const e2 = new Date(baseEnd);
-            s.setDate(s.getDate() + offset);
-            e2.setDate(e2.getDate() + offset);
-            if (s > untilDate) break;
-            const day = s.getDay();
-            if (day !== 0 && day !== 6) occurrences.push({ start: new Date(s), end: new Date(e2) });
-            offset++;
-          }
-        } else {
-          occurrences.push({ start: baseStart, end: baseEnd });
+      // Use repeatCount OR repeatUntil
+      const maxOccurrences = repeatCount > 0 ? repeatCount : 365;
+      const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+
+      while (added < maxOccurrences) {
+        // Check if we've passed the "until" date
+        if (untilDate && currentDate > untilDate) break;
+
+        const dayOfWeek = currentDate.getDay();
+        // 0 = Sunday, 6 = Saturday
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          occurrences.push({
+            date: format(currentDate, "yyyy-MM-dd"),
+            startTime: sessionForm.startTime,
+            endTime: sessionForm.endTime,
+          });
+          added++;
         }
-      } else {
-        // daily or weekly
-        const intervalDays = repeatType === "daily" ? 1 : 7;
-        const count = repeatCount && repeatCount > 0 ? repeatCount : 1;
-        if (count > 1) {
-          for (let i = 0; i < count; i++) {
-            const s = new Date(baseStart);
-            const e2 = new Date(baseEnd);
-            s.setDate(s.getDate() + intervalDays * i);
-            e2.setDate(e2.getDate() + intervalDays * i);
-            if (repeatUntil) {
-              const untilDate = new Date(repeatUntil);
-              if (s > untilDate) break;
-            }
-            occurrences.push({ start: s, end: e2 });
-          }
-        } else if (repeatUntil) {
-          const untilDate = new Date(repeatUntil);
-          let i = 0;
-          while (true) {
-            const s = new Date(baseStart);
-            const e2 = new Date(baseEnd);
-            s.setDate(s.getDate() + intervalDays * i);
-            e2.setDate(e2.getDate() + intervalDays * i);
-            if (s > untilDate) break;
-            occurrences.push({ start: s, end: e2 });
-            i++;
-            if (i > 365) break;
-          }
-        } else {
-          occurrences.push({ start: baseStart, end: baseEnd });
-        }
+        
+        currentDate = addDays(currentDate, 1);
       }
+    } else if (repeatType === "daily") {
+      // Daily recurrence
+      let currentDate = parseISO(sessionForm.date);
+      const maxOccurrences = repeatCount > 0 ? repeatCount : 365;
+      const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
 
-      // Helper to format date/time strings for backend
-      const pad = (n: number) => String(n).padStart(2, "0");
-      const toDateStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-      const toTimeStr = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      for (let i = 0; i < maxOccurrences; i++) {
+        if (untilDate && currentDate > untilDate) break;
 
-      let created = 0;
-      for (let idx = 0; idx < occurrences.length; idx++) {
-        const occ = occurrences[idx];
-
-        const formData = new FormData();
-        formData.append("title", sessionForm.title || "");
-        formData.append("description", sessionForm.description || "");
-        formData.append("date", toDateStr(occ.start)); // YYYY-MM-DD
-        formData.append("startTime", toTimeStr(occ.start)); // HH:MM
-        formData.append("endTime", toTimeStr(occ.end)); // HH:MM
-
-        // timezone: prefer fetched user timezone, fallback to system
-        const timezoneToSend = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-        formData.append("timezone", timezoneToSend);
-
-        // include course id
-        if (courseId) {
-          formData.append("course", courseId);
-          formData.append("courseId", courseId);
-        }
-
-        // Attach video only for the first occurrence (optional)
-        if (sessionForm.video && idx === 0) {
-          formData.append("video", sessionForm.video);
-        }
-
-        const response = await fetch("/Api/classes", {
-          method: "POST",
-          body: formData,
+        occurrences.push({
+          date: format(currentDate, "yyyy-MM-dd"),
+          startTime: sessionForm.startTime,
+          endTime: sessionForm.endTime,
         });
 
-        const result = await response.json().catch(() => ({ message: "Invalid response" }));
+        currentDate = addDays(currentDate, 1);
+      }
+    } else if (repeatType === "weekly") {
+      // Weekly recurrence (every 7 days)
+      let currentDate = parseISO(sessionForm.date);
+      const maxOccurrences = repeatCount > 0 ? repeatCount : 52;
+      const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
 
-        if (!response.ok) {
-          throw new Error(result?.message || `Failed creating occurrence ${toDateStr(occ.start)}`);
-        }
+      for (let i = 0; i < maxOccurrences; i++) {
+        if (untilDate && currentDate > untilDate) break;
 
-        created++;
+        occurrences.push({
+          date: format(currentDate, "yyyy-MM-dd"),
+          startTime: sessionForm.startTime,
+          endTime: sessionForm.endTime,
+        });
+
+        currentDate = addDays(currentDate, 7); // Add 7 days
+      }
+    }
+
+    // Get user's timezone
+    const timezoneToSend =
+      userTimezone ||
+      Intl.DateTimeFormat().resolvedOptions().timeZone ||
+      "UTC";
+
+    console.log(`Creating ${occurrences.length} session(s)...`);
+
+    // Create each occurrence
+    let created = 0;
+    for (let idx = 0; idx < occurrences.length; idx++) {
+      const occ = occurrences[idx];
+
+      const formData = new FormData();
+      formData.append("title", sessionForm.title || "");
+      formData.append("description", sessionForm.description || "");
+      formData.append("date", occ.date); // YYYY-MM-DD
+      formData.append("startTime", occ.startTime); // HH:MM
+      formData.append("endTime", occ.endTime); // HH:MM
+      formData.append("timezone", timezoneToSend);
+
+      // Include course ID
+      if (courseId) {
+        formData.append("course", courseId);
+        formData.append("courseId", courseId);
       }
 
-      alert(`${created} session(s) created`);
-      // navigate back to course page or refresh
-      router.push(`/tutor/courses/${courseId}`);
-    } catch (err: any) {
-      console.error("Error creating session(s):", err);
-      setErrorMessage(err?.message || "Failed to create session(s)");
-    } finally {
-      setIsSubmitting(false);
+      // Attach video only for the first occurrence
+      if (sessionForm.video && idx === 0) {
+        formData.append("video", sessionForm.video);
+      }
+
+      const response = await fetch("/Api/classes", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response
+        .json()
+        .catch(() => ({ message: "Invalid response" }));
+
+      if (!response.ok) {
+        throw new Error(
+          result?.message || `Failed creating session on ${occ.date}`
+        );
+      }
+
+      created++;
+      console.log(`Created session ${created}/${occurrences.length}`);
     }
-  };
+
+    alert(`Successfully created ${created} session(s)!`);
+    handleCloseForm();
+    
+    // Navigate back to course page
+    if (courseId) {
+      router.push(`/tutor/courses/${courseId}`);
+    } else {
+      router.push("/tutor/calendar");
+    }
+  } catch (err: any) {
+    console.error("Error creating session(s):", err);
+    setErrorMessage(err?.message || "Failed to create session(s)");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   // Modify your create/submit handler to create multiple weekly copies
   const handleCreateClass = async (e: React.FormEvent) => {
@@ -624,15 +671,15 @@ function AddSessionPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
                     <label
                       htmlFor="startTime"
                       className="block text-gray-600 mb-2 text-sm font-medium"
                     >
                       Start Time
-                    </label>
-                    <div className="relative">
+                    </label> */}
+                    {/* <div className="relative">
                       <input
                         type="time"
                         id="startTime"
@@ -641,12 +688,12 @@ function AddSessionPage() {
                         onChange={handleFormChange}
                         className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
                         required
-                      />
+                      /> */}
                       {/* <Clock className="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 w-5 h-5 pointer-events-none" /> */}
-                    </div>
-                  </div>
+                    {/* </div>
+                  </div> */}
 
-                  <div>
+                  {/* <div>
                     <label
                       htmlFor="endTime"
                       className="block text-gray-600 mb-2 text-sm font-medium"
@@ -662,12 +709,55 @@ function AddSessionPage() {
                         onChange={handleFormChange}
                         className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
                         required
-                      />
+                      /> */}
                       {/* <Clock className="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 w-5 h-5 pointer-events-none" /> */}
-                    </div>
-                  </div>
-                </div>
+                    {/* </div> */}
+                  {/* </div> */}
+                {/* </div> */}
 
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+  <div>
+    <label htmlFor="startTime" className="block text-gray-600 mb-2 text-sm font-medium">
+      Start Time (24-hour: HH:MM)
+    </label>
+    <input
+      type="text"
+      id="startTime"
+      name="startTime"
+      value={sessionForm.startTime}
+      onChange={handleTimeInput}
+      onKeyPress={(e) => {
+        if (!/[\d:]/.test(e.key)) e.preventDefault();
+      }}
+      pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+      placeholder="14:30"
+      maxLength={5}
+      className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      required
+    />
+  </div>
+
+  <div>
+    <label htmlFor="endTime" className="block text-gray-600 mb-2 text-sm font-medium">
+      End Time (24-hour: HH:MM)
+    </label>
+    <input
+      type="text"
+      id="endTime"
+      name="endTime"
+      value={sessionForm.endTime}
+      onChange={handleTimeInput}
+      onKeyPress={(e) => {
+        if (!/[\d:]/.test(e.key)) e.preventDefault();
+      }}
+      pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+      placeholder="16:00"
+      maxLength={5}
+      className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      required
+    />
+  </div>
+</div>
                 {/* Recurrence Controls */}
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                   <div>
