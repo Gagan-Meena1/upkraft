@@ -15,7 +15,7 @@ export default function TutorLayout({
 
   return (
     <>
-      <div className="main-sec position-relative">
+      <div className="main-sec position-relative main-tutor-sec">
         <div className="top-header">
           <TopHeader role="tutor" setRole={() => {}} />
         </div>

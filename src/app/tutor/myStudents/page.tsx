@@ -257,7 +257,7 @@ export default function MyStudents() {
     <div className="card-box">
 
       {/* Main Content */}
-      <div className="assignments-list-sec">
+      <div className="assignments-list-sec mobile-left-right">
         {/* Header Section */}
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
           <div className="left-head">
@@ -266,15 +266,15 @@ export default function MyStudents() {
               </h2>
             </div>
           <div className="right-form">
-  {!academyId && (
-    <Link 
-      href="/tutor/createStudent" 
-      className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
-    > 
-      <span className="mr-2">+</span> Add Student
-    </Link>
-  )}
-</div>
+            {!academyId && (
+              <Link 
+                href="/tutor/createStudent" 
+                className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
+              > 
+                <span className="mr-2">+</span> Add Student
+              </Link>
+            )}
+          </div>
         </div>
         <hr className="hr-light"></hr>
 
@@ -315,7 +315,7 @@ export default function MyStudents() {
             </div>
           </div>
         ) : (
-          <div className="bg-white shadow-md rounded-xl overflow-hidden border border-gray-100">
+          <div className="assignments-list-com table-responsive">
             {students.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
                 <div className="text-center">
@@ -354,35 +354,36 @@ export default function MyStudents() {
             ) : (
               <>
                 {/* Desktop Table View - Hidden on mobile */}
-                <div className="hidden lg:block overflow-x-auto">
-                  <table className="w-full table-fixed">
-                    <thead className="bg-gray-50 border-b border-gray-100">
+                  <div className="table-responsive w-1230">
+                <div className=" table-sec">
+                  <table className="table align-middle m-0">
+                    <thead >
                       <tr>
-                        <th className="w-32 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                        <th>
                           Name
                         </th>
-                        <th className="w-40 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                        <th>
                           Email
                         </th>
-                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                        <th>
                           Contact
                         </th>
-                        <th className="w-24 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                        <th>
                           Location
                         </th>
-                        <th className="w-24 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                        <th>
                           Pending
                         </th>
-                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                        <th>
                           Perf Avg
                         </th>
-                        <th className="w-28 px-3 py-3 text-left font-semibold text-gray-800 text-sm">
+                        <th>
                           Quality Avg
                         </th>
-                        <th className="w-24 px-3 py-3 text-center font-semibold text-gray-800 text-sm">
+                        <th>
                           Assign
                         </th>
-                        <th className="w-32 px-3 py-3 text-right font-semibold text-gray-800 text-sm">
+                        <th>
                           Actions
                         </th>
                       </tr>
@@ -391,40 +392,36 @@ export default function MyStudents() {
                       {students.map((student) => (
                         <tr
                           key={student._id}
-                          className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
                         >
                           <td
-                            className="px-3 py-3 text-gray-900 font-medium text-sm truncate"
                             title={student.username}
                           >
                             {student.username}
                           </td>
                           <td
-                            className="px-3 py-3 text-gray-600 text-sm truncate"
                             title={student.email}
                           >
                             {student.email}
                           </td>
-                          <td className="px-3 py-3 text-gray-600 text-sm">
+                          <td >
                             {student.contact}
                           </td>
                           <td
-                            className="px-3 py-3 text-gray-600 text-sm truncate"
                             title={student.city || "N/A"}
                           >
                             {student.city || "N/A"}
                           </td>
-                          <td className="px-3 py-3">
+                          <td>
                             {loadingAssignments.has(student._id) ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
+                              <div></div>
                             ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium  text-gray-800">
+                              <span>
                                 {student.pendingAssignments || 0}
                               </span>
                             )}
                           </td>
-                          <td className="px-3 py-3">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          <td >
+                            <span className={` ${
                               student.performanceAverage 
                             }`}>
                               {student.performanceAverage && student.performanceAverage > 0 
@@ -432,9 +429,9 @@ export default function MyStudents() {
                                 : 'N/A'}
                             </span>
                           </td>
-                          <td className="px-3 py-3">
+                          <td>
                             <span
-                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              className={` ${
                                 student.courseQualityAverage 
                                 // student.courseQualityAverage > 0
                                 //   ? student.courseQualityAverage >= 4
@@ -451,36 +448,36 @@ export default function MyStudents() {
                                 : "N/A"}
                             </span>
                           </td>
-                          <td className="px-3 py-3 text-center">
+                          <td>
                             <Link
                               href={`/tutor/addToCourseTutor?studentId=${student._id}`}
-                              className="text-blue-600 hover:text-blue-800 hover:underline text-xs"
+                              className=""
                             >
                               Course
                             </Link>
                           </td>
-                          <td className="px-3 py-3 text-right">
-                            <div className="flex items-center justify-end space-x-2">
+                          <td>
+                            <div className="d-flex gap-4 justify-content-between">
                               <Link
                                 href={`/tutor/studentDetails?studentId=${student._id}`}
-                                className="text-blue-600 hover:text-blue-800 hover:underline text-xs"
+                                className=""
                               >
                                 Details
                               </Link>
                               <button
                                 onClick={() => handleDeleteStudent(student._id)}
                                 disabled={deletingStudents.has(student._id)}
-                                className={`p-1 rounded-lg transition-colors ${
+                                className={`btn-delete ${
                                   deletingStudents.has(student._id)
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                    : "text-red-600 hover:bg-red-50 hover:text-red-800"
+                                    ? "cursor-not-allowed"
+                                    : "btn-delete"
                                 }`}
                                 title="Delete Student"
                               >
                                 {deletingStudents.has(student._id) ? (
-                                  <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-gray-400"></div>
+                                  <div className="btn-d"></div>
                                 ) : (
-                                  <MdDelete className="h-3 w-3" />
+                                  <MdDelete className="" />
                                 )}
                               </button>
                             </div>
@@ -489,24 +486,23 @@ export default function MyStudents() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
 
                 {/* Mobile Card View - Visible on small and medium screens */}
-                <div className="lg:hidden">
+                {/* <div className="lg:hidden">
                   {students.map((student) => (
                     <div
                       key={student._id}
                       className="border-b border-gray-100 p-4 sm:p-6 hover:bg-gray-50 transition-colors"
                     >
                       <div className="space-y-3">
-                        {/* Student Name */}
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
                             {student.username}
                           </h3>
                         </div>
 
-                        {/* Student Details */}
                         <div className="space-y-2">
                           <div className="flex flex-col sm:flex-row sm:items-center">
                             <span className="text-sm font-medium text-gray-500 sm:w-24">
@@ -534,9 +530,8 @@ export default function MyStudents() {
                           </div>
                         </div>
 
-                        {/* Performance Metrics */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                          {/* Pending Assignments */}
+                         
                           <div>
                             <span className="text-sm font-medium text-gray-500 block mb-1">
                               Pending Assignments:
@@ -550,7 +545,6 @@ export default function MyStudents() {
                             )}
                           </div>
 
-                          {/* Performance Average */}
                           <div>
                             <span className="text-sm font-medium text-gray-500 block mb-1">Performance Avg:</span>
                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -562,7 +556,6 @@ export default function MyStudents() {
                             </span>
                           </div>
 
-                          {/* Course Quality Average */}
                           <div>
                             <span className="text-sm font-medium text-gray-500 block mb-1">
                               Quality Avg:
@@ -580,7 +573,6 @@ export default function MyStudents() {
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t border-gray-100">
                           <Link
                             href={`/tutor/addToCourseTutor?studentId=${student._id}`}
@@ -622,7 +614,7 @@ export default function MyStudents() {
                       </div>
                     </div>
                   ))}
-                </div>
+                </div> */}
               </>
             )}
           </div>

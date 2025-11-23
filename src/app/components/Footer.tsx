@@ -40,7 +40,7 @@ const Footer = () => {
 
                     {/* Social Icons */}
                     <div className="footer-social">
-                        <ul className="list-unstyled d-flex align-items-center gap-2 flex-wrap justify-content-center m-0 p-0">
+                        <ul className="list-unstyled d-flex align-items-center gap-2 flex-wrap justify-content-md-end justify-content-center m-0 p-0">
                             {/* Facebook */}
                             <li>
                                 <Link href="https://www.facebook.com/share/17Tnt2hpem/?mibextid=wwXIfr" className="footer-social-link">

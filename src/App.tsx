@@ -16,7 +16,7 @@ export default function Page() {
   return (
     <div className={`position-relative menu-header-box bg-white`}>
       <Header />
-      <main className={`main new-main`}>
+      <main className={`main new-main landing-page`}>
         <Learners />
         <Tutors />
         <Schools />

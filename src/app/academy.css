@@ -1,3 +1,18 @@
+
+:root {
+  --white: #ffffff;
+  --black: #000000;
+  --text-color: #202020;
+  --blue: #6E09BD;
+  --dark-blue:  #7009BA ;
+  --orange: #FFC357;
+  --red: #e53935;
+  --bg-grey: #FAF8F6 !important;
+  --bg-light-grey: #EEEEEEEE !important;
+  --Inter: "Inter", sans-serif;
+  --light-blur: #F5F5F5;
+}
+
 .top-header-sec {
     position: fixed;
     top: 0;
@@ -50,7 +65,7 @@
     font-size: 14px;
     line-height: 100%;
     letter-spacing: 0px;
-    min-width: 340px;
+    /* min-width: 340px; */
 }
 
 .top-header-sec .right-top-header .right-head-details .btn-box.btn-dark {
@@ -397,11 +412,11 @@ button:focus:not(:focus-visible) {
 }
 
 
-.assignments-list-com table.table tr:nth-child(1) th {
+/* .assignments-list-com table.table tr:nth-child(1) th {
     background: #fafafa;
     padding: 14px 10px 10px;
     border: none;
-}
+} */
 
 
 .assignments-list-com table.table tr td .student-img-name img {
@@ -850,4 +865,32 @@ ul.list-share-view li a svg {
 .search-box button.btn.btn-trans {
     background: transparent !important;
     padding: 5px 0 0 !important;
+}
+
+.btn-delete {
+    color: #e53935;
+    font-size: 20px;
+}
+
+.btn-delete svg {
+    display: block;
+}
+
+.main-tutor-sec .table-responsive.w-1230 {
+    width: 100%;
+    min-width: 1230px;
+}
+.main-tutor-sec .table-sec table {
+    width: 100%;
+}
+.main-tutor-sec .table-sec table tr td:nth-child(1) {
+    font-weight: 500 !important;
+}
+
+
+@media only screen and (max-width:767px) {
+    .assignments-list-sec.mobile-left-right .right-form {
+        width: auto !important;
+        margin-top: 0;
+    }
 }

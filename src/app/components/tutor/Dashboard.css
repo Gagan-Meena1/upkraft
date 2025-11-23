@@ -1,3 +1,17 @@
+:root {
+  --white: #ffffff;
+  --black: #000000;
+  --text-color: #202020;
+  --blue: #6E09BD;
+  --dark-blue:  #7009BA ;
+  --orange: #FFC357;
+  --red: #e53935;
+  --bg-grey: #FAF8F6 !important;
+  --bg-light-grey: #EEEEEEEE !important;
+  --Inter: "Inter", sans-serif;
+  --light-blur: #F5F5F5;
+}
+
 .col-text-profile {
 	.btn-white {
 		padding: 6px 10px;
@@ -84,4 +98,20 @@
 		right: -5px !important;
 	}
 
+}
+
+
+.main-tutor-sec .com-profile h1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+}
+
+
+@media only screen and (max-width:1200px){
+	.text-dark-blue.text-box {
+		font-size: 13px;
+	}
 }

@@ -175,14 +175,14 @@ const UpcomingLessons = () => {
 
   return (
     <div className="card-box table-sec">
-      <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-        <div className="flex gap-2 items-center">
+      <div className="head-com-sec d-flex align-items-center flex-wrap justify-content-between mb-4">
+        <div className="flex gap-2 items-center d-flex flex-wrap">
           <h2 className="!text-[20px] !mb-0">Upcoming Sessions</h2>
           <span className="!text-sm text-gray-500">
             (Timezone: {userData?.timezone || getUserTimeZone()})
           </span>
         </div>
-        <Link href="/tutor/calendar" className="btn-text">
+        <Link href="/tutor/calendar" className="btn-text mt-md-0 mt-3">
           View All
         </Link>
       </div>

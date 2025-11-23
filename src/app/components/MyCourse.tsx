@@ -230,7 +230,7 @@ const MyCourse = ({ data, academyId }: MyCourseProps) => {
                     <Form.Control type="text" placeholder="Search here" />
                     <Button
                       type="button"
-                      className="btn border-0 !bg-transparent !p-0 !m-0 !top-[10px] !left-3 position-absolute"
+                      className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute btn btn-primary"
                     >
                       <svg
                         width="20"
@@ -414,7 +414,7 @@ const MyCourse = ({ data, academyId }: MyCourseProps) => {
                     <li>
                       <Link
                         href={`/tutor/courseQuality?courseId=${course._id}`}
-                        className="btn btn-border !py-[0.65rem] d-flex align-items-center justify-content-center gap-2"
+                        className="btn btn-border padding-fixed d-flex align-items-center justify-content-center gap-2"
                       >
                         <span>Class Quality</span>
                         <svg

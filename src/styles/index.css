@@ -5,12 +5,13 @@
   color: var(--white);
 }
 
+
 :root {
   --white: #ffffff;
   --black: #000000;
   --text-color: #202020;
   --blue: #6E09BD;
-  --dark-blue: #4201eb;
+  --dark-blue:  #7009BA ;
   --orange: #FFC357;
   --red: #e53935;
   --bg-grey: #FAF8F6 !important;
