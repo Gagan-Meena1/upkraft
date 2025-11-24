@@ -11,6 +11,7 @@ import {
   Youtube,
   Pencil,
   X,
+  ChevronLeft,
 } from "lucide-react";
 import { Button } from "react-bootstrap";
 
@@ -257,7 +258,14 @@ const TutorProfilePage = () => {
       >
         {/* Header */}
         <div className="bg-white border-b border-gray-200 w-full top-0 z-20">
+          
           <div className="px-6 py-4 flex items-center justify-between">
+            <Link
+                                      href={`/tutor`}
+                                      className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
+                                    >
+                                      <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
+                                    </Link>
             <h1 className="text-2xl font-semibold text-gray-800">My Profile</h1>
             <Button
               onClick={openEditModal}
@@ -272,7 +280,7 @@ const TutorProfilePage = () => {
         <div className="container mx-auto px-4 py-10">
           {/* Profile Header Section */}
           <div className="bg-gradient-to-r from-[#6307c9] to-[#8142d8] rounded-xl p-8 shadow-lg text-white mb-8">
-            <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="flex flex-col md:flex-row items-center">
               <div className="relative">
                 <div className="w-36 h-36 rounded-full overflow-hidden border-4 border-white shadow-lg">
                   {tutor.profileImage ? (

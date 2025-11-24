@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { 
   LogOut, ChevronLeft, ChevronRight, User, BookOpen, PlusCircle, Users, BookCheck, Menu, X,
   Download, Calendar, Music, Guitar, Piano, TrendingUp, Clock, Star, ChevronDown, ChevronUp,
-  Play, Pause, Volume2, UserCircle, Drum, Mic
+  Play, Pause, Volume2, UserCircle, Drum, Mic, ArrowLeft
 } from "lucide-react";
-
+import Link from "next/link";
 export default function PracticeHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState({ piano: [], guitar: [], drums: [], vocals: [], other: [] });
@@ -436,10 +436,20 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
       )}
 
       <div className="flex-1 min-h-screen">
+        
         <main className="p-4 sm:p-6">
+           <Link
+                  className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+                  href="/tutor"
+                >
+                  <ArrowLeft size={20} />
+                  Back to Dashboard
+                </Link>
           {userCategory === 'Tutor' && (
             <div className="mb-6 flex justify-center">
+              
               <div className="bg-white rounded-lg border-2 border-gray-200 p-1 inline-flex shadow-sm">
+               
                 <button
                   onClick={() => handleArchiveModeChange('my')}
                   className={`px-6 py-3 rounded-md font-semibold transition-all duration-300 flex items-center gap-2 ${

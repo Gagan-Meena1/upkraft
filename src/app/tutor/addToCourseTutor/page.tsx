@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
 import Image from 'next/image';
+import {ArrowLeft} from "lucide-react";
 
 interface Course {
   _id: string;
@@ -152,6 +153,13 @@ const toggleExpanded = (courseId: string) => {
 
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col text-gray-900">
+      <Link
+                  className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6 pl-16"
+                  href="/tutor/myStudents"
+                >
+                  <ArrowLeft size={20} />
+                  Back
+                </Link>
       {/* Navigation - keep as is */}
         {/* <nav className="w-full py-6 px-8 flex justify-between items-center sticky top-0 bg-gray-50/90 backdrop-blur-sm z-10">
           <div className="font-extrabold text-2xl text-gray-800">

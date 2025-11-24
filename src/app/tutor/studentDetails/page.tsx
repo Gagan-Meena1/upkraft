@@ -6,6 +6,7 @@ import Image from "next/image";
 import { BiBulb } from "react-icons/bi";
 import { toast } from 'react-hot-toast';
 import StudentProfileDetails from "@/app/components/StudentProfileDetails";
+import {ArrowLeft} from "lucide-react";
 
 interface CourseData {
   _id: string;
@@ -210,6 +211,13 @@ export default function StudentDetails() {
 
   return (
     <div className="student-profile-details-sec">
+      <Link
+                        className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+                        href="/tutor/myStudents"
+                      >
+                        <ArrowLeft size={20} />
+                        Back
+                      </Link>
       {/* pass assignmentCount down */}
       <StudentProfileDetails data={studentData} assignmentCount={assignmentCount} />
     </div>
