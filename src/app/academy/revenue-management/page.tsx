@@ -22,12 +22,29 @@ interface Course {
   title: string;
 }
 
+interface RevenueTransaction {
+  transactionId: string;
+  studentId: string;
+  studentName: string;
+  tutorName: string;
+  courseTitle: string;
+  amount: number;
+  commission: number;
+  status: string;
+  paymentMethod: string;
+  paymentDate: string;
+  validUpto: string;
+}
+
 export default function RevenueManagement() {
   const [activePeriod, setActivePeriod] = useState("This Month");
   const [showAddRevenueModal, setShowAddRevenueModal] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [transactions, setTransactions] = useState<RevenueTransaction[]>([]);
+  const [tableLoading, setTableLoading] = useState(true);
+  const [tableError, setTableError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     transactionDate: "",
@@ -51,6 +68,36 @@ export default function RevenueManagement() {
       fetchCourses();
     }
   }, [showAddRevenueModal]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchRevenueTransactions = async () => {
+      setTableLoading(true);
+      setTableError(null);
+      try {
+        const response = await fetch("/Api/academy/revenue", { signal: controller.signal });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || "Failed to fetch revenue data");
+        }
+
+        setTransactions(data.transactions || []);
+      } catch (error: any) {
+        if (error?.name === "AbortError") return;
+        const message = error instanceof Error ? error.message : "Unexpected error occurred";
+        setTableError(message);
+        toast.error(message);
+      } finally {
+        setTableLoading(false);
+      }
+    };
+
+    fetchRevenueTransactions();
+
+    return () => controller.abort();
+  }, []);
 
   const fetchStudents = async () => {
     try {
@@ -104,6 +151,34 @@ export default function RevenueManagement() {
       }
     }
   };
+
+  const formatDate = (value: string) => {
+    if (!value) return "N/A";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "N/A";
+    }
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(value || 0);
+
+  const statusBadgeStyles: Record<string, { background: string; color: string }> = {
+    Paid: { background: "#e8f5e9", color: "#2e7d32" },
+    Pending: { background: "#fff3e0", color: "#f57c00" },
+    Failed: { background: "#ffebee", color: "#c62828" },
+  };
+
+  const getStatusBadgeStyle = (status: string) => statusBadgeStyles[status] || { background: "#e0e0e0", color: "#424242" };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -948,131 +1023,71 @@ export default function RevenueManagement() {
             </tr>
           </thead>
           <tbody>
-            <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-              <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8472</td>
-              <td style={{ padding: "16px", color: "#333" }}>Oct 28, 2025</td>
-              <td style={{ padding: "16px", color: "#333" }}>Nov 28, 2025</td>
-              <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>Eunice Robel</td>
-              <td style={{ padding: "16px", color: "#333" }}>Sherry Wolf</td>
-              <td style={{ padding: "16px", color: "#333" }}>Piano Basics</td>
-              <td style={{ padding: "16px", color: "#2e7d32", fontWeight: "600" }}>₹4,500</td>
-              <td style={{ padding: "16px", color: "#333" }}>₹675</td>
-              <td style={{ padding: "16px" }}>
-                <span
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "20px",
-                    fontWeight: "600",
-                    fontSize: "12px",
-                    background: "#e8f5e9",
-                    color: "#2e7d32",
-                  }}
-                >
-                  Paid
-                </span>
-              </td>
-              <td style={{ padding: "16px", color: "#333" }}>UPI</td>
-            </tr>
-            <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-              <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8471</td>
-              <td style={{ padding: "16px", color: "#333" }}>Oct 28, 2025</td>
-              <td style={{ padding: "16px", color: "#333" }}>Nov 28, 2025</td>
-              <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>James Wilson</td>
-              <td style={{ padding: "16px", color: "#333" }}>Rahul Joshi</td>
-              <td style={{ padding: "16px", color: "#333" }}>Guitar Advanced</td>
-              <td style={{ padding: "16px", color: "#2e7d32", fontWeight: "600" }}>₹5,200</td>
-              <td style={{ padding: "16px", color: "#333" }}>₹780</td>
-              <td style={{ padding: "16px" }}>
-                <span
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "20px",
-                    fontWeight: "600",
-                    fontSize: "12px",
-                    background: "#e8f5e9",
-                    color: "#2e7d32",
-                  }}
-                >
-                  Paid
-                </span>
-              </td>
-              <td style={{ padding: "16px", color: "#333" }}>Credit Card</td>
-            </tr>
-            <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-              <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8470</td>
-              <td style={{ padding: "16px", color: "#333" }}>Oct 27, 2025</td>
-              <td style={{ padding: "16px", color: "#333" }}>Nov 27, 2025</td>
-              <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>Sarah Kumar</td>
-              <td style={{ padding: "16px", color: "#333" }}>Rahul Joshi</td>
-              <td style={{ padding: "16px", color: "#333" }}>Guitar Basics</td>
-              <td style={{ padding: "16px", color: "#2e7d32", fontWeight: "600" }}>₹3,800</td>
-              <td style={{ padding: "16px", color: "#333" }}>₹570</td>
-              <td style={{ padding: "16px" }}>
-                <span
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "20px",
-                    fontWeight: "600",
-                    fontSize: "12px",
-                    background: "#fff3e0",
-                    color: "#f57c00",
-                  }}
-                >
-                  Pending
-                </span>
-              </td>
-              <td style={{ padding: "16px", color: "#333" }}>Net Banking</td>
-            </tr>
-            <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-              <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8469</td>
-              <td style={{ padding: "16px", color: "#333" }}>Oct 27, 2025</td>
-              <td style={{ padding: "16px", color: "#333" }}>Nov 27, 2025</td>
-              <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>Michael Patel</td>
-              <td style={{ padding: "16px", color: "#333" }}>Priya Kumar</td>
-              <td style={{ padding: "16px", color: "#333" }}>Vocals Beginner</td>
-              <td style={{ padding: "16px", color: "#2e7d32", fontWeight: "600" }}>₹4,000</td>
-              <td style={{ padding: "16px", color: "#333" }}>₹600</td>
-              <td style={{ padding: "16px" }}>
-                <span
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "20px",
-                    fontWeight: "600",
-                    fontSize: "12px",
-                    background: "#e8f5e9",
-                    color: "#2e7d32",
-                  }}
-                >
-                  Paid
-                </span>
-              </td>
-              <td style={{ padding: "16px", color: "#333" }}>UPI</td>
-            </tr>
-            <tr style={{ borderBottom: "1px solid #f0f0f0" }} onMouseEnter={(e) => { e.currentTarget.style.background = "#f8f9fa"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}>
-              <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>#TXN-8468</td>
-              <td style={{ padding: "16px", color: "#333" }}>Oct 26, 2025</td>
-              <td style={{ padding: "16px", color: "#333" }}>Nov 26, 2025</td>
-              <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>Lisa Singh</td>
-              <td style={{ padding: "16px", color: "#333" }}>Aditya Mehta</td>
-              <td style={{ padding: "16px", color: "#333" }}>Drums Intermediate</td>
-              <td style={{ padding: "16px", color: "#c62828", fontWeight: "600" }}>₹4,600</td>
-              <td style={{ padding: "16px", color: "#333" }}>₹690</td>
-              <td style={{ padding: "16px" }}>
-                <span
-                  style={{
-                    padding: "6px 12px",
-                    borderRadius: "20px",
-                    fontWeight: "600",
-                    fontSize: "12px",
-                    background: "#ffebee",
-                    color: "#c62828",
-                  }}
-                >
-                  Failed
-                </span>
-              </td>
-              <td style={{ padding: "16px", color: "#333" }}>Credit Card</td>
-            </tr>
+            {tableLoading && (
+              <tr>
+                <td colSpan={10} style={{ padding: "24px", textAlign: "center", color: "#666", fontWeight: 500 }}>
+                  Loading transactions...
+                </td>
+              </tr>
+            )}
+
+            {!tableLoading && tableError && (
+              <tr>
+                <td colSpan={10} style={{ padding: "24px", textAlign: "center", color: "#c62828", fontWeight: 600 }}>
+                  {tableError}
+                </td>
+              </tr>
+            )}
+
+            {!tableLoading && !tableError && transactions.length === 0 && (
+              <tr>
+                <td colSpan={10} style={{ padding: "24px", textAlign: "center", color: "#666", fontWeight: 500 }}>
+                  No transactions found for the selected filters.
+                </td>
+              </tr>
+            )}
+
+            {!tableLoading &&
+              !tableError &&
+              transactions.map((transaction) => {
+                const statusStyle = getStatusBadgeStyle(transaction.status);
+                return (
+                  <tr
+                    key={transaction.transactionId}
+                    style={{ borderBottom: "1px solid #f0f0f0" }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f8f9fa";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <td style={{ padding: "16px", fontFamily: "monospace", color: "#666" }}>{transaction.transactionId}</td>
+                    <td style={{ padding: "16px", color: "#333" }}>{formatDate(transaction.paymentDate)}</td>
+                    <td style={{ padding: "16px", color: "#333" }}>{formatDate(transaction.validUpto)}</td>
+                    <td style={{ padding: "16px", color: "#333", fontWeight: "600" }}>{transaction.studentName || "N/A"}</td>
+                    <td style={{ padding: "16px", color: "#333" }}>{transaction.tutorName || "N/A"}</td>
+                    <td style={{ padding: "16px", color: "#333" }}>{transaction.courseTitle || "N/A"}</td>
+                    <td style={{ padding: "16px", color: "#2e7d32", fontWeight: "600" }}>{formatCurrency(transaction.amount)}</td>
+                    <td style={{ padding: "16px", color: "#333" }}>{formatCurrency(transaction.commission)}</td>
+                    <td style={{ padding: "16px" }}>
+                      <span
+                        style={{
+                          padding: "6px 12px",
+                          borderRadius: "20px",
+                          fontWeight: "600",
+                          fontSize: "12px",
+                          background: statusStyle.background,
+                          color: statusStyle.color,
+                        }}
+                      >
+                        {transaction.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: "16px", color: "#333" }}>{transaction.paymentMethod}</td>
+                  </tr>
+                );
+              })}
           </tbody>
         </table>
       </div>
