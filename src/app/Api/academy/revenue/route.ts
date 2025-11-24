@@ -3,34 +3,42 @@ import jwt from "jsonwebtoken";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
 import Payment from "@/models/payment";
+import courseName from "@/models/courseName";
 import mongoose from "mongoose";
 
 const STATUS = "Paid";
+
+const ensureAcademyContext = async (request: NextRequest) => {
+  const token = request.cookies.get("token")?.value;
+  if (!token) {
+    return { error: NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 }) };
+  }
+
+  const decodedToken = jwt.decode(token);
+  const academyId =
+    decodedToken && typeof decodedToken === "object" && "id" in decodedToken ? (decodedToken.id as string) : null;
+
+  if (!academyId) {
+    return { error: NextResponse.json({ success: false, error: "Invalid authentication token" }, { status: 401 }) };
+  }
+
+  const academy = await User.findById(academyId).select("category").lean();
+  if (!academy || String(academy.category).toLowerCase() !== "academic") {
+    return {
+      error: NextResponse.json({ success: false, error: "Only academies can access revenue data" }, { status: 403 }),
+    };
+  }
+
+  return { academyId };
+};
 
 export async function GET(request: NextRequest) {
   try {
     await connect();
 
-    const token = request.cookies.get("token")?.value;
-    if (!token) {
-      return NextResponse.json({ success: false, error: "Authentication required" }, { status: 401 });
-    }
-
-    const decodedToken = jwt.decode(token);
-    const academyId =
-      decodedToken && typeof decodedToken === "object" && "id" in decodedToken ? (decodedToken.id as string) : null;
-
-    if (!academyId) {
-      return NextResponse.json({ success: false, error: "Invalid authentication token" }, { status: 401 });
-    }
-
-    const academy = await User.findById(academyId).select("category").lean();
-    if (!academy || String(academy.category).toLowerCase() !== "academic") {
-      return NextResponse.json(
-        { success: false, error: "Only academies can access revenue data" },
-        { status: 403 }
-      );
-    }
+    const context = await ensureAcademyContext(request);
+    if ("error" in context) return context.error;
+    const academyId = context.academyId;
 
     let academyObjectId: mongoose.Types.ObjectId;
     try {
@@ -72,6 +80,91 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: "Failed to fetch revenue data",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    await connect();
+
+    const context = await ensureAcademyContext(request);
+    if ("error" in context) return context.error;
+    const academyId = context.academyId;
+
+    const {
+      transactionDate,
+      validUpto,
+      studentId,
+      tutorId,
+      courseId,
+      amount,
+      commission,
+      status = STATUS,
+      paymentMethod = "Cash",
+    } = await request.json();
+
+    if (!transactionDate || !validUpto || !studentId || !courseId || !amount) {
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    }
+
+    const student = await User.findById(studentId).select("username email academyId");
+    if (!student) {
+      return NextResponse.json({ success: false, error: "Student not found" }, { status: 404 });
+    }
+
+    if (!student.academyId || student.academyId.toString() !== academyId) {
+      return NextResponse.json({ success: false, error: "Student does not belong to this academy" }, { status: 403 });
+    }
+
+    const course = await courseName.findById(courseId).select("title price instructorId");
+    if (!course) {
+      return NextResponse.json({ success: false, error: "Course not found" }, { status: 404 });
+    }
+
+    const tutor =
+      tutorId || course.instructorId
+        ? await User.findById(tutorId || course.instructorId).select("username").lean()
+        : null;
+
+    const paymentDate = new Date(transactionDate);
+    const validUntil = new Date(validUpto);
+
+    const transactionId = `#TXN-${paymentDate.getTime().toString(36).toUpperCase()}${Math.floor(Math.random() * 1000)
+      .toString()
+      .padStart(3, "0")}`;
+
+    const academyObjectId = new mongoose.Types.ObjectId(academyId);
+
+    const payment = await Payment.create({
+      transactionId,
+      studentId: student._id,
+      studentName: student.username,
+      studentEmail: student.email,
+      academyId: academyObjectId,
+      tutorId: tutor?._id || null,
+      tutorName: tutor?.username || "N/A",
+      courseId: course._id,
+      courseTitle: course.title,
+      months: 1,
+      amount: Number(amount),
+      commission: Number(commission || 0),
+      paymentMethod,
+      status,
+      paymentDate,
+      validUpto: validUntil,
+    });
+
+    return NextResponse.json({ success: true, payment });
+  } catch (error) {
+    console.error("Error adding manual revenue:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to add revenue",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }

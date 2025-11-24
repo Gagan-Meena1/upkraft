@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import RevenueTrend from "../../components/academy/RevenueTrend";
 import { Modal, Button } from "react-bootstrap";
 import { toast } from "react-hot-toast";
@@ -60,23 +60,12 @@ export default function RevenueManagement() {
 
   const periods = ["Today", "This Week", "This Month", "This Quarter", "This Year", "Custom"];
 
-  // Fetch students, tutors, and courses when modal opens
-  useEffect(() => {
-    if (showAddRevenueModal) {
-      fetchStudents();
-      fetchTutors();
-      fetchCourses();
-    }
-  }, [showAddRevenueModal]);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    const fetchRevenueTransactions = async () => {
+  const fetchRevenueTransactions = useCallback(
+    async (signal?: AbortSignal) => {
       setTableLoading(true);
       setTableError(null);
       try {
-        const response = await fetch("/Api/academy/revenue", { signal: controller.signal });
+        const response = await fetch("/Api/academy/revenue", { signal });
         const data = await response.json();
 
         if (!response.ok || !data.success) {
@@ -92,12 +81,24 @@ export default function RevenueManagement() {
       } finally {
         setTableLoading(false);
       }
-    };
+    },
+    []
+  );
 
-    fetchRevenueTransactions();
+  // Fetch students, tutors, and courses when modal opens
+  useEffect(() => {
+    if (showAddRevenueModal) {
+      fetchStudents();
+      fetchTutors();
+      fetchCourses();
+    }
+  }, [showAddRevenueModal]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchRevenueTransactions(controller.signal);
     return () => controller.abort();
-  }, []);
+  }, [fetchRevenueTransactions]);
 
   const fetchStudents = async () => {
     try {
@@ -185,18 +186,26 @@ export default function RevenueManagement() {
     setLoading(true);
 
     try {
-      // Here you would make an API call to save the transaction
-      // For now, we'll just show a success message
-      console.log("Form data:", formData);
-      
-      // TODO: Replace with actual API call
-      // const response = await fetch("/Api/academy/revenue", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify(formData),
-      // });
+      const payload = {
+        ...formData,
+        amount: Number(formData.amount),
+        commission: Number(formData.commission || 0),
+      };
+
+      const response = await fetch("/Api/academy/revenue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to add revenue transaction");
+      }
 
       toast.success("Revenue transaction added successfully!");
+      fetchRevenueTransactions();
       setShowAddRevenueModal(false);
       setFormData({
         transactionDate: "",
@@ -211,7 +220,7 @@ export default function RevenueManagement() {
       });
     } catch (error) {
       console.error("Error adding revenue:", error);
-      toast.error("Failed to add revenue transaction");
+      toast.error(error instanceof Error ? error.message : "Failed to add revenue transaction");
     } finally {
       setLoading(false);
     }
