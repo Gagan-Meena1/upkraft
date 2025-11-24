@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
     }
 
-    const student = await User.findById(studentId).select("username email category academyId").lean();
+    const student = await User.findById(studentId).select("username email category academyId instructorId").lean();
     if (!student || student.category !== "Student") {
       return NextResponse.json({ success: false, error: "Only students can make payments" }, { status: 403 });
     }
@@ -46,7 +46,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Course not found" }, { status: 404 });
     }
 
-    const tutor = course.instructorId ? await User.findById(course.instructorId).select("username").lean() : null;
+    let tutor = null;
+    const studentInstructorId = Array.isArray(student.instructorId) ? student.instructorId[0] : student.instructorId;
+
+    if (studentInstructorId) {
+      tutor = await User.findById(studentInstructorId).select("username").lean();
+    }
+
+    if (!tutor && course.instructorId) {
+      tutor = await User.findById(course.instructorId).select("username").lean();
+    }
 
     const baseAmount = typeof course.price === "number" ? course.price : 0;
     const totalAmount = baseAmount * parsedMonths;
