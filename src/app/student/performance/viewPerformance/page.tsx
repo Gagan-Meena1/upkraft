@@ -1,6 +1,5 @@
 "use client";
 import dynamic from "next/dynamic";
-
 // Create a non-SSR version of the component
 const StudentFeedbackDashboardClient = dynamic(
   () => Promise.resolve(StudentFeedbackDashboard),
@@ -9,7 +8,7 @@ const StudentFeedbackDashboardClient = dynamic(
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, BarChart3 } from "lucide-react";
+import { ArrowLeft, BarChart3, ChevronLeft } from "lucide-react";
 import ProgressBar from "react-bootstrap/ProgressBar";
 import IndividualProgress from '@/app/components/student/IndividualProgress';
 import { useRouter } from "next/navigation";
@@ -716,6 +715,13 @@ const StudentFeedbackDashboard = () => {
 
   return (
     <div className="course-quality-details-sec">
+       <Link
+                            className="flex items-center gap-2 text-purple-600 hover:text-purple-700"
+                            href="/student/courses"
+                          >
+                            <ChevronLeft size={20} />
+                           
+                          </Link>
       <div className="row">
         {/* Overall Course Performance */}
         <div className="col-xl-4 col-md-12 mb-4">

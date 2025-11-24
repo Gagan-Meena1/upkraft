@@ -103,7 +103,9 @@ const StudentFeedbackDashboardClient = dynamic(
 
       {/* Main Content */}
       <div className="flex-1 w-full max-w-6xl mx-auto px-8 py-12">
+        
         <div className="flex flex-col md:flex-row justify-between items-center mb-8">
+          
           <h1 className="text-3xl font-bold text-orange-600 mb-4 md:mb-0">Tutor Directory</h1>
           <div className="w-full md:w-auto">
             <div className="relative">

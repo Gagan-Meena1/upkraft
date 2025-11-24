@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast, Toaster } from 'react-hot-toast';
 import Link from 'next/link';
-import { BarChart3, X } from 'lucide-react';
+import { BarChart3, X, ArrowLeft } from 'lucide-react';
 
 import DashboardLayout from '@/app/components/DashboardLayout';
 
@@ -271,6 +271,13 @@ const CourseDetailsPage = () => {
           {/* Course Header */}
           {courseDetails && (
             <div className="mb-6 sm:mb-8">
+              <Link
+                      className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+                      href="/student/courses"
+                    >
+                      <ArrowLeft size={20} />
+                      Back
+                    </Link>
               <h1 className="text-2xl sm:text-3xl font-bold text-purple-500 mb-3 sm:mb-4">
                 {courseDetails.title}
               </h1>

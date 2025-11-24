@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, Menu, X, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, Menu, X, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import axios from "axios";
 import DashboardLayout from '@/app/components/DashboardLayout'; // Adjust the path as needed
@@ -137,10 +137,20 @@ const tutorContent=(
   <>
       {/* Main Content */}
           {/* Page Header */}
+          <div>
+          <Link
+        className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+        href="/student"
+      >
+        <ArrowLeft size={20} />
+        Back to Dashboard
+      </Link>
           <div className="bg-gradient-to-r from-purple-700 to-purple-800 !text-white rounded-xl shadow-md p-6 mb-6">
+            
           <h2 className="text-2xl font-bold !text-[20px] text-white">Tutors Directory</h2>
           <p className="mt-1 opacity-90 !text-[16px]">Browse our expert tutors to find the perfect match for your learning needs</p>
         </div>
+        
 
           
         {/* Tutors Grid */}
@@ -181,6 +191,7 @@ const tutorContent=(
               <div className="text-gray-500">No tutors found</div>
             </div>
           )}
+          </div>
         </div></>
 )
 return (
