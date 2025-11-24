@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   Search,
   Music,
+  ArrowLeft,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CreateAssignmentModal from "@/app/components/CreateAssignmentModal";
@@ -349,6 +350,13 @@ export default function TutorAssignments() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <Link
+                  className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+                  href="/tutor"
+                >
+                  <ArrowLeft size={20} />
+                  Back to Dashboard
+                </Link>
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-6">
@@ -503,8 +511,24 @@ export default function TutorAssignments() {
                         {assignment.title}
                       </h3>
                       <div className="!text-sm !text-gray-600 !space-x-16">
-                        <span>Submitted:</span>
-                        <span className="mr-10">Completed: {assignment.length}</span>
+                        <span>
+                          Submitted:{" "}
+                          {
+                            assignment.assignedStudents?.filter(
+                              (s) => s.submissionStatus === "SUBMITTED"
+                            ).length
+                          }{" "}
+                          / {assignment.assignedStudents?.length}
+                        </span>
+                        <span className="mr-10">
+                          Completed:{" "}
+                          {
+                            assignment.assignedStudents?.filter(
+                              (s) => s.submissionStatus === "APPROVED"
+                            ).length
+                          }{" "}
+                          / {assignment.assignedStudents?.length}
+                        </span>
                       </div>
                     </div>
 
