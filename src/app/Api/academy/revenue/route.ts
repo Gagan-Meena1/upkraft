@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
+import Payment from "@/models/payment";
+import mongoose from "mongoose";
 
 const STATUS = "Paid";
-const PAYMENT_METHOD = "UPI";
-const COMMISSION_RATE = 0.15;
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,60 +32,38 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const students = await User.find({
-      category: "Student",
-      academyId,
-    })
-      .populate({
-        path: "instructorId",
-        select: "username email",
-      })
-      .populate({
-        path: "courses",
-        select: "title price",
-      })
-      .select("username email instructorId courses createdAt")
-      .lean();
+    let academyObjectId: mongoose.Types.ObjectId;
+    try {
+      academyObjectId = new mongoose.Types.ObjectId(academyId);
+    } catch {
+      return NextResponse.json({ success: false, error: "Invalid academy identifier" }, { status: 400 });
+    }
 
-    const today = new Date();
-    const validUpto = new Date(Date.UTC(today.getFullYear(), 11, 31, 23, 59, 59, 999));
+    const payments = await Payment.find({ academyId: academyObjectId }).sort({ paymentDate: -1 }).lean();
 
-    const transactions = students.map((student: any) => {
-      const firstCourse = Array.isArray(student.courses) && student.courses.length > 0 ? student.courses[0] : null;
-      const amount = typeof firstCourse?.price === "number" ? firstCourse.price : 0;
-      const commission = Number((amount * COMMISSION_RATE).toFixed(2));
-
-      const tutor =
-        Array.isArray(student.instructorId) && student.instructorId.length > 0
-          ? student.instructorId[0]
-          : student.instructorId || null;
-
-      const suffix = student._id?.toString?.().slice(-6).toUpperCase() || "000000";
-
-      return {
-        transactionId: `#TXN-${suffix}`,
-        studentId: student._id,
-        studentName: student.username,
-        studentEmail: student.email,
-        tutorId: tutor?._id || null,
-        tutorName: tutor?.username || "N/A",
-        courseId: firstCourse?._id || null,
-        courseTitle: firstCourse?.title || "N/A",
-        amount,
-        commission,
-        status: STATUS,
-        paymentMethod: PAYMENT_METHOD,
-        paymentDate: today.toISOString(),
-        validUpto: validUpto.toISOString(),
-      };
-    });
+    const transactions = payments.map((payment) => ({
+      transactionId: payment.transactionId,
+      studentId: payment.studentId,
+      studentName: payment.studentName,
+      studentEmail: payment.studentEmail,
+      tutorId: payment.tutorId,
+      tutorName: payment.tutorName,
+      courseId: payment.courseId,
+      courseTitle: payment.courseTitle,
+      amount: payment.amount,
+      commission: payment.commission,
+      status: payment.status || STATUS,
+      paymentMethod: payment.paymentMethod,
+      paymentDate: payment.paymentDate?.toISOString?.() || new Date().toISOString(),
+      validUpto: payment.validUpto?.toISOString?.() || "",
+    }));
 
     return NextResponse.json({
       success: true,
       transactions,
       meta: {
         count: transactions.length,
-        generatedAt: today.toISOString(),
+        generatedAt: new Date().toISOString(),
       },
     });
   } catch (error) {
