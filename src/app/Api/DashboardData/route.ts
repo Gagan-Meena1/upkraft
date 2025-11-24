@@ -25,7 +25,7 @@ export async function GET(request) {
 
     // Fetch user with lean() for better performance
     const user = await User.findOne({ _id: userId })
-      .select("_id username email category profileImage courses")
+      .select("_id username email category profileImage courses timezone")
       .lean();
     
     if (!user) {
