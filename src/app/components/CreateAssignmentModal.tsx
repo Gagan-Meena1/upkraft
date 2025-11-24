@@ -159,29 +159,46 @@ export default function CreateAssignmentModal({
           setSelectedStudents(editingAssignment.userId);
         }
 
-      } else {
-        try {
-          const saved = typeof window !== "undefined" ? localStorage.getItem("assignmentDefaults") : null;
-          const defaults = saved ? JSON.parse(saved) : {};
-          setFormData((prev) => ({
-            ...prev,
-            course: defaults.course || prev.course || "",
-            class: defaults.class || prev.class || "",
-            speed: defaults.speed || prev.speed || "100%",
-            metronome: defaults.metronome || prev.metronome || "100%",
-            loop: defaults.loop || prev.loop || "Set A",
-          }));
-          setPracticeStudio(Boolean(defaults.practiceStudio));
-        } catch {
-        }
-        setMusicSheet(null);
-        setAssignmentFile(null);
-        setSelectedStudents([]);
-      }
-    };
-
-    init();
-  }, [editingAssignment, isOpen]);
+        initialSnapshotRef.current = {
+          formData: {
+            title: editingAssignment.title || "",
+            deadline: formattedDeadline,
+            description: editingAssignment.description || "",
+            songName: editingAssignment.songName || "",
+            customSongName: "",
+            course: editingAssignment.course?._id || "",
+            class: editingAssignment.class?._id || "",
+            speed: editingAssignment.speed || "100%",
+            metronome: editingAssignment.metronome || "100%",
+            loop: editingAssignment.loop || "Set A",
+          },
+          practiceStudio: Boolean(editingAssignment.practiceStudio),
+          selectedStudents: Array.isArray(editingAssignment.userId) ? [...editingAssignment.userId] : [],
+        };
+ 
+       } else {
+         try {
+           const saved = typeof window !== "undefined" ? localStorage.getItem("assignmentDefaults") : null;
+           const defaults = saved ? JSON.parse(saved) : {};
+           setFormData((prev) => ({
+             ...prev,
+             course: defaults.course || prev.course || "",
+             class: defaults.class || prev.class || "",
+             speed: defaults.speed || prev.speed || "100%",
+             metronome: defaults.metronome || prev.metronome || "100%",
+             loop: defaults.loop || prev.loop || "Set A",
+           }));
+           setPracticeStudio(Boolean(defaults.practiceStudio));
+         } catch {
+         }
+         setMusicSheet(null);
+         setAssignmentFile(null);
+         setSelectedStudents([]);
+       }
+     };
+ 
+     init();
+   }, [editingAssignment, isOpen]);
 
   const [musicSheet, setMusicSheet] = useState<File | null>(null);
   const [assignmentFile, setAssignmentFile] = useState<File | null>(null);
@@ -204,6 +221,72 @@ export default function CreateAssignmentModal({
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+
+  // Snapshot to detect changes when editing
+  const initialSnapshotRef = useRef<any>(null);
+
+  const arraysEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  };
+
+  const isAssignmentChanged = () => {
+    if (!editingAssignment) return true; 
+    const init = initialSnapshotRef.current;
+    if (!init) return false; 
+
+    const f = formData;
+    const keys = [
+      "title",
+      "description",
+      "deadline",
+      "songName",
+      "customSongName",
+      "course",
+      "class",
+      "speed",
+      "metronome",
+      "loop",
+    ];
+    for (const k of keys) {
+      if ((f as any)[k] !== init.formData[k]) return true;
+    }
+
+    if (practiceStudio !== init.practiceStudio) return true;
+
+    const currStudents = [...selectedStudents].sort();
+    const initStudents = [...(init.selectedStudents || [])].sort();
+    if (!arraysEqual(currStudents, initStudents)) return true;
+
+    // any newly added files mark as changed
+    if (assignmentFile || musicSheet) return true;
+
+    return false;
+  };
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchCurrentUser = async () => {
+      try {
+        const res = await fetch("/Api/users/user");
+        if (!res.ok) return;
+        const data = await res.json();
+        const id =
+          data?.data?._id ||
+          data?.user?._id ||
+          data?.user?._id ||
+          data?._id ||
+          null;
+        if (id) setCurrentUserId(id.toString());
+      } catch (e) {
+        console.warn("Failed to fetch current user id:", e);
+      }
+    };
+    fetchCurrentUser();
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) fetchCourses();
@@ -389,7 +472,14 @@ export default function CreateAssignmentModal({
       submitData.append("deadline", new Date(formData.deadline).toISOString());
       submitData.append("courseId", formData.course);
       submitData.append("classId", formData.class);
-      submitData.append("studentIds", JSON.stringify(selectedStudents));
+      // Build unique string IDs and ensure tutor id is included
+      const studentIdsToSend = Array.from(
+        new Set([
+          ...selectedStudents.map((s) => String(s)),
+          ...(currentUserId ? [String(currentUserId)] : []),
+        ])
+      );
+      submitData.append("studentIds", JSON.stringify(studentIdsToSend));
 
       const finalSongName = selectedSong
         ? `${selectedSong.title} - ${selectedSong.artist}`
@@ -931,7 +1021,7 @@ export default function CreateAssignmentModal({
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={isSubmitting || (editingAssignment ? !isAssignmentChanged() : false)}
                 className="!px-6 !py-3 !bg-purple-600 !text-white !rounded-xl !font-semibold !hover:bg-purple-700 !transition-all !disabled:opacity-50"
               >
                 {isSubmitting
