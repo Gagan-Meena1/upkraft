@@ -260,3 +260,13 @@ main {
     background: var(--dark-blue);
     color: var(--white);
 }
+
+.back-btn {
+    background: var(--blue);
+    border-radius: 5px;
+    color: var(--white) !important;
+}
+
+.back-btn:hover {
+    transform: translateX(-5px);
+}

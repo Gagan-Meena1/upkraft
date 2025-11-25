@@ -153,10 +153,10 @@
   color: var(--dark-blue);
 }
 
-.dashboard-sec .side-menu-sec .side-menu a.active svg path,
+/* .dashboard-sec .side-menu-sec .side-menu a.active svg path,
 .dashboard-sec .side-menu-sec .side-menu a:hover svg path {
   fill: var(--dark-blue);
-}
+} */
 
 .dashboard-sec .side-menu-sec .side-menu a svg path {
   transition: all 0.5s ease;

@@ -255,7 +255,6 @@ export default function MyStudents() {
 
   return (
     <div className='right-form'>
-              <Link href="/tutor" className='link-text'>←</Link>
            
     <div className="card-box">
       
@@ -264,7 +263,10 @@ export default function MyStudents() {
       <div className="assignments-list-sec mobile-left-right">
         {/* Header Section */}
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
-          <div className="left-head">
+          <div className="left-head d-flex align-items-center gap-2">
+              <Link href="/tutor" className='link-text back-btn'>
+                <ChevronLeft />
+              </Link>
               <h2 className="m-0">
                 My Students
               </h2>

@@ -427,7 +427,7 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
   const currentStats = getCurrentStats();
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
+    <div className="min-h-screen w-100">
       {isMobile && sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
@@ -435,34 +435,40 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
         />
       )}
 
-      <div className="flex-1 min-h-screen">
-        <main className="p-4 sm:p-6">
+      <div className="h-100 card-box position-relative practice-studio-sec ">
+        <main className="">
           {userCategory === 'Tutor' && (
-            <div className="mb-6 flex justify-center">
-              <div className="bg-white rounded-lg border-2 border-gray-200 p-1 inline-flex shadow-sm">
+            <div className="tab-sec-music">
+              <ul className="mb-3 nav nav-tabs">
+                <li className='nav-item'>
+
                 <button
                   onClick={() => handleArchiveModeChange('my')}
-                  className={`px-6 py-3 rounded-md font-semibold transition-all duration-300 flex items-center gap-2 ${
+                  className={`nav-link d-flex align-items-center gap-2 ${
                     archiveMode === 'my' 
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'active' 
+                      : ''
                   }`}
                 >
                   <UserCircle size={20} />
                   My Archive
                 </button>
+                </li>
+                <li className='nav-item'>
+
                 <button
                   onClick={() => handleArchiveModeChange('students')}
-                  className={`px-6 py-3 rounded-md font-semibold transition-all duration-300 flex items-center gap-2 ${
+                  className={`nav-link d-flex align-items-center gap-2 ${
                     archiveMode === 'students' 
-                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'active' 
+                      : ''
                   }`}
                 >
                   <Users size={20} />
                   Students' Archive
                 </button>
-              </div>
+                </li>
+              </ul>
             </div>
           )}
 
@@ -511,66 +517,80 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Total Sessions</p>
-                      <p className="text-2xl font-bold text-gray-900">{currentStats.totalSessions || 0}</p>
+              <div className="results-sec row">
+                <div className="col-xxl-2 col-lg-3 col-md-6 mb-4">
+                  <div className="card-results text-center">
+                    <span className='d-flex align-items-center gap-2 justify-content-center m-auto'>
+                      <TrendingUp className='d-block m-auto mb-2 text-center'/>
+                    </span>
+                    <div className='text'>
+                      <p>Total Sessions</p>
+                      <h3>{currentStats.totalSessions || 0}</h3>
                     </div>
-                    <TrendingUp className="h-8 w-8 text-purple-500" />
                   </div>
                 </div>
                 
-                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Piano</p>
-                      <p className="text-2xl font-bold text-gray-900">{currentStats.pianoSessions || 0}</p>
+                
+                <div className="col-xxl-2 col-lg-3 col-md-6 mb-4">
+                  <div className="card-results text-center">
+                    <span className='d-flex align-items-center gap-2 justify-content-center m-auto'>
+                      <Piano className="d-block m-auto mb-2 text-center" />
+                    </span>
+                    <div className='text'>
+                      <p>Piano</p>
+                      <h3>{currentStats.pianoSessions || 0}</h3>
                     </div>
-                    <Piano className="h-8 w-8 text-blue-500" />
+                    
                   </div>
                 </div>
                 
-                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Guitar</p>
-                      <p className="text-2xl font-bold text-gray-900">{currentStats.guitarSessions || 0}</p>
+                <div className="col-xxl-2 col-lg-3 col-md-6 mb-4">
+                  <div className="card-results text-center">
+                    <span className='d-flex align-items-center gap-2 justify-content-center m-auto'>
+                      <Guitar  className="d-block m-auto mb-2 text-center"/>
+                    </span>
+                    <div className='text'>
+                      <p>Guitar</p>
+                      <h3>{currentStats.guitarSessions || 0}</h3>
                     </div>
-                    <Guitar className="h-8 w-8 text-green-500" />
                   </div>
                 </div>
                 
-                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Drums</p>
-                      <p className="text-2xl font-bold text-gray-900">{currentStats.drumsSessions || 0}</p>
+                <div className="col-xxl-2 col-lg-3 col-md-6 mb-4">
+                  <div className="card-results text-center">
+                    <span className='d-flex align-items-center gap-2 justify-content-center m-auto'>
+                      <Drum className="d-block m-auto mb-2 text-center"/>
+                    </span>
+                    <div className='text'>
+                      <p>Drums</p>
+                      <h3>{currentStats.drumsSessions || 0}</h3>
                     </div>
-                    <Drum className="h-8 w-8 text-orange-500" />
                   </div>
                 </div>
                 
-                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Vocals</p>
-                      <p className="text-2xl font-bold text-gray-900">{currentStats.vocalsSessions || 0}</p>
+                <div className="col-xxl-2 col-lg-3 col-md-6 mb-4">
+                  <div className="card-results text-center">
+                    <span className='d-flex align-items-center gap-2 justify-content-center m-auto'>
+                      <Mic className="d-block m-auto mb-2 text-center"/>
+                    </span>
+                    <div className='text'>
+                      <p>Vocals</p>
+                      <h3>{currentStats.vocalsSessions || 0}</h3>
                     </div>
-                    <Mic className="h-8 w-8 text-pink-500" />
                   </div>
                 </div>
                 
-                <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Last Activity</p>
-                      <p className="text-sm font-medium text-gray-900">
+                <div className="col-xxl-2 col-lg-3 col-md-6 mb-4">
+                  <div className="card-results text-center">
+                    <span className='d-flex align-items-center gap-2 justify-content-center m-auto'>
+                      <Clock className="d-block m-auto mb-2 text-center"/>
+                    </span>
+                    <div className='text'>
+                      <p>Last Activity</p>
+                      <h3>
                         {currentStats.lastActivity ? new Date(currentStats.lastActivity).toLocaleDateString() : 'No activity'}
-                      </p>
+                      </h3>
                     </div>
-                    <Clock className="h-8 w-8 text-indigo-500" />
                   </div>
                 </div>
               </div>
