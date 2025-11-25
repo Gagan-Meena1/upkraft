@@ -931,7 +931,7 @@ export default function CreateAssignmentModal({
               </div>
 
               {/* Loop */}
-              <div>
+              {/* <div>
                 <label className="!block !text-sm !font-semibold !text-gray-700 !mb-2">
                   Loop
                 </label>
@@ -948,7 +948,7 @@ export default function CreateAssignmentModal({
                   <option value="Set C">Set C</option>
                   <option value="Full">Full</option>
                 </select>
-              </div>
+              </div> */}
             </div>
 
             {/* File Uploads */}
@@ -1022,7 +1022,12 @@ export default function CreateAssignmentModal({
                 type="button"
                 onClick={handleSubmit}
                 disabled={isSubmitting || (editingAssignment ? !isAssignmentChanged() : false)}
-                className="!px-6 !py-3 !bg-purple-600 !text-white !rounded-xl !font-semibold !hover:bg-purple-700 !transition-all !disabled:opacity-50"
+                className={
+                  "!px-6 !py-3 !rounded-xl !font-semibold !transition-all " +
+                  (isSubmitting || (editingAssignment ? !isAssignmentChanged() : false)
+                    ? "!bg-purple-200 !text-purple-300 !cursor-not-allowed !border !border-purple-100"
+                    : "!bg-purple-600 !text-white hover:!bg-purple-700")
+                }
               >
                 {isSubmitting
                   ? editingAssignment
