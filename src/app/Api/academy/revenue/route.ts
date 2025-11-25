@@ -51,12 +51,12 @@ export async function GET(request: NextRequest) {
 
     const transactions = payments.map((payment) => ({
       transactionId: payment.transactionId,
-      studentId: payment.studentId,
+      studentId: payment.studentId?.toString() || "",
       studentName: payment.studentName,
       studentEmail: payment.studentEmail,
-      tutorId: payment.tutorId,
+      tutorId: payment.tutorId?.toString() || "",
       tutorName: payment.tutorName,
-      courseId: payment.courseId,
+      courseId: payment.courseId?.toString() || "",
       courseTitle: payment.courseTitle,
       amount: payment.amount,
       commission: payment.commission,
@@ -165,6 +165,148 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error: "Failed to add revenue",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    await connect();
+
+    const context = await ensureAcademyContext(request);
+    if ("error" in context) return context.error;
+    const academyId = context.academyId;
+
+    const {
+      transactionId,
+      transactionDate,
+      validUpto,
+      studentId,
+      tutorId,
+      courseId,
+      amount,
+      commission,
+      status = STATUS,
+      paymentMethod = "Cash",
+    } = await request.json();
+
+    if (!transactionId || !transactionDate || !validUpto || !studentId || !courseId || !amount) {
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    }
+
+    // Find the payment by transactionId and verify it belongs to this academy
+    const existingPayment = await Payment.findOne({ transactionId }).lean();
+    if (!existingPayment) {
+      return NextResponse.json({ success: false, error: "Transaction not found" }, { status: 404 });
+    }
+
+    const academyObjectId = new mongoose.Types.ObjectId(academyId);
+    if (existingPayment.academyId.toString() !== academyObjectId.toString()) {
+      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 403 });
+    }
+
+    // Only allow editing if payment method is Cash
+    if (existingPayment.paymentMethod !== "Cash") {
+      return NextResponse.json(
+        { success: false, error: "Only Cash payment transactions can be edited" },
+        { status: 403 }
+      );
+    }
+
+    const student = await User.findById(studentId).select("username email academyId");
+    if (!student) {
+      return NextResponse.json({ success: false, error: "Student not found" }, { status: 404 });
+    }
+
+    if (!student.academyId || student.academyId.toString() !== academyId) {
+      return NextResponse.json({ success: false, error: "Student does not belong to this academy" }, { status: 403 });
+    }
+
+    const course = await courseName.findById(courseId).select("title price instructorId");
+    if (!course) {
+      return NextResponse.json({ success: false, error: "Course not found" }, { status: 404 });
+    }
+
+    const tutor =
+      tutorId || course.instructorId
+        ? await User.findById(tutorId || course.instructorId).select("username").lean()
+        : null;
+
+    const paymentDate = new Date(transactionDate);
+    const validUntil = new Date(validUpto);
+
+    const updatedPayment = await Payment.findOneAndUpdate(
+      { transactionId },
+      {
+        studentId: student._id,
+        studentName: student.username,
+        studentEmail: student.email,
+        tutorId: tutor?._id || null,
+        tutorName: tutor?.username || "N/A",
+        courseId: course._id,
+        courseTitle: course.title,
+        amount: Number(amount),
+        commission: Number(commission || 0),
+        paymentMethod,
+        status,
+        paymentDate,
+        validUpto: validUntil,
+      },
+      { new: true }
+    );
+
+    return NextResponse.json({ success: true, payment: updatedPayment });
+  } catch (error) {
+    console.error("Error updating revenue:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to update revenue",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await connect();
+
+    const context = await ensureAcademyContext(request);
+    if ("error" in context) return context.error;
+    const academyId = context.academyId;
+
+    const { searchParams } = new URL(request.url);
+    const transactionId = searchParams.get("transactionId");
+
+    if (!transactionId) {
+      return NextResponse.json({ success: false, error: "Transaction ID is required" }, { status: 400 });
+    }
+
+    // Find the payment and verify it belongs to this academy
+    const payment = await Payment.findOne({ transactionId }).lean();
+    if (!payment) {
+      return NextResponse.json({ success: false, error: "Transaction not found" }, { status: 404 });
+    }
+
+    const academyObjectId = new mongoose.Types.ObjectId(academyId);
+    if (payment.academyId.toString() !== academyObjectId.toString()) {
+      return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 403 });
+    }
+
+    await Payment.deleteOne({ transactionId });
+
+    return NextResponse.json({ success: true, message: "Transaction deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting revenue:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to delete revenue",
         message: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }

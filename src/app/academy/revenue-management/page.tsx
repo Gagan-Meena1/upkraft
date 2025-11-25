@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import RevenueTrend from "../../components/academy/RevenueTrend";
 import { Modal, Button } from "react-bootstrap";
 import { toast } from "react-hot-toast";
+import { FiEdit, FiTrash2 } from "react-icons/fi";
 
 interface Student {
   _id: string;
@@ -26,7 +27,9 @@ interface RevenueTransaction {
   transactionId: string;
   studentId: string;
   studentName: string;
+  tutorId?: string;
   tutorName: string;
+  courseId: string;
   courseTitle: string;
   amount: number;
   commission: number;
@@ -39,6 +42,11 @@ interface RevenueTransaction {
 export default function RevenueManagement() {
   const [activePeriod, setActivePeriod] = useState("This Month");
   const [showAddRevenueModal, setShowAddRevenueModal] = useState(false);
+  const [showEditRevenueModal, setShowEditRevenueModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
+  const [transactionToEdit, setTransactionToEdit] = useState<RevenueTransaction | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -87,12 +95,12 @@ export default function RevenueManagement() {
 
   // Fetch students, tutors, and courses when modal opens
   useEffect(() => {
-    if (showAddRevenueModal) {
+    if (showAddRevenueModal || showEditRevenueModal) {
       fetchStudents();
       fetchTutors();
       fetchCourses();
     }
-  }, [showAddRevenueModal]);
+  }, [showAddRevenueModal, showEditRevenueModal]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -228,6 +236,7 @@ export default function RevenueManagement() {
 
   const handleClose = () => {
     setShowAddRevenueModal(false);
+    setShowEditRevenueModal(false);
     setFormData({
       transactionDate: "",
       validUpto: "",
@@ -239,6 +248,128 @@ export default function RevenueManagement() {
       status: "Paid",
       paymentMethod: "Cash",
     });
+  };
+
+  const handleEditClick = (transaction: RevenueTransaction) => {
+    if (transaction.paymentMethod !== "Cash") {
+      toast.error("Only Cash payment transactions can be edited");
+      return;
+    }
+    setTransactionToEdit(transaction);
+    // Format dates for input fields (YYYY-MM-DD)
+    const formatDateForInput = (dateString: string) => {
+      if (!dateString) return "";
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) return "";
+      return date.toISOString().split("T")[0];
+    };
+    setFormData({
+      transactionDate: formatDateForInput(transaction.paymentDate),
+      validUpto: formatDateForInput(transaction.validUpto),
+      studentId: transaction.studentId,
+      tutorId: transaction.tutorId || "",
+      courseId: transaction.courseId,
+      amount: transaction.amount.toString(),
+      commission: transaction.commission.toString(),
+      status: transaction.status,
+      paymentMethod: transaction.paymentMethod,
+    });
+    setShowEditRevenueModal(true);
+  };
+
+  const handleDeleteClick = (transactionId: string) => {
+    setTransactionToDelete(transactionId);
+    setDeleteConfirmText("");
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (deleteConfirmText.toLowerCase() !== "delete") {
+      toast.error('Please type "delete" to confirm');
+      return;
+    }
+
+    if (!transactionToDelete) {
+      toast.error("Transaction ID is missing");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const encodedTransactionId = encodeURIComponent(transactionToDelete);
+      const response = await fetch(`/Api/academy/revenue?transactionId=${encodedTransactionId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to delete transaction");
+      }
+
+      toast.success("Transaction deleted successfully!");
+      fetchRevenueTransactions();
+      setShowDeleteModal(false);
+      setTransactionToDelete(null);
+      setDeleteConfirmText("");
+    } catch (error) {
+      console.error("Error deleting transaction:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete transaction");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transactionToEdit) return;
+
+    setLoading(true);
+
+    try {
+      const payload = {
+        transactionId: transactionToEdit.transactionId,
+        ...formData,
+        amount: Number(formData.amount),
+        commission: Number(formData.commission || 0),
+      };
+
+      const response = await fetch("/Api/academy/revenue", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to update revenue transaction");
+      }
+
+      toast.success("Revenue transaction updated successfully!");
+      fetchRevenueTransactions();
+      setShowEditRevenueModal(false);
+      setTransactionToEdit(null);
+      setFormData({
+        transactionDate: "",
+        validUpto: "",
+        studentId: "",
+        tutorId: "",
+        courseId: "",
+        amount: "",
+        commission: "",
+        status: "Paid",
+        paymentMethod: "Cash",
+      });
+    } catch (error) {
+      console.error("Error updating revenue:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update revenue transaction");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -993,10 +1124,11 @@ export default function RevenueManagement() {
           background: "white",
           borderRadius: "16px",
           boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-          overflow: "hidden",
+          overflowX: "auto",
+          overflowY: "hidden",
         }}
       >
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1200px" }}>
           <thead>
             <tr>
               <th style={{ textAlign: "left", padding: "16px", background: "#f8f9fa", color: "#666", fontWeight: "600", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
@@ -1029,12 +1161,15 @@ export default function RevenueManagement() {
               <th style={{ textAlign: "left", padding: "16px", background: "#f8f9fa", color: "#666", fontWeight: "600", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                 Payment Method
               </th>
+              <th style={{ textAlign: "left", padding: "16px", background: "#f8f9fa", color: "#666", fontWeight: "600", fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.5px", minWidth: "120px", whiteSpace: "nowrap" }}>
+                Action
+              </th>
             </tr>
           </thead>
           <tbody>
             {tableLoading && (
               <tr>
-                <td colSpan={10} style={{ padding: "24px", textAlign: "center", color: "#666", fontWeight: 500 }}>
+                <td colSpan={11} style={{ padding: "24px", textAlign: "center", color: "#666", fontWeight: 500 }}>
                   Loading transactions...
                 </td>
               </tr>
@@ -1042,7 +1177,7 @@ export default function RevenueManagement() {
 
             {!tableLoading && tableError && (
               <tr>
-                <td colSpan={10} style={{ padding: "24px", textAlign: "center", color: "#c62828", fontWeight: 600 }}>
+                <td colSpan={11} style={{ padding: "24px", textAlign: "center", color: "#c62828", fontWeight: 600 }}>
                   {tableError}
                 </td>
               </tr>
@@ -1050,7 +1185,7 @@ export default function RevenueManagement() {
 
             {!tableLoading && !tableError && transactions.length === 0 && (
               <tr>
-                <td colSpan={10} style={{ padding: "24px", textAlign: "center", color: "#666", fontWeight: 500 }}>
+                <td colSpan={11} style={{ padding: "24px", textAlign: "center", color: "#666", fontWeight: 500 }}>
                   No transactions found for the selected filters.
                 </td>
               </tr>
@@ -1094,6 +1229,64 @@ export default function RevenueManagement() {
                       </span>
                     </td>
                     <td style={{ padding: "16px", color: "#333" }}>{transaction.paymentMethod}</td>
+                    <td style={{ padding: "16px", minWidth: "120px", whiteSpace: "nowrap" }}>
+                      <div style={{ display: "flex", gap: "12px", alignItems: "center", justifyContent: "flex-start" }}>
+                        <button
+                          onClick={() => handleEditClick(transaction)}
+                          disabled={transaction.paymentMethod !== "Cash"}
+                          style={{
+                            background: transaction.paymentMethod === "Cash" ? "transparent" : "transparent",
+                            border: "none",
+                            cursor: transaction.paymentMethod === "Cash" ? "pointer" : "not-allowed",
+                            padding: "8px",
+                            borderRadius: "6px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: transaction.paymentMethod === "Cash" ? "#6200EA" : "#ccc",
+                            transition: "all 0.2s",
+                            opacity: transaction.paymentMethod === "Cash" ? 1 : 0.5,
+                          }}
+                          onMouseEnter={(e) => {
+                            if (transaction.paymentMethod === "Cash") {
+                              e.currentTarget.style.background = "#f3e5f5";
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (transaction.paymentMethod === "Cash") {
+                              e.currentTarget.style.background = "transparent";
+                            }
+                          }}
+                          title={transaction.paymentMethod === "Cash" ? "Edit transaction" : "Only Cash payments can be edited"}
+                        >
+                          <FiEdit size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(transaction.transactionId)}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            cursor: "pointer",
+                            padding: "8px",
+                            borderRadius: "6px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#c62828",
+                            transition: "all 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#ffebee";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                          }}
+                          title="Delete transaction"
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
@@ -1323,6 +1516,276 @@ export default function RevenueManagement() {
             </div>
           </form>
         </Modal.Body>
+      </Modal>
+
+      {/* Edit Revenue Modal */}
+      <Modal show={showEditRevenueModal} onHide={handleClose} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Revenue Transaction</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <form onSubmit={handleUpdateSubmit}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px", marginBottom: "20px" }}>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Transaction Date <span style={{ color: "red" }}>*</span>
+                </label>
+                <input
+                  type="date"
+                  name="transactionDate"
+                  value={formData.transactionDate}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Valid Upto <span style={{ color: "red" }}>*</span>
+                </label>
+                <input
+                  type="date"
+                  name="validUpto"
+                  value={formData.validUpto}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Student Name <span style={{ color: "red" }}>*</span>
+                </label>
+                <select
+                  name="studentId"
+                  value={formData.studentId}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                >
+                  <option value="">Select Student</option>
+                  {students.map((student) => (
+                    <option key={student._id} value={student._id}>
+                      {student.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Tutor <span style={{ color: "red" }}>*</span>
+                </label>
+                <select
+                  name="tutorId"
+                  value={formData.tutorId}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                >
+                  <option value="">Select Tutor</option>
+                  {tutors.map((tutor) => (
+                    <option key={tutor._id} value={tutor._id}>
+                      {tutor.username}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Course <span style={{ color: "red" }}>*</span>
+                </label>
+                <select
+                  name="courseId"
+                  value={formData.courseId}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                >
+                  <option value="">Select Course</option>
+                  {courses.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Amount <span style={{ color: "red" }}>*</span>
+                </label>
+                <input
+                  type="number"
+                  name="amount"
+                  value={formData.amount}
+                  onChange={handleInputChange}
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="Enter amount"
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Commission
+                </label>
+                <input
+                  type="number"
+                  name="commission"
+                  value={formData.commission}
+                  onChange={handleInputChange}
+                  readOnly
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    background: "#f5f5f5",
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Status <span style={{ color: "red" }}>*</span>
+                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  required
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                  }}
+                >
+                  <option value="Paid">Paid</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                  Payment Method
+                </label>
+                <input
+                  type="text"
+                  name="paymentMethod"
+                  value={formData.paymentMethod}
+                  readOnly
+                  style={{
+                    width: "100%",
+                    padding: "10px",
+                    border: "2px solid #e0e0e0",
+                    borderRadius: "8px",
+                    fontSize: "14px",
+                    background: "#f5f5f5",
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "20px" }}>
+              <Button variant="secondary" onClick={handleClose} disabled={loading}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={loading}
+                style={{
+                  background: "linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)",
+                  border: "none",
+                }}
+              >
+                {loading ? "Updating..." : "Update Transaction"}
+              </Button>
+            </div>
+          </form>
+        </Modal.Body>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Delete</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{ marginBottom: "20px" }}>
+            <p style={{ color: "#333", marginBottom: "16px" }}>
+              Are you sure you want to delete this transaction? This action cannot be undone.
+            </p>
+            <p style={{ color: "#666", fontSize: "14px", marginBottom: "16px" }}>
+              Type <strong style={{ color: "#c62828" }}>"delete"</strong> to confirm:
+            </p>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="Type 'delete' to confirm"
+              style={{
+                width: "100%",
+                padding: "10px",
+                border: "2px solid #e0e0e0",
+                borderRadius: "8px",
+                fontSize: "14px",
+              }}
+            />
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleDeleteConfirm}
+            disabled={loading || deleteConfirmText.toLowerCase() !== "delete"}
+            style={{
+              background: deleteConfirmText.toLowerCase() === "delete" ? "#c62828" : "#ccc",
+              border: "none",
+            }}
+          >
+            {loading ? "Deleting..." : "Delete"}
+          </Button>
+        </Modal.Footer>
       </Modal>
     </div>
   );
