@@ -147,7 +147,68 @@ export default function RevenueManagement() {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const fetchTutorForCourse = async (courseId: string) => {
+    if (!courseId) return;
+    
+    try {
+      const response = await fetch(`/Api/tutors/courses/${courseId}`);
+      const data = await response.json();
+      
+      if (data.courseDetails) {
+        const course = data.courseDetails;
+        // Try to get tutor from course.instructorId first, then academyInstructorId
+        let tutorId = course.instructorId;
+        
+        // If no instructorId, try to get from academyInstructorId array (get first one)
+        if (!tutorId && course.academyInstructorId && course.academyInstructorId.length > 0) {
+          tutorId = course.academyInstructorId[0];
+        }
+        
+        if (tutorId) {
+          const tutorIdString = tutorId.toString();
+          // Check if tutor exists in the tutors list
+          let tutor = tutors.find((t) => t._id === tutorIdString);
+          
+          if (tutor) {
+            // Tutor is already in the list, just set it
+            setFormData((prev) => ({ ...prev, tutorId: tutorIdString }));
+          } else {
+            // Tutor not in list, fetch it and add to the list
+            try {
+              const tutorResponse = await fetch(`/Api/users/user?id=${tutorIdString}`);
+              const tutorData = await tutorResponse.json();
+              
+              if (tutorData.success && tutorData.user) {
+                const fetchedTutor = {
+                  _id: tutorData.user._id,
+                  username: tutorData.user.username,
+                  email: tutorData.user.email || "",
+                };
+                // Add tutor to the tutors list
+                setTutors((prev) => {
+                  // Check if tutor already exists to avoid duplicates
+                  if (prev.find((t) => t._id === fetchedTutor._id)) {
+                    return prev;
+                  }
+                  return [...prev, fetchedTutor];
+                });
+                // Set the tutor in form data
+                setFormData((prev) => ({ ...prev, tutorId: tutorIdString }));
+              }
+            } catch (error) {
+              console.error("Error fetching tutor details:", error);
+              // Still set the tutorId even if fetch fails (backend will validate)
+              setFormData((prev) => ({ ...prev, tutorId: tutorIdString }));
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching course details:", error);
+    }
+  };
+
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     
@@ -158,6 +219,11 @@ export default function RevenueManagement() {
         const commission = (amount * 0.15).toFixed(2);
         setFormData((prev) => ({ ...prev, commission }));
       }
+    }
+    
+    // Auto-fill tutor when course is selected
+    if (name === "courseId" && value) {
+      await fetchTutorForCourse(value);
     }
   };
 
