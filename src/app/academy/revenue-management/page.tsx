@@ -1480,22 +1480,28 @@ export default function RevenueManagement() {
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
-                  Payment Method
+                  Payment Method <span style={{ color: "red" }}>*</span>
                 </label>
-                <input
-                  type="text"
+                <select
                   name="paymentMethod"
                   value={formData.paymentMethod}
-                  readOnly
+                  onChange={handleInputChange}
+                  required
                   style={{
                     width: "100%",
                     padding: "10px",
                     border: "2px solid #e0e0e0",
                     borderRadius: "8px",
                     fontSize: "14px",
-                    background: "#f5f5f5",
+                    background: "white",
+                    cursor: "pointer",
                   }}
-                />
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Net Banking">Net Banking</option>
+                  <option value="Credit Card">Credit Card</option>
+                </select>
               </div>
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "20px" }}>
