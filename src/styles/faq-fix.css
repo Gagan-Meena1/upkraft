@@ -1,0 +1,18 @@
+/* FAQ Accordion Fix - Prevents content from disappearing */
+
+.faq-inner-sec .accordion .accordion-collapse {
+    transition: height 0.35s ease !important;
+}
+
+.faq-inner-sec .accordion .accordion-collapse.show {
+    overflow: visible !important;
+}
+
+.faq-inner-sec .accordion .accordion-collapse.collapsing {
+    overflow: hidden !important;
+}
+
+.faq-inner-sec .accordion .accordion-item .accordion-body {
+    opacity: 1 !important;
+    visibility: visible !important;
+}

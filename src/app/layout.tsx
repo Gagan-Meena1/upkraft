@@ -10,6 +10,7 @@ import "@/styles/globals.css";
 import "../../style.css"
 import "./custom.css"
 import "./media.css"
+import "@/styles/faq-fix.css"
 // import "./academyStyle.css"
 // import "@/styles/style 2.css"; 
 // import "@/styles/style.css";
