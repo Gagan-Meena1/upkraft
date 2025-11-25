@@ -18,10 +18,12 @@ export async function POST(request : NextRequest ){
 
         const normalizedEmail = email.toLowerCase();
 
+        // instructorId is optional - only present when an academy is creating tutors/students
+        // For direct registration (like tutor signup), instructorId will be null
         const token = request.cookies.get("token")?.value;
         const decodedToken = token ? jwt.decode(token) : null;
         const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-        console.log("[API/signup] Decoded token from cookie.", { instructorId });
+        console.log("[API/signup] Decoded token from cookie.", { instructorId, isDirectRegistration: !instructorId });
 
         // Check if user with the same email already exists
         const userByEmail = await User.findOne({ email: { $regex: `^${normalizedEmail}$`, $options: 'i' } });
@@ -47,19 +49,29 @@ export async function POST(request : NextRequest ){
             address,
             contact,
         });
+              
+        const instructor= instructorId ? await User.findById(instructorId) : null;
 
-        if (instructorId) {
+
+        if (instructorId && instructor) {
             newUser.instructorId = Array.isArray(instructorId) ? instructorId : [instructorId];
         }
-        const instructor= await User.findById(instructorId);
-            if(instructor.category==="Academic"){
-                newUser.academyId= instructorId;
-                console.log("[API/signup] Linked student to academy.");
+        
+        // Only process academy linking if instructor exists and is an Academic
+        if(instructor && instructor.category==="Academic"){
+            newUser.academyId= instructorId;
+            console.log("[API/signup] Linked student to academy.");
+            if(newUser.category==="Student"){
                 instructor.students.push(newUser._id);
                 await instructor.save();
                 console.log("[API/signup] Updated academy with new student.", { academyId: instructorId, studentId: newUser._id });
-                
             }
+            else if(newUser.category==="Tutor"){
+                instructor.tutors.push(newUser._id);
+                await instructor.save();
+                console.log("[API/signup] Updated academy with new tutor.", { academyId: instructorId, tutorId: newUser._id });
+            }
+        }
         // if( addedBy ==="academy"){
         //     const tutor= await User.findById(instructorId);
         //     if(tutor){

@@ -7,7 +7,6 @@ import feedbackDance from "@/models/feedbackDance";
 import feedbackDrawing from "@/models/feedbackDrawing";
 import { connect } from "@/dbConnection/dbConfic";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 
 export async function GET(request) {
   try {
@@ -19,7 +18,6 @@ export async function GET(request) {
     let tutorId = searchParams.get("tutorId");
 
     if (!tutorId) {
-      // Get from token if not in query param
       const token = request.cookies.get("token")?.value;
       if (!token) {
         return NextResponse.json({ error: "No token or tutorId found" }, { status: 401 });
@@ -32,11 +30,18 @@ export async function GET(request) {
       tutorId = decodedToken.id;
     }
 
-    // Step 1: Find all students who have this tutor in their instructorId field
-    const students = await User.find({
-      instructorId: tutorId,
-      category: "Student"
-    }).select("_id username courses");
+    // Fetch tutor and students in parallel
+    const [tutor, students] = await Promise.all([
+      User.findById(tutorId).select("courses").lean(),
+      User.find({
+        instructorId: tutorId,
+        category: "Student"
+      }).select("_id username profileImage courses").lean()
+    ]);
+
+    if (!tutor) {
+      return NextResponse.json({ error: "Tutor not found" }, { status: 404 });
+    }
 
     if (!students || students.length === 0) {
       return NextResponse.json({
@@ -47,15 +52,8 @@ export async function GET(request) {
       });
     }
 
-    // Step 2: Find tutor's courses
-    const tutor = await User.findById(tutorId).select("courses");
-    if (!tutor) {
-      return NextResponse.json({ error: "Tutor not found" }, { status: 404 });
-    }
-
     const tutorCourseIds = tutor.courses.map(id => id.toString());
     
-    // Check if tutor has any courses
     if (tutorCourseIds.length === 0) {
       return NextResponse.json({
         success: true,
@@ -67,59 +65,110 @@ export async function GET(request) {
       });
     }
 
-    const missingFeedbackClasses = [];
-    const studentsWithCommonCourses = [];
-    const studentsWithoutCommonCourses = [];
+    // Collect all student IDs and course IDs for bulk queries
+    const studentIds = students.map(s => s._id);
+    const allStudentCourseIds = new Set();
+    
+    students.forEach(student => {
+      student.courses.forEach(courseId => {
+        const courseIdStr = courseId.toString();
+        if (tutorCourseIds.includes(courseIdStr)) {
+          allStudentCourseIds.add(courseIdStr);
+        }
+      });
+    });
 
-    // Process each student
+    if (allStudentCourseIds.size === 0) {
+      return NextResponse.json({
+        success: true,
+        message: "No common courses found between tutor and students",
+        tutorId,
+        totalStudents: students.length,
+        missingFeedbackClasses: [],
+        count: 0
+      });
+    }
+
+    // Fetch all relevant courses with their classes in one query
+    const courses = await courseName.find({
+      _id: { $in: Array.from(allStudentCourseIds) }
+    }).select("_id title category class").lean();
+
+    // Collect all class IDs
+    const allClassIds = new Set();
+    courses.forEach(course => {
+      if (course.class && course.class.length > 0) {
+        course.class.forEach(classId => allClassIds.add(classId.toString()));
+      }
+    });
+
+    if (allClassIds.size === 0) {
+      return NextResponse.json({
+        success: true,
+        message: "No classes found for common courses",
+        tutorId,
+        totalStudents: students.length,
+        missingFeedbackClasses: [],
+        count: 0
+      });
+    }
+
+    // Fetch all classes in one query
+    const classes = await Class.find({
+  _id: { $in: Array.from(allClassIds) },
+  endTime: { $lt: new Date() }  // ✅ Only classes where endTime is in the past
+}).select("_id title description startTime endTime").lean();
+
+    // Create a map for quick class lookup
+    const classMap = new Map(classes.map(c => [c._id.toString(), c]));
+
+    // Fetch all existing feedback records in parallel for all three models
+    const [musicFeedbacks, danceFeedbacks, drawingFeedbacks] = await Promise.all([
+      feedback.find({
+        userId: { $in: studentIds },
+        classId: { $in: Array.from(allClassIds) }
+      }).select("userId classId").lean(),
+      feedbackDance.find({
+        userId: { $in: studentIds },
+        classId: { $in: Array.from(allClassIds) }
+      }).select("userId classId").lean(),
+      feedbackDrawing.find({
+        userId: { $in: studentIds },
+        classId: { $in: Array.from(allClassIds) }
+      }).select("userId classId").lean()
+    ]);
+
+    // Create feedback lookup sets for O(1) lookup
+    const feedbackSets = {
+      Music: new Set(musicFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+      Dance: new Set(danceFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+      Drawing: new Set(drawingFeedbacks.map(f => `${f.userId}_${f.classId}`))
+    };
+
+    // Build missing feedback list
+    const missingFeedbackClasses = [];
+
     for (const student of students) {
       const studentCourseIds = student.courses.map(id => id.toString());
-      
-      // Step 3: Find common courses between tutor and student
       const commonCourseIds = tutorCourseIds.filter(courseId => 
         studentCourseIds.includes(courseId)
       );
 
-      if (commonCourseIds.length === 0) continue;
+      for (const courseId of commonCourseIds) {
+        const course = courses.find(c => c._id.toString() === courseId);
+        if (!course || !course.class || course.class.length === 0) continue;
 
-      // Get course details for common courses
-      const commonCourses = await courseName.find({
-        _id: { $in: commonCourseIds }
-      });
+        const category = course.category;
+        if (!["Music", "Dance", "Drawing"].includes(category)) continue;
 
-      // Step 4: Process each common course
-      for (const course of commonCourses) {
-        const classIds = course.class || [];
-        
-        if (classIds.length === 0) continue;
+        for (const classId of course.class) {
+          const classIdStr = classId.toString();
+          const classItem = classMap.get(classIdStr);
+          if (!classItem) continue;
 
-        // Get class details
-        const classes = await Class.find({ _id: { $in: classIds } });
-
-        // Step 5: Check feedback for each class based on course category
-        for (const classItem of classes) {
-          let feedbackExists = false;
-          let FeedbackModel;
-
-          // Select appropriate feedback model based on course category
-          if (course.category === "Music") {
-            FeedbackModel = feedback;
-          } else if (course.category === "Dance") {
-            FeedbackModel = feedbackDance;
-          } else if (course.category === "Drawing") {
-            FeedbackModel = feedbackDrawing;
-          } else {
-            continue; // Skip if category doesn't match
-          }
-
-          // Check if feedback exists for this student and class
-          const existingFeedback = await FeedbackModel.findOne({
-            userId: student._id,
-            classId: classItem._id
-          });
-
-          if (!existingFeedback) {
-            // Feedback not found - add to missing list
+          // Check if feedback exists using the set
+          const feedbackKey = `${student._id}_${classIdStr}`;
+          if (!feedbackSets[category].has(feedbackKey)) {
             missingFeedbackClasses.push({
               studentId: student._id,
               studentName: student.username,
@@ -128,10 +177,10 @@ export async function GET(request) {
               className: classItem.title || classItem.name,
               courseId: course._id,
               courseName: course.title,
-              courseCategory: course.category,
+              courseCategory: category,
               classDate: classItem.date || classItem.scheduledDate,
-              feedbackModelRequired: course.category === "Music" ? "feedback" : 
-                                     course.category === "Dance" ? "feedbackDance" : 
+              feedbackModelRequired: category === "Music" ? "feedback" : 
+                                     category === "Dance" ? "feedbackDance" : 
                                      "feedbackDrawing"
             });
           }
@@ -148,7 +197,7 @@ export async function GET(request) {
       count: missingFeedbackClasses.length
     });
 
-  } catch (error:any) {
+  } catch (error: any) {
     console.error("Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

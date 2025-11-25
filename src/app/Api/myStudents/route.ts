@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       .select('username email contact instructorId city profileImage assignment courses _id')
       .populate({
         path: 'courses',
-        select: 'title category description duration price courseQuality curriculum performanceScores instructorId',
+        select: 'title category duration price courseQuality performanceScores instructorId',
         populate: [
           {
             path: 'instructorId',
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     .select('username email contact city profileImage assignment courses _id')
     .populate({
       path: 'courses',
-      select: 'title category description duration price courseQuality curriculum performanceScores instructorId',
+      select: 'title category duration price courseQuality performanceScores instructorId',
       populate: [
         {
           path: 'instructorId',
@@ -236,6 +236,14 @@ export async function POST(request: NextRequest) {
       { $push: { instructorId: tutorId } },
       { new: true }
     );
+
+    await User.findByIdAndUpdate(
+      tutorId,
+      { $push: { students: student._id } },
+      { new: true }
+    );
+
+
 
     return NextResponse.json({
       success: true,

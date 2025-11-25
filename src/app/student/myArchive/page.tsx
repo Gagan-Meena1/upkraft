@@ -2,19 +2,20 @@
 import { useState, useEffect } from 'react';
 import { 
   Download, Calendar, Music, Guitar, Piano, TrendingUp, Clock, Star, ChevronDown, ChevronUp,
-  Play, Pause, UserCircle
+  Play, Pause, UserCircle, Drum, Mic
 } from "lucide-react";
 import DashboardLayout from "@/app/components/DashboardLayout";
 
 export default function StudentArchivePage() {
   const [loading, setLoading] = useState(true);
-  const [results, setResults] = useState({ piano: [], guitar: [] });
+  const [results, setResults] = useState({ piano: [], guitar: [], drums: [], vocals: [], other: [] });
   const [stats, setStats] = useState({});
   const [activeTab, setActiveTab] = useState('all');
   const [error, setError] = useState(null);
   const [expandedCards, setExpandedCards] = useState({});
   const [downloadingFiles, setDownloadingFiles] = useState({});
   const [playingAudio, setPlayingAudio] = useState({});
+  const [evaluatingAI, setEvaluatingAI] = useState({});
 
   useEffect(() => {
     fetchResults();
@@ -104,6 +105,84 @@ export default function StudentArchivePage() {
     }));
   };
 
+  const handleAIEvaluation = async (audioFileUrl, instrument, resultId) => {
+    try {
+      setEvaluatingAI(prev => ({ ...prev, [resultId]: true }));
+      
+      // Fetch the original audio file from Cloudinary URL
+      const audioResponse = await fetch(audioFileUrl);
+      if (!audioResponse.ok) throw new Error('Failed to fetch audio file');
+      
+      const audioBlob = await audioResponse.blob();
+      const fileName = `practice_recording_${Date.now()}.webm`;
+      const audioFile = new File([audioBlob], fileName, { 
+        type: audioBlob.type || 'audio/webm'
+      });
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('audio_file', audioFile);
+      formData.append('ratingPath', instrument);
+      
+      console.log('Sending AI evaluation request for instrument:', instrument);
+      
+      const response = await fetch('/Api/proxy/practice', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `API call failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ AI Evaluation Response:', data);
+      
+      // Update the database with analysis results
+      await updateResultWithAnalysis(resultId, data.ratings, instrument);
+      
+      // Refresh the results
+      await fetchResults();
+      
+      alert('AI Evaluation completed successfully! The analysis has been saved.');
+      
+    } catch (error) {
+      console.error('❌ Error during AI evaluation:', error);
+      alert(`Failed to evaluate: ${error.message}`);
+    } finally {
+      setEvaluatingAI(prev => ({ ...prev, [resultId]: false }));
+    }
+  };
+
+  const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
+    try {
+      const response = await fetch('/Api/practice/saveResult', {
+        method: 'PUT', 
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          resultId,
+          instrument,
+          analysisData
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update analysis: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Analysis saved to database:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating analysis:', error);
+      throw error;
+    }
+  };
+
   const getFeedbackColor = (feedback) => {
     switch (feedback?.toLowerCase()) {
       case 'excellent':
@@ -131,8 +210,20 @@ export default function StudentArchivePage() {
         return results.piano || [];
       case 'guitar':
         return results.guitar || [];
+      case 'drums':
+        return results.drums || [];
+      case 'vocals':
+        return results.vocals || [];
+      case 'other':
+        return results.other || [];
       default:
-        return [...(results.piano || []), ...(results.guitar || [])].sort((a, b) => 
+        return [
+          ...(results.piano || []), 
+          ...(results.guitar || []),
+          ...(results.drums || []),
+          ...(results.vocals || []),
+          ...(results.other || [])
+        ].sort((a, b) => 
           new Date(b.createdAt) - new Date(a.createdAt)
         );
     }
@@ -175,7 +266,8 @@ export default function StudentArchivePage() {
     <DashboardLayout userType="student">
       <div className="min-h-screen w-full bg-gray-50 text-gray-900">
         <main className="p-4 sm:p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          {/* Stats Cards - Now includes 5 instruments + Last Activity */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
@@ -189,7 +281,7 @@ export default function StudentArchivePage() {
             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Piano Sessions</p>
+                  <p className="text-sm text-gray-600">Piano</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.pianoSessions || 0}</p>
                 </div>
                 <Piano className="h-8 w-8 text-blue-500" />
@@ -199,10 +291,30 @@ export default function StudentArchivePage() {
             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Guitar Sessions</p>
+                  <p className="text-sm text-gray-600">Guitar</p>
                   <p className="text-2xl font-bold text-gray-900">{stats.guitarSessions || 0}</p>
                 </div>
                 <Guitar className="h-8 w-8 text-green-500" />
+              </div>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Drums</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.drumsSessions || 0}</p>
+                </div>
+                <Drum className="h-8 w-8 text-orange-500" />
+              </div>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Vocals</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.vocalsSessions || 0}</p>
+                </div>
+                <Mic className="h-8 w-8 text-pink-500" />
               </div>
             </div>
             
@@ -214,25 +326,26 @@ export default function StudentArchivePage() {
                     {stats.lastActivity ? new Date(stats.lastActivity).toLocaleDateString() : 'No activity'}
                   </p>
                 </div>
-                <Clock className="h-8 w-8 text-orange-500" />
+                <Clock className="h-8 w-8 text-indigo-500" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg border border-gray-200 p-1 mb-8 inline-flex shadow-sm">
+          {/* Tab Filters - Now includes all 5 instruments */}
+          <div className="bg-white rounded-lg border border-gray-200 p-1 mb-8 inline-flex shadow-sm overflow-x-auto">
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-6 py-2 rounded-md font-medium transition-all duration-200 ${
+              className={`px-4 py-2 rounded-md font-medium transition-all duration-200 whitespace-nowrap ${
                 activeTab === 'all' 
                   ? 'bg-purple-500 text-white shadow-sm' 
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
               }`}
             >
-              All Results ({stats.totalSessions || 0})
+              All ({stats.totalSessions || 0})
             </button>
             <button
               onClick={() => setActiveTab('piano')}
-              className={`px-6 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'piano' 
                   ? 'bg-blue-500 text-white shadow-sm' 
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -243,7 +356,7 @@ export default function StudentArchivePage() {
             </button>
             <button
               onClick={() => setActiveTab('guitar')}
-              className={`px-6 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
                 activeTab === 'guitar' 
                   ? 'bg-green-500 text-white shadow-sm' 
                   : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -251,6 +364,39 @@ export default function StudentArchivePage() {
             >
               <Guitar size={16} />
               Guitar ({stats.guitarSessions || 0})
+            </button>
+            <button
+              onClick={() => setActiveTab('drums')}
+              className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'drums' 
+                  ? 'bg-orange-500 text-white shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Drum size={16} />
+              Drums ({stats.drumsSessions || 0})
+            </button>
+            <button
+              onClick={() => setActiveTab('vocals')}
+              className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'vocals' 
+                  ? 'bg-pink-500 text-white shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Mic size={16} />
+              Vocals ({stats.vocalsSessions || 0})
+            </button>
+            <button
+              onClick={() => setActiveTab('other')}
+              className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === 'other' 
+                  ? 'bg-indigo-500 text-white shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Music size={16} />
+              Other ({stats.otherSessions || 0})
             </button>
           </div>
 
@@ -267,24 +413,74 @@ export default function StudentArchivePage() {
                   <div className="p-6 border-b border-gray-200">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-4">
-                        {result.instrument === 'piano' ? (
-                          <Piano className="h-6 w-6 text-blue-500" />
-                        ) : (
-                          <Guitar className="h-6 w-6 text-green-500" />
-                        )}
+                        {result.instrument === 'piano' && <Piano className="h-6 w-6 text-blue-500" />}
+                        {result.instrument === 'guitar' && <Guitar className="h-6 w-6 text-green-500" />}
+                        {result.instrument === 'drums' && <Drum className="h-6 w-6 text-orange-500" />}
+                        {result.instrument === 'vocals' && <Mic className="h-6 w-6 text-pink-500" />}
+                        {result.instrument === 'other' && <Music className="h-6 w-6 text-indigo-500" />}
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 !text-[20px]">{result.title}</h3>
+                          <h3 className="text-lg font-semibold text-gray-900">{result.title}</h3>
                           <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                             <span className="flex items-center gap-1">
                               <Calendar size={14} />
                               {new Date(result.createdAt).toLocaleDateString()}
                             </span>
+                            {result.tutorScore !== undefined && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                Tutor Score: {result.tutorScore}/10
+                              </span>
+                            )}
                             <span className="capitalize">{result.instrument}</span>
                           </div>
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-2">
+                        {/* AI Evaluation Button - Only for piano and guitar */}
+                       {/* AI Evaluation Button - Only for piano and guitar */}
+{(result.instrument === 'piano' || result.instrument === 'guitar') && (
+  <button
+    onClick={() => handleAIEvaluation(result.audioFileUrl, result.instrument, result._id)}
+    disabled={
+      evaluatingAI[result._id] || 
+      (result.instrument === 'piano' 
+        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
+        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
+      )
+    }
+    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm flex items-center gap-2"
+    title={
+      (result.instrument === 'piano' 
+        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
+        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
+      ) 
+        ? "Analysis already completed" 
+        : "Get AI Evaluation"
+    }
+  >
+    {evaluatingAI[result._id] ? (
+      <>
+        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        Evaluating...
+      </>
+    ) : (
+      (result.instrument === 'piano' 
+        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
+        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
+      )
+    ) ? (
+      <>
+        <Star size={16} />
+        Evaluated
+      </>
+    ) : (
+      <>
+        <Star size={16} />
+        AI Evaluation
+      </>
+    )}
+  </button>
+)}
                         <button
                           onClick={() => toggleAudioPlayback(result.audioFileUrl, result._id)}
                           className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
@@ -331,6 +527,14 @@ export default function StudentArchivePage() {
                         <p className="text-sm text-gray-700 flex-1">
                           {result.analysisResults.overall_rating.suggestion}
                         </p>
+                      </div>
+                    )}
+                    { result.tutorFeedback && (
+                      <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg">
+                        <h4 className="font-semibold text-yellow-800 mb-1 flex items-center gap-2">
+                          Tutor Feedback
+                        </h4>
+                        <p className="text-sm text-yellow-900">{result.tutorFeedback}</p>
                       </div>
                     )}
                   </div>

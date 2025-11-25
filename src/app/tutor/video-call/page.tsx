@@ -160,8 +160,8 @@ function VideoCallContent() {
     console.log('[VideoCallPage] Leave button clicked');
     nuclearCleanup();
     setTimeout(() => {
-      router.back();
-    }, 200);
+      router.push('/tutor/feedback-pending');
+    }, 200);  
   };
 
   if (!meetingUrl) {

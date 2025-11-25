@@ -59,11 +59,14 @@ const TutorTable = ({ refreshKey }) => {
     }
 
     // Subject filter (using skills field as subject)
-    if (subjectFilter !== "All Subjects") {
-      filtered = filtered.filter(tutor =>
-        tutor.skills?.toLowerCase().includes(subjectFilter.toLowerCase())
-      );
-    }
+    // Subject/Course filter
+if (subjectFilter !== "All Subjects") {
+  filtered = filtered.filter(tutor =>
+    tutor.tutorCourses?.some(course => 
+      course.title?.toLowerCase().includes(subjectFilter.toLowerCase())
+    )
+  );
+}
 
     // Status filter
     if (statusFilter !== "All Status") {
@@ -210,6 +213,9 @@ const TutorTable = ({ refreshKey }) => {
                       <th>Students</th>
                       <th>Classes</th>
                       <th>CSAT Score</th>
+                      <th>Class Quality Score</th>
+                      <th>Overall Performance Score</th>
+                      <th>Feedback Pending</th>
                       <th>Revenue</th>
                       <th>Status</th>
                       <th className="text-center">Actions</th>
@@ -245,12 +251,44 @@ const TutorTable = ({ refreshKey }) => {
                             </div>
                           </div>
                         </td>
-                        <td>{tutor.skills || "N/A"}</td>
+                        <td>
+                          {tutor.tutorCourses && tutor.tutorCourses.length > 0 ? (
+                            <div className="d-flex flex-column gap-1">
+                              {tutor.tutorCourses.slice(0, 2).map((course, index) => (
+                                <span key={course._id || index} className="text-dark">
+                                  {course.title}
+                                </span>
+                              ))}
+                              {tutor.tutorCourses.length > 2 && (
+                                <span className="text-muted small">
+                                  +{tutor.tutorCourses.length - 2} more
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted">No courses</span>
+                          )}
+                        </td>
                         <td>{tutor.studentCount || 0}</td>
                         <td>{tutor.classCount || 0}</td>
                         <td>
                           <span className="lighter-blue">
                             {tutor.csatScore ? `${tutor.csatScore}%` : "N/A"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="lighter-blue">
+                            {tutor.classQualityScore ? `${tutor.classQualityScore}/10` : "0/10"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="lighter-blue">
+                            {tutor.overallPerformanceScore ? `${tutor.overallPerformanceScore}/10` : "0/10"}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={tutor.pendingFeedbackCount > 0 ? "text-warning" : "text-muted"}>
+                            {tutor.pendingFeedbackCount || 0}
                           </span>
                         </td>
                         <td>{formatCurrency(tutor.revenue || 0)}</td>

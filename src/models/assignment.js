@@ -17,7 +17,17 @@ const AssignmentSchema = new mongoose.Schema({
   },
   status:{
     type:Boolean,
-    
+  },
+  currentAssignmentStatus:{
+    type: String,
+    enum: ['PENDING', 'SUBMITTED', 'APPROVED', 'CORRECTION'],
+    default: 'PENDING',
+  },
+  studentSubmissionMessage:{
+    type:String,
+  },
+  tutorRemarks:{
+    type:String,
   },
   fileUrl: {
     type: String,
@@ -63,8 +73,22 @@ const AssignmentSchema = new mongoose.Schema({
   cloudinaryPublicId: {
   type: String,
   // Store Cloudinary public_id for file management
-}
-
+},
+  submissions: [
+    {
+      studentId: { type: mongoose.Schema.Types.ObjectId, ref: 'users', required: true },
+      studentMessage: { type: String },
+      tutorRemarks: { type: String },
+      fileUrl: { type: String },
+      fileName: { type: String },
+      correctionFileUrl: { type: String },
+      correctionFileName: { type: String },
+      status: { type: String, enum: ['SUBMITTED', 'APPROVED', 'CORRECTION'], default: 'SUBMITTED' },
+      rating: { type: Number, min: 1, max: 10 },
+      ratingMessage: { type: String },
+      submittedAt: { type: Date, default: Date.now }
+    }
+  ],
 });
 
 // Check if the model already exists to prevent overwriting during hot reloads

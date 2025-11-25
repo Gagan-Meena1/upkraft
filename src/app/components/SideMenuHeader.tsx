@@ -152,7 +152,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>My Archive</span>
                     </Link>
                   </li>
-                  <li>
+                  {/* <li>
                     <Link
                       href="/tutor/performanceVideo"
                       className={`d-flex align-items-center gap-2 ${
@@ -164,7 +164,7 @@ const SideMenuHeader = ({ role }) => {
                       </span>
                       <span>Class Snapshots</span>
                     </Link>
-                  </li>
+                  </li> */}
 
                   <li>
                     <Link
@@ -291,7 +291,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>Payment Summary</span>
                     </Link>
                   </li>
-                  <li>
+                  {/* <li>
                     <Link
                       href="/tutor/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
@@ -318,7 +318,7 @@ const SideMenuHeader = ({ role }) => {
                       </span>
                       <span>Refer & Earn</span>
                     </Link>
-                  </li>
+                  </li> */}
                   <li>
                     <Link
                       href="/tutor/profile"
@@ -477,7 +477,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>My Archive</span>
                     </Link>
                   </li>
-                  <li>
+                  {/* <li>
                     <Link
                       href="/student/classSnapshots"
                       className={`d-flex align-items-center gap-2 ${
@@ -489,7 +489,7 @@ const SideMenuHeader = ({ role }) => {
                       </span>
                       <span>Class Snapshots</span>
                     </Link>
-                  </li>
+                  </li> */}
 
                   <li>
                     <Link
@@ -616,7 +616,7 @@ const SideMenuHeader = ({ role }) => {
                       <span>Payment Summary</span>
                     </Link>
                   </li>
-                  <li>
+                  {/* <li>
                     <Link
                       href="/student/refer-earn"
                       className={`d-flex align-items-center gap-2 ${
@@ -643,7 +643,7 @@ const SideMenuHeader = ({ role }) => {
                       </span>
                       <span>Refer & Earn</span>
                     </Link>
-                  </li>
+                  </li> */}
                   <li>
                     <Link
                       href="/student/profile"
@@ -841,6 +841,16 @@ const SideMenuHeader = ({ role }) => {
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 14H17M7 11H17M7 17H13M16 3V5.2C16 5.41217 15.9157 5.61566 15.7657 5.76569C15.6157 5.91571 15.4122 6 15.2 6H8.8C8.58783 6 8.38434 5.91571 8.23431 5.76569C8.08429 5.61566 8 5.41217 8 5.2V3M10 3C10 2.46957 10.2107 1.96086 10.5858 1.58579C10.9609 1.21071 11.4696 1 12 1C12.5304 1 13.0391 1.21071 13.4142 1.58579C13.7893 1.96086 14 2.46957 14 3M5.4 3H18.6C19.2365 3 19.847 3.25286 20.2971 3.70294C20.7471 4.15303 21 4.76348 21 5.4V20.6C21 21.2365 20.7471 21.847 20.2971 22.2971C19.847 22.7471 19.2365 23 18.6 23H5.4C5.08483 23 4.77274 22.9379 4.48156 22.8173C4.19038 22.6967 3.9258 22.5199 3.70294 22.2971C3.25286 21.847 3 21.2365 3 20.6V5.4C3 5.08483 3.06208 4.77274 3.18269 4.48156C3.3033 4.19038 3.48008 3.9258 3.70294 3.70294C4.15303 3.25286 4.76348 3 5.4 3Z" stroke="white" stroke-width="1.5" stroke-miterlimit="10" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </span>
                             <span>Assignments</span>
+                        </Link>
+                    </li>
+                    <li>
+                        <Link href="/academy/revenue-management" className={`d-flex align-items-center gap-2 ${ isActive("/academy/revenue-management") ? "active" : ""}`}>
+                            <span className='svg-icons'>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M15.75 15C15.5511 15 15.3603 15.079 15.2197 15.2197C15.079 15.3603 15 15.5511 15 15.75C15 15.9489 15.079 16.1397 15.2197 16.2803C15.3603 16.421 15.5511 16.5 15.75 16.5H18.75C18.9489 16.5 19.1397 16.421 19.2803 16.2803C19.421 16.1397 19.5 15.9489 19.5 15.75C19.5 15.5511 19.421 15.3603 19.2803 15.2197C19.1397 15.079 18.9489 15 18.75 15H15.75ZM1.5 8.25C1.5 7.25544 1.89509 6.30161 2.59835 5.59835C3.30161 4.89509 4.25544 4.5 5.25 4.5H18.75C19.7446 4.5 20.6984 4.89509 21.4016 5.59835C22.1049 6.30161 22.5 7.25544 22.5 8.25V15.75C22.5 16.7446 22.1049 17.6984 21.4016 18.4017C20.6984 19.1049 19.7446 19.5 18.75 19.5H5.25C4.25544 19.5 3.30161 19.1049 2.59835 18.4017C1.89509 17.6984 1.5 16.7446 1.5 15.75V8.25ZM21 9V8.25C21 7.65326 20.7629 7.08097 20.341 6.65901C19.919 6.23705 19.3467 6 18.75 6H5.25C4.65326 6 4.08097 6.23705 3.65901 6.65901C3.23705 7.08097 3 7.65326 3 8.25V9H21ZM3 10.5V15.75C3 16.3467 3.23705 16.919 3.65901 17.341C4.08097 17.7629 4.65326 18 5.25 18H18.75C19.3467 18 19.919 17.7629 20.341 17.341C20.7629 16.919 21 16.3467 21 15.75V10.5H3Z" fill="white"/>
+                                </svg>
+                            </span>
+                            <span>Revenue</span>
                         </Link>
                     </li>
                 </>

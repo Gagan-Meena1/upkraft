@@ -1,10 +1,11 @@
-"use client"
-
+"use client";
 import SideMenuHeader from "../components/SideMenuHeader";
 import TopHeader from "../components/TopHeader";
 import "@/styles/style 2.css";
 import "@/styles/custom.css";
 import "../../app/media.css";
+import { UserDataProvider } from "../providers/UserData/page";
+
 // import "../../app/academyStyle.css"
 
 export default function TutorLayout({
@@ -15,7 +16,8 @@ export default function TutorLayout({
 
   return (
     <>
-      <div className="main-sec position-relative main-tutor-sec">
+        <UserDataProvider>
+      <div className="main-sec position-relative  main-tutor-sec">
         <div className="top-header">
           <TopHeader role="tutor" setRole={() => {}} />
         </div>
@@ -26,6 +28,7 @@ export default function TutorLayout({
           <div className="side-details-sec">{children}</div>
         </div>
       </div>
+    </UserDataProvider>
     </>
   );
 }

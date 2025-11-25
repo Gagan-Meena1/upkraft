@@ -195,7 +195,7 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
                       <td className='text-center'>{session.assignmentCompletionRate}%</td>
                       <td>{session.tutorFeedback}</td>
                       <td>
-                        <Link href={`/tutor`} className='btn btn-primary d-flex align-items-center gap-2 justify-content-center small'>
+                        <Link href={`/student`} className='btn btn-primary d-flex align-items-center gap-2 justify-content-center small'>
                           <span>Notify</span>
                         </Link>
                       </td>
