@@ -4,6 +4,7 @@ import Link from "next/link";
 import DashboardLayout from "@/app/components/DashboardLayout";
 import Image from "next/image";
 import { Button } from 'react-bootstrap'
+import {ChevronLeft, ArrowLeft} from 'lucide-react';
 
 interface Course {
   _id: string;
@@ -392,8 +393,16 @@ const UserProfilePage: React.FC = () => {
   return (
     <DashboardLayout userData={user || undefined} userType="student">
       <div className="w-full bg-gray-50">
+         <Link
+            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+            href="/student"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </Link>
         {/* Header Section */}
         <div className="text-center mb-6 bg-gradient-to-r from-purple-800 to-purple-700 text-white p-8 rounded-lg shadow-md">
+          
           <h1 className="text-3xl font-bold !text-[24px] !text-white">Student Profile</h1>
           <p className="mt-3 max-w-md mx-auto">
             Your personal information and enrolled courses at a glance

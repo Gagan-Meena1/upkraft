@@ -23,12 +23,14 @@ import Image from "next/image";
 import { PiNutBold } from "react-icons/pi";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { Modal, Button } from "react-bootstrap"; // ADD
+// import { Modal} from "react-bootstrap"; // Rename to avoid conflict
+import { Modal, Button } from "react-bootstrap";
 import {
   formatInTz,
   formatTimeRangeInTz,
   getUserTimeZone,
 } from "@/helper/time";
+import EditClassModal from "@/app/components/EditClassModal"; // add near other imports
 
 interface UserData {
   _id: string;
@@ -52,6 +54,11 @@ const StudentCalendarView = () => {
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [showClassModal, setShowClassModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingClassId, setEditingClassId] = useState<string | null>(null);
 
   // Modal handlers
   const handleOpenCourseModal = () => {
@@ -71,6 +78,77 @@ const StudentCalendarView = () => {
     }
     setShowCourseModal(false);
     router.push(`/tutor/classes?page=add-session&courseId=${selectedCourseId}`);
+  };
+
+  // --- ADDED: class/modal handlers ---
+  const handleClassClick = (classItem: any) => {
+    setSelectedClass(classItem);
+    setShowClassModal(true);
+  };
+
+  const handleCloseClassModal = () => {
+    setShowClassModal(false);
+    setSelectedClass(null);
+  };
+
+  const handleEditClass = () => {
+    if (!selectedClass) {
+      toast.error("No class selected");
+      return;
+    }
+    setEditingClassId(selectedClass._id || null);
+    setShowEditModal(true);
+    setShowClassModal(false);
+  };
+
+  const handleDeleteClass = async (type: "single" | "all") => {
+    if (!selectedClass) return;
+    try {
+      // send classId and deleteType as query params (API expects query param)
+      const classId = selectedClass._id;
+      const res = await fetch(
+        `/Api/classes?classId=${encodeURIComponent(classId)}&deleteType=${encodeURIComponent(
+          type
+        )}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || "Failed to delete class");
+
+      toast.success(type === "single" ? "Deleted this event" : "Deleted all events");
+      setShowDeleteModal(false);
+      setShowClassModal(false);
+      setSelectedClass(null);
+
+      // Refresh calendar data
+      const studentList = await fetchStudents();
+      if (studentList.length > 0) {
+        await fetchAllClasses(studentList);
+      }
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      toast.error(err.message || "Failed to delete class");
+    }
+  };
+  // --- END ADDED ---
+
+  // Add: refresh calendar after a successful edit
+  const handleEditSuccess = async () => {
+    try {
+      const studentList = await fetchStudents();
+      if (studentList.length > 0) {
+        await fetchAllClasses(studentList);
+      }
+      setShowEditModal(false);
+      setEditingClassId(null);
+      setSelectedClass(null);
+      toast.success("Class updated");
+    } catch (err) {
+      console.error("Refresh after edit failed:", err);
+    }
   };
 
   // Check if mobile
@@ -408,13 +486,13 @@ const StudentCalendarView = () => {
 
             {/* Course Dropdown and Create Class Button */}
             <div className="flex items-center gap-4 mb-6">
-              <Button
+              <button
                 onClick={handleOpenCourseModal}
                 className="!bg-purple-600 hover:!bg-purple-700 !text-white !px-4 !py-2 !rounded-lg !flex !items-center !gap-2 !text-sm !font-medium"
               >
                 <PlusCircle size={18} />
                 Create Class
-              </Button>
+              </button>
 
               {/* Course Select Modal */}
               <Modal
@@ -455,19 +533,19 @@ const StudentCalendarView = () => {
                   </div>
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button
+                  <button
                     variant="outline-secondary"
                     onClick={handleCloseCourseModal}
                   >
                     Cancel
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     variant="primary"
                     disabled={!selectedCourseId}
                     onClick={handleConfirmCreateClass}
                   >
                     Continue
-                  </Button>
+                  </button>
                 </Modal.Footer>
               </Modal>
             </div>
@@ -567,9 +645,7 @@ const StudentCalendarView = () => {
                                     classItem.startTime,
                                     classItem.endTime
                                   )}`}
-                                  onClick={() =>
-                                    handleJoinMeeting(classItem._id)
-                                  }
+                                  onClick={() => handleClassClick(classItem)}
                                 >
                                   <div className="font-medium text-[13px] truncate">
                                     {classItem.title || "Class"}
@@ -594,6 +670,146 @@ const StudentCalendarView = () => {
           </div>
         </main>
       </div>
+
+      {/* Class Options Modal */}
+      <Modal
+        show={showClassModal}
+        onHide={handleCloseClassModal}
+        centered
+        dialogClassName="max-w-lg"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <div>
+            <h5 className="mb-0 text-lg font-semibold">
+              {selectedClass?.title || "Class"}
+            </h5>
+            <div className="text-sm text-gray-500 mt-1">
+              {selectedClass?.studentName ||
+                selectedClass?.student?.username ||
+                ""}
+            </div>
+          </div>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          <div className="grid gap-3">
+            <div className="flex items-center gap-3 text-sm text-gray-700">
+              <Clock className="w-4 h-4 text-gray-500" />
+              <div>
+                <div className="font-medium">
+                  {formatTime(selectedClass?.startTime, selectedClass?.endTime) ||
+                    "No time"}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {new Date(selectedClass?.startTime || Date.now()).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+
+            {/* <div className="flex items-center gap-3 text-sm text-gray-700">
+              <BookOpen className="w-4 h-4 text-gray-500" />
+              <div className="text-sm">
+                {selectedClass?.courseTitle || "No course"}
+              </div>
+            </div> */}
+
+            {selectedClass?.description && (
+              <div className="text-sm text-gray-600">
+                {selectedClass.description.length > 220
+                  ? `${selectedClass.description.slice(0, 220)}...`
+                  : selectedClass.description}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+              <Button
+                variant="outline-primary"
+                className="flex-1 !rounded-md !py-2"
+                onClick={handleEditClass}
+              >
+                Edit
+              </Button>
+
+              <Button
+                variant="outline-danger"
+                className="flex-1 !rounded-md !py-2"
+                onClick={() => {
+                  setShowDeleteModal(true);
+                }}
+              >
+                Delete
+              </Button>
+
+              <Button
+                variant="success"
+                className="flex-1 !rounded-md !py-2"
+                onClick={() => {
+                  if (selectedClass?. _id) handleJoinMeeting(selectedClass._id);
+                  handleCloseClassModal();
+                }}
+              >
+                Join Meeting
+              </Button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Delete Options Modal */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+        dialogClassName="max-w-md"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <h5 className="mb-0 text-lg font-semibold">Delete Class</h5>
+          </div>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          <p className="text-sm text-gray-600 mb-4">
+            Do you want to delete only this occurrence or the entire series? This
+            action cannot be undone.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              variant="danger"
+              className="flex-1 !py-2 !rounded-md"
+              onClick={() => handleDeleteClass("single")}
+            >
+              This Event
+            </Button>
+
+            <Button
+              variant="outline-danger"
+              className="flex-1 !py-2 !rounded-md"
+              onClick={() => handleDeleteClass("all")}
+            >
+              All Events
+            </Button>
+          </div>
+
+          <div className="mt-3 text-right">
+            <button
+              className="text-sm text-gray-500 hover:text-gray-700"
+              onClick={() => setShowDeleteModal(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Edit shared modal */}
+      <EditClassModal
+        show={showEditModal}
+        onHide={() => { setShowEditModal(false); setEditingClassId(null); }}
+        classId={editingClassId}
+        initialData={selectedClass} // <-- pass selected class so modal autofills immediately
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 };
