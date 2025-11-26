@@ -37,6 +37,7 @@ interface RevenueTransaction {
   paymentMethod: string;
   paymentDate: string;
   validUpto: string;
+  isManualEntry?: boolean;
 }
 
 export default function RevenueManagement() {
@@ -317,8 +318,8 @@ export default function RevenueManagement() {
   };
 
   const handleEditClick = (transaction: RevenueTransaction) => {
-    if (transaction.paymentMethod !== "Cash") {
-      toast.error("Only Cash payment transactions can be edited");
+    if (!transaction.isManualEntry) {
+      toast.error("Only academy-created transactions can be edited");
       return;
     }
     setTransactionToEdit(transaction);
@@ -1299,31 +1300,31 @@ export default function RevenueManagement() {
                       <div style={{ display: "flex", gap: "12px", alignItems: "center", justifyContent: "flex-start" }}>
                         <button
                           onClick={() => handleEditClick(transaction)}
-                          disabled={transaction.paymentMethod !== "Cash"}
+                          disabled={!transaction.isManualEntry}
                           style={{
-                            background: transaction.paymentMethod === "Cash" ? "transparent" : "transparent",
+                            background: "transparent",
                             border: "none",
-                            cursor: transaction.paymentMethod === "Cash" ? "pointer" : "not-allowed",
+                            cursor: transaction.isManualEntry ? "pointer" : "not-allowed",
                             padding: "8px",
                             borderRadius: "6px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            color: transaction.paymentMethod === "Cash" ? "#6200EA" : "#ccc",
+                            color: transaction.isManualEntry ? "#6200EA" : "#ccc",
                             transition: "all 0.2s",
-                            opacity: transaction.paymentMethod === "Cash" ? 1 : 0.5,
+                            opacity: transaction.isManualEntry ? 1 : 0.5,
                           }}
                           onMouseEnter={(e) => {
-                            if (transaction.paymentMethod === "Cash") {
+                            if (transaction.isManualEntry) {
                               e.currentTarget.style.background = "#f3e5f5";
                             }
                           }}
                           onMouseLeave={(e) => {
-                            if (transaction.paymentMethod === "Cash") {
+                            if (transaction.isManualEntry) {
                               e.currentTarget.style.background = "transparent";
                             }
                           }}
-                          title={transaction.paymentMethod === "Cash" ? "Edit transaction" : "Only Cash payments can be edited"}
+                          title={transaction.isManualEntry ? "Edit transaction" : "Only academy-created transactions can be edited"}
                         >
                           <FiEdit size={18} />
                         </button>
