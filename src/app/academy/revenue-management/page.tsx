@@ -1670,7 +1670,6 @@ export default function RevenueManagement() {
                   }}
                 >
                   <option value="Paid">Paid</option>
-                  <option value="Pending">Pending</option>
                 </select>
               </div>
               <div>
@@ -1870,7 +1869,6 @@ export default function RevenueManagement() {
                   }}
                 >
                   <option value="Paid">Paid</option>
-                  <option value="Pending">Pending</option>
                 </select>
               </div>
               <div>
