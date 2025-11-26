@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { 
-  Download, Calendar, Music, Guitar, Piano, TrendingUp, Clock, Star, ChevronDown, ChevronUp,
+  Download, Calendar, Music, Guitar, Piano, TrendingUp, Clock, Star, ChevronDown, ChevronUp, ChevronLeft, ArrowLeft,
   Play, Pause, UserCircle, Drum, Mic
 } from "lucide-react";
 import DashboardLayout from "@/app/components/DashboardLayout";
+import Link from "next/link";
 
 export default function StudentArchivePage() {
   const [loading, setLoading] = useState(true);
@@ -264,9 +265,18 @@ export default function StudentArchivePage() {
 
   return (
     <DashboardLayout userType="student">
+      
       <div className="min-h-screen w-full bg-gray-50 text-gray-900">
+          <Link
+        className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+        href="/student"
+      >
+        <ArrowLeft size={20} />
+        Back to Dashboard
+      </Link>
         <main className="p-4 sm:p-6">
           {/* Stats Cards - Now includes 5 instruments + Last Activity */}
+          
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
               <div className="flex items-center justify-between">
