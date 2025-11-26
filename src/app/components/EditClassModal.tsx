@@ -248,7 +248,9 @@ export default function EditClassModal({
           <Button variant="secondary" onClick={onHide} disabled={isSaving}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary" disabled={isSaveDisabled}>
+          {/* <Button type="submit" variant="primary" disabled={isSaveDisabled}> */}
+                    <Button type="submit" variant="primary">
+
             {isSaving ? "Saving..." : "Save changes"}
           </Button>
         </Modal.Footer>

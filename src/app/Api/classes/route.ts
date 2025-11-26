@@ -12,6 +12,7 @@ import User from "@/models/userModel";
 // ADD these imports
 import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO } from 'date-fns';
+import mongoose from "mongoose";
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
 
 await connect();
@@ -621,3 +622,23 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+/**
+ * Recurrence model: stores recurrence group metadata.
+ * Each recurring batch (daily / weekly /weekdays) can be assigned a recurrenceId
+ * which is saved on each Class document in the batch.
+ */
+const RecurrenceSchema = new mongoose.Schema({
+  recurrenceId: { type: String, required: true, unique: true },
+  type: { type: String, enum: ["daily", "weekly", "weekdays"], required: true },
+  owner: { // user who created the recurrence (tutor)
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+    required: false,
+  },
+  meta: { type: Object, default: {} }, // optional metadata (repeatCount, until, etc)
+  createdAt: { type: Date, default: Date.now },
+});
+
+const Recurrence = mongoose.models.Recurrence || mongoose.model("Recurrence", RecurrenceSchema);
+export default Recurrence;
