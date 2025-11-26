@@ -263,7 +263,13 @@ const StudentCalendarView = () => {
       {/* Main Content */}
       <div className="flex-1 min-h-screen">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center gap-5">
+          <Link
+                                    href={`/student`}
+                                    className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
+                                  >
+                                    <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
+                                  </Link>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Student Calendar
           </h1>
