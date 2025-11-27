@@ -11,8 +11,8 @@ type Props = {
   show: boolean;
   onHide: () => void;
   classId: string | null;
-  initialData?: any; // optional: preloaded class object from calendar click
-  userTimezone?: string; // NEW: timezone from parent
+  initialData?: any; 
+  userTimezone?: string; 
   onSuccess?: () => void;
 };
 
@@ -36,7 +36,6 @@ export default function EditClassModal({
   });
   const [hasRecurrence, setHasRecurrence] = useState(false);
 
-  // timezone-aware extraction (matches tutor course page behavior)
   const extractDateTimeForForm = (iso?: string, tz?: string) => {
     if (!iso) return { dateStr: "", timeStr: "" };
     const d = new Date(iso);
@@ -68,7 +67,6 @@ export default function EditClassModal({
 
       const tz = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 
-      // If initialData provided (calendar click), prefer it to avoid extra fetch
       if (initialData) {
         const start = extractDateTimeForForm(initialData.startTime, tz);
         const end = extractDateTimeForForm(initialData.endTime, tz);
@@ -91,7 +89,7 @@ export default function EditClassModal({
       }
 
       try {
-        const res = await fetch(`/Api/classes?classId=${classId}`);
+        const res = await fetch(`/Api/calendar/classes?classId=${classId}`);
         const data = await res.json();
         const cls =
           Array.isArray(data) ? data[0] : data.classData?.[0] || data.class || data;
@@ -139,7 +137,6 @@ export default function EditClassModal({
 
   const formatTime = (startTime, endTime) => {
       if (!startTime) return "";
-      // Use user's timezone for display
       return formatTimeRangeInTz(startTime, endTime, userTimezone);
     };
 
@@ -166,7 +163,7 @@ export default function EditClassModal({
       const timezoneToSend =
         userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      const res = await fetch(`/Api/classes?classId=${id}&editType=${editType}`, {
+      const res = await fetch(`/Api/calendar/classes?classId=${id}&editType=${editType}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
