@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
       paymentMethod: payment.paymentMethod,
       paymentDate: payment.paymentDate?.toISOString?.() || new Date().toISOString(),
       validUpto: payment.validUpto?.toISOString?.() || "",
+      isManualEntry: payment.isManualEntry || false,
     }));
 
     return NextResponse.json({
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
       status,
       paymentDate,
       validUpto: validUntil,
+      isManualEntry: true, // Mark as academy-created transaction
     });
 
     return NextResponse.json({ success: true, payment });
@@ -208,10 +210,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized access" }, { status: 403 });
     }
 
-    // Only allow editing if payment method is Cash
-    if (existingPayment.paymentMethod !== "Cash") {
+    // Only allow editing if transaction was created by academy (manual entry)
+    if (!existingPayment.isManualEntry) {
       return NextResponse.json(
-        { success: false, error: "Only Cash payment transactions can be edited" },
+        { success: false, error: "Only academy-created transactions can be edited" },
         { status: 403 }
       );
     }
