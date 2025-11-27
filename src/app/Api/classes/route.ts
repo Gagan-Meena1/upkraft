@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
      const startTime = formData.get("startTime") as string;
      const endTime = formData.get("endTime") as string;
      const timezone = formData.get("timezone") as string; // Get timezone from frontend
+     const recurrenceId = formData.get('recurrenceId') as string | null;
+     const recurrenceType = formData.get('recurrenceType') as string | null;
+     const recurrenceUntil = formData.get("recurrenceUntil") as string | null;
 
     // Accept courseId from referer OR formData OR query param (covers client copy flows)
     if (!courseId) {
@@ -246,6 +249,9 @@ console.log("Timezone conversion:", {
       instructor: instructorId,
       recording: videoPath,
       recordingProcessed: videoPath ? 0 : null,
+      recurrenceId,
+      recurrenceType,
+      recurrenceUntil
     });
 
     const savednewClass = await newClass.save();
@@ -257,11 +263,18 @@ console.log("Timezone conversion:", {
       $addToSet: { class: savednewClass._id },
     });
 
-    // Update users enrolled in this course
+    // Attach to all students enrolled in this course (support both 'courses' and 'course' fields)
     await User.updateMany(
-      { courses: courseId },
+      { $or: [{ courses: courseId }, { course: courseId }] },
       { $addToSet: { classes: savednewClass._id } }
     );
+
+    // Ensure the instructor also sees it in their calendar
+    if (instructorId) {
+      await User.findByIdAndUpdate(instructorId, {
+        $addToSet: { classes: savednewClass._id },
+      });
+    }
 
     console.log(newClass);
 
@@ -364,6 +377,7 @@ export async function PUT(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
+    const editType = (searchParams.get("editType") || "single").toLowerCase(); // single | all
 
     if (!classId) {
       return NextResponse.json(
@@ -396,9 +410,9 @@ export async function PUT(request: NextRequest) {
 
     console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone });
 
-    if (!title || !description || !date || !startTime || !endTime) {
+    if (!title?.trim() || !description?.trim() || !startTime || !endTime) {
       return NextResponse.json(
-        { error: "All fields are required" },
+        { error: "Title, description, startTime, endTime are required" },
         { status: 400 }
       );
     }
@@ -410,128 +424,87 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Convert time from user's timezone to UTC for storage
-    const [year, month, day] = date.split("-").map(Number);
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const [endHour, endMinute] = endTime.split(":").map(Number);
-
-    // Use the same conversion function as POST
-    const convertToUTC = (y: number, m: number, d: number, h: number, min: number, tz: string): Date => {
-      if (!tz || tz === "UTC") {
-        return new Date(Date.UTC(y, m - 1, d, h, min, 0));
-      }
-
-      // Calculate the offset by comparing what a known UTC time shows in the timezone
-      // Use a known UTC time (midnight UTC on the target date)
-      const formatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: tz,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      
-      const knownUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
-      const knownParts = formatter.formatToParts(knownUTC);
-      const knownTzHour = parseInt(knownParts.find(p => p.type === "hour")?.value || "0");
-      const knownTzMin = parseInt(knownParts.find(p => p.type === "minute")?.value || "0");
-      
-      // If midnight UTC shows as X:Y in timezone, then the offset is X:Y hours
-      // For IST (UTC+5:30), midnight UTC = 5:30 AM IST, so offset = +5:30
-      // To convert local to UTC: UTC = Local - Offset
-      // So: UTC = 18:30 - 5:30 = 13:00 (1 PM)
-      
-      const offsetHours = knownTzHour;
-      const offsetMinutes = knownTzMin;
-      const totalOffsetMinutes = offsetHours * 60 + offsetMinutes;
-      
-      // Convert desired local time to UTC
-      // UTC = Local - Offset
-      const desiredTotalMinutes = h * 60 + min;
-      const utcTotalMinutes = desiredTotalMinutes - totalOffsetMinutes;
-      
-      // Handle date rollover
-      let utcHours = Math.floor(utcTotalMinutes / 60);
-      let utcMins = utcTotalMinutes % 60;
-      let utcYear = y;
-      let utcMonth = m - 1; // 0-indexed
-      let utcDay = d;
-      
-      // Handle negative minutes (borrow from hours)
-      if (utcMins < 0) {
-        utcMins += 60;
-        utcHours--;
-      }
-      
-      // Handle negative hours (previous day)
-      if (utcHours < 0) {
-        utcHours += 24;
-        utcDay--;
-        if (utcDay < 1) {
-          utcMonth--;
-          if (utcMonth < 0) {
-            utcMonth = 11;
-            utcYear--;
-          }
-          utcDay = new Date(utcYear, utcMonth + 1, 0).getDate();
-        }
-      }
-      
-      // Handle hours >= 24 (next day)
-      if (utcHours >= 24) {
-        utcHours -= 24;
-        utcDay++;
-        const daysInMonth = new Date(utcYear, utcMonth + 1, 0).getDate();
-        if (utcDay > daysInMonth) {
-          utcDay = 1;
-          utcMonth++;
-          if (utcMonth > 11) {
-            utcMonth = 0;
-            utcYear++;
-          }
-        }
-      }
-      
-      return new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHours, utcMins, 0));
+    // Use date-fns-tz for consistent conversion (same as POST)
+    const tz = timezone || "UTC";
+    const convertToUTC = (dateStr: string, timeStr: string, tzLocal: string): Date => {
+      const dateTimeStr = `${dateStr} ${timeStr}`;
+      return dateFnsTz.fromZonedTime(dateTimeStr, tzLocal);
     };
 
-    const startDateTime = convertToUTC(year, month, day, startHour, startMinute, timezone || "UTC");
-    const endDateTime = convertToUTC(year, month, day, endHour, endMinute, timezone || "UTC");
+    // SINGLE event update (uses the date provided by form)
+    if (editType === "single") {
+      if (!date) {
+        return NextResponse.json({ error: "Date is required for single edit" }, { status: 400 });
+      }
+      const startDateTime = convertToUTC(date, startTime, tz);
+      const endDateTime = convertToUTC(date, endTime, tz);
 
-    console.log("STORING IN UTC:", {
-      inputTime: `${startTime} - ${endTime}`,
-      storedStartUTC: startDateTime.toISOString(),
-      storedEndUTC: endDateTime.toISOString(),
-      // Verify what time will be retrieved
-      retrievedStart: `${String(startDateTime.getUTCHours()).padStart(
-        2,
-        "0"
-      )}:${String(startDateTime.getUTCMinutes()).padStart(2, "0")}`,
-      retrievedEnd: `${String(endDateTime.getUTCHours()).padStart(
-        2,
-        "0"
-      )}:${String(endDateTime.getUTCMinutes()).padStart(2, "0")}`,
+      console.log("STORING SINGLE IN UTC:", {
+        inputTime: `${startTime} - ${endTime}`,
+        storedStartUTC: startDateTime.toISOString(),
+        storedEndUTC: endDateTime.toISOString(),
+      });
+
+      const updatedClass = await Class.findByIdAndUpdate(
+        classId,
+        {
+          title,
+          description,
+          startTime: startDateTime,
+          endTime: endDateTime,
+        },
+        { new: true, runValidators: true }
+      );
+
+      return NextResponse.json(
+        { message: "Class updated successfully", classData: updatedClass, editType: "single" },
+        { status: 200 }
+      );
+    }
+
+    // BULK series update (edit all occurrences with same recurrenceId)
+    if (!existingClass.recurrenceId) {
+      return NextResponse.json(
+        { error: "This event is not part of a series (no recurrenceId)" },
+        { status: 400 }
+      );
+    }
+
+    const recurrenceId = existingClass.recurrenceId;
+    const docs = await Class.find({ recurrenceId });
+    if (docs.length === 0) {
+      return NextResponse.json({ error: "No classes found for this series" }, { status: 404 });
+    }
+
+    // For each doc, preserve its local date (in tz) and apply new times/title/description
+    const ops = docs.map((doc) => {
+      const dateStrForDoc = format(dateFnsTz.toZonedTime(doc.startTime, tz), "yyyy-MM-dd");
+      const newStart = convertToUTC(dateStrForDoc, startTime, tz);
+      const newEnd = convertToUTC(dateStrForDoc, endTime, tz);
+      return {
+        updateOne: {
+          filter: { _id: doc._id },
+          update: {
+            $set: {
+              title,
+              description,
+              startTime: newStart,
+              endTime: newEnd,
+            },
+          },
+        },
+      };
     });
 
-    const updatedClass = await Class.findByIdAndUpdate(
-      classId,
-      {
-        title,
-        description,
-        startTime: startDateTime, // Store in UTC
-        endTime: endDateTime, // Store in UTC
-      },
-      { new: true, runValidators: true }
-    );
-
-    console.log("STORED SUCCESSFULLY IN UTC");
+    const result = await Class.bulkWrite(ops);
+    const modified = (result.modifiedCount ?? 0) || Object.values(result).reduce((a: number, b: any) => a + (b?.nModified || 0), 0);
 
     return NextResponse.json(
       {
-        message: "Class updated successfully",
-        classData: updatedClass,
+        message: "Series updated successfully",
+        editType: "all",
+        recurrenceId,
+        updatedCount: modified,
       },
       { status: 200 }
     );
@@ -552,9 +525,9 @@ export async function DELETE(request: NextRequest) {
   try {
     console.log("Deleting class...");
 
-    // Get classId from query parameters
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
+    const deleteType = (searchParams.get("deleteType") || "single").toLowerCase(); // single | all
 
     if (!classId) {
       return NextResponse.json(
@@ -563,7 +536,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Get instructor ID from token
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
@@ -578,37 +550,64 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Find the class and verify ownership
     const existingClass = await Class.findById(classId);
     if (!existingClass) {
       return NextResponse.json({ error: "Class not found" }, { status: 404 });
     }
 
-    console.log("Found class to delete:", existingClass);
+    // If deleteType === all and the class has a recurrenceId, bulk delete all occurrences
+    if (deleteType === "all" && existingClass.recurrenceId) {
+      const recurrenceId = existingClass.recurrenceId;
+      console.log("Bulk deleting recurrenceId:", recurrenceId);
 
-    // Remove class reference from course
-    if (existingClass.course) {
-      await courseName.findByIdAndUpdate(existingClass.course, {
-        $pull: { class: classId },
-      });
-      console.log("Removed class reference from course");
+      // Fetch all classes in this recurrence group
+      const classesToDelete = await Class.find({ recurrenceId });
+      const classIds = classesToDelete.map(c => c._id);
+
+      // Remove references from course documents
+      await courseName.updateMany(
+        { class: { $in: classIds } },
+        { $pull: { class: { $in: classIds } } }
+      );
+
+      // Remove references from all users
+      await User.updateMany(
+        { classes: { $in: classIds } },
+        { $pull: { classes: { $in: classIds } } }
+      );
+
+      // Delete classes
+      const deleteResult = await Class.deleteMany({ _id: { $in: classIds } });
+
+      return NextResponse.json(
+        {
+          message: "All recurring events deleted",
+          deletedCount: deleteResult.deletedCount,
+          recurrenceId,
+          classIds,
+        },
+        { status: 200 }
+      );
     }
 
-    // Remove class reference from users
-    await User.updateMany(
-      { classes: classId },
-      { $pull: { classes: classId } }
-    );
-    console.log("Removed class reference from users");
+    // SINGLE delete fallback
+    console.log("Deleting single class:", classId);
 
-    // Delete the class
-    await Class.findByIdAndDelete(classId);
-    console.log("Class deleted successfully");
+    if (existingClass.course) {
+      await courseName.findByIdAndUpdate(existingClass.course, {
+        $pull: { class: existingClass._id },
+      });
+    }
+
+    await User.updateMany(
+      { classes: existingClass._id },
+      { $pull: { classes: existingClass._id } }
+    );
+
+    await Class.findByIdAndDelete(existingClass._id);
 
     return NextResponse.json(
-      {
-        message: "Class deleted successfully",
-      },
+      { message: "Class deleted successfully", deletedClassId: existingClass._id },
       { status: 200 }
     );
   } catch (error) {

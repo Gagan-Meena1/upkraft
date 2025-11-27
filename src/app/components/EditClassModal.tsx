@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Button, Form } from "react-bootstrap";
 import { toast } from "react-hot-toast";
+import {
+  formatInTz,
+  formatTimeRangeInTz,
+  getUserTimeZone,
+} from "@/helper/time";
 
 type Props = {
   show: boolean;
@@ -29,6 +34,7 @@ export default function EditClassModal({
     startTime: "",
     endTime: "",
   });
+  const [hasRecurrence, setHasRecurrence] = useState(false);
 
   // timezone-aware extraction (matches tutor course page behavior)
   const extractDateTimeForForm = (iso?: string, tz?: string) => {
@@ -74,6 +80,7 @@ export default function EditClassModal({
           startTime: start.timeStr || "",
           endTime: end.timeStr || "",
         });
+        setHasRecurrence(!!initialData.recurrenceId);
         setLoading(false);
         return;
       }
@@ -99,6 +106,7 @@ export default function EditClassModal({
           startTime: start.timeStr || "",
           endTime: end.timeStr || "",
         });
+        setHasRecurrence(!!cls?.recurrenceId);
       } catch (err: any) {
         console.error("Failed to load class:", err);
         setError(err?.message || "Failed to load class");
@@ -129,10 +137,16 @@ export default function EditClassModal({
     return "";
   };
 
+  const formatTime = (startTime, endTime) => {
+      if (!startTime) return "";
+      // Use user's timezone for display
+      return formatTimeRangeInTz(startTime, endTime, userTimezone);
+    };
+
   const isSaveDisabled = isSaving || !!validate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitWithType = async (e: React.FormEvent | null, editType: "single" | "all") => {
+    if (e) e.preventDefault();
     const v = validate();
     if (v) {
       setError(v);
@@ -152,7 +166,7 @@ export default function EditClassModal({
       const timezoneToSend =
         userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      const res = await fetch(`/Api/classes?classId=${id}`, {
+      const res = await fetch(`/Api/classes?classId=${id}&editType=${editType}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -161,14 +175,14 @@ export default function EditClassModal({
           date: form.date,
           startTime: form.startTime,
           endTime: form.endTime,
-          timezone: timezoneToSend, // ensure server receives timezone
+          timezone: timezoneToSend,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || data.error || "Update failed");
 
-      toast.success("Class updated");
+      toast.success(editType === "all" ? `Updated series (${data.updatedCount || 0})` : "Class updated");
       onHide();
       if (onSuccess) onSuccess();
     } catch (err: any) {
@@ -187,7 +201,7 @@ export default function EditClassModal({
         <Modal.Title>{loading ? "Loading..." : "Edit Class"}</Modal.Title>
       </Modal.Header>
 
-      <Form onSubmit={handleSubmit}>
+      <Form onSubmit={(e) => submitWithType(e, "single")}>
         <Modal.Body>
           {error && <div className="text-sm text-red-600 mb-3">{error}</div>}
 
@@ -248,10 +262,22 @@ export default function EditClassModal({
           <Button variant="secondary" onClick={onHide} disabled={isSaving}>
             Cancel
           </Button>
-          {/* <Button type="submit" variant="primary" disabled={isSaveDisabled}> */}
-                    <Button type="submit" variant="primary">
-
-            {isSaving ? "Saving..." : "Save changes"}
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSaving}
+            title="Apply only to this occurrence"
+          >
+            {isSaving ? "Saving..." : "Save this event"}
+          </Button>
+          <Button
+            type="button"
+            variant="warning"
+            disabled={isSaving || !hasRecurrence}
+            onClick={(e) => submitWithType(e as any, "all")}
+            title={hasRecurrence ? "Apply to all events in this series" : "This event is not part of a series"}
+          >
+            {isSaving ? "Saving..." : "Save all in series"}
           </Button>
         </Modal.Footer>
       </Form>
