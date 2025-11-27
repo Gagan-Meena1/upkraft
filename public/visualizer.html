@@ -4922,10 +4922,50 @@ log('💾 Results stored in session storage with Cloudinary info');
 const urlParams = new URLSearchParams(window.location.search);
 const queryString = urlParams.toString();
 
-if (queryString) {
-  window.location.href = `/tutor/practiceResult?${queryString}`;
+// if (queryString) {
+//   window.location.href = `/tutor/practiceResult?${queryString}`;
+// } else {
+//   window.location.href = '/tutor/practiceResult';
+// }
+// Fetch user data and navigate
+log('👤 Fetching user data...');
+
+const apiUrl = '/Api/DashboardData';
+log(`🔍 Calling API: ${apiUrl}`);
+
+const userDataResponse = await fetch(apiUrl, {
+  method: 'GET',
+  credentials: 'include'
+});
+
+log(`📡 API Response Status: ${userDataResponse.status}`);
+log(`📡 API Response OK: ${userDataResponse.ok}`);
+
+if (!userDataResponse.ok) {
+  log(`❌ API call failed with status ${userDataResponse.status}`);
+  // Fallback: navigate to default tutor page if API fails
+  if (queryString) {
+    log('🔄 Redirecting to fallback: /tutor/practiceResult?' + queryString);
+    window.location.href = `/tutor/practiceResult?${queryString}`;
+  } else {
+    log('🔄 Redirecting to fallback: /tutor/practiceResult');
+    window.location.href = '/tutor/practiceResult';
+  }
 } else {
-  window.location.href = '/tutor/practiceResult';
+  const data = await userDataResponse.json();
+  log('✅ User data fetched:', data);
+  log('👤 User category:', data.user?.category);
+
+  // Get user category (lowercase for URL)
+  const userCategory = (data.user?.category || 'tutor').toLowerCase();
+  log(`🎯 Navigating to: /${userCategory}/practiceResult`);
+  
+  // Navigate to category-specific results page
+  if (queryString) {
+    window.location.href = `/${userCategory}/practiceResult?${queryString}`;
+  } else {
+    window.location.href = `/${userCategory}/practiceResult`;
+  }
 }
 
 } catch(err) {
