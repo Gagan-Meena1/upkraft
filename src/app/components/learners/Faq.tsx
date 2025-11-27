@@ -14,7 +14,7 @@ const Faq = () => {
                             <p>UpKraft stands out as the right choice because it blends innovation, reliability, and customer-centric solutions to deliver real value.</p>
                         </div>
                     </div>
-                    <div className='col-md-12'>
+                    <div className='col-md-12 '>
                         <Accordion>
                             <Accordion.Item eventKey="0">
                                 <Accordion.Header>

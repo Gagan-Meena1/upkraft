@@ -17,6 +17,19 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    attendance: {
+        type:[{
+            classId:{
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Class"
+            },
+            status:{
+                type:String,
+                enum:["present","absent","canceled","not_marked"],
+                default:"not_marked"
+
+        }}]
+    },
     contact: {
         type: String,
         default: ""
@@ -105,6 +118,18 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Assignment"
     }],
+
+    pendingAssignments: [{
+       studentId: {
+           type: mongoose.Schema.Types.ObjectId,
+           ref: "users"
+       },
+       assignmentIds: [{
+           type: mongoose.Schema.Types.ObjectId,
+           ref: "Assignment"
+       }]
+   }],
+
     aboutMyself: {
         type: String,
         default: ""

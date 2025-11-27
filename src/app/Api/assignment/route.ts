@@ -15,6 +15,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+
 export async function POST(request: NextRequest) {
   try {
     await connect();
@@ -44,45 +45,46 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Find all users who have this courseId
-    // const userWithCourse = await User.find({
-    //   courses: courseId 
-    // }).select('_id');
-
-    // const UserIds = userWithCourse.map(student => student._id);
     // Get student IDs from request
-const studentIdsJson = formData.get('studentIds');
-let UserIds = [];
+    const studentIdsJson = formData.get('studentIds');
+    let UserIds = [];
 
-if (studentIdsJson) {
-  try {
-    UserIds = JSON.parse(studentIdsJson as string);
-    console.log("Received student IDs from frontend:", UserIds.length);
-  } catch (error) {
-    console.error("Error parsing studentIds:", error);
-    return NextResponse.json({
-      success: false,
-      message: 'Invalid student IDs format'
-    }, { status: 400 });
-  }
-} else {
-  return NextResponse.json({
-    success: false,
-    message: 'No students selected'
-  }, { status: 400 });
-}
-    // ADD THIS SECTION - Get instructor ID from JWT token and add to UserIds
-const token = request.cookies.get("token")?.value;
-const decodedToken = token ? jwt.decode(token) : null;
-const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+    if (studentIdsJson) {
+      try {
+        UserIds = JSON.parse(studentIdsJson as string);
+        console.log("Received student IDs from frontend:", UserIds.length);
+      } catch (error) {
+        console.error("Error parsing studentIds:", error);
+        return NextResponse.json({
+          success: false,
+          message: 'Invalid student IDs format'
+        }, { status: 400 });
+      }
+    } else {
+      return NextResponse.json({
+        success: false,
+        message: 'No students selected'
+      }, { status: 400 });
+    }
+    
+    // Get instructor ID from JWT token
+    const token = request.cookies.get("token")?.value;
+    const decodedToken = token ? jwt.decode(token) : null;
+    const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
 
-if (instructorId) {
-  // Add instructor ID to the UserIds array if not already present
-  if (!UserIds.includes(instructorId)) {
-    UserIds.push(instructorId);
-    console.log("Instructor ID added to assignment:", instructorId);
-  }
-}
+    if (!instructorId) {
+      return NextResponse.json({
+        success: false,
+        message: 'Instructor not authenticated'
+      }, { status: 401 });
+    }
+
+    // Add instructor ID to the UserIds array if not already present
+    if (!UserIds.includes(instructorId)) {
+      UserIds.push(instructorId);
+      console.log("Instructor ID added to assignment:", instructorId);
+    }
+    
     console.log("Found students with courseId:", UserIds.length);
     
     // Create assignment object (without file info initially)
@@ -111,9 +113,9 @@ if (instructorId) {
         const uploadResult = await new Promise((resolve, reject) => {
           cloudinary.uploader.upload_stream(
             {
-              resource_type: "raw", // Use "raw" for non-image files like PDFs, docs, etc.
-              folder: "assignments", // Optional: organize files in folders
-              public_id: `${Date.now()}-${assignmentFile.name.split('.')[0]}`, // Generate unique filename
+              resource_type: "raw",
+              folder: "assignments",
+              public_id: `${Date.now()}-${assignmentFile.name.split('.')[0]}`,
               use_filename: true,
               unique_filename: false,
             },
@@ -133,7 +135,7 @@ if (instructorId) {
         // Update assignment data with Cloudinary file info
         assignmentData.fileUrl = uploadResult.secure_url;
         assignmentData.fileName = assignmentFile.name;
-        assignmentData.cloudinaryPublicId = uploadResult.public_id; // Store for potential deletion later
+        assignmentData.cloudinaryPublicId = uploadResult.public_id;
         
       } catch (uploadError) {
         console.error('Error uploading file to Cloudinary:', uploadError);
@@ -148,34 +150,117 @@ if (instructorId) {
     const assignment = await Assignment.create(assignmentData);
     console.log("Assignment created successfully");
     
-    // Update all users' assignment arrays with the new assignment ID
-    if (UserIds.length > 0) {
-      await User.updateMany(
-        { _id: { $in: UserIds } },
-        { $push: { assignment: assignment._id } }
-      );
-      console.log(`Assignment ID added to ${UserIds.length} students' assignment arrays`);
-    }
+    const assignmentId = assignment._id;
     
-    // Update the Class document with the assignment ID
-    await Class.findByIdAndUpdate(
-      classId,
-      { assignmentId: assignment._id },
-      { new: true }
-    );
+    // Fetch instructor's academyId in parallel with other operations
+    const instructorPromise = User.findById(instructorId)
+      .select('academyId')
+      .lean();
+    
+    // PARALLEL OPERATIONS - Execute all updates simultaneously
+    const [
+      userUpdateResult,
+      classUpdateResult,
+      instructor
+    ] = await Promise.all([
+      // Update all users' assignment arrays
+      User.updateMany(
+        { _id: { $in: UserIds } },
+        { $push: { assignment: assignmentId } }
+      ),
+      
+      // Update the Class document
+      Class.findByIdAndUpdate(
+        classId,
+        { assignmentId: assignmentId },
+        { new: true, lean: true }
+      ),
+      
+      // Get instructor data
+      instructorPromise
+    ]);
+    
+    console.log(`Assignment ID added to ${userUpdateResult.modifiedCount} users' assignment arrays`);
     console.log("Assignment ID added to Class document");
     
-    // Add assignment to academy's assignment array if tutor belongs to an academy
-    if (instructorId) {
-      const tutor = await User.findById(instructorId).select('academyId');
-      if (tutor && tutor.academyId) {
+    // OPTIMIZED: Update instructor's pendingAssignments using bulkWrite
+    // This handles both adding new students and updating existing ones efficiently
+    const bulkOps = UserIds
+      .filter(userId => userId !== instructorId) // Exclude instructor from their own pending assignments
+      .map(studentId => ({
+        updateOne: {
+          filter: { 
+            _id: instructorId,
+            'pendingAssignments.studentId': studentId 
+          },
+          update: { 
+            $push: { 
+              'pendingAssignments.$.assignmentIds': assignmentId 
+            } 
+          }
+        }
+      }));
+    
+    // Execute bulk update for existing students
+    if (bulkOps.length > 0) {
+      const bulkResult = await User.bulkWrite(bulkOps, { ordered: false });
+      console.log(`Updated ${bulkResult.modifiedCount} existing student entries in pendingAssignments`);
+      
+      // Find which students weren't updated (new students)
+      const updatedCount = bulkResult.modifiedCount;
+      const totalStudents = UserIds.filter(id => id !== instructorId).length;
+      
+      if (updatedCount < totalStudents) {
+        // Some students are new, add them to pendingAssignments
+        const newStudents = UserIds.filter(id => id !== instructorId);
+        
         await User.findByIdAndUpdate(
-          tutor.academyId,
-          { $push: { assignment: assignment._id } },
+          instructorId,
+          {
+            $push: {
+              pendingAssignments: {
+                $each: newStudents.map(studentId => ({
+                  studentId: studentId,
+                  assignmentIds: [assignmentId]
+                }))
+              }
+            }
+          },
           { new: true }
         );
-        console.log(`Assignment ID added to academy's assignment array: ${tutor.academyId}`);
+        console.log(`Added ${totalStudents - updatedCount} new students to pendingAssignments`);
       }
+    } else {
+      // All students are new
+      const newStudents = UserIds.filter(id => id !== instructorId);
+      
+      if (newStudents.length > 0) {
+        await User.findByIdAndUpdate(
+          instructorId,
+          {
+            $push: {
+              pendingAssignments: {
+                $each: newStudents.map(studentId => ({
+                  studentId: studentId,
+                  assignmentIds: [assignmentId]
+                }))
+              }
+            }
+          },
+          { new: true }
+        );
+        console.log(`Added ${newStudents.length} new students to pendingAssignments`);
+      }
+    }
+    
+    // Update academy's assignment array if tutor belongs to an academy
+    if (instructor && instructor.academyId) {
+      await User.findByIdAndUpdate(
+        instructor.academyId,
+        { $push: { assignment: assignmentId } },
+        { new: true }
+      );
+      console.log(`Assignment ID added to academy's assignment array: ${instructor.academyId}`);
     }
     
     return NextResponse.json({
