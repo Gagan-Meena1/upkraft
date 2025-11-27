@@ -71,6 +71,10 @@ const paymentSchema = new mongoose.Schema(
     validUpto: {
       type: Date,
     },
+    isManualEntry: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

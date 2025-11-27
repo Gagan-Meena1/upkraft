@@ -1,10 +1,168 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import RevenueTrend from "../../components/academy/RevenueTrend";
 import { Modal, Button } from "react-bootstrap";
 import { toast } from "react-hot-toast";
 import { FiEdit, FiTrash2 } from "react-icons/fi";
+
+// Searchable Dropdown Component
+interface SearchableDropdownProps {
+  options: Array<{ _id: string; username?: string; title?: string }>;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  displayKey: "username" | "title";
+  required?: boolean;
+}
+
+const SearchableDropdown: React.FC<SearchableDropdownProps> = ({
+  options,
+  value,
+  onChange,
+  placeholder,
+  displayKey,
+  required = false,
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const selectedOption = options.find((opt) => opt._id === value);
+  const displayValue = selectedOption ? (selectedOption[displayKey] || "") : "";
+
+  const filteredOptions = options.filter((option) => {
+    const searchText = searchTerm.toLowerCase();
+    const optionText = (option[displayKey] || "").toLowerCase();
+    return optionText.includes(searchText);
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchTerm("");
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelect = (optionId: string) => {
+    onChange(optionId);
+    setIsOpen(false);
+    setSearchTerm("");
+  };
+
+  return (
+    <div ref={dropdownRef} style={{ position: "relative", width: "100%" }}>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          width: "100%",
+          padding: "10px",
+          border: "2px solid #e0e0e0",
+          borderRadius: "8px",
+          fontSize: "14px",
+          background: "white",
+          cursor: "pointer",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          minHeight: "42px",
+        }}
+      >
+        <span style={{ color: displayValue ? "#333" : "#999" }}>
+          {displayValue || placeholder}
+        </span>
+        <span style={{ color: "#999", fontSize: "12px" }}>{isOpen ? "▲" : "▼"}</span>
+      </div>
+      {isOpen && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            background: "white",
+            border: "2px solid #e0e0e0",
+            borderRadius: "8px",
+            marginTop: "4px",
+            maxHeight: "200px",
+            overflowY: "auto",
+            zIndex: 1000,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          }}
+        >
+          <div style={{ padding: "8px", borderBottom: "1px solid #e0e0e0" }}>
+            <input
+              type="text"
+              placeholder={`Search ${placeholder.toLowerCase()}...`}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100%",
+                padding: "8px",
+                border: "1px solid #e0e0e0",
+                borderRadius: "6px",
+                fontSize: "14px",
+              }}
+              autoFocus
+            />
+          </div>
+          <div style={{ maxHeight: "150px", overflowY: "auto" }}>
+            {filteredOptions.length === 0 ? (
+              <div style={{ padding: "12px", textAlign: "center", color: "#999", fontSize: "14px" }}>
+                No results found
+              </div>
+            ) : (
+              filteredOptions.map((option) => {
+                const optionText = option[displayKey] || "";
+                const isSelected = option._id === value;
+                return (
+                  <div
+                    key={option._id}
+                    onClick={() => handleSelect(option._id)}
+                    style={{
+                      padding: "10px 12px",
+                      cursor: "pointer",
+                      background: isSelected ? "#f3e5f5" : "white",
+                      color: isSelected ? "#6200EA" : "#333",
+                      borderBottom: "1px solid #f0f0f0",
+                      transition: "background 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.background = "#f8f9fa";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) {
+                        e.currentTarget.style.background = "white";
+                      }
+                    }}
+                  >
+                    {optionText}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+      {required && !value && (
+        <input
+          type="text"
+          required
+          style={{ position: "absolute", opacity: 0, pointerEvents: "none", height: 0, width: 0 }}
+          tabIndex={-1}
+        />
+      )}
+    </div>
+  );
+};
 
 interface Student {
   _id: string;
@@ -37,6 +195,7 @@ interface RevenueTransaction {
   paymentMethod: string;
   paymentDate: string;
   validUpto: string;
+  isManualEntry?: boolean;
 }
 
 export default function RevenueManagement() {
@@ -317,8 +476,8 @@ export default function RevenueManagement() {
   };
 
   const handleEditClick = (transaction: RevenueTransaction) => {
-    if (transaction.paymentMethod !== "Cash") {
-      toast.error("Only Cash payment transactions can be edited");
+    if (!transaction.isManualEntry) {
+      toast.error("Only academy-created transactions can be edited");
       return;
     }
     setTransactionToEdit(transaction);
@@ -1299,31 +1458,31 @@ export default function RevenueManagement() {
                       <div style={{ display: "flex", gap: "12px", alignItems: "center", justifyContent: "flex-start" }}>
                         <button
                           onClick={() => handleEditClick(transaction)}
-                          disabled={transaction.paymentMethod !== "Cash"}
+                          disabled={!transaction.isManualEntry}
                           style={{
-                            background: transaction.paymentMethod === "Cash" ? "transparent" : "transparent",
+                            background: "transparent",
                             border: "none",
-                            cursor: transaction.paymentMethod === "Cash" ? "pointer" : "not-allowed",
+                            cursor: transaction.isManualEntry ? "pointer" : "not-allowed",
                             padding: "8px",
                             borderRadius: "6px",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            color: transaction.paymentMethod === "Cash" ? "#6200EA" : "#ccc",
+                            color: transaction.isManualEntry ? "#6200EA" : "#ccc",
                             transition: "all 0.2s",
-                            opacity: transaction.paymentMethod === "Cash" ? 1 : 0.5,
+                            opacity: transaction.isManualEntry ? 1 : 0.5,
                           }}
                           onMouseEnter={(e) => {
-                            if (transaction.paymentMethod === "Cash") {
+                            if (transaction.isManualEntry) {
                               e.currentTarget.style.background = "#f3e5f5";
                             }
                           }}
                           onMouseLeave={(e) => {
-                            if (transaction.paymentMethod === "Cash") {
+                            if (transaction.isManualEntry) {
                               e.currentTarget.style.background = "transparent";
                             }
                           }}
-                          title={transaction.paymentMethod === "Cash" ? "Edit transaction" : "Only Cash payments can be edited"}
+                          title={transaction.isManualEntry ? "Edit transaction" : "Only academy-created transactions can be edited"}
                         >
                           <FiEdit size={18} />
                         </button>
@@ -1410,76 +1569,46 @@ export default function RevenueManagement() {
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
                   Student Name <span style={{ color: "red" }}>*</span>
                 </label>
-                <select
-                  name="studentId"
+                <SearchableDropdown
+                  options={students}
                   value={formData.studentId}
-                  onChange={handleInputChange}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, studentId: value }))}
+                  placeholder="Select Student"
+                  displayKey="username"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  <option value="">Select Student</option>
-                  {students.map((student) => (
-                    <option key={student._id} value={student._id}>
-                      {student.username}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
                   Tutor <span style={{ color: "red" }}>*</span>
                 </label>
-                <select
-                  name="tutorId"
+                <SearchableDropdown
+                  options={tutors}
                   value={formData.tutorId}
-                  onChange={handleInputChange}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, tutorId: value }))}
+                  placeholder="Select Tutor"
+                  displayKey="username"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  <option value="">Select Tutor</option>
-                  {tutors.map((tutor) => (
-                    <option key={tutor._id} value={tutor._id}>
-                      {tutor.username}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
                   Course <span style={{ color: "red" }}>*</span>
                 </label>
-                <select
-                  name="courseId"
+                <SearchableDropdown
+                  options={courses}
                   value={formData.courseId}
-                  onChange={handleInputChange}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "8px",
-                    fontSize: "14px",
+                  onChange={async (value) => {
+                    setFormData((prev) => ({ ...prev, courseId: value }));
+                    // Auto-fill tutor when course is selected
+                    if (value) {
+                      await fetchTutorForCourse(value);
+                    }
                   }}
-                >
-                  <option value="">Select Course</option>
-                  {courses.map((course) => (
-                    <option key={course._id} value={course._id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Select Course"
+                  displayKey="title"
+                  required
+                />
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
@@ -1541,7 +1670,6 @@ export default function RevenueManagement() {
                   }}
                 >
                   <option value="Paid">Paid</option>
-                  <option value="Pending">Pending</option>
                 </select>
               </div>
               <div>
@@ -1640,76 +1768,46 @@ export default function RevenueManagement() {
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
                   Student Name <span style={{ color: "red" }}>*</span>
                 </label>
-                <select
-                  name="studentId"
+                <SearchableDropdown
+                  options={students}
                   value={formData.studentId}
-                  onChange={handleInputChange}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, studentId: value }))}
+                  placeholder="Select Student"
+                  displayKey="username"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  <option value="">Select Student</option>
-                  {students.map((student) => (
-                    <option key={student._id} value={student._id}>
-                      {student.username}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
                   Tutor <span style={{ color: "red" }}>*</span>
                 </label>
-                <select
-                  name="tutorId"
+                <SearchableDropdown
+                  options={tutors}
                   value={formData.tutorId}
-                  onChange={handleInputChange}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, tutorId: value }))}
+                  placeholder="Select Tutor"
+                  displayKey="username"
                   required
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                  }}
-                >
-                  <option value="">Select Tutor</option>
-                  {tutors.map((tutor) => (
-                    <option key={tutor._id} value={tutor._id}>
-                      {tutor.username}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
                   Course <span style={{ color: "red" }}>*</span>
                 </label>
-                <select
-                  name="courseId"
+                <SearchableDropdown
+                  options={courses}
                   value={formData.courseId}
-                  onChange={handleInputChange}
-                  required
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    border: "2px solid #e0e0e0",
-                    borderRadius: "8px",
-                    fontSize: "14px",
+                  onChange={async (value) => {
+                    setFormData((prev) => ({ ...prev, courseId: value }));
+                    // Auto-fill tutor when course is selected
+                    if (value) {
+                      await fetchTutorForCourse(value);
+                    }
                   }}
-                >
-                  <option value="">Select Course</option>
-                  {courses.map((course) => (
-                    <option key={course._id} value={course._id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Select Course"
+                  displayKey="title"
+                  required
+                />
               </div>
               <div>
                 <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
@@ -1771,7 +1869,6 @@ export default function RevenueManagement() {
                   }}
                 >
                   <option value="Paid">Paid</option>
-                  <option value="Pending">Pending</option>
                 </select>
               </div>
               <div>
