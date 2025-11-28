@@ -40,6 +40,11 @@ const Dashboard = () => {
   const [isCSATLoading, setIsCSATLoading] = useState<boolean>(false);
   const [csatError, setCsatError] = useState<string | null>(null);
 
+  const [classesThisMonth, setClassesThisMonth] = useState<number | null>(null);
+  const [classesLastMonth, setClassesLastMonth] = useState<number | null>(null);
+  const [isClassesLoading, setIsClassesLoading] = useState<boolean>(false);
+  const [classesError, setClassesError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchTutorStats = async () => {
       setIsTutorStatsLoading(true);
@@ -401,6 +406,110 @@ const Dashboard = () => {
     fetchCSATStats();
   }, []);
 
+  useEffect(() => {
+    const fetchClassesStats = async () => {
+      setIsClassesLoading(true);
+      setClassesError(null);
+
+      try {
+        // Fetch all tutors for the academy
+        const tutorsResponse = await fetch("/Api/academy/tutors", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!tutorsResponse.ok) {
+          throw new Error("Failed to fetch tutors data");
+        }
+
+        const tutorsData = await tutorsResponse.json();
+        if (!tutorsData?.success || !Array.isArray(tutorsData.tutors)) {
+          throw new Error("Invalid tutors data format");
+        }
+
+        const tutors = tutorsData.tutors;
+        
+        if (tutors.length === 0) {
+          setClassesThisMonth(0);
+          setClassesLastMonth(0);
+          return;
+        }
+
+        // Fetch classes for all tutors in parallel
+        const classPromises = tutors.map(async (tutor: any) => {
+          try {
+            const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
+              method: "GET",
+              credentials: "include",
+            });
+            if (classResponse.ok) {
+              const classData = await classResponse.json();
+              if (classData?.success && Array.isArray(classData.classes)) {
+                return classData.classes;
+              }
+            }
+            return [];
+          } catch (error) {
+            console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
+            return [];
+          }
+        });
+
+        const classArrays = await Promise.all(classPromises);
+        
+        // Flatten and remove duplicates based on _id
+        const allClassesMap = new Map();
+        classArrays.forEach((classes: any[]) => {
+          classes.forEach((cls: any) => {
+            if (cls._id) {
+              const id = cls._id.toString();
+              if (!allClassesMap.has(id)) {
+                allClassesMap.set(id, cls);
+              }
+            }
+          });
+        });
+
+        const uniqueClasses = Array.from(allClassesMap.values());
+
+        // Calculate date ranges
+        const now = new Date();
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+        // Count classes this month (based on startTime)
+        const classesThisMonthCount = uniqueClasses.filter((cls: any) => {
+          if (!cls.startTime) return false;
+          const startTime = new Date(cls.startTime);
+          return startTime >= thisMonthStart && startTime <= thisMonthEnd;
+        }).length;
+
+        // Count classes last month
+        const classesLastMonthCount = uniqueClasses.filter((cls: any) => {
+          if (!cls.startTime) return false;
+          const startTime = new Date(cls.startTime);
+          return startTime >= lastMonthStart && startTime <= lastMonthEnd;
+        }).length;
+
+        setClassesThisMonth(classesThisMonthCount);
+        setClassesLastMonth(classesLastMonthCount);
+      } catch (error: any) {
+        console.error("Error while fetching classes stats:", error);
+        setClassesError(
+          error?.message || "Something went wrong while fetching classes stats."
+        );
+        setClassesThisMonth(null);
+        setClassesLastMonth(null);
+      } finally {
+        setIsClassesLoading(false);
+      }
+    };
+
+    fetchClassesStats();
+  }, []);
+
   const displayedActiveTutors =
     selectedRange === "thisMonth" || activeTutorsLastMonthCount === null
       ? activeTutorsCount
@@ -601,7 +710,13 @@ const Dashboard = () => {
                   <ul className="p-0 m-0 list-unstyled">
                     <li>
                       <span className="top-data">Classes This Month</span>
-                      <span className="bottom-data">1,247</span>
+                      <span className="bottom-data">
+                        {isClassesLoading
+                          ? "--"
+                          : classesThisMonth !== null
+                          ? classesThisMonth.toLocaleString()
+                          : "N/A"}
+                      </span>
                     </li>
                     <li>
                       <span className="top-data">Attendance Rate</span>
