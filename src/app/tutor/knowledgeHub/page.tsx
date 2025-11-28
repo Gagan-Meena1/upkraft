@@ -1,9 +1,11 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Play, BookOpen, Video, Menu, X ,ArrowLeft} from 'lucide-react';
 import Link from 'next/link';
 
 // Types
+type InstrumentType = 'piano' | 'guitar' | 'drums' | 'vocals' | 'other' | string;
+
 interface VideoData {
   id: string;
   title: string;
@@ -11,6 +13,7 @@ interface VideoData {
   youtubeId: string;
   courseTitle: string;
   thumbnail?: string;
+  instrument?: InstrumentType; // NEW
 }
 
 interface VideoCardProps {
@@ -149,6 +152,16 @@ const YouTubeVideoGallery: React.FC = () => {
   const [videos, setVideos] = useState<VideoData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeInstrument, setActiveInstrument] = useState<InstrumentType>('all');
+
+  const inferInstrument = (text: string): InstrumentType => {
+    const t = (text || '').toLowerCase();
+    if (t.includes('piano') || t.includes('keyboard') || t.includes('keys')) return 'piano';
+    if (t.includes('guitar')) return 'guitar';
+    if (t.includes('drum') || t.includes('percussion')) return 'drums';
+    if (t.includes('vocal') || t.includes('voice') || t.includes('sing')) return 'vocals';
+    return 'other';
+  };
 
   // Fetch videos from API
   useEffect(() => {
@@ -159,14 +172,18 @@ const YouTubeVideoGallery: React.FC = () => {
         const data = await response.json();
 
         if (data.success) {
-          const transformedVideos = data.data.map((video: any) => ({
-            id: video._id,
-            title: video.title,
-            description: video.description || '',
-            youtubeId: video.youtubeId,
-            courseTitle: video.courseTitle || '',
-            thumbnail: video.thumbnail || ''
-          }));
+          const transformedVideos = data.data.map((video: any) => {
+            const instrument = inferInstrument(`${video.courseTitle || ''} ${video.title || ''}`);
+            return {
+              id: video._id,
+              title: video.title,
+              description: video.description || '',
+              youtubeId: video.youtubeId,
+              courseTitle: video.courseTitle || '',
+              thumbnail: video.thumbnail || '',
+              instrument, 
+            } as VideoData;
+          });
           setVideos(transformedVideos);
         } else {
           setError('Failed to load videos');
@@ -181,6 +198,25 @@ const YouTubeVideoGallery: React.FC = () => {
 
     fetchVideos();
   }, []);
+
+  const KNOWN: InstrumentType[] = ['piano', 'guitar', 'drums', 'vocals', 'other'];
+  const availableTabs = useMemo<(InstrumentType | 'all')[]>(() => ['all', ...KNOWN], []);
+
+  const countByInstrument = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const v of videos) {
+      const key = v.instrument || 'other';
+      counts[key] = (counts[key] || 0) + 1;
+    }
+    counts['all'] = videos.length;
+    return counts;
+  }, [videos]);
+
+  // NEW: filtered videos by active tab
+  const filteredVideos = useMemo(
+    () => videos.filter(v => activeInstrument === 'all' ? true : (v.instrument === activeInstrument)),
+    [videos, activeInstrument]
+  );
 
   const handlePlayVideo = (youtubeId: string, title: string) => {
     setSelectedVideo({ youtubeId, title });
@@ -276,9 +312,41 @@ const YouTubeVideoGallery: React.FC = () => {
               </div>
             </div>
 
-            {videos.length > 0 ? (
+            {/* NEW: Instrument Tabs */}
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              {availableTabs.map((tab) => {
+                const active = activeInstrument === tab;
+                const count = tab === 'all' ? (countByInstrument['all'] || 0) : (countByInstrument[String(tab)] || 0);
+                const label =
+                  tab === 'all'
+                    ? `All (${count})`
+                    : `${String(tab).charAt(0).toUpperCase() + String(tab).slice(1)} (${count})`;
+
+                const activeBg =
+                  tab === 'piano' ? 'bg-blue-500' :
+                  tab === 'guitar' ? 'bg-green-500' :
+                  tab === 'drums' ? 'bg-orange-500' :
+                  tab === 'vocals' ? 'bg-pink-500' :
+                  'bg-indigo-500';
+
+                const activeClasses = `${activeBg} text-white shadow-sm`;
+                const idleClasses = 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 border border-gray-200';
+
+                return (
+                  <button
+                    key={String(tab)}
+                    onClick={() => setActiveInstrument(tab)}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${active ? activeClasses : idleClasses}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {filteredVideos.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {videos.map((video) => (
+                {filteredVideos.map((video) => (
                   <VideoCard
                     key={video.id}
                     video={video}
@@ -290,7 +358,7 @@ const YouTubeVideoGallery: React.FC = () => {
               <div className="text-center py-12">
                 <Video size={64} className="mx-auto text-gray-300 mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No videos available</h3>
-                <p className="text-gray-600">Check back later for video lessons.</p>
+                <p className="text-gray-600">Try a different instrument tab.</p>
               </div>
             )}
           </div>

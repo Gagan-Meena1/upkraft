@@ -77,7 +77,7 @@ const StudentCalendarView = () => {
       return;
     }
     setShowCourseModal(false);
-    router.push(`/tutor/classes?page=add-session&courseId=${selectedCourseId}`);
+    router.push(`/tutor/calendar/classes?page=add-session&courseId=${selectedCourseId}`);
   };
 
   // --- ADDED: class/modal handlers ---
@@ -107,7 +107,7 @@ const StudentCalendarView = () => {
       // send classId and deleteType as query params (API expects query param)
       const classId = selectedClass._id;
       const res = await fetch(
-        `/Api/classes?classId=${encodeURIComponent(classId)}&deleteType=${encodeURIComponent(
+        `/Api/calendar/classes?classId=${encodeURIComponent(classId)}&deleteType=${encodeURIComponent(
           type
         )}`,
         {
@@ -186,7 +186,7 @@ const StudentCalendarView = () => {
   const fetchAllClasses = async (studentList) => {
     try {
       const classPromises = studentList.map(async (student) => {
-        const response = await fetch(`/Api/classes?userid=${student._id}`);
+        const response = await fetch(`/Api/calendar/classes?userid=${student._id}`);
         const data = await response.json();
         return {
           studentId: student._id,
@@ -726,7 +726,7 @@ const StudentCalendarView = () => {
                 className="flex-1 !rounded-md !py-2"
                 onClick={handleEditClass}
               >
-                Edit
+                Reschedule
               </Button>
 
               <Button
@@ -736,7 +736,7 @@ const StudentCalendarView = () => {
                   setShowDeleteModal(true);
                 }}
               >
-                Delete
+                Cancel
               </Button>
 
               <Button
@@ -808,6 +808,7 @@ const StudentCalendarView = () => {
         onHide={() => { setShowEditModal(false); setEditingClassId(null); }}
         classId={editingClassId}
         initialData={selectedClass} // <-- pass selected class so modal autofills immediately
+        userTimezone={userTz}
         onSuccess={handleEditSuccess}
       />
     </div>

@@ -54,6 +54,11 @@ const ClassSchema = new mongoose.Schema({
     enum: ['daily', 'weekly', 'weekdays', null],
     default: null
   },
+  // NEW: group id for recurring series (daily/weekly/weekdays)
+  recurrenceId: {
+    type: String,
+    default: null,
+  },
   recurrenceUntil: {
     type: Date,
     default: null
