@@ -28,6 +28,12 @@ const Dashboard = () => {
   const [studentsStatsError, setStudentsStatsError] = useState<string | null>(null);
   const [isStudentsStatsLoading, setIsStudentsStatsLoading] = useState<boolean>(false);
 
+  const [monthlyRevenue, setMonthlyRevenue] = useState<number | null>(null);
+  const [lastMonthRevenue, setLastMonthRevenue] = useState<number | null>(null);
+  const [revenuePercentageChange, setRevenuePercentageChange] = useState<number | null>(null);
+  const [isRevenueLoading, setIsRevenueLoading] = useState<boolean>(false);
+  const [revenueError, setRevenueError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchTutorStats = async () => {
       setIsTutorStatsLoading(true);
@@ -215,6 +221,78 @@ const Dashboard = () => {
     fetchStudentStats();
   }, []);
 
+  useEffect(() => {
+    const fetchRevenueStats = async () => {
+      setIsRevenueLoading(true);
+      setRevenueError(null);
+
+      try {
+        const response = await fetch("/Api/academy/revenue", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch revenue data");
+        }
+
+        const data = await response.json();
+        if (!data.success || !Array.isArray(data.transactions)) {
+          throw new Error("Invalid revenue data format");
+        }
+
+        const transactions = data.transactions;
+        const now = new Date();
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const monthBeforeLastStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+
+        // Calculate revenue for this month
+        const thisMonthRevenue = transactions
+          .filter((transaction: any) => {
+            if (!transaction.paymentDate) return false;
+            const paymentDate = new Date(transaction.paymentDate);
+            return paymentDate >= thisMonthStart && transaction.status === "Paid";
+          })
+          .reduce((sum: number, transaction: any) => sum + (Number(transaction.amount) || 0), 0);
+
+        // Calculate revenue for last month
+        const lastMonthRevenue = transactions
+          .filter((transaction: any) => {
+            if (!transaction.paymentDate) return false;
+            const paymentDate = new Date(transaction.paymentDate);
+            return paymentDate >= lastMonthStart && paymentDate < thisMonthStart && transaction.status === "Paid";
+          })
+          .reduce((sum: number, transaction: any) => sum + (Number(transaction.amount) || 0), 0);
+
+        setMonthlyRevenue(thisMonthRevenue);
+        setLastMonthRevenue(lastMonthRevenue);
+
+        // Calculate percentage change
+        let percentageChange: number | null = null;
+        if (lastMonthRevenue > 0) {
+          percentageChange = ((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100;
+        } else if (thisMonthRevenue > 0) {
+          percentageChange = 100;
+        }
+
+        setRevenuePercentageChange(percentageChange);
+      } catch (error: any) {
+        console.error("Error while fetching revenue stats:", error);
+        setRevenueError(
+          error?.message || "Something went wrong while fetching revenue stats."
+        );
+        setMonthlyRevenue(null);
+        setLastMonthRevenue(null);
+        setRevenuePercentageChange(null);
+      } finally {
+        setIsRevenueLoading(false);
+      }
+    };
+
+    fetchRevenueStats();
+  }, []);
+
   const displayedActiveTutors =
     selectedRange === "thisMonth" || activeTutorsLastMonthCount === null
       ? activeTutorsCount
@@ -229,6 +307,22 @@ const Dashboard = () => {
   const studentsPercentage = studentsPercentageChange[selectedRange];
   const studentsNewCount = studentsNewCounts[selectedRange];
   const rangeLabel = selectedRange === "thisMonth" ? "this month" : "last month";
+
+  // Format revenue amount (convert to lakhs if >= 100000, otherwise show in thousands)
+  const formatRevenue = (amount: number | null): string => {
+    if (amount === null) return "N/A";
+    if (amount >= 100000) {
+      const lakhs = amount / 100000;
+      return `₹${lakhs.toFixed(1)}L`;
+    } else if (amount >= 1000) {
+      const thousands = amount / 1000;
+      return `₹${thousands.toFixed(1)}K`;
+    } else {
+      return `₹${amount.toFixed(0)}`;
+    }
+  };
+
+  const displayedRevenue = selectedRange === "thisMonth" ? monthlyRevenue : lastMonthRevenue;
 
   return (
     <div className="dashboard">
@@ -330,9 +424,27 @@ const Dashboard = () => {
                         <div className="icons">
                           <svg fill="#000000" version="1.1" id="Layer_1" width="64" height="64" viewBox="0 0 256 252" data-iconid="revenue-estimate-estimate-revenue" ><path d="M59.406,88.486L50.54,60.801h50.68L90.352,88.486H59.406z M20.567,146.773	c0-21.393,11.841-39.869,29.63-49.078h50.737c17.789,9.209,29.973,27.685,29.973,49.078c0,30.316-24.711,55.027-55.027,55.027	C45.22,201.801,20.567,177.09,20.567,146.773z M80.857,159.987c0,3.26-2.974,4.919-7.265,4.919c-4.976,0-9.553-1.659-12.87-3.318	l-2.288,8.866c2.917,1.659,7.894,2.974,13.156,3.318v7.264h7.551v-7.894c8.923-1.316,13.843-7.265,13.843-14.186	c0-6.921-3.661-11.154-12.87-14.472c-6.578-2.288-9.209-3.947-9.209-6.578c0-2.002,1.659-4.29,6.578-4.29	c5.606,0,9.209,1.659,11.211,2.631l2.288-8.58c-2.631-1.316-5.949-2.288-11.211-2.631v-6.921h-7.551v7.207	c-8.237,1.659-13.156,6.921-13.156,13.843c0,7.608,5.606,11.555,13.843,14.186C78.511,155.354,81.143,157.012,80.857,159.987z	 M198.608,91.221c-1.756-1.828-1.698-4.734,0.13-6.491s4.734-1.698,6.491,0.13s1.698,4.734-0.13,6.491	S200.364,93.049,198.608,91.221z M229.263,82.637c1.828-1.756,1.887-4.662,0.13-6.491s-4.662-1.887-6.491-0.13	c-1.828,1.756-1.887,4.662-0.13,6.491S227.434,84.394,229.263,82.637z M171.883,56.775c1.828-1.756,1.887-4.662,0.13-6.491	c-1.756-1.828-4.662-1.887-6.491-0.13s-1.887,4.662-0.13,6.491S170.055,58.532,171.883,56.775z M239.094,60.108	c1.828-1.756,1.887-4.662,0.13-6.491s-4.662-1.887-6.491-0.13s-1.887,4.662-0.13,6.491C234.36,61.806,237.266,61.864,239.094,60.108	z M204.274,24.598c1.828-1.756,1.887-4.662,0.13-6.491c-1.756-1.828-4.662-1.887-6.491-0.13s-1.887,4.662-0.13,6.491	C199.54,26.296,202.445,26.354,204.274,24.598z M229.857,35.032c1.828-1.756,1.887-4.662,0.13-6.491	c-1.756-1.828-4.662-1.887-6.491-0.13s-1.887,4.662-0.13,6.491C225.123,36.73,228.029,36.788,229.857,35.032z M182.436,34.261	c1.828-1.756,1.887-4.662,0.13-6.491c-1.756-1.828-4.662-1.887-6.491-0.13s-1.887,4.662-0.13,6.491S180.607,36.017,182.436,34.261z	 M190.179,61.832l-16.368,15.724l-1.58,6.822l6.88-1.305l16.368-15.724c4.637,2.618,10.782,2.02,15.012-2.044	c5.15-4.947,5.309-12.88,0.362-18.03s-12.88-5.309-18.03-0.362C188.593,50.978,187.573,56.91,190.179,61.832z M253.968,54.72	c0,21.672-13.201,40.348-31.968,48.417V119h-15.232v88.777c0,17.087-13.772,30.858-30.859,30.858h-26.12v11.181H2V215h148v13.484	l26.675-0.05c11.476,0,20.657-9.181,20.657-20.657V119H182v-15.814c-18.828-8.041-32.083-26.75-32.083-48.466	c0-29.073,23.463-52.536,52.536-52.536C231.271,2.184,254.989,25.646,253.968,54.72z M241.747,34.102	c-11.375-21.68-38.232-30.052-59.912-18.677c-21.68,11.375-30.052,38.232-18.677,59.912c11.375,21.68,38.232,30.052,59.912,18.677	C244.75,82.639,253.122,55.782,241.747,34.102z"></path></svg>
                         </div>
-                        <h2>₹8.4L</h2>
+                        <h2>
+                          {isRevenueLoading
+                            ? "--"
+                            : displayedRevenue !== null
+                            ? formatRevenue(displayedRevenue)
+                            : "N/A"}
+                        </h2>
                         <p className='m-0 p-0'>Monthly Revenue</p>
-                        <span className="badge tag-exam">↑ 18.2%</span>
+                        <span className="badge tag-exam">
+                          {isRevenueLoading
+                            ? "Loading..."
+                            : revenueError
+                            ? "Unable to load stats"
+                            : selectedRange === "thisMonth" && revenuePercentageChange !== null
+                            ? revenuePercentageChange >= 0
+                              ? `↑ ${revenuePercentageChange.toFixed(1)}%`
+                              : `↓ ${Math.abs(revenuePercentageChange).toFixed(1)}%`
+                            : selectedRange === "lastMonth"
+                            ? "Last month"
+                            : "No data"}
+                        </span>
                     </Link>
                 </div>
                 <div className='col-lg-3 col-6 mb-4'>
