@@ -808,6 +808,7 @@ const StudentCalendarView = () => {
         onHide={() => { setShowEditModal(false); setEditingClassId(null); }}
         classId={editingClassId}
         initialData={selectedClass} // <-- pass selected class so modal autofills immediately
+        userTimezone={userTz}
         onSuccess={handleEditSuccess}
       />
     </div>
