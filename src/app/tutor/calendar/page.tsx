@@ -726,7 +726,7 @@ const StudentCalendarView = () => {
                 className="flex-1 !rounded-md !py-2"
                 onClick={handleEditClass}
               >
-                Edit
+                Reschedule
               </Button>
 
               <Button
@@ -736,7 +736,7 @@ const StudentCalendarView = () => {
                   setShowDeleteModal(true);
                 }}
               >
-                Delete
+                Cancel
               </Button>
 
               <Button
