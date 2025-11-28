@@ -49,6 +49,10 @@ const Dashboard = () => {
   const [isAttendanceLoading, setIsAttendanceLoading] = useState<boolean>(false);
   const [attendanceError, setAttendanceError] = useState<string | null>(null);
 
+  const [studentRetention, setStudentRetention] = useState<number | null>(null);
+  const [isRetentionLoading, setIsRetentionLoading] = useState<boolean>(false);
+  const [retentionError, setRetentionError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchTutorStats = async () => {
       setIsTutorStatsLoading(true);
@@ -685,6 +689,172 @@ const Dashboard = () => {
     fetchAttendanceStats();
   }, []);
 
+  useEffect(() => {
+    const fetchRetentionStats = async () => {
+      setIsRetentionLoading(true);
+      setRetentionError(null);
+
+      try {
+        // Fetch all students for the academy
+        const studentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!studentsResponse.ok) {
+          throw new Error("Failed to fetch students data");
+        }
+
+        const studentsData = await studentsResponse.json();
+        if (!studentsData?.success || !Array.isArray(studentsData.students)) {
+          throw new Error("Invalid students data format");
+        }
+
+        const students = studentsData.students;
+
+        if (students.length === 0) {
+          setStudentRetention(0);
+          return;
+        }
+
+        // Fetch all tutors to get their classes
+        const tutorsResponse = await fetch("/Api/academy/tutors", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!tutorsResponse.ok) {
+          throw new Error("Failed to fetch tutors data");
+        }
+
+        const tutorsData = await tutorsResponse.json();
+        if (!tutorsData?.success || !Array.isArray(tutorsData.tutors)) {
+          throw new Error("Invalid tutors data format");
+        }
+
+        const tutors = tutorsData.tutors;
+
+        // Fetch classes for all tutors in parallel
+        const classPromises = tutors.map(async (tutor: any) => {
+          try {
+            const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
+              method: "GET",
+              credentials: "include",
+            });
+            if (classResponse.ok) {
+              const classData = await classResponse.json();
+              if (classData?.success && Array.isArray(classData.classes)) {
+                return classData.classes;
+              }
+            }
+            return [];
+          } catch (error) {
+            console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
+            return [];
+          }
+        });
+
+        const classArrays = await Promise.all(classPromises);
+        
+        // Flatten and remove duplicates
+        const allClassesMap = new Map();
+        classArrays.forEach((classes: any[]) => {
+          classes.forEach((cls: any) => {
+            if (cls._id) {
+              const id = cls._id.toString();
+              if (!allClassesMap.has(id)) {
+                allClassesMap.set(id, cls);
+              }
+            }
+          });
+        });
+
+        const uniqueClasses = Array.from(allClassesMap.values());
+
+        // Calculate retention
+        // A student is considered "retained" if they:
+        // 1. Are enrolled in at least one course
+        // 2. AND have attended classes (marked as "present") during their course enrollment
+        // 
+        // Simple logic: If a student is assigned to a course and attends classes (marked present),
+        // they are counted as retained. This includes:
+        // - Students currently enrolled with upcoming classes
+        // - Students who have attended classes in the past (completed or ongoing courses)
+        // - Students who have at least one "present" attendance record
+        
+        const now = new Date();
+        
+        let activeStudents = 0;
+        const totalStudents = students.length;
+
+        students.forEach((student: any) => {
+          // Check if student is enrolled in at least one course
+          const hasCourses = student.courses && Array.isArray(student.courses) && student.courses.length > 0;
+          
+          if (!hasCourses) {
+            return; // Not enrolled in any course, not retained
+          }
+
+          // Check if student has attended at least one class (marked as "present")
+          let hasAttendedClasses = false;
+
+          // 1. Check if student has any "present" attendance records
+          if (student.attendance && Array.isArray(student.attendance)) {
+            const hasPresentAttendance = student.attendance.some((att: any) => {
+              return att.status === "present";
+            });
+            
+            if (hasPresentAttendance) {
+              hasAttendedClasses = true;
+            }
+          }
+
+          // 2. If no attendance records yet, check if student has upcoming classes
+          // (They're enrolled and have classes scheduled, so they're actively engaged)
+          if (!hasAttendedClasses && student.classes && Array.isArray(student.classes)) {
+            const hasUpcomingClass = student.classes.some((classId: any) => {
+              const classIdStr = typeof classId === 'string' ? classId : (classId?._id?.toString() || classId?.toString());
+              const classItem = allClassesMap.get(classIdStr);
+              if (classItem && classItem.startTime) {
+                const startTime = new Date(classItem.startTime);
+                return startTime > now; // Future class
+              }
+              return false;
+            });
+            
+            if (hasUpcomingClass) {
+              hasAttendedClasses = true; // Enrolled with upcoming classes = actively engaged
+            }
+          }
+
+          // Student is retained if:
+          // - They are enrolled in at least one course
+          // - AND they have attended classes (present) OR have upcoming classes
+          if (hasCourses && hasAttendedClasses) {
+            activeStudents++;
+          }
+        });
+
+        // Calculate retention rate percentage
+        const retentionRate = totalStudents > 0 
+          ? (activeStudents / totalStudents) * 100 
+          : 0;
+
+        setStudentRetention(Math.round(retentionRate * 10) / 10); // Round to 1 decimal place
+      } catch (error: any) {
+        console.error("Error while fetching retention stats:", error);
+        setRetentionError(
+          error?.message || "Something went wrong while fetching retention stats."
+        );
+        setStudentRetention(null);
+      } finally {
+        setIsRetentionLoading(false);
+      }
+    };
+
+    fetchRetentionStats();
+  }, []);
+
   const displayedActiveTutors =
     selectedRange === "thisMonth" || activeTutorsLastMonthCount === null
       ? activeTutorsCount
@@ -905,7 +1075,13 @@ const Dashboard = () => {
                     </li>
                     <li>
                       <span className="top-data">Student Retention</span>
-                      <span className="bottom-data">91%</span>
+                      <span className="bottom-data">
+                        {isRetentionLoading
+                          ? "--"
+                          : studentRetention !== null
+                          ? `${studentRetention}%`
+                          : "N/A"}
+                      </span>
                     </li>
                   </ul>
                 </div>
