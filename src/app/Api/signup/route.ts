@@ -60,6 +60,7 @@ export async function POST(request : NextRequest ){
         // Only process academy linking if instructor exists and is an Academic
         if(instructor && instructor.category==="Academic"){
             newUser.academyId= instructorId;
+            newUser.isVerified= true;
             console.log("[API/signup] Linked student to academy.");
             if(newUser.category==="Student"){
                 instructor.students.push(newUser._id);

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2, Edit, X, Clock ,User,ChevronUp,ChevronDown} from 'lucide-react';
+import { ChevronLeft, BookOpen, Upload, FileText, IndianRupee, BarChart3, Trash2, Edit, X, Clock ,User,ChevronUp,ChevronDown,UserCheck} from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
@@ -81,6 +81,11 @@ const CourseDetailsPage = () => {
   const [userTimezone, setUserTimezone] = useState<string | null>(null);
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
   const [academyId, setAcademyId] = useState<string | null>(null);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<Class | null>(null);
+const [attendanceData, setAttendanceData] = useState<{[tutorId: string]: string}>({});
+const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
+const [attendanceStatus, setAttendanceStatus] = useState<{[tutorId: string]: string}>({});
   const params = useParams();
   const router = useRouter();
 
@@ -176,7 +181,81 @@ const extractDateTimeForForm = (dateTimeString: string) => {
 };
 
 
+// Open attendance modal and fetch current attendance status
+const handleOpenAttendance = async (classSession: Class) => {
+  setSelectedClassForAttendance(classSession);
+  setShowAttendanceModal(true);
+  
+  // Fetch current attendance status for all tutors
+  const statusMap: {[tutorId: string]: string} = {};
+  
+  for (const tutor of courseUsersData.tutors) {
+    try {
+      const response = await fetch(`/Api/attendance?studentId=${tutor._id}&classId=${classSession._id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          statusMap[tutor._id] = data.data.status || 'not_marked';
+        } else {
+          statusMap[tutor._id] = 'not_marked';
+        }
+      } else {
+        statusMap[tutor._id] = 'not_marked';
+      }
+    } catch (error) {
+      console.error(`Error fetching attendance for tutor ${tutor._id}:`, error);
+      statusMap[tutor._id] = 'not_marked';
+    }
+  }
+  
+  setAttendanceStatus(statusMap);
+  setAttendanceData(statusMap);
+};
 
+// Handle attendance change
+const handleAttendanceChange = (tutorId: string, status: string) => {
+  setAttendanceData(prev => ({
+    ...prev,
+    [tutorId]: status
+  }));
+};
+
+// Submit attendance
+const handleSubmitAttendance = async () => {
+  if (!selectedClassForAttendance) return;
+  
+  setIsMarkingAttendance(true);
+  
+  try {
+    const promises = Object.entries(attendanceData).map(([tutorId, status]) => {
+      return fetch(`/Api/attendance?studentId=${tutorId}&classId=${selectedClassForAttendance._id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+    });
+    
+    const results = await Promise.all(promises);
+    
+    const allSuccessful = results.every(res => res.ok);
+    
+    if (allSuccessful) {
+      toast.success('Attendance marked successfully for all tutors!');
+      setShowAttendanceModal(false);
+      setSelectedClassForAttendance(null);
+      setAttendanceData({});
+    } else {
+      toast.error('Some attendance records failed to save');
+    }
+  } catch (error) {
+    console.error('Error marking attendance:', error);
+    toast.error('Failed to mark attendance');
+  } finally {
+    setIsMarkingAttendance(false);
+  }
+};
   // Fetch course details
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -616,7 +695,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
       }
 
       toast.success('Course deleted successfully');
-      router.push('/tutor/courses');
+      router.push('/academy/courses');
     } catch (error) {
       console.error('Error deleting course:', error);
       toast.error('Failed to delete course');
@@ -642,7 +721,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
           </div>
           <p className="!text-gray-700 !mb-6 !text-sm !sm:text-base">{error}</p>
           <Link 
-            href="/tutor" 
+            href="/academy" 
             className="!inline-block !px-4 !sm:px-6 !py-2 !sm:py-3 !bg-gradient-to-r !from-blue-500 !to-purple-600 !text-white !rounded-lg !hover:from-blue-600 !hover:to-purple-700 !transition-colors !text-sm !sm:text-base"
           >
             Return to Home
@@ -660,7 +739,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
           <div className="!flex !flex-col !sm:flex-row !sm:justify-between !sm:items-center !gap-4">
             <div className="!flex !items-center !space-x-3 !sm:space-x-4">
               <Link 
-                href={`/tutor/courses`} 
+                href={`/academy/courses`} 
                 className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
               >
                 <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
@@ -670,14 +749,14 @@ const handleUpdateClass = async (e: React.FormEvent) => {
               </h1>
             </div>
             <div className="!flex !flex-col !sm:flex-row !items-stretch !sm:items-center !gap-2 !sm:gap-3">
-            {!academyId && (
-  <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
+            
+  <Link href={`/academy/classes/?courseId=${courseData.courseDetails._id}`}>
     <button className="!w-full !sm:w-auto !bg-gray-700 !hover:bg-gray-800 !text-white !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-colors !shadow-md !flex !items-center !justify-center !gap-2 !text-sm !sm:text-base">
       <Upload size={16} className="!sm:w-[18px] !sm:h-[18px]" />
       Create Class
     </button>
   </Link>
-)}
+
               {!academyId && (<button 
                 onClick={handleDeleteCourse}
                 className="!w-full !sm:w-auto !border !border-gray-300 !bg-white !text-gray-700 !hover:bg-red-50 !hover:text-red-600 !hover:border-red-200 !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-all !duration-200 !flex !items-center !justify-center !gap-2 !shadow-sm !text-sm !sm:text-base"
@@ -980,10 +1059,22 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                           />
 
                           <div className="!flex !gap-2">
+
+                            {/* Add this button after the Assignment button in mobile layout */}
+<button
+  onClick={() => handleOpenAttendance(classSession)}
+  className="w-full px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs font-medium shadow-sm"
+>
+  <UserCheck className="mr-1" size={14} />
+  Mark Attendance
+</button>
+
+
+
                             {/* Class Quality button */}
                             {classSession.recordingUrl && (
                               <Link 
-                                href={`/tutor/classQuality/${classSession._id}`}
+                                href={`/academy/classQuality/${classSession._id}`}
                                 className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
                               >
                                 <BarChart3 className="!mr-1" size={14} />
@@ -1006,14 +1097,14 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                           </div>
 
                           {/* Assignment Button */}
-                       <Link 
+                       {/* <Link 
   href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
 style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
   className="w-full px-3 py-2 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-xs font-medium shadow-sm"
 >
   <FileText className="mr-1" size={14} />
   Add Assignment
-</Link>
+</Link> */}
                         </div>
                       </div>
 
@@ -1061,6 +1152,17 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                           {/* Actions */}
                           {/* Actions */}
 <div className="flex flex-col gap-3 min-w-[180px]">
+
+
+  {/* Add this button after the Assignment button in desktop layout */}
+<button
+  onClick={() => handleOpenAttendance(classSession)}
+  style={{ backgroundColor: '#10b981', color: '#ffffff' }}
+  className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+>
+  <UserCheck className="mr-2" size={16} />
+  Mark Attendance
+</button>
   {/* Hidden file input */}
   <input
     type="file"
@@ -1073,7 +1175,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
   {/* Class Quality button */}
   {classSession.recordingUrl && (
     <Link 
-      href={`/tutor/classQuality/${classSession._id}`}
+      href={`/academy/classQuality/${classSession._id}`}
       style={{ backgroundColor: 'purple', color: '#ffffff' }}
       className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
     >
@@ -1099,14 +1201,14 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
   </button>
 
   {/* Assignment Button */}
-  <Link 
+  {/* <Link 
     href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
     style={{ backgroundColor: 'blueviolet', color: '#ffffff' }}
     className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
   >
     <FileText className="mr-2" size={16} />
     Add Assignment
-  </Link>
+  </Link> */}
 </div>
                         </div>
                       </div>
@@ -1282,6 +1384,121 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
           </div>
         )}
       </div>
+      {/* Attendance Modal */}
+{showAttendanceModal && selectedClassForAttendance && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">
+            Mark Attendance - {selectedClassForAttendance.title}
+          </h3>
+          <button
+            onClick={() => {
+              setShowAttendanceModal(false);
+              setSelectedClassForAttendance(null);
+              setAttendanceData({});
+            }}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X size={20} className="text-gray-500" />
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {courseUsersData.tutors.length > 0 ? (
+            courseUsersData.tutors.map((tutor) => (
+              <div 
+                key={tutor._id} 
+                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  {tutor.profileImage ? (
+                    <Image
+                      src={tutor.profileImage}
+                      alt={tutor.username}
+                      width={40}
+                      height={40}
+                      className="rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                      <User className="text-gray-400 w-5 h-5" />
+                    </div>
+                  )}
+                  <div>
+                    <div className="font-medium text-gray-800">{tutor.username}</div>
+                    <div className="text-sm text-gray-500">{tutor.email}</div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAttendanceChange(tutor._id, 'present')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      attendanceData[tutor._id] === 'present'
+                        ? 'bg-green-500 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Present
+                  </button>
+                  <button
+                    onClick={() => handleAttendanceChange(tutor._id, 'absent')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      attendanceData[tutor._id] === 'absent'
+                        ? 'bg-red-500 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Absent
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <User className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+              <p className="text-gray-500">No tutors assigned to this course</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3 pt-6 mt-6 border-t">
+          <button
+            type="button"
+            onClick={() => {
+              setShowAttendanceModal(false);
+              setSelectedClassForAttendance(null);
+              setAttendanceData({});
+            }}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmitAttendance}
+            disabled={isMarkingAttendance || Object.keys(attendanceData).length === 0}
+            className={`flex-1 px-4 py-2 rounded-md transition-colors ${
+              isMarkingAttendance || Object.keys(attendanceData).length === 0
+                ? 'bg-gray-400 cursor-not-allowed text-white'
+                : 'bg-green-500 hover:bg-green-600 text-white'
+            }`}
+          >
+            {isMarkingAttendance ? (
+              <div className="flex items-center justify-center">
+                <Clock className="animate-spin mr-2" size={16} />
+                Marking...
+              </div>
+            ) : (
+              'Mark Attendance'
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

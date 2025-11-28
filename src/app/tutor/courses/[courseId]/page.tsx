@@ -14,6 +14,7 @@ import {
   X,
   Clock,
   Copy,
+  AlertCircle
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios";
@@ -38,6 +39,9 @@ interface Class {
   startTime: string;
   endTime: string;
   recordingUrl?: string;
+  reasonForReschedule?: string;
+   reasonForCancelation?: string; 
+  status?: string; 
 }
 
 interface CourseDetailsData {
@@ -59,6 +63,8 @@ interface EditClassForm {
   startTime: string;
   endTime: string;
   date: string;
+  reasonForReschedule?: string;
+  reasonForCancelation?: string;
 }
 
 const CourseDetailsPage = () => {
@@ -79,6 +85,7 @@ const CourseDetailsPage = () => {
     startTime: "",
     endTime: "",
     date: "",
+  reasonForReschedule: "",
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [editError, setEditError] = useState("");
@@ -86,6 +93,10 @@ const CourseDetailsPage = () => {
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const [academyId, setAcademyId] = useState<string | null>(null);
   const [copyingClass, setCopyingClass] = useState<Class | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [deletingClass, setDeletingClass] = useState<Class | null>(null);
+const [deleteReason, setDeleteReason] = useState("");
+const [deleteError, setDeleteError] = useState("");
   const params = useParams();
   const router = useRouter();
 
@@ -243,6 +254,7 @@ const formatDateTime = (dateTimeString: string) => {
       startTime: startDateTime.timeStr, // Exact: "14:30"
       endTime: endDateTime.timeStr, // Exact: "16:00"
       date: startDateTime.dateStr, // Exact: "2024-01-15"
+      reasonForReschedule: classSession.reasonForReschedule || "",
     });
     setShowEditModal(true);
     setEditError("");
@@ -330,6 +342,7 @@ const formatDateTime = (dateTimeString: string) => {
           date: editForm.date, // Send exact: "2024-01-15"
           startTime: editForm.startTime, // Send exact: "14:30"
           endTime: editForm.endTime, // Send exact: "16:00"
+          reasonForReschedule: editForm.reasonForReschedule || "",
           timezone:
             userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
@@ -362,42 +375,58 @@ const formatDateTime = (dateTimeString: string) => {
     }
   };
   // Handle delete class
-  const handleDeleteClass = async (classId: string, classTitle: string) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete the class "${classTitle}"? This action cannot be undone.`
-      )
-    ) {
-      return;
+const handleDeleteClass = async (classSession: Class) => {
+  setDeletingClass(classSession);
+  setDeleteReason("");
+  setDeleteError("");
+  setShowDeleteModal(true);
+};
+
+const confirmDeleteClass = async () => {
+  if (!deletingClass) return;
+  
+  if (!deleteReason.trim()) {
+    setDeleteError("Please provide a reason for cancellation");
+    return;
+  }
+
+  try {
+    const response = await fetch(`/Api/classes?classId=${deletingClass._id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        reasonForCancellation: deleteReason,
+        timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete class");
     }
 
-    try {
-      const response = await fetch(`/Api/classes?classId=${classId}`, {
-        method: "DELETE",
-      });
+    toast.success("Class canceled and students notified!");
+    setShowDeleteModal(false);
+    setDeletingClass(null);
+    setDeleteReason("");
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to delete class");
-      }
-
-      toast.success("Class deleted successfully!");
-
-      // Refresh the course data
-      const refreshResponse = await fetch(
-        `/Api/tutors/courses/${params.courseId}`
-      );
-      if (refreshResponse.ok) {
-        const refreshedData = await refreshResponse.json();
-        setCourseData(refreshedData);
-      }
-    } catch (error) {
-      console.error("Error deleting class:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to delete class"
-      );
+    // Refresh the course data
+    const refreshResponse = await fetch(
+      `/Api/tutors/courses/${params.courseId}`
+    );
+    if (refreshResponse.ok) {
+      const refreshedData = await refreshResponse.json();
+      setCourseData(refreshedData);
     }
-  };
+  } catch (error) {
+    console.error("Error deleting class:", error);
+    setDeleteError(
+      error instanceof Error ? error.message : "Failed to delete class"
+    );
+  }
+};
 
   // Handle file upload
   const handleFileChange = async (
@@ -736,265 +765,385 @@ const formatDateTime = (dateTimeString: string) => {
                   >
                     <div className="!p-4 !sm:p-6">
                       {/* Mobile Layout */}
-                      <div className="block lg:hidden !text-gray-800">
-                        <div className="!flex !gap-3">
-                          {/* Edit/Delete Icons on extreme left */}
-                          <div className="!flex !flex-col !gap-2">
-                            <button
-                              onClick={() => handleEditClass(classSession)}
-                              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
-                              title="Edit class"
-                            >
-                              <Edit size={16} />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleDeleteClass(
-                                  classSession._id,
-                                  classSession.title
-                                )
-                              }
-                              className="!p-1 !text-red-500 !hover:text-red-700 !hover:bg-red-50 !rounded-full !transition-colors group relative"
-                              title="Delete class"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                      {/* Mobile Layout */}
+<div className="block lg:hidden !text-gray-800">
+  {/* Wrapper with strikethrough overlay for canceled classes */}
+  <div className="relative">
+    {/* Diagonal strikethrough overlay - only show if canceled */}
+    {classSession.status === 'canceled' && (
+      <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
+        <div 
+          className="absolute inset-0" 
+          style={{
+            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(220, 53, 69, 0.15) 10px, rgba(220, 53, 69, 0.15) 20px)',
+          }}
+        />
+        <div 
+          className="absolute top-0 left-0 w-full h-1 transform -translate-y-1/2 rotate-45 origin-top-left"
+          style={{
+            background: 'rgba(220, 53, 69, 0.5)',
+            height: '3px',
+            width: '141%',
+            boxShadow: '0 0 5px rgba(220, 53, 69, 0.3)'
+          }}
+        />
+      </div>
+    )}
+    
+    {/* Main content with conditional gray filter */}
+    <div className={classSession.status === 'canceled' ? 'opacity-50 grayscale' : ''}>
+      <div className="!flex !gap-3">
+        {/* Edit/Delete Icons on extreme left */}
+        <div className="!flex !flex-col !gap-2">
+          {classSession.status !== 'canceled' && (
+            <button
+              onClick={() => handleEditClass(classSession)}
+              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
+              title="Edit class"
+            >
+              <Edit size={16} />
+            </button>
+          )}
+          <button
+            onClick={() => handleDeleteClass(classSession)}
+            disabled={classSession.status === 'canceled'}
+            className={`!p-1 !rounded-full !transition-colors group relative ${
+              classSession.status === 'canceled'
+                ? '!text-gray-400 !cursor-not-allowed'
+                : '!text-red-500 !hover:text-red-700 !hover:bg-red-50'
+            }`}
+            title={classSession.status === 'canceled' ? 'Already canceled' : 'Delete class'}
+          >
+            <Trash2 size={16} />
+          </button>
 
-                            {/* Copy icon below Delete (mobile) - icon only */}
-                            <button
-                              onClick={() => copyClass(classSession)}
-                              className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
-                              title="Copy class"
-                              disabled={!!copyingClass}
-                            >
-                              {copyingClass ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
-                              ) : (
-                                <Copy size={16} />
-                              )}
-                            </button>
-                          </div>
+          {/* Copy icon - disabled for canceled classes */}
+          {classSession.status !== 'canceled' && (
+            <button
+              onClick={() => copyClass(classSession)}
+              className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
+              title="Copy class"
+              disabled={!!copyingClass}
+            >
+              {copyingClass ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
+              ) : (
+                <Copy size={16} />
+              )}
+            </button>
+          )}
+        </div>
 
-                          {/* Content Area */}
-                          <div className="flex-1 !space-y-4">
-                            {/* Date and Time */}
-                            <div className="!bg-gray-100 !rounded-lg !p-3 !text-center">
-                              <div className="!text-sm !font-bold !text-gray-800">
-                                {date}
-                              </div>
-                              <div className="!text-xs !text-gray-600">
-                                {time}
-                              </div>
-                            </div>
+        {/* Content Area */}
+        <div className="flex-1 !space-y-4">
+          {/* Date and Time */}
+          <div className="!bg-gray-100 !rounded-lg !p-3 !text-center">
+            <div className="!text-sm !font-bold !text-gray-800">
+              {date}
+            </div>
+            <div className="!text-xs !text-gray-600">
+              {time}
+            </div>
+          </div>
 
-                            {/* Session Details */}
-                            <div>
-                              <h3 className="!text-lg !font-semibold !text-gray-800 !mb-2">
-                                {classSession.title}
-                              </h3>
-                              <p className="!text-gray-600 !text-sm !leading-relaxed">
-                                {classSession.description}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+          {/* Session Details */}
+          <div>
+            <h3 className="!text-lg !font-semibold !text-gray-800 !mb-2">
+              {classSession.title}
+            </h3>
+            <p className="!text-gray-600 !text-sm !leading-relaxed">
+              {classSession.description}
+            </p>
+          </div>
 
-                        {/* Actions */}
-                        <div className="!flex !flex-col !gap-2 !ml-10">
-                          {/* Hidden file input */}
-                          <input
-                            type="file"
-                            accept="video/*"
-                            className="hidden"
-                            ref={(el) => {
-                              fileInputRefs.current[classSession._id] = el;
-                            }}
-                            onChange={(e) =>
-                              handleFileChange(classSession._id, e)
-                            }
-                          />
+          {/* Reschedule Reason */}
+          {classSession.reasonForReschedule && classSession.status === 'rescheduled' && (
+            <div className="!mt-3 !bg-yellow-50 !border-l-4 !border-yellow-400 !p-3 !rounded">
+              <div className="!flex !items-start !gap-2">
+                <AlertCircle className="!text-yellow-600 !flex-shrink-0 !mt-0.5" size={16} />
+                <div>
+                  <p className="!text-xs !font-semibold !text-yellow-800 !mb-1">
+                    Rescheduled
+                  </p>
+                  <p className="!text-xs !text-yellow-700">
+                    {classSession.reasonForReschedule}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
-                          <div className="!flex !gap-2">
-                            {/* Class Quality button */}
-                            {classSession.recordingUrl && (
-                              <Link
-                                href={`/tutor/classQuality/${classSession._id}`}
-                                className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
-                              >
-                                <BarChart3 className="!mr-1" size={14} />
-                                Quality
-                              </Link>
-                            )}
+          {/* Cancellation Reason */}
+          {classSession.reasonForCancelation && classSession.status === 'canceled' && (
+            <div className="!mt-3 !bg-red-50 !border-l-4 !border-red-400 !p-3 !rounded">
+              <div className="!flex !items-start !gap-2">
+                <AlertCircle className="!text-red-600 !flex-shrink-0 !mt-0.5" size={16} />
+                <div>
+                  <p className="!text-xs !font-semibold !text-red-800 !mb-1">
+                    canceled
+                  </p>
+                  <p className="!text-xs !text-red-700">
+                    {classSession.reasonForCancelation}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
-                            {/* Upload Recording button */}
-                            <button
-                              onClick={() => triggerFileInput(classSession._id)}
-                              disabled={isUploading}
-                              className={`flex-1 px-3 py-2 ${
-                                isUploading
-                                  ? "bg-gray-400 cursor-not-allowed"
-                                  : "bg-purple-500 hover:bg-purple-600"
-                              } text-white rounded-lg transition-colors flex items-center justify-center text-xs`}
-                            >
-                              <Upload className="!mr-1" size={14} />
-                              {getButtonText(classSession, isUploading)}
-                            </button>
+      {/* Actions - hide for canceled classes */}
+      {classSession.status !== 'canceled' && (
+        <div className="!flex !flex-col !gap-2 !ml-10">
+          {/* Hidden file input */}
+          <input
+            type="file"
+            accept="video/*"
+            className="hidden"
+            ref={(el) => {
+              fileInputRefs.current[classSession._id] = el;
+            }}
+            onChange={(e) =>
+              handleFileChange(classSession._id, e)
+            }
+          />
 
-                            {/* Copy moved to icon column - removed duplicate textual copy button */}
-                          </div>
+          <div className="!flex !gap-2">
+            {/* Class Quality button */}
+            {classSession.recordingUrl && (
+              <Link
+                href={`/tutor/classQuality/${classSession._id}`}
+                className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
+              >
+                <BarChart3 className="!mr-1" size={14} />
+                Quality
+              </Link>
+            )}
 
-                          {/* Assignment Button */}
-                          <Link
-                            href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-                            style={{
-                              backgroundColor: "#fb923c",
-                              color: "#ffffff",
-                            }}
-                            className="w-full px-3 py-2 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-xs font-medium shadow-sm"
-                          >
-                            <FileText className="mr-1" size={14} />
-                            Add Assignment
-                          </Link>
-                        </div>
-                      </div>
+            {/* Upload Recording button */}
+            <button
+              onClick={() => triggerFileInput(classSession._id)}
+              disabled={isUploading}
+              className={`flex-1 px-3 py-2 ${
+                isUploading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-purple-500 hover:bg-purple-600"
+              } text-white rounded-lg transition-colors flex items-center justify-center text-xs`}
+            >
+              <Upload className="!mr-1" size={14} />
+              {getButtonText(classSession, isUploading)}
+            </button>
+          </div>
+
+          {/* Assignment Button */}
+          <Link
+            href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+            style={{
+              backgroundColor: "#fb923c",
+              color: "#ffffff",
+            }}
+            className="w-full px-3 py-2 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-xs font-medium shadow-sm"
+          >
+            <FileText className="mr-1" size={14} />
+            Add Assignment
+          </Link>
+        </div>
+      )}
+    </div>
+  </div>
+</div>
 
                       {/* Desktop Layout */}
-                      <div className="hidden lg:block">
-                        <div className="!flex !gap-6 !items-center">
-                          {/* Edit/Delete Icons on extreme left */}
-                          <div className="!flex !flex-col !gap-2">
-                            <button
-                              onClick={() => handleEditClass(classSession)}
-                              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
-                              title="Edit class"
-                            >
-                              <Edit size={18} />
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleDeleteClass(
-                                  classSession._id,
-                                  classSession.title
-                                )
-                              }
-                              className="!p-1 !text-red-500 !hover:text-red-700 !hover:bg-red-50 !rounded-full !transition-colors group relative"
-                              title="Delete class"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                            {/* Copy icon below Delete (desktop) - icon only */}
-                            <button
-                              onClick={() => copyClass(classSession)}
-                              className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
-                              title="Copy class"
-                              disabled={!!copyingClass}
-                            >
-                              {copyingClass ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
-                              ) : (
-                                <Copy size={18} />
-                              )}
-                            </button>
-                          </div>
+                     {/* Desktop Layout */}
+<div className="hidden lg:block">
+  {/* Wrapper with strikethrough overlay for canceled classes */}
+  <div className="relative">
+    {/* Diagonal strikethrough overlay - only show if canceled */}
+    {classSession.status === 'canceled' && (
+      <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
+        <div 
+          className="absolute inset-0" 
+          style={{
+            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(220, 53, 69, 0.15) 10px, rgba(220, 53, 69, 0.15) 20px)',
+          }}
+        />
+        <div 
+          className="absolute top-0 left-0 w-full h-1 transform -translate-y-1/2 rotate-45 origin-top-left"
+          style={{
+            background: 'rgba(220, 53, 69, 0.5)',
+            height: '3px',
+            width: '141%',
+            boxShadow: '0 0 5px rgba(220, 53, 69, 0.3)'
+          }}
+        />
+      </div>
+    )}
+    
+    {/* Main content with conditional gray filter */}
+    <div className={classSession.status === 'canceled' ? 'opacity-50 grayscale' : ''}>
+      <div className="!flex !gap-6 !items-center">
+        {/* Edit/Delete Icons on extreme left */}
+        <div className="!flex !flex-col !gap-2">
+          {classSession.status !== 'canceled' && (
+            <button
+              onClick={() => handleEditClass(classSession)}
+              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
+              title="Edit class"
+            >
+              <Edit size={18} />
+            </button>
+          )}
+          <button
+            onClick={() => handleDeleteClass(classSession)}
+            disabled={classSession.status === 'canceled'}
+            className={`!p-1 !rounded-full !transition-colors group relative ${
+              classSession.status === 'canceled'
+                ? '!text-gray-400 !cursor-not-allowed'
+                : '!text-red-500 !hover:text-red-700 !hover:bg-red-50'
+            }`}
+            title={classSession.status === 'canceled' ? 'Already canceled' : 'Delete class'}
+          >
+            <Trash2 size={18} />
+          </button>
+          
+          {/* Copy icon - disabled for canceled classes */}
+          {classSession.status !== 'canceled' && (
+            <button
+              onClick={() => copyClass(classSession)}
+              className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
+              title="Copy class"
+              disabled={!!copyingClass}
+            >
+              {copyingClass ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
+              ) : (
+                <Copy size={18} />
+              )}
+            </button>
+          )}
+        </div>
 
-                          {/* Date and Time */}
-                          <div className="!bg-gray-100 !rounded-lg !p-4 !text-center !min-w-[200px]">
-                            <div className="!text-xl !font-bold !text-gray-800">
-                              {date}
-                            </div>
-                            <div className="!text-gray-600">{time}</div>
-                          </div>
+        {/* Date and Time */}
+        <div className="!bg-gray-100 !rounded-lg !p-4 !text-center !min-w-[200px]">
+          <div className="!text-xl !font-bold !text-gray-800">
+            {date}
+          </div>
+          <div className="!text-gray-600">{time}</div>
+        </div>
 
-                          {/* Session Details */}
-                          <div className="flex-1">
-                            <h3 className="!text-xl !font-semibold !text-gray-800 !mb-2">
-                              {classSession.title}
-                            </h3>
-                            <p className="!text-gray-600">
-                              {classSession.description}
-                            </p>
-                          </div>
+        {/* Session Details */}
+        <div className="flex-1">
+          <h3 className="!text-xl !font-semibold !text-gray-800 !mb-2">
+            {classSession.title}
+          </h3>
+          <p className="!text-gray-600">
+            {classSession.description}
+          </p>
+          
+          {/* Reschedule Reason */}
+          {classSession.reasonForReschedule && classSession.status === 'rescheduled' && (
+            <div className="!mt-3 !bg-yellow-50 !border-l-4 !border-yellow-400 !p-3 !rounded">
+              <div className="!flex !items-start !gap-2">
+                <AlertCircle className="!text-yellow-600 !flex-shrink-0 !mt-0.5" size={18} />
+                <div>
+                  <p className="!text-sm !font-semibold !text-yellow-800 !mb-1">
+                    Rescheduled
+                  </p>
+                  <p className="!text-sm !text-yellow-700">
+                    {classSession.reasonForReschedule}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
-                          {/* Actions */}
-                          <div className="flex flex-col gap-3 min-w-[180px]">
-                            {/* Hidden file input */}
-                            <input
-                              type="file"
-                              accept="video/*"
-                              className="hidden"
-                              ref={(el) => {
-                                fileInputRefs.current[classSession._id] = el;
-                              }}
-                              onChange={(e) =>
-                                handleFileChange(classSession._id, e)
-                              }
-                            />
+          {/* Cancellation Reason */}
+          {classSession.reasonForCancelation && classSession.status === 'canceled' && (
+            <div className="!mt-3 !bg-red-50 !border-l-4 !border-red-400 !p-3 !rounded">
+              <div className="!flex !items-start !gap-2">
+                <AlertCircle className="!text-red-600 !flex-shrink-0 !mt-0.5" size={18} />
+                <div>
+                  <p className="!text-sm !font-semibold !text-red-800 !mb-1">
+                    canceled
+                  </p>
+                  <p className="!text-sm !text-red-700">
+                    {classSession.reasonForCancelation}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-                            {/* Class Quality button */}
-                            {classSession.recordingUrl && (
-                              <Link
-                                href={`/tutor/classQuality/${classSession._id}`}
-                                style={{
-                                  backgroundColor: "purple",
-                                  color: "#ffffff",
-                                }}
-                                className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
-                              >
-                                <BarChart3 className="mr-2" size={16} />
-                                Class Quality
-                              </Link>
-                            )}
+        {/* Actions - hide for canceled classes */}
+        {classSession.status !== 'canceled' && (
+          <div className="flex flex-col gap-3 min-w-[180px]">
+            {/* Hidden file input */}
+            <input
+              type="file"
+              accept="video/*"
+              className="hidden"
+              ref={(el) => {
+                fileInputRefs.current[classSession._id] = el;
+              }}
+              onChange={(e) =>
+                handleFileChange(classSession._id, e)
+              }
+            />
 
-                            {/* Upload Recording button */}
-                            <button
-                              onClick={() => triggerFileInput(classSession._id)}
-                              disabled={isUploading}
-                              style={{
-                                backgroundColor: isUploading
-                                  ? "blueviolet"
-                                  : "blue",
-                                color: "#ffffff",
-                              }}
-                              className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
-                                isUploading
-                                  ? "cursor-not-allowed"
-                                  : "hover:opacity-90"
-                              }`}
-                            >
-                              <Upload className="mr-2" size={16} />
-                              {getButtonText(classSession, isUploading)}
-                            </button>
+            {/* Class Quality button */}
+            {classSession.recordingUrl && (
+              <Link
+                href={`/tutor/classQuality/${classSession._id}`}
+                style={{
+                  backgroundColor: "purple",
+                  color: "#ffffff",
+                }}
+                className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+              >
+                <BarChart3 className="mr-2" size={16} />
+                Class Quality
+              </Link>
+            )}
 
-                            {/* Copy Class button */}
-                            {/* <button
-                              onClick={() => copyClass(classSession._id)}
-                              disabled={!!copyingClassId}
-                              title="Copy class"
-                              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm flex items-center gap-2 justify-center"
-                            >
-                              {copyingClassId === classSession._id ? (
-                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
-                              ) : (
-                                <Copy className="mr-2" size={16} />
-                              )}
-                              Copy
-                            </button> */}
+            {/* Upload Recording button */}
+            <button
+              onClick={() => triggerFileInput(classSession._id)}
+              disabled={isUploading}
+              style={{
+                backgroundColor: isUploading
+                  ? "blueviolet"
+                  : "blue",
+                color: "#ffffff",
+              }}
+              className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
+                isUploading
+                  ? "cursor-not-allowed"
+                  : "hover:opacity-90"
+              }`}
+            >
+              <Upload className="mr-2" size={16} />
+              {getButtonText(classSession, isUploading)}
+            </button>
 
-                            {/* Assignment Button */}
-                            <Link
-                              href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-                              style={{
-                                backgroundColor: "blueviolet",
-                                color: "#ffffff",
-                              }}
-                              className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
-                            >
-                              <FileText className="mr-2" size={16} />
-                              Add Assignment
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
+            {/* Assignment Button */}
+            <Link
+              href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
+              style={{
+                backgroundColor: "blueviolet",
+                color: "#ffffff",
+              }}
+              className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+            >
+              <FileText className="mr-2" size={16} />
+              Add Assignment
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
                     </div>
                   </div>
                 );
@@ -1137,6 +1286,21 @@ const formatDateTime = (dateTimeString: string) => {
                         required
                       />
                     </div>
+
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-1">
+    Reason for Reschedule <span className="text-red-500">*</span>
+  </label>
+  <textarea
+    name="reasonForReschedule"
+    value={editForm.reasonForReschedule || ""}
+    onChange={handleEditFormChange}
+    rows={3}
+    placeholder="Please provide a reason for rescheduling this class..."
+    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+    required
+  />
+</div>
                   </div>
 
                   {editError && (
@@ -1178,6 +1342,81 @@ const formatDateTime = (dateTimeString: string) => {
           </div>
         )}
       </div>
+      {/* Delete Class Modal */}
+{showDeleteModal && deletingClass && (
+  <div className="fixed inset-0 bg-black text-gray-800 bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="!bg-white !rounded-xl !shadow-xl !max-w-md !w-full">
+      <div className="!p-6">
+        <div className="!flex !justify-between !items-center !mb-4">
+          <h3 className="!text-lg !font-semibold !text-gray-800">
+            Cancel Class
+          </h3>
+          <button
+            onClick={() => {
+              setShowDeleteModal(false);
+              setDeletingClass(null);
+              setDeleteReason("");
+              setDeleteError("");
+            }}
+            className="!p-1 !hover:bg-gray-100 !rounded-full !transition-colors"
+          >
+            <X size={20} className="!text-gray-500" />
+          </button>
+        </div>
+
+        <div className="!mb-4">
+          <p className="!text-gray-700 !mb-2">
+            You are about to cancel: <strong>{deletingClass.title}</strong>
+          </p>
+          <p className="!text-sm !text-gray-600">
+            All enrolled students will be notified via email about this cancellation.
+          </p>
+        </div>
+
+        <div className="!mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Reason for Cancellation <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            rows={4}
+            placeholder="Please provide a reason for cancelling this class..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+            required
+          />
+        </div>
+
+        {deleteError && (
+          <div className="!text-red-600 !text-sm !bg-red-50 !p-3 !rounded-md !mb-4">
+            {deleteError}
+          </div>
+        )}
+
+        <div className="!flex !gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setShowDeleteModal(false);
+              setDeletingClass(null);
+              setDeleteReason("");
+              setDeleteError("");
+            }}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            Keep Class
+          </button>
+          <button
+            onClick={confirmDeleteClass}
+            className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+          >
+            Cancel Class
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
