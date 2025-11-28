@@ -45,6 +45,10 @@ const Dashboard = () => {
   const [isClassesLoading, setIsClassesLoading] = useState<boolean>(false);
   const [classesError, setClassesError] = useState<string | null>(null);
 
+  const [attendanceRate, setAttendanceRate] = useState<number | null>(null);
+  const [isAttendanceLoading, setIsAttendanceLoading] = useState<boolean>(false);
+  const [attendanceError, setAttendanceError] = useState<string | null>(null);
+
   useEffect(() => {
     const fetchTutorStats = async () => {
       setIsTutorStatsLoading(true);
@@ -510,6 +514,177 @@ const Dashboard = () => {
     fetchClassesStats();
   }, []);
 
+  useEffect(() => {
+    const fetchAttendanceStats = async () => {
+      setIsAttendanceLoading(true);
+      setAttendanceError(null);
+
+      try {
+        // Fetch all students for the academy
+        const studentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!studentsResponse.ok) {
+          throw new Error("Failed to fetch students data");
+        }
+
+        const studentsData = await studentsResponse.json();
+        if (!studentsData?.success || !Array.isArray(studentsData.students)) {
+          throw new Error("Invalid students data format");
+        }
+
+        const students = studentsData.students;
+
+        // Fetch all tutors to get their classes
+        const tutorsResponse = await fetch("/Api/academy/tutors", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!tutorsResponse.ok) {
+          throw new Error("Failed to fetch tutors data");
+        }
+
+        const tutorsData = await tutorsResponse.json();
+        if (!tutorsData?.success || !Array.isArray(tutorsData.tutors)) {
+          throw new Error("Invalid tutors data format");
+        }
+
+        const tutors = tutorsData.tutors;
+
+        if (tutors.length === 0 || students.length === 0) {
+          setAttendanceRate(0);
+          return;
+        }
+
+        // Fetch classes for all tutors in parallel
+        const classPromises = tutors.map(async (tutor: any) => {
+          try {
+            const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
+              method: "GET",
+              credentials: "include",
+            });
+            if (classResponse.ok) {
+              const classData = await classResponse.json();
+              if (classData?.success && Array.isArray(classData.classes)) {
+                return classData.classes;
+              }
+            }
+            return [];
+          } catch (error) {
+            console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
+            return [];
+          }
+        });
+
+        const classArrays = await Promise.all(classPromises);
+        
+        // Flatten and remove duplicates
+        const allClassesMap = new Map();
+        classArrays.forEach((classes: any[]) => {
+          classes.forEach((cls: any) => {
+            if (cls._id) {
+              const id = cls._id.toString();
+              if (!allClassesMap.has(id)) {
+                allClassesMap.set(id, cls);
+              }
+            }
+          });
+        });
+
+        const uniqueClasses = Array.from(allClassesMap.values());
+
+        // Filter classes that have already occurred (for attendance calculation)
+        const now = new Date();
+        const pastClasses = uniqueClasses.filter((cls: any) => {
+          if (!cls.startTime) return false;
+          const startTime = new Date(cls.startTime);
+          return startTime < now;
+        });
+
+        if (pastClasses.length === 0) {
+          setAttendanceRate(0);
+          return;
+        }
+
+        // For each class, count present vs total enrolled students
+        let totalExpectedAttendance = 0;
+        let totalPresentAttendance = 0;
+
+        // Create a map of student IDs to their attendance records
+        const studentAttendanceMap = new Map();
+        
+        // Map students with their attendance data
+        students.forEach((student: any) => {
+          if (student._id) {
+            const studentId = student._id.toString();
+            // The students API should include attendance if it's in the User model
+            // If not, we'll use an empty array
+            const attendance = student.attendance || [];
+            studentAttendanceMap.set(studentId, attendance);
+          }
+        });
+
+        // For each past class, calculate attendance
+        for (const classItem of pastClasses) {
+          const classId = classItem._id.toString();
+          
+          // Find students enrolled in this class
+          // Students are enrolled if they have this classId in their classes array
+          const enrolledStudents = students.filter((student: any) => {
+            // Check if student has this class in their classes array
+            if (student.classes && Array.isArray(student.classes)) {
+              return student.classes.some((cid: any) => {
+                const cidStr = typeof cid === 'string' ? cid : (cid?._id?.toString() || cid?.toString());
+                return cidStr === classId;
+              });
+            }
+            return false;
+          });
+
+          totalExpectedAttendance += enrolledStudents.length;
+
+          // Count present attendance for this class
+          enrolledStudents.forEach((student: any) => {
+            const studentId = student._id?.toString();
+            const attendanceRecords = studentAttendanceMap.get(studentId) || student.attendance || [];
+            
+            if (Array.isArray(attendanceRecords)) {
+              const attendanceRecord = attendanceRecords.find(
+                (att: any) => {
+                  const attClassId = att.classId?.toString() || att.classId?._id?.toString();
+                  return attClassId === classId;
+                }
+              );
+              if (attendanceRecord && attendanceRecord.status === "present") {
+                totalPresentAttendance++;
+              }
+            }
+          });
+        }
+
+        // Calculate attendance rate percentage
+        const rate = totalExpectedAttendance > 0 
+          ? (totalPresentAttendance / totalExpectedAttendance) * 100 
+          : 0;
+
+        setAttendanceRate(Math.round(rate * 10) / 10); // Round to 1 decimal place
+      } catch (error: any) {
+        console.error("Error while fetching attendance stats:", error);
+        setAttendanceError(
+          error?.message || "Something went wrong while fetching attendance stats."
+        );
+        setAttendanceRate(null);
+      } finally {
+        setIsAttendanceLoading(false);
+      }
+    };
+
+    fetchAttendanceStats();
+  }, []);
+
   const displayedActiveTutors =
     selectedRange === "thisMonth" || activeTutorsLastMonthCount === null
       ? activeTutorsCount
@@ -720,7 +895,13 @@ const Dashboard = () => {
                     </li>
                     <li>
                       <span className="top-data">Attendance Rate</span>
-                      <span className="bottom-data">94%</span>
+                      <span className="bottom-data">
+                        {isAttendanceLoading
+                          ? "--"
+                          : attendanceRate !== null
+                          ? `${attendanceRate}%`
+                          : "N/A"}
+                      </span>
                     </li>
                     <li>
                       <span className="top-data">Student Retention</span>
