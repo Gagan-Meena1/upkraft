@@ -12,6 +12,7 @@ import User from "@/models/userModel";
 // ADD these imports
 import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO } from 'date-fns';
+import { sendEmail } from "@/helper/mailer";
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
 
 await connect();
@@ -391,11 +392,11 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, date, startTime, endTime, timezone } = body;
+    const { title, description, date, startTime, endTime, timezone ,reasonForReschedule} = body;
 
-    console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone });
+    console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone,reasonForReschedule });
 
-    if (!title || !description || !date || !startTime || !endTime) {
+    if (!title || !description || !date || !startTime || !endTime || !reasonForReschedule) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }
@@ -409,110 +410,19 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Convert time from user's timezone to UTC for storage
-    const [year, month, day] = date.split("-").map(Number);
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const [endHour, endMinute] = endTime.split(":").map(Number);
+    const dateTimeStr = `${date}T${startTime}:00`;
+const endDateTimeStr = `${date}T${endTime}:00`;
 
-    // Use the same conversion function as POST
-    const convertToUTC = (y: number, m: number, d: number, h: number, min: number, tz: string): Date => {
-      if (!tz || tz === "UTC") {
-        return new Date(Date.UTC(y, m - 1, d, h, min, 0));
-      }
-
-      // Calculate the offset by comparing what a known UTC time shows in the timezone
-      // Use a known UTC time (midnight UTC on the target date)
-      const formatter = new Intl.DateTimeFormat("en-US", {
-        timeZone: tz,
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
-      
-      const knownUTC = new Date(Date.UTC(y, m - 1, d, 0, 0, 0));
-      const knownParts = formatter.formatToParts(knownUTC);
-      const knownTzHour = parseInt(knownParts.find(p => p.type === "hour")?.value || "0");
-      const knownTzMin = parseInt(knownParts.find(p => p.type === "minute")?.value || "0");
-      
-      // If midnight UTC shows as X:Y in timezone, then the offset is X:Y hours
-      // For IST (UTC+5:30), midnight UTC = 5:30 AM IST, so offset = +5:30
-      // To convert local to UTC: UTC = Local - Offset
-      // So: UTC = 18:30 - 5:30 = 13:00 (1 PM)
-      
-      const offsetHours = knownTzHour;
-      const offsetMinutes = knownTzMin;
-      const totalOffsetMinutes = offsetHours * 60 + offsetMinutes;
-      
-      // Convert desired local time to UTC
-      // UTC = Local - Offset
-      const desiredTotalMinutes = h * 60 + min;
-      const utcTotalMinutes = desiredTotalMinutes - totalOffsetMinutes;
-      
-      // Handle date rollover
-      let utcHours = Math.floor(utcTotalMinutes / 60);
-      let utcMins = utcTotalMinutes % 60;
-      let utcYear = y;
-      let utcMonth = m - 1; // 0-indexed
-      let utcDay = d;
-      
-      // Handle negative minutes (borrow from hours)
-      if (utcMins < 0) {
-        utcMins += 60;
-        utcHours--;
-      }
-      
-      // Handle negative hours (previous day)
-      if (utcHours < 0) {
-        utcHours += 24;
-        utcDay--;
-        if (utcDay < 1) {
-          utcMonth--;
-          if (utcMonth < 0) {
-            utcMonth = 11;
-            utcYear--;
-          }
-          utcDay = new Date(utcYear, utcMonth + 1, 0).getDate();
-        }
-      }
-      
-      // Handle hours >= 24 (next day)
-      if (utcHours >= 24) {
-        utcHours -= 24;
-        utcDay++;
-        const daysInMonth = new Date(utcYear, utcMonth + 1, 0).getDate();
-        if (utcDay > daysInMonth) {
-          utcDay = 1;
-          utcMonth++;
-          if (utcMonth > 11) {
-            utcMonth = 0;
-            utcYear++;
-          }
-        }
-      }
-      
-      return new Date(Date.UTC(utcYear, utcMonth, utcDay, utcHours, utcMins, 0));
-    };
-
-    const startDateTime = convertToUTC(year, month, day, startHour, startMinute, timezone || "UTC");
-    const endDateTime = convertToUTC(year, month, day, endHour, endMinute, timezone || "UTC");
+const userTz = timezone || 'UTC';
+const startDateTime = dateFnsTz.fromZonedTime(dateTimeStr, userTz);
+const endDateTime = dateFnsTz.fromZonedTime(endDateTimeStr, userTz);
 
     console.log("STORING IN UTC:", {
-      inputTime: `${startTime} - ${endTime}`,
-      storedStartUTC: startDateTime.toISOString(),
-      storedEndUTC: endDateTime.toISOString(),
-      // Verify what time will be retrieved
-      retrievedStart: `${String(startDateTime.getUTCHours()).padStart(
-        2,
-        "0"
-      )}:${String(startDateTime.getUTCMinutes()).padStart(2, "0")}`,
-      retrievedEnd: `${String(endDateTime.getUTCHours()).padStart(
-        2,
-        "0"
-      )}:${String(endDateTime.getUTCMinutes()).padStart(2, "0")}`,
-    });
+  inputTime: `${startTime} - ${endTime}`,
+  userTimezone: userTz,
+  storedStartUTC: startDateTime.toISOString(),
+  storedEndUTC: endDateTime.toISOString(),
+});
 
     const updatedClass = await Class.findByIdAndUpdate(
       classId,
@@ -521,11 +431,83 @@ export async function PUT(request: NextRequest) {
         description,
         startTime: startDateTime, // Store in UTC
         endTime: endDateTime, // Store in UTC
+        reasonForReschedule:reasonForReschedule,
+        status:'rescheduled'
       },
       { new: true, runValidators: true }
     );
 
     console.log("STORED SUCCESSFULLY IN UTC");
+
+    // Send reschedule emails to all enrolled students
+try {
+  // Find all users (students) who have this classId in their classes array
+  const enrolledStudents = await User.find({
+    classes: classId,
+  }).select("email username timezone").lean();
+
+  console.log(`Found ${enrolledStudents.length} students enrolled in this class`);
+
+  if (enrolledStudents.length === 0) {
+    console.log("No students enrolled in this class");
+  } else {
+    // Get course name from the class
+    const course = await courseName.findById(existingClass.course);
+    const courseTitle = course ? course.title : "Your Course";
+
+    // Format date and time for email
+    const formatDateTimeForEmail = (dateTime: Date, tz: string) => {
+      try {
+        // Convert UTC to user's timezone for display
+        const zonedDate = dateFnsTz.toZonedTime(dateTime, tz);
+        
+        const dateStr = format(zonedDate, 'EEEE, MMMM d, yyyy'); // e.g., "Monday, January 15, 2024"
+        const timeStr = format(zonedDate, 'h:mm a'); // e.g., "2:30 PM"
+        
+        return { date: dateStr, time: timeStr };
+      } catch (error) {
+        console.error("Error formatting date:", error);
+        return { 
+          date: dateTime.toLocaleDateString(), 
+          time: dateTime.toLocaleTimeString() 
+        };
+      }
+    };
+
+    const { date: newDateFormatted, time: newTimeStart } = formatDateTimeForEmail(startDateTime, timezone || 'UTC');
+    const { time: newTimeEnd } = formatDateTimeForEmail(endDateTime, timezone || 'UTC');
+    const newTimeRange = `${newTimeStart} - ${newTimeEnd}`;
+
+    // Send email to each enrolled student
+    const emailPromises = enrolledStudents.map(async (student) => {
+      try {
+        console.log(`Attempting to send email to: ${student.email}, Username: ${student.username}`);
+        
+        await sendEmail({
+          email: student.email,
+          emailType: "CLASS_RESCHEDULED",
+          username: student.username,
+          courseName: courseTitle,
+          className: title,
+          newDate: newDateFormatted,
+          newTime: newTimeRange,
+          reasonForReschedule: reasonForReschedule,
+        });
+        
+        console.log(`✅ Reschedule email sent successfully to: ${student.email}`);
+      } catch (emailError) {
+        console.error(`❌ Failed to send email to ${student.email}:`, emailError);
+        // Don't throw - continue sending to other students
+      }
+    });
+
+    await Promise.all(emailPromises);
+    console.log("All reschedule notification emails processed");
+  }
+} catch (emailError) {
+  console.error("Error in email sending process:", emailError);
+  // Don't fail the entire request if emails fail
+}
 
     return NextResponse.json(
       {
@@ -549,9 +531,8 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete existing class
 export async function DELETE(request: NextRequest) {
   try {
-    console.log("Deleting class...");
+    console.log("Cancelling class...");
 
-    // Get classId from query parameters
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
 
@@ -562,7 +543,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Get instructor ID from token
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
@@ -577,41 +557,121 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Find the class and verify ownership
-    const existingClass = await Class.findById(classId);
-    if (!existingClass) {
-      return NextResponse.json({ error: "Class not found" }, { status: 404 });
+    // Get class details before cancellation
+    // const classToCancel = await Class.findById(classId);
+    // if (!classToCancel) {
+    //   return NextResponse.json({ error: "Class not found" }, { status: 404 });
+    // }
+
+    // Get request body for cancellation reason
+    const body = await request.json();
+    const { reasonForCancellation, timezone } = body;
+
+    if (!reasonForCancellation) {
+      return NextResponse.json(
+        { error: "Reason for cancellation is required" },
+        { status: 400 }
+      );
     }
 
-    console.log("Found class to delete:", existingClass);
+    // Mark class as cancelled (don't delete)
+    const classToCancel = await Class.findByIdAndUpdate(classId, {
+      status: 'canceled',
+      reasonForCancelation: reasonForCancellation
+    });
 
-    // Remove class reference from course
-    if (existingClass.course) {
-      await courseName.findByIdAndUpdate(existingClass.course, {
-        $pull: { class: classId },
+    // Remove class from students' classes array
+    // await User.updateMany(
+    //   { classes: classId },
+    //   { $pull: { classes: classId } }
+    // );
+
+    // Send cancellation emails to all enrolled students
+    try {
+      const enrolledStudents = await User.find({
+        classes: classId,
       });
-      console.log("Removed class reference from course");
+
+      console.log(`Found ${enrolledStudents.length} students enrolled in this class`);
+
+      if (enrolledStudents.length > 0) {
+        const course = await courseName.findById(classToCancel.course);
+        const courseTitle = course ? course.title : "Your Course";
+
+        // Format date and time for email
+        const formatDateTimeForEmail = (dateTime: Date, tz: string) => {
+          try {
+            const zonedDate = dateFnsTz.toZonedTime(dateTime, tz);
+            const dateStr = format(zonedDate, 'EEEE, MMMM d, yyyy');
+            const timeStr = format(zonedDate, 'h:mm a');
+            return { date: dateStr, time: timeStr };
+          } catch (error) {
+            console.error("Error formatting date:", error);
+            return { 
+              date: dateTime.toLocaleDateString(), 
+              time: dateTime.toLocaleTimeString() 
+            };
+          }
+        };
+
+        const { date: originalDate, time: originalTimeStart } = formatDateTimeForEmail(
+          classToCancel.startTime, 
+          timezone || 'UTC'
+        );
+        const { time: originalTimeEnd } = formatDateTimeForEmail(
+          classToCancel.endTime, 
+          timezone || 'UTC'
+        );
+        const originalTimeRange = `${originalTimeStart} - ${originalTimeEnd}`;
+
+        // Send email to each enrolled student
+        const emailPromises = enrolledStudents.map(async (student) => {
+          try {
+            console.log(`Attempting to send cancellation email to: ${student.email}`);
+            
+            await sendEmail({
+              email: student.email,
+              emailType: "CLASS_CANCELLED",
+              username: student.username,
+              courseName: courseTitle,
+              className: classToCancel.title,
+              originalDate: originalDate,
+              originalTime: originalTimeRange,
+              reasonForCancellation: reasonForCancellation,
+            });
+            
+            console.log(`✅ Cancellation email sent successfully to: ${student.email}`);
+          } catch (emailError) {
+            console.error(`❌ Failed to send email to ${student.email}:`, emailError);
+          }
+        });
+
+        await Promise.all(emailPromises);
+        console.log("All cancellation notification emails processed");
+      }
+    } catch (emailError) {
+      console.error("Error in email sending process:", emailError);
+      // Continue with cancellation even if emails fail
     }
 
-    // Remove class reference from users
+     // Remove class from students' classes array
     await User.updateMany(
       { classes: classId },
       { $pull: { classes: classId } }
     );
-    console.log("Removed class reference from users");
 
-    // Delete the class
-    await Class.findByIdAndDelete(classId);
-    console.log("Class deleted successfully");
+    console.log("Class cancelled successfully");
+
+
 
     return NextResponse.json(
       {
-        message: "Class deleted successfully",
+        message: "Class cancelled and students notified",
       },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Server error while deleting class:", error);
+    console.error("Server error:", error);
     return NextResponse.json(
       {
         message: "Server error",

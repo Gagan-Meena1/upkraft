@@ -6,16 +6,32 @@ console.log("[Mailer] Module initialized");
 
 interface EmailParams {
   email: string;
-  emailType: "VERIFY" | "RESET" | "RESET_PASSWORD" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION" | "REQUEST_APPROVED" | "STUDENT_INVITATION";
+  emailType: "VERIFY" | "RESET" | "RESET_PASSWORD" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION" | "REQUEST_APPROVED" | "STUDENT_INVITATION" | "CLASS_RESCHEDULED" | "CLASS_CANCELLED";
   userId?: string;
   username?: string;
   category?: string;
   resetToken?: string;
   tutorName?: string;
   courseName?: string;
+  className?: string;
+  newDate?: string;
+  newTime?: string;
+  reasonForReschedule?: string;
+    reasonForCancellation?: string; // Add this
+  originalDate?: string; // Add this
+  originalTime?: string; // Add this
 }
 
-export const sendEmail = async ({ email, emailType, userId, username, category, resetToken, tutorName, courseName }: EmailParams) => {
+export const sendEmail = async ({ email, emailType, userId, username, category, resetToken, tutorName, courseName,
+  className,      // Add
+  newDate,        // Add
+  newTime,        // Add
+  reasonForReschedule , // Add
+  reasonForCancellation, // Add
+  originalDate,  // Add
+  originalTime   // Add
+  
+ }: EmailParams) => {
   console.log(`[Mailer] Sending ${emailType} email to: ${email}`);
   
   try {
@@ -253,7 +269,119 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
           </div>
         `
       };
-    } else {
+    } 
+    else if (emailType === "CLASS_RESCHEDULED") {
+  mailOptions = {
+    from: fromAddress,
+    to: email,
+    subject: `Class Rescheduled: ${courseName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f8f6; min-height: 100vh;">
+        <h1 style="color: #ff8c00; text-align: center;">Class Rescheduled</h1>
+        <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <p style="font-size: 16px; color: #333;">Hi ${username},</p>
+          <p style="font-size: 16px; color: #333;">
+            Your class <strong>"${courseName}"</strong> has been rescheduled.
+          </p>
+          
+          <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="font-size: 16px; color: #856404; margin: 0;">
+              <strong>📅 New Date & Time:</strong><br>
+              ${newDate}<br>
+              ${newTime}
+            </p>
+          </div>
+
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="font-size: 16px; color: #333; margin: 0;">
+              <strong>Reason for Reschedule:</strong><br>
+              ${reasonForReschedule}
+            </p>
+          </div>
+
+          <p style="font-size: 16px; color: #333;">
+            Please make sure to update your calendar accordingly.
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.DOMAIN}/login"
+               style="background-color: #ff8c00; 
+                      color: white; 
+                      padding: 12px 24px; 
+                      text-decoration: none; 
+                      border-radius: 5px;
+                      font-weight: bold;
+                      display: inline-block;">
+              View Course Details
+            </a>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+          <p style="color: #888; font-size: 12px;">
+            © 2024 UpKraft. All rights reserved.
+          </p>
+        </div>
+      </div>
+    `
+  };
+}
+
+else if (emailType === "CLASS_CANCELLED") {
+  mailOptions = {
+    from: fromAddress,
+    to: email,
+    subject: `Class Cancelled: ${courseName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f8f6; min-height: 100vh;">
+        <h1 style="color: #dc3545; text-align: center;">Class Cancelled</h1>
+        <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <p style="font-size: 16px; color: #333;">Hi ${username},</p>
+          <p style="font-size: 16px; color: #333;">
+            We regret to inform you that the class <strong>"${courseName}"</strong> has been cancelled.
+          </p>
+          
+          <div style="background-color: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="font-size: 16px; color: #721c24; margin: 0;">
+              <strong>❌ Cancelled Class:</strong><br>
+              Date: ${originalDate}<br>
+              Time: ${originalTime}
+            </p>
+          </div>
+
+          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="font-size: 16px; color: #333; margin: 0;">
+              <strong>Reason for Cancellation:</strong><br>
+              ${reasonForCancellation}
+            </p>
+          </div>
+
+          <p style="font-size: 16px; color: #333;">
+            We apologize for any inconvenience this may cause. Please check your course page for any updates or rescheduled classes.
+          </p>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.DOMAIN}/login"
+               style="background-color: #ff8c00; 
+                      color: white; 
+                      padding: 12px 24px; 
+                      text-decoration: none; 
+                      border-radius: 5px;
+                      font-weight: bold;
+                      display: inline-block;">
+              View Course Details
+            </a>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+          <p style="color: #888; font-size: 12px;">
+            © 2024 UpKraft. All rights reserved.
+          </p>
+        </div>
+      </div>
+    `
+  };
+}
+    else {
       // Regular verification email
       mailOptions = {
         from: fromAddress,
