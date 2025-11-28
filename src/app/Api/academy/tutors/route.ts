@@ -7,6 +7,8 @@ import Class from "@/models/Class";
 import feedback from "@/models/feedback";
 import feedbackDance from "@/models/feedbackDance";
 import feedbackDrawing from "@/models/feedbackDrawing";
+import Payment from "@/models/payment";
+import mongoose from "mongoose";
 
 export async function GET(req: NextRequest) {
   try {
@@ -57,10 +59,19 @@ export async function GET(req: NextRequest) {
     // ========================================
 
     // 1. Get all student counts in one query using aggregation
+    // Since instructorId is an array, we need to unwind it first
     const studentCounts = await User.aggregate([
       {
         $match: {
           category: "Student",
+          instructorId: { $in: tutorIds }
+        }
+      },
+      {
+        $unwind: "$instructorId"
+      },
+      {
+        $match: {
           instructorId: { $in: tutorIds }
         }
       },
@@ -127,6 +138,25 @@ tutorCourses.forEach(course => {
       }
     ]);
     const enrollmentMap = new Map(enrollmentCounts.map(ec => [ec._id.toString(), ec.count]));
+
+    // 6. Get all revenue from Payment model aggregated by tutorId
+    const academyObjectId = new mongoose.Types.ObjectId(academyId);
+    const revenueByTutor = await Payment.aggregate([
+      {
+        $match: {
+          academyId: academyObjectId,
+          tutorId: { $in: tutorIds },
+          status: "Paid" // Only count paid transactions
+        }
+      },
+      {
+        $group: {
+          _id: "$tutorId",
+          totalRevenue: { $sum: "$amount" }
+        }
+      }
+    ]);
+    const revenueMap = new Map(revenueByTutor.map(r => [r._id?.toString() || "", r.totalRevenue]));
 
     // ========================================
     // NOW PROCESS TUTORS WITH CACHED DATA
@@ -227,12 +257,8 @@ tutorCourses.forEach(course => {
 
       const averageCSAT = csatCount > 0 ? Math.round((csatScore / csatCount) * 20) : 0;
 
-      // Calculate revenue from cached enrollment data
-      let revenue = 0;
-      courses.forEach(course => {
-        const enrolledCount = enrollmentMap.get(course._id.toString()) || 0;
-        revenue += (course.price || 0) * enrolledCount;
-      });
+      // Calculate revenue from actual Payment records
+      const revenue = revenueMap.get(tutorIdStr) || 0;
 
       // Calculate Class Quality Score (average of courseQuality from all courses)
       let totalCourseQuality = 0;
