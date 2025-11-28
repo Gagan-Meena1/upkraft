@@ -695,7 +695,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
       }
 
       toast.success('Course deleted successfully');
-      router.push('/tutor/courses');
+      router.push('/academy/courses');
     } catch (error) {
       console.error('Error deleting course:', error);
       toast.error('Failed to delete course');
@@ -721,7 +721,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
           </div>
           <p className="!text-gray-700 !mb-6 !text-sm !sm:text-base">{error}</p>
           <Link 
-            href="/tutor" 
+            href="/academy" 
             className="!inline-block !px-4 !sm:px-6 !py-2 !sm:py-3 !bg-gradient-to-r !from-blue-500 !to-purple-600 !text-white !rounded-lg !hover:from-blue-600 !hover:to-purple-700 !transition-colors !text-sm !sm:text-base"
           >
             Return to Home
@@ -739,7 +739,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
           <div className="!flex !flex-col !sm:flex-row !sm:justify-between !sm:items-center !gap-4">
             <div className="!flex !items-center !space-x-3 !sm:space-x-4">
               <Link 
-                href={`/tutor/courses`} 
+                href={`/academy/courses`} 
                 className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
               >
                 <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
@@ -749,14 +749,14 @@ const handleUpdateClass = async (e: React.FormEvent) => {
               </h1>
             </div>
             <div className="!flex !flex-col !sm:flex-row !items-stretch !sm:items-center !gap-2 !sm:gap-3">
-            {!academyId && (
-  <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
+            
+  <Link href={`/academy/classes/?courseId=${courseData.courseDetails._id}`}>
     <button className="!w-full !sm:w-auto !bg-gray-700 !hover:bg-gray-800 !text-white !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-colors !shadow-md !flex !items-center !justify-center !gap-2 !text-sm !sm:text-base">
       <Upload size={16} className="!sm:w-[18px] !sm:h-[18px]" />
       Create Class
     </button>
   </Link>
-)}
+
               {!academyId && (<button 
                 onClick={handleDeleteCourse}
                 className="!w-full !sm:w-auto !border !border-gray-300 !bg-white !text-gray-700 !hover:bg-red-50 !hover:text-red-600 !hover:border-red-200 !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-all !duration-200 !flex !items-center !justify-center !gap-2 !shadow-sm !text-sm !sm:text-base"
@@ -1074,7 +1074,7 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                             {/* Class Quality button */}
                             {classSession.recordingUrl && (
                               <Link 
-                                href={`/tutor/classQuality/${classSession._id}`}
+                                href={`/academy/classQuality/${classSession._id}`}
                                 className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
                               >
                                 <BarChart3 className="!mr-1" size={14} />
@@ -1097,14 +1097,14 @@ const handleUpdateClass = async (e: React.FormEvent) => {
                           </div>
 
                           {/* Assignment Button */}
-                       <Link 
+                       {/* <Link 
   href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
 style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
   className="w-full px-3 py-2 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-xs font-medium shadow-sm"
 >
   <FileText className="mr-1" size={14} />
   Add Assignment
-</Link>
+</Link> */}
                         </div>
                       </div>
 
@@ -1175,7 +1175,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
   {/* Class Quality button */}
   {classSession.recordingUrl && (
     <Link 
-      href={`/tutor/classQuality/${classSession._id}`}
+      href={`/academy/classQuality/${classSession._id}`}
       style={{ backgroundColor: 'purple', color: '#ffffff' }}
       className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
     >
@@ -1201,14 +1201,14 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
   </button>
 
   {/* Assignment Button */}
-  <Link 
+  {/* <Link 
     href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
     style={{ backgroundColor: 'blueviolet', color: '#ffffff' }}
     className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
   >
     <FileText className="mr-2" size={16} />
     Add Assignment
-  </Link>
+  </Link> */}
 </div>
                         </div>
                       </div>
