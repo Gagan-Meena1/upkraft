@@ -203,6 +203,9 @@ export default function RevenueManagement() {
   const [showAddRevenueModal, setShowAddRevenueModal] = useState(false);
   const [showEditRevenueModal, setShowEditRevenueModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
+  const [customDateRange, setCustomDateRange] = useState<{ startDate: string; endDate: string } | null>(null);
+  const [tempDateRange, setTempDateRange] = useState<{ startDate: string; endDate: string }>({ startDate: "", endDate: "" });
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [transactionToEdit, setTransactionToEdit] = useState<RevenueTransaction | null>(null);
@@ -587,8 +590,31 @@ export default function RevenueManagement() {
         lastPeriodEnd = new Date(now.getFullYear(), 0, 1);
         periodLabel = now.getFullYear().toString();
         break;
+      case "Custom":
+        if (customDateRange && customDateRange.startDate && customDateRange.endDate) {
+          periodStart = new Date(customDateRange.startDate);
+          periodEnd = new Date(customDateRange.endDate);
+          periodEnd.setHours(23, 59, 59, 999); // Include the entire end date
+          
+          // Calculate previous period (same duration before start date)
+          const periodDuration = periodEnd.getTime() - periodStart.getTime();
+          lastPeriodEnd = new Date(periodStart);
+          lastPeriodEnd.setDate(lastPeriodEnd.getDate() - 1);
+          lastPeriodEnd.setHours(23, 59, 59, 999);
+          lastPeriodStart = new Date(lastPeriodEnd.getTime() - periodDuration);
+          
+          periodLabel = `${periodStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${periodEnd.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+        } else {
+          // Default to This Month if custom range not set
+          periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          lastPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          lastPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+          periodLabel = now.toLocaleDateString("en-US", { month: "short" });
+        }
+        break;
       default:
-        // Custom or default to This Month
+        // Default to This Month
         periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
         periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
         lastPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -690,7 +716,7 @@ export default function RevenueManagement() {
     }
 
     setRevenuePercentageChange(percentageChange);
-  }, [transactions, activePeriod]);
+  }, [transactions, activePeriod, customDateRange]);
 
   // Calculate revenue whenever transactions or activePeriod changes
   useEffect(() => {
@@ -732,6 +758,16 @@ export default function RevenueManagement() {
       case "This Year":
         periodStart = new Date(now.getFullYear(), 0, 1);
         periodEnd = new Date(now.getFullYear() + 1, 0, 1);
+        break;
+      case "Custom":
+        if (customDateRange && customDateRange.startDate && customDateRange.endDate) {
+          periodStart = new Date(customDateRange.startDate);
+          periodEnd = new Date(customDateRange.endDate);
+          periodEnd.setHours(23, 59, 59, 999);
+        } else {
+          periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        }
         break;
       default:
         periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -796,7 +832,7 @@ export default function RevenueManagement() {
       console.error("Error fetching tutor student counts:", error);
       setTopTutorsByRevenue(tutorsWithRevenue);
     }
-  }, [transactions, activePeriod]);
+  }, [transactions, activePeriod, customDateRange]);
 
   useEffect(() => {
     calculateTopTutorsByRevenue();
@@ -838,6 +874,16 @@ export default function RevenueManagement() {
         periodStart = new Date(now.getFullYear(), 0, 1);
         periodEnd = new Date(now.getFullYear() + 1, 0, 1);
         break;
+      case "Custom":
+        if (customDateRange && customDateRange.startDate && customDateRange.endDate) {
+          periodStart = new Date(customDateRange.startDate);
+          periodEnd = new Date(customDateRange.endDate);
+          periodEnd.setHours(23, 59, 59, 999);
+        } else {
+          periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        }
+        break;
       default:
         periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
         periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -875,7 +921,7 @@ export default function RevenueManagement() {
       .slice(0, 3); // Top 3
 
     setTopCoursesByRevenue(coursesWithRevenue);
-  }, [transactions, activePeriod]);
+  }, [transactions, activePeriod, customDateRange]);
 
   useEffect(() => {
     calculateTopCoursesByRevenue();
@@ -1161,7 +1207,26 @@ export default function RevenueManagement() {
         {periods.map((period) => (
           <button
             key={period}
-            onClick={() => setActivePeriod(period)}
+            onClick={() => {
+              if (period === "Custom") {
+                // Initialize temp date range with current custom range or default to current month
+                if (customDateRange) {
+                  setTempDateRange(customDateRange);
+                } else {
+                  const now = new Date();
+                  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                  setTempDateRange({
+                    startDate: start.toISOString().split("T")[0],
+                    endDate: end.toISOString().split("T")[0],
+                  });
+                }
+                setShowCustomDateModal(true);
+              } else {
+                setActivePeriod(period);
+                setCustomDateRange(null);
+              }
+            }}
             style={{
               padding: "10px 20px",
               border: "none",
@@ -1217,7 +1282,14 @@ export default function RevenueManagement() {
             {formatRevenue(totalRevenue)}
           </div>
           <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>
-            Total Revenue {activePeriod === "This Month" ? `(${new Date().toLocaleDateString("en-US", { month: "short" })})` : activePeriod === "This Year" ? `(${new Date().getFullYear()})` : `(${activePeriod})`}
+            Total Revenue{" "}
+            {activePeriod === "This Month"
+              ? `(${new Date().toLocaleDateString("en-US", { month: "short" })})`
+              : activePeriod === "This Year"
+              ? `(${new Date().getFullYear()})`
+              : activePeriod === "Custom" && customDateRange
+              ? `(${new Date(customDateRange.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${new Date(customDateRange.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })})`
+              : `(${activePeriod})`}
           </div>
           <div
             style={{
