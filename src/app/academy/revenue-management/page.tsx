@@ -222,6 +222,8 @@ export default function RevenueManagement() {
   const [lastPeriodPendingRevenue, setLastPeriodPendingRevenue] = useState<number>(0);
   const [pendingPercentageChange, setPendingPercentageChange] = useState<number | null>(null);
   const [academyCommission, setAcademyCommission] = useState<number>(0);
+  const [activeSubscriptions, setActiveSubscriptions] = useState<number>(0);
+  const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState<boolean>(false);
   const [formData, setFormData] = useState({
     transactionDate: "",
     validUpto: "",
@@ -275,6 +277,54 @@ export default function RevenueManagement() {
     fetchRevenueTransactions(controller.signal);
     return () => controller.abort();
   }, [fetchRevenueTransactions]);
+
+  // Fetch active subscriptions (active tutors + total students)
+  const fetchActiveSubscriptions = useCallback(async () => {
+    setIsLoadingSubscriptions(true);
+    try {
+      // Fetch tutors
+      const tutorsResponse = await fetch("/Api/academy/tutors", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // Fetch students count
+      const studentsResponse = await fetch("/Api/academy/students?page=1&limit=1", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      let activeTutorsCount = 0;
+      let totalStudentsCount = 0;
+
+      if (tutorsResponse.ok) {
+        const tutorsData = await tutorsResponse.json();
+        if (tutorsData.success && Array.isArray(tutorsData.tutors)) {
+          // Count active tutors (verified tutors)
+          activeTutorsCount = tutorsData.tutors.filter((tutor: any) => tutor.isVerified).length;
+        }
+      }
+
+      if (studentsResponse.ok) {
+        const studentsData = await studentsResponse.json();
+        if (studentsData.success && studentsData.pagination) {
+          totalStudentsCount = studentsData.pagination.totalStudents || 0;
+        }
+      }
+
+      // Total active subscriptions = active tutors + total students
+      setActiveSubscriptions(activeTutorsCount + totalStudentsCount);
+    } catch (error) {
+      console.error("Error fetching active subscriptions:", error);
+      setActiveSubscriptions(0);
+    } finally {
+      setIsLoadingSubscriptions(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActiveSubscriptions();
+  }, [fetchActiveSubscriptions]);
 
   const fetchStudents = async () => {
     try {
@@ -1116,7 +1166,9 @@ export default function RevenueManagement() {
               👥
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>452</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {isLoadingSubscriptions ? "..." : activeSubscriptions}
+          </div>
           <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Active Subscriptions</div>
           <div
             style={{
@@ -1131,7 +1183,7 @@ export default function RevenueManagement() {
               color: "#2e7d32",
             }}
           >
-            ↑ 8.5%
+            Active tutors & students
           </div>
         </div>
       </div>
