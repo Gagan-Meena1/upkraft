@@ -289,7 +289,7 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
                     <option value="3">Yearly</option>
                   </Form.Select>
                 </div>
-                {(!academyId && category=="Tutor") && (
+                {!academyId  && (
                   <Link
                     href="/tutor/create-course"
                     role="button"
