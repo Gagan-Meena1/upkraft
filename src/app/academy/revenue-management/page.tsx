@@ -221,6 +221,7 @@ export default function RevenueManagement() {
   const [pendingRevenue, setPendingRevenue] = useState<number>(0);
   const [lastPeriodPendingRevenue, setLastPeriodPendingRevenue] = useState<number>(0);
   const [pendingPercentageChange, setPendingPercentageChange] = useState<number | null>(null);
+  const [academyCommission, setAcademyCommission] = useState<number>(0);
   const [formData, setFormData] = useState({
     transactionDate: "",
     validUpto: "",
@@ -439,6 +440,7 @@ export default function RevenueManagement() {
       setPendingRevenue(0);
       setLastPeriodPendingRevenue(0);
       setPendingPercentageChange(null);
+      setAcademyCommission(0);
       return;
     }
 
@@ -571,6 +573,17 @@ export default function RevenueManagement() {
       pendingPercentageChange = -100;
     }
     setPendingPercentageChange(pendingPercentageChange);
+
+    // Calculate academy commission for current period (sum of commission from Paid transactions)
+    const currentPeriodCommission = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate || transaction.status !== "Paid") return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        return paymentDate >= periodStart && paymentDate < periodEnd;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.commission) || 0), 0);
+
+    setAcademyCommission(currentPeriodCommission);
 
     // Calculate percentage change
     let percentageChange: number | null = null;
@@ -1072,7 +1085,9 @@ export default function RevenueManagement() {
               📈
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>₹1.26L</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {formatRevenue(academyCommission)}
+          </div>
           <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Academy Commission (15%)</div>
         </div>
 
