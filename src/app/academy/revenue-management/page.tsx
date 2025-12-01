@@ -213,6 +213,9 @@ export default function RevenueManagement() {
   const [tableLoading, setTableLoading] = useState(true);
   const [tableError, setTableError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
+  const [lastPeriodRevenue, setLastPeriodRevenue] = useState<number>(0);
+  const [revenuePercentageChange, setRevenuePercentageChange] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     transactionDate: "",
     validUpto: "",
@@ -405,6 +408,122 @@ export default function RevenueManagement() {
       currency: "INR",
       maximumFractionDigits: 0,
     }).format(value || 0);
+
+  // Format revenue amount (convert to lakhs if >= 100000, otherwise show in thousands)
+  const formatRevenue = (amount: number | null): string => {
+    if (amount === null || amount === 0) return "₹0";
+    if (amount >= 100000) {
+      const lakhs = amount / 100000;
+      return `₹${lakhs.toFixed(2)}L`;
+    } else if (amount >= 1000) {
+      const thousands = amount / 1000;
+      return `₹${thousands.toFixed(1)}K`;
+    } else {
+      return `₹${amount.toFixed(0)}`;
+    }
+  };
+
+  // Calculate revenue based on active period
+  const calculateRevenue = useCallback(() => {
+    if (!transactions || transactions.length === 0) {
+      setTotalRevenue(0);
+      setLastPeriodRevenue(0);
+      setRevenuePercentageChange(null);
+      return;
+    }
+
+    const now = new Date();
+    let periodStart: Date;
+    let periodEnd: Date;
+    let lastPeriodStart: Date;
+    let lastPeriodEnd: Date;
+    let periodLabel: string;
+
+    switch (activePeriod) {
+      case "Today":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        lastPeriodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        lastPeriodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        periodLabel = "Today";
+        break;
+      case "This Week":
+        const dayOfWeek = now.getDay();
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+        periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + 7);
+        lastPeriodStart = new Date(periodStart);
+        lastPeriodStart.setDate(lastPeriodStart.getDate() - 7);
+        lastPeriodEnd = new Date(periodStart);
+        periodLabel = "This Week";
+        break;
+      case "This Month":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        lastPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        lastPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodLabel = now.toLocaleDateString("en-US", { month: "short" });
+        break;
+      case "This Quarter":
+        const quarter = Math.floor(now.getMonth() / 3);
+        periodStart = new Date(now.getFullYear(), quarter * 3, 1);
+        periodEnd = new Date(now.getFullYear(), (quarter + 1) * 3, 1);
+        lastPeriodStart = new Date(now.getFullYear(), (quarter - 1) * 3, 1);
+        lastPeriodEnd = new Date(now.getFullYear(), quarter * 3, 1);
+        periodLabel = `Q${quarter + 1}`;
+        break;
+      case "This Year":
+        periodStart = new Date(now.getFullYear(), 0, 1);
+        periodEnd = new Date(now.getFullYear() + 1, 0, 1);
+        lastPeriodStart = new Date(now.getFullYear() - 1, 0, 1);
+        lastPeriodEnd = new Date(now.getFullYear(), 0, 1);
+        periodLabel = now.getFullYear().toString();
+        break;
+      default:
+        // Custom or default to This Month
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        lastPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        lastPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodLabel = now.toLocaleDateString("en-US", { month: "short" });
+    }
+
+    // Calculate revenue for current period
+    const currentPeriodRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate || transaction.status !== "Paid") return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        return paymentDate >= periodStart && paymentDate < periodEnd;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    // Calculate revenue for last period
+    const previousPeriodRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate || transaction.status !== "Paid") return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        return paymentDate >= lastPeriodStart && paymentDate < lastPeriodEnd;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    setTotalRevenue(currentPeriodRevenue);
+    setLastPeriodRevenue(previousPeriodRevenue);
+
+    // Calculate percentage change
+    let percentageChange: number | null = null;
+    if (previousPeriodRevenue > 0) {
+      percentageChange = ((currentPeriodRevenue - previousPeriodRevenue) / previousPeriodRevenue) * 100;
+    } else if (currentPeriodRevenue > 0) {
+      percentageChange = 100;
+    }
+
+    setRevenuePercentageChange(percentageChange);
+  }, [transactions, activePeriod]);
+
+  // Calculate revenue whenever transactions or activePeriod changes
+  useEffect(() => {
+    calculateRevenue();
+  }, [calculateRevenue]);
 
   const statusBadgeStyles: Record<string, { background: string; color: string }> = {
     Paid: { background: "#e8f5e9", color: "#2e7d32" },
@@ -738,8 +857,12 @@ export default function RevenueManagement() {
               ₹
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>₹8.42L</div>
-          <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Total Revenue (Oct)</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {formatRevenue(totalRevenue)}
+          </div>
+          <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>
+            Total Revenue {activePeriod === "This Month" ? `(${new Date().toLocaleDateString("en-US", { month: "short" })})` : activePeriod === "This Year" ? `(${new Date().getFullYear()})` : `(${activePeriod})`}
+          </div>
           <div
             style={{
               display: "inline-flex",
@@ -749,11 +872,17 @@ export default function RevenueManagement() {
               borderRadius: "6px",
               fontSize: "11px",
               fontWeight: "600",
-              background: "#e8f5e9",
-              color: "#2e7d32",
+              background: revenuePercentageChange !== null && revenuePercentageChange >= 0 ? "#e8f5e9" : "#ffebee",
+              color: revenuePercentageChange !== null && revenuePercentageChange >= 0 ? "#2e7d32" : "#c62828",
             }}
           >
-            ↑ 18.2% vs last month
+            {revenuePercentageChange !== null ? (
+              <>
+                {revenuePercentageChange >= 0 ? "↑" : "↓"} {Math.abs(revenuePercentageChange).toFixed(1)}% vs last {activePeriod === "This Month" ? "month" : activePeriod === "This Week" ? "week" : activePeriod === "This Year" ? "year" : "period"}
+              </>
+            ) : (
+              "No comparison data"
+            )}
           </div>
         </div>
 
