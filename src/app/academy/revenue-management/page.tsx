@@ -203,6 +203,9 @@ export default function RevenueManagement() {
   const [showAddRevenueModal, setShowAddRevenueModal] = useState(false);
   const [showEditRevenueModal, setShowEditRevenueModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCustomDateModal, setShowCustomDateModal] = useState(false);
+  const [customDateRange, setCustomDateRange] = useState<{ startDate: string; endDate: string } | null>(null);
+  const [tempDateRange, setTempDateRange] = useState<{ startDate: string; endDate: string }>({ startDate: "", endDate: "" });
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [transactionToDelete, setTransactionToDelete] = useState<string | null>(null);
   const [transactionToEdit, setTransactionToEdit] = useState<RevenueTransaction | null>(null);
@@ -213,6 +216,29 @@ export default function RevenueManagement() {
   const [tableLoading, setTableLoading] = useState(true);
   const [tableError, setTableError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [totalRevenue, setTotalRevenue] = useState<number>(0);
+  const [lastPeriodRevenue, setLastPeriodRevenue] = useState<number>(0);
+  const [revenuePercentageChange, setRevenuePercentageChange] = useState<number | null>(null);
+  const [collectedRevenue, setCollectedRevenue] = useState<number>(0);
+  const [collectionRate, setCollectionRate] = useState<number>(0);
+  const [pendingRevenue, setPendingRevenue] = useState<number>(0);
+  const [lastPeriodPendingRevenue, setLastPeriodPendingRevenue] = useState<number>(0);
+  const [pendingPercentageChange, setPendingPercentageChange] = useState<number | null>(null);
+  const [academyCommission, setAcademyCommission] = useState<number>(0);
+  const [activeSubscriptions, setActiveSubscriptions] = useState<number>(0);
+  const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState<boolean>(false);
+  const [topTutorsByRevenue, setTopTutorsByRevenue] = useState<Array<{
+    tutorId: string;
+    tutorName: string;
+    revenue: number;
+    studentCount: number;
+  }>>([]);
+  const [topCoursesByRevenue, setTopCoursesByRevenue] = useState<Array<{
+    courseId: string;
+    courseTitle: string;
+    revenue: number;
+    enrollmentCount: number;
+  }>>([]);
   const [formData, setFormData] = useState({
     transactionDate: "",
     validUpto: "",
@@ -266,6 +292,54 @@ export default function RevenueManagement() {
     fetchRevenueTransactions(controller.signal);
     return () => controller.abort();
   }, [fetchRevenueTransactions]);
+
+  // Fetch active subscriptions (active tutors + total students)
+  const fetchActiveSubscriptions = useCallback(async () => {
+    setIsLoadingSubscriptions(true);
+    try {
+      // Fetch tutors
+      const tutorsResponse = await fetch("/Api/academy/tutors", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      // Fetch students count
+      const studentsResponse = await fetch("/Api/academy/students?page=1&limit=1", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      let activeTutorsCount = 0;
+      let totalStudentsCount = 0;
+
+      if (tutorsResponse.ok) {
+        const tutorsData = await tutorsResponse.json();
+        if (tutorsData.success && Array.isArray(tutorsData.tutors)) {
+          // Count active tutors (verified tutors)
+          activeTutorsCount = tutorsData.tutors.filter((tutor: any) => tutor.isVerified).length;
+        }
+      }
+
+      if (studentsResponse.ok) {
+        const studentsData = await studentsResponse.json();
+        if (studentsData.success && studentsData.pagination) {
+          totalStudentsCount = studentsData.pagination.totalStudents || 0;
+        }
+      }
+
+      // Total active subscriptions = active tutors + total students
+      setActiveSubscriptions(activeTutorsCount + totalStudentsCount);
+    } catch (error) {
+      console.error("Error fetching active subscriptions:", error);
+      setActiveSubscriptions(0);
+    } finally {
+      setIsLoadingSubscriptions(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchActiveSubscriptions();
+  }, [fetchActiveSubscriptions]);
 
   const fetchStudents = async () => {
     try {
@@ -405,6 +479,453 @@ export default function RevenueManagement() {
       currency: "INR",
       maximumFractionDigits: 0,
     }).format(value || 0);
+
+  // Get initials from name
+  const getInitials = (name: string): string => {
+    if (!name) return "??";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // Get course icon emoji based on course title
+  const getCourseIcon = (courseTitle: string): string => {
+    if (!courseTitle) return "📖";
+    const title = courseTitle.toLowerCase();
+    if (title.includes("piano") || title.includes("keyboard")) return "🎹";
+    if (title.includes("guitar")) return "🎸";
+    if (title.includes("vocals") || title.includes("singing") || title.includes("voice")) return "🎤";
+    if (title.includes("violin")) return "🎻";
+    if (title.includes("drums") || title.includes("drum")) return "🥁";
+    if (title.includes("dance")) return "💃";
+    if (title.includes("art") || title.includes("drawing") || title.includes("painting")) return "🎨";
+    if (title.includes("math") || title.includes("mathematics")) return "📐";
+    if (title.includes("science")) return "🔬";
+    if (title.includes("english") || title.includes("language")) return "📚";
+    return "📖"; // Default icon
+  };
+
+  // Gradient colors for tutor avatars
+  const avatarGradients = [
+    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+  ];
+
+  // Format revenue amount (convert to lakhs if >= 100000, otherwise show in thousands)
+  const formatRevenue = (amount: number | null): string => {
+    if (amount === null || amount === 0) return "₹0";
+    if (amount >= 100000) {
+      const lakhs = amount / 100000;
+      return `₹${lakhs.toFixed(2)}L`;
+    } else if (amount >= 1000) {
+      const thousands = amount / 1000;
+      return `₹${thousands.toFixed(1)}K`;
+    } else {
+      return `₹${amount.toFixed(0)}`;
+    }
+  };
+
+  // Calculate revenue based on active period
+  const calculateRevenue = useCallback(() => {
+    if (!transactions || transactions.length === 0) {
+      setTotalRevenue(0);
+      setLastPeriodRevenue(0);
+      setRevenuePercentageChange(null);
+      setCollectedRevenue(0);
+      setCollectionRate(0);
+      setPendingRevenue(0);
+      setLastPeriodPendingRevenue(0);
+      setPendingPercentageChange(null);
+      setAcademyCommission(0);
+      return;
+    }
+
+    const now = new Date();
+    let periodStart: Date;
+    let periodEnd: Date;
+    let lastPeriodStart: Date;
+    let lastPeriodEnd: Date;
+    let periodLabel: string;
+
+    switch (activePeriod) {
+      case "Today":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        lastPeriodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        lastPeriodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        periodLabel = "Today";
+        break;
+      case "This Week":
+        const dayOfWeek = now.getDay();
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+        periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + 7);
+        lastPeriodStart = new Date(periodStart);
+        lastPeriodStart.setDate(lastPeriodStart.getDate() - 7);
+        lastPeriodEnd = new Date(periodStart);
+        periodLabel = "This Week";
+        break;
+      case "This Month":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        lastPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        lastPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodLabel = now.toLocaleDateString("en-US", { month: "short" });
+        break;
+      case "This Quarter":
+        const quarter = Math.floor(now.getMonth() / 3);
+        periodStart = new Date(now.getFullYear(), quarter * 3, 1);
+        periodEnd = new Date(now.getFullYear(), (quarter + 1) * 3, 1);
+        lastPeriodStart = new Date(now.getFullYear(), (quarter - 1) * 3, 1);
+        lastPeriodEnd = new Date(now.getFullYear(), quarter * 3, 1);
+        periodLabel = `Q${quarter + 1}`;
+        break;
+      case "This Year":
+        periodStart = new Date(now.getFullYear(), 0, 1);
+        periodEnd = new Date(now.getFullYear() + 1, 0, 1);
+        lastPeriodStart = new Date(now.getFullYear() - 1, 0, 1);
+        lastPeriodEnd = new Date(now.getFullYear(), 0, 1);
+        periodLabel = now.getFullYear().toString();
+        break;
+      case "Custom":
+        if (customDateRange && customDateRange.startDate && customDateRange.endDate) {
+          periodStart = new Date(customDateRange.startDate);
+          periodEnd = new Date(customDateRange.endDate);
+          periodEnd.setHours(23, 59, 59, 999); // Include the entire end date
+          
+          // Calculate previous period (same duration before start date)
+          const periodDuration = periodEnd.getTime() - periodStart.getTime();
+          lastPeriodEnd = new Date(periodStart);
+          lastPeriodEnd.setDate(lastPeriodEnd.getDate() - 1);
+          lastPeriodEnd.setHours(23, 59, 59, 999);
+          lastPeriodStart = new Date(lastPeriodEnd.getTime() - periodDuration);
+          
+          periodLabel = `${periodStart.toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${periodEnd.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+        } else {
+          // Default to This Month if custom range not set
+          periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          lastPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+          lastPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+          periodLabel = now.toLocaleDateString("en-US", { month: "short" });
+        }
+        break;
+      default:
+        // Default to This Month
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        lastPeriodStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        lastPeriodEnd = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodLabel = now.toLocaleDateString("en-US", { month: "short" });
+    }
+
+    // Calculate total revenue for current period (all statuses)
+    const totalPeriodRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate) return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        return paymentDate >= periodStart && paymentDate < periodEnd;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    // Calculate collected revenue for current period (only "Paid" status)
+    const currentPeriodRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate || transaction.status !== "Paid") return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        return paymentDate >= periodStart && paymentDate < periodEnd;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    // Calculate revenue for last period
+    const previousPeriodRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate || transaction.status !== "Paid") return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        return paymentDate >= lastPeriodStart && paymentDate < lastPeriodEnd;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    setTotalRevenue(currentPeriodRevenue);
+    setLastPeriodRevenue(previousPeriodRevenue);
+    setCollectedRevenue(currentPeriodRevenue);
+
+    // Calculate collection rate
+    let rate = 0;
+    if (totalPeriodRevenue > 0) {
+      rate = (currentPeriodRevenue / totalPeriodRevenue) * 100;
+    }
+    setCollectionRate(rate);
+
+    // Calculate pending revenue for current period (Pending or Failed status)
+    const currentPeriodPendingRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate) return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        const isInPeriod = paymentDate >= periodStart && paymentDate < periodEnd;
+        const isPending = transaction.status === "Pending" || transaction.status === "Failed";
+        return isInPeriod && isPending;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    // Calculate pending revenue for last period
+    const previousPeriodPendingRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate) return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        const isInPeriod = paymentDate >= lastPeriodStart && paymentDate < lastPeriodEnd;
+        const isPending = transaction.status === "Pending" || transaction.status === "Failed";
+        return isInPeriod && isPending;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    setPendingRevenue(currentPeriodPendingRevenue);
+    setLastPeriodPendingRevenue(previousPeriodPendingRevenue);
+
+    // Calculate pending percentage change
+    let pendingPercentageChange: number | null = null;
+    if (previousPeriodPendingRevenue > 0) {
+      pendingPercentageChange = ((currentPeriodPendingRevenue - previousPeriodPendingRevenue) / previousPeriodPendingRevenue) * 100;
+    } else if (currentPeriodPendingRevenue > 0) {
+      pendingPercentageChange = 100;
+    } else if (previousPeriodPendingRevenue > 0 && currentPeriodPendingRevenue === 0) {
+      pendingPercentageChange = -100;
+    }
+    setPendingPercentageChange(pendingPercentageChange);
+
+    // Calculate academy commission for current period (sum of commission from Paid transactions)
+    const currentPeriodCommission = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate || transaction.status !== "Paid") return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        return paymentDate >= periodStart && paymentDate < periodEnd;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.commission) || 0), 0);
+
+    setAcademyCommission(currentPeriodCommission);
+
+    // Calculate percentage change
+    let percentageChange: number | null = null;
+    if (previousPeriodRevenue > 0) {
+      percentageChange = ((currentPeriodRevenue - previousPeriodRevenue) / previousPeriodRevenue) * 100;
+    } else if (currentPeriodRevenue > 0) {
+      percentageChange = 100;
+    }
+
+    setRevenuePercentageChange(percentageChange);
+  }, [transactions, activePeriod, customDateRange]);
+
+  // Calculate revenue whenever transactions or activePeriod changes
+  useEffect(() => {
+    calculateRevenue();
+  }, [calculateRevenue]);
+
+  // Calculate top tutors by revenue
+  const calculateTopTutorsByRevenue = useCallback(async () => {
+    if (!transactions || transactions.length === 0) {
+      setTopTutorsByRevenue([]);
+      return;
+    }
+
+    // Get period dates based on activePeriod
+    const now = new Date();
+    let periodStart: Date;
+    let periodEnd: Date;
+
+    switch (activePeriod) {
+      case "Today":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        break;
+      case "This Week":
+        const dayOfWeek = now.getDay();
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+        periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + 7);
+        break;
+      case "This Month":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        break;
+      case "This Quarter":
+        const quarter = Math.floor(now.getMonth() / 3);
+        periodStart = new Date(now.getFullYear(), quarter * 3, 1);
+        periodEnd = new Date(now.getFullYear(), (quarter + 1) * 3, 1);
+        break;
+      case "This Year":
+        periodStart = new Date(now.getFullYear(), 0, 1);
+        periodEnd = new Date(now.getFullYear() + 1, 0, 1);
+        break;
+      case "Custom":
+        if (customDateRange && customDateRange.startDate && customDateRange.endDate) {
+          periodStart = new Date(customDateRange.startDate);
+          periodEnd = new Date(customDateRange.endDate);
+          periodEnd.setHours(23, 59, 59, 999);
+        } else {
+          periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        }
+        break;
+      default:
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    }
+
+    // Group transactions by tutor and calculate revenue for the selected period
+    const tutorRevenueMap = new Map<string, { tutorName: string; revenue: number }>();
+
+    transactions.forEach((transaction) => {
+      if (!transaction.tutorId || transaction.status !== "Paid" || !transaction.paymentDate) return;
+
+      const paymentDate = new Date(transaction.paymentDate);
+      if (paymentDate < periodStart || paymentDate >= periodEnd) return;
+
+      const tutorId = transaction.tutorId.toString();
+      const current = tutorRevenueMap.get(tutorId) || { tutorName: transaction.tutorName || "Unknown", revenue: 0 };
+      current.revenue += Number(transaction.amount) || 0;
+      tutorRevenueMap.set(tutorId, current);
+    });
+
+    // Convert to array and sort by revenue
+    const tutorsWithRevenue = Array.from(tutorRevenueMap.entries())
+      .map(([tutorId, data]) => ({
+        tutorId,
+        tutorName: data.tutorName,
+        revenue: data.revenue,
+        studentCount: 0, // Will be fetched
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 3); // Top 3
+
+    // Fetch student counts for each tutor
+    try {
+      const tutorsResponse = await fetch("/Api/academy/tutors", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (tutorsResponse.ok) {
+        const tutorsData = await tutorsResponse.json();
+        if (tutorsData.success && Array.isArray(tutorsData.tutors)) {
+          const tutorsMap = new Map(tutorsData.tutors.map((tutor: any) => [tutor._id, tutor]));
+
+          // Update student counts
+          const tutorsWithStudentCounts = tutorsWithRevenue.map((tutor) => {
+            const tutorData = tutorsMap.get(tutor.tutorId);
+            return {
+              ...tutor,
+              studentCount: tutorData?.studentCount || 0,
+            };
+          });
+
+          setTopTutorsByRevenue(tutorsWithStudentCounts);
+        } else {
+          setTopTutorsByRevenue(tutorsWithRevenue);
+        }
+      } else {
+        setTopTutorsByRevenue(tutorsWithRevenue);
+      }
+    } catch (error) {
+      console.error("Error fetching tutor student counts:", error);
+      setTopTutorsByRevenue(tutorsWithRevenue);
+    }
+  }, [transactions, activePeriod, customDateRange]);
+
+  useEffect(() => {
+    calculateTopTutorsByRevenue();
+  }, [calculateTopTutorsByRevenue]);
+
+  // Calculate top courses by revenue
+  const calculateTopCoursesByRevenue = useCallback(() => {
+    if (!transactions || transactions.length === 0) {
+      setTopCoursesByRevenue([]);
+      return;
+    }
+
+    // Get period dates based on activePeriod
+    const now = new Date();
+    let periodStart: Date;
+    let periodEnd: Date;
+
+    switch (activePeriod) {
+      case "Today":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        break;
+      case "This Week":
+        const dayOfWeek = now.getDay();
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+        periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + 7);
+        break;
+      case "This Month":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        break;
+      case "This Quarter":
+        const quarter = Math.floor(now.getMonth() / 3);
+        periodStart = new Date(now.getFullYear(), quarter * 3, 1);
+        periodEnd = new Date(now.getFullYear(), (quarter + 1) * 3, 1);
+        break;
+      case "This Year":
+        periodStart = new Date(now.getFullYear(), 0, 1);
+        periodEnd = new Date(now.getFullYear() + 1, 0, 1);
+        break;
+      case "Custom":
+        if (customDateRange && customDateRange.startDate && customDateRange.endDate) {
+          periodStart = new Date(customDateRange.startDate);
+          periodEnd = new Date(customDateRange.endDate);
+          periodEnd.setHours(23, 59, 59, 999);
+        } else {
+          periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+          periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        }
+        break;
+      default:
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    }
+
+    // Group transactions by course and calculate revenue and enrollment count
+    const courseRevenueMap = new Map<string, { courseTitle: string; revenue: number; enrollmentCount: number }>();
+
+    transactions.forEach((transaction) => {
+      if (!transaction.courseId || transaction.status !== "Paid" || !transaction.paymentDate) return;
+
+      const paymentDate = new Date(transaction.paymentDate);
+      if (paymentDate < periodStart || paymentDate >= periodEnd) return;
+
+      const courseId = transaction.courseId.toString();
+      const current = courseRevenueMap.get(courseId) || {
+        courseTitle: transaction.courseTitle || "Unknown Course",
+        revenue: 0,
+        enrollmentCount: 0,
+      };
+      current.revenue += Number(transaction.amount) || 0;
+      current.enrollmentCount += 1; // Count each transaction as an enrollment
+      courseRevenueMap.set(courseId, current);
+    });
+
+    // Convert to array and sort by revenue
+    const coursesWithRevenue = Array.from(courseRevenueMap.entries())
+      .map(([courseId, data]) => ({
+        courseId,
+        courseTitle: data.courseTitle,
+        revenue: data.revenue,
+        enrollmentCount: data.enrollmentCount,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 3); // Top 3
+
+    setTopCoursesByRevenue(coursesWithRevenue);
+  }, [transactions, activePeriod, customDateRange]);
+
+  useEffect(() => {
+    calculateTopCoursesByRevenue();
+  }, [calculateTopCoursesByRevenue]);
 
   const statusBadgeStyles: Record<string, { background: string; color: string }> = {
     Paid: { background: "#e8f5e9", color: "#2e7d32" },
@@ -686,7 +1207,26 @@ export default function RevenueManagement() {
         {periods.map((period) => (
           <button
             key={period}
-            onClick={() => setActivePeriod(period)}
+            onClick={() => {
+              if (period === "Custom") {
+                // Initialize temp date range with current custom range or default to current month
+                if (customDateRange) {
+                  setTempDateRange(customDateRange);
+                } else {
+                  const now = new Date();
+                  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                  setTempDateRange({
+                    startDate: start.toISOString().split("T")[0],
+                    endDate: end.toISOString().split("T")[0],
+                  });
+                }
+                setShowCustomDateModal(true);
+              } else {
+                setActivePeriod(period);
+                setCustomDateRange(null);
+              }
+            }}
             style={{
               padding: "10px 20px",
               border: "none",
@@ -738,8 +1278,19 @@ export default function RevenueManagement() {
               ₹
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>₹8.42L</div>
-          <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Total Revenue (Oct)</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {formatRevenue(totalRevenue)}
+          </div>
+          <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>
+            Total Revenue{" "}
+            {activePeriod === "This Month"
+              ? `(${new Date().toLocaleDateString("en-US", { month: "short" })})`
+              : activePeriod === "This Year"
+              ? `(${new Date().getFullYear()})`
+              : activePeriod === "Custom" && customDateRange
+              ? `(${new Date(customDateRange.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })} - ${new Date(customDateRange.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })})`
+              : `(${activePeriod})`}
+          </div>
           <div
             style={{
               display: "inline-flex",
@@ -749,11 +1300,17 @@ export default function RevenueManagement() {
               borderRadius: "6px",
               fontSize: "11px",
               fontWeight: "600",
-              background: "#e8f5e9",
-              color: "#2e7d32",
+              background: revenuePercentageChange !== null && revenuePercentageChange >= 0 ? "#e8f5e9" : "#ffebee",
+              color: revenuePercentageChange !== null && revenuePercentageChange >= 0 ? "#2e7d32" : "#c62828",
             }}
           >
-            ↑ 18.2% vs last month
+            {revenuePercentageChange !== null ? (
+              <>
+                {revenuePercentageChange >= 0 ? "↑" : "↓"} {Math.abs(revenuePercentageChange).toFixed(1)}% vs last {activePeriod === "This Month" ? "month" : activePeriod === "This Week" ? "week" : activePeriod === "This Year" ? "year" : "period"}
+              </>
+            ) : (
+              "No comparison data"
+            )}
           </div>
         </div>
 
@@ -782,7 +1339,9 @@ export default function RevenueManagement() {
               💳
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>₹7.98L</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {formatRevenue(collectedRevenue)}
+          </div>
           <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Collected Revenue</div>
           <div
             style={{
@@ -793,11 +1352,11 @@ export default function RevenueManagement() {
               borderRadius: "6px",
               fontSize: "11px",
               fontWeight: "600",
-              background: "#e8f5e9",
-              color: "#2e7d32",
+              background: collectionRate >= 90 ? "#e8f5e9" : collectionRate >= 70 ? "#fff3e0" : "#ffebee",
+              color: collectionRate >= 90 ? "#2e7d32" : collectionRate >= 70 ? "#f57c00" : "#c62828",
             }}
           >
-            95% collection rate
+            {collectionRate > 0 ? `${collectionRate.toFixed(1)}% collection rate` : "No data"}
           </div>
         </div>
 
@@ -826,7 +1385,9 @@ export default function RevenueManagement() {
               ⏳
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>₹44K</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {formatRevenue(pendingRevenue)}
+          </div>
           <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Pending Collections</div>
           <div
             style={{
@@ -837,11 +1398,17 @@ export default function RevenueManagement() {
               borderRadius: "6px",
               fontSize: "11px",
               fontWeight: "600",
-              background: "#e8f5e9",
-              color: "#2e7d32",
+              background: pendingPercentageChange !== null && pendingPercentageChange <= 0 ? "#e8f5e9" : "#ffebee",
+              color: pendingPercentageChange !== null && pendingPercentageChange <= 0 ? "#2e7d32" : "#c62828",
             }}
           >
-            ↓ 12% vs last month
+            {pendingPercentageChange !== null ? (
+              <>
+                {pendingPercentageChange <= 0 ? "↓" : "↑"} {Math.abs(pendingPercentageChange).toFixed(1)}% vs last {activePeriod === "This Month" ? "month" : activePeriod === "This Week" ? "week" : activePeriod === "This Year" ? "year" : "period"}
+              </>
+            ) : (
+              "No comparison data"
+            )}
           </div>
         </div>
 
@@ -870,7 +1437,9 @@ export default function RevenueManagement() {
               📈
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>₹1.26L</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {formatRevenue(academyCommission)}
+          </div>
           <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Academy Commission (15%)</div>
         </div>
 
@@ -899,7 +1468,9 @@ export default function RevenueManagement() {
               👥
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>452</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {isLoadingSubscriptions ? "..." : activeSubscriptions}
+          </div>
           <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Active Subscriptions</div>
           <div
             style={{
@@ -914,7 +1485,7 @@ export default function RevenueManagement() {
               color: "#2e7d32",
             }}
           >
-            ↑ 8.5%
+            Active tutors & students
           </div>
         </div>
       </div>
@@ -923,7 +1494,7 @@ export default function RevenueManagement() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "2fr 1fr",
+          gridTemplateColumns: "1fr",
           gap: "20px",
           marginBottom: "20px",
         }}
@@ -939,10 +1510,10 @@ export default function RevenueManagement() {
           <div style={{ fontSize: "18px", fontWeight: "600", color: "#1a1a1a", marginBottom: "20px" }}>
             Revenue Trend
           </div>
-          <RevenueTrend />
+          <RevenueTrend transactions={transactions} />
         </div>
 
-        <div
+        {/* <div
           style={{
             background: "white",
             padding: "25px",
@@ -1020,7 +1591,7 @@ export default function RevenueManagement() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Revenue by Category */}
@@ -1043,108 +1614,53 @@ export default function RevenueManagement() {
           <div style={{ fontSize: "18px", fontWeight: "600", color: "#1a1a1a", marginBottom: "20px" }}>
             Top Revenue by Tutor
           </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {topTutorsByRevenue.length === 0 ? (
+            <div style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+              No revenue data available
+            </div>
+          ) : (
+            topTutorsByRevenue.map((tutor, index) => (
               <div
+                key={tutor.tutorId}
                 style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
+                  padding: "15px",
+                  background: "#f8f9fa",
+                  borderRadius: "10px",
+                  marginBottom: "12px",
                 }}
               >
-                SW
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      width: "45px",
+                      height: "45px",
+                      borderRadius: "50%",
+                      background: avatarGradients[index % avatarGradients.length],
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontWeight: "600",
+                    }}
+                  >
+                    {getInitials(tutor.tutorName)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: "600" }}>{tutor.tutorName}</div>
+                    <div style={{ fontSize: "12px", color: "#666" }}>
+                      {tutor.studentCount} {tutor.studentCount === 1 ? "student" : "students"}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>
+                  {formatRevenue(tutor.revenue)}
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Sherry Wolf</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>30 students</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹1.37L</div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
-                }}
-              >
-                RJ
-              </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Rahul Joshi</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>28 students</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹1.27L</div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
-                }}
-              >
-                PK
-              </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Priya Kumar</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>25 students</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹1.17L</div>
-          </div>
+            ))
+          )}
         </div>
 
         <div
@@ -1158,108 +1674,54 @@ export default function RevenueManagement() {
           <div style={{ fontSize: "18px", fontWeight: "600", color: "#1a1a1a", marginBottom: "20px" }}>
             Top Revenue by Course
           </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {topCoursesByRevenue.length === 0 ? (
+            <div style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+              No revenue data available
+            </div>
+          ) : (
+            topCoursesByRevenue.map((course, index) => (
               <div
+                key={course.courseId}
                 style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
+                  padding: "15px",
+                  background: "#f8f9fa",
+                  borderRadius: "10px",
+                  marginBottom: "12px",
                 }}
               >
-                🎹
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      width: "45px",
+                      height: "45px",
+                      borderRadius: "50%",
+                      background: avatarGradients[index % avatarGradients.length],
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontWeight: "600",
+                      fontSize: "20px",
+                    }}
+                  >
+                    {getCourseIcon(course.courseTitle)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: "600" }}>{course.courseTitle}</div>
+                    <div style={{ fontSize: "12px", color: "#666" }}>
+                      {course.enrollmentCount} {course.enrollmentCount === 1 ? "enrollment" : "enrollments"}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>
+                  {formatRevenue(course.revenue)}
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Piano Basics</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>92 enrollments</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹2.76L</div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
-                }}
-              >
-                🎸
-              </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Guitar Advanced</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>68 enrollments</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹2.04L</div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
-                }}
-              >
-                🎤
-              </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Vocals Beginner</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>54 enrollments</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹1.62L</div>
-          </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -1953,6 +2415,80 @@ export default function RevenueManagement() {
             }}
           >
             {loading ? "Deleting..." : "Delete"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Custom Date Range Modal */}
+      <Modal show={showCustomDateModal} onHide={() => setShowCustomDateModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Select Custom Date Range</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                Start Date <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                type="date"
+                value={tempDateRange.startDate}
+                onChange={(e) => setTempDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
+                max={tempDateRange.endDate || undefined}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "2px solid #e0e0e0",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                End Date <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                type="date"
+                value={tempDateRange.endDate}
+                onChange={(e) => setTempDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
+                min={tempDateRange.startDate || undefined}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "2px solid #e0e0e0",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                }}
+              />
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCustomDateModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (tempDateRange.startDate && tempDateRange.endDate) {
+                if (new Date(tempDateRange.startDate) > new Date(tempDateRange.endDate)) {
+                  toast.error("Start date must be before end date");
+                  return;
+                }
+                setCustomDateRange(tempDateRange);
+                setActivePeriod("Custom");
+                setShowCustomDateModal(false);
+              } else {
+                toast.error("Please select both start and end dates");
+              }
+            }}
+            style={{
+              background: "linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)",
+              border: "none",
+            }}
+          >
+            Apply Date Range
           </Button>
         </Modal.Footer>
       </Modal>
