@@ -1192,7 +1192,7 @@ export default function RevenueManagement() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "2fr 1fr",
+          gridTemplateColumns: "1fr",
           gap: "20px",
           marginBottom: "20px",
         }}
@@ -1208,10 +1208,10 @@ export default function RevenueManagement() {
           <div style={{ fontSize: "18px", fontWeight: "600", color: "#1a1a1a", marginBottom: "20px" }}>
             Revenue Trend
           </div>
-          <RevenueTrend />
+          <RevenueTrend transactions={transactions} />
         </div>
 
-        <div
+        {/* <div
           style={{
             background: "white",
             padding: "25px",
@@ -1289,7 +1289,7 @@ export default function RevenueManagement() {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Revenue by Category */}
