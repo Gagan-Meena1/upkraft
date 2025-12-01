@@ -230,6 +230,12 @@ export default function RevenueManagement() {
     revenue: number;
     studentCount: number;
   }>>([]);
+  const [topCoursesByRevenue, setTopCoursesByRevenue] = useState<Array<{
+    courseId: string;
+    courseTitle: string;
+    revenue: number;
+    enrollmentCount: number;
+  }>>([]);
   const [formData, setFormData] = useState({
     transactionDate: "",
     validUpto: "",
@@ -479,6 +485,23 @@ export default function RevenueManagement() {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return name.substring(0, 2).toUpperCase();
+  };
+
+  // Get course icon emoji based on course title
+  const getCourseIcon = (courseTitle: string): string => {
+    if (!courseTitle) return "📖";
+    const title = courseTitle.toLowerCase();
+    if (title.includes("piano") || title.includes("keyboard")) return "🎹";
+    if (title.includes("guitar")) return "🎸";
+    if (title.includes("vocals") || title.includes("singing") || title.includes("voice")) return "🎤";
+    if (title.includes("violin")) return "🎻";
+    if (title.includes("drums") || title.includes("drum")) return "🥁";
+    if (title.includes("dance")) return "💃";
+    if (title.includes("art") || title.includes("drawing") || title.includes("painting")) return "🎨";
+    if (title.includes("math") || title.includes("mathematics")) return "📐";
+    if (title.includes("science")) return "🔬";
+    if (title.includes("english") || title.includes("language")) return "📚";
+    return "📖"; // Default icon
   };
 
   // Gradient colors for tutor avatars
@@ -778,6 +801,85 @@ export default function RevenueManagement() {
   useEffect(() => {
     calculateTopTutorsByRevenue();
   }, [calculateTopTutorsByRevenue]);
+
+  // Calculate top courses by revenue
+  const calculateTopCoursesByRevenue = useCallback(() => {
+    if (!transactions || transactions.length === 0) {
+      setTopCoursesByRevenue([]);
+      return;
+    }
+
+    // Get period dates based on activePeriod
+    const now = new Date();
+    let periodStart: Date;
+    let periodEnd: Date;
+
+    switch (activePeriod) {
+      case "Today":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        break;
+      case "This Week":
+        const dayOfWeek = now.getDay();
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+        periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + 7);
+        break;
+      case "This Month":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        break;
+      case "This Quarter":
+        const quarter = Math.floor(now.getMonth() / 3);
+        periodStart = new Date(now.getFullYear(), quarter * 3, 1);
+        periodEnd = new Date(now.getFullYear(), (quarter + 1) * 3, 1);
+        break;
+      case "This Year":
+        periodStart = new Date(now.getFullYear(), 0, 1);
+        periodEnd = new Date(now.getFullYear() + 1, 0, 1);
+        break;
+      default:
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    }
+
+    // Group transactions by course and calculate revenue and enrollment count
+    const courseRevenueMap = new Map<string, { courseTitle: string; revenue: number; enrollmentCount: number }>();
+
+    transactions.forEach((transaction) => {
+      if (!transaction.courseId || transaction.status !== "Paid" || !transaction.paymentDate) return;
+
+      const paymentDate = new Date(transaction.paymentDate);
+      if (paymentDate < periodStart || paymentDate >= periodEnd) return;
+
+      const courseId = transaction.courseId.toString();
+      const current = courseRevenueMap.get(courseId) || {
+        courseTitle: transaction.courseTitle || "Unknown Course",
+        revenue: 0,
+        enrollmentCount: 0,
+      };
+      current.revenue += Number(transaction.amount) || 0;
+      current.enrollmentCount += 1; // Count each transaction as an enrollment
+      courseRevenueMap.set(courseId, current);
+    });
+
+    // Convert to array and sort by revenue
+    const coursesWithRevenue = Array.from(courseRevenueMap.entries())
+      .map(([courseId, data]) => ({
+        courseId,
+        courseTitle: data.courseTitle,
+        revenue: data.revenue,
+        enrollmentCount: data.enrollmentCount,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 3); // Top 3
+
+    setTopCoursesByRevenue(coursesWithRevenue);
+  }, [transactions, activePeriod]);
+
+  useEffect(() => {
+    calculateTopCoursesByRevenue();
+  }, [calculateTopCoursesByRevenue]);
 
   const statusBadgeStyles: Record<string, { background: string; color: string }> = {
     Paid: { background: "#e8f5e9", color: "#2e7d32" },
@@ -1500,108 +1602,54 @@ export default function RevenueManagement() {
           <div style={{ fontSize: "18px", fontWeight: "600", color: "#1a1a1a", marginBottom: "20px" }}>
             Top Revenue by Course
           </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {topCoursesByRevenue.length === 0 ? (
+            <div style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+              No revenue data available
+            </div>
+          ) : (
+            topCoursesByRevenue.map((course, index) => (
               <div
+                key={course.courseId}
                 style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
+                  padding: "15px",
+                  background: "#f8f9fa",
+                  borderRadius: "10px",
+                  marginBottom: "12px",
                 }}
               >
-                🎹
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      width: "45px",
+                      height: "45px",
+                      borderRadius: "50%",
+                      background: avatarGradients[index % avatarGradients.length],
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontWeight: "600",
+                      fontSize: "20px",
+                    }}
+                  >
+                    {getCourseIcon(course.courseTitle)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: "600" }}>{course.courseTitle}</div>
+                    <div style={{ fontSize: "12px", color: "#666" }}>
+                      {course.enrollmentCount} {course.enrollmentCount === 1 ? "enrollment" : "enrollments"}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>
+                  {formatRevenue(course.revenue)}
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Piano Basics</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>92 enrollments</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹2.76L</div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
-                }}
-              >
-                🎸
-              </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Guitar Advanced</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>68 enrollments</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹2.04L</div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
-                }}
-              >
-                🎤
-              </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Vocals Beginner</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>54 enrollments</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹1.62L</div>
-          </div>
+            ))
+          )}
         </div>
       </div>
 
