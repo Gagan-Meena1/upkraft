@@ -2418,6 +2418,80 @@ export default function RevenueManagement() {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Custom Date Range Modal */}
+      <Modal show={showCustomDateModal} onHide={() => setShowCustomDateModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Select Custom Date Range</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            <div>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                Start Date <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                type="date"
+                value={tempDateRange.startDate}
+                onChange={(e) => setTempDateRange((prev) => ({ ...prev, startDate: e.target.value }))}
+                max={tempDateRange.endDate || undefined}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "2px solid #e0e0e0",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: "block", marginBottom: "8px", fontWeight: "600", color: "#333" }}>
+                End Date <span style={{ color: "red" }}>*</span>
+              </label>
+              <input
+                type="date"
+                value={tempDateRange.endDate}
+                onChange={(e) => setTempDateRange((prev) => ({ ...prev, endDate: e.target.value }))}
+                min={tempDateRange.startDate || undefined}
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "2px solid #e0e0e0",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                }}
+              />
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCustomDateModal(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => {
+              if (tempDateRange.startDate && tempDateRange.endDate) {
+                if (new Date(tempDateRange.startDate) > new Date(tempDateRange.endDate)) {
+                  toast.error("Start date must be before end date");
+                  return;
+                }
+                setCustomDateRange(tempDateRange);
+                setActivePeriod("Custom");
+                setShowCustomDateModal(false);
+              } else {
+                toast.error("Please select both start and end dates");
+              }
+            }}
+            style={{
+              background: "linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)",
+              border: "none",
+            }}
+          >
+            Apply Date Range
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
