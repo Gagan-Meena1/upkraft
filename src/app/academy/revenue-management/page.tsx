@@ -224,6 +224,12 @@ export default function RevenueManagement() {
   const [academyCommission, setAcademyCommission] = useState<number>(0);
   const [activeSubscriptions, setActiveSubscriptions] = useState<number>(0);
   const [isLoadingSubscriptions, setIsLoadingSubscriptions] = useState<boolean>(false);
+  const [topTutorsByRevenue, setTopTutorsByRevenue] = useState<Array<{
+    tutorId: string;
+    tutorName: string;
+    revenue: number;
+    studentCount: number;
+  }>>([]);
   const [formData, setFormData] = useState({
     transactionDate: "",
     validUpto: "",
@@ -465,6 +471,23 @@ export default function RevenueManagement() {
       maximumFractionDigits: 0,
     }).format(value || 0);
 
+  // Get initials from name
+  const getInitials = (name: string): string => {
+    if (!name) return "??";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // Gradient colors for tutor avatars
+  const avatarGradients = [
+    "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+  ];
+
   // Format revenue amount (convert to lakhs if >= 100000, otherwise show in thousands)
   const formatRevenue = (amount: number | null): string => {
     if (amount === null || amount === 0) return "₹0";
@@ -650,6 +673,111 @@ export default function RevenueManagement() {
   useEffect(() => {
     calculateRevenue();
   }, [calculateRevenue]);
+
+  // Calculate top tutors by revenue
+  const calculateTopTutorsByRevenue = useCallback(async () => {
+    if (!transactions || transactions.length === 0) {
+      setTopTutorsByRevenue([]);
+      return;
+    }
+
+    // Get period dates based on activePeriod
+    const now = new Date();
+    let periodStart: Date;
+    let periodEnd: Date;
+
+    switch (activePeriod) {
+      case "Today":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        periodEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        break;
+      case "This Week":
+        const dayOfWeek = now.getDay();
+        periodStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek);
+        periodEnd = new Date(periodStart);
+        periodEnd.setDate(periodEnd.getDate() + 7);
+        break;
+      case "This Month":
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        break;
+      case "This Quarter":
+        const quarter = Math.floor(now.getMonth() / 3);
+        periodStart = new Date(now.getFullYear(), quarter * 3, 1);
+        periodEnd = new Date(now.getFullYear(), (quarter + 1) * 3, 1);
+        break;
+      case "This Year":
+        periodStart = new Date(now.getFullYear(), 0, 1);
+        periodEnd = new Date(now.getFullYear() + 1, 0, 1);
+        break;
+      default:
+        periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    }
+
+    // Group transactions by tutor and calculate revenue for the selected period
+    const tutorRevenueMap = new Map<string, { tutorName: string; revenue: number }>();
+
+    transactions.forEach((transaction) => {
+      if (!transaction.tutorId || transaction.status !== "Paid" || !transaction.paymentDate) return;
+
+      const paymentDate = new Date(transaction.paymentDate);
+      if (paymentDate < periodStart || paymentDate >= periodEnd) return;
+
+      const tutorId = transaction.tutorId.toString();
+      const current = tutorRevenueMap.get(tutorId) || { tutorName: transaction.tutorName || "Unknown", revenue: 0 };
+      current.revenue += Number(transaction.amount) || 0;
+      tutorRevenueMap.set(tutorId, current);
+    });
+
+    // Convert to array and sort by revenue
+    const tutorsWithRevenue = Array.from(tutorRevenueMap.entries())
+      .map(([tutorId, data]) => ({
+        tutorId,
+        tutorName: data.tutorName,
+        revenue: data.revenue,
+        studentCount: 0, // Will be fetched
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 3); // Top 3
+
+    // Fetch student counts for each tutor
+    try {
+      const tutorsResponse = await fetch("/Api/academy/tutors", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (tutorsResponse.ok) {
+        const tutorsData = await tutorsResponse.json();
+        if (tutorsData.success && Array.isArray(tutorsData.tutors)) {
+          const tutorsMap = new Map(tutorsData.tutors.map((tutor: any) => [tutor._id, tutor]));
+
+          // Update student counts
+          const tutorsWithStudentCounts = tutorsWithRevenue.map((tutor) => {
+            const tutorData = tutorsMap.get(tutor.tutorId);
+            return {
+              ...tutor,
+              studentCount: tutorData?.studentCount || 0,
+            };
+          });
+
+          setTopTutorsByRevenue(tutorsWithStudentCounts);
+        } else {
+          setTopTutorsByRevenue(tutorsWithRevenue);
+        }
+      } else {
+        setTopTutorsByRevenue(tutorsWithRevenue);
+      }
+    } catch (error) {
+      console.error("Error fetching tutor student counts:", error);
+      setTopTutorsByRevenue(tutorsWithRevenue);
+    }
+  }, [transactions, activePeriod]);
+
+  useEffect(() => {
+    calculateTopTutorsByRevenue();
+  }, [calculateTopTutorsByRevenue]);
 
   const statusBadgeStyles: Record<string, { background: string; color: string }> = {
     Paid: { background: "#e8f5e9", color: "#2e7d32" },
@@ -1312,108 +1440,53 @@ export default function RevenueManagement() {
           <div style={{ fontSize: "18px", fontWeight: "600", color: "#1a1a1a", marginBottom: "20px" }}>
             Top Revenue by Tutor
           </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {topTutorsByRevenue.length === 0 ? (
+            <div style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+              No revenue data available
+            </div>
+          ) : (
+            topTutorsByRevenue.map((tutor, index) => (
               <div
+                key={tutor.tutorId}
                 style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                   display: "flex",
+                  justifyContent: "space-between",
                   alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
+                  padding: "15px",
+                  background: "#f8f9fa",
+                  borderRadius: "10px",
+                  marginBottom: "12px",
                 }}
               >
-                SW
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <div
+                    style={{
+                      width: "45px",
+                      height: "45px",
+                      borderRadius: "50%",
+                      background: avatarGradients[index % avatarGradients.length],
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontWeight: "600",
+                    }}
+                  >
+                    {getInitials(tutor.tutorName)}
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: "600" }}>{tutor.tutorName}</div>
+                    <div style={{ fontSize: "12px", color: "#666" }}>
+                      {tutor.studentCount} {tutor.studentCount === 1 ? "student" : "students"}
+                    </div>
+                  </div>
+                </div>
+                <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>
+                  {formatRevenue(tutor.revenue)}
+                </div>
               </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Sherry Wolf</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>30 students</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹1.37L</div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
-                }}
-              >
-                RJ
-              </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Rahul Joshi</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>28 students</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹1.27L</div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "15px",
-              background: "#f8f9fa",
-              borderRadius: "10px",
-              marginBottom: "12px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "45px",
-                  height: "45px",
-                  borderRadius: "50%",
-                  background: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "white",
-                  fontWeight: "600",
-                }}
-              >
-                PK
-              </div>
-              <div>
-                <div style={{ fontWeight: "600" }}>Priya Kumar</div>
-                <div style={{ fontSize: "12px", color: "#666" }}>25 students</div>
-              </div>
-            </div>
-            <div style={{ fontSize: "18px", fontWeight: "bold", color: "#1a1a1a" }}>₹1.17L</div>
-          </div>
+            ))
+          )}
         </div>
 
         <div
