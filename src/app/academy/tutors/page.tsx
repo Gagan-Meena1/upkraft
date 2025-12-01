@@ -4,6 +4,8 @@ import Image from 'next/image'
 import Link from 'next/link';
 import TutorTable from "../../components/academy/TutorTable";
 import AddNewTutorModal from "../../components/AddNewTutorModal";
+import { useRouter } from 'next/navigation';
+import { UserPlus, Users } from "lucide-react";
 
 const Tutors = () => {
   const [refreshKey, setRefreshKey] = useState(0);
@@ -14,6 +16,7 @@ const Tutors = () => {
     monthlyRevenue: 0
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
     fetchStats();
@@ -63,6 +66,10 @@ const Tutors = () => {
     }
   };
 
+  const handleManageSlotsClick = () => {
+    router.push('/academy/slots');
+  };
+
   const formatCurrency = (amount) => {
     if (!amount) return "₹0";
     if (amount >= 100000) {
@@ -78,7 +85,13 @@ const Tutors = () => {
           <div className="left-head">
             <h2 className="m-0">Tutors Management</h2>
           </div>
-          <div className="right-form">
+          <div className="right-form d-flex align-items-center gap-3 flex-xl-nowrap flex-wrap">
+            <button 
+              onClick={handleManageSlotsClick}
+              className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
+            >
+              <span className="mr-2"><Users/></span> Manage Slots
+            </button>
             <button 
               onClick={handleAddTutorClick}
               className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"

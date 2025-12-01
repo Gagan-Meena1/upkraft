@@ -19,7 +19,8 @@ import dynamic from "next/dynamic";
 import TimePicker from 'react-time-picker';
 // ADD these
 import * as dateFnsTz from 'date-fns-tz';
-import { format } from 'date-fns';import { parseISO, addDays } from 'date-fns';
+import { format } from 'date-fns';
+import { parseISO, addDays } from 'date-fns';
 
 
 // Create a non-SSR version of the components
