@@ -218,6 +218,9 @@ export default function RevenueManagement() {
   const [revenuePercentageChange, setRevenuePercentageChange] = useState<number | null>(null);
   const [collectedRevenue, setCollectedRevenue] = useState<number>(0);
   const [collectionRate, setCollectionRate] = useState<number>(0);
+  const [pendingRevenue, setPendingRevenue] = useState<number>(0);
+  const [lastPeriodPendingRevenue, setLastPeriodPendingRevenue] = useState<number>(0);
+  const [pendingPercentageChange, setPendingPercentageChange] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     transactionDate: "",
     validUpto: "",
@@ -433,6 +436,9 @@ export default function RevenueManagement() {
       setRevenuePercentageChange(null);
       setCollectedRevenue(0);
       setCollectionRate(0);
+      setPendingRevenue(0);
+      setLastPeriodPendingRevenue(0);
+      setPendingPercentageChange(null);
       return;
     }
 
@@ -529,6 +535,42 @@ export default function RevenueManagement() {
       rate = (currentPeriodRevenue / totalPeriodRevenue) * 100;
     }
     setCollectionRate(rate);
+
+    // Calculate pending revenue for current period (Pending or Failed status)
+    const currentPeriodPendingRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate) return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        const isInPeriod = paymentDate >= periodStart && paymentDate < periodEnd;
+        const isPending = transaction.status === "Pending" || transaction.status === "Failed";
+        return isInPeriod && isPending;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    // Calculate pending revenue for last period
+    const previousPeriodPendingRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate) return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        const isInPeriod = paymentDate >= lastPeriodStart && paymentDate < lastPeriodEnd;
+        const isPending = transaction.status === "Pending" || transaction.status === "Failed";
+        return isInPeriod && isPending;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    setPendingRevenue(currentPeriodPendingRevenue);
+    setLastPeriodPendingRevenue(previousPeriodPendingRevenue);
+
+    // Calculate pending percentage change
+    let pendingPercentageChange: number | null = null;
+    if (previousPeriodPendingRevenue > 0) {
+      pendingPercentageChange = ((currentPeriodPendingRevenue - previousPeriodPendingRevenue) / previousPeriodPendingRevenue) * 100;
+    } else if (currentPeriodPendingRevenue > 0) {
+      pendingPercentageChange = 100;
+    } else if (previousPeriodPendingRevenue > 0 && currentPeriodPendingRevenue === 0) {
+      pendingPercentageChange = -100;
+    }
+    setPendingPercentageChange(pendingPercentageChange);
 
     // Calculate percentage change
     let percentageChange: number | null = null;
@@ -978,7 +1020,9 @@ export default function RevenueManagement() {
               ⏳
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>₹44K</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {formatRevenue(pendingRevenue)}
+          </div>
           <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Pending Collections</div>
           <div
             style={{
@@ -989,11 +1033,17 @@ export default function RevenueManagement() {
               borderRadius: "6px",
               fontSize: "11px",
               fontWeight: "600",
-              background: "#e8f5e9",
-              color: "#2e7d32",
+              background: pendingPercentageChange !== null && pendingPercentageChange <= 0 ? "#e8f5e9" : "#ffebee",
+              color: pendingPercentageChange !== null && pendingPercentageChange <= 0 ? "#2e7d32" : "#c62828",
             }}
           >
-            ↓ 12% vs last month
+            {pendingPercentageChange !== null ? (
+              <>
+                {pendingPercentageChange <= 0 ? "↓" : "↑"} {Math.abs(pendingPercentageChange).toFixed(1)}% vs last {activePeriod === "This Month" ? "month" : activePeriod === "This Week" ? "week" : activePeriod === "This Year" ? "year" : "period"}
+              </>
+            ) : (
+              "No comparison data"
+            )}
           </div>
         </div>
 
