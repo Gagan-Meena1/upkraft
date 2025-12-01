@@ -216,6 +216,8 @@ export default function RevenueManagement() {
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [lastPeriodRevenue, setLastPeriodRevenue] = useState<number>(0);
   const [revenuePercentageChange, setRevenuePercentageChange] = useState<number | null>(null);
+  const [collectedRevenue, setCollectedRevenue] = useState<number>(0);
+  const [collectionRate, setCollectionRate] = useState<number>(0);
   const [formData, setFormData] = useState({
     transactionDate: "",
     validUpto: "",
@@ -429,6 +431,8 @@ export default function RevenueManagement() {
       setTotalRevenue(0);
       setLastPeriodRevenue(0);
       setRevenuePercentageChange(null);
+      setCollectedRevenue(0);
+      setCollectionRate(0);
       return;
     }
 
@@ -488,7 +492,16 @@ export default function RevenueManagement() {
         periodLabel = now.toLocaleDateString("en-US", { month: "short" });
     }
 
-    // Calculate revenue for current period
+    // Calculate total revenue for current period (all statuses)
+    const totalPeriodRevenue = transactions
+      .filter((transaction) => {
+        if (!transaction.paymentDate) return false;
+        const paymentDate = new Date(transaction.paymentDate);
+        return paymentDate >= periodStart && paymentDate < periodEnd;
+      })
+      .reduce((sum, transaction) => sum + (Number(transaction.amount) || 0), 0);
+
+    // Calculate collected revenue for current period (only "Paid" status)
     const currentPeriodRevenue = transactions
       .filter((transaction) => {
         if (!transaction.paymentDate || transaction.status !== "Paid") return false;
@@ -508,6 +521,14 @@ export default function RevenueManagement() {
 
     setTotalRevenue(currentPeriodRevenue);
     setLastPeriodRevenue(previousPeriodRevenue);
+    setCollectedRevenue(currentPeriodRevenue);
+
+    // Calculate collection rate
+    let rate = 0;
+    if (totalPeriodRevenue > 0) {
+      rate = (currentPeriodRevenue / totalPeriodRevenue) * 100;
+    }
+    setCollectionRate(rate);
 
     // Calculate percentage change
     let percentageChange: number | null = null;
@@ -911,7 +932,9 @@ export default function RevenueManagement() {
               💳
             </div>
           </div>
-          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>₹7.98L</div>
+          <div style={{ fontSize: "32px", fontWeight: "bold", color: "#1a1a1a", marginBottom: "5px" }}>
+            {formatRevenue(collectedRevenue)}
+          </div>
           <div style={{ fontSize: "13px", color: "#666", marginBottom: "10px" }}>Collected Revenue</div>
           <div
             style={{
@@ -922,11 +945,11 @@ export default function RevenueManagement() {
               borderRadius: "6px",
               fontSize: "11px",
               fontWeight: "600",
-              background: "#e8f5e9",
-              color: "#2e7d32",
+              background: collectionRate >= 90 ? "#e8f5e9" : collectionRate >= 70 ? "#fff3e0" : "#ffebee",
+              color: collectionRate >= 90 ? "#2e7d32" : collectionRate >= 70 ? "#f57c00" : "#c62828",
             }}
           >
-            95% collection rate
+            {collectionRate > 0 ? `${collectionRate.toFixed(1)}% collection rate` : "No data"}
           </div>
         </div>
 
