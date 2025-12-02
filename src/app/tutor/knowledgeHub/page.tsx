@@ -293,7 +293,8 @@ const YouTubeVideoGallery: React.FC = () => {
               <Menu size={24} />
             </button>
           )}
-            <Link href="/tutor/performanceVideo" className="text-xl sm:text-2xl font-bold text-gray-900 !text-[20px]">
+            <Link href="/tutor/performanceVideo" className="inline-flex items-center px-4 py-2 !bg-purple-700 !hover:bg-purple-700 text-white text-sm sm:text-lg rounded-md shadow-sm !text-[20px]"
+                      >
               Class Snapshots
             </Link>
             
