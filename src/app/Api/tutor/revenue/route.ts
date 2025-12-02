@@ -54,13 +54,22 @@ export async function GET(request: NextRequest) {
 
     // For academy tutors: show all revenue where tutor is involved
     // For individual tutors: show only revenue they created themselves
-    const query: any = { tutorId: tutorObjectId };
+    let query: any;
     if (academyObjectId) {
-      // Academy tutor: show all transactions where tutor is involved
-      query.academyId = academyObjectId;
+      // Academy tutor: show all transactions where tutor is involved and academy matches
+      query = { 
+        tutorId: tutorObjectId,
+        academyId: academyObjectId
+      };
     } else {
-      // Individual tutor: show only manually created transactions
-      query.isManualEntry = true;
+      // Individual tutor: show transactions they created (isManualEntry = true)
+      // OR transactions where they're the academy (academyId = tutorId)
+      query = {
+        $or: [
+          { tutorId: tutorObjectId, isManualEntry: true },
+          { tutorId: tutorObjectId, academyId: tutorObjectId }
+        ]
+      };
     }
 
     const payments = await Payment.find(query).sort({ paymentDate: -1 }).lean();
@@ -166,14 +175,25 @@ export async function POST(request: NextRequest) {
       .padStart(3, "0")}`;
 
     const tutorObjectId = new mongoose.Types.ObjectId(tutorId);
-    const academyObjectId = academyId ? new mongoose.Types.ObjectId(academyId) : null;
+    // For individual tutors, use tutor's ID as academyId (they manage their own academy)
+    // For academy tutors, use the academyId
+    // Fallback to student's academyId if available
+    let academyObjectId: mongoose.Types.ObjectId;
+    if (academyId) {
+      academyObjectId = new mongoose.Types.ObjectId(academyId);
+    } else if (student.academyId) {
+      academyObjectId = new mongoose.Types.ObjectId(student.academyId);
+    } else {
+      // Individual tutor managing their own revenue - use tutor ID as academyId
+      academyObjectId = tutorObjectId;
+    }
 
     const payment = await Payment.create({
       transactionId,
       studentId: student._id,
       studentName: student.username,
       studentEmail: student.email,
-      academyId: academyObjectId || student.academyId || null,
+      academyId: academyObjectId,
       tutorId: tutorObjectId,
       tutorName: tutor.username,
       courseId: course._id,
