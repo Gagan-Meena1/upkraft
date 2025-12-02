@@ -608,6 +608,38 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
   formatCurrency,
   getStatusBadgeStyle,
 }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("recent");
+
+  // Filter transactions
+  const filteredTransactions = transactions.filter((transaction) => {
+    // Search filter
+    const matchesSearch =
+      transaction.transactionId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.tutorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.courseTitle.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Status filter
+    const matchesStatus = statusFilter === "all" || transaction.status.toLowerCase() === statusFilter.toLowerCase();
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // Sort transactions
+  const sortedTransactions = [...filteredTransactions].sort((a, b) => {
+    switch (sortBy) {
+      case "amount":
+        return b.amount - a.amount; // Highest to lowest
+      case "student":
+        return a.studentName.localeCompare(b.studentName);
+      case "recent":
+      default:
+        return new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime(); // Most recent first
+    }
+  });
+
   return (
     <div>
       {/* Filter Section */}
@@ -625,6 +657,8 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
             <input
               type="text"
               placeholder="Search transactions by student, tutor, or transaction ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               style={{
                 width: "100%",
                 padding: "12px 40px 12px 16px",
@@ -639,6 +673,8 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
           </div>
 
           <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
             style={{
               padding: "12px 16px",
               border: "2px solid #e0e0e0",
@@ -649,13 +685,15 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
               minWidth: "150px",
             }}
           >
-            <option>All Status</option>
-            <option>Paid</option>
-            <option>Pending</option>
-            <option>Failed</option>
+            <option value="all">All Status</option>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="failed">Failed</option>
           </select>
 
           <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
             style={{
               padding: "12px 16px",
               border: "2px solid #e0e0e0",
@@ -666,9 +704,9 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
               minWidth: "150px",
             }}
           >
-            <option>Sort by: Recent</option>
-            <option>Sort by: Amount</option>
-            <option>Sort by: Student</option>
+            <option value="recent">Sort by: Recent</option>
+            <option value="amount">Sort by: Amount</option>
+            <option value="student">Sort by: Student</option>
           </select>
         </div>
       </div>
@@ -732,7 +770,7 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
               </tr>
             )}
 
-            {!tableLoading && !tableError && transactions.length === 0 && (
+            {!tableLoading && !tableError && sortedTransactions.length === 0 && (
               <tr>
                 <td colSpan={9} style={{ padding: "24px", textAlign: "center", color: "#666", fontWeight: 500 }}>
                   No transactions found.
@@ -742,7 +780,7 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
 
             {!tableLoading &&
               !tableError &&
-              transactions.map((transaction) => {
+              sortedTransactions.map((transaction) => {
                 const statusStyle = getStatusBadgeStyle(transaction.status);
                 return (
                   <tr
