@@ -269,9 +269,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/tutor"
+                      href="/tutor/payment-summary"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/payment-summary") ? "active" : ""
+                        isActive("/tutor/payment-summary") ? "active" : ""
                       }`}
                     >
                       <span className="svg-icons">
@@ -593,9 +593,9 @@ const SideMenuHeader = ({ role }) => {
                   </li>
                   <li>
                     <Link
-                      href="/student"
+                      href="/student/payment-summary"
                       className={`d-flex align-items-center gap-2 ${
-                        isActive("/payment-summary") ? "active" : ""
+                        isActive("/student/payment-summary") ? "active" : ""
                       }`}
                       style={{ whiteSpace: "nowrap" }}
                     >
