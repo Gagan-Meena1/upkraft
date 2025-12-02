@@ -190,8 +190,25 @@ const StudentTable = ({ students, pagination, onPageChange }) => {
                               </div>
                             </div>
                           </td>
-                          <td>{student.attendance}%</td>
-                          <td>{formatDate(student.lastClass)}</td>
+{/* // Update the Attendance link in StudentTable component: */}
+<td>
+  <Link 
+    href={`/academy/attendanceView?userId=${student._id}`}
+    onClick={() => {
+      // Store user data in sessionStorage for faster loading
+      sessionStorage.setItem(`user_${student._id}`, JSON.stringify({
+        _id: student._id,
+        username: student.username,
+        email: student.email,
+        profileImage: student.profileImage,
+        timezone: student.timezone || 'UTC'
+      }));
+    }}
+    className="btn btn-sm border-black d-inline-flex align-items-center gap-1 hover-btn hover-bg-black"
+  >
+    {student.attendance}%
+  </Link>
+</td>                         <td>{formatDate(student.lastClass)}</td>
                           <td>
                             <span className={getStatusColor(student.status)}>
                               {student.status}

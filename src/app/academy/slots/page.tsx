@@ -483,78 +483,78 @@ const handleSave = async () => {
                   ))}
 
                   {/* Time slots */}
-                  {hours.map((hour) => (
-                    <React.Fragment key={hour}>
-                      {/* Hour label */}
-                      <div className="text-sm font-medium text-gray-700 py-2 text-center bg-gray-50 rounded-lg flex items-center justify-center">
-                        {String(hour).padStart(2, "0")}:00
-                      </div>
-
-                      {/* Slot dropdowns for each day */}
-                      {/* Slot dropdowns for each day */}
-{weekDays.map((day) => {
-  const dateStr = formatDateString(day);
-  const key = `${dateStr}-${hour}`;
-  const status = slots.get(key) || "unavailable";
-  const slotClasses = getClassesForSlot(dateStr, hour);
-  const hasClass = slotClasses.length > 0;
-
-  return (
-    <div key={key} className="py-1 relative">
-      {hasClass ? (
-        // Show only class badges when class exists
-        <div className="flex flex-col gap-1">
-          {slotClasses.map((classItem, idx) => {
-            const tutor = tutors.find((t) => t._id === selectedTutor);
-            const tutorTz = tutor?.timezone || userTimezone;
-            const startLocal = dateFnsTz.toZonedTime(parseISO(classItem.startTime), tutorTz);
-            const endLocal = dateFnsTz.toZonedTime(parseISO(classItem.endTime), tutorTz);
-            
-            return (
-              <div
-                key={idx}
-                className="group relative w-full px-2 py-1.5 rounded-lg text-xs font-medium bg-blue-500 text-white border border-blue-600 cursor-pointer hover:bg-blue-600 truncate"
-                title={`${classItem.title}\n${format(startLocal, 'HH:mm')} - ${format(endLocal, 'HH:mm')}`}
-              >
-                {classItem.title}
-                
-                {/* Tooltip on hover */}
-                <div className="absolute hidden group-hover:block z-10 w-48 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg -top-2 left-full ml-2 whitespace-normal">
-                  <div className="font-semibold">{classItem.title}</div>
-                  <div className="text-gray-300 mt-1">
-                    {format(startLocal, 'HH:mm')} - {format(endLocal, 'HH:mm')}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        // Show availability dropdown only when no class exists
-        <select
-          value={status}
-          onChange={(e) =>
-            handleSlotChange(
-              dateStr,
-              hour,
-              e.target.value as "available" | "unavailable"
-            )
-          }
-          className={`w-full px-2 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-            status === "available"
-              ? "bg-green-100 text-green-800 border-green-300"
-              : "bg-gray-100 text-gray-600 border-gray-300"
-          } border`}
-        >
-          <option value="available">Available</option>
-          <option value="unavailable">-</option>
-        </select>
-      )}
+                 {/* Time slots */}
+{hours.map((hour) => (
+  <div key={hour} className="contents group">
+    {/* Hour label */}
+    <div className="text-sm font-medium text-gray-700 py-2 text-center bg-gray-50 rounded-lg flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+      {String(hour).padStart(2, "0")}:00
     </div>
-  );
-})}
-                    </React.Fragment>
-                  ))}
+
+    {/* Slot dropdowns for each day */}
+    {weekDays.map((day) => {
+      const dateStr = formatDateString(day);
+      const key = `${dateStr}-${hour}`;
+      const status = slots.get(key) || "unavailable";
+      const slotClasses = getClassesForSlot(dateStr, hour);
+      const hasClass = slotClasses.length > 0;
+
+      return (
+        <div key={key} className="py-1 relative group-hover:bg-purple-50 transition-colors">
+          {hasClass ? (
+            // Show only class badges when class exists
+            <div className="flex flex-col gap-1">
+              {slotClasses.map((classItem, idx) => {
+                const tutor = tutors.find((t) => t._id === selectedTutor);
+                const tutorTz = tutor?.timezone || userTimezone;
+                const startLocal = dateFnsTz.toZonedTime(parseISO(classItem.startTime), tutorTz);
+                const endLocal = dateFnsTz.toZonedTime(parseISO(classItem.endTime), tutorTz);
+                
+                return (
+                  <div
+                    key={idx}
+                    className="group relative w-full px-2 py-1.5 rounded-lg text-xs font-medium bg-blue-500 text-white border border-blue-600 cursor-pointer hover:bg-blue-600 truncate"
+                    title={`${classItem.title}\n${format(startLocal, 'HH:mm')} - ${format(endLocal, 'HH:mm')}`}
+                  >
+                    {classItem.title}
+                    
+                    {/* Tooltip on hover */}
+                    <div className="absolute hidden group-hover:block z-10 w-48 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg -top-2 left-full ml-2 whitespace-normal">
+                      <div className="font-semibold">{classItem.title}</div>
+                      <div className="text-gray-300 mt-1">
+                        {format(startLocal, 'HH:mm')} - {format(endLocal, 'HH:mm')}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            // Show availability dropdown only when no class exists
+            <select
+              value={status}
+              onChange={(e) =>
+                handleSlotChange(
+                  dateStr,
+                  hour,
+                  e.target.value as "available" | "unavailable"
+                )
+              }
+              className={`w-full px-2 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                status === "available"
+                  ? "bg-green-100 text-green-800 border-green-300"
+                  : "bg-gray-100 text-gray-600 border-gray-300"
+              } border`}
+            >
+              <option value="available">Available</option>
+              <option value="unavailable">-</option>
+            </select>
+          )}
+        </div>
+      );
+    })}
+  </div>
+))}
                 </div>
               </div>
             </div>
