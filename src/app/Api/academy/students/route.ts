@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
 import User from '@/models/userModel';
 import jwt from 'jsonwebtoken';
+import { time } from 'console';
 
 export async function GET(request: NextRequest) {
   try {
@@ -77,6 +78,7 @@ export async function GET(request: NextRequest) {
         ? student.classes[0]?.startTime || null
         : null,
       createdAt: student.createdAt || null,
+      timezone: student.timezone || 'UTC',
       // Hardcoded values as per requirement
       progress: 0,
       attendance: 0,

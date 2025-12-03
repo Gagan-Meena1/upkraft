@@ -321,7 +321,7 @@ export async function GET(request: NextRequest) {
     const user = await User.findById(instructorId).populate({
       path: "classes",
       model: "Class", // Make sure this matches your Class model name
-    });
+    }).select("-description -evaluation").lean();
 
     if (!user) {
       return NextResponse.json(

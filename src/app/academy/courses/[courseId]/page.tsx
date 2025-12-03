@@ -86,6 +86,8 @@ const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<Cla
 const [attendanceData, setAttendanceData] = useState<{[tutorId: string]: string}>({});
 const [isMarkingAttendance, setIsMarkingAttendance] = useState(false);
 const [attendanceStatus, setAttendanceStatus] = useState<{[tutorId: string]: string}>({});
+const [studentAttendanceData, setStudentAttendanceData] = useState<{[studentId: string]: string}>({});
+const [activeAttendanceTab, setActiveAttendanceTab] = useState<'tutors' | 'students'>('tutors');
   const params = useParams();
   const router = useRouter();
 
@@ -182,12 +184,13 @@ const extractDateTimeForForm = (dateTimeString: string) => {
 
 
 // Open attendance modal and fetch current attendance status
+// Open attendance modal and fetch current attendance status
 const handleOpenAttendance = async (classSession: Class) => {
   setSelectedClassForAttendance(classSession);
   setShowAttendanceModal(true);
   
   // Fetch current attendance status for all tutors
-  const statusMap: {[tutorId: string]: string} = {};
+  const tutorStatusMap: {[tutorId: string]: string} = {};
   
   for (const tutor of courseUsersData.tutors) {
     try {
@@ -195,21 +198,45 @@ const handleOpenAttendance = async (classSession: Class) => {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
-          statusMap[tutor._id] = data.data.status || 'not_marked';
+          tutorStatusMap[tutor._id] = data.data.status || 'not_marked';
         } else {
-          statusMap[tutor._id] = 'not_marked';
+          tutorStatusMap[tutor._id] = 'not_marked';
         }
       } else {
-        statusMap[tutor._id] = 'not_marked';
+        tutorStatusMap[tutor._id] = 'not_marked';
       }
     } catch (error) {
       console.error(`Error fetching attendance for tutor ${tutor._id}:`, error);
-      statusMap[tutor._id] = 'not_marked';
+      tutorStatusMap[tutor._id] = 'not_marked';
     }
   }
   
-  setAttendanceStatus(statusMap);
-  setAttendanceData(statusMap);
+  setAttendanceStatus(tutorStatusMap);
+  setAttendanceData(tutorStatusMap);
+  
+  // Fetch current attendance status for all students
+  const studentStatusMap: {[studentId: string]: string} = {};
+  
+  for (const student of courseUsersData.students) {
+    try {
+      const response = await fetch(`/Api/attendance?studentId=${student._id}&classId=${classSession._id}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          studentStatusMap[student._id] = data.data.status || 'present'; // Default to 'present'
+        } else {
+          studentStatusMap[student._id] = 'present'; // Default to 'present'
+        }
+      } else {
+        studentStatusMap[student._id] = 'present'; // Default to 'present'
+      }
+    } catch (error) {
+      console.error(`Error fetching attendance for student ${student._id}:`, error);
+      studentStatusMap[student._id] = 'present'; // Default to 'present'
+    }
+  }
+  
+  setStudentAttendanceData(studentStatusMap);
 };
 
 // Handle attendance change
@@ -220,6 +247,14 @@ const handleAttendanceChange = (tutorId: string, status: string) => {
   }));
 };
 
+// Handle student attendance change
+const handleStudentAttendanceChange = (studentId: string, status: string) => {
+  setStudentAttendanceData(prev => ({
+    ...prev,
+    [studentId]: status
+  }));
+};
+
 // Submit attendance
 const handleSubmitAttendance = async () => {
   if (!selectedClassForAttendance) return;
@@ -227,27 +262,43 @@ const handleSubmitAttendance = async () => {
   setIsMarkingAttendance(true);
   
   try {
-    const promises = Object.entries(attendanceData).map(([tutorId, status]) => {
-      return fetch(`/Api/attendance?studentId=${tutorId}&classId=${selectedClassForAttendance._id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status }),
-      });
+    // Combine tutor and student attendance data into one array
+    const tutorRecords = Object.entries(attendanceData).map(([tutorId, status]) => ({
+      studentId: tutorId,
+      status
+    }));
+    
+    const studentRecords = Object.entries(studentAttendanceData).map(([studentId, status]) => ({
+      studentId,
+      status
+    }));
+    
+    const allRecords = [...tutorRecords, ...studentRecords];
+    
+    // Send bulk request
+    const response = await fetch(`/Api/attendance?classId=${selectedClassForAttendance._id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        attendanceRecords: allRecords 
+      }),
     });
     
-    const results = await Promise.all(promises);
+    const result = await response.json();
     
-    const allSuccessful = results.every(res => res.ok);
-    
-    if (allSuccessful) {
-      toast.success('Attendance marked successfully for all tutors!');
+    if (result.success) {
+      toast.success(`Attendance marked successfully for ${result.data.successCount} users!`);
       setShowAttendanceModal(false);
       setSelectedClassForAttendance(null);
       setAttendanceData({});
+      setStudentAttendanceData({});
     } else {
-      toast.error('Some attendance records failed to save');
+      if (result.data.failureCount > 0) {
+        toast.error(`${result.data.failureCount} records failed to save. Check console for details.`);
+        console.error('Failed records:', result.data.failed);
+      }
     }
   } catch (error) {
     console.error('Error marking attendance:', error);
@@ -1384,7 +1435,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
           </div>
         )}
       </div>
-      {/* Attendance Modal */}
+{/* Attendance Modal */}
 {showAttendanceModal && selectedClassForAttendance && (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
     <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1398,6 +1449,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
               setShowAttendanceModal(false);
               setSelectedClassForAttendance(null);
               setAttendanceData({});
+              setStudentAttendanceData({});
             }}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
           >
@@ -1405,64 +1457,153 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
           </button>
         </div>
 
-        <div className="space-y-3">
-          {courseUsersData.tutors.length > 0 ? (
-            courseUsersData.tutors.map((tutor) => (
-              <div 
-                key={tutor._id} 
-                className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  {tutor.profileImage ? (
-                    <Image
-                      src={tutor.profileImage}
-                      alt={tutor.username}
-                      width={40}
-                      height={40}
-                      className="rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                      <User className="text-gray-400 w-5 h-5" />
+        {/* Tab Navigation */}
+        <div className="flex bg-gray-100 rounded-lg p-1 mb-4">
+          <button
+            onClick={() => setActiveAttendanceTab('tutors')}
+            className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 text-sm ${
+              activeAttendanceTab === 'tutors'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Tutors ({courseUsersData.tutors.length})
+          </button>
+          <button
+            onClick={() => setActiveAttendanceTab('students')}
+            className={`flex-1 py-2 px-4 rounded-md font-medium transition-all duration-200 text-sm ${
+              activeAttendanceTab === 'students'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            Students ({courseUsersData.students.length})
+          </button>
+        </div>
+
+        {/* Tutors Tab Content */}
+        {activeAttendanceTab === 'tutors' && (
+          <div className="space-y-3">
+            {courseUsersData.tutors.length > 0 ? (
+              courseUsersData.tutors.map((tutor) => (
+                <div 
+                  key={tutor._id} 
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {tutor.profileImage ? (
+                      <Image
+                        src={tutor.profileImage}
+                        alt={tutor.username}
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                        <User className="text-gray-400 w-5 h-5" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-medium text-gray-800">{tutor.username}</div>
+                      <div className="text-sm text-gray-500">{tutor.email}</div>
                     </div>
-                  )}
-                  <div>
-                    <div className="font-medium text-gray-800">{tutor.username}</div>
-                    <div className="text-sm text-gray-500">{tutor.email}</div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleAttendanceChange(tutor._id, 'present')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                        attendanceData[tutor._id] === 'present'
+                          ? 'bg-green-500 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Present
+                    </button>
+                    <button
+                      onClick={() => handleAttendanceChange(tutor._id, 'absent')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                        attendanceData[tutor._id] === 'absent'
+                          ? 'bg-red-500 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Absent
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleAttendanceChange(tutor._id, 'present')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      attendanceData[tutor._id] === 'present'
-                        ? 'bg-green-500 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Present
-                  </button>
-                  <button
-                    onClick={() => handleAttendanceChange(tutor._id, 'absent')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      attendanceData[tutor._id] === 'absent'
-                        ? 'bg-red-500 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Absent
-                  </button>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <User className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                <p className="text-gray-500">No tutors assigned to this course</p>
               </div>
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <User className="mx-auto h-12 w-12 text-gray-400 mb-2" />
-              <p className="text-gray-500">No tutors assigned to this course</p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
+
+        {/* Students Tab Content */}
+        {activeAttendanceTab === 'students' && (
+          <div className="space-y-3">
+            {courseUsersData.students.length > 0 ? (
+              courseUsersData.students.map((student) => (
+                <div 
+                  key={student._id} 
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {student.profileImage ? (
+                      <Image
+                        src={student.profileImage}
+                        alt={student.username}
+                        width={40}
+                        height={40}
+                        className="rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                        <User className="text-gray-400 w-5 h-5" />
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-medium text-gray-800">{student.username}</div>
+                      <div className="text-sm text-gray-500">{student.email}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleStudentAttendanceChange(student._id, 'present')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                        studentAttendanceData[student._id] === 'present'
+                          ? 'bg-green-500 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Present
+                    </button>
+                    <button
+                      onClick={() => handleStudentAttendanceChange(student._id, 'absent')}
+                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                        studentAttendanceData[student._id] === 'absent'
+                          ? 'bg-red-500 text-white shadow-md'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Absent
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <User className="mx-auto h-12 w-12 text-gray-400 mb-2" />
+                <p className="text-gray-500">No students assigned to this course</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex gap-3 pt-6 mt-6 border-t">
           <button
@@ -1471,6 +1612,7 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
               setShowAttendanceModal(false);
               setSelectedClassForAttendance(null);
               setAttendanceData({});
+              setStudentAttendanceData({});
             }}
             className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
           >
@@ -1478,9 +1620,9 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
           </button>
           <button
             onClick={handleSubmitAttendance}
-            disabled={isMarkingAttendance || Object.keys(attendanceData).length === 0}
+            disabled={isMarkingAttendance}
             className={`flex-1 px-4 py-2 rounded-md transition-colors ${
-              isMarkingAttendance || Object.keys(attendanceData).length === 0
+              isMarkingAttendance
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-green-500 hover:bg-green-600 text-white'
             }`}
