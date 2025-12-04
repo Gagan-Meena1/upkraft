@@ -173,7 +173,7 @@ export async function GET(request) {
         if (!course || !course.class || course.class.length === 0) continue;
 
         const category = course.category;
-        if (!["Music", "Dance", "Drawing"].includes(category)) continue;
+        if (!["Music", "Dance", "Drawing", "Vocal", "Drums", "Violin"].includes(category)) continue;
 
         for (const classId of course.class) {
           const classIdStr = classId.toString();

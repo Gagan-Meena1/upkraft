@@ -457,15 +457,15 @@ export default function MyStudents() {
                                 Course
                               </Link>
                             </td>
-                            <td className="px-3 py-3 text-right">
-                              <div className="flex items-center justify-end space-x-2">
+                            <td className="px-3 py-3 text-left">
+                              <div>
                                 <Link
                                   href={`/tutor/studentDetails?studentId=${student._id}`}
                                   className="text-blue-600 hover:text-blue-800 hover:underline text-xs"
                                 >
                                   Details
                                 </Link>
-                                <button
+                                {/* <button
                                   onClick={() =>
                                     handleDeleteStudent(student._id)
                                   }
@@ -482,7 +482,7 @@ export default function MyStudents() {
                                   ) : (
                                     <MdDelete className="h-3 w-3" />
                                   )}
-                                </button>
+                                </button> */}
                               </div>
                             </td>
                           </tr>

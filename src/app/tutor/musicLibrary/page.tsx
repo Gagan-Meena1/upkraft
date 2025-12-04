@@ -1,9 +1,9 @@
- "use client";
+"use client";
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Download, Filter, RefreshCw, FileText, Music, 
   User, BookOpen, PlusCircle, Users, BookCheck, Menu, X,
-  ChevronLeft, ChevronRight, LogOut
+  ChevronLeft, ChevronRight, LogOut, Folder, Heart
 } from 'lucide-react';
 import Link from "next/link";
 import Image from "next/image";
@@ -163,6 +163,10 @@ const MusicLibraryTable = () => {
     instruments: []
   });
 
+  // per-user favourites (localStorage namespaced)
+  const [userId, setUserId] = useState<string | null>(null);
+  const [favourites, setFavourites] = useState<string[]>([]);
+
   // Fetch songs from API
   const fetchSongs = async (page = 1) => {
     try {
@@ -209,6 +213,43 @@ const MusicLibraryTable = () => {
     return () => clearTimeout(delayedSearch);
   }, [searchTerm, filters]);
 
+  // userId from /Api/users/user
+  useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const res = await fetch('/Api/users/user', { credentials: 'include' });
+        const data = await res.json().catch(() => ({}));
+        const id = data?.user?._id || data?.data?._id || null;
+        if (!ignore) setUserId(id);
+      } catch {
+        // ignore
+      }
+    })();
+    return () => { ignore = true; };
+  }, []);
+
+  // favourites from localStorage
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      const key = `upkraft:favourites:${userId}`;
+      const raw = localStorage.getItem(key);
+      setFavourites(raw ? JSON.parse(raw) : []);
+    } catch {
+      setFavourites([]);
+    }
+  }, [userId]);
+
+  // update localStorage when favourites change
+  useEffect(() => {
+    if (!userId) return;
+    try {
+      const key = `upkraft:favourites:${userId}`;
+      localStorage.setItem(key, JSON.stringify(favourites));
+    } catch {}
+  }, [favourites, userId]);
+
   // Format file size
   const formatFileSize = (bytes) => {
     if (!bytes) return 'N/A';
@@ -235,6 +276,13 @@ const MusicLibraryTable = () => {
     if (song.url) {
       window.open(song.url, '_blank');
     }
+  };
+
+  const getSongId = (song) => String(song._id || song.url || song.filename || song.title || '');
+  const toggleFavourite = (song) => {
+    const id = getSongId(song);
+    if (!id) return;
+    setFavourites(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   };
 
   if (loading && songs.length === 0) {
@@ -336,42 +384,55 @@ const MusicLibraryTable = () => {
         {songs.map((song) => (
  <tr key={song._id} className="hover:bg-gray-50 transition-colors">
   <td className="py-3 px-4">
-    {song.url ? (
-      <a
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          padding: '0.5rem 0.75rem',
-          borderRadius: '0.5rem',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#ffffff',
-          backgroundColor: '#06b6d4',
-          boxShadow: '0 4px 14px 0 rgba(6, 182, 212, 0.5)',
-          transition: 'all 0.3s',
-          textDecoration: 'none',
-          margin: '0.25rem 0'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#0891b2';
-          e.currentTarget.style.transform = 'scale(1.05)';
-          e.currentTarget.style.boxShadow = '0 6px 20px 0 rgba(6, 182, 212, 0.6)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#06b6d4';
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 4px 14px 0 rgba(6, 182, 212, 0.5)';
-        }}
-        href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
+    <div className="flex items-center gap-2">
+      {/* heart like button (left of Open) */}
+      <button
+        type="button"
+        onClick={() => toggleFavourite(song)}
+        className="inline-flex items-center justify-center w-8 h-8 rounded-md text-gray-700 border-gray-200 hover:bg-gray-50"
+        title={favourites.includes(getSongId(song)) ? "Unfavourite" : "Favourite"}
+        aria-pressed={favourites.includes(getSongId(song))}
       >
-        <Music style={{ width: '0.75rem', height: '0.75rem', marginRight: '0.25rem' }} />
-        Open
-      </a>
-    ) : (
-      <span className="text-gray-400">-</span>
-    )}
-  </td>
+        <Heart size={18} className={favourites.includes(getSongId(song)) ? "fill-purple-600" : "text-gray-400"} />
+      </button>
 
+      {song.url ? (
+        <a
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '0.5rem 0.75rem',
+            borderRadius: '0.5rem',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            color: '#ffffff',
+            backgroundColor: '#06b6d4',
+            boxShadow: '0 4px 14px 0 rgba(6, 182, 212, 0.5)',
+            transition: 'all 0.3s',
+            textDecoration: 'none',
+            margin: '0.25rem 0'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#0891b2';
+            e.currentTarget.style.transform = 'scale(1.05)';
+            e.currentTarget.style.boxShadow = '0 6px 20px 0 rgba(6, 182, 212, 0.6)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#06b6d4';
+            e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.boxShadow = '0 4px 14px 0 rgba(6, 182, 212, 0.5)';
+          }}
+          href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
+        >
+          <Music style={{ width: '0.75rem', height: '0.75rem', marginRight: '0.25rem' }} />
+          Open
+        </a>
+      ) : (
+        <span className="text-gray-400">-</span>
+      )}
+    </div>
+  </td>
+ 
             <td className="py-3 px-4">
               <div className="flex items-center space-x-2">
                 {getFileIcon(song.fileType, song.extension)}
@@ -518,7 +579,11 @@ const MusicLibraryPage = () => {
               <p className="text-gray-700 font-medium">Manage and organize your music collection</p>
             </div>
           </div>
-          
+          {/* Favourites page link (opens per-user favourites page) */}
+          <Link href="/tutor/musicLibrary/favourites" className="inline-flex items-center px-3 py-2 rounded-md font-medium transition-all bg-white text-gray-700 border border-gray-200 hover:bg-gray-50">
+            <Folder className="w-4 h-4 mr-2" />
+            Favourites
+          </Link>
           <Button 
             onClick={() => window.location.reload()}
             className="btn btn-primary d-flex align-items-center "

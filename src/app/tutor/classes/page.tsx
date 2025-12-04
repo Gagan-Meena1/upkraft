@@ -60,7 +60,8 @@ function AddSessionPage() {
   });
   // NEW: recurrence state
   const [repeatType, setRepeatType] = useState<"none" | "daily" | "weekly" | "weekdays">("none");
-  const [repeatCount, setRepeatCount] = useState<number>(1); // number of occurrences (including first)
+  // String input so you can clear and type freely; parse on submit
+  const [repeatCountInput, setRepeatCountInput] = useState<string>("1");
   const [repeatUntil, setRepeatUntil] = useState<string>(""); // yyyy-mm-dd
 
   // helper: is weekday (Mon-Fri)
@@ -278,152 +279,177 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
     }
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  setErrorMessage("");
+  // Helpers for occurrences input
+  const bumpOccurrences = (delta: number) => {
+    const n = parseInt(repeatCountInput || "0", 10);
+    const next = isNaN(n) ? 1 : Math.min(999, Math.max(1, n + delta));
+    setRepeatCountInput(String(next));
+  };
+  
+  const handleOccurrencesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const STEP = e.shiftKey ? 5 : 1;
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      bumpOccurrences(STEP);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      bumpOccurrences(-STEP);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setRepeatCountInput("1");
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setRepeatCountInput("999");
+    }
+  };
 
-  try {
-    // Build occurrences array based on recurrence type
-    const occurrences: { date: string; startTime: string; endTime: string }[] = [];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage("");
 
-    if (repeatType === "none") {
-      // Single occurrence
-      occurrences.push({
-        date: sessionForm.date,
-        startTime: sessionForm.startTime,
-        endTime: sessionForm.endTime,
-      });
-    } else if (repeatType === "weekdays") {
-      // Weekdays only (Mon-Fri)
-      let currentDate = parseISO(sessionForm.date);
-      let added = 0;
+    // Parse occurrences with bounds
+    const parsedCount = (() => {
+      const n = parseInt(repeatCountInput, 10);
+      if (isNaN(n) || n < 1) return 1;
+      return Math.min(n, 999);
+    })();
 
-      // Use repeatCount OR repeatUntil
-      const maxOccurrences = repeatCount > 0 ? repeatCount : 365;
-      const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+    try {
+      // Build occurrences array based on recurrence type
+      const occurrences: { date: string; startTime: string; endTime: string }[] = [];
 
-      while (added < maxOccurrences) {
-        // Check if we've passed the "until" date
-        if (untilDate && currentDate > untilDate) break;
+      if (repeatType === "none") {
+        occurrences.push({
+          date: sessionForm.date,
+          startTime: sessionForm.startTime,
+          endTime: sessionForm.endTime,
+        });
+      } else if (repeatType === "weekdays") {
+        let currentDate = parseISO(sessionForm.date);
+        let added = 0;
+        const maxOccurrences = parsedCount > 0 ? parsedCount : 365;
+        const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
 
-        const dayOfWeek = currentDate.getDay();
-        // 0 = Sunday, 6 = Saturday
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        while (added < maxOccurrences) {
+          // Check if we've passed the "until" date
+          if (untilDate && currentDate > untilDate) break;
+
+          const dayOfWeek = currentDate.getDay();
+          // 0 = Sunday, 6 = Saturday
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            occurrences.push({
+              date: format(currentDate, "yyyy-MM-dd"),
+              startTime: sessionForm.startTime,
+              endTime: sessionForm.endTime,
+            });
+            added++;
+          }
+          
+          currentDate = addDays(currentDate, 1);
+        }
+      } else if (repeatType === "daily") {
+        let currentDate = parseISO(sessionForm.date);
+        const maxOccurrences = parsedCount > 0 ? parsedCount : 365;
+        const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+
+        for (let i = 0; i < maxOccurrences; i++) {
+          if (untilDate && currentDate > untilDate) break;
+
           occurrences.push({
             date: format(currentDate, "yyyy-MM-dd"),
             startTime: sessionForm.startTime,
             endTime: sessionForm.endTime,
           });
-          added++;
+
+          currentDate = addDays(currentDate, 1);
         }
-        
-        currentDate = addDays(currentDate, 1);
+      } else if (repeatType === "weekly") {
+        let currentDate = parseISO(sessionForm.date);
+        const maxOccurrences = parsedCount > 0 ? parsedCount : 52;
+        const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+
+        for (let i = 0; i < maxOccurrences; i++) {
+          if (untilDate && currentDate > untilDate) break;
+
+          occurrences.push({
+            date: format(currentDate, "yyyy-MM-dd"),
+            startTime: sessionForm.startTime,
+            endTime: sessionForm.endTime,
+          });
+
+          currentDate = addDays(currentDate, 7); // Add 7 days
+        }
       }
-    } else if (repeatType === "daily") {
-      // Daily recurrence
-      let currentDate = parseISO(sessionForm.date);
-      const maxOccurrences = repeatCount > 0 ? repeatCount : 365;
-      const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
 
-      for (let i = 0; i < maxOccurrences; i++) {
-        if (untilDate && currentDate > untilDate) break;
+      // Get user's timezone
+      const timezoneToSend =
+        userTimezone ||
+        Intl.DateTimeFormat().resolvedOptions().timeZone ||
+        "UTC";
 
-        occurrences.push({
-          date: format(currentDate, "yyyy-MM-dd"),
-          startTime: sessionForm.startTime,
-          endTime: sessionForm.endTime,
-        });
+      console.log(`Creating ${occurrences.length} session(s)...`);
 
-        currentDate = addDays(currentDate, 1);
-      }
-    } else if (repeatType === "weekly") {
-      // Weekly recurrence (every 7 days)
-      let currentDate = parseISO(sessionForm.date);
-      const maxOccurrences = repeatCount > 0 ? repeatCount : 52;
-      const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+      // ONLY generate a recurrenceId for explicit recurring batches (daily, weekly, weekdays)
+      const isRecurringBatch = ["daily", "weekly", "weekdays"].includes(repeatType);
+      const recurrenceId = isRecurringBatch
+        ? (typeof crypto !== "undefined" && (crypto as any).randomUUID
+            ? (crypto as any).randomUUID()
+            : `rec-${Date.now()}`)
+        : null;
+   
+      // Create each occurrence
+      let created = 0;
+      for (let idx = 0; idx < occurrences.length; idx++) {
+        const occ = occurrences[idx];
+   
+        const formData = new FormData();
+        formData.append("title", sessionForm.title || "");
+        formData.append("description", sessionForm.description || "");
+        formData.append("date", occ.date); // YYYY-MM-DD
+        formData.append("startTime", occ.startTime); // HH:MM
+        formData.append("endTime", occ.endTime); // HH:MM
+        formData.append("timezone", timezoneToSend);
+   
+        // Attach recurrence metadata only for recurring batches
+        if (isRecurringBatch && recurrenceId) {
+          formData.append("recurrenceId", recurrenceId);
+          formData.append("recurrenceType", repeatType);
+          if (repeatUntil) formData.append("recurrenceUntil", repeatUntil);
+        } else {
+          formData.append("recurrenceType", "none");
+        }
+   
+       // Include course ID
+       if (courseId) {
+         formData.append("course", courseId);
+         formData.append("courseId", courseId);
+       }
+   
+       // Attach video only for the first occurrence
+       if (sessionForm.video && idx === 0) {
+         formData.append("video", sessionForm.video);
+       }
 
-      for (let i = 0; i < maxOccurrences; i++) {
-        if (untilDate && currentDate > untilDate) break;
-
-        occurrences.push({
-          date: format(currentDate, "yyyy-MM-dd"),
-          startTime: sessionForm.startTime,
-          endTime: sessionForm.endTime,
-        });
-
-        currentDate = addDays(currentDate, 7); // Add 7 days
-      }
-    }
-
-    // Get user's timezone
-    const timezoneToSend =
-      userTimezone ||
-      Intl.DateTimeFormat().resolvedOptions().timeZone ||
-      "UTC";
-
-    console.log(`Creating ${occurrences.length} session(s)...`);
-
-    // ONLY generate a recurrenceId for explicit recurring batches (daily, weekly, weekdays)
-    const isRecurringBatch = ["daily", "weekly", "weekdays"].includes(repeatType);
-    const recurrenceId = isRecurringBatch
-      ? (typeof crypto !== "undefined" && (crypto as any).randomUUID
-          ? (crypto as any).randomUUID()
-          : `rec-${Date.now()}`)
-      : null;
- 
-    // Create each occurrence
-    let created = 0;
-    for (let idx = 0; idx < occurrences.length; idx++) {
-      const occ = occurrences[idx];
- 
-      const formData = new FormData();
-      formData.append("title", sessionForm.title || "");
-      formData.append("description", sessionForm.description || "");
-      formData.append("date", occ.date); // YYYY-MM-DD
-      formData.append("startTime", occ.startTime); // HH:MM
-      formData.append("endTime", occ.endTime); // HH:MM
-      formData.append("timezone", timezoneToSend);
- 
-      // Attach recurrence metadata only for recurring batches
-      if (isRecurringBatch && recurrenceId) {
-        formData.append("recurrenceId", recurrenceId);
-        formData.append("recurrenceType", repeatType);
-        if (repeatUntil) formData.append("recurrenceUntil", repeatUntil);
-      } else {
-        formData.append("recurrenceType", "none");
-      }
- 
-     // Include course ID
-     if (courseId) {
-       formData.append("course", courseId);
-       formData.append("courseId", courseId);
-     }
- 
-     // Attach video only for the first occurrence
-     if (sessionForm.video && idx === 0) {
-       formData.append("video", sessionForm.video);
-     }
-
-     const response = await fetch("/Api/classes", {
-       method: "POST",
-       body: formData,
-     });
- 
-     const result = await response
-       .json()
-       .catch(() => ({ message: "Invalid response" }));
- 
+       const response = await fetch("/Api/classes", {
+         method: "POST",
+         body: formData,
+       });
+   
+       const result = await response
+         .json()
+         .catch(() => ({ message: "Invalid response" }));
+   
      if (!response.ok) {
        throw new Error(
          result?.message || `Failed creating session on ${occ.date}`
        );
      }
- 
+   
      created++;
      console.log(`Created session ${created}/${occurrences.length}`);
    }
- 
+   
    alert(`Successfully created ${created} session(s)!`);
    handleCloseForm();
     
@@ -794,14 +820,43 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Occurrences</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={repeatCount}
-                      onChange={(e) => setRepeatCount(Math.max(1, Number(e.target.value || 1)))}
-                      disabled={repeatType === "none"}
-                      className="w-full px-3 py-2 border rounded"
-                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => bumpOccurrences(-1)}
+                        disabled={repeatType === "none"}
+                        className="px-2 py-2 border rounded bg-white hover:bg-gray-50"
+                        aria-label="Decrease occurrences"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="e.g. 5"
+                        value={repeatCountInput}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/[^\d]/g, "");
+                          setRepeatCountInput(digits);
+                        }}
+                        onBlur={() => {
+                          if (!repeatCountInput) setRepeatCountInput("1");
+                        }}
+                        onKeyDown={handleOccurrencesKeyDown}
+                        disabled={repeatType === "none"}
+                        className="w-full px-3 py-2 border rounded"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => bumpOccurrences(1)}
+                        disabled={repeatType === "none"}
+                        className="px-2 py-2 border rounded bg-white hover:bg-gray-50"
+                        aria-label="Increase occurrences"
+                      >
+                        +
+                      </button>
+                    </div>
+                    {/* <p className="mt-1 text-xs text-gray-500">Type freely, use arrow keys, or click − / +.</p> */}
                   </div>
 
                   <div>
