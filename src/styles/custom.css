@@ -443,14 +443,17 @@ button:focus:not(:focus-visible) {
     .search-box {
       @media only screen and (max-width: 767px) {
         width: 48.7%;
-        @media only screen and (max-width: 365px) {
-          width: 48.6%;
+        @media only screen and (max-width: 378px) {
+          width: 100%; 
         }
       }
     }
     .select-box {
       @media only screen and (max-width: 767px) {
         width: 48.7%;
+        @media only screen and (max-width: 378px) {
+          width: 100%; 
+        }
       }
     }
     .btn-primary.add-assignments {

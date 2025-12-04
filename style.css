@@ -322,11 +322,14 @@ main.new-main {
 					border-radius: 0;
                     @media only screen and (max-width: 1199px){
                         font-size: 15px;
-                        @media only screen and (max-width: 767px){
-                            padding: 10px 8px;
-                            font-size: 14px;
+                        @media only screen and (max-width: 992px){
+                          padding: 15px 10px 14px 10px;
+                          @media only screen and (max-width: 767px){
+                              padding: 10px 8px;
+                              font-size: 14px;
+                          }
                         }
-                    }
+                      }
 					&.active {
 						border-bottom-color: var(--dark-blue);
 						font-weight: 600;

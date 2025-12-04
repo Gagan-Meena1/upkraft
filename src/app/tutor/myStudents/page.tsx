@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { MdDelete } from "react-icons/md";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ArrowLeft } from "lucide-react";
 import AddNewStudentModal from "../../components/AddNewStudentModal";
 import { Button, Dropdown, Form } from "react-bootstrap";
 
@@ -156,11 +156,11 @@ export default function MyStudents() {
 
       const data = await response.json();
       console.log("API Response:", data);
-       // Store academyId
-    if (data.academyId) {
-      setAcademyId(data.academyId);
-      console.log("Academy ID:", data.academyId);
-    }
+      // Store academyId
+      if (data.academyId) {
+        setAcademyId(data.academyId);
+        console.log("Academy ID:", data.academyId);
+      }
 
       if (data && data.filteredUsers) {
         const studentsWithDetails = await Promise.all(
@@ -258,6 +258,13 @@ export default function MyStudents() {
            
     <div className="card-box">
       
+      {/* <Link
+            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+            href="/tutor"
+          >
+            <ArrowLeft size={20} />
+            Back to Dashboard
+          </Link> */}
 
       {/* Main Content */}
       <div className="assignments-list-sec mobile-left-right">
@@ -269,6 +276,7 @@ export default function MyStudents() {
               </Link>
               <h2 className="m-0">
                 My Students
+
               </h2>
             </div>
           <div className="right-form">
@@ -468,7 +476,7 @@ export default function MyStudents() {
                                 href={`/tutor/studentDetails?studentId=${student._id}`}
                                 className=""
                               >
-                                Details
+                                Course
                               </Link>
                               <button
                                 onClick={() => handleDeleteStudent(student._id)}
@@ -495,139 +503,13 @@ export default function MyStudents() {
                   </div>
                 </div>
 
-                {/* Mobile Card View - Visible on small and medium screens */}
-                {/* <div className="lg:hidden">
-                  {students.map((student) => (
-                    <div
-                      key={student._id}
-                      className="border-b border-gray-100 p-4 sm:p-6 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="space-y-3">
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {student.username}
-                          </h3>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="text-sm font-medium text-gray-500 sm:w-24">
-                              Email:
-                            </span>
-                            <span className="text-sm text-gray-700 break-all">
-                              {student.email}
-                            </span>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="text-sm font-medium text-gray-500 sm:w-24">
-                              Contact:
-                            </span>
-                            <span className="text-sm text-gray-700">
-                              {student.contact}
-                            </span>
-                          </div>
-                          <div className="flex flex-col sm:flex-row sm:items-center">
-                            <span className="text-sm font-medium text-gray-500 sm:w-24">
-                              Location:
-                            </span>
-                            <span className="text-sm text-gray-700">
-                              {student.city || "N/A"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                         
-                          <div>
-                            <span className="text-sm font-medium text-gray-500 block mb-1">
-                              Pending Assignments:
-                            </span>
-                            {loadingAssignments.has(student._id) ? (
-                              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
-                            ) : (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                {student.pendingAssignments || 0}
-                              </span>
-                            )}
-                          </div>
-
-                          <div>
-                            <span className="text-sm font-medium text-gray-500 block mb-1">Performance Avg:</span>
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              student.performanceAverage 
-                            }`}>
-                              {student.performanceAverage && student.performanceAverage > 0 
-                                ? `${student.performanceAverage}` 
-                                : 'N/A'}
-                            </span>
-                          </div>
-
-                          <div>
-                            <span className="text-sm font-medium text-gray-500 block mb-1">
-                              Quality Avg:
-                            </span>
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                student.courseQualityAverage 
-                              }`}
-                            >
-                              {student.courseQualityAverage &&
-                              student.courseQualityAverage > 0
-                                ? `${student.courseQualityAverage}`
-                                : "N/A"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 border-t border-gray-100">
-                          <Link
-                            href={`/tutor/addToCourseTutor?studentId=${student._id}`}
-                            className="flex-1"
-                          >
-                            <button className="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
-                              Assign Course
-                            </button>
-                          </Link>
-                          <Link
-                            href={`/tutor/studentDetails?studentId=${student._id}`}
-                            className="flex-1"
-                          >
-                            <button className="w-full px-3 py-2 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors">
-                              View Details
-                            </button>
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteStudent(student._id)}
-                            disabled={deletingStudents.has(student._id)}
-                            className={`px-3 py-2 text-sm rounded-md transition-colors ${
-                              deletingStudents.has(student._id)
-                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                : "bg-red-600 text-white hover:bg-red-700"
-                            }`}
-                            title="Delete Student"
-                          >
-                            {deletingStudents.has(student._id) ? (
-                              <div className="flex items-center justify-center">
-                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-400"></div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center justify-center">
-                                <MdDelete className="h-4 w-4" />
-                              </div>
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div> */}
+               
               </>
             )}
           </div>
         )}
       </div>
-      <AddNewStudentModal />
     </div>
-     </div>
+    </div>
   );
 }

@@ -661,6 +661,7 @@ const formatDateTime = (dateTimeString: string) => {
 
         {/* Course Overview */}
         <section className="!bg-white !rounded-xl !shadow-lg !p-4 !sm:p-6 !mb-6 !sm:mb-8">
+          
           <div className="!flex !flex-col !sm:flex-row !sm:justify-between !sm:items-center !mb-4 !gap-3">
             <div>
               <h2 className="!text-lg !sm:text-xl !font-semibold !text-gray-800 !flex !items-center">

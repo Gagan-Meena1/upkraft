@@ -14,10 +14,12 @@ import {
   ChevronLeft,
   Search,
   Music,
+  ArrowLeft,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import CreateAssignmentModal from "@/app/components/CreateAssignmentModal";
 import Link from "next/link";
+import { Button } from "react-bootstrap";
 
 interface Student {
   userId: string;
@@ -348,97 +350,128 @@ export default function TutorAssignments() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Assignments</h1>
-              {tutorInfo && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Total: {tutorInfo.totalAssignments} assignment
-                  {tutorInfo.totalAssignments !== 1 ? "s" : ""}
-                </p>
-              )}
-              {/* Status Toggle Buttons */}
-              <div className="!flex !gap-2 !mt-3 !bg-gray-200 !p-1 !rounded-lg">
+    <div className="card-box">
+      <div className="assignments-list-sec">
+        <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
+          {/* Header */}
+            <div className="left-head d-flex align-items-center gap-2">
+              <Link href="/tutor" className='link-text back-btn'>
+                <ChevronLeft />
+              </Link>
+              <div className="heading-text-top-box">
+                 <h2 className="m-0 mb-1">Assignments</h2>
+                  
+                  {tutorInfo && (
+                    <p className="m-0 p-0">
+                      Total: {tutorInfo.totalAssignments} assignment
+                      {tutorInfo.totalAssignments !== 1 ? "s" : ""}
+                    </p>
+                  )}
+              </div>
+                {/* Status Toggle Buttons */}
+                
+              </div>
+
+              <div className="right-form">
+                {/* Search Bar */}
+              <div className="right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap">
+                <div className="search-box position-relative"> 
+                  <Button
+                      type="button"
+                      className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute btn btn-primary"
+                    >
+                   <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M17.4995 17.5L13.8828 13.8833"
+                        stroke="#505050"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
+                        stroke="#505050"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </Button>
+                  <input
+                    type="text"
+                    placeholder="assignment or student "
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-100 form-control"
+                  />
+                </div>
+                <div className="select-box">
+                <button
+                  onClick={handleCreateAssignment}
+                  className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
+                >
+                  <Plus size={18} />
+                  <span>Create Assignment</span>
+                </button>
+              </div>
+              </div>
+              </div>
+            </div>
+          </div>
+          
+        <hr className="hr-light" />
+
+      <div className='h-100 position-relative practice-studio-sec p-0'>
+          <div className='tab-sec-music payment-summary-sec'>
+          <div className="btn-tabs tab-sec-music">
+            <ul className="mb-3 nav nav-tabs">
+              <li className="nav-item">
                 <button
                   onClick={() => setStatusFilter("all")}
-                  className={`!px-4 !py-2 !rounded-md !text-sm !font-medium !transition-colors ${
+                  className={`nav-link d-flex align-items-center gap-2  ${
                     statusFilter === "all"
-                      ? "bg-white text-purple-600 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "active"
+                      : ""
                   }`}
                 >
                   All ({assignments.length})
                 </button>
+                </li>
+              <li className="nav-item">
                 <button
                   onClick={() => setStatusFilter("pending")}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`nav-link d-flex align-items-center gap-2  ${
                     statusFilter === "pending"
-                      ? "bg-white text-amber-600 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "active"
+                      : ""
                   }`}
                 >
                   Pending ({assignments.filter((a) => !a.status).length})
                 </button>
+                </li>
+              <li className="nav-item">
                 <button
                   onClick={() => setStatusFilter("completed")}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`nav-link d-flex align-items-center gap-2  ${
                     statusFilter === "completed"
-                      ? "bg-white text-green-600 shadow-sm"
-                      : "text-gray-600 hover:text-gray-900"
+                      ? "active"
+                      : ""
                   }`}
                 >
                   Completed ({assignments.filter((a) => a.status).length})
                 </button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              {/* Search Bar */}
-              <div className="relative flex-1 sm:flex-initial">
-                <Search
-                  size={18}
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                />
-                <input
-                  type="text"
-                  placeholder="assignment or student "
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="!w-full !sm:w-64 !pl-10 !text-gray-700 !pr-4 !py-2.5 !border !border-gray-300 !rounded-lg focus:!ring-2 focus:!ring-purple-500 focus:!border-transparent !text-sm"
-                />
-              </div>
-
-              {/* Filter Dropdown */}
-              {/* <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                className="px-4 py-2.5 border text-gray-700 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm bg-white"
-              >
-                <option value="Monthly">Monthly</option>
-                <option value="Weekly">Weekly</option>
-                <option value="Daily">Daily</option>
-              </select> */}
-
-              {/* Create Assignment Button */}
-              <button
-                onClick={handleCreateAssignment}
-                className="!px-4 !py-2.5 !bg-purple-600 !text-white !text-sm !font-medium !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2 !shadow-sm hover:!shadow-md"
-              >
-                <Plus size={18} />
-                <span>Create Assignment</span>
-              </button>
-            </div>
+                </li>
+              </ul>
           </div>
-        </div>
 
         {/* Assignments List */}
-        <div className="!bg-white !rounded-xl !shadow-sm !border !border-gray-200 !overflow-hidden">
+        <div className="new-tabs-telwind-sec">
           {filteredAssignments.length === 0 ? (
-            <div className="p-12 text-center">
+            <div className=" col-md-12 mb-4 p-4">
               <FileText size={64} className="text-gray-300 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-800 mb-2">
                 {searchTerm ? "No Matching Assignments" : "No Assignments Yet"}
@@ -459,60 +492,82 @@ export default function TutorAssignments() {
               )}
             </div>
           ) : (
-            <div className="divide-y divide-gray-100">
+            <div className="row mt-4">
               {filteredAssignments.map((assignment) => (
                 <div
                   key={assignment._id}
-                  className="!p-6 hover:!bg-gray-50 !transition-colors"
-                >
+                  className=" col-md-12 mb-4"
+                > 
+                <div className="my-archieve-card">
                   {/* Assignment Title */}
-                  <div className="!flex !items-start !justify-between !mb-4">
-                    <div className="!flex !items-center !gap-3 !flex-1">
+                  <div className="top-archieve-card d-flex align-items-center gap-2 justify-content-between mb-4">
+                    <div className="left-box d-flex align-items-center gap-2 justify-content-between">
                       {/* Checkbox for completion */}
-                      <input
-                        type="checkbox"
-                        checked={assignment.status || false}
-                        onChange={() =>
-                          handleToggleComplete(
-                            assignment._id,
-                            assignment.status || false
-                          )
-                        }
-                        disabled={updatingCompletion === assignment._id} // REMOVED: || assignment.status
-                        className={`w-5 h-5 rounded border-2 cursor-pointer transition-colors ${
-                          assignment.status
-                            ? "border-green-500 bg-green-500" // REMOVED: cursor-not-allowed
-                            : "border-gray-300 hover:border-purple-500"
-                        } ${
-                          updatingCompletion === assignment._id
-                            ? "opacity-50 cursor-wait"
-                            : ""
-                        }`}
-                        title={
-                          assignment.status
-                            ? "Mark as incomplete"
-                            : "Mark as complete"
-                        } // Changed title
-                      />
+                      <div className="left-right-text-btn d-flex align-items-center gap-2 position-relative">
+                      <div className="checkbx">
+                          <input
+                            type="checkbox"
+                            checked={assignment.status || false}
+                            onChange={() =>
+                              handleToggleComplete(
+                                assignment._id,
+                                assignment.status || false
+                              )
+                            }
+                            disabled={updatingCompletion === assignment._id} // REMOVED: || assignment.status
+                            className={`checkbox-box ${
+                              assignment.status
+                                ? "whien-checked" // REMOVED: cursor-not-allowed
+                                : ""
+                            } ${
+                              updatingCompletion === assignment._id
+                                ? "cursor-wait"
+                                : ""
+                            }`}
+                            title={
+                              assignment.status
+                                ? "complate-check"
+                                : ""
+                            } // Changed title
+                          />
+                        <span class="checkmark"></span>
+                      </div>
 
                       <h3
-                        className={`!text-lg !mb-0 !font-semibold !flex-1 ${
-                          assignment.status ? "text-gray-500 " : "text-gray-900"
+                        className={`m-0 p-0 ${
+                          assignment.status ? " " : ""
                         }`}
                       >
                         {assignment.title}
                       </h3>
-                      <div className="!text-sm !text-gray-600 !space-x-16">
-                        <span>Submitted:</span>
-                        <span className="mr-10">Completed: {assignment.length}</span>
+                      </div>
+                      <div className="sub-both-box d-flex align-items-center gap-3">
+                        <span>
+                          Submitted:{" "}
+                          {
+                            assignment.assignedStudents?.filter(
+                              (s) => s.submissionStatus === "SUBMITTED"
+                            ).length
+                          }{" "}
+                          / {assignment.assignedStudents?.length}
+                        </span>
+                        <span className="text-box-sub">
+                          Completed:{" "}
+                          {
+                            assignment.assignedStudents?.filter(
+                              (s) => s.submissionStatus === "APPROVED"
+                            ).length
+                          }{" "}
+                          / {assignment.assignedStudents?.length}
+                        </span>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="!flex !items-center !gap-2 !ml-4">
+                    <div className="right-box d-flex align-items-center gap-2">
                       <button
                         onClick={() => handleEdit(assignment._id)}
-                        className="!p-2 !text-blue-600 hover:!bg-blue-50 !rounded-lg !transition-colors"
+                        className="Dropdown-btn"
                         title="Edit"
                       >
                         <Edit size={18} />
@@ -520,7 +575,7 @@ export default function TutorAssignments() {
 
                       <button
                         onClick={() => handleDelete(assignment._id)}
-                        className="!p-2 !text-gray-400 hover:!text-red-600 hover:!bg-red-50 !rounded-lg !transition-colors"
+                        className="video-btn-play"
                         title="Delete"
                       >
                         <Trash2 size={18} />
@@ -530,7 +585,7 @@ export default function TutorAssignments() {
                         href={`/tutor/assignments/singleAssignment?assignmentId=${assignment._id}`}
                       >
                         <button
-                          className="!px-4 !py-2 !bg-purple-600 !text-white !text-sm !font-medium !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2"
+                          className="btn-evaluated d-flex align-items-center gap-2"
                         >
                           <Eye size={16} />
                           <span>View Details</span>
@@ -540,14 +595,16 @@ export default function TutorAssignments() {
                   </div>
 
                   {/* Assignment Details Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div className="d-flex justify-content-between flex-wrap gap-2 mb-4">
                     {/* Students */}
-                    <div className="flex items-center gap-2">
-                      <User size={16} className="text-gray-400 flex-shrink-0" />
-                      <div className="flex items-center gap-2 min-w-0">
+                    <div className="item-card-box d-flex align-items-center gap-2">
+                      <div className="icons-text-box d-flex align-items-center gap-2">
+                        <User size={16} className="text-gray-400 flex-shrink-0" />
                         <span className="text-sm text-gray-600 whitespace-nowrap">
                           Student:
                         </span>
+                      </div>
+                      <div className="flex items-center gap-2 min-w-0">
                         {assignment?.assignedStudents?.length > 0 ? (
                           <div className="flex items-center gap-1.5 min-w-0">
                             <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
@@ -575,15 +632,17 @@ export default function TutorAssignments() {
                     </div>
 
                     {/* Created Date */}
-                    <div className="flex items-center gap-2">
+                    <div className="item-card-box d-flex align-items-center gap-2">
+                      <div className="icons-text-box d-flex align-items-center gap-2">
                       <Calendar
                         size={16}
                         className="text-gray-400 flex-shrink-0"
                       />
-                      <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600 whitespace-nowrap">
                           Created:
                         </span>
+                        </div>
+                      <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-900">
                           {formatDate(assignment.createdAt)}
                         </span>
@@ -591,15 +650,17 @@ export default function TutorAssignments() {
                     </div>
 
                     {/* Deadline */}
-                    <div className="flex items-center gap-2">
+                    <div className="item-card-box d-flex align-items-center gap-2">
+                      <div className="icons-text-box d-flex align-items-center gap-2">
                       <Clock
                         size={16}
                         className="text-gray-400 flex-shrink-0"
                       />
-                      <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600 whitespace-nowrap">
                           Deadline:
                         </span>
+                        </div>
+                      <div className="flex items-center gap-2">
                         <span
                           className={`text-sm font-semibold px-2 py-0.5 rounded-full ${getDeadlineColor(
                             assignment.deadline
@@ -611,15 +672,17 @@ export default function TutorAssignments() {
                     </div>
 
                     {/* Course */}
-                    <div className="flex items-center gap-2">
+                    <div className="item-card-box d-flex align-items-center gap-2">
+                      <div className="icons-text-box d-flex align-items-center gap-2">
                       <Music
                         size={16}
                         className="text-gray-400 flex-shrink-0"
                       />
-                      <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm text-gray-600 whitespace-nowrap">
                           Course:
                         </span>
+                        </div>
+                      <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm font-medium text-gray-900 truncate">
                           {assignment.course?.title || "No course assigned"}
                         </span>
@@ -627,16 +690,18 @@ export default function TutorAssignments() {
                     </div>
 
                     {/* Status */}
-                    <div className="flex items-center gap-2">
+                    <div className="item-card-box d-flex align-items-center gap-2">
+                      <div className="icons-text-box d-flex align-items-center gap-2">
                       <div
                         className={`w-2 h-2 rounded-full flex-shrink-0 ${
                           assignment.status ? "bg-green-500" : "bg-amber-500"
                         }`}
                       ></div>
-                      <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600 whitespace-nowrap">
                           Status:
                         </span>
+                        </div>
+                      <div className="flex items-center gap-2">
                         <span
                           className={`text-sm font-semibold ${
                             assignment.status
@@ -652,20 +717,19 @@ export default function TutorAssignments() {
 
                   {/* Description Preview */}
                   {assignment.description && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-sm text-gray-600 line-clamp-2">
+                    <div className="bottom-text-desc">
+                      <p className="text-details">
                         {assignment.description}
                       </p>
                     </div>
                   )}
                 </div>
+                </div>
               ))}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Create Assignment Modal */}
       {isModalOpen && (
         <CreateAssignmentModal
           isOpen={isModalOpen}
@@ -676,6 +740,8 @@ export default function TutorAssignments() {
           editingAssignment={editingAssignment} // Pass the assignment to edit
         />
       )}
+      </div>
+</div>
     </div>
   );
 }

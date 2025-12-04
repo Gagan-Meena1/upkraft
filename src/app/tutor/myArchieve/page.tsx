@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { 
   LogOut, ChevronLeft, ChevronRight, User, BookOpen, PlusCircle, Users, BookCheck, Menu, X,
   Download, Calendar, Music, Guitar, Piano, TrendingUp, Clock, Star, ChevronDown, ChevronUp,
-  Play, Pause, Volume2, UserCircle, Drum, Mic
+  Play, Pause, Volume2, UserCircle, Drum, Mic, ArrowLeft
 } from "lucide-react";
-
+import Link from "next/link";
 export default function PracticeHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState({ piano: [], guitar: [], drums: [], vocals: [], other: [] });
@@ -441,7 +441,6 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
             <div className="tab-sec-music">
               <ul className="mb-3 nav nav-tabs">
                 <li className='nav-item'>
-
                 <button
                   onClick={() => handleArchiveModeChange('my')}
                   className={`nav-link d-flex align-items-center gap-2 ${
@@ -530,7 +529,6 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                   </div>
                 </div>
                 
-                
                 <div className="col-xxl-2 col-lg-3 col-md-6 mb-4">
                   <div className="card-results text-center">
                     <span className='d-flex align-items-center gap-2 justify-content-center m-auto'>
@@ -594,73 +592,86 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                   </div>
                 </div>
               </div>
-
-              <div className="bg-white rounded-lg border border-gray-200 p-1 mb-8 inline-flex shadow-sm overflow-x-auto">
+          <div className="tab-sec-music bottom-tabs mt-4">
+              <ul className="mb-3 nav nav-tabs">
+                <li className='nav-item'>
                 <button
                   onClick={() => setActiveTab('all')}
-                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 whitespace-nowrap ${
+                  className={`nav-link d-flex align-items-center gap-2 ${
                     activeTab === 'all' 
-                      ? 'bg-purple-500 text-white shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'active' 
+                      : ''
                   }`}
                 >
                   All ({currentStats.totalSessions || 0})
                 </button>
+                </li>
+                <li className='nav-item'>
                 <button
                   onClick={() => setActiveTab('piano')}
-                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                  className={`nav-link d-flex align-items-center gap-2 ${
                     activeTab === 'piano' 
-                      ? 'bg-blue-500 text-white shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'active' 
+                      : ''
                   }`}
                 >
                   <Piano size={16} />
                   Piano ({currentStats.pianoSessions || 0})
                 </button>
+                </li>
+                <li className='nav-item'>
                 <button
                   onClick={() => setActiveTab('guitar')}
-                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                  className={`nav-link d-flex align-items-center gap-2 ${
                     activeTab === 'guitar' 
-                      ? 'bg-green-500 text-white shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'active' 
+                      : ''
                   }`}
                 >
                   <Guitar size={16} />
                   Guitar ({currentStats.guitarSessions || 0})
                 </button>
+                </li>
+                <li className='nav-item'>
                 <button
                   onClick={() => setActiveTab('drums')}
-                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                  className={`nav-link d-flex align-items-center gap-2 ${
                     activeTab === 'drums' 
-                      ? 'bg-orange-500 text-white shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'active' 
+                      : ''
                   }`}
                 >
                   <Drum size={16} />
                   Drums ({currentStats.drumsSessions || 0})
                 </button>
+                </li>
+                <li className='nav-item'>
                 <button
                   onClick={() => setActiveTab('vocals')}
-                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                  className={`nav-link d-flex align-items-center gap-2 ${
                     activeTab === 'vocals' 
-                      ? 'bg-pink-500 text-white shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'active' 
+                      : ''
                   }`}
                 >
                   <Mic size={16} />
                   Vocals ({currentStats.vocalsSessions || 0})
                 </button>
+                </li>
+                <li className='nav-item'>
                 <button
                   onClick={() => setActiveTab('other')}
-                  className={`px-4 py-2 rounded-md font-medium transition-all duration-200 flex items-center gap-2 whitespace-nowrap ${
+                  className={`nav-link d-flex align-items-center gap-2 ${
                     activeTab === 'other' 
-                      ? 'bg-indigo-500 text-white shadow-sm' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'active' 
+                      : ''
                   }`}
                 >
                   <Music size={16} />
                   Other ({currentStats.otherSessions || 0})
                 </button>
+                </li>
+                </ul>
               </div>
 
               {filteredResults.length === 0 ? (
@@ -674,27 +685,29 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="row mt-4">
                   {filteredResults.map((result) => (
-                    <div key={result._id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300">
-                      <div className="p-6 border-b border-gray-200">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-4">
-                            {result.instrument === 'piano' && <Piano className="h-6 w-6 text-blue-500" />}
-                            {result.instrument === 'guitar' && <Guitar className="h-6 w-6 text-green-500" />}
-                            {result.instrument === 'drums' && <Drum className="h-6 w-6 text-orange-500" />}
-                            {result.instrument === 'vocals' && <Mic className="h-6 w-6 text-pink-500" />}
-                            {result.instrument === 'other' && <Music className="h-6 w-6 text-indigo-500" />}
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-900">{result.title}</h3>
-                              <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                                <span className="flex items-center gap-1">
+                    <div key={result._id} className=" col-md-12 mb-4">
+                      <div className="my-archieve-card">
+                        <div className="top-archieve-card d-flex align-items-center gap-2 justify-content-between mb-4">
+                          <div className="left-box d-flex align-items-center gap-2">
+                            <div className='icons-box'>
+                              {result.instrument === 'piano' && <Piano className="card-arc-icons" />}
+                              {result.instrument === 'guitar' && <Guitar className="card-arc-icons" />}
+                              {result.instrument === 'drums' && <Drum className="card-arc-icons" />}
+                              {result.instrument === 'vocals' && <Mic className="card-arc-icons" />}
+                              {result.instrument === 'other' && <Music className="card-arc-icons" />}
+                            </div>
+                            <div className='text-box'>
+                              <h3>{result.title}</h3>
+                              <div className="date-can-box d-flex align-items-center gap-3">
+                                <span className="date-calener d-flex align-items-center gap-2">
                                   <Calendar size={14} />
                                   {new Date(result.createdAt).toLocaleDateString()}
                                 </span>
                                 
                                 {result.tutorScore !== undefined && (
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                  <span className="name-of-stu">
                                     {result.tutorScore}/10
                                   </span>
                                 )}
@@ -703,7 +716,7 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-2">
+                          <div className="right-box d-flex align-items-center gap-2">
 
                             
                             {archiveMode === 'students' && (
@@ -764,53 +777,53 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                             )}
 
                             {/* AI Evaluation Button - Only for piano and guitar */}
-{(result.instrument === 'piano' || result.instrument === 'guitar') && (
-  <button
-    onClick={() => handleAIEvaluation(result.audioFileUrl, result.instrument, result._id)}
-    disabled={
-      evaluatingAI[result._id] || 
-      (result.instrument === 'piano' 
-        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
-        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
-      )
-    }
-    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium text-sm flex items-center gap-2"
-    title={
-      (result.instrument === 'piano' 
-        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
-        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
-      ) 
-        ? "Analysis already completed" 
-        : "Get AI Evaluation"
-    }
-  >
-    {evaluatingAI[result._id] ? (
-      <>
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-        Evaluating...
-      </>
-    ) : (
-      (result.instrument === 'piano' 
-        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
-        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
-      )
-    ) ? (
-      <>
-        <Star size={16} />
-        Evaluated
-      </>
-    ) : (
-      <>
-        <Star size={16} />
-        AI Evaluation
-      </>
-    )}
-  </button>
-)}
-                            
+                                {(result.instrument === 'piano' || result.instrument === 'guitar') && (
+                                  <button
+                                    onClick={() => handleAIEvaluation(result.audioFileUrl, result.instrument, result._id)}
+                                    disabled={
+                                      evaluatingAI[result._id] || 
+                                      (result.instrument === 'piano' 
+                                        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
+                                        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
+                                      )
+                                    }
+                                    className="btn-evaluated d-flex align-items-center gap-2"
+                                    title={
+                                      (result.instrument === 'piano' 
+                                        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
+                                        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
+                                      ) 
+                                        ? "Analysis already completed" 
+                                        : "Get AI Evaluation"
+                                    }
+                                  >
+                                    {evaluatingAI[result._id] ? (
+                                      <>
+                                        <div className="text-"></div>
+                                        Evaluating...
+                                      </>
+                                    ) : (
+                                      (result.instrument === 'piano' 
+                                        ? (result.pianoAnalysis && Object.keys(result.pianoAnalysis).length > 0)
+                                        : (result.guitarAnalysis && Object.keys(result.guitarAnalysis).length > 0)
+                                      )
+                                    ) ? (
+                                      <>
+                                        <Star size={16} />
+                                        Evaluated
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Star size={16} />
+                                        AI Evaluation
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                                                            
                             <button
                               onClick={() => toggleAudioPlayback(result.audioFileUrl, result._id)}
-                              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                              className="video-btn-play"
                               title={playingAudio[result._id] ? "Stop Audio" : "Play Audio"}
                             >
                               {playingAudio[result._id] ? (
@@ -823,7 +836,7 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                             <button
                               onClick={() => downloadAudioFile(result.audioFileUrl, result.title, result._id)}
                               disabled={downloadingFiles[result._id]}
-                              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                              className="download-btn"
                               title="Download Audio File"
                             >
                               {downloadingFiles[result._id] ? (
@@ -835,7 +848,7 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                             
                             <button
                               onClick={() => toggleCardExpansion(result._id)}
-                              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all duration-200"
+                              className="Dropdown-btn"
                             >
                               {expandedCards[result._id] ? (
                                 <ChevronUp size={16} />
@@ -867,11 +880,11 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                         )}
                         
                         {result.analysisResults?.overall_rating && (
-                          <div className="flex items-center gap-4">
-                            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getFeedbackColor(result.analysisResults.overall_rating.feedback)}`}>
+                          <div className="bottom-text-desc">
+                            <span className={`btn-btm-text ${getFeedbackColor(result.analysisResults.overall_rating.feedback)}`}>
                               {result.analysisResults.overall_rating.feedback}
                             </span>
-                            <p className="text-sm text-gray-700 flex-1">
+                            <p className="text-details">
                               {result.analysisResults.overall_rating.suggestion}
                             </p>
                           </div>
@@ -888,39 +901,39 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
 
 
                       {expandedCards[result._id] && (
-                        <div className="p-6 bg-gray-50">
+                        <div className="my-archieve-accordion-card">
                           {result.analysisResults?.places_to_improve && (
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                            <div className="mb-4 archieve-accordion-card-top">
+                              <h4 className="heading-box d-flex align-items-center gap-2">
                                 <Star size={18} className="text-orange-500" />
                                 Areas for Improvement
                               </h4>
-                              <div className={`p-4 rounded-lg border ${getFeedbackColor(result.analysisResults.places_to_improve.feedback)}`}>
-                                <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-white bg-opacity-50 mb-2">
+                              <div className={`box-top ${getFeedbackColor(result.analysisResults.places_to_improve.feedback)}`}>
+                                <span className="heading-btn-box">
                                   {result.analysisResults.places_to_improve.feedback}
                                 </span>
-                                <p className="text-sm">
+                                <p className="">
                                   {result.analysisResults.places_to_improve.suggestion}
                                 </p>
                               </div>
                             </div>
                           )}
                           
-                          <div>
-                            <h4 className="font-semibold text-gray-900 mb-4">Detailed Analysis</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className=' archieve-accordion-card-bottom'>
+                            <h4 className="heading-card-archieve">Detailed Analysis</h4>
+                            <div className="card-archive grid grid-cols-1 md:grid-cols-2 gap-4">
                               {Object.entries(result.instrument === 'piano' ? result.pianoAnalysis || {} : result.guitarAnalysis || {}).map(([key, analysis]) => {
                                 if (!analysis || !analysis.feedback) return null;
                                 
                                 return (
-                                  <div key={key} className="border border-gray-200 rounded-lg p-4 bg-white">
-                                    <h5 className="font-medium text-gray-900 mb-2 text-sm">
+                                  <div key={key} className="box-card-box-archieve">
+                                    <h5 className="heading-archieve">
                                       {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                     </h5>
-                                    <div className={`inline-block px-2 py-1 rounded text-xs font-medium mb-2 ${getFeedbackColor(analysis.feedback)}`}>
+                                    <div className={`btn-type ${getFeedbackColor(analysis.feedback)}`}>
                                       {analysis.feedback}
                                     </div>
-                                    <p className="text-xs text-gray-700">
+                                    <p className="text-para">
                                       {analysis.suggestion}
                                     </p>
                                   </div>

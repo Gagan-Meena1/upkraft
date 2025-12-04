@@ -25,7 +25,7 @@ export default function TutorLayout({
           <div className="side-menu-sec">
             <SideMenuHeader role={"tutor"} />
           </div>
-          <div className="side-details-sec">{children}</div>
+          <div className="side-details-sec ">{children}</div>
         </div>
       </div>
     </UserDataProvider>
