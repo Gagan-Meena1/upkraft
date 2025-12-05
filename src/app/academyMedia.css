@@ -66,7 +66,7 @@ h1 {
 }
 
 .top-header-sec .right-top-header {
-    width: 100%;
+    width: 100% !important;
     padding: 10px 15px;
     border: none;
 }
@@ -149,7 +149,7 @@ table.table {
 }
 
 .top-header-sec .right-top-header {
-    padding-left: 10px;
+    padding-left: 10px !important;
 }
 
 .top-header-sec .right-top-header .right-head-details img {
@@ -161,7 +161,7 @@ table.table {
     padding: 0;
     margin-right: 15px;
     border: none;
-    min-width: 100px;
+    /* min-width: 100px; */
 }
 
 .top-header-sec .right-top-header .right-head-details h6 {
