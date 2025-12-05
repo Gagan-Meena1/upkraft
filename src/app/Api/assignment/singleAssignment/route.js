@@ -4,6 +4,7 @@ import { connect } from "@/dbConnection/dbConfic";
 import Assignment from "@/models/assignment";
 import jwt from "jsonwebtoken";
 import { v2 as cloudinary } from "cloudinary";
+import User from "@/models/userModel";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -301,6 +302,31 @@ export async function PUT(request) {
 
           await assignment.save();
 
+
+          const user = await User.findById(userId);
+  
+  if (user && user.pendingAssignments) {
+    // Find the student's pending assignments entry
+    const studentPendingIndex = user.pendingAssignments.findIndex(
+      (pending) => pending.studentId.toString() === studentId
+    );
+
+    if (studentPendingIndex !== -1) {
+      // Remove the assignment ID from the student's assignmentIds array
+      user.pendingAssignments[studentPendingIndex].assignmentIds = 
+        user.pendingAssignments[studentPendingIndex].assignmentIds.filter(
+          (id) => id.toString() !== assignmentId
+        );
+
+      // If no more pending assignments for this student, remove the entire entry
+      if (user.pendingAssignments[studentPendingIndex].assignmentIds.length === 0) {
+        user.pendingAssignments.splice(studentPendingIndex, 1);
+      }
+
+      await user.save();
+    }
+  }
+
           return NextResponse.json({
             success: true,
             message: `Submission approved successfully`,
@@ -364,7 +390,30 @@ export async function PUT(request) {
         if (typeof ratingMessage === "string") {
           assignment.submissions[submissionIndex].ratingMessage = ratingMessage;
         }
+
+            const user = await User.findById(userId);
+            
+            if (user && user.pendingAssignments) {
+              const studentPendingIndex = user.pendingAssignments.findIndex(
+                (pending) => pending.studentId.toString() === studentId
+              );
+
+              if (studentPendingIndex !== -1) {
+                user.pendingAssignments[studentPendingIndex].assignmentIds = 
+                  user.pendingAssignments[studentPendingIndex].assignmentIds.filter(
+                    (id) => id.toString() !== assignmentId
+                  );
+
+                if (user.pendingAssignments[studentPendingIndex].assignmentIds.length === 0) {
+                  user.pendingAssignments.splice(studentPendingIndex, 1);
+                }
+
+                await user.save();
+         }
+        }
       }
+
+      
 
       await assignment.save();
 

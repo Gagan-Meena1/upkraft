@@ -48,6 +48,8 @@ const FeedbackPendingDetails = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});  // ADD THIS
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({}); 
+  const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'absent'>('present');
+const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
   const [feedbackData, setFeedbackData] = useState({
     rhythm: 5,
     theoretical: 5,
@@ -131,6 +133,8 @@ const FeedbackPendingDetails = () => {
   
   const handleSelectStudent = (feedback: PendingFeedback) => {
     setSelectedFeedback(feedback);
+      setAttendanceStatus('present'); // ADD THIS LINE
+
     // Reset feedback data when switching students
     setFeedbackData({
       rhythm: 5,
@@ -149,6 +153,8 @@ const FeedbackPendingDetails = () => {
     updatedFeedbacks[feedbackIndex].selectedClassIndex = classIndex;
     setPendingFeedbacks(updatedFeedbacks);
     setSelectedFeedback(updatedFeedbacks[feedbackIndex]);
+      setAttendanceStatus('present'); // ADD THIS LINE
+
     // Reset feedback data when switching classes
     setFeedbackData({
       rhythm: 5,
@@ -190,6 +196,7 @@ const FeedbackPendingDetails = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...feedbackData,
+            attendanceStatus, 
             studentId,
             courseId,
             classId
@@ -238,6 +245,7 @@ const FeedbackPendingDetails = () => {
           setSelectedFeedback(null);
         }
         
+        setAttendanceStatus('present'); // ADD THIS LINE
         // Reset feedback form
         setFeedbackData({
           rhythm: 5,
@@ -262,6 +270,92 @@ const FeedbackPendingDetails = () => {
       setIsSubmitting(false);
     }
   };
+
+  const handleMarkAbsent = async () => {
+  if (!selectedFeedback) return;
+  
+  setIsSubmitting(true);
+  const student = selectedFeedback.student;
+  const classData = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
+  
+  try {
+    const studentId = student._id;
+    const classId = classData._id;
+    
+    const response = await fetch(
+      `/Api/attendance?studentId=${studentId}&classId=${classId}`, 
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'absent',
+          studentId,
+          classId
+        })
+      }
+    );
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Remove the submitted class from the list (same logic as feedback submission)
+      let updatedFeedbacks = [...pendingFeedbacks];
+      
+      const currentFeedbackIndex = updatedFeedbacks.findIndex(
+        f => f.student._id === studentId
+      );
+      
+      if (currentFeedbackIndex !== -1) {
+        const currentFeedback = updatedFeedbacks[currentFeedbackIndex];
+        const remainingClasses = currentFeedback.classes.filter(c => c._id !== classId);
+        
+        if (remainingClasses.length > 0) {
+          updatedFeedbacks[currentFeedbackIndex] = {
+            ...currentFeedback,
+            classes: remainingClasses,
+            selectedClassIndex: 0
+          };
+        } else {
+          updatedFeedbacks.splice(currentFeedbackIndex, 1);
+        }
+      }
+      
+      setPendingFeedbacks(updatedFeedbacks);
+      
+      if (updatedFeedbacks.length > 0) {
+        const nextIndex = Math.min(currentFeedbackIndex, updatedFeedbacks.length - 1);
+        setSelectedFeedback(updatedFeedbacks[nextIndex]);
+      } else {
+        setSelectedFeedback(null);
+      }
+      
+      // Reset states
+      setAttendanceStatus('present');
+      setShowAbsentConfirm(false);
+      setFeedbackData({
+        rhythm: 5,
+        theoretical: 5,
+        understanding: 5,
+        performance: 5,
+        earTraining: 5,
+        assignment: 5,
+        technique: 5,
+        feedback: ''
+      });
+      
+      alert('Student marked as absent successfully!');
+    } else {
+      alert(result.message || 'Failed to mark attendance');
+    }
+    
+  } catch (err) {
+    console.error('Error marking attendance:', err);
+    alert('Failed to mark attendance. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+    setShowAbsentConfirm(false);
+  }
+};
   
   if (loading) {
     return (
@@ -483,60 +577,104 @@ const getButtonText = (classId: string, isUploading: boolean) => {
           <div className='feedback-right-box'>
             <div className='feedback-box'>
               <div className='head-feedback d-flex align-items-center gap-2 justify-content-between flex-md-nowrap flex-wrap'>
-                <div className='text-head-feedback'>
-                  <h2>Student Performance Evaluation</h2>
-                  <p>
-                    <strong>{selectedFeedback.student.username}</strong> - {selectedFeedback.classes[selectedFeedback.selectedClassIndex].title}
-                  </p>
-                </div>
-                <div className='btn-right'>
-                  <div className='btn-right d-flex gap-2'>
-  {/* Hidden file input */}
-  <input
-    type="file"
-    accept="video/*"
-    className="d-none"
-    ref={el => { 
-      if (selectedFeedback) {
-        fileInputRefs.current[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] = el; 
-      }
-    }}
-    onChange={(e) => {
-      if (selectedFeedback) {
-        handleFileChange(selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id, e);
-      }
-    }}
-  />
-  
-<button 
-    onClick={() => {
-      if (selectedFeedback) {
-        triggerFileInput(selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id);
-      }
-    }}
-    disabled={selectedFeedback ? uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] : false}
-    style={{ 
-      backgroundColor: selectedFeedback && uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] ? '#a855f7' : '#9333ea',
-      color: '#ffffff',
-      border: 'none',
-      boxShadow: selectedFeedback && !uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] 
-        ? '0 0 12px rgba(147, 51, 234, 0.4)' 
-        : 'none',
-      transition: 'all 0.3s ease'
-    }}
-    className='btn-link d-flex align-items-center gap-2 justify-content-center px-3 py-2 rounded'
-  >
-    <Upload size={16} />
-    <span>
-      {selectedFeedback && getButtonText(
-        selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id,
-        uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] || false
-      )}
-    </span>
-  </button>
+  <div className='text-head-feedback'>
+    <h2>Student Performance Evaluation</h2>
+    <p>
+      <strong>{selectedFeedback.student.username}</strong> - {selectedFeedback.classes[selectedFeedback.selectedClassIndex].title}
+    </p>
+  </div>
+  <div className='btn-right d-flex gap-2 align-items-center flex-wrap'>
+    {/* Attendance Dropdown */}
+    <div className="dropdown">
+      <button
+        className="btn dropdown-toggle"
+        type="button"
+        id="attendanceDropdown"
+        data-bs-toggle="dropdown"
+        aria-expanded="false"
+        style={{
+          backgroundColor: attendanceStatus === 'present' ? '#10b981' : '#ef4444',
+          color: '#ffffff',
+          border: 'none',
+          minWidth: '120px'
+        }}
+      >
+        {attendanceStatus === 'present' ? '✓ Present' : '✗ Absent'}
+      </button>
+      <ul className="dropdown-menu" aria-labelledby="attendanceDropdown">
+        <li>
+          <a 
+            className="dropdown-item" 
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              setAttendanceStatus('present');
+              setShowAbsentConfirm(false);
+            }}
+          >
+            ✓ Present
+          </a>
+        </li>
+        <li>
+          <a 
+            className="dropdown-item" 
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowAbsentConfirm(true);
+            }}
+          >
+            ✗ Absent
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    {/* Hidden file input */}
+    <input
+      type="file"
+      accept="video/*"
+      className="d-none"
+      ref={el => { 
+        if (selectedFeedback) {
+          fileInputRefs.current[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] = el; 
+        }
+      }}
+      onChange={(e) => {
+        if (selectedFeedback) {
+          handleFileChange(selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id, e);
+        }
+      }}
+    />
+    
+    <button 
+      onClick={() => {
+        if (selectedFeedback) {
+          triggerFileInput(selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id);
+        }
+      }}
+      disabled={selectedFeedback ? uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] : false}
+      style={{ 
+        backgroundColor: selectedFeedback && uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] ? '#a855f7' : '#9333ea',
+        color: '#ffffff',
+        border: 'none',
+        boxShadow: selectedFeedback && !uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] 
+          ? '0 0 12px rgba(147, 51, 234, 0.4)' 
+          : 'none',
+        transition: 'all 0.3s ease'
+      }}
+      className='btn-link d-flex align-items-center gap-2 justify-content-center px-3 py-2 rounded'
+    >
+      <Upload size={16} />
+      <span>
+        {selectedFeedback && getButtonText(
+          selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id,
+          uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] || false
+        )}
+      </span>
+    </button>
+  </div>
 </div>
-                </div>
-              </div>
               <div className='bottom-feedback-box row'>
                 <div className='col-xxl-6 mb-0'>
                   <div className='progressbar-line-sec'>
@@ -726,29 +864,92 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                       />
                     </Form.Group>
                   </Form>
-                  <div className='d-flex align-items-end justify-content-end mt-4'>
-                    <Button 
-                      type='button' 
-                      className='btn btn-primary'
-                      onClick={handleSubmit}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                          Submitting...
-                        </>
-                      ) : (
-                        'Submit Evaluation'
-                      )}
-                    </Button>
-                  </div>
+                  <div className='d-flex align-items-end justify-content-end mt-4 gap-2'>
+  {attendanceStatus === 'present' ? (
+    <Button 
+      type='button' 
+      className='btn btn-primary'
+      onClick={handleSubmit}
+      disabled={isSubmitting}
+    >
+      {isSubmitting ? (
+        <>
+          <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+          Submitting...
+        </>
+      ) : (
+        'Submit Evaluation'
+      )}
+    </Button>
+  ) : (
+    <Button 
+      type='button' 
+      className='btn btn-danger'
+      onClick={handleMarkAbsent}
+      disabled={isSubmitting}
+    >
+      {isSubmitting ? (
+        <>
+          <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+          Marking Absent...
+        </>
+      ) : (
+        'Confirm & Mark Absent'
+      )}
+    </Button>
+  )}
+</div>
                 </div>
               </div>
             </div>
           </div>
         )}
       </div>
+      {/* Absent Confirmation Modal */}
+{showAbsentConfirm && (
+  <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+    <div className="modal-dialog modal-dialog-centered">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h5 className="modal-title">Mark as Absent</h5>
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setShowAbsentConfirm(false)}
+          ></button>
+        </div>
+        <div className="modal-body">
+          <p>Are you sure you want to mark <strong>{selectedFeedback?.student.username}</strong> as absent for <strong>{selectedFeedback?.classes[selectedFeedback.selectedClassIndex].title}</strong>?</p>
+          <p className="text-muted small">This will skip the evaluation form and only record the absence.</p>
+        </div>
+        <div className="modal-footer">
+          <button 
+            type="button" 
+            className="btn btn-secondary" 
+            onClick={() => {
+              setShowAbsentConfirm(false);
+              setAttendanceStatus('present');
+            }}
+          >
+            Cancel
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-danger" 
+            onClick={() => {
+              setAttendanceStatus('absent');
+              setShowAbsentConfirm(false);
+                  handleMarkAbsent(); // ADD THIS LINE - Actually trigger the API call
+
+            }}
+          >
+            Yes, Mark Absent
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

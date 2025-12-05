@@ -1,8 +1,6 @@
-// Enhanced User Schema with Tutor Profile Fields
-// models/userModel.js
-
 import mongoose from "mongoose";
 import { type } from "os";
+import { start } from "repl";
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -16,6 +14,19 @@ const userSchema = new mongoose.Schema({
     address: {
         type: String,
         default: ""
+    },
+    attendance: {
+        type:[{
+            classId:{
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Class"
+            },
+            status:{
+                type:String,
+                enum:["present","absent","canceled","not_marked"],
+                default:"not_marked"
+
+        }}]
     },
     contact: {
         type: String,
@@ -105,6 +116,18 @@ const userSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Assignment"
     }],
+
+    pendingAssignments: [{
+       studentId: {
+           type: mongoose.Schema.Types.ObjectId,
+           ref: "users"
+       },
+       assignmentIds: [{
+           type: mongoose.Schema.Types.ObjectId,
+           ref: "Assignment"
+       }]
+   }],
+
     aboutMyself: {
         type: String,
         default: ""
@@ -113,6 +136,12 @@ const userSchema = new mongoose.Schema({
         type:String,
         enum:["active","inactive","vacation","dormant","blocked"],
         default:"active"
+    },
+    slotsAvailable:{
+        type:[{
+            startTime: Date,
+            endTime: Date
+        }]
     },
     academyId:{
         type: mongoose.Schema.Types.ObjectId,

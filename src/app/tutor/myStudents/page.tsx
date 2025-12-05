@@ -109,41 +109,41 @@ export default function MyStudents() {
     return Math.round(average * 100) / 100; // Round to 2 decimal places
   };
 
-  const fetchAssignmentDetails = async (
-    assignmentIds: string[]
-  ): Promise<{ pending: number }> => {
-    if (!assignmentIds || assignmentIds.length === 0) {
-      return { pending: 0 };
-    }
+  // const fetchAssignmentDetails = async (
+  //   assignmentIds: string[]
+  // ): Promise<{ pending: number }> => {
+  //   if (!assignmentIds || assignmentIds.length === 0) {
+  //     return { pending: 0 };
+  //   }
 
-    try {
-      const assignmentPromises = assignmentIds.map(async (assignmentId) => {
-        const response = await fetch(
-          `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`
-        );
-        if (!response.ok) {
-          console.error(`Failed to fetch assignment ${assignmentId}`);
-          return null;
-        }
-        const data = await response.json();
-        return data.success ? data.data : null;
-      });
+  //   try {
+  //     const assignmentPromises = assignmentIds.map(async (assignmentId) => {
+  //       const response = await fetch(
+  //         `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`
+  //       );
+  //       if (!response.ok) {
+  //         console.error(`Failed to fetch assignment ${assignmentId}`);
+  //         return null;
+  //       }
+  //       const data = await response.json();
+  //       return data.success ? data.data : null;
+  //     });
 
-      const assignments = await Promise.all(assignmentPromises);
-      const validAssignments = assignments.filter(
-        Boolean
-      ) as AssignmentDetail[];
+  //     const assignments = await Promise.all(assignmentPromises);
+  //     const validAssignments = assignments.filter(
+  //       Boolean
+  //     ) as AssignmentDetail[];
 
-      const pending = validAssignments.filter(
-        (assignment) => !assignment.status
-      ).length;
+  //     const pending = validAssignments.filter(
+  //       (assignment) => !assignment.status
+  //     ).length;
 
-      return { pending };
-    } catch (error) {
-      console.error("Error fetching assignment details:", error);
-      return { pending: 0 };
-    }
-  };
+  //     return { pending };
+  //   } catch (error) {
+  //     console.error("Error fetching assignment details:", error);
+  //     return { pending: 0 };
+  //   }
+  // };
 
   const fetchStudents = async () => {
     try {
@@ -163,32 +163,17 @@ export default function MyStudents() {
       }
 
       if (data && data.filteredUsers) {
-        const studentsWithDetails = await Promise.all(
-          data.filteredUsers.map(async (student: Student) => {
-            setLoadingAssignments((prev) => new Set(prev).add(student._id));
+        const studentsWithDetails = data.filteredUsers.map((student: Student) => {
+  const performanceAverage = calculatePerformanceAverage(student);
+  const courseQualityAverage = calculateCourseQualityAverage(student);
 
-            const assignmentCounts = await fetchAssignmentDetails(
-              student.assignment || []
-            );
-
-            // Calculate averages
-            const performanceAverage = calculatePerformanceAverage(student);
-            const courseQualityAverage = calculateCourseQualityAverage(student);
-
-            setLoadingAssignments((prev) => {
-              const newSet = new Set(prev);
-              newSet.delete(student._id);
-              return newSet;
-            });
-
-            return {
-              ...student,
-              pendingAssignments: assignmentCounts.pending,
-              performanceAverage,
-              courseQualityAverage,
-            };
-          })
-        );
+  return {
+    ...student,
+    // pendingAssignments is already coming from API
+    performanceAverage,
+    courseQualityAverage,
+  };
+});
 
         setStudents(studentsWithDetails);
       } else {

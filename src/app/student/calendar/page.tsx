@@ -46,6 +46,12 @@ const StudentCalendarView = () => {
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState<UserData | null>(null);
 
+  // Add view state
+  const [activeView, setActiveView] = useState<"day" | "week" | "month">("week");
+  const handleSetView = (v: "day" | "week" | "month") => {
+    setActiveView(v);
+  };
+
   // Check if mobile
   useEffect(() => {
     const checkMobile = () => {
@@ -131,6 +137,19 @@ const StudentCalendarView = () => {
     return days;
   };
 
+  // Generate month days for Month view
+  const generateMonthDays = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    const startPad = first.getDay(); // Sunday=0
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startPad; i++) days.push(null);
+    for (let d = 1; d <= last.getDate(); d++) days.push(new Date(year, month, d));
+    return days;
+  };
+
   // Helper to get date components in user's timezone
   const getDateComponentsInTz = (date: Date | string, tz: string) => {
     const d = typeof date === 'string' ? new Date(date) : date;
@@ -163,7 +182,7 @@ const StudentCalendarView = () => {
 
   const getMyAssignmentsForDate = (date: Date) => {
     return myAssignments.filter((a) => {
-      if (!a?.deadline || a?.status === true) return false; // show only pending
+      if (!a?.deadline || a?.status === true) return false; 
       return isSameDayInTz(a.deadline, date, userTz);
     });
   };
@@ -234,7 +253,7 @@ const StudentCalendarView = () => {
     }
   };
 
-  const weekDays = getWeekDays();
+  const weekDays = activeView === "day" ? [currentDate] : getWeekDays();
 
   if (loading) {
     return (
@@ -263,7 +282,13 @@ const StudentCalendarView = () => {
       {/* Main Content */}
       <div className="flex-1 min-h-screen">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center gap-5">
+          <Link
+                                    href={`/student`}
+                                    className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
+                                  >
+                                    <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
+                                  </Link>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Student Calendar
           </h1>
@@ -306,139 +331,226 @@ const StudentCalendarView = () => {
                 </span>
               </div>
 
+              {/* In the header select controls (wire them to set view): */}
               <div className="flex gap-[10px]">
-                <select className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500">
-                  <option className="truncate">Day</option>
-                  <option className="truncate">Today</option>
-                  <option className="truncate">Tomorrow</option>
-                  <option className="truncate">Custom...</option>
+                <select
+                  value={activeView === "day" ? "day" : "day-options"}
+                  onChange={() => handleSetView("day")}
+                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate"
+                >
+                  <option value="day">Day</option>
+                  <option value="today">Today</option>
+                  {/* <option value="tomorrow">Tomorrow</option> */}
                 </select>
 
-                <select className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500">
-                  <option className="truncate">Week</option>
-                  <option className="truncate">This Week</option>
-                  <option className="truncate">Next Week</option>
-                  <option className="truncate">Custom...</option>
+                <select
+                  value={activeView === "week" ? "week" : "week-options"}
+                  onChange={() => handleSetView("week")}
+                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate"
+                >
+                  <option value="week">Week</option>
+                  <option value="this-week">This Week</option>
+                  {/* <option value="next-week">Next Week</option> */}
                 </select>
 
-                <select className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500">
-                  <option className="truncate">Month</option>
-                  <option className="truncate">This Month</option>
-                  <option className="truncate">Next Month</option>
-                  <option className="truncate">Custom...</option>
+                <select
+                  value={activeView === "month" ? "month" : "month-options"}
+                  onChange={() => handleSetView("month")}
+                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate"
+                >
+                  <option value="month">Month</option>
+                  <option value="this-month">This Month</option>
+                  {/* <option value="next-month">Next Month</option> */}
                 </select>
               </div>
             </div>
 
             {/* Calendar Grid */}
             <div className="mt-2 rounded overflow-hidden">
-              {/* Header Row */}
-              <div className="grid items-stretch bg-white" style={gridTemplate}>
-                {/* Label cell */}
-                <div className="p-3 bg-white flex items-center font-medium text-[#212121]">
-                  My Schedule
-                </div>
-                {/* Week Day Headers */}
-                {weekDays.map((day, idx) => (
-                  <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
-                    <div className="text-[16px] font-inter font-medium text-[#212121]">
-                      {formatInTz(day, userTz, { day: "2-digit", weekday: "short" })}
+              {activeView === "month" ? (
+                <div className="bg-white p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">
+                      {currentDate.toLocaleString("en-US", { month: "long", year: "numeric" })}
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
+                        className="px-3 py-1 rounded bg-gray-100"
+                      >
+                        Prev
+                      </button>
+                      <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 rounded bg-gray-100">
+                        Today
+                      </button>
+                      <button
+                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+                        className="px-3 py-1 rounded bg-gray-100"
+                      >
+                        Next
+                      </button>
                     </div>
                   </div>
-                ))}
-              </div>
 
-              {/* Calendar Body: single row (student) */}
-              <div
-                className="grid items-start bg-white border-t"
-                style={gridTemplate}
-              >
-                {/* Row label */}
-                <div className="p-3 border-r border-gray-200 flex items-center">
-                  Upcoming Classes & Due Assignments
-                </div>
+                  <div className="grid grid-cols-7 gap-1 text-xs text-center text-gray-500 mb-2">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                      <div key={d} className="py-2">{d}</div>
+                    ))}
+                  </div>
 
-                {/* Day cells */}
-                {weekDays.map((day, idx) => {
-                  const dayClasses = getMyClassesForDate(day);
-                  const dayAssignments = getMyAssignmentsForDate(day);
-                  const empty =
-                    dayClasses.length === 0 && dayAssignments.length === 0;
-                  return (
-                    <div key={idx} className="p-3 min-h-[120px]">
-                      {empty ? (
-                        <div className="h-full flex items-center justify-center">
-                          <div className="text-[12px] text-[#E0E0E0]">
-                            No items
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Classes */}
-                          {dayClasses.map((classItem, cIdx) => (
-                            <div
-                              key={classItem._id || `c-${cIdx}`}
-                              className="mb-2 p-2 bg-orange-50 border-l-4 border-purple-400 text-xs text-[#212121] rounded-md shadow-sm hover:cursor-pointer hover:bg-purple-100"
-                              title={`${
-                                classItem.title || "Class"
-                              } - ${formatTime(
-                                classItem.startTime,
-                                classItem.endTime
-                              )}`}
-                              onClick={() => handleJoinMeeting(classItem._id)}
-                            >
-                              <div className="font-medium text-[13px] truncate">
-                                {classItem.title || "Class"}
-                              </div>
-                              <div className="text-[11px] text-gray-600 truncate">
-                                {formatInTz(classItem.startTime, userTz, {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })}
-                              </div>
-                            </div>
-                          ))}
+                  <div className="grid grid-cols-7 gap-2">
+                    {generateMonthDays(currentDate).map((d, idx) => {
+                      const classCount = d ? getMyClassesForDate(d).length : 0;
+                      const assignmentCount = d ? getMyAssignmentsForDate(d).length : 0;
+                      const hasItems = classCount + assignmentCount;
 
-                          {/* Assignments */}
-                          {dayAssignments.map((a, aIdx) => (
-                            <div
-                              key={a._id || `a-${aIdx}`}
-                              className="mb-2 p-2 bg-purple-50 border-l-4 border-purple-500 text-xs text-[#212121] rounded-md shadow-sm"
-                              title={`${
-                                a.title || "Assignment"
-                              } - Due ${new Date(a.deadline).toLocaleTimeString(
-                                "en-US",
-                                {
-                                  hour: "numeric",
-                                  minute: "2-digit",
-                                  hour12: true,
-                                  timeZone: "UTC",
-                                }
-                              )}`}
-                            >
-                              <div className="font-medium text-[13px] truncate">
-                                {a.title || "Assignment"}
-                              </div>
-                              <div className="text-[11px] text-gray-600 truncate">
-                                Due{" "}
-                                {new Date(a.deadline).toLocaleTimeString(
-                                  "en-US",
-                                  {
-                                    hour: "numeric",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                    timeZone: "UTC",
-                                  }
+                      return (
+                        <div
+                          key={idx}
+                          // clickable whole cell to open day
+                          onClick={() => {
+                            if (!d) return;
+                            setCurrentDate(d);
+                            setActiveView("day");
+                          }}
+                          className={`min-h-[88px] p-2 border rounded ${d ? "bg-white cursor-pointer hover:bg-gray-50" : "bg-transparent"}`}
+                        >
+                          {d ? (
+                            <>
+                              <div className="text-sm font-medium">{d.getDate()}</div>
+
+                              <div className="mt-2 text-xs text-gray-600">
+                                {hasItems > 0 ? (
+                                  <div className="flex flex-col gap-1">
+                                    <span className="inline-block px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
+                                      {classCount} class{classCount !== 1 ? "es" : ""}
+                                    </span>
+                                    <span className="inline-block px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-xs">
+                                      {assignmentCount} assignment{assignmentCount !== 1 ? "s" : ""}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-300">—</span>
                                 )}
                               </div>
-                            </div>
-                          ))}
-                        </>
-                      )}
+                            </>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Header Row */}
+                  <div className="grid items-stretch bg-white" style={gridTemplate}>
+                    {/* Label cell */}
+                    <div className="p-3 bg-white flex items-center font-medium text-[#212121]">
+                      My Schedule
                     </div>
-                  );
-                })}
-              </div>
+                    {/* Week Day Headers */}
+                    {weekDays.map((day, idx) => (
+                      <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
+                        <div className="text-[16px] font-inter font-medium text-[#212121]">
+                          {formatInTz(day, userTz, { day: "2-digit", weekday: "short" })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Body: single row (student) */}
+                  <div
+                    className="grid items-start bg-white border-t"
+                    style={gridTemplate}
+                  >
+                    {/* Row label */}
+                    <div className="p-3 border-r border-gray-200 flex items-center">
+                      Upcoming Classes & Due Assignments
+                    </div>
+
+                    {/* Day cells */}
+                    {weekDays.map((day, idx) => {
+                      const dayClasses = getMyClassesForDate(day);
+                      const dayAssignments = getMyAssignmentsForDate(day);
+                      const empty =
+                        dayClasses.length === 0 && dayAssignments.length === 0;
+                      return (
+                        <div key={idx} className="p-3 min-h-[120px]">
+                          {empty ? (
+                            <div className="h-full flex items-center justify-center">
+                              <div className="text-[12px] text-[#E0E0E0]">
+                                No items
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              {/* Classes */}
+                              {dayClasses.map((classItem, cIdx) => (
+                                <div
+                                  key={classItem._id || `c-${cIdx}`}
+                                  className="mb-2 p-2 bg-orange-50 border-l-4 border-purple-400 text-xs text-[#212121] rounded-md shadow-sm hover:cursor-pointer hover:bg-purple-100"
+                                  title={`${
+                                    classItem.title || "Class"
+                                  } - ${formatTime(
+                                    classItem.startTime,
+                                    classItem.endTime
+                                  )}`}
+                                  onClick={() => handleJoinMeeting(classItem._id)}
+                                >
+                                  <div className="font-medium text-[13px] truncate">
+                                    {classItem.title || "Class"}
+                                  </div>
+                                  <div className="text-[11px] text-gray-600 truncate">
+                                    {formatInTz(classItem.startTime, userTz, {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })}
+                                  </div>
+                                </div>
+                              ))}
+
+                              {/* Assignments */}
+                              {dayAssignments.map((a, aIdx) => (
+                                <div
+                                  key={a._id || `a-${aIdx}`}
+                                  className="mb-2 p-2 bg-purple-50 border-l-4 border-purple-500 text-xs text-[#212121] rounded-md shadow-sm"
+                                  title={`${
+                                    a.title || "Assignment"
+                                  } - Due ${new Date(a.deadline).toLocaleTimeString(
+                                    "en-US",
+                                    {
+                                      hour: "numeric",
+                                      minute: "2-digit",
+                                      hour12: true,
+                                      timeZone: "UTC",
+                                    }
+                                  )}`}
+                                >
+                                  <div className="font-medium text-[13px] truncate">
+                                    {a.title || "Assignment"}
+                                  </div>
+                                  <div className="text-[11px] text-gray-600 truncate">
+                                    Due{" "}
+                                    {new Date(a.deadline).toLocaleTimeString(
+                                      "en-US",
+                                      {
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                        timeZone: "UTC",
+                                      }
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </main>

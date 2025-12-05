@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Book, Clock, IndianRupee, List } from "lucide-react";
+import { Book, Clock, IndianRupee, List, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 import CourseCard from "@/app/components/courseCard";
@@ -112,6 +112,13 @@ export default function TutorCoursesPage() {
 
   const coursesContent = (
     <>
+    <Link
+            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+            href="/student"
+          >
+            <ArrowLeft size={20} />
+            Back
+          </Link>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-purple-600 !text-[20px]">My Courses</h1>
       </div>

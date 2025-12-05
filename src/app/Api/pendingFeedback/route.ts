@@ -31,12 +31,13 @@ export async function GET(request) {
     }
 
     // Fetch tutor and students in parallel
+    // ✅ CHANGE: Now also fetch attendance field from students
     const [tutor, students] = await Promise.all([
       User.findById(tutorId).select("courses").lean(),
       User.find({
         instructorId: tutorId,
         category: "Student"
-      }).select("_id username profileImage courses").lean()
+      }).select("_id username profileImage courses attendance").lean() // ✅ Added attendance
     ]);
 
     if (!tutor) {
@@ -115,9 +116,9 @@ export async function GET(request) {
 
     // Fetch all classes in one query
     const classes = await Class.find({
-  _id: { $in: Array.from(allClassIds) },
-  endTime: { $lt: new Date() }  // ✅ Only classes where endTime is in the past
-}).select("_id title description startTime endTime").lean();
+      _id: { $in: Array.from(allClassIds) },
+      endTime: { $lt: new Date() }  // Only classes where endTime is in the past
+    }).select("_id title description startTime endTime").lean();
 
     // Create a map for quick class lookup
     const classMap = new Map(classes.map(c => [c._id.toString(), c]));
@@ -145,6 +146,19 @@ export async function GET(request) {
       Drawing: new Set(drawingFeedbacks.map(f => `${f.userId}_${f.classId}`))
     };
 
+    // ✅ NEW: Helper function to check attendance status
+    const getAttendanceStatus = (student, classId) => {
+      if (!student.attendance || student.attendance.length === 0) {
+        return "not_marked"; // Default if no attendance records exist
+      }
+      
+      const attendanceRecord = student.attendance.find(
+        att => att.classId.toString() === classId
+      );
+      
+      return attendanceRecord ? attendanceRecord.status : "not_marked";
+    };
+
     // Build missing feedback list
     const missingFeedbackClasses = [];
 
@@ -166,6 +180,14 @@ export async function GET(request) {
           const classItem = classMap.get(classIdStr);
           if (!classItem) continue;
 
+          // ✅ NEW: Check attendance status
+          const attendanceStatus = getAttendanceStatus(student, classIdStr);
+          
+          // ✅ NEW: Only include classes with "not_marked" attendance
+          if (attendanceStatus !== "not_marked") {
+            continue; // Skip this class if attendance is already marked
+          }
+
           // Check if feedback exists using the set
           const feedbackKey = `${student._id}_${classIdStr}`;
           if (!feedbackSets[category].has(feedbackKey)) {
@@ -179,6 +201,7 @@ export async function GET(request) {
               courseName: course.title,
               courseCategory: category,
               classDate: classItem.date || classItem.scheduledDate,
+              attendanceStatus: attendanceStatus, // ✅ Include this for debugging
               feedbackModelRequired: category === "Music" ? "feedback" : 
                                      category === "Dance" ? "feedbackDance" : 
                                      "feedbackDrawing"
@@ -197,7 +220,7 @@ export async function GET(request) {
       count: missingFeedbackClasses.length
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

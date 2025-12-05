@@ -41,10 +41,23 @@ const ClassSchema = new mongoose.Schema({
     required: true 
   },
 
+  reasonForReschedule:{
+    type:String,
+    default:""
+  },
+  reasonForCancelation:{
+    type:String,
+    default:""
+  },
   recurrenceType: {
     type: String,
     enum: ['daily', 'weekly', 'weekdays', null],
     default: null
+  },
+  // NEW: group id for recurring series (daily/weekly/weekdays)
+  recurrenceId: {
+    type: String,
+    default: null,
   },
   recurrenceUntil: {
     type: Date,
@@ -78,6 +91,11 @@ const ClassSchema = new mongoose.Schema({
       },
       feedback:String
     }]
+  },
+  status:{
+    type:String,
+    enum:['scheduled','rescheduled','completed','canceled'],
+    default:'scheduled'
   },
   
   // Class Quality Evaluation Data

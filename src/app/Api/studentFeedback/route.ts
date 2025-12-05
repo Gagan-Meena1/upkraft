@@ -4,6 +4,7 @@ import Class from '@/models/Class';
 import feedback from '@/models/feedback';
 import jwt from 'jsonwebtoken'
 import courseName from '@/models/courseName';
+import User  from '@/models/userModel';
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
 
 await connect();
@@ -42,6 +43,28 @@ export async function POST(request: NextRequest) {
         technique,
         feedback: personalFeedback
       } = data;
+
+      const {attendanceStatus} = data;
+
+      const user= await User.findById(studentId);
+     // Check if attendance record exists for this class
+    const attendanceIndex = user.attendance.findIndex(
+      (att) => att.classId.toString() === classId
+    );
+
+    if (attendanceIndex !== -1) {
+      // Update existing attendance record
+      user.attendance[attendanceIndex].status = status;
+    } else {
+      // Create new attendance record
+      user.attendance.push({
+        classId: classId,
+        status: attendanceStatus
+      });
+    }
+
+    // Save the updated user
+    await user.save();
              
       // Create feedback document
       const feedbackData = {
