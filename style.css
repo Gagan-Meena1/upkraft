@@ -1,15 +1,19 @@
 
-::selection {
-  background-color: var(--black);
-  color: var(--white);
-}
-.line-clamp-2 {
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
-}
+
 :root {
+  --white: #ffffff;
+  --black: #000000;
+  --text-color: #202020;
+  --blue: #6E09BD;
+  --dark-blue:  #7009BA ;
+  --orange: #FFC357;
+  --red: #e53935;
+  --bg-grey: #FAF8F6 !important;
+  --bg-light-grey: #EEEEEEEE !important;
+  --Inter: "Inter", sans-serif;
+  --light-blur: #F5F5F5;
+}
+/* :root {
   --white: #ffffff !important;
   --black: #000000 !important;
   --text-color: #212121 !important;
@@ -21,7 +25,7 @@
   --bg-grey: #FAF8F6 !important;
   --bg-light-grey: #EEEEEEEE !important;
   --Inter: "Inter", sans-serif !important;
-}
+} */
 
 * {
   box-sizing: border-box;
@@ -36,6 +40,18 @@ body {
   line-height: 100%;
   letter-spacing: 0px;
   overflow-x: hidden;
+}
+
+
+::selection {
+  background-color: var(--black);
+  color: var(--white);
+}
+.line-clamp-2 {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
 }
 
 h1, .h1 {
@@ -144,15 +160,15 @@ html {
 
 
 .btn-primary {
-    font-weight: 600 !important;
-    font-size: 16px !important;
-    line-height: 28px !important;
-    letter-spacing: 0 !important;
-    padding: 10px 15px !important;
-    color: var(--white) !important;
-    background-color: var(--dark-blue) !important;
-    border-radius: 8px !important;
-    border-color: var(--dark-blue) !important;
+    font-weight: 600;
+    font-size: 16px;
+    line-height: 28px;
+    letter-spacing: 0;
+    padding: 10px 15px;
+    color: var(--white);
+    background-color: var(--dark-blue);
+    border-radius: 8px;
+    border-color: var(--dark-blue);
 }
 
 .btn-primary:hover {
@@ -306,11 +322,14 @@ main.new-main {
 					border-radius: 0;
                     @media only screen and (max-width: 1199px){
                         font-size: 15px;
-                        @media only screen and (max-width: 767px){
-                            padding: 10px 8px;
-                            font-size: 14px;
+                        @media only screen and (max-width: 992px){
+                          padding: 15px 10px 14px 10px;
+                          @media only screen and (max-width: 767px){
+                              padding: 10px 8px;
+                              font-size: 14px;
+                          }
                         }
-                    }
+                      }
 					&.active {
 						border-bottom-color: var(--dark-blue);
 						font-weight: 600;

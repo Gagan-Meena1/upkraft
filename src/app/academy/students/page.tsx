@@ -15,7 +15,7 @@ interface Student {
   course: string;
   lastClass: string | null;
   progress: number;
-  attendance: number;
+  attendance: Array<any>;
   status: string;
 }
 
@@ -28,9 +28,27 @@ interface PaginationInfo {
   hasPrevPage: boolean;
 }
 
+interface Stats {
+  total: number;
+  active: number;
+  inactive: number;
+  vacation: number;
+  dormant: number;
+  blocked: number;
+}
+
+
 const Students = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [data, setData] = useState<{stats: Stats}>({stats: {
+    total: 0,
+    active: 0,
+    inactive: 0,
+    vacation: 0,
+    dormant: 0,
+    blocked: 0
+  }});
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -45,7 +63,9 @@ const Students = () => {
 
       const data = await response.json();
       setStudents(data.students);
+      console.log("Fetched students data:", data.students);
       setPagination(data.pagination);
+      setData({stats: data.stats});
     } catch (error) {
       console.error('Error fetching students:', error);
     } finally {
@@ -90,9 +110,9 @@ const Students = () => {
               </div>
               <div className='col-lg-3 col-6 mb-4'>
                 <Link href="/" className='card-box academy-card d-block  p-md-5 p-4 px-md-3 px-3'>
-                  <h2>452</h2>
+                  <h2>{data.stats.active}</h2>
                   <p className='m-0 p-0 pt-2'>Active Students</p>
-                  <span className="badge tag-exam">↑ 12 new</span>
+                  <span className="badge tag-exam">↑  new</span>
                 </Link>
               </div>
               <div className='col-lg-3 col-6 mb-4'>

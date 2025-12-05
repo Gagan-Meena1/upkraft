@@ -30,5 +30,8 @@
 	}
     .half-circle-progressbar {
         height: 166px;
+		@media only screen and (max-width: 1440px) {
+			height: 157px;
+		}
     }
 }

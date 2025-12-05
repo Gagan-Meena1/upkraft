@@ -233,19 +233,15 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
   };
   return (
     <div className="card-box">
-     {category == "Tutor" && <Link
-        className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
-        href="/tutor"
-      >
-        <ArrowLeft size={20} />
-        Back to Dashboard
-      </Link>
-}
+      
       <Toaster />
       <div className="assignments-list-sec">
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
-          <div className="left-head">
-            <h2>My Courses</h2>
+          <div className="left-head d-flex align-items-center gap-2">
+            <Link href="/tutor" className='link-text back-btn'>
+              <ChevronLeft />
+            </Link>
+            <h2 className="m-0">My Courses</h2>
           </div>
           <div className="right-form">
             <Form>
@@ -256,7 +252,7 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
                     <Form.Control type="text" placeholder="Search here" />
                     <Button
                       type="button"
-                      className="btn border-0 !bg-transparent !p-0 !m-0 !top-[10px] !left-3 position-absolute"
+                      className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute btn btn-primary"
                     >
                       <svg
                         width="20"
@@ -382,12 +378,13 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
                       <strong>{course.duration}</strong>
                     </span>
                   </li>
-                  <li className="d-flex align-items-center gap-2">
+                 {!academyId && <li className="d-flex align-items-center gap-2">
                     <span className="student-text">Fees :</span>
                     <span className="student-txt">
                       <strong>Rs {course.price}</strong>
                     </span>
                   </li>
+}
                   <li className="d-flex align-items-center gap-2">
                     <span className="student-text">Lessons :</span>
                     <span className="student-txt">
@@ -483,7 +480,7 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
                     <li>
                       <Link
                         href={`/tutor/courseQuality?courseId=${course._id}`}
-                        className="btn btn-border !py-[0.65rem] d-flex align-items-center justify-content-center gap-2"
+                        className="btn btn-border padding-fixed d-flex align-items-center justify-content-center gap-2"
                       >
                         <span>Class Quality</span>
                         <svg

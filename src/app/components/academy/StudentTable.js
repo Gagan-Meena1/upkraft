@@ -7,6 +7,7 @@ import Pagination from "react-bootstrap/Pagination";
 import Profile from "../../../assets/Mask-profile.png";
 
 const StudentTable = ({ students, pagination, onPageChange }) => {
+  console.log("StudentTable students:", students);
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -16,6 +17,28 @@ const StudentTable = ({ students, pagination, onPageChange }) => {
       year: 'numeric' 
     });
   };
+
+  const calculateAttendancePercentage = (attendance) => {
+  if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
+    return 0;
+  }
+
+  const presentCount = attendance.filter(
+    (record) => record.status === 'present'
+  ).length;
+  
+  const absentCount = attendance.filter(
+    (record) => record.status === 'absent'
+  ).length;
+
+  const totalRelevant = presentCount + absentCount;
+
+  if (totalRelevant === 0) {
+    return 0;
+  }
+
+  return Math.round((presentCount / totalRelevant) * 100);
+};
 
   const getProgressColor = (progress) => {
     if (progress >= 80) return { text: 'lighter-blue', bar: 'progress-green' };
@@ -194,21 +217,12 @@ const StudentTable = ({ students, pagination, onPageChange }) => {
 <td>
   <Link 
     href={`/academy/attendanceView?userId=${student._id}`}
-    onClick={() => {
-      // Store user data in sessionStorage for faster loading
-      sessionStorage.setItem(`user_${student._id}`, JSON.stringify({
-        _id: student._id,
-        username: student.username,
-        email: student.email,
-        profileImage: student.profileImage,
-        timezone: student.timezone || 'UTC'
-      }));
-    }}
     className="btn btn-sm border-black d-inline-flex align-items-center gap-1 hover-btn hover-bg-black"
   >
-    {student.attendance}%
+    {calculateAttendancePercentage(student.attendance)}%
   </Link>
-</td>                         <td>{formatDate(student.lastClass)}</td>
+</td>
+<td>{formatDate(student.lastClass)}</td>                    
                           <td>
                             <span className={getStatusColor(student.status)}>
                               {student.status}
