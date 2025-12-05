@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { Music, Folder, Heart, RefreshCw } from "lucide-react";
 import Link from "next/link";
-
+import {Button} from "react-bootstrap"
 
 export default function FavouritesPage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -11,9 +11,10 @@ export default function FavouritesPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getSongId = (song: any) => String(song._id || song.id || song.url || song.filename || song.title || "");
+  const getSongId = (song: any) =>
+    String(song._id || song.id || song.url || song.filename || song.title || "");
 
-  // load user id
+  // load user id + likedSongs from server (JWT)
   useEffect(() => {
     let ignore = false;
     (async () => {
@@ -21,26 +22,22 @@ export default function FavouritesPage() {
         const res = await fetch("/Api/users/user", { credentials: "include" });
         const data = await res.json().catch(() => ({}));
         const id = data?.user?._id || data?.data?._id || null;
-        if (!ignore) setUserId(id);
+        const liked = Array.isArray(data?.user?.likedSongs)
+          ? data.user.likedSongs.map((x: any) => String(x))
+          : [];
+        if (!ignore) {
+          setUserId(id);
+          setFavourites(liked);
+        }
       } catch (err) {
-        console.error("Failed to fetch user id", err);
+        console.error("Failed to fetch user/likedSongs", err);
       }
     })();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, []);
-
-  // load favourites for user
-  useEffect(() => {
-    if (!userId) return;
-    try {
-      const key = `upkraft:favourites:${userId}`;
-      const raw = localStorage.getItem(key);
-      setFavourites(raw ? JSON.parse(raw) : []);
-    } catch {
-      setFavourites([]);
-    }
-  }, [userId]);
-
+  
   // fetch songs and filter to favourites
   useEffect(() => {
     let ignore = false;
@@ -48,15 +45,16 @@ export default function FavouritesPage() {
       setLoading(true);
       setError(null);
       try {
-        // fetch a large limit (server already supports limit param)
-        const res = await fetch("/Api/songs?limit=1000");
+        const res = await fetch("/Api/songs?limit=1000", { credentials: "include" });
         if (!res.ok) throw new Error(`Failed to fetch songs (${res.status})`);
         const data = await res.json();
-        const items = Array.isArray(data?.songs || data?.items) ? (data.songs || data.items) : [];
+        const items = Array.isArray(data?.songs || data?.items)
+          ? (data.songs || data.items)
+          : [];
         if (!ignore) {
           if (favourites.length > 0) {
             const favSet = new Set(favourites.map(String));
-            setSongs(items.filter((s: any) => favSet.has(getSongId(s))));
+            setSongs(items.filter((s: any) => favSet.has(String(s._id))));
           } else {
             setSongs([]);
           }
@@ -68,7 +66,9 @@ export default function FavouritesPage() {
       }
     };
     load();
-    return () => { ignore = true; };
+    return () => {
+      ignore = true;
+    };
   }, [favourites]);
 
   // helpers
@@ -91,10 +91,12 @@ export default function FavouritesPage() {
           <h2 className="text-lg font-semibold">Favourites</h2>
         </div>
         <div className="flex items-center gap-2">
-          <Link href="/tutor/musicLibrary" className="px-3 py-1 rounded-md border bg-white hover:bg-gray-50">Back</Link>
-          <button onClick={() => window.location.reload()} className="inline-flex items-center px-3 py-1 rounded-md bg-white border hover:bg-gray-50">
+          <Button variant="secondary" className="!flex items-center px-3 !py-1 rounded-md bg-white border hover:bg-gray-50">
+          <Link href="/tutor/musicLibrary" className="">Back</Link>
+          </Button>
+          <Button onClick={() => window.location.reload()} className="!flex items-center px-3 !py-1 rounded-md bg-white border hover:bg-gray-50">
             <RefreshCw className="w-4 h-4 mr-2" /> Refresh
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -148,13 +150,15 @@ export default function FavouritesPage() {
                 <tr key={getSongId(song)} className="hover:bg-gray-50 transition-colors">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
-                      <button title="Liked" className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-red-100 text-red-600">
+                      <button title="Liked" className="inline-flex items-center justify-center w-8 h-8 !rounded-md bg-red-100 text-red-600">
                         <Heart size={16} />
                       </button>
                       {song.url ? (
-                        <a className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium" href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`} target="_blank" rel="noreferrer">
-                          Open
-                        </a>
+                        <Button className="!px-1 !py-1 !text-white">
+                          <Link className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium !text-white" href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`} target="_blank" rel="noreferrer">
+                            Open
+                          </Link>
+                        </Button>
                       ) : (
                         <span className="text-gray-400">-</span>
                       )}

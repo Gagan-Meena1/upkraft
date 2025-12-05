@@ -161,6 +161,11 @@ const userSchema = new mongoose.Schema({
         }],
 
     },
+    // ✅ User → Songs relation (many likes)
+    likedSongs: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Song"
+    }],
     forgotPasswordToken: String,
     forgotPasswordTokenExpiry: Date,
     verifyToken: String,
@@ -170,6 +175,7 @@ const userSchema = new mongoose.Schema({
 );
 
 userSchema.index({ instructorId: 1, category: 1 });
+userSchema.index({ likedSongs: 1 });
 
 const User = mongoose.models.users || mongoose.model("users", userSchema);
 export default User;
