@@ -27,7 +27,7 @@ const TopHeaderAcademy = () => {
     const fetchData = async () => {
       try {
         // Fetch user data from API
-        const userResponse = await fetch("/Api/users/user");
+        const userResponse = await fetch("/Api/academy/userDetail");
         const userData = await userResponse.json();
         setUserData(userData.user);
       } catch (error) {

@@ -3,6 +3,7 @@ import { connect } from '@/dbConnection/dbConfic';
 import User from '@/models/userModel';
 import jwt from 'jsonwebtoken';
 import { time } from 'console';
+import mongoose from 'mongoose';
 
 export async function GET(request: NextRequest) {
   try {
@@ -58,6 +59,55 @@ export async function GET(request: NextRequest) {
       academyId: academyId
     });
 
+// Convert academyId to ObjectId for aggregation
+    const academyObjectId = new mongoose.Types.ObjectId(academyId);
+
+    // Get status counts using aggregation
+    const statusCounts = await User.aggregate([
+      {
+        $match: {
+          category: "Student",
+          academyId: academyObjectId // Use ObjectId here
+        }
+      },
+      {
+        $group: {
+          _id: "$state",
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    console.log("Status Counts Raw:", statusCounts);
+
+    // Initialize stats object
+    const stats = {
+      total: totalStudents,
+      active: 0,
+      inactive: 0,
+      vacation: 0,
+      dormant: 0,
+      blocked: 0
+    };
+
+    // Populate stats from aggregation results
+    statusCounts.forEach(item => {
+      const state = item._id?.toLowerCase();
+      if (state && state in stats) {
+        stats[state] = item.count;
+      }
+    });
+
+
+console.log("Status Counts:", stats);
+
+statusCounts.forEach(item => {
+  if (item._id) {
+    stats[item._id.toLowerCase()] = item.count;
+  }
+});
+
+
     const totalPages = Math.ceil(totalStudents / limit);
 
     // Format the response
@@ -81,13 +131,14 @@ export async function GET(request: NextRequest) {
       timezone: student.timezone || 'UTC',
       // Hardcoded values as per requirement
       progress: 0,
-      attendance: 0,
-      status: 'Active'
+      attendance: student.attendance || [],
+      status: student.state || 'active'
     }));
 
     return NextResponse.json({
       success: true,
       students: formattedStudents,
+      stats,
       pagination: {
         currentPage: page,
         totalPages,
