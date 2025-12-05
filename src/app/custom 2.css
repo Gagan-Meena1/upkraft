@@ -162,12 +162,12 @@
   transition: all 0.5s ease;
 }
 
-.dashboard-sec .side-details-sec {
+/* .dashboard-sec .side-details-sec {
   width: calc(100% - 240px);
   padding: 33px 18px;
   margin-left: auto;
   margin-top: 80px;
-}
+} */
 
 /********com css**********/
 
