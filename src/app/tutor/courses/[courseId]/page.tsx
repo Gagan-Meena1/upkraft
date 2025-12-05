@@ -97,6 +97,14 @@ const CourseDetailsPage = () => {
 const [deletingClass, setDeletingClass] = useState<Class | null>(null);
 const [deleteReason, setDeleteReason] = useState("");
 const [deleteError, setDeleteError] = useState("");
+const [hasTimeChanged, setHasTimeChanged] = useState(false);
+
+// 2. Store original class time/date when opening edit modal
+const [originalDateTime, setOriginalDateTime] = useState({
+  date: "",
+  startTime: "",
+  endTime: ""
+});
   const params = useParams();
   const router = useRouter();
 
@@ -235,145 +243,163 @@ const formatDateTime = (dateTimeString: string) => {
   }, []);
 
   // Handle edit class
-  const handleEditClass = (classSession: Class) => {
-    setEditingClass(classSession);
+const handleEditClass = (classSession: Class) => {
+  setEditingClass(classSession);
 
-    // Extract EXACT values using UTC methods
-    const startDateTime = extractDateTimeForForm(classSession.startTime);
-    const endDateTime = extractDateTimeForForm(classSession.endTime);
+  const startDateTime = extractDateTimeForForm(classSession.startTime);
+  const endDateTime = extractDateTimeForForm(classSession.endTime);
 
-    console.log("EDITING CLASS - EXTRACTED VALUES:", {
-      startTime: startDateTime.timeStr,
-      endTime: endDateTime.timeStr,
-      date: startDateTime.dateStr,
-    });
+  console.log("EDITING CLASS - EXTRACTED VALUES:", {
+    startTime: startDateTime.timeStr,
+    endTime: endDateTime.timeStr,
+    date: startDateTime.dateStr,
+  });
 
-    setEditForm({
-      title: classSession.title,
-      description: classSession.description,
-      startTime: startDateTime.timeStr, // Exact: "14:30"
-      endTime: endDateTime.timeStr, // Exact: "16:00"
-      date: startDateTime.dateStr, // Exact: "2024-01-15"
-      reasonForReschedule: classSession.reasonForReschedule || "",
-    });
-    setShowEditModal(true);
-    setEditError("");
-  };
+  // Store original values
+  setOriginalDateTime({
+    date: startDateTime.dateStr,
+    startTime: startDateTime.timeStr,
+    endTime: endDateTime.timeStr
+  });
+
+  setEditForm({
+    title: classSession.title,
+    description: classSession.description,
+    startTime: startDateTime.timeStr,
+    endTime: endDateTime.timeStr,
+    date: startDateTime.dateStr,
+    reasonForReschedule: classSession.reasonForReschedule || "",
+  });
+  
+  setShowEditModal(true);
+  setEditError("");
+  setHasTimeChanged(false); // Reset on open
+};
+
+// Validate date and time
+const validateDateTime = (
+  date: string,
+  startTime: string,
+  endTime: string
+) => {
+  if (!date || !startTime || !endTime) return "";
+
+  const [year, month, day] = date.split("-").map(Number);
+  const [startHour, startMinute] = startTime.split(":").map(Number);
+  const [endHour, endMinute] = endTime.split(":").map(Number);
+
+  const startDateTime = new Date(
+    year,
+    month - 1,
+    day,
+    startHour,
+    startMinute
+  );
+  const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
+
+  if (endDateTime <= startDateTime) {
+    return "End time must be after start time";
+  }
+
+  return "";
+};
 
   // Handle form change for edit modal
-  const handleEditFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    const updatedForm = { ...editForm, [name]: value };
-    setEditForm(updatedForm);
+ const handleEditFormChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+) => {
+  const { name, value } = e.target;
+  const updatedForm = { ...editForm, [name]: value };
+  setEditForm(updatedForm);
 
-    // Validate time if start time, end time, or date changes
-    if (name === "startTime" || name === "endTime") {
-      const validationError = validateDateTime(
-        updatedForm.date,
-        updatedForm.startTime,
-        updatedForm.endTime
-      );
-      setEditError(validationError);
-    }
-  };
-
-  // Validate date and time
-  const validateDateTime = (
-    date: string,
-    startTime: string,
-    endTime: string
-  ) => {
-    if (!date || !startTime || !endTime) return "";
-
-    const [year, month, day] = date.split("-").map(Number);
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const [endHour, endMinute] = endTime.split(":").map(Number);
-
-    const startDateTime = new Date(
-      year,
-      month - 1,
-      day,
-      startHour,
-      startMinute
+  // Check if date or time has changed
+  if (name === "date" || name === "startTime" || name === "endTime") {
+    const dateChanged = updatedForm.date !== originalDateTime.date;
+    const startTimeChanged = updatedForm.startTime !== originalDateTime.startTime;
+    const endTimeChanged = updatedForm.endTime !== originalDateTime.endTime;
+    
+    setHasTimeChanged(dateChanged || startTimeChanged || endTimeChanged);
+    
+    // Validate time
+    const validationError = validateDateTime(
+      updatedForm.date,
+      updatedForm.startTime,
+      updatedForm.endTime
     );
-    const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
-    const currentDateTime = new Date();
+    setEditError(validationError);
+  }
+};
 
-    // if (startDateTime <= currentDateTime) {
-    //   return 'Start time cannot be in the past';
-    // }
-
-    if (endDateTime <= startDateTime) {
-      return "End time must be after start time";
-    }
-
-    return "";
-  };
 
   // Handle update class
-  const handleUpdateClass = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingClass) return;
+const handleUpdateClass = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!editingClass) return;
 
-    setIsUpdating(true);
-    setEditError("");
+  setIsUpdating(true);
+  setEditError("");
 
-    try {
-      if (editForm.endTime <= editForm.startTime) {
-        throw new Error("End time must be after start time");
-      }
-
-      console.log("UPDATING CLASS - SENDING VALUES:", {
-        date: editForm.date, // "2024-01-15"
-        startTime: editForm.startTime, // "14:30"
-        endTime: editForm.endTime, // "16:00"
-      });
-
-      const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: editForm.title,
-          description: editForm.description,
-          date: editForm.date, // Send exact: "2024-01-15"
-          startTime: editForm.startTime, // Send exact: "14:30"
-          endTime: editForm.endTime, // Send exact: "16:00"
-          reasonForReschedule: editForm.reasonForReschedule || "",
-          timezone:
-            userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to update class");
-      }
-
-      toast.success("Class updated successfully!");
-      setShowEditModal(false);
-      setEditingClass(null);
-
-      // Refresh data
-      const refreshResponse = await fetch(
-        `/Api/tutors/courses/${params.courseId}`
-      );
-      if (refreshResponse.ok) {
-        const refreshedData = await refreshResponse.json();
-        setCourseData(refreshedData);
-      }
-    } catch (error) {
-      console.error("Error updating class:", error);
-      setEditError(
-        error instanceof Error ? error.message : "Failed to update class"
-      );
-    } finally {
-      setIsUpdating(false);
+  try {
+    if (editForm.endTime <= editForm.startTime) {
+      throw new Error("End time must be after start time");
     }
-  };
+
+    // Only require reschedule reason if time/date changed
+    if (hasTimeChanged && !editForm.reasonForReschedule?.trim()) {
+      throw new Error("Please provide a reason for rescheduling");
+    }
+
+    console.log("UPDATING CLASS - SENDING VALUES:", {
+      date: editForm.date,
+      startTime: editForm.startTime,
+      endTime: editForm.endTime,
+      hasTimeChanged,
+    });
+
+    const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: editForm.title,
+        description: editForm.description,
+        date: editForm.date,
+        startTime: editForm.startTime,
+        endTime: editForm.endTime,
+        // Only send reason if time changed
+        reasonForReschedule: hasTimeChanged ? editForm.reasonForReschedule : "",
+        timezone:
+          userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update class");
+    }
+
+    toast.success("Class updated successfully!");
+    setShowEditModal(false);
+    setEditingClass(null);
+
+    // Refresh data
+    const refreshResponse = await fetch(
+      `/Api/tutors/courses/${params.courseId}`
+    );
+    if (refreshResponse.ok) {
+      const refreshedData = await refreshResponse.json();
+      setCourseData(refreshedData);
+    }
+  } catch (error) {
+    console.error("Error updating class:", error);
+    setEditError(
+      error instanceof Error ? error.message : "Failed to update class"
+    );
+  } finally {
+    setIsUpdating(false);
+  }
+};
   // Handle delete class
 const handleDeleteClass = async (classSession: Class) => {
   setDeletingClass(classSession);
@@ -1287,20 +1313,25 @@ const confirmDeleteClass = async () => {
                       />
                     </div>
 
-<div>
-  <label className="block text-sm font-medium text-gray-700 mb-1">
-    Reason for Reschedule <span className="text-red-500">*</span>
-  </label>
-  <textarea
-    name="reasonForReschedule"
-    value={editForm.reasonForReschedule || ""}
-    onChange={handleEditFormChange}
-    rows={3}
-    placeholder="Please provide a reason for rescheduling this class..."
-    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-    required
-  />
-</div>
+{hasTimeChanged && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Reason for Reschedule <span className="text-red-500">*</span>
+    </label>
+    <textarea
+      name="reasonForReschedule"
+      value={editForm.reasonForReschedule || ""}
+      onChange={handleEditFormChange}
+      rows={3}
+      placeholder="Please provide a reason for rescheduling this class..."
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      required
+    />
+    <p className="text-xs text-gray-500 mt-1">
+      Students will be notified about this reschedule
+    </p>
+  </div>
+)}
                   </div>
 
                   {editError && (

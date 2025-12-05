@@ -13,8 +13,9 @@ import {
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Legend, Tooltip, Title);
 
-const StudentTutorChart = () => {
-  const [chartData, setChartData] = useState({
+
+
+const StudentTutorChart = ({ tutors, students }) => {  const [chartData, setChartData] = useState({
     labels: [],
     datasets: [
       {
@@ -36,122 +37,103 @@ const StudentTutorChart = () => {
   const [loading, setLoading] = useState(true);
   const [yAxisMax, setYAxisMax] = useState(50);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
+useEffect(() => {
+  const processData = () => {
+    try {
+      setLoading(true);
 
-        // Fetch all students
-        const studentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        // Fetch all tutors
-        const tutorsResponse = await fetch("/Api/academy/tutors", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!studentsResponse.ok || !tutorsResponse.ok) {
-          throw new Error("Failed to fetch data");
-        }
-
-        const studentsData = await studentsResponse.json();
-        const tutorsData = await tutorsResponse.json();
-
-        const students = studentsData?.success ? studentsData.students || [] : [];
-        const tutors = tutorsData?.success ? tutorsData.tutors || [] : [];
-
-        // Get last 12 months
-        const now = new Date();
-        const months = [];
-        const monthLabels = [];
+      // Get last 12 months
+      const now = new Date();
+      const months = [];
+      const monthLabels = [];
+      
+      for (let i = 11; i >= 0; i--) {
+        const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+        const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
         
-        for (let i = 11; i >= 0; i--) {
-          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-          const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
-          
-          months.push({ start: monthStart, end: monthEnd });
-          
-          // Format month label (e.g., "Jan", "Feb")
-          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-          monthLabels.push(monthNames[date.getMonth()]);
-        }
-
-        // Count students joined per month
-        const studentsCount = months.map((month) => {
-          return students.filter((student) => {
-            if (!student.createdAt) return false;
-            const createdAt = new Date(student.createdAt);
-            return createdAt >= month.start && createdAt <= month.end;
-          }).length;
-        });
-
-        // Count tutors joined per month
-        const tutorsCount = months.map((month) => {
-          return tutors.filter((tutor) => {
-            if (!tutor.createdAt) return false;
-            const createdAt = new Date(tutor.createdAt);
-            return createdAt >= month.start && createdAt <= month.end;
-          }).length;
-        });
-
-        // Calculate max value for y-axis (at least 50 to show up to 45+)
-        const maxDataValue = Math.max(...studentsCount, ...tutorsCount, 0);
-        const calculatedMax = Math.max(50, Math.ceil((maxDataValue + 5) / 5) * 5);
-        setYAxisMax(calculatedMax);
-
-        setChartData({
-          labels: monthLabels,
-          datasets: [
-            {
-              label: "Students",
-              data: studentsCount,
-              backgroundColor: "#4201EB",
-              borderColor: "#f2f2f2",
-              borderWidth: 1,
-            },
-            {
-              label: "Tutors",
-              data: tutorsCount,
-              backgroundColor: "#7109B9",
-              borderColor: "#f2f2f2",
-              borderWidth: 1,
-            },
-          ],
-        });
-      } catch (error) {
-        console.error("Error fetching chart data:", error);
-        // Set empty data on error
-        setYAxisMax(50);
-        setChartData({
-          labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-          datasets: [
-            {
-              label: "Students",
-              data: Array(12).fill(0),
-              backgroundColor: "#4201EB",
-              borderColor: "#f2f2f2",
-              borderWidth: 1,
-            },
-            {
-              label: "Tutors",
-              data: Array(12).fill(0),
-              backgroundColor: "#7109B9",
-              borderColor: "#f2f2f2",
-              borderWidth: 1,
-            },
-          ],
-        });
-      } finally {
-        setLoading(false);
+        months.push({ start: monthStart, end: monthEnd });
+        
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        monthLabels.push(monthNames[date.getMonth()]);
       }
-    };
 
-    fetchData();
-  }, []);
+      // Count students joined per month
+      const studentsCount = months.map((month) => {
+        return students.filter((student) => {
+          if (!student.createdAt) return false;
+          const createdAt = new Date(student.createdAt);
+          return createdAt >= month.start && createdAt <= month.end;
+        }).length;
+      });
+
+      // Count tutors joined per month
+      const tutorsCount = months.map((month) => {
+        return tutors.filter((tutor) => {
+          if (!tutor.createdAt) return false;
+          const createdAt = new Date(tutor.createdAt);
+          return createdAt >= month.start && createdAt <= month.end;
+        }).length;
+      });
+
+      // Calculate max value for y-axis
+      const maxDataValue = Math.max(...studentsCount, ...tutorsCount, 0);
+      const calculatedMax = Math.max(50, Math.ceil((maxDataValue + 5) / 5) * 5);
+      setYAxisMax(calculatedMax);
+
+      setChartData({
+        labels: monthLabels,
+        datasets: [
+          {
+            label: "Students",
+            data: studentsCount,
+            backgroundColor: "#4201EB",
+            borderColor: "#f2f2f2",
+            borderWidth: 1,
+          },
+          {
+            label: "Tutors",
+            data: tutorsCount,
+            backgroundColor: "#7109B9",
+            borderColor: "#f2f2f2",
+            borderWidth: 1,
+          },
+        ],
+      });
+    } catch (error) {
+      console.error("Error processing chart data:", error);
+      setYAxisMax(50);
+      setChartData({
+        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        datasets: [
+          {
+            label: "Students",
+            data: Array(12).fill(0),
+            backgroundColor: "#4201EB",
+            borderColor: "#f2f2f2",
+            borderWidth: 1,
+          },
+          {
+            label: "Tutors",
+            data: Array(12).fill(0),
+            backgroundColor: "#7109B9",
+            borderColor: "#f2f2f2",
+            borderWidth: 1,
+          },
+        ],
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Only process data when both tutors and students are available
+  if (tutors.length > 0 || students.length > 0) {
+    processData();
+  } else {
+    setLoading(false);
+  }
+}, [tutors, students]);
 
   const options = {
     responsive: true,

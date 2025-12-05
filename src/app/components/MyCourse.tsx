@@ -378,12 +378,13 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
                       <strong>{course.duration}</strong>
                     </span>
                   </li>
-                  <li className="d-flex align-items-center gap-2">
+                 {!academyId && <li className="d-flex align-items-center gap-2">
                     <span className="student-text">Fees :</span>
                     <span className="student-txt">
                       <strong>Rs {course.price}</strong>
                     </span>
                   </li>
+}
                   <li className="d-flex align-items-center gap-2">
                     <span className="student-text">Lessons :</span>
                     <span className="student-txt">

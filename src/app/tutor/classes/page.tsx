@@ -62,6 +62,9 @@ function AddSessionPage() {
   const [repeatType, setRepeatType] = useState<"none" | "daily" | "weekly" | "weekdays">("none");
   const [repeatCount, setRepeatCount] = useState<number>(1); // number of occurrences (including first)
   const [repeatUntil, setRepeatUntil] = useState<string>(""); // yyyy-mm-dd
+  // Add these state variables after your existing useState declarations
+const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
   // helper: is weekday (Mon-Fri)
   const isWeekday = (date: Date) => {
@@ -502,7 +505,20 @@ const handleSubmit = async (e: React.FormEvent) => {
       alert("Failed to create class");
     }
   };
+// Add this helper function before the return statement
+const generateTimeOptions = () => {
+  const times = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) { // 15-minute intervals
+      const hourStr = String(hour).padStart(2, '0');
+      const minuteStr = String(minute).padStart(2, '0');
+      times.push(`${hourStr}:${minuteStr}`);
+    }
+  }
+  return times;
+};
 
+const timeOptions = generateTimeOptions();
   const calendarDays = generateCalendarDays();
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const weekdaysMobile = ["S", "M", "T", "W", "T", "F", "S"];
@@ -732,48 +748,135 @@ const handleSubmit = async (e: React.FormEvent) => {
                     {/* </div> */}
                   {/* </div> */}
                 {/* </div> */}
-
 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-  <div>
+  {/* Start Time Picker */}
+  <div className="relative">
     <label htmlFor="startTime" className="block text-gray-600 mb-2 text-sm font-medium">
-      Start Time (24-hour: HH:MM)
+      Start Time
     </label>
-    <input
-      type="text"
-      id="startTime"
-      name="startTime"
-      value={sessionForm.startTime}
-      onChange={handleTimeInput}
-      onKeyPress={(e) => {
-        if (!/[\d:]/.test(e.key)) e.preventDefault();
-      }}
-      pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
-      placeholder="14:30"
-      maxLength={5}
-      className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      required
-    />
+    <div className="relative">
+      <input
+        type="text"
+        id="startTime"
+        name="startTime"
+        value={sessionForm.startTime}
+        onChange={handleTimeInput}
+        onFocus={() => setShowStartTimePicker(true)}
+        onKeyPress={(e) => {
+          if (!/[\d:]/.test(e.key)) e.preventDefault();
+        }}
+        pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+        placeholder="09:00"
+        maxLength={5}
+        className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        required
+      />
+      <Clock className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400 w-5 h-5 pointer-events-none" />
+    </div>
+    
+    {/* Start Time Dropdown */}
+    {showStartTimePicker && (
+      <>
+        <div 
+          className="fixed inset-0 z-10" 
+          onClick={() => setShowStartTimePicker(false)}
+        />
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="sticky top-0 bg-gray-50 px-3 py-2 border-b border-gray-200">
+            <p className="text-xs text-gray-600 font-medium">Select time</p>
+          </div>
+          {timeOptions.map((time) => (
+            <button
+              key={time}
+              type="button"
+              onClick={() => {
+                setSessionForm({ ...sessionForm, startTime: time });
+                setShowStartTimePicker(false);
+                const validationError = validateDateTime(
+                  sessionForm.date,
+                  time,
+                  sessionForm.endTime
+                );
+                setErrorMessage(validationError);
+              }}
+              className={`w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors ${
+                sessionForm.startTime === time ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-700'
+              }`}
+            >
+              {time}
+              {sessionForm.startTime === time && (
+                <span className="float-right text-blue-600">✓</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </>
+    )}
   </div>
 
-  <div>
+  {/* End Time Picker */}
+  <div className="relative">
     <label htmlFor="endTime" className="block text-gray-600 mb-2 text-sm font-medium">
-      End Time (24-hour: HH:MM)
+      End Time
     </label>
-    <input
-      type="text"
-      id="endTime"
-      name="endTime"
-      value={sessionForm.endTime}
-      onChange={handleTimeInput}
-      onKeyPress={(e) => {
-        if (!/[\d:]/.test(e.key)) e.preventDefault();
-      }}
-      pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
-      placeholder="16:00"
-      maxLength={5}
-      className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-      required
-    />
+    <div className="relative">
+      <input
+        type="text"
+        id="endTime"
+        name="endTime"
+        value={sessionForm.endTime}
+        onChange={handleTimeInput}
+        onFocus={() => setShowEndTimePicker(true)}
+        onKeyPress={(e) => {
+          if (!/[\d:]/.test(e.key)) e.preventDefault();
+        }}
+        pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+        placeholder="10:30"
+        maxLength={5}
+        className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        required
+      />
+      <Clock className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400 w-5 h-5 pointer-events-none" />
+    </div>
+    
+    {/* End Time Dropdown */}
+    {showEndTimePicker && (
+      <>
+        <div 
+          className="fixed inset-0 z-10" 
+          onClick={() => setShowEndTimePicker(false)}
+        />
+        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="sticky top-0 bg-gray-50 px-3 py-2 border-b border-gray-200">
+            <p className="text-xs text-gray-600 font-medium">Select time</p>
+          </div>
+          {timeOptions.map((time) => (
+            <button
+              key={time}
+              type="button"
+              onClick={() => {
+                setSessionForm({ ...sessionForm, endTime: time });
+                setShowEndTimePicker(false);
+                const validationError = validateDateTime(
+                  sessionForm.date,
+                  sessionForm.startTime,
+                  time
+                );
+                setErrorMessage(validationError);
+              }}
+              className={`w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors ${
+                sessionForm.endTime === time ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-700'
+              }`}
+            >
+              {time}
+              {sessionForm.endTime === time && (
+                <span className="float-right text-blue-600">✓</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </>
+    )}
   </div>
 </div>
                 {/* Recurrence Controls */}
@@ -792,18 +895,44 @@ const handleSubmit = async (e: React.FormEvent) => {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Occurrences</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={repeatCount}
-                      onChange={(e) => setRepeatCount(Math.max(1, Number(e.target.value || 1)))}
-                      disabled={repeatType === "none"}
-                      className="w-full px-3 py-2 border rounded"
-                    />
-                  </div>
-
+                <div>
+  <label className="block text-sm font-semibold text-gray-700 mb-1">Occurrences</label>
+  <input
+    type="number"
+    min={1}
+    value={repeatCount}
+    onChange={(e) => {
+      const value = e.target.value;
+      // Allow the field to be empty during editing
+      if (value === '') {
+        // Don't set state yet, just allow empty
+        return;
+      }
+      const numValue = parseInt(value, 10);
+      if (!isNaN(numValue)) {
+        setRepeatCount(numValue);
+      }
+    }}
+    onBlur={(e) => {
+      // On blur, ensure value is at least 1
+      const value = e.target.value;
+      if (value === '' || parseInt(value, 10) < 1 || isNaN(parseInt(value, 10))) {
+        setRepeatCount(1);
+      } else {
+        setRepeatCount(Math.max(1, parseInt(value, 10)));
+      }
+    }}
+    onKeyDown={(e) => {
+      // Prevent minus sign and 'e' (exponential notation)
+      if (e.key === '-' || e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '.') {
+        e.preventDefault();
+      }
+    }}
+    disabled={repeatType === "none"}
+    className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+    placeholder="1"
+  />
+</div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Or repeat until</label>
                     <input

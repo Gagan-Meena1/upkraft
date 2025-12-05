@@ -52,6 +52,9 @@ const Dashboard = () => {
   const [studentRetention, setStudentRetention] = useState<number | null>(null);
   const [isRetentionLoading, setIsRetentionLoading] = useState<boolean>(false);
   const [retentionError, setRetentionError] = useState<string | null>(null);
+  // Add shared data states to pass to child components
+const [tutorsData, setTutorsData] = useState<any[]>([]);
+const [studentsData, setStudentsData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchTutorStats = async () => {
@@ -67,6 +70,7 @@ const Dashboard = () => {
         if (!response.ok) {
           throw new Error("Failed to fetch active tutors");
         }
+        
 
         const data = await response.json();
         const tutors = Array.isArray(data?.tutors) ? data.tutors : [];
@@ -100,6 +104,7 @@ const Dashboard = () => {
         setActiveTutorsLastMonthCount(totalTutorsLastMonth);
         setNewTutorsThisMonth(tutorsJoinedThisMonth);
         setNewTutorsLastMonth(tutorsJoinedLastMonth);
+setTutorsData(tutors); 
       } catch (error: any) {
         console.error("Error while fetching active tutors:", error);
         setTutorStatsError(
@@ -216,6 +221,8 @@ const Dashboard = () => {
           thisMonth: thisMonthPercentage,
           lastMonth: lastMonthPercentage,
         });
+        // Inside the try block, after all setStudents... calls
+setStudentsData(students); // Store students data for child components
         
       } catch (error: any) {
         console.error("Error while fetching student stats:", error);
@@ -1047,7 +1054,7 @@ const Dashboard = () => {
           <div className="row align-ite">
               <div className="col-lg-9 mb-lg-0 mb-4">
                 <div className="card-box">
-                    <StudentTutorChart />
+<StudentTutorChart tutors={tutorsData} students={studentsData} />
                 </div>
               </div>
               <div className="col-lg-3">
