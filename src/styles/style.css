@@ -1,3 +1,17 @@
+:root {
+  --white: #ffffff;
+  --black: #000000;
+  --text-color: #202020;
+  --blue: #6E09BD;
+  --dark-blue:  #7009BA ;
+  --orange: #FFC357;
+  --red: #e53935;
+  --bg-grey: #FAF8F6 !important;
+  --bg-light-grey: #EEEEEEEE !important;
+  --Inter: "Inter", sans-serif;
+  --light-blur: #F5F5F5;
+}
+
 /* Header Section - Positioned on banner */
 .header-section {
   position: absolute;
@@ -145,6 +159,15 @@
   text-align: center;
   max-width: 1060px;
   z-index: 1;
+}
+
+.landing-page h1 {
+    font-weight: 700;
+    color: var(--blue);
+}
+
+.faq-inner-sec .accordion .accordion-item .accordion-body .text-box {
+    font-size: 16px;
 }
 
 .banner-learners .text-box-banner p {
@@ -1048,9 +1071,39 @@ h3,
     padding: 7px 15px;
     border-radius: 5px;
     margin: 0 auto;
-    left: 15px;
-    right: 15px;
+    left: 10px;
+    right: 10px;
   }
+
+
+
+  .choose-box-com .mid-choose-box .mobile-view-mobile .learn-video:before {
+    content: "";
+    width: 36px;
+    height: 10px;
+    position: absolute;
+    top: 5px;
+    left: 0;
+    right: 0;
+    background: #151514;
+    margin: 0 auto;
+    border-radius: 20px;
+}
+
+.choose-box-com .mid-choose-box .mobile-view-mobile .learn-video:after {
+    content: "";
+    width: 23px;
+    height: 2px;
+    position: absolute;
+    top: 9px;
+    left: 0;
+    right: 0;
+    background: #878d98;
+    margin: 0 auto;
+    border-radius: 15px;
+}
+
+
 
   .choose-box-com .mid-choose-box {
     border: none;
@@ -1066,7 +1119,7 @@ h3,
     overflow: hidden;
     right: 7px;
     margin: 0 auto;
-    height: 95.5%;
+    height: 96.5%;
   }
 
   .choose-box-com .mid-choose-box .mobile-view-mobile .learn-video .mobile-shape img {

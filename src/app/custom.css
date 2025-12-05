@@ -1,3 +1,19 @@
+
+:root {
+  --white: #ffffff;
+  --black: #000000;
+  --text-color: #202020;
+  --blue: #6E09BD;
+  --dark-blue:  #7009BA ;
+  --orange: #FFC357;
+  --red: #e53935;
+  --bg-grey: #FAF8F6 !important;
+  --bg-light-grey: #EEEEEEEE !important;
+  --Inter: "Inter", sans-serif;
+  --light-blur: #F5F5F5;
+}
+
+
 .top-header-sec {
   position: fixed;
   top: 0;
@@ -139,10 +155,10 @@
   color: var(--dark-blue);
 }
 
-.dashboard-sec .side-menu-sec .side-menu a.active svg path,
+/* .dashboard-sec .side-menu-sec .side-menu a.active svg path,
 .dashboard-sec .side-menu-sec .side-menu a:hover svg path {
   fill: var(--dark-blue);
-}
+} */
 
 .dashboard-sec .side-menu-sec .side-menu a svg path {
   transition: all 0.5s ease;
@@ -430,14 +446,17 @@ button:focus:not(:focus-visible) {
     .search-box {
       @media only screen and (max-width: 767px) {
         width: 48.7%;
-        @media only screen and (max-width: 365px) {
-          width: 48.6%;
+        @media only screen and (max-width: 378px) {
+          width: 100%; 
         }
       }
     }
     .select-box {
       @media only screen and (max-width: 767px) {
         width: 48.7%;
+        @media only screen and (max-width: 378px) {
+          width: 100%; 
+        }
       }
     }
     .btn-primary.add-assignments {
@@ -716,3 +735,572 @@ button:focus:not(:focus-visible) {
 
 
 
+
+.results-sec {
+	padding-top: 15px;
+	.top-heading-box {
+		h2 {
+			font-weight: 600;
+			font-size: 24px;
+			line-height: 100%;
+			letter-spacing: 0px;
+			margin-bottom: 10px;
+			color: var(--dark-blue);
+            @media only screen and (max-width: 767px){
+                font-size: 18px;
+            }
+		}
+		p {
+			font-size: 14px;
+			line-height: 100%;
+			color: #505050;
+            @media only screen and (max-width: 767px){
+             line-height: 20px;
+            }
+		}
+	}
+	.card-results {
+		background: var(--light-blur);
+		padding: 16px;
+		border-radius: 8px;
+		text-align: center;
+    transition: all 0.8s ease;
+    box-shadow: 0 5px 5px transparent;
+    &::hover {
+        box-shadow: 0 5px 5px #c3c3c3;
+    }
+        @media only screen and (max-width: 1400px){
+            padding: 10px;
+        }
+		h3 {
+			font-weight: 600;
+			font-size: 20px;
+			color: var(--dark-blue);
+			margin-top: 8px;
+        @media only screen and (max-width: 767px){
+            font-size: 15px;
+        }
+		}
+		p {
+			margin: 0;
+			font-weight: 500;
+			font-size: 17px;
+			color: #505050;
+        @media only screen and (max-width: 767px){
+            font-size: 14px;
+        }
+		}
+    span {
+        width: 55px;
+        height: 55px;
+        background: #fff;
+        border-radius: 50px;
+        padding: 9px;
+        box-shadow: 0 3px 5px #dbdbdb;
+        margin-bottom: 20px !important;
+        object-fit: contain;
+        svg{
+          path, circle, polyline, ellipse {
+            stroke: var(--dark-blue);
+          }
+        }
+
+    }
+
+	}
+	.card-box-results {
+		margin-top: 32px;
+	}
+	table {
+		&.table {
+			th {
+				padding-right: 30px;
+			}
+		}
+	}
+}
+.right-side-result {
+	h5 {
+		font-size: 16px;
+		line-height: 100%;
+		margin-bottom: 24px;
+	}
+	.achievements-box {
+		padding-bottom: 16px;
+		margin-bottom: 16px;
+		border-bottom: 1px solid var( --bg-light-grey);
+        .img-box {
+            width: 28px;
+            &.icons-with-bg {
+                background: var(--light-blur);
+                border-radius: 100px;
+                height: 28px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+        }
+
+
+
+		p {
+			font-weight: 600;
+			font-size: 14px;
+		}
+		span {
+			font-size: 11px;
+			display: block;
+			color: #505050;
+			margin-top: 4px;
+		}
+	}
+}
+
+/* --- PracticeStudio: Responsive Fullscreen Toggle Button --- */
+.fs-toggle-wrap { pointer-events: none; }
+.fs-toggle-btn {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.fs-toggle-btn .icon { font-size: 14px; line-height: 1; }
+.fs-toggle-btn .short-text { display: none; }
+
+@media (max-width: 768px) {
+  .fs-toggle-wrap { right: 8px !important; top: 8px !important; }
+  .fs-toggle-btn { min-height: 40px; padding: 8px 12px; font-size: 12px; }
+}
+
+@media (max-width: 480px) {
+  .fs-toggle-btn { padding: 8px 10px; }
+  .fs-toggle-btn .full-text { display: none; }
+  .fs-toggle-btn .short-text { display: inline; }
+}
+
+
+/*****************new css for my page*****************/
+
+.my-archieve-card {
+    border: 1px solid #f5f5f5;
+    padding: 15px 15px 25px;
+    border-radius: 15px;
+    background: #f5f5f5;
+}
+
+
+.my-archieve-card .icons-box {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, #4201eb 0%, #7109b9 100%);
+    border-radius: 5px;
+    color: #fff;
+}
+
+.my-archieve-card .icons-box svg {
+    width: 27px;
+    height: 27px;
+}
+
+.my-archieve-card  .text-box {
+    width: calc(100% - 60px);
+}
+
+.my-archieve-card .left-box {
+    width: calc(100% - 270px);
+}
+
+.my-archieve-card .text-box h3 {
+    font-size: 17px;
+    line-height: 140%;
+    font-weight: 600;
+}
+
+.my-archieve-card .text-box .date-calener {
+    font-size: 16px;
+}
+
+.btn-evaluated {
+    font-weight: 600;
+    font-size: 15px;
+    line-height: 20px;
+    letter-spacing: 0;
+    padding: 8px 12px;
+    border: 1px solid var(--dark-blue);
+    border-radius: 7px;
+    color: var(--dark-blue);
+    height: 38px;
+}
+
+button[disabled] {
+    opacity: 0.7;
+}
+
+.video-btn-play {width: 38px;height: 38px;border: 1px solid var(--red);display: flex;align-items: center;justify-content: center;border-radius: 7px;}
+
+.video-btn-play svg {
+    color: var(--red);
+}
+
+.download-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid #00BC7E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+}
+
+.download-btn svg {
+    color: #00BC7E;
+}
+
+.Dropdown-btn {
+    width: 38px;
+    height: 38px;
+    border: 1px solid #00004a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+}
+
+.Dropdown-btn svg {
+    color:  #00004a;
+}
+
+.my-archieve-card .right-box button {
+    transition: all 0.8s ease;
+}
+
+.my-archieve-card .right-box button:hover {
+    transform: translateY(-8px);
+}
+
+
+.my-archieve-card .bottom-text-desc .btn-btm-text {
+    padding: 10px;
+    display: inline-block;
+    margin-bottom: 14px;
+    border-radius: 8px;
+}
+
+.bottom-text-desc p {
+    font-size: 16px;
+    line-height: 25px;
+}
+
+
+
+
+
+.my-archieve-accordion-card {
+    border: 1px solid #f5f5f5;
+    padding: 50px 15px 15px 15px;
+    background: #ffffff;
+    border-top: none;
+    margin-top: -10px;
+}
+
+
+.my-archieve-accordion-card .heading-box {
+    margin-bottom: 25px;
+    color: var(--blue);
+}
+
+.my-archieve-accordion-card  .box-top {
+    padding: 20px;
+    border-radius: 15px;
+}
+
+.my-archieve-accordion-card .box-top .heading-btn-box {
+    font-size: 17px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 15px;
+}
+
+.my-archieve-accordion-card .box-top p {
+    line-height: 140%;
+}
+
+
+.archieve-accordion-card-bottom h4 {
+    margin-bottom: 25px;
+}
+
+.archieve-accordion-card-bottom .box-card-box-archieve {
+    background: #fcfcfc;
+    padding: 15px;
+    border-radius: 15px;
+    box-shadow: 0 0 2px rgb(0 0 0 / 22%);
+}
+
+.archieve-accordion-card-bottom h5 {
+    font-weight: 500;
+}
+
+.archieve-accordion-card-bottom  .btn-type {
+    display: inline-block;
+    padding: 10px;
+    border-radius: 6px;
+    line-height: 140%;
+    margin-bottom: 10px;
+}
+
+.archieve-accordion-card-bottom  p.text-para {
+    line-height: 140%;
+}
+
+
+@media only screen and (max-width: 767px) {
+
+
+
+  .tab-sec-music.bottom-tabs {
+    overflow-x: auto;
+}
+
+
+.tab-sec-music.bottom-tabs ul.nav.nav-tabs {
+    min-width: 700px;
+}
+
+.top-archieve-card {flex-direction: column;}
+
+.my-archieve-card .left-box {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.top-archieve-card .right-box {width: 100%;}
+
+.my-archieve-card .text-box h3 {
+    font-size: 14px;
+}
+
+.my-archieve-card .text-box .date-calener {
+    font-size: 13px;
+}
+
+.bottom-text-desc p {
+    font-size: 14px;
+}
+
+.my-archieve-accordion-card {
+    padding-top: 25px;
+}
+
+.my-archieve-accordion-card .heading-box {
+    font-size: 16px;
+}
+
+.my-archieve-accordion-card .box-top {
+    padding: 14px;
+}
+
+.my-archieve-accordion-card .box-top .heading-btn-box {
+    font-size: 15px;
+}
+
+.my-archieve-accordion-card .box-top p {
+    font-size: 14px;
+    line-height: 160%;
+}
+
+.archieve-accordion-card-bottom h5 {
+    font-size: 15px;
+    line-height: 140%;
+}
+
+.archieve-accordion-card-bottom .btn-type {
+    padding: 4px 10px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.archieve-accordion-card-bottom p.text-para {
+    font-size: 14px;
+    line-height: 160%;
+}
+
+
+}
+
+
+
+.heading-text-top-box p {
+    font-size: 13px;
+}
+
+
+/*****checkbox new design*******/
+
+.checkbx {
+    display: block;
+    position: relative;
+    padding-left: 24px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    margin-top: 0;
+}
+
+.checkbx input.checkbox-box {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 23px;
+    width: 23px;
+    left: 0;
+    top: -10px;
+    z-index: 1;
+}
+
+.checkbx .checkmark {
+    position: absolute;
+    top: -10px;
+    left: 0;
+    height: 23px;
+    width: 23px;
+    background: #fff;
+    border-radius: 5px;
+}
+
+.checkbx input.checkbox-box:checked ~ .checkmark {
+    background-color: #6e09bd;
+}
+
+.checkbx .checkmark:before {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.checkbx input.checkbox-box:checked ~ .checkmark:before {
+    display: block;
+}
+
+span.checkmark:before {
+    left: 10px;
+    top: 4px;
+    width: 5px;
+    height: 12px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+
+
+
+/*******************/
+
+@media only screen and (max-width: 1199px){
+
+.new-tabs-telwind-sec .top-archieve-card {
+    flex-wrap: wrap;
+}
+
+.new-tabs-telwind-sec .top-archieve-card .left-box {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.new-tabs-telwind-sec .top-archieve-card  .right-box {
+    width: 100%;
+    justify-content: end;
+}
+
+.new-tabs-telwind-sec  .item-card-box {
+    width: 49%;
+}
+.new-tabs-telwind-sec .item-card-box:nth-child(2n+2) {
+    justify-content: end;
+}
+
+}
+
+
+
+@media only screen and (max-width: 767px){
+
+.new-tabs-telwind-sec .item-card-box:nth-child(2n+2) {
+    justify-content: end;
+}
+
+.new-tabs-telwind-sec .top-archieve-card .left-box {
+    flex-wrap: wrap;
+}
+
+.new-tabs-telwind-sec .top-archieve-card .left-box .sub-both-box {
+    margin-top: 10px;
+}
+
+.new-tabs-telwind-sec .top-archieve-card .right-box {
+    justify-content: start;
+}
+
+.new-tabs-telwind-sec .item-card-box {
+    width: 100%;
+    justify-content: space-between;
+}
+
+.new-tabs-telwind-sec .item-card-box:nth-child(2n+2) {
+    justify-content: space-between;
+}
+
+}
+
+
+
+
+.refer-tutor-sec input, .refer-tutor-sec select, .refer-tutor-sec textarea , .refer-tutor-sec input, .refer-tutor-sec .search-box input {
+	padding: 12px 20px;
+	font-weight: 400;
+	font-size: 16px;
+	line-height: 24px;
+	letter-spacing: 0px;
+	color: #6B7582;
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+    @media only screen and (max-width:767px){ 
+        font-size: 14px;
+        line-height: 20px;
+    }
+}
+
+
+.refer-tutor-sec .search-box button.btn.btn-trans {
+    background: transparent !important;
+    padding: 10px 0 0 !important;
+}
+
+
+/* .table-responsive.w-1430 .table-sec {
+    min-width: 1330px;
+} */
+
+.table-responsive.w-1430 .table-sec table tr th {
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+}
+
+
+@media only screen and (max-width:767px){
+  ul li, ol li, p {
+    font-size: 14px;
+  }
+}

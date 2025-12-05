@@ -89,13 +89,6 @@ const LearnFromExperts = () => {
           </video>
         </div>
         <div className="learn-text text-center mt-2">
-          {/* 👇 Changed text to a button */}
-          <button
-            className="btn btn-orange w-100"
-            onClick={() => handleLearnClick(video.name)}
-          >
-            Learn From {video.name}
-          </button>
 
           <div className="d-flex align-items-center justify-content-center gap-2 mt-2">
             <img src={Videoquality.src} alt="Quality Badge" />
@@ -104,6 +97,13 @@ const LearnFromExperts = () => {
           <div className="text d-flex align-items-center justify-content-center gap-1">
             YOE: 15 Years
           </div>
+          {/* 👇 Changed text to a button */}
+          <button
+            className="btn btn-orange w-100 mt-3"
+            onClick={() => handleLearnClick(video.name)}
+          >
+            Learn From {video.name}
+          </button>
         </div>
       </div>
     </div>
