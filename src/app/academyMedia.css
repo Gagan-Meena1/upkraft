@@ -161,7 +161,7 @@ table.table {
     padding: 0;
     margin-right: 15px;
     border: none;
-    min-width: 100px;
+    /* min-width: 100px; */
 }
 
 .top-header-sec .right-top-header .right-head-details h6 {
