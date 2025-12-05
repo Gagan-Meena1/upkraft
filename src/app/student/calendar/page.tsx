@@ -193,6 +193,37 @@ const StudentCalendarView = () => {
     setCurrentDate(d);
   };
 
+  // Unified navigation: prev / today / next that respect activeView ('day'|'week'|'month')
+  const handlePrev = () => {
+    if (activeView === "month") {
+      // go to previous month (keep to first day of that month for consistent month view)
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    } else if (activeView === "week") {
+      // shift one week back
+      const d = cloneDate(currentDate);
+      d.setDate(d.getDate() - 7);
+      setCurrentDate(d);
+    } else {
+      changeDay(-1);
+    }
+  };
+
+  const handleNext = () => {
+    if (activeView === "month") {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    } else if (activeView === "week") {
+      const d = cloneDate(currentDate);
+      d.setDate(d.getDate() + 7);
+      setCurrentDate(d);
+    } else {
+      changeDay(1);
+    }
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
   const formatTime = (startTime, endTime) => {
     if (!startTime) return "";
     return formatTimeRangeInTz(startTime, endTime, userTz);
@@ -309,12 +340,13 @@ const StudentCalendarView = () => {
             {/* Top Navigation Bar */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4 text-[20px] text-[#212121]">
-                <span
-                  onClick={() => changeDay(-1)}
+                {/* prev / label / next / today */}
+                <button
+                  onClick={handlePrev}
                   className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
                 >
                   {"<"}
-                </span>
+                </button>
                 <span className="font-medium text-[20px] text-[#212121]">
                   {currentDate.toLocaleDateString("en-US", {
                     day: "2-digit",
@@ -323,45 +355,49 @@ const StudentCalendarView = () => {
                     month: "long",
                   })}
                 </span>
-                <span
-                  onClick={() => changeDay(1)}
+                <button
+                  onClick={handleNext}
                   className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
                 >
                   {">"}
-                </span>
+                </button>
+                <button onClick={handleToday} className="ml-3 px-3 py-1 rounded bg-gray-100 text-sm">
+                  Today
+                </button>
               </div>
 
-              {/* In the header select controls (wire them to set view): */}
-              <div className="flex gap-[10px]">
-                <select
-                  value={activeView === "day" ? "day" : "day-options"}
-                  onChange={() => handleSetView("day")}
-                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate"
+              {/* View toggle buttons */}
+              <div className="inline-flex items-center gap-2">
+                <button
+                  onClick={() => handleSetView("day")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeView === "day"
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
-                  <option value="day">Day</option>
-                  <option value="today">Today</option>
-                  {/* <option value="tomorrow">Tomorrow</option> */}
-                </select>
-
-                <select
-                  value={activeView === "week" ? "week" : "week-options"}
-                  onChange={() => handleSetView("week")}
-                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate"
+                  Day
+                </button>
+                <button
+                  onClick={() => handleSetView("week")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeView === "week"
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
-                  <option value="week">Week</option>
-                  <option value="this-week">This Week</option>
-                  {/* <option value="next-week">Next Week</option> */}
-                </select>
-
-                <select
-                  value={activeView === "month" ? "month" : "month-options"}
-                  onChange={() => handleSetView("month")}
-                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate"
+                  Week
+                </button>
+                <button
+                  onClick={() => handleSetView("month")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeView === "month"
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
-                  <option value="month">Month</option>
-                  <option value="this-month">This Month</option>
-                  {/* <option value="next-month">Next Month</option> */}
-                </select>
+                  Month
+                </button>
               </div>
             </div>
 
@@ -373,23 +409,11 @@ const StudentCalendarView = () => {
                     <h3 className="text-lg font-semibold">
                       {currentDate.toLocaleString("en-US", { month: "long", year: "numeric" })}
                     </h3>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-                        className="px-3 py-1 rounded bg-gray-100"
-                      >
-                        Prev
-                      </button>
-                      <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 rounded bg-gray-100">
-                        Today
-                      </button>
-                      <button
-                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
-                        className="px-3 py-1 rounded bg-gray-100"
-                      >
-                        Next
-                      </button>
-                    </div>
+                    {/* <div className="flex gap-2">
+                      <button onClick={handlePrev} className="px-3 py-1 rounded bg-gray-100">Prev</button>
+                      <button onClick={handleToday} className="px-3 py-1 rounded bg-gray-100">Today</button>
+                      <button onClick={handleNext} className="px-3 py-1 rounded bg-gray-100">Next</button>
+                    </div> */}
                   </div>
 
                   <div className="grid grid-cols-7 gap-1 text-xs text-center text-gray-500 mb-2">

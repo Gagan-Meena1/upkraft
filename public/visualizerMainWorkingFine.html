@@ -483,7 +483,7 @@ header .row-second{/* margin-top:4px; */}
 }
 
 /* === On-screen Piano Keyboard (RH/LH + Labels) === */
-:root {
+/* :root {
   --piano-bg: #0b1428;
   --piano-border: var(--border, #23314f);
   --white-key: #f6f7fb;
@@ -496,6 +496,19 @@ header .row-second{/* margin-top:4px; */}
   --black-key-bottom-border: #0c1120;
   --rh-color: #60a5fa;
   --lh-color: #f59e0b;
+} */
+ :root {
+  --white: #ffffff;
+  --black: #000000;
+  --text-color: #202020;
+  --blue: #6E09BD;
+  --dark-blue:  #7009BA ;
+  --orange: #FFC357;
+  --red: #e53935;
+  --bg-grey: #FAF8F6 !important;
+  --bg-light-grey: #EEEEEEEE !important;
+  --Inter: "Inter", sans-serif;
+  --light-blur: #F5F5F5;
 }
 .piano {
   position: relative;
@@ -1830,10 +1843,10 @@ html[data-theme="light"] .track.playing {
 }
 
 /* Hide the scrollbar completely for medium screens */
-.row-first-controls::-webkit-scrollbar {
-  display: none;  /* Hide scrollbar for Chrome, Safari */
+/* .row-first-controls::-webkit-scrollbar {
+  display: none;  
   height: 4px;
-}
+} */
 
 /* Ensure no horizontal overflow on header */
 header {

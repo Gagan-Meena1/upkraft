@@ -5,12 +5,13 @@
   color: var(--white);
 }
 
+
 :root {
   --white: #ffffff;
   --black: #000000;
   --text-color: #202020;
   --blue: #6E09BD;
-  --dark-blue: #4201eb;
+  --dark-blue:  #7009BA ;
   --orange: #FFC357;
   --red: #e53935;
   --bg-grey: #FAF8F6 !important;
@@ -37,7 +38,7 @@ body {
 }
 
 /* Typography */
-h1,
+/* h1,
 .h1 {
   font-weight: 700 !important;
   font-size: 40px  ;
@@ -81,27 +82,27 @@ h5,
 
 h6,
 .h6 {
-  font-weight: 600  !important;
-  font-size: 16px !important;
-  line-height: 1.5  !important;
-  letter-spacing: 0.1px !important;
-}
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: 0px;
+} */
 
 ul li,
 ol li,
 p {
-  font-weight: 400  !important;
-  font-size: 15px !important;
-  line-height: 1.6  !important;
-  letter-spacing: 0px !important;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 26px;
+  letter-spacing: 0px;
 }
 
 a {
   text-decoration: none;
   color: var(--black);
   font-weight: 400;
-  line-height: 28px;
-  font-size: 18px;
+  line-height: 26px;
+  font-size: 16px;
   transition: all 0.5s ease;
 }
 
@@ -435,3 +436,6 @@ html {
     padding: 6px;
   }
 } */
+
+
+

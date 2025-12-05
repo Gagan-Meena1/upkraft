@@ -239,7 +239,7 @@ const MusicLibraryTable = () => {
 
   if (loading && songs.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className=" w-100 d-flex justify-content-center align-items-center gap-2 h-100">
         <RefreshCw className="w-8 h-8 animate-spin text-orange-500" />
         <span className="ml-2 text-gray-700 font-medium">Loading music library...</span>
       </div>
@@ -261,159 +261,168 @@ const MusicLibraryTable = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="music-tabs-lab-sec refer-tutor-sec">
       {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-form-box pb-3">
+        <div className="row">
           {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search songs, artists..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900"
-            />
+          <div className='col-lg-3 col-md-6 mb-lg-0 mb-md-4 mb-2'>
+            <div className="search-box">
+              <div className='position-relative'>
+              <Button className='btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute btn btn-primary btn btn-primary'>
+                <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M17.4995 17.5L13.8828 13.8833"
+                        stroke="#505050"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path
+                        d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
+                        stroke="#505050"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+              </Button>
+              <input
+                type="text"
+                placeholder="Search songs, artists..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="form-control ps-5 w-100"
+              />
+              </div>
+            </div>
           </div>
 
           {/* Genre Filter */}
-          <select
-            value={filters.genre}
-            onChange={(e) => setFilters({ ...filters, genre: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900"
-          >
-            <option value="">All Genres</option>
-            {availableFilters.genres.map(genre => (
-              <option key={genre} value={genre}>{genre}</option>
-            ))}
-          </select>
+          <div className='col-lg-3 col-md-6 mb-lg-0  mb-md-4 mb-2'>
+            <select
+              value={filters.genre}
+              onChange={(e) => setFilters({ ...filters, genre: e.target.value })}
+              className="w-100"
+            >
+              <option value="">All Genres</option>
+              {availableFilters.genres.map(genre => (
+                <option key={genre} value={genre}>{genre}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Difficulty Filter */}
-          <select
-            value={filters.difficulty}
-            onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900"
-          >
-            <option value="">All Difficulties</option>
-            {availableFilters.difficulties.map(difficulty => (
-              <option key={difficulty} value={difficulty}>{difficulty}</option>
-            ))}
-          </select>
-
+          <div className='col-lg-3 col-md-6 mb-lg-0  mb-md-4 mb-2'>
+            <select
+              value={filters.difficulty}
+              onChange={(e) => setFilters({ ...filters, difficulty: e.target.value })}
+              className="w-100"
+            >
+              <option value="">All Difficulties</option>
+              {availableFilters.difficulties.map(difficulty => (
+                <option key={difficulty} value={difficulty}>{difficulty}</option>
+              ))}
+            </select>
+          </div>
           {/* Instrument Filter */}
-          <select
-            value={filters.instrument}
-            onChange={(e) => setFilters({ ...filters, instrument: e.target.value })}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900"
-          >
-            <option value="">All Instruments</option>
-            {availableFilters.instruments.map(instrument => (
-              <option key={instrument} value={instrument}>{instrument}</option>
-            ))}
-          </select>
+          
+          <div className='col-lg-3 col-md-6 mb-lg-0  mb-md-4 mb-2'>
+            <select
+              value={filters.instrument}
+              onChange={(e) => setFilters({ ...filters, instrument: e.target.value })}
+              className="w-100"
+            >
+              <option value="">All Instruments</option>
+              {availableFilters.instruments.map(instrument => (
+                <option key={instrument} value={instrument}>{instrument}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Table */}
-  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-  <div className="overflow-x-auto">
-    <table className="w-full">
-      <thead className="bg-gray-50 border-b">
-        <tr>
-          <th className="text-left py-3 px-4 font-semibold text-gray-900">Actions</th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-900">Song</th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-900">Artist</th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-900">Instrument</th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-900">Genre</th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-900">Difficulty</th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-900">Year</th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-900">Notes</th>
-          <th className="text-left py-3 px-4 font-semibold text-gray-900">Skills</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-gray-200">
-        {songs.map((song) => (
- <tr key={song._id} className="hover:bg-gray-50 transition-colors">
-  <td className="py-3 px-4">
-    {song.url ? (
-      <a
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          padding: '0.5rem 0.75rem',
-          borderRadius: '0.5rem',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#ffffff',
-          backgroundColor: '#06b6d4',
-          boxShadow: '0 4px 14px 0 rgba(6, 182, 212, 0.5)',
-          transition: 'all 0.3s',
-          textDecoration: 'none',
-          margin: '0.25rem 0'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = '#0891b2';
-          e.currentTarget.style.transform = 'scale(1.05)';
-          e.currentTarget.style.boxShadow = '0 6px 20px 0 rgba(6, 182, 212, 0.6)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = '#06b6d4';
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 4px 14px 0 rgba(6, 182, 212, 0.5)';
-        }}
-        href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
-      >
-        <Music style={{ width: '0.75rem', height: '0.75rem', marginRight: '0.25rem' }} />
-        Open
-      </a>
-    ) : (
-      <span className="text-gray-400">-</span>
-    )}
-  </td>
-
-            <td className="py-3 px-4">
-              <div className="flex items-center space-x-2">
-                {getFileIcon(song.fileType, song.extension)}
-                <span className="font-medium text-gray-900 truncate max-w-xs">
-                  {song.title}
-                </span>
-              </div>
-            </td>
-            <td className="py-3 px-4 text-gray-800 max-w-xs truncate font-medium">
-              {song.artist || 'Unknown'}
-            </td>
-            <td className="py-3 px-4 text-gray-800 max-w-xs truncate font-medium">
-              {song.primaryInstrumentFocus || 'N/A'}
-            </td>
-            <td className="py-3 px-4">
-              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-900">
-                {song.genre || 'N/A'}
-              </span>
-            </td>
-            <td className="py-3 px-4">
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                song.difficulty === 'Beginner' ? 'bg-green-100 text-green-900' :
-                song.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-900' :
-                song.difficulty === 'Advanced' ? 'bg-red-100 text-red-900' :
-                'bg-gray-100 text-gray-900'
-              }`}>
-                {song.difficulty || 'N/A'}
-              </span>
-            </td>
-            <td className="py-3 px-4 text-gray-800 font-medium">
-              {song.year || 'N/A'}
-            </td>
-            <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
-              {song.notes || '-'}
-            </td>
-            <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
-              {formatSkills(song.skills)}
-            </td>
+  <div className="assignments-list-com table-responsive">
+  <div className="table-responsive w-1230">
+    <div className=' table-sec'>
+      <table className="table align-middle m-0">
+        <thead >
+          <tr>
+            <th>Actions</th>
+            <th>Song</th>
+            <th>Artist</th>
+            <th>Instrument</th>
+            <th>Genre</th>
+            <th>Difficulty</th>
+            <th>Year</th>
+            <th>Notes</th>
+            <th>Skills</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {songs.map((song) => (
+  <tr key={song._id} >
+    <td>
+      {song.url ? (
+        <a  className='btn btn-primary d-flex align-items-center gap-1 add-assignments'
+          href={`/visualizer.html?songUrl=${encodeURIComponent(song.url)}`}
+        >
+          <Music style={{ width: '15px', height: '15px'}} />
+          Open
+        </a>
+      ) : (
+        <span className="text-gray-400">-</span>
+      )}
+    </td>
+
+              <td>
+                <div className="flex items-center space-x-2">
+                  {/* {getFileIcon(song.fileType, song.extension)} */}
+                  <span className="font-medium text-gray-900 truncate max-w-xs">
+                    {song.title}
+                  </span>
+                </div>
+              </td>
+              <td>
+                {song.artist || 'Unknown'}
+              </td>
+              <td>
+                {song.primaryInstrumentFocus || 'N/A'}
+              </td>
+              <td>
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-900">
+                  {song.genre || 'N/A'}
+                </span>
+              </td>
+              <td>
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  song.difficulty === 'Beginner' ? 'bg-green-100 text-green-900' :
+                  song.difficulty === 'Intermediate' ? 'bg-yellow-100 text-yellow-900' :
+                  song.difficulty === 'Advanced' ? 'bg-red-100 text-red-900' :
+                  'bg-gray-100 text-gray-900'
+                }`}>
+                  {song.difficulty || 'N/A'}
+                </span>
+              </td>
+              <td>
+                {song.year || 'N/A'}
+              </td>
+              <td>
+                {song.notes || '-'}
+              </td>
+              <td>
+                {formatSkills(song.skills)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   </div>
 
   {songs.length === 0 && !loading && (
@@ -490,48 +499,41 @@ const MusicLibraryPage = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 flex">
+    <div className="w-100">
       {/* Sidebar */}
       {/* <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} isMobile={isMobile} /> */}
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="card-box">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 p-4 sm:p-6 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center space-x-4">
-            {isMobile && (
+        <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
+           <div className="left-head gap-2">
+            {/* {isMobile && (
               <button 
                 onClick={toggleSidebar}
                 className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
               >
                 <Menu size={24} />
               </button>
-            )}
-            <Link
-                                    href={`/tutor`}
-                                    className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
-                                  >
-                                    <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
-                                  </Link>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Music Library</h1>
-              <p className="text-gray-700 font-medium">Manage and organize your music collection</p>
+            )} */}
+              <h2>Music Library</h2>
+              <p className="m-0">Manage and organize your music collection</p>
             </div>
+          <div className='right-form'>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
+            >
+              <RefreshCw className="mr-2" />
+              Refresh
+            </Button>
           </div>
-          
-          <Button 
-            onClick={() => window.location.reload()}
-            className="btn btn-primary d-flex align-items-center "
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
-        </header>
+        </div>
+
+        <hr className="hr-light"></hr>
         
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 overflow-auto bg-gray-50">
           <MusicLibraryTable />
-        </main>
       </div>
     </div>
   );

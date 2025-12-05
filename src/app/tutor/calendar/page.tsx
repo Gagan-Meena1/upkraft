@@ -360,6 +360,37 @@ const StudentCalendarView = () => {
     setCurrentDate(d);
   };
 
+  // Unified navigation: prev / today / next that respect activeView ('day'|'week'|'month')
+  const handlePrev = () => {
+    if (activeView === "month") {
+      // go to previous month (keep to first day of that month for consistent month view)
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    } else if (activeView === "week") {
+      // shift one week back
+      const d = cloneDate(currentDate);
+      d.setDate(d.getDate() - 7);
+      setCurrentDate(d);
+    } else {
+      changeDay(-1);
+    }
+  };
+
+  const handleNext = () => {
+    if (activeView === "month") {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    } else if (activeView === "week") {
+      const d = cloneDate(currentDate);
+      d.setDate(d.getDate() + 7);
+      setCurrentDate(d);
+    } else {
+      changeDay(1);
+    }
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
   const formatTime = (startTime, endTime) => {
     if (!startTime) return "";
     // Use user's timezone for display
@@ -448,12 +479,12 @@ const StudentCalendarView = () => {
             {/* Top Navigation Bar */}
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center gap-4 text-[20px] text-[#212121]">
-                <span
-                  onClick={() => changeDay(-1)}
+                <button
+                  onClick={handlePrev}
                   className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
                 >
                   {"<"}
-                </span>
+                </button>
                 <span className="font-medium text-[20px] text-[#212121]">
                   {currentDate.toLocaleDateString("en-US", {
                     day: "2-digit",
@@ -462,47 +493,51 @@ const StudentCalendarView = () => {
                     month: "long",
                   })}
                 </span>
-                <span
-                  onClick={() => changeDay(1)}
+                <button
+                  onClick={handleNext}
                   className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
                 >
                   {">"}
-                </span>
+                </button>
+                <button onClick={handleToday} className="ml-3 px-3 py-1 rounded bg-gray-100 text-sm">
+                  Today
+                </button>
               </div>
 
-              <div className="flex gap-[10px]">
-                {/* wire existing controls -> set active view */}
-                <select
-                  value={activeView === "day" ? "day" : "day-options"}
-                  onChange={() => handleSetView("day")}
-                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500"
+              {/* View toggle buttons */}
+              <div className="inline-flex items-center gap-2">
+                <button
+                  onClick={() => handleSetView("day")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeView === "day"
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
-                  <option value="day">Day</option>
-                  <option value="today">Today</option>
-                  {/* <option value="tomorrow">Tomorrow</option> */}
-                </select>
-
-                <select
-                  value={activeView === "week" ? "week" : "week-options"}
-                  onChange={() => handleSetView("week")}
-                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  Day
+                </button>
+                <button
+                  onClick={() => handleSetView("week")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeView === "week"
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
-                  <option value="week">Week</option>
-                  <option value="this-week">This Week</option>
-                  {/* <option value="next-week">Next Week</option> */}
-                </select>
-
-                <select
-                  value={activeView === "month" ? "month" : "month-options"}
-                  onChange={() => handleSetView("month")}
-                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  Week
+                </button>
+                <button
+                  onClick={() => handleSetView("month")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                    activeView === "month"
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
-                  <option value="month">Month</option>
-                  <option value="this-month">This Month</option>
-                  {/* <option value="next-month">Next Month</option> */}
-                </select>
-             </div>
-           </div>
+                  Month
+                </button>
+              </div>
+            </div>
 
             {/* Course Dropdown and Create Class Button */}
             <div className="flex items-center gap-4 mb-6">
@@ -578,7 +613,7 @@ const StudentCalendarView = () => {
                     <h3 className="text-lg font-semibold">
                       {currentDate.toLocaleString("en-US", { month: "long", year: "numeric" })}
                     </h3>
-                    <div className="flex gap-2">
+                    {/* <div className="flex gap-2">
                       <button
                         onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
                         className="px-3 py-1 rounded bg-gray-100"
@@ -594,7 +629,7 @@ const StudentCalendarView = () => {
                       >
                         Next
                       </button>
-                    </div>
+                    </div> */}
                   </div>
 
                   <div className="grid grid-cols-7 gap-1 text-xs text-center text-gray-500 mb-2">
