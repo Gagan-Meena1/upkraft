@@ -123,8 +123,8 @@ h1 {
 }
 
 .dashboard-sec .side-details-sec {
-    width: 100%;
-    margin-top: 66px;
+    width: 100% !important;
+    margin-top: 66px !important;
     padding: 15px;
 }
 
