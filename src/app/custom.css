@@ -704,6 +704,49 @@ button:focus:not(:focus-visible) {
 
 
 
+/* User Dropdown Menu Styles */
+.top-header-sec .right-head-details .img-admin {
+  position: relative;
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  min-width: 180px;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 10px 15px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.user-dropdown-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #374151;
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.user-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.user-dropdown-item:hover {
+  background-color: #f3f4f6;
+}
+
+.user-dropdown-item svg {
+  flex-shrink: 0;
+}
+
 @media only screen and (max-width: 992px){
 
     .dashboard-sec .side-details-sec {
