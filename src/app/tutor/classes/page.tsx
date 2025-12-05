@@ -16,10 +16,18 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+<<<<<<< HEAD
 // import TimePicker from 'react-time-picker';
 // // ADD these
 // import * as dateFnsTz from 'date-fns-tz';
 import { format } from 'date-fns';import { parseISO, addDays } from 'date-fns';
+=======
+import TimePicker from 'react-time-picker';
+// ADD these
+import * as dateFnsTz from 'date-fns-tz';
+import { format } from 'date-fns';
+import { parseISO, addDays } from 'date-fns';
+>>>>>>> 61c39339de3dfff85e9ad8de13930ed667c249ef
 
 
 // Create a non-SSR version of the components
@@ -363,11 +371,19 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     console.log(`Creating ${occurrences.length} session(s)...`);
 
+    // ONLY generate a recurrenceId for explicit recurring batches (daily, weekly, weekdays)
+    const isRecurringBatch = ["daily", "weekly", "weekdays"].includes(repeatType);
+    const recurrenceId = isRecurringBatch
+      ? (typeof crypto !== "undefined" && (crypto as any).randomUUID
+          ? (crypto as any).randomUUID()
+          : `rec-${Date.now()}`)
+      : null;
+ 
     // Create each occurrence
     let created = 0;
     for (let idx = 0; idx < occurrences.length; idx++) {
       const occ = occurrences[idx];
-
+ 
       const formData = new FormData();
       formData.append("title", sessionForm.title || "");
       formData.append("description", sessionForm.description || "");
@@ -375,39 +391,48 @@ const handleSubmit = async (e: React.FormEvent) => {
       formData.append("startTime", occ.startTime); // HH:MM
       formData.append("endTime", occ.endTime); // HH:MM
       formData.append("timezone", timezoneToSend);
-
-      // Include course ID
-      if (courseId) {
-        formData.append("course", courseId);
-        formData.append("courseId", courseId);
+ 
+      // Attach recurrence metadata only for recurring batches
+      if (isRecurringBatch && recurrenceId) {
+        formData.append("recurrenceId", recurrenceId);
+        formData.append("recurrenceType", repeatType);
+        if (repeatUntil) formData.append("recurrenceUntil", repeatUntil);
+      } else {
+        formData.append("recurrenceType", "none");
       }
+ 
+     // Include course ID
+     if (courseId) {
+       formData.append("course", courseId);
+       formData.append("courseId", courseId);
+     }
+ 
+     // Attach video only for the first occurrence
+     if (sessionForm.video && idx === 0) {
+       formData.append("video", sessionForm.video);
+     }
 
-      // Attach video only for the first occurrence
-      if (sessionForm.video && idx === 0) {
-        formData.append("video", sessionForm.video);
-      }
-
-      const response = await fetch("/Api/classes", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response
-        .json()
-        .catch(() => ({ message: "Invalid response" }));
-
-      if (!response.ok) {
-        throw new Error(
-          result?.message || `Failed creating session on ${occ.date}`
-        );
-      }
-
-      created++;
-      console.log(`Created session ${created}/${occurrences.length}`);
-    }
-
-    alert(`Successfully created ${created} session(s)!`);
-    handleCloseForm();
+     const response = await fetch("/Api/classes", {
+       method: "POST",
+       body: formData,
+     });
+ 
+     const result = await response
+       .json()
+       .catch(() => ({ message: "Invalid response" }));
+ 
+     if (!response.ok) {
+       throw new Error(
+         result?.message || `Failed creating session on ${occ.date}`
+       );
+     }
+ 
+     created++;
+     console.log(`Created session ${created}/${occurrences.length}`);
+   }
+ 
+   alert(`Successfully created ${created} session(s)!`);
+   handleCloseForm();
     
     // Navigate back to course page
     if (courseId) {

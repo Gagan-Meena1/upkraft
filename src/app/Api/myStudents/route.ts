@@ -69,61 +69,128 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    const tutor = await User.findById(tutorId);
-    const tutorCourses = await courseName.find({ instructorId: tutorId });
-    const courseIds = tutorCourses.map(course => course._id);
+  //   const tutor = await User.findById(tutorId);
+  //   const tutorCourses = await courseName.find({ instructorId: tutorId });
+  //   const courseIds = tutorCourses.map(course => course._id);
     
-    const users = await User.find({
-      category: "Student",
-      $or: [
-        { courses: { $in: courseIds } },
-        { instructorId: tutorId }
-      ]
-    })
-    .select('username email contact city profileImage assignment courses _id')
-    .populate({
-      path: 'courses',
-      select: 'title category duration price courseQuality performanceScores instructorId',
-      populate: [
-        {
-          path: 'instructorId',
-          select: 'username email'
-        },
-        {
-          path: 'performanceScores.userId',
-          select: 'username email'
-        }
-      ]
-    });
+  //   const users = await User.find({
+  //     category: "Student",
+  //     $or: [
+  //       { courses: { $in: courseIds } },
+  //       { instructorId: tutorId }
+  //     ]
+  //   })
+  //   .select('username email contact city profileImage assignment courses _id')
+  //   .populate({
+  //     path: 'courses',
+  //     select: 'title category duration price courseQuality performanceScores instructorId',
+  //     populate: [
+  //       {
+  //         path: 'instructorId',
+  //         select: 'username email'
+  //       },
+  //       {
+  //         path: 'performanceScores.userId',
+  //         select: 'username email'
+  //       }
+  //     ]
+  //   });
     
-    if (!users || users.length === 0) {
-      return NextResponse.json({ 
-        success: true,
-        message: 'No students found',
-        filteredUsers: [],
-        userCount: 0,
-        academyId: tutor?.academyId || null
-      });
+  //   if (!users || users.length === 0) {
+  //     return NextResponse.json({ 
+  //       success: true,
+  //       message: 'No students found',
+  //       filteredUsers: [],
+  //       userCount: 0,
+  //       academyId: tutor?.academyId || null
+  //     });
+  //   }
+    
+  //   const filteredUsers = users.map(user => ({
+  //     _id: user._id,
+  //     username: user.username,
+  //     email: user.email,
+  //     contact: user.contact,
+  //     profileImage: user.profileImage,
+  //     city: user.city,
+  //     assignment: user.assignment,
+  //     courses: user.courses,
+  //   }));
+    
+  //   return NextResponse.json({
+  //     success: true,
+  //     message: filteredUsers.length > 0 ? 'Students fetched successfully' : 'No students found',
+  //     filteredUsers,
+  //     userCount: filteredUsers.length,
+  //     academyId: tutor?.academyId || null,
+  //     assignmentPending: tutor?.assignmentPending || 0
+  const tutor = await User.findById(tutorId).select('academyId pendingAssignments');
+const tutorCourses = await courseName.find({ instructorId: tutorId });
+const courseIds = tutorCourses.map(course => course._id);
+
+const users = await User.find({
+  category: "Student",
+  $or: [
+    { courses: { $in: courseIds } },
+    { instructorId: tutorId }
+  ]
+})
+.select('username email contact city profileImage assignment courses _id')
+.populate({
+  path: 'courses',
+  select: 'title category duration price courseQuality performanceScores instructorId',
+  populate: [
+    {
+      path: 'instructorId',
+      select: 'username email'
+    },
+    {
+      path: 'performanceScores.userId',
+      select: 'username email'
     }
-    
-    const filteredUsers = users.map(user => ({
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      contact: user.contact,
-      profileImage: user.profileImage,
-      city: user.city,
-      assignment: user.assignment,
-      courses: user.courses,
-    }));
-    
-    return NextResponse.json({
-      success: true,
-      message: filteredUsers.length > 0 ? 'Students fetched successfully' : 'No students found',
-      filteredUsers,
-      userCount: filteredUsers.length,
-      academyId: tutor?.academyId || null
-    });
+  ]
+});
+
+if (!users || users.length === 0) {
+  return NextResponse.json({ 
+    success: true,
+    message: 'No students found',
+    filteredUsers: [],
+    userCount: 0,
+    academyId: tutor?.academyId || null
+  });
+}
+  //   });
+  const pendingAssignmentsMap = new Map();
+
+if (tutor?.pendingAssignments && Array.isArray(tutor.pendingAssignments)) {
+  tutor.pendingAssignments.forEach((pending: any) => {
+    const studentId = pending.studentId.toString();
+    const pendingCount = pending.assignmentIds?.length || 0;
+    pendingAssignmentsMap.set(studentId, pendingCount);
+  });
+}
+
+// Map users and add pendingAssignments count
+const filteredUsers = users.map(user => ({
+  _id: user._id,
+  username: user.username,
+  email: user.email,
+  contact: user.contact,
+  profileImage: user.profileImage,
+  city: user.city,
+  assignment: user.assignment,
+  courses: user.courses,
+  pendingAssignments: pendingAssignmentsMap.get(user._id.toString()) || 0
+}));
+
+return NextResponse.json({
+  success: true,
+  message: filteredUsers.length > 0 ? 'Students fetched successfully' : 'No students found',
+  filteredUsers,
+  userCount: filteredUsers.length,
+  academyId: tutor?.academyId || null
+});
     
   } catch (error: any) {
     console.error('Server error:', error);
@@ -132,6 +199,7 @@ export async function GET(request: NextRequest) {
       error: error instanceof Error ? error.message : 'Failed to fetch students. Please try again.'
     }, { status: 500 });
   }
+  
 }
 
 export async function DELETE(request: NextRequest) {

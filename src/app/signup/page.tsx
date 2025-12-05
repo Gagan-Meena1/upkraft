@@ -147,7 +147,8 @@ export default function SignupPage() {
                       : "!bg-gray-100 !text-gray-700 !border !border-gray-200 hover:!bg-gray-200"
                       }`}
                   >
-                    {role}
+                    {role === "Academic" ? "Academy" : role}
+
                   </button>
                 ))}
               </div>

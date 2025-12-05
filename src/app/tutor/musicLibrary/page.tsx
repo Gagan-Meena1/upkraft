@@ -515,9 +515,22 @@ const MusicLibraryPage = () => {
               >
                 <Menu size={24} />
               </button>
+<<<<<<< HEAD
             )} */}
               <h2>Music Library</h2>
               <p className="m-0">Manage and organize your music collection</p>
+=======
+            )}
+            <Link
+                                    href={`/tutor`}
+                                    className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
+                                  >
+                                    <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
+                                  </Link>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Music Library</h1>
+              <p className="text-gray-700 font-medium">Manage and organize your music collection</p>
+>>>>>>> 61c39339de3dfff85e9ad8de13930ed667c249ef
             </div>
           <div className='right-form'>
             <Button 

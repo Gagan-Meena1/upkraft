@@ -23,12 +23,14 @@ import Image from "next/image";
 import { PiNutBold } from "react-icons/pi";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { Modal, Button } from "react-bootstrap"; // ADD
+// import { Modal} from "react-bootstrap"; // Rename to avoid conflict
+import { Modal, Button } from "react-bootstrap";
 import {
   formatInTz,
   formatTimeRangeInTz,
   getUserTimeZone,
 } from "@/helper/time";
+import EditClassModal from "@/app/components/EditClassModal"; // add near other imports
 
 interface UserData {
   _id: string;
@@ -52,6 +54,31 @@ const StudentCalendarView = () => {
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [showClassModal, setShowClassModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingClassId, setEditingClassId] = useState<string | null>(null);
+
+  // view state: 'day' | 'week' | 'month'
+  const [activeView, setActiveView] = useState<"day" | "week" | "month">("week");
+  const handleSetView = (v: "day" | "week" | "month") => {
+    setActiveView(v);
+  };
+
+  // Generate month days for Month view
+  const generateMonthDays = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const first = new Date(year, month, 1);
+    const last = new Date(year, month + 1, 0);
+    // start from Sunday (0) — keep consistent with UI elsewhere
+    const startPad = first.getDay();
+    const days: (Date | null)[] = [];
+    for (let i = 0; i < startPad; i++) days.push(null);
+    for (let d = 1; d <= last.getDate(); d++) days.push(new Date(year, month, d));
+    return days;
+  };
 
   // Modal handlers
   const handleOpenCourseModal = () => {
@@ -73,7 +100,73 @@ const StudentCalendarView = () => {
     router.push(`/tutor/classes?page=add-session&courseId=${selectedCourseId}`);
   };
 
-  // Check if mobile
+  // --- ADDED: class/modal handlers ---
+  const handleClassClick = (classItem: any) => {
+    setSelectedClass(classItem);
+    setShowClassModal(true);
+  };
+
+  const handleCloseClassModal = () => {
+    setShowClassModal(false);
+    setSelectedClass(null);
+  };
+
+  const handleEditClass = () => {
+    if (!selectedClass) {
+      toast.error("No class selected");
+      return;
+    }
+    setEditingClassId(selectedClass._id || null);
+    setShowEditModal(true);
+    setShowClassModal(false);
+  };
+
+  const handleDeleteClass = async (type: "single" | "all") => {
+    if (!selectedClass) return;
+    try {
+      const classId = selectedClass._id;
+      const res = await fetch(
+        `/Api/calendar/classes?classId=${encodeURIComponent(classId)}&deleteType=${encodeURIComponent(
+          type
+        )}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || data.message || "Failed to delete class");
+
+      toast.success(type === "single" ? "Deleted this event" : "Deleted all events");
+      setShowDeleteModal(false);
+      setShowClassModal(false);
+      setSelectedClass(null);
+
+      const studentList = await fetchStudents();
+      if (studentList.length > 0) {
+        await fetchAllClasses(studentList);
+      }
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      toast.error(err.message || "Failed to delete class");
+    }
+  };
+  
+  const handleEditSuccess = async () => {
+    try {
+      const studentList = await fetchStudents();
+      if (studentList.length > 0) {
+        await fetchAllClasses(studentList);
+      }
+      setShowEditModal(false);
+      setEditingClassId(null);
+      setSelectedClass(null);
+      toast.success("Class updated");
+    } catch (err) {
+      console.error("Refresh after edit failed:", err);
+    }
+  };
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -89,7 +182,6 @@ const StudentCalendarView = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Fetch students data
   const fetchStudents = async () => {
     try {
       const response = await fetch("/Api/myStudents");
@@ -104,11 +196,10 @@ const StudentCalendarView = () => {
     }
   };
 
-  // Fetch classes for all students
   const fetchAllClasses = async (studentList) => {
     try {
       const classPromises = studentList.map(async (student) => {
-        const response = await fetch(`/Api/classes?userid=${student._id}`);
+        const response = await fetch(`/Api/calendar/classes?userid=${student._id}`);
         const data = await response.json();
         return {
           studentId: student._id,
@@ -123,13 +214,11 @@ const StudentCalendarView = () => {
     }
   };
 
-  // Fetch tutor's courses
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         const response = await fetch("/Api/tutors/courses");
         const data = await response.json();
-        // Fix: use data.course instead of data.courses
         if (data.course) {
           setCourses(data.course);
         }
@@ -140,7 +229,6 @@ const StudentCalendarView = () => {
     fetchCourses();
   }, []);
 
-  // Fetch user data to get timezone
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -171,11 +259,10 @@ const StudentCalendarView = () => {
 
   const cloneDate = (d) => new Date(d.getTime());
 
-  // Get days for current week (Mon - Sun)
   const getWeekDays = () => {
     const ref = cloneDate(currentDate);
     const day = ref.getDay();
-    const diff = ref.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+    const diff = ref.getDate() - day + (day === 0 ? -6 : 1); 
     const startOfWeek = cloneDate(ref);
     startOfWeek.setDate(diff);
 
@@ -293,7 +380,8 @@ const StudentCalendarView = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const weekDays = getWeekDays();
+  // compute displayed day headers depending on active view
+  const weekDays = activeView === "day" ? [currentDate] : getWeekDays();
 
   const filteredStudents = students.filter(
     (student) =>
@@ -383,38 +471,48 @@ const StudentCalendarView = () => {
               </div>
 
               <div className="flex gap-[10px]">
-                <select className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500">
-                  <option className="truncate">Day</option>
-                  <option className="truncate">Today</option>
-                  <option className="truncate">Tomorrow</option>
-                  <option className="truncate">Custom...</option>
+                {/* wire existing controls -> set active view */}
+                <select
+                  value={activeView === "day" ? "day" : "day-options"}
+                  onChange={() => handleSetView("day")}
+                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="day">Day</option>
+                  <option value="today">Today</option>
+                  {/* <option value="tomorrow">Tomorrow</option> */}
                 </select>
 
-                <select className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500">
-                  <option className="truncate">Week</option>
-                  <option className="truncate">This Week</option>
-                  <option className="truncate">Next Week</option>
-                  <option className="truncate">Custom...</option>
+                <select
+                  value={activeView === "week" ? "week" : "week-options"}
+                  onChange={() => handleSetView("week")}
+                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="week">Week</option>
+                  <option value="this-week">This Week</option>
+                  {/* <option value="next-week">Next Week</option> */}
                 </select>
 
-                <select className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500">
-                  <option className="truncate">Month</option>
-                  <option className="truncate">This Month</option>
-                  <option className="truncate">Next Month</option>
-                  <option className="truncate">Custom...</option>
+                <select
+                  value={activeView === "month" ? "month" : "month-options"}
+                  onChange={() => handleSetView("month")}
+                  className="w-[90px] text-[16px] text-[#505050] border border-[#505050] rounded px-2 py-1 truncate focus:outline-none focus:ring-2 focus:ring-orange-500"
+                >
+                  <option value="month">Month</option>
+                  <option value="this-month">This Month</option>
+                  {/* <option value="next-month">Next Month</option> */}
                 </select>
-              </div>
-            </div>
+             </div>
+           </div>
 
             {/* Course Dropdown and Create Class Button */}
             <div className="flex items-center gap-4 mb-6">
-              <Button
+              <button
                 onClick={handleOpenCourseModal}
                 className="!bg-purple-600 hover:!bg-purple-700 !text-white !px-4 !py-2 !rounded-lg !flex !items-center !gap-2 !text-sm !font-medium"
               >
                 <PlusCircle size={18} />
                 Create Class
-              </Button>
+              </button>
 
               {/* Course Select Modal */}
               <Modal
@@ -455,145 +553,322 @@ const StudentCalendarView = () => {
                   </div>
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button
+                  <button
                     variant="outline-secondary"
                     onClick={handleCloseCourseModal}
                   >
                     Cancel
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     variant="primary"
                     disabled={!selectedCourseId}
                     onClick={handleConfirmCreateClass}
                   >
                     Continue
-                  </Button>
+                  </button>
                 </Modal.Footer>
               </Modal>
             </div>
 
             {/* Calendar Grid */}
             <div className="mt-2 rounded overflow-hidden">
-              {/* Header Row */}
-              <div className="grid items-stretch bg-white" style={gridTemplate}>
-                {/* Search Input Cell */}
-                <div className="p-3 bg-white">
-                  <input
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    type="text"
-                    placeholder="Search Students"
-                    className="w-full h-[48px] px-4 rounded 
-                  border border-[#505050] 
-                  text-[14px] text-[#505050] 
-                  bg-white 
-                  font-inter font-normal
-                  focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
+              {activeView === "month" ? (
+                <div className="bg-white p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">
+                      {currentDate.toLocaleString("en-US", { month: "long", year: "numeric" })}
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
+                        className="px-3 py-1 rounded bg-gray-100"
+                      >
+                        Prev
+                      </button>
+                      <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 rounded bg-gray-100">
+                        Today
+                      </button>
+                      <button
+                        onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+                        className="px-3 py-1 rounded bg-gray-100"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-1 text-xs text-center text-gray-500 mb-2">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                      <div key={d} className="py-2">
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-7 gap-2">
+                    {generateMonthDays(currentDate).map((d, idx) => {
+                      const classCount = d ? filteredStudents.reduce((acc, s) => acc + getClassesForDate(s._id, d).length, 0) : 0;
+
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            if (!d) return;
+                            setCurrentDate(d);
+                            setActiveView("day");
+                          }}
+                          className={`min-h-[88px] p-2 border rounded ${d ? "bg-white cursor-pointer hover:bg-gray-50" : "bg-transparent"}`}
+                        >
+                          {d ? (
+                            <>
+                              <div className="text-sm font-medium">{d.getDate()}</div>
+
+                              <div className="mt-2 text-xs text-gray-600">
+                                {classCount > 0 ? (
+                                  <span className="inline-block px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
+                                    {classCount} class{classCount !== 1 ? "es" : ""}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-300">—</span>
+                                )}
+                              </div>
+                            </>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+              ) : (
+                <>
+                  {/* Header Row */}
+                  <div className="grid items-stretch bg-white" style={gridTemplate}>
+                    {/* Search Input Cell */}
+                    <div className="p-3 bg-white">
+                      <input
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        type="text"
+                        placeholder="Search Students"
+                        className="w-full h-[48px] px-4 rounded border border-[#505050] text-[14px] text-[#505050] bg-white font-inter font-normal focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      />
+                    </div>
 
-                {/* Week Day Headers */}
-                {weekDays.map((day, idx) => (
-                  <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
-                    <div className="text-[16px] font-inter font-medium text-[#212121]">
-                      {day.toLocaleDateString("en-US", {
-                        day: "2-digit",
-                        weekday: "short",
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Body */}
-              <div className="max-h-[70vh] overflow-auto">
-                {filteredStudents.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="text-[16px] text-[#9B9B9B] mb-2">
-                      No students to display
-                    </div>
-                    <div className="text-[14px] text-[#C4C4C4]">
-                      {searchTerm
-                        ? "Try adjusting your search terms"
-                        : "No students found in the system"}
-                    </div>
-                  </div>
-                ) : (
-                  filteredStudents.map((student) => (
-                    <div
-                      key={student._id}
-                      className="grid items-center hover:bg-gray-50 transition-colors"
-                      style={gridTemplate}
-                    >
-                      {/* Student Info Cell */}
-                      <div className="p-3 flex items-center gap-3 min-h-[88px] border-r border-gray-200">
-                        {student.profileImage ? (
-                          <img
-                            src={student.profileImage}
-                            alt={student.username}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-sm font-medium text-purple-800">
-                            {getInitials(student.username)}
-                          </div>
-                        )}
-                        <div>
-                          <div className="text-[14px] text-[#212121] font-medium">
-                            {student.username}
-                          </div>
+                    {/* Day headers (1 or 7 depending on activeView) */}
+                    {weekDays.map((day, idx) => (
+                      <div key={idx} className="p-3 text-center bg-[#F5F5F5]">
+                        <div className="text-[16px] font-inter font-medium text-[#212121]">
+                          {day.toLocaleDateString("en-US", {
+                            day: "2-digit",
+                            weekday: "short",
+                          })}
                         </div>
                       </div>
+                    ))}
+                  </div>
 
-                      {/* Daily Schedule Cells */}
-                      {weekDays.map((day, idx) => {
-                        const classes = getClassesForDate(student._id, day);
-                        return (
-                          <div key={idx} className="p-3 min-h-[88px]">
-                            {classes.length === 0 ? (
-                              <div className="h-full flex items-center justify-center">
-                                <div className="text-[12px] text-[#E0E0E0]">
-                                  No classes
-                                </div>
-                              </div>
+                  {/* Calendar Body */}
+                  <div className="max-h-[70vh] overflow-auto">
+                    {filteredStudents.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <div className="text-[16px] text-[#9B9B9B] mb-2">No students to display</div>
+                        <div className="text-[14px] text-[#C4C4C4]">
+                          {searchTerm ? "Try adjusting your search terms" : "No students found in the system"}
+                        </div>
+                      </div>
+                    ) : (
+                      filteredStudents.map((student) => (
+                        <div key={student._id} className="grid items-center hover:bg-gray-50 transition-colors" style={gridTemplate}>
+                          {/* Student Info Cell */}
+                          <div className="p-3 flex items-center gap-3 min-h-[88px] border-r border-gray-200">
+                            {student.profileImage ? (
+                              <img src={student.profileImage} alt={student.username} className="w-10 h-10 rounded-full object-cover" />
                             ) : (
-                              classes.map((classItem, cIdx) => (
-                                <div
-                                  key={classItem._id || cIdx}
-                                  className="mb-2 last:mb-0 p-2 bg-purple-50 border-l-4 border-purple-400 hover:bg-purple-100 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                                  title={`${
-                                    classItem.title || "Class"
-                                  } - ${formatTime(
-                                    classItem.startTime,
-                                    classItem.endTime
-                                  )}`}
-                                  onClick={() =>
-                                    handleJoinMeeting(classItem._id)
-                                  }
-                                >
-                                  <div className="font-medium text-[13px] truncate">
-                                    {classItem.title || "Class"}
-                                  </div>
-                                  <div className="text-[11px] text-gray-600 truncate">
-                                    {formatTime(
-                                      classItem.startTime,
-                                      classItem.endTime
-                                    )}
-                                  </div>
-                                </div>
-                              ))
+                              <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-sm font-medium text-purple-800">
+                                {getInitials(student.username)}
+                              </div>
                             )}
+                            <div>
+                              <div className="text-[14px] text-[#212121] font-medium">{student.username}</div>
+                            </div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ))
-                )}
-              </div>
+
+                          {/* Daily Schedule Cells */}
+                          {weekDays.map((day, idx) => {
+                            const classes = getClassesForDate(student._id, day);
+                            return (
+                              <div key={idx} className="p-3 min-h-[88px]">
+                                {classes.length === 0 ? (
+                                  <div className="h-full flex items-center justify-center">
+                                    <div className="text-[12px] text-[#E0E0E0]">No classes</div>
+                                  </div>
+                                ) : (
+                                  classes.map((classItem, cIdx) => (
+                                    <div
+                                      key={classItem._id || cIdx}
+                                      className="mb-2 last:mb-0 p-2 bg-purple-50 border-l-4 border-purple-400 hover:bg-purple-100 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                      title={`${classItem.title || "Class"} - ${formatTime(classItem.startTime, classItem.endTime)}`}
+                                      onClick={() => handleClassClick(classItem)}
+                                    >
+                                      <div className="font-medium text-[13px] truncate">{classItem.title || "Class"}</div>
+                                      <div className="text-[11px] text-gray-600 truncate">{formatTime(classItem.startTime, classItem.endTime)}</div>
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </main>
       </div>
+      
+      {/* Class Options Modal */}
+      <Modal
+        show={showClassModal}
+        onHide={handleCloseClassModal}
+        centered
+        dialogClassName="max-w-lg"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <div>
+            <h5 className="mb-0 text-lg font-semibold">
+              {selectedClass?.title || "Class"}
+            </h5>
+            <div className="text-sm text-gray-500 mt-1">
+              {selectedClass?.studentName ||
+                selectedClass?.student?.username ||
+                ""}
+            </div>
+          </div>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          <div className="grid gap-3">
+            <div className="flex items-center gap-3 text-sm text-gray-700">
+              <Clock className="w-4 h-4 text-gray-500" />
+              <div>
+                <div className="font-medium">
+                  {formatTime(selectedClass?.startTime, selectedClass?.endTime) ||
+                    "No time"}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {new Date(selectedClass?.startTime || Date.now()).toLocaleDateString()}
+                </div>
+              </div>
+            </div>
+
+            {/* <div className="flex items-center gap-3 text-sm text-gray-700">
+              <BookOpen className="w-4 h-4 text-gray-500" />
+              <div className="text-sm">
+                {selectedClass?.courseTitle || "No course"}
+              </div>
+            </div> */}
+
+            {selectedClass?.description && (
+              <div className="text-sm text-gray-600">
+                {selectedClass.description.length > 220
+                  ? `${selectedClass.description.slice(0, 220)}...`
+                  : selectedClass.description}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+              <Button
+                variant="outline-primary"
+                className="flex-1 !rounded-md !py-2"
+                onClick={handleEditClass}
+              >
+                Reschedule
+              </Button>
+
+              <Button
+                variant="outline-danger"
+                className="flex-1 !rounded-md !py-2"
+                onClick={() => {
+                  setShowDeleteModal(true);
+                }}
+              >
+                Cancel
+              </Button>
+
+              <Button
+                variant="success"
+                className="flex-1 !rounded-md !py-2"
+                onClick={() => {
+                  if (selectedClass?. _id) handleJoinMeeting(selectedClass._id);
+                  handleCloseClassModal();
+                }}
+              >
+                Join Meeting
+              </Button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Delete Options Modal */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+        dialogClassName="max-w-md"
+      >
+        <Modal.Header closeButton className="border-0 pb-0">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-red-500" />
+            <h5 className="mb-0 text-lg font-semibold">Delete Class</h5>
+          </div>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          <p className="text-sm text-gray-600 mb-4">
+            Do you want to delete only this occurrence or the entire series? This
+            action cannot be undone.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              variant="danger"
+              className="flex-1 !py-2 !rounded-md"
+              onClick={() => handleDeleteClass("single")}
+            >
+              This Event
+            </Button>
+
+            <Button
+              variant="outline-danger"
+              className="flex-1 !py-2 !rounded-md"
+              onClick={() => handleDeleteClass("all")}
+            >
+              All Events
+            </Button>
+          </div>
+
+          <div className="mt-3 text-right">
+            <button
+              className="text-sm text-gray-500 hover:text-gray-700"
+              onClick={() => setShowDeleteModal(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Edit shared modal */}
+      <EditClassModal
+        show={showEditModal}
+        onHide={() => { setShowEditModal(false); setEditingClassId(null); }}
+        classId={editingClassId}
+        initialData={selectedClass} // <-- pass selected class so modal autofills immediately
+        userTimezone={userTz}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 };
