@@ -452,37 +452,27 @@ export default function MyStudents() {
                               href={`/tutor/addToCourseTutor?studentId=${student._id}`}
                               className=""
                             >
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> cb56216a7ea4f63fbf743640744e41115f6e9864
                               Course
-                            </Link>
-                          </td>
-                          <td>
-                            <div className="d-flex gap-4 justify-content-between">
-<<<<<<< HEAD
-=======
-                              {student.city || "N/A"}
+                              </Link>
                             </td>
-                            <td className="px-3 py-3">
-  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-gray-800">
+                            {/* <td className="">
+  <span className="">
     {student.pendingAssignments || 0}
   </span>
 </td>
-                            <td className="px-3 py-3">
+                            <td >
                               <span
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${student.performanceAverage}`}
+                                className={` ${student.performanceAverage}`}
                               >
                                 {student.performanceAverage &&
                                 student.performanceAverage > 0
                                   ? `${student.performanceAverage}`
                                   : "N/A"}
                               </span>
-                            </td>
-                            <td className="px-3 py-3">
+                            </td> */}
+                            {/* <td>
                               <span
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                className={`${
                                   student.courseQualityAverage
                                   // student.courseQualityAverage > 0
                                   //   ? student.courseQualityAverage >= 4
@@ -498,21 +488,15 @@ export default function MyStudents() {
                                   ? `${student.courseQualityAverage}`
                                   : "N/A"}
                               </span>
-                            </td>
-                            <td className="px-3 py-3 text-center">
->>>>>>> 61c39339de3dfff85e9ad8de13930ed667c249ef
-=======
->>>>>>> cb56216a7ea4f63fbf743640744e41115f6e9864
+                            </td> */}
+                            <td>
+                              <div className="d-flex align-content-center justify-content-between gap-2">
                               <Link
                                 href={`/tutor/studentDetails?studentId=${student._id}`}
                                 className=""
                               >
-                                Course
+                                Details
                               </Link>
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> cb56216a7ea4f63fbf743640744e41115f6e9864
                               <button
                                 onClick={() => handleDeleteStudent(student._id)}
                                 disabled={deletingStudents.has(student._id)}
@@ -522,123 +506,6 @@ export default function MyStudents() {
                                     : "btn-delete"
                                 }`}
                                 title="Delete Student"
-<<<<<<< HEAD
-=======
-                            </td>
-                            <td className="px-3 py-3 text-right">
-                              <div className="flex items-center justify-end space-x-2">
-                                <Link
-                                  href={`/tutor/studentDetails?studentId=${student._id}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline text-xs"
-                                >
-                                  Details
-                                </Link>
-                                <button
-                                  onClick={() =>
-                                    handleDeleteStudent(student._id)
-                                  }
-                                  disabled={deletingStudents.has(student._id)}
-                                  className={`p-1 rounded-lg transition-colors ${
-                                    deletingStudents.has(student._id)
-                                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                      : "text-red-600 hover:bg-red-50 hover:text-red-800"
-                                  }`}
-                                  title="Delete Student"
-                                >
-                                  {deletingStudents.has(student._id) ? (
-                                    <div className="animate-spin rounded-full h-3 w-3 border-t-2 border-b-2 border-gray-400"></div>
-                                  ) : (
-                                    <MdDelete className="h-3 w-3" />
-                                  )}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile Card View - Visible on small and medium screens */}
-                  <div className="lg:hidden">
-                    {students.map((student) => (
-                      <div
-                        key={student._id}
-                        className="border-b border-gray-100 p-4 sm:p-6 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="space-y-3">
-                          {/* Student Name */}
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {student.username}
-                            </h3>
-                          </div>
-
-                          {/* Student Details */}
-                          <div className="space-y-2">
-                            <div className="flex flex-col sm:flex-row sm:items-center">
-                              <span className="text-sm font-medium text-gray-500 sm:w-24">
-                                Email:
-                              </span>
-                              <span className="text-sm text-gray-700 break-all">
-                                {student.email}
-                              </span>
-                            </div>
-                            <div className="flex flex-col sm:flex-row sm:items-center">
-                              <span className="text-sm font-medium text-gray-500 sm:w-24">
-                                Contact:
-                              </span>
-                              <span className="text-sm text-gray-700">
-                                {student.contact}
-                              </span>
-                            </div>
-                            <div className="flex flex-col sm:flex-row sm:items-center">
-                              <span className="text-sm font-medium text-gray-500 sm:w-24">
-                                Location:
-                              </span>
-                              <span className="text-sm text-gray-700">
-                                {student.city || "N/A"}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Performance Metrics */}
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                            {/* Pending Assignments */}
-                            <div>
-  <span className="text-sm font-medium text-gray-500 block mb-1">
-    Pending Assignments:
-  </span>
-  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-    {student.pendingAssignments || 0}
-  </span>
-</div>
-
-                            {/* Performance Average */}
-                            <div>
-                              <span className="text-sm font-medium text-gray-500 block mb-1">
-                                Performance Avg:
-                              </span>
-                              <span
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${student.performanceAverage}`}
-                              >
-                                {student.performanceAverage &&
-                                student.performanceAverage > 0
-                                  ? `${student.performanceAverage}`
-                                  : "N/A"}
-                              </span>
-                            </div>
-
-                            {/* Course Quality Average */}
-                            <div>
-                              <span className="text-sm font-medium text-gray-500 block mb-1">
-                                Quality Avg:
-                              </span>
-                              <span
-                                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${student.courseQualityAverage}`}
->>>>>>> 61c39339de3dfff85e9ad8de13930ed667c249ef
-=======
->>>>>>> cb56216a7ea4f63fbf743640744e41115f6e9864
                               >
                                 {deletingStudents.has(student._id) ? (
                                   <div className="btn-d"></div>
