@@ -26,6 +26,8 @@ interface Class {
   endTime: string;
   feedbackId?: string;
   course: string;
+  courseCategory?: string; // added
+  feedbackModelRequired?: string; // added (from API)
 }
 
 interface Course {
@@ -34,11 +36,90 @@ interface Course {
   class: string[];
 }
 
-interface PendingFeedback {
-  student: Student;
-  classes: Class[];
-  selectedClassIndex: number;
-}
+// Category → fields (keys must match model/API field names)
+const CATEGORY_FIELDS: Record<string, Array<{ key: string; label: string }>> = {
+  Music: [
+    { key: "rhythm", label: "Rhythm" },
+    { key: "theoreticalUnderstanding", label: "Theoretical Understanding" },
+    { key: "performance", label: "Performance" },
+    { key: "earTraining", label: "Ear Training" },
+    { key: "assignment", label: "Assignment" },
+    { key: "technique", label: "Technique" },
+  ],
+  Dance: [
+    { key: "technique", label: "Technique" },
+    { key: "musicality", label: "Musicality" },
+    { key: "retention", label: "Retention" },
+    { key: "performance", label: "Performance" },
+    { key: "effort", label: "Effort" },
+  ],
+  Drawing: [
+    { key: "observationalSkills", label: "Observational Skills" },
+    { key: "lineQuality", label: "Line Quality" },
+    { key: "proportionPerspective", label: "Proportion & Perspective" },
+    { key: "valueShading", label: "Value & Shading" },
+    { key: "compositionCreativity", label: "Composition & Creativity" },
+  ],
+  Vocal: [
+    { key: "vocalTechniqueAndControl", label: "Vocal Technique & Control" },
+    { key: "toneQualityAndRange", label: "Tone Quality & Range" },
+    { key: "rhythmTimingAndMusicality", label: "Rhythm, Timing & Musicality" },
+    { key: "dictionAndArticulation", label: "Diction & Articulation" },
+    { key: "expressionAndPerformance", label: "Expression & Performance" },
+    { key: "progressAndPracticeHabits", label: "Progress & Practice Habits" },
+  ],
+  Drums: [
+    { key: "techniqueAndFundamentals", label: "Technique & Fundamentals" },
+    { key: "timingAndTempo", label: "Timing & Tempo" },
+    { key: "coordinationAndIndependence", label: "Coordination & Independence" },
+    { key: "dynamicsAndMusicality", label: "Dynamics & Musicality" },
+    { key: "patternKnowledgeAndReading", label: "Pattern Knowledge & Reading" },
+    { key: "progressAndPracticeHabits", label: "Progress & Practice Habits" },
+  ],
+  Violin: [
+    { key: "postureAndInstrumentHold", label: "Posture & Instrument Hold" },
+    { key: "bowingTechnique", label: "Bowing Technique" },
+    { key: "intonationAndPitchAccuracy", label: "Intonation & Pitch Accuracy" },
+    { key: "toneQualityAndSoundProduction", label: "Tone Quality & Sound Production" },
+    { key: "rhythmMusicalityAndExpression", label: "Rhythm, Musicality & Expression" },
+    { key: "progressAndPracticeHabits", label: "Progress & Practice Habits" },
+  ],
+};
+
+// Default values (1-10 scale) for a category
+const buildDefaults = (category?: string) => {
+  const fields = CATEGORY_FIELDS[category || "Music"] || CATEGORY_FIELDS["Music"];
+  const values: Record<string, number | string> = { personalFeedback: "" };
+  fields.forEach(f => (values[f.key] = 5));
+  return values;
+};
+
+// Choose submit API by category/model
+const getSubmitEndpoint = (category?: string, feedbackModelRequired?: string) => {
+  switch (feedbackModelRequired) {
+    case "feedbackDance":
+      return "/Api/studentFeedback/dance";
+    case "feedbackDrawing":
+      return "/Api/studentFeedback/drawing";
+    // Fallbacks by known categories
+    default: {
+      switch (category) {
+        case "Dance":
+          return "/Api/studentFeedback/dance";
+        case "Drawing":
+          return "/Api/studentFeedback/drawing";
+        case "Vocal":
+          return "/Api/studentFeedback/vocal";
+        case "Drums":
+          return "/Api/studentFeedback/drums";
+        case "Violin":
+          return "/Api/studentFeedback/violin";
+        default:
+          return "/Api/studentFeedback"; // Music
+      }
+    }
+  }
+};
 
 const FeedbackPendingDetails = () => {
   const [pendingFeedbacks, setPendingFeedbacks] = useState<PendingFeedback[]>([]);
@@ -46,223 +127,199 @@ const FeedbackPendingDetails = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-    const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});  // ADD THIS
+  const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});  // ADD THIS
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({}); 
   const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'absent'>('present');
-const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
-  const [feedbackData, setFeedbackData] = useState({
-    rhythm: 5,
-    theoretical: 5,
-    understanding: 5,
-    performance: 5,
-    earTraining: 5,
-    assignment: 5,
-    technique: 5,
-    feedback: ''
-  });
-  
+  const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
+
+  // Replace fixed shape with dynamic map per category
+  const [feedbackData, setFeedbackData] = useState<Record<string, number | string>>(buildDefaults("Music"));
+
+  // Derived category helpers for header badge and dynamic fields
+  const currentCategory =
+    selectedFeedback?.classes[selectedFeedback.selectedClassIndex]?.courseCategory || "Music";
+  const currentFields = CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS["Music"];
+  const splitIndex = Math.ceil(currentFields.length / 2);
+
   // Fetch data on component mount
   useEffect(() => {
-  const fetchPendingFeedbacks = async () => {
-    try {
-      setLoading(true);
-      
-      // Call the new API endpoint
-      const response = await fetch('/Api/pendingFeedback');
-      const data = await response.json();
-      
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to load pending feedbacks');
-      }
-      
-      // Transform the API response to match our component structure
-      const pendingFeedbacks: PendingFeedback[] = [];
-      
-      // Group classes by student
-      const studentMap = new Map<string, { student: Student, classes: Class[] }>();
-      
-      data.missingFeedbackClasses.forEach((item: any) => {
-        const studentId = item.studentId;
-        
-        if (!studentMap.has(studentId)) {
-          studentMap.set(studentId, {
-            student: {
-              _id: item.studentId,
-              username: item.studentName,
-              email: '', // Not provided by API, but not needed for display
-            },
-            classes: []
-          });
+    const fetchPendingFeedbacks = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/Api/pendingFeedback');
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Failed to load pending feedbacks');
         }
-        
-        studentMap.get(studentId)!.classes.push({
-          _id: item.classId,
-          title: item.className,
-          description: '',
-          startTime: item.classDate || '',
-          endTime: '',
-          course: item.courseId,
+
+        const pendingFeedbacks: PendingFeedback[] = [];
+        const studentMap = new Map<string, { student: Student, classes: Class[] }>();
+
+        data.missingFeedbackClasses.forEach((item: any) => {
+          const studentId = item.studentId;
+
+          if (!studentMap.has(studentId)) {
+            studentMap.set(studentId, {
+              student: {
+                _id: item.studentId,
+                username: item.studentName,
+                email: '',
+                profileImage: item.profileImage || undefined,
+              },
+              classes: []
+            });
+          }
+
+          studentMap.get(studentId)!.classes.push({
+            _id: item.classId,
+            title: item.className,
+            description: '',
+            startTime: item.classDate || '',
+            endTime: '',
+            course: item.courseId,
+            courseCategory: item.courseCategory, // keep category
+            feedbackModelRequired: item.feedbackModelRequired, // keep model
+          });
         });
-      });
-      
-      // Convert map to array with selectedClassIndex
-      studentMap.forEach((value) => {
-        pendingFeedbacks.push({
-          student: value.student,
-          classes: value.classes,
-          selectedClassIndex: 0
+
+        studentMap.forEach((value) => {
+          pendingFeedbacks.push({
+            student: value.student,
+            classes: value.classes,
+            selectedClassIndex: 0
+          });
         });
-      });
-      
-      setPendingFeedbacks(pendingFeedbacks);
-      
-      if (pendingFeedbacks.length > 0) {
-        setSelectedFeedback(pendingFeedbacks[0]);
+
+        setPendingFeedbacks(pendingFeedbacks);
+
+        if (pendingFeedbacks.length > 0) {
+          setSelectedFeedback(pendingFeedbacks[0]);
+        }
+      } catch (err) {
+        console.error('Error fetching pending feedbacks:', err);
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      } finally {
+        setLoading(false);
       }
-      
-    } catch (err) {
-      console.error('Error fetching pending feedbacks:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchPendingFeedbacks();
+  }, []);
   
-  fetchPendingFeedbacks();
-}, []);
-  
+  // Re-init sliders when selection changes (student or class)
+  useEffect(() => {
+    if (!selectedFeedback) return;
+    const currentClass = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
+    const category = currentClass?.courseCategory || "Music";
+    setFeedbackData(buildDefaults(category));
+    setAttendanceStatus('present');
+  }, [selectedFeedback]);
+
   const handleSelectStudent = (feedback: PendingFeedback) => {
     setSelectedFeedback(feedback);
-      setAttendanceStatus('present'); // ADD THIS LINE
-
-    // Reset feedback data when switching students
-    setFeedbackData({
-      rhythm: 5,
-      theoretical: 5,
-      understanding: 5,
-      performance: 5,
-      earTraining: 5,
-      assignment: 5,
-      technique: 5,
-      feedback: ''
-    });
   };
-  
+
   const handleSelectClass = (feedbackIndex: number, classIndex: number) => {
     const updatedFeedbacks = [...pendingFeedbacks];
     updatedFeedbacks[feedbackIndex].selectedClassIndex = classIndex;
     setPendingFeedbacks(updatedFeedbacks);
     setSelectedFeedback(updatedFeedbacks[feedbackIndex]);
-      setAttendanceStatus('present'); // ADD THIS LINE
-
-    // Reset feedback data when switching classes
-    setFeedbackData({
-      rhythm: 5,
-      theoretical: 5,
-      understanding: 5,
-      performance: 5,
-      earTraining: 5,
-      assignment: 5,
-      technique: 5,
-      feedback: ''
-    });
   };
-  
-  const handleSliderChange = (field: string, value: number) => {
-    setFeedbackData(prev => ({ ...prev, [field]: value }));
+
+  const handleSliderChange = (key: string, value: number) => {
+    setFeedbackData(prev => ({ ...prev, [key]: value }));
   };
 
   const handleTextChange = (value: string) => {
-    setFeedbackData(prev => ({ ...prev, feedback: value }));
+    setFeedbackData(prev => ({ ...prev, personalFeedback: value }));
   };
   
   const handleSubmit = async () => {
     if (!selectedFeedback) return;
-    
+
     setIsSubmitting(true);
     const student = selectedFeedback.student;
     const classData = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
-    
+
     try {
-      // Get course ID from class
       const courseId = classData.course;
       const classId = classData._id;
       const studentId = student._id;
-      
+      const category = classData.courseCategory || "Music";
+      const endpoint = getSubmitEndpoint(category, classData.feedbackModelRequired);
+
+      // Build payload from current category fields
+      const fields = CATEGORY_FIELDS[category] || CATEGORY_FIELDS["Music"];
+      const payload: any = {
+        attendanceStatus,
+        studentId,
+        courseId,
+        classId,
+        personalFeedback: String(feedbackData.personalFeedback || ""),
+      };
+      fields.forEach(f => {
+        const v = feedbackData[f.key];
+        // Coerce number fields to string/number (API can accept either as models use String)
+        payload[f.key] = typeof v === "number" ? v : Number(v) || 5;
+      });
+
       const response = await fetch(
-        `/Api/studentFeedback?studentId=${studentId}&courseId=${courseId}&classId=${classId}`, 
+        `${endpoint}?studentId=${studentId}&courseId=${courseId}&classId=${classId}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...feedbackData,
-            attendanceStatus, 
-            studentId,
-            courseId,
-            classId
-          })
+          body: JSON.stringify(payload),
         }
       );
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
-        // Remove the submitted feedback from the list
+        // Remove the submitted class from the list
         let updatedFeedbacks = [...pendingFeedbacks];
-        
-        // Find the current feedback index
         const currentFeedbackIndex = updatedFeedbacks.findIndex(
           f => f.student._id === studentId
         );
-        
+
         if (currentFeedbackIndex !== -1) {
           const currentFeedback = updatedFeedbacks[currentFeedbackIndex];
-          
-          // Remove the submitted class from the classes array
           const remainingClasses = currentFeedback.classes.filter(c => c._id !== classId);
-          
+
           if (remainingClasses.length > 0) {
-            // If there are more classes for this student, update the feedback
             updatedFeedbacks[currentFeedbackIndex] = {
               ...currentFeedback,
               classes: remainingClasses,
               selectedClassIndex: 0
             };
           } else {
-            // If no more classes, remove this student from pending feedbacks
             updatedFeedbacks.splice(currentFeedbackIndex, 1);
           }
         }
-        
+
         setPendingFeedbacks(updatedFeedbacks);
-        
-        // Select the next feedback or reset
+
         if (updatedFeedbacks.length > 0) {
-          // Try to select the same index, or the previous one if we're at the end
-          const nextIndex = Math.min(currentFeedbackIndex, updatedFeedbacks.length - 1);
-          setSelectedFeedback(updatedFeedbacks[nextIndex]);
+          const nextIndex = Math.min(
+            Math.max(0, updatedFeedbacks.findIndex(f => f.student._id === studentId)),
+            updatedFeedbacks.length - 1
+          );
+          setSelectedFeedback(updatedFeedbacks[nextIndex] || updatedFeedbacks[0]);
         } else {
           setSelectedFeedback(null);
         }
-        
-        setAttendanceStatus('present'); // ADD THIS LINE
-        // Reset feedback form
-        setFeedbackData({
-          rhythm: 5,
-          theoretical: 5,
-          understanding: 5,
-          performance: 5,
-          earTraining: 5,
-          assignment: 5,
-          technique: 5,
-          feedback: ''
-        });
-        
+
+        setAttendanceStatus('present');
+        // Reset form to defaults for next selected item (use effect will also reset)
+        const nextCat =
+          updatedFeedbacks.length && updatedFeedbacks[0].classes.length
+            ? updatedFeedbacks[0].classes[0].courseCategory
+            : "Music";
+        setFeedbackData(buildDefaults(nextCat));
+
         alert('Feedback submitted successfully!');
       } else {
         alert(result.message || 'Failed to submit feedback');
       }
-      
     } catch (err) {
       console.error('Error submitting feedback:', err);
       alert('Failed to submit feedback. Please try again.');
@@ -272,91 +329,82 @@ const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
   };
 
   const handleMarkAbsent = async () => {
-  if (!selectedFeedback) return;
-  
-  setIsSubmitting(true);
-  const student = selectedFeedback.student;
-  const classData = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
-  
-  try {
-    const studentId = student._id;
-    const classId = classData._id;
-    
-    const response = await fetch(
-      `/Api/attendance?studentId=${studentId}&classId=${classId}`, 
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'absent',
-          studentId,
-          classId
-        })
-      }
-    );
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      // Remove the submitted class from the list (same logic as feedback submission)
-      let updatedFeedbacks = [...pendingFeedbacks];
-      
-      const currentFeedbackIndex = updatedFeedbacks.findIndex(
-        f => f.student._id === studentId
-      );
-      
-      if (currentFeedbackIndex !== -1) {
-        const currentFeedback = updatedFeedbacks[currentFeedbackIndex];
-        const remainingClasses = currentFeedback.classes.filter(c => c._id !== classId);
-        
-        if (remainingClasses.length > 0) {
-          updatedFeedbacks[currentFeedbackIndex] = {
-            ...currentFeedback,
-            classes: remainingClasses,
-            selectedClassIndex: 0
-          };
-        } else {
-          updatedFeedbacks.splice(currentFeedbackIndex, 1);
+    if (!selectedFeedback) return;
+
+    setIsSubmitting(true);
+    const student = selectedFeedback.student;
+    const classData = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
+
+    try {
+      const studentId = student._id;
+      const classId = classData._id;
+
+      const response = await fetch(
+        `/Api/attendance?studentId=${studentId}&classId=${classId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            status: 'absent',
+            studentId,
+            classId
+          })
         }
-      }
-      
-      setPendingFeedbacks(updatedFeedbacks);
-      
-      if (updatedFeedbacks.length > 0) {
-        const nextIndex = Math.min(currentFeedbackIndex, updatedFeedbacks.length - 1);
-        setSelectedFeedback(updatedFeedbacks[nextIndex]);
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        // same remove-logic...
+        let updatedFeedbacks = [...pendingFeedbacks];
+        const currentFeedbackIndex = updatedFeedbacks.findIndex(
+          f => f.student._id === studentId
+        );
+        if (currentFeedbackIndex !== -1) {
+          const currentFeedback = updatedFeedbacks[currentFeedbackIndex];
+          const remainingClasses = currentFeedback.classes.filter(c => c._id !== classId);
+
+          if (remainingClasses.length > 0) {
+            updatedFeedbacks[currentFeedbackIndex] = {
+              ...currentFeedback,
+              classes: remainingClasses,
+              selectedClassIndex: 0
+            };
+          } else {
+            updatedFeedbacks.splice(currentFeedbackIndex, 1);
+          }
+        }
+
+        setPendingFeedbacks(updatedFeedbacks);
+
+        if (updatedFeedbacks.length > 0) {
+          const nextIndex = Math.min(currentFeedbackIndex, updatedFeedbacks.length - 1);
+          setSelectedFeedback(updatedFeedbacks[nextIndex]);
+        } else {
+          setSelectedFeedback(null);
+        }
+
+        setAttendanceStatus('present');
+        setShowAbsentConfirm(false);
+        const nextCat =
+          updatedFeedbacks.length && updatedFeedbacks[0].classes.length
+            ? updatedFeedbacks[0].classes[0].courseCategory
+            : "Music";
+        setFeedbackData(buildDefaults(nextCat));
+
+        alert('Student marked as absent successfully!');
       } else {
-        setSelectedFeedback(null);
+        alert(result.message || 'Failed to mark attendance');
       }
-      
-      // Reset states
-      setAttendanceStatus('present');
+    } catch (err) {
+      console.error('Error marking attendance:', err);
+      alert('Failed to mark attendance. Please try again.');
+    } finally {
+      setIsSubmitting(false);
       setShowAbsentConfirm(false);
-      setFeedbackData({
-        rhythm: 5,
-        theoretical: 5,
-        understanding: 5,
-        performance: 5,
-        earTraining: 5,
-        assignment: 5,
-        technique: 5,
-        feedback: ''
-      });
-      
-      alert('Student marked as absent successfully!');
-    } else {
-      alert(result.message || 'Failed to mark attendance');
     }
-    
-  } catch (err) {
-    console.error('Error marking attendance:', err);
-    alert('Failed to mark attendance. Please try again.');
-  } finally {
-    setIsSubmitting(false);
-    setShowAbsentConfirm(false);
-  }
-};
-  
+  };
+
   if (loading) {
     return (
       <div className='feedback-pending-details-sec'>
@@ -581,6 +629,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
     <h2>Student Performance Evaluation</h2>
     <p>
       <strong>{selectedFeedback.student.username}</strong> - {selectedFeedback.classes[selectedFeedback.selectedClassIndex].title}
+      <span className="ms-2 badge bg-secondary">{currentCategory}</span>
     </p>
   </div>
   <div className='btn-right d-flex gap-2 align-items-center flex-wrap'>
@@ -678,188 +727,65 @@ const getButtonText = (classId: string, isUploading: boolean) => {
               <div className='bottom-feedback-box row'>
                 <div className='col-xxl-6 mb-0'>
                   <div className='progressbar-line-sec'>
-                    {/* Rhythm */}
-                    <div className="card-box mb-3">
-                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
-                        <h6 className="mb-0">Rhythm</h6>
-                        <div className="right-text-box red-text">
-                          <span className='main-text'>{feedbackData.rhythm}</span>
-                          <span className="text-muted">/10</span>
+                    {currentFields.slice(0, splitIndex).map(field => (
+                      <div className="card-box mb-3" key={field.key}>
+                        <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
+                          <h6 className="mb-0">{field.label}</h6>
+                          <div className="right-text-box red-text">
+                            <span className='main-text'>{Number(feedbackData[field.key] ?? 5)}</span>
+                            <span className="text-muted">/10</span>
+                          </div>
+                        </div>
+                        <div className="progress-slider-container">
+                          <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            value={Number(feedbackData[field.key] ?? 5)}
+                            onChange={(e) => handleSliderChange(field.key, parseInt(e.target.value))}
+                            className="form-range mb-2"
+                          />
                         </div>
                       </div>
-                      <div className="progress-slider-container">
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={feedbackData.rhythm}
-                          onChange={(e) => handleSliderChange('rhythm', parseInt(e.target.value))}
-                          className="form-range mb-2"
-                        />
-                        {/* <ProgressBar now={feedbackData.rhythm * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.rhythm * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
-                        </ProgressBar> */}
-                      </div>
-                    </div>
-
-                    {/* Understanding */}
-                    <div className="card-box mb-3">
-                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
-                        <h6 className="mb-0">Understanding of Topic</h6>
-                        <div className="right-text-box red-text">
-                          <span className='main-text'>{feedbackData.understanding}</span>
-                          <span className="text-muted">/10</span>
-                        </div>
-                      </div>
-                      <div className="progress-slider-container">
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={feedbackData.understanding}
-                          onChange={(e) => handleSliderChange('understanding', parseInt(e.target.value))}
-                          className="form-range mb-2"
-                        />
-                        {/* <ProgressBar now={feedbackData.understanding * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.understanding * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
-                        </ProgressBar> */}
-                      </div>
-                    </div>
-
-                    {/* Ear Training */}
-                    <div className="card-box mb-3">
-                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
-                        <h6 className="mb-0">Ear Training</h6>
-                        <div className="right-text-box red-text">
-                          <span className='main-text'>{feedbackData.earTraining}</span>
-                          <span className="text-muted">/10</span>
-                        </div>
-                      </div>
-                      <div className="progress-slider-container">
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={feedbackData.earTraining}
-                          onChange={(e) => handleSliderChange('earTraining', parseInt(e.target.value))}
-                          className="form-range mb-2"
-                        />
-                        {/* <ProgressBar now={feedbackData.earTraining * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.earTraining * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
-                        </ProgressBar> */}
-                      </div>
-                    </div>
-
-                    {/* Technique */}
-                    <div className="card-box mb-0">
-                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
-                        <h6 className="mb-0">Technique</h6>
-                        <div className="right-text-box red-text">
-                          <span className='main-text'>{feedbackData.technique}</span>
-                          <span className="text-muted">/10</span>
-                        </div>
-                      </div>
-                      <div className="progress-slider-container">
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={feedbackData.technique}
-                          onChange={(e) => handleSliderChange('technique', parseInt(e.target.value))}
-                          className="form-range mb-2"
-                        />
-                        {/* <ProgressBar now={feedbackData.technique * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.technique * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
-                        </ProgressBar> */}
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
+
                 <div className='col-xxl-6 mb-4'>
                   <div className='progressbar-line-sec'>
-                    {/* Theoretical Understanding */}
-                    <div className="card-box mb-3">
-                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
-                        <h6 className="mb-0">Theoretical Understanding</h6>
-                        <div className="right-text-box red-text">
-                          <span className='main-text'>{feedbackData.theoretical}</span>
-                          <span className="text-muted">/10</span>
+                    {currentFields.slice(splitIndex).map(field => (
+                      <div className="card-box mb-3" key={field.key}>
+                        <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
+                          <h6 className="mb-0">{field.label}</h6>
+                          <div className="right-text-box red-text">
+                            <span className='main-text'>{Number(feedbackData[field.key] ?? 5)}</span>
+                            <span className="text-muted">/10</span>
+                          </div>
+                        </div>
+                        <div className="progress-slider-container">
+                          <input
+                            type="range"
+                            min="1"
+                            max="10"
+                            value={Number(feedbackData[field.key] ?? 5)}
+                            onChange={(e) => handleSliderChange(field.key, parseInt(e.target.value))}
+                            className="form-range mb-2"
+                          />
                         </div>
                       </div>
-                      <div className="progress-slider-container">
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={feedbackData.theoretical}
-                          onChange={(e) => handleSliderChange('theoretical', parseInt(e.target.value))}
-                          className="form-range mb-2"
-                        />
-                        {/* <ProgressBar now={feedbackData.theoretical * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.theoretical * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
-                        </ProgressBar> */}
-                      </div>
-                    </div>
-
-                    {/* Performance */}
-                    <div className="card-box mb-3">
-                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
-                        <h6 className="mb-0">Performance</h6>
-                        <div className="right-text-box red-text">
-                          <span className='main-text'>{feedbackData.performance}</span>
-                          <span className="text-muted">/10</span>
-                        </div>
-                      </div>
-                      <div className="progress-slider-container">
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={feedbackData.performance}
-                          onChange={(e) => handleSliderChange('performance', parseInt(e.target.value))}
-                          className="form-range mb-2"
-                        />
-                        {/* <ProgressBar now={feedbackData.performance * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.performance * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
-                        </ProgressBar> */}
-                      </div>
-                    </div>
-
-                    {/* Assignment */}
-                    <div className="card-box mb-0">
-                      <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
-                        <h6 className="mb-0">Assignment</h6>
-                        <div className="right-text-box red-text">
-                          <span className='main-text'>{feedbackData.assignment}</span>
-                          <span className="text-muted">/10</span>
-                        </div>
-                      </div>
-                      <div className="progress-slider-container">
-                        <input
-                          type="range"
-                          min="1"
-                          max="10"
-                          value={feedbackData.assignment}
-                          onChange={(e) => handleSliderChange('assignment', parseInt(e.target.value))}
-                          className="form-range mb-2"
-                        />
-                        {/* <ProgressBar now={feedbackData.assignment * 10} style={{ height: "8px", backgroundColor: "#eee" }}>
-                          <div style={{ width: `${feedbackData.assignment * 10}%`, height: "100%", backgroundColor: "#7b2ff7", borderRadius: "6px" }}></div>
-                        </ProgressBar> */}
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
 
                 <div className='bottom-recording-box'>
                   <p><strong>Personal Feedback & Area for Improvement</strong></p>
                   <Form>
-                    <Form.Group className="mb-3" controlId="exampleForm.ControlTextarea1">
-                      <Form.Control 
-                        as="textarea" 
-                        rows={5} 
+                    <Form.Group className="mb-3" controlId="feedbackTextarea">
+                      <Form.Control
+                        as="textarea"
+                        rows={5}
                         placeholder='Provide detailed feedback and suggestions for improvement...'
-                        value={feedbackData.feedback}
+                        value={String(feedbackData.personalFeedback || "")}
                         onChange={(e) => handleTextChange(e.target.value)}
                       />
                     </Form.Group>
