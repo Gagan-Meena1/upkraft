@@ -453,11 +453,15 @@ export default function MyStudents() {
                               className=""
                             >
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> cb56216a7ea4f63fbf743640744e41115f6e9864
                               Course
                             </Link>
                           </td>
                           <td>
                             <div className="d-flex gap-4 justify-content-between">
+<<<<<<< HEAD
 =======
                               {student.city || "N/A"}
                             </td>
@@ -497,6 +501,8 @@ export default function MyStudents() {
                             </td>
                             <td className="px-3 py-3 text-center">
 >>>>>>> 61c39339de3dfff85e9ad8de13930ed667c249ef
+=======
+>>>>>>> cb56216a7ea4f63fbf743640744e41115f6e9864
                               <Link
                                 href={`/tutor/studentDetails?studentId=${student._id}`}
                                 className=""
@@ -504,6 +510,9 @@ export default function MyStudents() {
                                 Course
                               </Link>
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> cb56216a7ea4f63fbf743640744e41115f6e9864
                               <button
                                 onClick={() => handleDeleteStudent(student._id)}
                                 disabled={deletingStudents.has(student._id)}
@@ -513,6 +522,7 @@ export default function MyStudents() {
                                     : "btn-delete"
                                 }`}
                                 title="Delete Student"
+<<<<<<< HEAD
 =======
                             </td>
                             <td className="px-3 py-3 text-right">
@@ -627,6 +637,8 @@ export default function MyStudents() {
                               <span
                                 className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${student.courseQualityAverage}`}
 >>>>>>> 61c39339de3dfff85e9ad8de13930ed667c249ef
+=======
+>>>>>>> cb56216a7ea4f63fbf743640744e41115f6e9864
                               >
                                 {deletingStudents.has(student._id) ? (
                                   <div className="btn-d"></div>

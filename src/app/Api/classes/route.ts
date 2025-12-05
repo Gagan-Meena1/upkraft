@@ -10,14 +10,9 @@ import jwt from "jsonwebtoken";
 import courseName from "@/models/courseName";
 import User from "@/models/userModel";
 // ADD these imports
-<<<<<<< HEAD
-// import * as dateFnsTz from 'date-fns-tz';
-// import { format, parseISO } from 'date-fns';
-=======
 import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO } from 'date-fns';
 import { sendEmail } from "@/helper/mailer";
->>>>>>> 61c39339de3dfff85e9ad8de13930ed667c249ef
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
 
 await connect();
