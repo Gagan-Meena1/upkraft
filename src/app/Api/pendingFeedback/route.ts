@@ -5,6 +5,9 @@ import courseName from "@/models/courseName";
 import feedback from "@/models/feedback";
 import feedbackDance from "@/models/feedbackDance";
 import feedbackDrawing from "@/models/feedbackDrawing";
+import feedbackVocal from "@/models/feedbackVocal";
+import feedbackDrums from "@/models/feedbackDrums";
+import feedbackViolin from "@/models/feedbackViolin";
 import { connect } from "@/dbConnection/dbConfic";
 import jwt from "jsonwebtoken";
 
@@ -123,8 +126,15 @@ export async function GET(request) {
     // Create a map for quick class lookup
     const classMap = new Map(classes.map(c => [c._id.toString(), c]));
 
-    // Fetch all existing feedback records in parallel for all three models
-    const [musicFeedbacks, danceFeedbacks, drawingFeedbacks] = await Promise.all([
+    // Fetch all existing feedback records in parallel for all six models
+    const [
+      musicFeedbacks,
+      danceFeedbacks,
+      drawingFeedbacks,
+      vocalFeedbacks,
+      drumsFeedbacks,
+      violinFeedbacks
+    ] = await Promise.all([
       feedback.find({
         userId: { $in: studentIds },
         classId: { $in: Array.from(allClassIds) }
@@ -136,14 +146,29 @@ export async function GET(request) {
       feedbackDrawing.find({
         userId: { $in: studentIds },
         classId: { $in: Array.from(allClassIds) }
-      }).select("userId classId").lean()
+      }).select("userId classId").lean(),
+      feedbackVocal.find({
+        userId: { $in: studentIds },
+        classId: { $in: Array.from(allClassIds) }
+      }).select("userId classId").lean(),
+      feedbackDrums.find({
+        userId: { $in: studentIds },
+        classId: { $in: Array.from(allClassIds) }
+      }).select("userId classId").lean(),
+      feedbackViolin.find({
+        userId: { $in: studentIds },
+        classId: { $in: Array.from(allClassIds) }
+      }).select("userId classId").lean(),
     ]);
 
-    // Create feedback lookup sets for O(1) lookup
-    const feedbackSets = {
+    // Create feedback lookup sets for O(1) lookup (include all categories)
+    const feedbackSets: Record<string, Set<string>> = {
       Music: new Set(musicFeedbacks.map(f => `${f.userId}_${f.classId}`)),
       Dance: new Set(danceFeedbacks.map(f => `${f.userId}_${f.classId}`)),
-      Drawing: new Set(drawingFeedbacks.map(f => `${f.userId}_${f.classId}`))
+      Drawing: new Set(drawingFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+      Vocal: new Set(vocalFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+      Drums: new Set(drumsFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+      Violin: new Set(violinFeedbacks.map(f => `${f.userId}_${f.classId}`)),
     };
 
     // ✅ NEW: Helper function to check attendance status
@@ -173,38 +198,39 @@ export async function GET(request) {
         if (!course || !course.class || course.class.length === 0) continue;
 
         const category = course.category;
-        if (!["Music", "Dance", "Drawing"].includes(category)) continue;
+        if (!category) continue;
 
         for (const classId of course.class) {
           const classIdStr = classId.toString();
           const classItem = classMap.get(classIdStr);
           if (!classItem) continue;
 
-          // ✅ NEW: Check attendance status
           const attendanceStatus = getAttendanceStatus(student, classIdStr);
-          
-          // ✅ NEW: Only include classes with "not_marked" attendance
-          if (attendanceStatus !== "not_marked") {
-            continue; // Skip this class if attendance is already marked
-          }
+          if (attendanceStatus !== "not_marked") continue;
 
-          // Check if feedback exists using the set
+          // Safe lookup: use empty Set if category not present
           const feedbackKey = `${student._id}_${classIdStr}`;
-          if (!feedbackSets[category].has(feedbackKey)) {
+          const setForCategory = feedbackSets[category] || new Set<string>();
+          if (!setForCategory.has(feedbackKey)) {
             missingFeedbackClasses.push({
               studentId: student._id,
               studentName: student.username,
               profileImage: student.profileImage || null,
               classId: classItem._id,
-              className: classItem.title || classItem.name,
+              className: classItem.title || (classItem as any).name,
               courseId: course._id,
               courseName: course.title,
               courseCategory: category,
-              classDate: classItem.date || classItem.scheduledDate,
-              attendanceStatus: attendanceStatus, // ✅ Include this for debugging
-              feedbackModelRequired: category === "Music" ? "feedback" : 
-                                     category === "Dance" ? "feedbackDance" : 
-                                     "feedbackDrawing"
+              classDate: (classItem as any).date || (classItem as any).scheduledDate,
+              attendanceStatus,
+              feedbackModelRequired:
+                category === "Music" ? "feedback" :
+                category === "Dance" ? "feedbackDance" :
+                category === "Drawing" ? "feedbackDrawing" :
+                category === "Vocal" ? "feedbackVocal" :
+                category === "Drums" ? "feedbackDrums" :
+                category === "Violin" ? "feedbackViolin" :
+                "feedback"
             });
           }
         }

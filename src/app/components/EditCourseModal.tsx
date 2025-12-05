@@ -193,9 +193,13 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
                       value={form.category}
                       onChange={handleChange}
                     >
-                      <option>Music</option>
-                      <option>Art</option>
-                      <option>Dance</option>
+                      {/* Match options with Create Course page */}
+                      <option value="Music">Music(Piano/Guitar)</option>
+                      <option value="Dance">Dance</option>
+                      <option value="Drawing">Painting</option>
+                      <option value="Drums">Drums</option>
+                      <option value="Violin">Violin</option>
+                      <option value="Vocal">Vocal</option>
                     </Form.Select>
                   </Form.Group>
                 </div>

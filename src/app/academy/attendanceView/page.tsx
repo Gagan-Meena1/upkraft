@@ -8,6 +8,10 @@ interface UserData {
   email: string;
   timezone: string;
   profileImage?: string;
+  attendance?: Array<{
+    classId: string;
+    status: string;
+  }>;
 }
 
 interface ClassData {
@@ -28,15 +32,17 @@ const UserAttendanceView = () => {
   const [classes, setClasses] = useState<ClassData[]>([]);
   const [loading, setLoading] = useState(true);
   const [userTimezone, setUserTimezone] = useState<string>("UTC");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [attendanceMap, setAttendanceMap] = useState<Map<string, string>>(new Map());
 
-  // Get userId from URL
-  const getUserIdFromUrl = () => {
-    if (typeof window === 'undefined') return null;
-    const params = new URLSearchParams(window.location.search);
-    return params.get('userId');
-  };
-
-  const userId = getUserIdFromUrl();
+  // Get userId from URL on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('userId');
+      setUserId(id);
+    }
+  }, []);
 
   // Timezone conversion helpers
   const convertToTimezone = (date: Date, timezone: string): Date => {
@@ -67,19 +73,25 @@ const UserAttendanceView = () => {
       if (!userId) return;
 
       try {
-        const cachedUser = sessionStorage.getItem(`user_${userId}`);
-        if (cachedUser) {
-          const user = JSON.parse(cachedUser);
-          setUserData(user);
-          setUserTimezone(user.timezone || 'UTC');
-        } else {
-          const response = await fetch(`/Api/academy/userDetail?userId=${userId}`);
-          const data = await response.json();
-          if (data.success && data.user) {
-            setUserData(data.user);
-            setUserTimezone(data.user.timezone || 'UTC');
-            sessionStorage.setItem(`user_${userId}`, JSON.stringify(data.user));
+        const response = await fetch(`/Api/academy/userDetail?userId=${userId}`);
+        const data = await response.json();
+        if (data.success && data.user) {
+          setUserData(data.user);
+          setUserTimezone(data.user.timezone || 'UTC');
+          
+          // Build attendance map from user's attendance data
+          if (data.user.attendance && Array.isArray(data.user.attendance)) {
+            const map = new Map<string, string>();
+            data.user.attendance.forEach((record: any) => {
+              if (record.classId && record.status) {
+                map.set(record.classId.toString(), record.status);
+              }
+            });
+            setAttendanceMap(map);
+            console.log("Attendance map created:", Array.from(map.entries()));
           }
+          
+          sessionStorage.setItem(`user_${userId}`, JSON.stringify(data.user));
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -162,8 +174,19 @@ const UserAttendanceView = () => {
   };
 
   const getAttendanceStatus = (classItem: ClassData): 'present' | 'absent' | 'pending' => {
-    const studentRecord = classItem.students?.find(s => s.userId === userId);
-    return studentRecord?.status || 'pending';
+    // Get status from attendanceMap using classId
+    const status = attendanceMap.get(classItem._id);
+    
+    if (!status || status === 'not_marked') {
+      return 'pending';
+    }
+    
+    // Map the status from the database to our display status
+    if (status === 'present') return 'present';
+    if (status === 'absent') return 'absent';
+    if (status === 'canceled') return 'pending'; // Show canceled classes as pending
+    
+    return 'pending';
   };
 
   const getClassStyle = (classItem: ClassData) => {
@@ -287,7 +310,6 @@ const UserAttendanceView = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
             <button
@@ -301,7 +323,6 @@ const UserAttendanceView = () => {
             </h1>
           </div>
 
-          {/* User Info */}
           <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
             {userData.profileImage && (
               <img
@@ -318,9 +339,7 @@ const UserAttendanceView = () => {
           </div>
         </div>
 
-        {/* Calendar */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-          {/* Week Navigation */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Calendar className="w-5 h-5 text-purple-600" />
@@ -348,7 +367,6 @@ const UserAttendanceView = () => {
             </div>
           </div>
 
-          {/* Schedule Grid */}
           <div className="overflow-x-auto">
             {hours.length === 0 ? (
               <div className="text-center py-12">
@@ -358,7 +376,6 @@ const UserAttendanceView = () => {
             ) : (
               <div className="inline-block min-w-full">
                 <div className="grid grid-cols-8 gap-2" style={{ minWidth: "800px" }}>
-                  {/* Header */}
                   <div className="font-semibold text-center py-3 bg-gray-100 rounded-lg flex items-center justify-center">
                     <Clock className="w-4 h-4 mr-1" />
                     Time
@@ -370,65 +387,64 @@ const UserAttendanceView = () => {
                     </div>
                   ))}
 
-                {/* Time slots */}
-                {hours.map((hour) => (
-                  <div key={hour} className="contents group">
-                    <div className="text-sm font-medium text-gray-700 py-2 text-center bg-gray-50 rounded-lg flex items-center justify-center group-hover:bg-purple-50 transition-colors">
-                      {String(hour).padStart(2, "0")}:00
-                    </div>
+                  {hours.map((hour) => (
+                    <React.Fragment key={hour}>
+                      <div className="text-sm font-medium text-gray-700 py-2 text-center bg-gray-50 rounded-lg flex items-center justify-center">
+                        {String(hour).padStart(2, "0")}:00
+                      </div>
 
-                    {weekDays.map((day) => {
-                      const dateStr = formatDateString(day);
-                      const slotClasses = getClassesForSlot(dateStr, hour);
+                      {weekDays.map((day) => {
+                        const dateStr = formatDateString(day);
+                        const slotClasses = getClassesForSlot(dateStr, hour);
 
-                      return (
-                        <div key={`${dateStr}-${hour}`} className="py-1 group-hover:bg-purple-50 transition-colors">
-                          {slotClasses.length > 0 ? (
-                            <div className="flex flex-col gap-1">
-                              {slotClasses.map((classItem, idx) => {
-                                const startLocal = convertToTimezone(new Date(classItem.startTime), userTimezone);
-                                const endLocal = convertToTimezone(new Date(classItem.endTime), userTimezone);
-                                const style = getClassStyle(classItem);
-                                
-                                return (
-                                  <div
-                                    key={idx}
-                                    className={`group/class relative w-full px-2 py-1.5 rounded-lg text-xs font-medium ${style.bg} ${style.text} border ${style.border} cursor-pointer hover:opacity-90 transition-opacity`}
-                                  >
-                                    <div className="truncate">{classItem.title}</div>
-                                    <div className="text-[10px] opacity-90">{style.label}</div>
-                                    
-                                    {/* Tooltip */}
-                                    <div className="absolute hidden group-hover/class:block z-10 w-56 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl -top-2 left-full ml-2 whitespace-normal">
-                                      <div className="font-semibold mb-1">{classItem.title}</div>
-                                      <div className="text-gray-300 mb-1">
-                                        {formatDate(startLocal, 'HH:mm')} - {formatDate(endLocal, 'HH:mm')}
-                                      </div>
-                                      <div className="text-gray-300">
-                                        Status: {style.label}
-                                      </div>
-                                      {classItem.status.toLowerCase() === 'cancelled' && (
-                                        <div className="text-red-400 mt-1 text-[10px]">
-                                          Class was cancelled
+                        return (
+                          <div key={`${dateStr}-${hour}`} className="py-1">
+                            {slotClasses.length > 0 ? (
+                              <div className="flex flex-col gap-1">
+                                {slotClasses.map((classItem, idx) => {
+                                  const startLocal = convertToTimezone(new Date(classItem.startTime), userTimezone);
+                                  const endLocal = convertToTimezone(new Date(classItem.endTime), userTimezone);
+                                  const style = getClassStyle(classItem);
+                                  
+                                  return (
+                                    <div
+                                      key={idx}
+                                      className={`group relative w-full px-2 py-1.5 rounded-lg text-xs font-medium ${style.bg} ${style.text} border ${style.border} cursor-pointer hover:opacity-90 transition-opacity`}
+                                    >
+                                      <div className="truncate">{classItem.title}</div>
+                                      <div className="text-[10px] opacity-90">{style.label}</div>
+                                      
+                                      {/* <div className="absolute hidden group-hover:block z-10 w-56 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl -top-2 left-full ml-2 whitespace-normal">
+                                        <div className="font-semibold mb-1">{classItem.title}</div>
+                                        <div className="text-gray-300 mb-1">
+                                          {formatDate(startLocal, 'HH:mm')} - {formatDate(endLocal, 'HH:mm')}
                                         </div>
-                                      )}
+                                        <div className="text-gray-300">
+                                          Status: {style.label}
+                                        </div>
+                                        {classItem.status.toLowerCase() === 'cancelled' && (
+                                          <div className="text-red-400 mt-1 text-[10px]">
+                                            Class was cancelled
+                                          </div>
+                                        )}
+                                      </div> */}
                                     </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className="w-full h-full min-h-[40px] bg-gray-50 rounded-lg"></div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <div className="w-full h-full min-h-[40px] bg-gray-50 rounded-lg"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-          {/* Legend */}
+            )}
+          </div>
+
           <div className="mt-6 flex gap-4 justify-center flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-500 border border-green-600 rounded"></div>
@@ -448,7 +464,6 @@ const UserAttendanceView = () => {
             </div>
           </div>
         </div>
-      </div>
       </div>
     </div>
   );
