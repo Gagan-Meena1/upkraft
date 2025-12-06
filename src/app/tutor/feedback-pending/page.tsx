@@ -94,14 +94,12 @@ const buildDefaults = (category?: string) => {
   return values;
 };
 
-// Choose submit API by category/model
 const getSubmitEndpoint = (category?: string, feedbackModelRequired?: string) => {
   switch (feedbackModelRequired) {
     case "feedbackDance":
       return "/Api/studentFeedback/dance";
     case "feedbackDrawing":
       return "/Api/studentFeedback/drawing";
-    // Fallbacks by known categories
     default: {
       switch (category) {
         case "Dance":
