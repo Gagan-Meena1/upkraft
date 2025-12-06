@@ -503,6 +503,8 @@ const StudentDashboard: React.FC = () => {
 
   const itemsPerPage = useResponsiveItemsPerPage();
 
+  
+
   const handleJoinMeeting = async (classId: string) => {
     try {
       const response = await fetch("/Api/meeting/create", {
@@ -543,24 +545,23 @@ const StudentDashboard: React.FC = () => {
             axios.get("Api/studentOverallPerformance")
           ]);
 
-        if (userResponse.data?.user) {
+        if (userResponse?.data?.user) {
           setUserData(userResponse.data.user);
         }
 
-        if (classResponse.data?.classDetails) {
+        if (classResponse?.data?.classDetails) {
           setClassData(classResponse.data.classDetails);
           console.log("classData:", classResponse.data.classDetails);
         }
 
         // FIX: parse assignments from data.assignments
-        const assignments = assignmentResponse.data?.data?.assignments;
+        const assignments = assignmentResponse?.data?.data?.assignments || [];
         if (assignments) {
           setAssignmentData(assignments);
         }
 
-        const perScore = perResponse.data?.averageScore
-        if(perScore)
-        {
+        const perScore = perResponse?.data?.averageScore
+        if (perScore) {
           setStudentPerformance(perScore);
         }
       } catch (error) {
@@ -573,7 +574,6 @@ const StudentDashboard: React.FC = () => {
 
     fetchData();
   }, []);
-
   // Reset slides when items per page changes
   useEffect(() => {
     setCurrentClassSlide(0);
