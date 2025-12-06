@@ -66,7 +66,7 @@ h1 {
 }
 
 .top-header-sec .right-top-header {
-    width: 100%;
+    width: 100% !important;
     padding: 10px 15px;
     border: none;
 }
@@ -113,8 +113,8 @@ h1 {
 }
 
 .dashboard-sec .side-details-sec {
-    width: 100%;
-    margin-top: 66px;
+    width: 100%  !important;
+    margin-top: 66px !important;
     padding: 15px;
 }
 
@@ -160,7 +160,7 @@ table.table {
     padding: 0;
     margin-right: 15px;
     border: none;
-    min-width: 100px;
+    /* min-width: 100px; */
 }
 
 .top-header-sec .right-top-header .right-head-details h6 {

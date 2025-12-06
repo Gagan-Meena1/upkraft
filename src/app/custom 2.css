@@ -169,6 +169,8 @@
   margin-top: 80px;
 }
 
+
+
 /********com css**********/
 
 .card-box {
@@ -719,3 +721,13 @@ button:focus:not(:focus-visible) {
   border-color: #dee2e6 !important;
 }
 
+
+/* @media  only screen and (max-width: 992px) {
+  
+  .dashboard-sec .side-details-sec {
+    width: 100% !important;
+    margin-top: 66px !important;
+    padding: 15px;
+}
+
+} */

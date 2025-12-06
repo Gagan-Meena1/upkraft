@@ -89,7 +89,8 @@ export default function TutorCoursesPage() {
       
       {/* Header */}
        <div>
-<MyCourse data={courses} academyId={academyId} />    </div>
+<MyCourse data={courses} academyId={academyId} />    
+</div>
     </div>
   );
 }

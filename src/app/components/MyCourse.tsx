@@ -233,7 +233,14 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
   };
   return (
     <div className="card-box">
-      
+     {category == "Tutor" && <Link
+        className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+        href="/tutor"
+      >
+        <ArrowLeft size={20} />
+        Back to Dashboard
+      </Link>
+}
       <Toaster />
       <div className="assignments-list-sec">
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
