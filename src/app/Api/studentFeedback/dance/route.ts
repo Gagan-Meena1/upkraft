@@ -3,33 +3,35 @@ import { connect } from '@/dbConnection/dbConfic';
 import Class from '@/models/Class';
 import feedbackDance from '@/models/feedbackDance';
 import jwt from 'jsonwebtoken'
+import courseName from '@/models/courseName';
+import User  from '@/models/userModel';
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
+
 await connect();
+
 export async function POST(request: NextRequest) {
     try {
       const url = new URL(request.url);
       const classId = url.searchParams.get("classId");
       const courseId = url.searchParams.get("courseId");
       const studentId = url.searchParams.get("studentId");
-      
+             
       // Validate IDs
       if (!classId || !courseId || !studentId) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Missing required parameters' 
-        }, { status: 400 });
+        return NextResponse.json({
+           success: false,
+           error: 'Missing required parameters'
+         }, { status: 400 });
       }
-      console.log("classId : ",classId);
-      console.log("studentId : ",studentId);
-      
+             
       // Get token and instructor ID
       const token = request.cookies.get("token")?.value;
       const decodedToken = token ? jwt.decode(token) : null;
       const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-      
+             
       // Parse JSON body instead of FormData
       const data = await request.json();
-      
+             
       // Extract fields from JSON
       const {
         musicality,
@@ -37,54 +39,136 @@ export async function POST(request: NextRequest) {
         technique,
         retention,
         effort,
-        feedback: personalFeedback
+        personalFeedback
       } = data;
-      console.log("data : ",data);
-      
+
+      const {attendanceStatus} = data;
+
+      const user= await User.findById(studentId);
+     // Check if attendance record exists for this class
+    const attendanceIndex = user.attendance.findIndex(
+      (att) => att.classId.toString() === classId
+    );
+
+    if (attendanceIndex !== -1) {
+      // Update existing attendance record
+      user.attendance[attendanceIndex].status = status;
+    } else {
+      // Create new attendance record
+      user.attendance.push({
+        classId: classId,
+        status: attendanceStatus
+      });
+    }
+
+    // Save the updated user
+    await user.save();
+             
       // Create feedback document
       const feedbackData = {
         userId: studentId,
         classId: classId,
         musicality: Number(musicality),
-        retention: Number(retention),
-        effort: Number(effort),
         performance: Number(performance),
         technique: Number(technique),
-        personalFeedback
+        retention: Number(retention),
+        effort: Number(effort),
+        feedback: personalFeedback
       };
-      
+             
       const newFeedback = await feedbackDance.create(feedbackData);
-     const savednewFeedback= await newFeedback.save();
-      console.log(" savednewFeedback : ",savednewFeedback);
-
+      
+      // Update the Class document with the feedback ID
       const updatedClass = await Class.findByIdAndUpdate(
-              classId,
-              { feedbackId: newFeedback._id },
-              { new: true } // Return the updated document
-            );
+        classId,
+        { feedbackId: newFeedback._id },
+        { new: true } // Return the updated document
+      );
+
+      if (!updatedClass) {
+        return NextResponse.json({
+          success: false,
+          message: 'Class not found'
+        }, { status: 404 });
+      }
+              // Step 1: Get all classes for this course
+      const course = await courseName.findById(courseId).populate('class');
       
-            if (!updatedClass) {
-              return NextResponse.json({
-                success: false,
-                message: 'Class not found'
-              }, { status: 404 });
-            }
-      
+      if (!course) {
+        return NextResponse.json({
+          success: false,
+          message: 'Course not found'
+        }, { status: 404 });
+      }
+
+      // Step 2: Get all class IDs for this course
+      const classIds = course.class.map((cls: any) => cls._id);
+
+      // Step 3: Get all feedbacks for this student across all classes in this course
+      const studentFeedbacks = await feedbackDance.find({
+        userId: studentId,
+        classId: { $in: classIds }
+      });
+
+    // Step 4: Calculate average score
+      if (studentFeedbacks.length > 0) {
+        const totalScores = studentFeedbacks.reduce((acc, fb) => {
+          // Convert string values to numbers, defaulting to 0 if invalid
+          const musicalityScore = Number(fb.musicality) || 0;
+          const performanceScore = Number(fb.performance) || 0;
+          const techniqueScore = Number(fb.technique) || 0;
+          const retentionScore = Number(fb.retention) || 0;
+          const effortScore = Number(fb.effort) || 0;
+          
+          return acc + 
+            musicalityScore + 
+            performanceScore + 
+            retentionScore + 
+            effortScore + 
+            techniqueScore;
+        }, 0);
+
+        // Average across all metrics and all feedbacks
+        const averageScore = totalScores / (studentFeedbacks.length * 6);
+
+        // Step 5: Update or add the performance score in the course
+        const existingScoreIndex = course.performanceScores.findIndex(
+          (score: any) => score.userId.toString() === studentId.toString()
+        );
+
+        if (existingScoreIndex !== -1) {
+          // Update existing score
+          course.performanceScores[existingScoreIndex].score = averageScore;
+          course.performanceScores[existingScoreIndex].date = new Date();
+        } else {
+          // Add new score
+          course.performanceScores.push({
+            userId: studentId,
+            score: averageScore,
+            date: new Date()
+          });
+        }
+
+        await course.save();
+      }
       return NextResponse.json({
         success: true,
-        message: 'Feedback submitted successfully',
-        data: newFeedback
+        message: 'Dance Feedback submitted successfully and class updated',
+        data: {
+          feedback: newFeedback,
+          updatedClass: updatedClass
+        }
       }, { status: 201 });
-      
+           
     } catch (error: any) {
-      console.error('Error submitting feedback:', error);
+      console.error('Error submitting Dance feedback:', error);
       return NextResponse.json({
         success: false,
-        message: error.message || 'Failed to submit feedback',
+        message: error.message || 'Failed to submit Dance feedback',
         error: error.stack
       }, { status: 500 });
     }
-  }
+}
 export async function GET(request: NextRequest) {
     try {
         const url = new URL(request.url);
@@ -154,10 +238,10 @@ export async function GET(request: NextRequest) {
         }, { status: 200 });
         
     } catch (error: any) {
-        console.error('Error fetching feedback:', error);
+        console.error('Error fetching Dance feedback:', error);
         return NextResponse.json({
             success: false,
-            message: error.message || 'Failed to fetch feedback',
+            message: error.message || 'Failed to fetch Dance feedback',
             error: error.stack
         }, { status: 500 });
     }

@@ -3,6 +3,9 @@ import { connect } from '@/dbConnection/dbConfic';
 import Class from '@/models/Class';
 import feedbackDrums from '@/models/feedbackDrums';
 import jwt from 'jsonwebtoken'
+import courseName from '@/models/courseName';
+import User  from '@/models/userModel';
+// import { getServerSession } from 'next-auth/next'; // If using next-auth
 
 await connect();
 
@@ -12,25 +15,23 @@ export async function POST(request: NextRequest) {
       const classId = url.searchParams.get("classId");
       const courseId = url.searchParams.get("courseId");
       const studentId = url.searchParams.get("studentId");
-      
+             
       // Validate IDs
       if (!classId || !courseId || !studentId) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Missing required parameters' 
-        }, { status: 400 });
+        return NextResponse.json({
+           success: false,
+           error: 'Missing required parameters'
+         }, { status: 400 });
       }
-      console.log("classId : ", classId);
-      console.log("studentId : ", studentId);
-      
+             
       // Get token and instructor ID
       const token = request.cookies.get("token")?.value;
       const decodedToken = token ? jwt.decode(token) : null;
       const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-      
+             
       // Parse JSON body instead of FormData
       const data = await request.json();
-      
+             
       // Extract fields from JSON
       const {
         techniqueAndFundamentals,
@@ -41,8 +42,29 @@ export async function POST(request: NextRequest) {
         progressAndPracticeHabits,
         personalFeedback
       } = data;
-      console.log("data : ", data);
-      
+
+      const {attendanceStatus} = data;
+
+      const user= await User.findById(studentId);
+     // Check if attendance record exists for this class
+    const attendanceIndex = user.attendance.findIndex(
+      (att) => att.classId.toString() === classId
+    );
+
+    if (attendanceIndex !== -1) {
+      // Update existing attendance record
+      user.attendance[attendanceIndex].status = status;
+    } else {
+      // Create new attendance record
+      user.attendance.push({
+        classId: classId,
+        status: attendanceStatus
+      });
+    }
+
+    // Save the updated user
+    await user.save();
+             
       // Create feedback document
       const feedbackData = {
         userId: studentId,
@@ -53,46 +75,109 @@ export async function POST(request: NextRequest) {
         dynamicsAndMusicality: Number(dynamicsAndMusicality),
         patternKnowledgeAndReading: Number(patternKnowledgeAndReading),
         progressAndPracticeHabits: Number(progressAndPracticeHabits),
-        personalFeedback
+        feedback: personalFeedback
       };
-      
+             
       const newFeedback = await feedbackDrums.create(feedbackData);
-      const savedNewFeedback = await newFeedback.save();
-      console.log("savedNewFeedback : ", savedNewFeedback);
-
+      
+      // Update the Class document with the feedback ID
       const updatedClass = await Class.findByIdAndUpdate(
-              classId,
-              { feedbackId: newFeedback._id },
-              { new: true } // Return the updated document
-            );
+        classId,
+        { feedbackId: newFeedback._id },
+        { new: true } // Return the updated document
+      );
+
+      if (!updatedClass) {
+        return NextResponse.json({
+          success: false,
+          message: 'Class not found'
+        }, { status: 404 });
+      }
+              // Step 1: Get all classes for this course
+      const course = await courseName.findById(courseId).populate('class');
       
-            if (!updatedClass) {
-              return NextResponse.json({
-                success: false,
-                message: 'Class not found'
-              }, { status: 404 });
-            }
-      
+      if (!course) {
+        return NextResponse.json({
+          success: false,
+          message: 'Course not found'
+        }, { status: 404 });
+      }
+
+      // Step 2: Get all class IDs for this course
+      const classIds = course.class.map((cls: any) => cls._id);
+
+      // Step 3: Get all feedbacks for this student across all classes in this course
+      const studentFeedbacks = await feedbackDrums.find({
+        userId: studentId,
+        classId: { $in: classIds }
+      });
+
+    // Step 4: Calculate average score
+      if (studentFeedbacks.length > 0) {
+        const totalScores = studentFeedbacks.reduce((acc, fb) => {
+          // Convert string values to numbers, defaulting to 0 if invalid
+          const techniqueAndFundamentalsScore = Number(fb.techniqueAndFundamentals) || 0;
+          const timingAndTempoScore = Number(fb.timingAndTempo) || 0;
+          const coordinationAndIndependenceScore = Number(fb.coordinationAndIndependence) || 0;
+          const dynamicsAndMusicalityScore = Number(fb.dynamicsAndMusicality) || 0;
+          const patternKnowledgeAndReadingScore = Number(fb.patternKnowledgeAndReading) || 0;
+          const progressAndPracticeHabitsScore = Number(fb.progressAndPracticeHabits) || 0;
+          
+          return acc + 
+            techniqueAndFundamentalsScore + 
+            timingAndTempoScore + 
+            coordinationAndIndependenceScore + 
+            dynamicsAndMusicalityScore + 
+            patternKnowledgeAndReadingScore + 
+            progressAndPracticeHabitsScore;
+        }, 0);
+
+        // Average across all metrics and all feedbacks
+        const averageScore = totalScores / (studentFeedbacks.length * 6);
+
+        // Step 5: Update or add the performance score in the course
+        const existingScoreIndex = course.performanceScores.findIndex(
+          (score: any) => score.userId.toString() === studentId.toString()
+        );
+
+        if (existingScoreIndex !== -1) {
+          // Update existing score
+          course.performanceScores[existingScoreIndex].score = averageScore;
+          course.performanceScores[existingScoreIndex].date = new Date();
+        } else {
+          // Add new score
+          course.performanceScores.push({
+            userId: studentId,
+            score: averageScore,
+            date: new Date()
+          });
+        }
+
+        await course.save();
+      }
       return NextResponse.json({
         success: true,
-        message: 'Drums feedback submitted successfully',
-        data: newFeedback
+        message: 'Drums Feedback submitted successfully and class updated',
+        data: {
+          feedback: newFeedback,
+          updatedClass: updatedClass
+        }
       }, { status: 201 });
-      
+           
     } catch (error: any) {
-      console.error('Error submitting drums feedback:', error);
+      console.error('Error submitting Drums feedback:', error);
       return NextResponse.json({
         success: false,
-        message: error.message || 'Failed to submit drums feedback',
+        message: error.message || 'Failed to submit Drums feedback',
         error: error.stack
       }, { status: 500 });
     }
 }
-
 export async function GET(request: NextRequest) {
     try {
         const url = new URL(request.url);
         const courseId = url.searchParams.get("courseId");
+        // const studentId = url.searchParams.get("studentId");
         
         // Get token and verify instructor
         const token = request.cookies.get("token")?.value;
@@ -143,21 +228,24 @@ export async function GET(request: NextRequest) {
         }
         
         // Find feedback for all classes in the course
-        const feedbackData = await feedbackDrums.find(query);
-        const feedbackAllStudent = await feedbackDrums.find({ classId: { $in: classIds } });
+        const feedbackData = await feedbackDrums.find(query)
+            // .populate('userId', 'username email') // Populate student details
+            // .populate('classId', 'title startTime') // Populate class details
+            // .lean();
+            const feedbackAllStudent=await feedbackDrums.find({ classId: { $in: classIds } })
         
         return NextResponse.json({
             success: true,
             count: feedbackData.length,
             data: feedbackData,
-            feedbackAllStudent: feedbackAllStudent
+            feedbackAllStudent:feedbackAllStudent
         }, { status: 200 });
         
     } catch (error: any) {
-        console.error('Error fetching drums feedback:', error);
+        console.error('Error fetching Drums feedback:', error);
         return NextResponse.json({
             success: false,
-            message: error.message || 'Failed to fetch drums feedback',
+            message: error.message || 'Failed to fetch Drums feedback',
             error: error.stack
         }, { status: 500 });
     }
