@@ -40,6 +40,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   const [selectedMonths, setSelectedMonths] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState("UPI");
   const [isPaying, setIsPaying] = useState(false);
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>(['UPI', 'Credit Card', 'Net Banking']);
 
   const shouldShowPayNow = useMemo(
     () => Boolean(userData?.category === "Student" && userData?.academyId),
@@ -69,9 +70,38 @@ const CourseCard: React.FC<CourseCardProps> = ({
     fetchTutorName();
   }, [course.tutorName, course.instructor, (course as any).instructorId]);
 
+  // Fetch payment methods for student's academy
+  useEffect(() => {
+    if (shouldShowPayNow && userData?.academyId) {
+      const fetchPaymentMethods = async () => {
+        try {
+          const response = await fetch("/Api/student/paymentMethods");
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.paymentMethods?.selectedMethods) {
+              setAvailablePaymentMethods(data.paymentMethods.selectedMethods);
+              // Set default payment method
+              if (data.paymentMethods.selectedMethods.length > 0) {
+                setPaymentMethod(data.paymentMethods.selectedMethods[0]);
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching payment methods:", error);
+        }
+      };
+      fetchPaymentMethods();
+    }
+  }, [shouldShowPayNow, userData?.academyId]);
+
   const handleOpenPaymentModal = () => {
     setSelectedMonths(1);
-    setPaymentMethod("UPI");
+    // Set to first available payment method
+    if (availablePaymentMethods.length > 0) {
+      setPaymentMethod(availablePaymentMethods[0]);
+    } else {
+      setPaymentMethod("UPI");
+    }
     setShowPaymentModal(true);
   };
 
@@ -233,7 +263,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value)}
               >
-                {["UPI", "Credit Card", "Net Banking"].map((mode) => (
+                {availablePaymentMethods.map((mode) => (
                   <option key={mode} value={mode}>
                     {mode}
                   </option>

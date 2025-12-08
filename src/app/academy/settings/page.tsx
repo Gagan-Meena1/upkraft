@@ -74,6 +74,15 @@ export default function SettingsPage() {
           phone: userData.user?.contact || '',
           address: userData.user?.address || ''
         });
+
+        // Fetch payment methods settings
+        const paymentMethodsResponse = await fetch("/Api/academy/paymentMethods");
+        if (paymentMethodsResponse.ok) {
+          const paymentMethodsData = await paymentMethodsResponse.json();
+          if (paymentMethodsData.success && paymentMethodsData.paymentMethods) {
+            setPaymentMethods(paymentMethodsData.paymentMethods);
+          }
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
         toast.error('Failed to load academy information');
@@ -142,12 +151,40 @@ export default function SettingsPage() {
 
   const handleSavePaymentMethods = async () => {
     try {
-      // TODO: Implement API call to save payment methods
       console.log('Saving payment methods:', paymentMethods);
-      alert('Payment methods saved successfully!');
-    } catch (error) {
+      const response = await fetch('/Api/academy/paymentMethods', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentMethods),
+        credentials: 'include'
+      });
+
+      console.log('Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Error response:', errorData);
+        throw new Error(errorData.error || 'Failed to update payment methods');
+      }
+
+      const data = await response.json();
+      console.log('Success response:', data);
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update payment methods');
+      }
+
+      toast.success('Payment methods saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving payment methods:', error);
-      alert('Failed to save payment methods');
+      toast.error(error.message || 'Failed to save payment methods');
     }
   };
 
