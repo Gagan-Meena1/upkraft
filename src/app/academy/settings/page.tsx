@@ -26,8 +26,9 @@ export default function SettingsPage() {
     address: ''
   });
   const [isSavingAcademyInfo, setIsSavingAcademyInfo] = useState(false);
+  const [isLoadingAcademyInfo, setIsLoadingAcademyInfo] = useState(true);
   const [paymentMethods, setPaymentMethods] = useState({
-    selectedMethods: ['UPI', 'Bank Transfer', 'Card', 'Cash'],
+    selectedMethods: ['UPI', 'Net Banking', 'Card', 'Cash'],
     preferredMethod: 'UPI',
     paymentGateway: 'Razorpay',
     currency: 'INR'
@@ -60,6 +61,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoadingAcademyInfo(true);
       try {
         const userResponse = await fetch("/Api/users/user");
         const userData = await userResponse.json();
@@ -74,6 +76,9 @@ export default function SettingsPage() {
         });
       } catch (error) {
         console.error("Error fetching user data:", error);
+        toast.error('Failed to load academy information');
+      } finally {
+        setIsLoadingAcademyInfo(false);
       }
     };
 
@@ -148,7 +153,7 @@ export default function SettingsPage() {
 
   const paymentMethodOptions = [
     { id: 'UPI', name: 'UPI', icon: '📱', fee: '0% fee' },
-    { id: 'Bank Transfer', name: 'Bank Transfer', icon: '🏦', fee: 'Manual' },
+    { id: 'Net Banking', name: 'Net Banking', icon: '🏦', fee: 'Manual' },
     { id: 'Card', name: 'Card', icon: '💳', fee: '2.5% fee' },
     { id: 'Cash', name: 'Cash', icon: '💵', fee: 'Manual entry' }
   ];
@@ -339,8 +344,46 @@ export default function SettingsPage() {
                 color: '#666',
                 marginBottom: '25px'
               }}>
-                Update your academy details and branding
+                Update your academy details
               </div>
+
+              {/* Loader */}
+              {isLoadingAcademyInfo ? (
+                <>
+                  <style dangerouslySetInnerHTML={{__html: `
+                    @keyframes spin-loader {
+                      0% { transform: rotate(0deg); }
+                      100% { transform: rotate(360deg); }
+                    }
+                  `}} />
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: '60px 20px',
+                    flexDirection: 'column',
+                    gap: '20px'
+                  }}>
+                    <div 
+                      style={{
+                        width: '50px',
+                        height: '50px',
+                        border: '4px solid #f3f3f3',
+                        borderTop: '4px solid #6200EA',
+                        borderRadius: '50%',
+                        animation: 'spin-loader 1s linear infinite'
+                      }}
+                    ></div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#666'
+                    }}>
+                      Loading academy information...
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
 
               <div style={{ marginBottom: '20px' }}>
                 <label style={{
@@ -498,6 +541,8 @@ export default function SettingsPage() {
                   {isSavingAcademyInfo ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
+                </>
+              )}
             </div>
           )}
 
