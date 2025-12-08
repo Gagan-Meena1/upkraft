@@ -15,6 +15,8 @@ interface StudentTutorLead {
   email: string;
   countryCode: string;
   tutorName?: string | null;
+  demoDate?: string | null;
+  demoTime?: string | null;
 }
 
 interface InstitutionLead {
@@ -136,9 +138,9 @@ export default function LeadsDashboard() {
 
     let csv = "";
     if (type === "individual") {
-      csv = "Type,Name,Email,Country Code,Contact Number,Instrument,City,Registered At\n";
+      csv = "Type,Name,Email,Country Code,Contact Number,Instrument,City,Demodate,DemoTime,Registered At\n";
       leads.forEach((lead: any) => {
-        csv += `${lead.userType},${lead.name},${lead.email},${lead.countryCode},${lead.contactNumber},${lead.instrument},${lead.city},${new Date(lead.createdAt).toLocaleString()}\n`;
+        csv += `${lead.userType},${lead.name},${lead.email},${lead.countryCode},${lead.contactNumber},${lead.instrument},${lead.city},${lead.demoDate},${lead.demoTime},${new Date(lead.createdAt).toLocaleString()}\n`;
       });
     } else {
       csv = "Type,Role,Name,Phone,Email,Institution Name,City,Student Count,Registered At\n";
@@ -332,6 +334,9 @@ export default function LeadsDashboard() {
                         <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '220px' }}>Email</th>
                         <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>Instrument</th>
                         <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>City</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>Demo Date</th>
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>Demo Time</th>
+
                         <th className="px-4 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '120px' }}>Registered</th>
                         <th className="px-4 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap" style={{ width: '140px' }}>Actions</th>
                       </tr>
@@ -386,6 +391,20 @@ export default function LeadsDashboard() {
                             <div className="flex items-center gap-1.5 text-sm text-gray-600">
                               <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                               <span>{lead.city}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-700">
+                              {lead.demoDate ? new Date(lead.demoDate).toLocaleDateString("en-IN", {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              }) : "N/A"}
+                            </div>
+                          </td> 
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-700">
+                              {lead.demoTime || "N/A"}
                             </div>
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
