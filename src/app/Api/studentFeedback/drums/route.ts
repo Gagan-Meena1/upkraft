@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
 import Class from '@/models/Class';
-import feedbackDance from '@/models/feedbackDance';
+import feedbackDrums from '@/models/feedbackDrums';
 import jwt from 'jsonwebtoken'
 import courseName from '@/models/courseName';
 import User  from '@/models/userModel';
@@ -34,11 +34,12 @@ export async function POST(request: NextRequest) {
              
       // Extract fields from JSON
       const {
-        musicality,
-        performance,
-        technique,
-        retention,
-        effort,
+        techniqueAndFundamentals,
+        timingAndTempo,
+        coordinationAndIndependence,
+        dynamicsAndMusicality,
+        patternKnowledgeAndReading,
+        progressAndPracticeHabits,
         personalFeedback
       } = data;
 
@@ -68,15 +69,16 @@ export async function POST(request: NextRequest) {
       const feedbackData = {
         userId: studentId,
         classId: classId,
-        musicality: Number(musicality),
-        performance: Number(performance),
-        technique: Number(technique),
-        retention: Number(retention),
-        effort: Number(effort),
+        techniqueAndFundamentals: Number(techniqueAndFundamentals),
+        timingAndTempo: Number(timingAndTempo),
+        coordinationAndIndependence: Number(coordinationAndIndependence),
+        dynamicsAndMusicality: Number(dynamicsAndMusicality),
+        patternKnowledgeAndReading: Number(patternKnowledgeAndReading),
+        progressAndPracticeHabits: Number(progressAndPracticeHabits),
         feedback: personalFeedback
       };
              
-      const newFeedback = await feedbackDance.create(feedbackData);
+      const newFeedback = await feedbackDrums.create(feedbackData);
       
       // Update the Class document with the feedback ID
       const updatedClass = await Class.findByIdAndUpdate(
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
       const classIds = course.class.map((cls: any) => cls._id);
 
       // Step 3: Get all feedbacks for this student across all classes in this course
-      const studentFeedbacks = await feedbackDance.find({
+      const studentFeedbacks = await feedbackDrums.find({
         userId: studentId,
         classId: { $in: classIds }
       });
@@ -114,18 +116,20 @@ export async function POST(request: NextRequest) {
       if (studentFeedbacks.length > 0) {
         const totalScores = studentFeedbacks.reduce((acc, fb) => {
           // Convert string values to numbers, defaulting to 0 if invalid
-          const musicalityScore = Number(fb.musicality) || 0;
-          const performanceScore = Number(fb.performance) || 0;
-          const techniqueScore = Number(fb.technique) || 0;
-          const retentionScore = Number(fb.retention) || 0;
-          const effortScore = Number(fb.effort) || 0;
+          const techniqueAndFundamentalsScore = Number(fb.techniqueAndFundamentals) || 0;
+          const timingAndTempoScore = Number(fb.timingAndTempo) || 0;
+          const coordinationAndIndependenceScore = Number(fb.coordinationAndIndependence) || 0;
+          const dynamicsAndMusicalityScore = Number(fb.dynamicsAndMusicality) || 0;
+          const patternKnowledgeAndReadingScore = Number(fb.patternKnowledgeAndReading) || 0;
+          const progressAndPracticeHabitsScore = Number(fb.progressAndPracticeHabits) || 0;
           
           return acc + 
-            musicalityScore + 
-            performanceScore + 
-            retentionScore + 
-            effortScore + 
-            techniqueScore;
+            techniqueAndFundamentalsScore + 
+            timingAndTempoScore + 
+            coordinationAndIndependenceScore + 
+            dynamicsAndMusicalityScore + 
+            patternKnowledgeAndReadingScore + 
+            progressAndPracticeHabitsScore;
         }, 0);
 
         // Average across all metrics and all feedbacks
@@ -153,7 +157,7 @@ export async function POST(request: NextRequest) {
       }
       return NextResponse.json({
         success: true,
-        message: 'Dance Feedback submitted successfully and class updated',
+        message: 'Drums Feedback submitted successfully and class updated',
         data: {
           feedback: newFeedback,
           updatedClass: updatedClass
@@ -161,10 +165,10 @@ export async function POST(request: NextRequest) {
       }, { status: 201 });
            
     } catch (error: any) {
-      console.error('Error submitting Dance feedback:', error);
+      console.error('Error submitting Drums feedback:', error);
       return NextResponse.json({
         success: false,
-        message: error.message || 'Failed to submit Dance feedback',
+        message: error.message || 'Failed to submit Drums feedback',
         error: error.stack
       }, { status: 500 });
     }
@@ -224,11 +228,11 @@ export async function GET(request: NextRequest) {
         }
         
         // Find feedback for all classes in the course
-        const feedbackData = await feedbackDance.find(query)
+        const feedbackData = await feedbackDrums.find(query)
             // .populate('userId', 'username email') // Populate student details
             // .populate('classId', 'title startTime') // Populate class details
             // .lean();
-            const feedbackAllStudent=await feedbackDance.find({ classId: { $in: classIds } })
+            const feedbackAllStudent=await feedbackDrums.find({ classId: { $in: classIds } })
         
         return NextResponse.json({
             success: true,
@@ -238,10 +242,10 @@ export async function GET(request: NextRequest) {
         }, { status: 200 });
         
     } catch (error: any) {
-        console.error('Error fetching Dance feedback:', error);
+        console.error('Error fetching Drums feedback:', error);
         return NextResponse.json({
             success: false,
-            message: error.message || 'Failed to fetch Dance feedback',
+            message: error.message || 'Failed to fetch Drums feedback',
             error: error.stack
         }, { status: 500 });
     }
