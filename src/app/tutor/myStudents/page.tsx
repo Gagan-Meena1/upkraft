@@ -497,7 +497,7 @@ export default function MyStudents() {
                               >
                                 Details
                               </Link>
-                              <button
+                              {/* <button
                                 onClick={() => handleDeleteStudent(student._id)}
                                 disabled={deletingStudents.has(student._id)}
                                 className={`btn-delete ${
@@ -507,12 +507,13 @@ export default function MyStudents() {
                                 }`}
                                 title="Delete Student"
                               >
+                                
                                 {deletingStudents.has(student._id) ? (
                                   <div className="btn-d"></div>
                                 ) : (
                                   <MdDelete className="" />
                                 )}
-                              </button>
+                              </button> */}
                             </div>
                           </td>
                         </tr>
