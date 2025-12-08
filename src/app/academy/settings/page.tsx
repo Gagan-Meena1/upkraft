@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-hot-toast';
 
 interface UserData {
   _id: string;
@@ -24,6 +25,7 @@ export default function SettingsPage() {
     phone: '',
     address: ''
   });
+  const [isSavingAcademyInfo, setIsSavingAcademyInfo] = useState(false);
   const [paymentMethods, setPaymentMethods] = useState({
     selectedMethods: ['UPI', 'Bank Transfer', 'Card', 'Cash'],
     preferredMethod: 'UPI',
@@ -79,14 +81,45 @@ export default function SettingsPage() {
   }, []);
 
   const handleSaveAcademyInfo = async () => {
+    // Validate required fields
+    if (!academyInfo.academyName || !academyInfo.email) {
+      toast.error('Academy name and email are required');
+      return;
+    }
+
+    setIsSavingAcademyInfo(true);
     try {
-      // TODO: Implement API call to save academy info
-      console.log('Saving academy info:', academyInfo);
+      const response = await fetch('/Api/academy/updateInfo', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          academyName: academyInfo.academyName,
+          email: academyInfo.email,
+          phone: academyInfo.phone,
+          address: academyInfo.address
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update academy information');
+      }
+
       // Show success message
-      alert('Academy information saved successfully!');
-    } catch (error) {
+      toast.success('Academy information saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving academy info:', error);
-      alert('Failed to save academy information');
+      toast.error(error.message || 'Failed to save academy information');
+      setIsSavingAcademyInfo(false);
     }
   };
 
@@ -434,27 +467,35 @@ export default function SettingsPage() {
               }}>
                 <button
                   onClick={handleSaveAcademyInfo}
+                  disabled={isSavingAcademyInfo}
                   style={{
                     padding: '12px 24px',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: 'pointer',
+                    cursor: isSavingAcademyInfo ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: 600,
-                    background: 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
+                    background: isSavingAcademyInfo 
+                      ? '#ccc' 
+                      : 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
                     color: 'white',
-                    transition: 'all 0.3s'
+                    transition: 'all 0.3s',
+                    opacity: isSavingAcademyInfo ? 0.7 : 1
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 16px rgba(98, 0, 234, 0.3)';
+                    if (!isSavingAcademyInfo) {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 16px rgba(98, 0, 234, 0.3)';
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
+                    if (!isSavingAcademyInfo) {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
                   }}
                 >
-                  Save Changes
+                  {isSavingAcademyInfo ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </div>
