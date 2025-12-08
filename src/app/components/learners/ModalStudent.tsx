@@ -38,16 +38,57 @@ const formatPhoneNumber = (value, countryCode) => {
 
 const ModalStudent = ({ show, handleClose, tutorName }: ModalStudentProps) => {
   const [key, setKey] = useState("Student");
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    city: "",
-    phone: "",
-    countryCode: "+91",
-    skill: "",
-  });
+const [formData, setFormData] = useState({
+  name: "",
+  email: "",
+  city: "",
+  phone: "",
+  countryCode: "+91",
+  skill: "",
+  demoDate: "",
+  demoTime: "",
+});
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+
+  // Generate time slots (9 AM - 9 PM, 30-min intervals)
+const generateTimeSlots = () => {
+  const slots = [];
+  for (let hour = 8; hour <= 20; hour++) {
+    for (let min = 0; min < 60; min += 30) {
+      if (hour === 20 && min > 0) break; // Stop at 9:00 PM
+      const time24 = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
+      const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const time12 = `${hour12}:${min.toString().padStart(2, "0")} ${ampm}`;
+      slots.push({ value: time24, label: time12 });
+    }
+  }
+  return slots;
+};
+
+// Get minimum date (today)
+const getMinDate = () => {
+  const today = new Date();
+  return today.toISOString().split("T")[0];
+};
+
+// Calculate end time (start time + 30 minutes)
+const calculateEndTime = (startTime) => {
+  if (!startTime) return "";
+  const [hours, minutes] = startTime.split(":").map(Number);
+  let endHour = hours;
+  let endMin = minutes + 30;
+  
+  if (endMin >= 60) {
+    endHour += 1;
+    endMin -= 60;
+  }
+  
+  const hour12 = endHour > 12 ? endHour - 12 : endHour === 0 ? 12 : endHour;
+  const ampm = endHour >= 12 ? "PM" : "AM";
+  return `${hour12}:${endMin.toString().padStart(2, "0")} ${ampm}`;
+};
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -65,16 +106,18 @@ const ModalStudent = ({ show, handleClose, tutorName }: ModalStudentProps) => {
     setMessage("");
 
     try {
-      const submissionData = {
-        name: formData.name,
-        email: formData.email,
-        city: formData.city,
-        phone: formData.phone,
-        countryCode: formData.countryCode,
-        skill: formData.skill,
-        userType: key,
-        tutorName: key === "Student" ? tutorName || null : null, // ✅ Only include for Student
-      };
+     const submissionData = {
+  name: formData.name,
+  email: formData.email,
+  city: formData.city,
+  phone: formData.phone,
+  countryCode: formData.countryCode,
+  skill: formData.skill,
+  userType: key,
+  tutorName: key === "Student" ? tutorName || null : null,
+  demoDate: formData.demoDate,
+  demoTime: formData.demoTime,
+};
 
       const res = await fetch("/Api/express-interest", {
         method: "POST",
@@ -87,13 +130,15 @@ const ModalStudent = ({ show, handleClose, tutorName }: ModalStudentProps) => {
       if (res.ok) {
         setMessage("✅ Your information has been submitted successfully!");
         setFormData({
-          name: "",
-          email: "",
-          city: "",
-          phone: "",
-          countryCode: formData.countryCode,
-          skill: "",
-        });
+  name: "",
+  email: "",
+  city: "",
+  phone: "",
+  countryCode: formData.countryCode,
+  skill: "",
+  demoDate: "",
+  demoTime: "",
+});
       } else {
         setMessage(`❌ ${data.error || "Failed to submit form"}`);
       }
@@ -194,6 +239,47 @@ const ModalStudent = ({ show, handleClose, tutorName }: ModalStudentProps) => {
             />
           </Form.Group>
         </div>
+<div className="col-lg-12">
+  <Form.Group className="mb-3">
+    <Form.Label>
+      {key === "Student" ? "Preferred Demo Date" : "Preferred Interview Date"}
+    </Form.Label>
+    <Form.Control
+      type="date"
+      name="demoDate"
+      value={formData.demoDate}
+      onChange={handleChange}
+      min={getMinDate()}
+      required
+    />
+  </Form.Group>
+</div>
+
+<div className="col-lg-12">
+  <Form.Group className="mb-3">
+    <Form.Label>
+      {key === "Student" ? "Preferred Demo Time" : "Preferred Interview Time"}
+    </Form.Label>
+    <Form.Select
+      name="demoTime"
+      value={formData.demoTime}
+      onChange={handleChange}
+      required
+    >
+      <option value="">Select start time</option>
+      {generateTimeSlots().map((slot) => (
+        <option key={slot.value} value={slot.value}>
+          {slot.label}
+        </option>
+      ))}
+    </Form.Select>
+    {formData.demoTime && (
+      <Form.Text className="text-muted">
+        {key === "Student" ? "Demo" : "Interview"} session: {formData.demoTime && generateTimeSlots().find(s => s.value === formData.demoTime)?.label} - {calculateEndTime(formData.demoTime)} (30 minutes)
+      </Form.Text>
+    )}
+  </Form.Group>
+</div>
 
         <div className="col-lg-12">
           <Button
@@ -226,14 +312,16 @@ const ModalStudent = ({ show, handleClose, tutorName }: ModalStudentProps) => {
               activeKey={key}
               onSelect={(k) => {
                 setKey(k);
-                setFormData({
-                  name: "",
-                  email: "",
-                  city: "",
-                  phone: "",
-                  countryCode: formData.countryCode,
-                  skill: "",
-                });
+                   setFormData({
+  name: "",
+  email: "",
+  city: "",
+  phone: "",
+  countryCode: formData.countryCode,
+  skill: "",
+  demoDate: "",
+  demoTime: "",
+});
               }}
             >
               <Tab eventKey="Student" title="Student">
