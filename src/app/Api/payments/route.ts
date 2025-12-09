@@ -33,7 +33,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { courseId, months = 1, paymentMethod = "UPI" } = body;
+    let { courseId, months = 1, paymentMethod = "UPI" } = body;
+    
+    // Map "Credit Card" back to "Card" for database storage
+    if (paymentMethod === "Credit Card") {
+      paymentMethod = "Card";
+    }
 
     if (!courseId) {
       return NextResponse.json({ success: false, error: "Course ID is required" }, { status: 400 });
