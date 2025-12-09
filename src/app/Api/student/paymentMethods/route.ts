@@ -58,12 +58,18 @@ export async function GET(request: NextRequest) {
     const mappedMethods = paymentMethods.selectedMethods.map((method: string) => 
       method === 'Card' ? 'Credit Card' : method
     );
+    
+    // Map preferredMethod: "Card" -> "Credit Card" for display
+    const mappedPreferredMethod = paymentMethods.preferredMethod === 'Card' 
+      ? 'Credit Card' 
+      : paymentMethods.preferredMethod;
 
     return NextResponse.json({
       success: true,
       paymentMethods: {
         ...paymentMethods,
-        selectedMethods: mappedMethods
+        selectedMethods: mappedMethods,
+        preferredMethod: mappedPreferredMethod
       }
     }, { status: 200 });
 

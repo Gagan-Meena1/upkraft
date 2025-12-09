@@ -251,6 +251,7 @@ export default function RevenueManagement() {
     paymentMethod: "Cash",
   });
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
+  const [preferredPaymentMethod, setPreferredPaymentMethod] = useState<string>("");
 
   const periods = ["Today", "This Week", "This Month", "This Quarter", "This Year", "Custom"];
 
@@ -295,7 +296,7 @@ export default function RevenueManagement() {
   }, [fetchRevenueTransactions]);
 
   // Fetch payment methods settings
-  const fetchPaymentMethods = useCallback(async () => {
+  const fetchPaymentMethods = useCallback(async (setPreferredAsDefault: boolean = false) => {
     try {
       const response = await fetch("/Api/academy/paymentMethods", {
         credentials: 'include',
@@ -320,12 +321,32 @@ export default function RevenueManagement() {
         console.log("Mapped payment methods:", mappedMethods);
         setAvailablePaymentMethods(mappedMethods);
         
-        // Set default payment method if current one is not available
+        // Map preferredMethod: "Card" -> "Credit Card" for display
+        const mappedPreferredMethod = data.paymentMethods.preferredMethod === 'Card' 
+          ? 'Credit Card' 
+          : data.paymentMethods.preferredMethod || '';
+        setPreferredPaymentMethod(mappedPreferredMethod);
+        console.log("Preferred payment method (mapped):", mappedPreferredMethod);
+        
+        // Set default payment method
         setFormData(prev => {
-          if (mappedMethods.length > 0 && !mappedMethods.includes(prev.paymentMethod)) {
-            return { ...prev, paymentMethod: mappedMethods[0] };
+          let defaultMethod;
+          
+          if (setPreferredAsDefault && mappedPreferredMethod && mappedMethods.includes(mappedPreferredMethod)) {
+            // Use preferred method when opening Add Revenue modal
+            defaultMethod = mappedPreferredMethod;
+            console.log("Setting preferred method as default:", defaultMethod);
+          } else if (!mappedMethods.includes(prev.paymentMethod)) {
+            // Use preferred method if available, otherwise first method
+            defaultMethod = mappedPreferredMethod && mappedMethods.includes(mappedPreferredMethod)
+              ? mappedPreferredMethod
+              : (mappedMethods.length > 0 ? mappedMethods[0] : prev.paymentMethod);
+          } else {
+            // Keep current method if it's still available
+            return prev;
           }
-          return prev;
+          
+          return { ...prev, paymentMethod: defaultMethod };
         });
       } else {
         console.warn("Payment methods data structure unexpected:", data);
@@ -344,10 +365,15 @@ export default function RevenueManagement() {
     fetchPaymentMethods();
   }, [fetchPaymentMethods]);
 
-  // Refetch payment methods when modal opens
+  // Refetch payment methods when modal opens and set preferred method
   useEffect(() => {
-    if (showAddRevenueModal || showEditRevenueModal) {
-      fetchPaymentMethods();
+    if (showAddRevenueModal) {
+      // When opening Add Revenue modal, fetch and set preferred method as default
+      fetchPaymentMethods(true);
+    }
+    if (showEditRevenueModal) {
+      // When opening Edit Revenue modal, just fetch methods (don't change the existing payment method)
+      fetchPaymentMethods(false);
     }
   }, [showAddRevenueModal, showEditRevenueModal, fetchPaymentMethods]);
 

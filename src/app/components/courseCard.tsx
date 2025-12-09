@@ -78,11 +78,18 @@ const CourseCard: React.FC<CourseCardProps> = ({
           const response = await fetch("/Api/student/paymentMethods");
           if (response.ok) {
             const data = await response.json();
+            console.log("Initial payment methods fetch:", data);
             if (data.success && data.paymentMethods?.selectedMethods) {
               setAvailablePaymentMethods(data.paymentMethods.selectedMethods);
-              // Set default payment method
-              if (data.paymentMethods.selectedMethods.length > 0) {
+              // Set default payment method to preferredMethod if available, otherwise first method
+              const preferredMethod = data.paymentMethods.preferredMethod;
+              if (preferredMethod && 
+                  data.paymentMethods.selectedMethods.includes(preferredMethod)) {
+                setPaymentMethod(preferredMethod);
+                console.log("Initial payment method set to preferred:", preferredMethod);
+              } else if (data.paymentMethods.selectedMethods.length > 0) {
                 setPaymentMethod(data.paymentMethods.selectedMethods[0]);
+                console.log("Initial payment method set to first available:", data.paymentMethods.selectedMethods[0]);
               }
             }
           }
@@ -94,14 +101,64 @@ const CourseCard: React.FC<CourseCardProps> = ({
     }
   }, [shouldShowPayNow, userData?.academyId]);
 
-  const handleOpenPaymentModal = () => {
+  const handleOpenPaymentModal = async () => {
     setSelectedMonths(1);
-    // Set to first available payment method
-    if (availablePaymentMethods.length > 0) {
-      setPaymentMethod(availablePaymentMethods[0]);
-    } else {
-      setPaymentMethod("UPI");
+    
+    // Fetch payment methods to get the preferred method
+    try {
+      const response = await fetch("/Api/student/paymentMethods");
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Student payment methods API response:", data);
+        
+        if (data.success && data.paymentMethods?.selectedMethods) {
+          setAvailablePaymentMethods(data.paymentMethods.selectedMethods);
+          
+          // Set to preferred method if available, otherwise first method
+          const preferredMethod = data.paymentMethods.preferredMethod;
+          console.log("Preferred method from API:", preferredMethod);
+          console.log("Available methods:", data.paymentMethods.selectedMethods);
+          
+          if (preferredMethod && 
+              data.paymentMethods.selectedMethods.includes(preferredMethod)) {
+            setPaymentMethod(preferredMethod);
+            console.log("Setting payment method to preferred:", preferredMethod);
+          } else if (data.paymentMethods.selectedMethods.length > 0) {
+            const firstMethod = data.paymentMethods.selectedMethods[0];
+            setPaymentMethod(firstMethod);
+            console.log("Preferred method not available, using first method:", firstMethod);
+          } else {
+            setPaymentMethod("UPI");
+            console.log("No methods available, using default: UPI");
+          }
+        } else {
+          console.warn("Payment methods data structure unexpected:", data);
+          // Fallback to first available method or UPI
+          if (availablePaymentMethods.length > 0) {
+            setPaymentMethod(availablePaymentMethods[0]);
+          } else {
+            setPaymentMethod("UPI");
+          }
+        }
+      } else {
+        console.error("Failed to fetch payment methods:", response.status, response.statusText);
+        // Fallback to first available method or UPI
+        if (availablePaymentMethods.length > 0) {
+          setPaymentMethod(availablePaymentMethods[0]);
+        } else {
+          setPaymentMethod("UPI");
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+      // Fallback to first available method or UPI
+      if (availablePaymentMethods.length > 0) {
+        setPaymentMethod(availablePaymentMethods[0]);
+      } else {
+        setPaymentMethod("UPI");
+      }
     }
+    
     setShowPaymentModal(true);
   };
 
