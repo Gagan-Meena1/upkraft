@@ -16,6 +16,7 @@ export async function GET(request) {
     const genre = searchParams.get('genre') || '';
     const difficulty = searchParams.get('difficulty') || '';
     const instrument = searchParams.get('instrument') || '';
+    const institution = searchParams.get('institution') || '';
     
     // Build query filters
     const query = { isActive: { $ne: false } }; // Only active songs
@@ -38,6 +39,10 @@ export async function GET(request) {
     
     if (instrument) {
       query.primaryInstrumentFocus = { $regex: instrument, $options: 'i' };
+    }
+
+    if (institution) {
+      query.institution = { $regex: institution, $options: 'i' };
     }
     
     console.log('🔍 Query filters:', query);

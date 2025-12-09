@@ -22,7 +22,8 @@ export interface ISong extends Document {
   difficulty?: 'Easy' | 'Beginner' | 'Beginner-Intermediate' | 'Intermediate' | 'Advanced' | 'Expert';
   year?: number;                    // Release year
   notes?: string;                   // Practice notes, techniques, etc.
-  skills?: string;                  // Required skills (e.g., "Chord Melody, Slides, Pull-offs")
+  skills?: string; 
+  institution?: string;             // Institution name (e.g., "Trinity")
   
   // Cloudinary fields
   cloudinaryPublicId?: string;
@@ -131,6 +132,10 @@ const SongSchema = new Schema<ISong>({
     type: String,
     trim: true,
     // Store required skills as comma-separated string
+  },
+  institution: {
+    type: String,
+    default: 'Trinity'
   },
   
   // Cloudinary fields
