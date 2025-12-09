@@ -55,7 +55,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
           cache: "no-store",
         });
         const data = await response.json();
-
+console.log("apidata",data)
         setUserData(data.user);
         setCourseDetails(data.courseDetails || []);
         setStudentCount(data.studentCount || 0);
