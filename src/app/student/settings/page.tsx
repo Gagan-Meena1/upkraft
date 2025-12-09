@@ -33,6 +33,7 @@ export default function StudentSettingsPage() {
   });
   const [isSavingStudentInfo, setIsSavingStudentInfo] = useState(false);
   const [isLoadingStudentInfo, setIsLoadingStudentInfo] = useState(true);
+  const [courses, setCourses] = useState<any[]>([]);
   const [timezones, setTimezones] = useState<{ label: string; value: string }[]>([]);
   const [timezonesSearch, setTimezonesSearch] = useState<string>("");
   const [tzOpen, setTzOpen] = useState<boolean>(false);
@@ -177,6 +178,11 @@ export default function StudentSettingsPage() {
           city: userData.user?.city || '',
           timezone: userData.user?.timezone || deviceTimeZone
         });
+
+        // Set courses from user data
+        if (userData.courseDetails && Array.isArray(userData.courseDetails)) {
+          setCourses(userData.courseDetails);
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
         toast.error('Failed to load student information');
@@ -235,7 +241,8 @@ export default function StudentSettingsPage() {
   };
 
   const settingsNavItems = [
-    { id: 'student', label: '👤 Student Info', section: 'General' }
+    { id: 'student', label: '👤 Student Info', section: 'General' },
+    { id: 'courses', label: '📚 Enrolled Courses', section: 'General' }
   ];
 
   const groupedNavItems = settingsNavItems.reduce((acc, item) => {
@@ -811,6 +818,224 @@ export default function StudentSettingsPage() {
                         {isSavingStudentInfo ? 'Saving...' : 'Save Changes'}
                       </button>
                     </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Enrolled Courses Section */}
+            {activeSection === 'courses' && (
+              <div style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '25px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+              }}>
+                <div style={{
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  marginBottom: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}>
+                  Enrolled Courses
+                </div>
+                <div style={{
+                  fontSize: '14px',
+                  color: '#666',
+                  marginBottom: '25px'
+                }}>
+                  View all your enrolled courses
+                </div>
+
+                {isLoadingStudentInfo ? (
+                  <>
+                    <style dangerouslySetInnerHTML={{__html: `
+                      @keyframes spin-loader {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                      }
+                    `}} />
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      padding: '60px 20px',
+                      flexDirection: 'column',
+                      gap: '20px'
+                    }}>
+                      <div 
+                        style={{
+                          width: '50px',
+                          height: '50px',
+                          border: '4px solid #f3f3f3',
+                          borderTop: '4px solid #6200EA',
+                          borderRadius: '50%',
+                          animation: 'spin-loader 1s linear infinite'
+                        }}
+                      ></div>
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#666'
+                      }}>
+                        Loading courses...
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {courses && courses.length > 0 ? (
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px'
+                      }}>
+                        {courses.map((course) => (
+                          <div
+                            key={course._id}
+                            style={{
+                              padding: '20px',
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '12px',
+                              transition: 'all 0.3s',
+                              background: 'white'
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#f9fafb';
+                              e.currentTarget.style.borderColor = '#6200EA';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'white';
+                              e.currentTarget.style.borderColor = '#e0e0e0';
+                            }}
+                          >
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              justifyContent: 'space-between',
+                              gap: '24px'
+                            }}>
+                              <div style={{ flex: 1 }}>
+                                <h3 style={{
+                                  fontSize: '18px',
+                                  fontWeight: 600,
+                                  color: '#1a1a1a',
+                                  margin: 0,
+                                  marginBottom: '8px'
+                                }}>
+                                  {course.title || 'Untitled Course'}
+                                </h3>
+                                <p style={{
+                                  fontSize: '14px',
+                                  color: '#666',
+                                  margin: 0,
+                                  marginBottom: '12px',
+                                  lineHeight: '1.5'
+                                }}>
+                                  {course.description || 'No description available'}
+                                </p>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '16px',
+                                  flexWrap: 'wrap'
+                                }}>
+                                  {course.category && (
+                                    <div style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '13px',
+                                      color: '#666'
+                                    }}>
+                                      <span style={{ fontWeight: 600 }}>Category:</span>
+                                      <span>{course.category}</span>
+                                    </div>
+                                  )}
+                                  {course.duration && (
+                                    <div style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '13px',
+                                      color: '#666'
+                                    }}>
+                                      <span style={{ fontWeight: 600 }}>Duration:</span>
+                                      <span>{course.duration}</span>
+                                    </div>
+                                  )}
+                                  {course.curriculum && Array.isArray(course.curriculum) && (
+                                    <div style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '6px',
+                                      fontSize: '13px',
+                                      color: '#666'
+                                    }}>
+                                      <span style={{ fontWeight: 600 }}>Sessions:</span>
+                                      <span>{course.curriculum.length}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{
+                                textAlign: 'right',
+                                minWidth: '120px'
+                              }}>
+                                {course.price !== undefined && course.price !== null && (
+                                  <div style={{
+                                    fontSize: '16px',
+                                    fontWeight: 600,
+                                    color: '#1a1a1a',
+                                    marginBottom: '4px'
+                                  }}>
+                                    ₹{typeof course.price === 'number' ? course.price.toLocaleString('en-IN') : course.price}
+                                  </div>
+                                )}
+                                {course.duration && (
+                                  <div style={{
+                                    fontSize: '12px',
+                                    color: '#999',
+                                    marginTop: '4px'
+                                  }}>
+                                    {course.duration}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{
+                        padding: '60px 20px',
+                        textAlign: 'center',
+                        color: '#666'
+                      }}>
+                        <div style={{
+                          fontSize: '48px',
+                          marginBottom: '16px'
+                        }}>
+                          📚
+                        </div>
+                        <div style={{
+                          fontSize: '16px',
+                          fontWeight: 500,
+                          color: '#1a1a1a',
+                          marginBottom: '8px'
+                        }}>
+                          No courses enrolled
+                        </div>
+                        <div style={{
+                          fontSize: '14px',
+                          color: '#999'
+                        }}>
+                          You haven't enrolled in any courses yet.
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
