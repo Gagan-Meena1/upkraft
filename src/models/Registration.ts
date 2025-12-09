@@ -55,6 +55,9 @@ const RegistrationSchema: Schema = new Schema(
       trim: true,
       default: null,
     },
+    demoDate: { type: String, default: null },
+  demoTime: { type: String, default: null },
+
   },
   {
     timestamps: true,

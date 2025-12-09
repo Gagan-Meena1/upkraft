@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     if ("error" in context) return context.error;
     const academyId = context.academyId;
 
-    const {
+    let {
       transactionDate,
       validUpto,
       studentId,
@@ -107,6 +107,11 @@ export async function POST(request: NextRequest) {
       status = STATUS,
       paymentMethod = "Cash",
     } = await request.json();
+
+    // Map "Credit Card" back to "Card" for database storage
+    if (paymentMethod === "Credit Card") {
+      paymentMethod = "Card";
+    }
 
     if (!transactionDate || !validUpto || !studentId || !courseId || !amount) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
@@ -182,7 +187,7 @@ export async function PUT(request: NextRequest) {
     if ("error" in context) return context.error;
     const academyId = context.academyId;
 
-    const {
+    let {
       transactionId,
       transactionDate,
       validUpto,
@@ -194,6 +199,11 @@ export async function PUT(request: NextRequest) {
       status = STATUS,
       paymentMethod = "Cash",
     } = await request.json();
+
+    // Map "Credit Card" back to "Card" for database storage
+    if (paymentMethod === "Credit Card") {
+      paymentMethod = "Card";
+    }
 
     if (!transactionId || !transactionDate || !validUpto || !studentId || !courseId || !amount) {
       return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });

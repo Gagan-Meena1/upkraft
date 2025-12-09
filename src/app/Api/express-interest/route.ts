@@ -19,6 +19,8 @@ export async function POST(req: NextRequest) {
     const email = body.email?.trim();
     const instrument = body.skill?.trim();
     const tutorName = body.tutorName?.trim() || null; // ✅ new field
+    const demoDate = body.demoDate?.trim() || null; // ✅ new field
+const demoTime = body.demoTime?.trim() || null; // ✅ new field
 
     // Validate inputs
     if (![userType, name, city, contactNumber, countryCode, email, instrument].every(Boolean)) {
@@ -35,16 +37,18 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ Include tutorName only for Students
-    const registrationData: any = {
-      userType,
-      name,
-      city,
-      contactNumber,
-      countryCode,
-      email,
-      instrument,
-      ...(userType === 'Student' && tutorName ? { tutorName } : {}),
-    };
+ const registrationData: any = {
+  userType,
+  name,
+  city,
+  contactNumber,
+  countryCode,
+  email,
+  instrument,
+  ...(userType === 'Student' && tutorName ? { tutorName } : {}),
+  ...(demoDate ? { demoDate } : {}),
+  ...(demoTime ? { demoTime } : {}),
+};
 
     // Create record
     const registration = await Registration.create(registrationData);
@@ -73,6 +77,16 @@ export async function POST(req: NextRequest) {
             <td style="padding: 8px 0;">${tutorName}</td>
            </tr>`
         : '';
+        const dateTimeRows = demoDate && demoTime
+  ? `<tr>
+      <td style="padding: 8px 0;"><b>${userType === 'Student' ? 'Demo' : 'Interview'} Date:</b></td>
+      <td style="padding: 8px 0;">${new Date(demoDate).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</td>
+     </tr>
+     <tr>
+      <td style="padding: 8px 0;"><b>${userType === 'Student' ? 'Demo' : 'Interview'} Time:</b></td>
+      <td style="padding: 8px 0;">${demoTime} (30 min session)</td>
+     </tr>`
+  : '';
 
     // Compose email
     const mailOptions = {
@@ -89,6 +103,8 @@ export async function POST(req: NextRequest) {
               <tr><td><b>User Type:</b></td><td>${userType}</td></tr>
               <tr><td><b>Name:</b></td><td>${name}</td></tr>
               ${tutorRow}
+              ${dateTimeRows}
+
               <tr><td><b>Email:</b></td><td><a href="mailto:${email}">${email}</a></td></tr>
               <tr><td><b>Contact Number:</b></td><td>${countryCode} ${contactNumber}</td></tr>
               <tr><td><b>${instrumentLabel}:</b></td><td>${instrument}</td></tr>
