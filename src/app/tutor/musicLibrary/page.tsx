@@ -40,11 +40,11 @@ import { Button } from "react-bootstrap";
 //         />
 //       )}
 
-//       {/* Sidebar */}
-//       <div className={`bg-white border-r border-gray-200 h-screen ${
-//         isMobile
-//           ? `fixed top-0 left-0 z-50 w-64 transform transition-transform duration-300 ${
-//               isOpen ? 'translate-x-0' : '-translate-x-full'
+      {/* Sidebar */}
+      {/* <div className={`bg-white border-r border-gray-200 h-screen ${
+         isMobile
+           ? `fixed top-0 left-0 z-50 w-64 transform transition-transform duration-300 ${
+               isOpen ? 'translate-x-0' : '-translate-x-full'
 //             }`
 //           : isOpen ? 'w-64' : 'w-16'
 //       } transition-all duration-300 flex flex-col`}>
@@ -157,7 +157,7 @@ import { Button } from "react-bootstrap";
 // };
 
 // Music Library Table Component
-const MusicLibraryTable = () => {
+const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -195,6 +195,7 @@ const MusicLibraryTable = () => {
       if (filters.genre) params.append("genre", filters.genre);
       if (filters.difficulty) params.append("difficulty", filters.difficulty);
       if (filters.instrument) params.append("instrument", filters.instrument);
+      if(isTrinity) params.append("institution", "trinity")
 
       const response = await fetch(`/Api/songs?${params}`);
       const data = await response.json();
@@ -446,9 +447,9 @@ const MusicLibraryTable = () => {
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">
                   Year
                 </th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-900">
+                {/* <th className="text-left py-3 px-4 font-semibold text-gray-900">
                   Notes
-                </th>
+                </th> */}
                 <th className="text-left py-3 px-4 font-semibold text-gray-900">
                   Skills
                 </th>
@@ -568,9 +569,9 @@ const MusicLibraryTable = () => {
                   <td className="py-3 px-4 text-gray-800 font-medium">
                     {song.year || "N/A"}
                   </td>
-                  <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
+                  {/* <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
                     {song.notes || "-"}
-                  </td>
+                  </td> */}
                   <td className="py-3 px-4 text-gray-700 text-sm max-w-xs truncate">
                     {formatSkills(song.skills)}
                   </td>
@@ -632,89 +633,109 @@ const MusicLibraryTable = () => {
 
 // Main Page Component
 const MusicLibraryPage = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const router = useRouter();
+   const [sidebarOpen, setSidebarOpen] = useState(false);
+   const [isMobile, setIsMobile] = useState(false);
+  const [activeView, setActiveView] = useState<"songs" | "trinity">("songs");
+   const router = useRouter();
 
-  // Check if mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth >= 768) {
-        setSidebarOpen(true);
-      } else {
-        setSidebarOpen(false);
-      }
-    };
+   // Check if mobile
+   useEffect(() => {
+     const checkMobile = () => {
+       setIsMobile(window.innerWidth < 768);
+       if (window.innerWidth >= 768) {
+         setSidebarOpen(true);
+       } else {
+         setSidebarOpen(false);
+       }
+     };
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+     checkMobile();
+     window.addEventListener("resize", checkMobile);
+     return () => window.removeEventListener("resize", checkMobile);
+   }, []);
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
+   const toggleSidebar = () => {
+     setSidebarOpen(!sidebarOpen);
+   };
 
-  return (
-    <div className="min-h-screen w-full bg-gray-50 flex">
-      {/* Sidebar */}
-      {/* <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} isMobile={isMobile} /> */}
+   return (
+     <div className="min-h-screen w-full bg-gray-50 flex">
+       {/* Sidebar */}
+       {/* <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} isMobile={isMobile} /> */}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 p-4 sm:p-6 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center space-x-4">
-            {isMobile && (
+       {/* Main Content */}
+       <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+         {/* Header */}
+         <header className="bg-white border-b border-gray-200 p-4 sm:p-6 flex items-center justify-between flex-shrink-0">
+           <div className="flex items-center space-x-4">
+             {isMobile && (
+               <button
+                 onClick={toggleSidebar}
+                 className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
+               >
+                 <Menu size={24} />
+               </button>
+             )}
+             <Link
+               href={`/tutor`}
+               className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
+             >
+               <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
+             </Link>
+             <div>
+               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                 Music Library
+               </h1>
+               <p className="text-gray-700 font-medium">
+                 Manage and organize your music collection
+               </p>
+             </div>
+           </div>
+           <div className="flex gap-3 items-center">
+            {/* View buttons: Songs / Trinity */}
+            <div className="inline-flex rounded-lg bg-gray-100 p-1">
               <button
-                onClick={toggleSidebar}
-                className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
+                onClick={() => setActiveView("songs")}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeView === "songs" ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-800"}`}
               >
-                <Menu size={24} />
+                Songs
               </button>
-            )}
-            <Link
-              href={`/tutor`}
-              className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
-            >
-              <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
-            </Link>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                Music Library
-              </h1>
-              <p className="text-gray-700 font-medium">
-                Manage and organize your music collection
-              </p>
+              <button
+                onClick={() => setActiveView("trinity")}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeView === "trinity" ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-800"}`}
+              >
+                Trinity
+              </button>
             </div>
-          </div>
-          <div className="flex gap-3">
-          {/* Favourites page link (opens per-user favourites page) */}
-          <Link
-            href="/tutor/musicLibrary/favourites"
-            className="inline-flex items-center px-3 py-2 rounded-md font-medium transition-all bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-          >
-            <Folder className="w-4 h-4 mr-2" />
-            Favourites
-          </Link>
-          <Button
-            onClick={() => window.location.reload()}
-            className="btn btn-primary d-flex align-items-center !py-1"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Refresh
-          </Button>
-          </div>
-        </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 overflow-auto bg-gray-50">
-          <MusicLibraryTable />
-        </main>
-      </div>
-    </div>
-  );
-};
+            {/* Favourites page link */}
+            <Link
+              href="/tutor/musicLibrary/favourites"
+              className="inline-flex items-center px-3 py-2 rounded-md font-medium transition-all bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+            >
+              <Folder className="w-4 h-4 mr-2" />
+              Favourites
+            </Link>
 
-export default MusicLibraryPage;
+            <Button
+              onClick={() => window.location.reload()}
+              className="btn btn-primary d-flex align-items-center !py-1"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+         </header>
+
+         {/* Page Content */}
+         <main className="flex-1 p-4 sm:p-6 overflow-auto bg-gray-50">
+          {activeView === "songs" && <MusicLibraryTable isTrinity={false}/>}
+
+          {activeView === "trinity" && <MusicLibraryTable isTrinity={true} />}
+         </main>
+       </div>
+     </div>
+   );
+ };
+
+ export default MusicLibraryPage;
