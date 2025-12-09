@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
@@ -22,6 +22,31 @@ import { CreditCard } from 'lucide-react';
 
 const SideMenuHeader = ({ role }) => {
   const pathname = usePathname();
+  const [userData, setUserData] = useState<any>(null);
+
+  // Fetch user data to check for academyId
+  useEffect(() => {
+    if (role === "student" || role === "tutor") {
+      const fetchUserData = async () => {
+        try {
+          const response = await fetch("/Api/users/user");
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.user) {
+              setUserData(data.user);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
+      };
+      fetchUserData();
+    }
+  }, [role]);
+
+  // Determine if the student/tutor is created by an academy
+  const isAcademyStudent = userData?.category === "Student" && userData?.academyId;
+  const isAcademyTutor = userData?.category === "Tutor" && userData?.academyId;
 
   const isActive = (basePath) => {
     return pathname === basePath || pathname.startsWith(basePath + "/");
@@ -216,19 +241,22 @@ const SideMenuHeader = ({ role }) => {
                       <span>Refer & Earn</span>
                     </Link>
                   </li> */}
-                  <li>
-                    <Link
-                      href="/tutor/profile"
-                      className={`d-flex align-items-center gap-2 ${
-                        isActive("/settings") ? "active" : ""
-                      }`}
-                    >
-                      <span className="svg-icons">
-                       <Settings />
-                      </span>
-                      <span>Settings</span>
-                    </Link>
-                  </li>
+                  {/* Conditionally render Settings for non-academy tutors */}
+                  {!isAcademyTutor && (
+                    <li>
+                      <Link
+                        href="/tutor/profile"
+                        className={`d-flex align-items-center gap-2 ${
+                          isActive("/settings") ? "active" : ""
+                        }`}
+                      >
+                        <span className="svg-icons">
+                         <Settings />
+                        </span>
+                        <span>Settings</span>
+                      </Link>
+                    </li>
+                  )}
                 </>
               )}
               {role == "student" && (
@@ -430,20 +458,23 @@ const SideMenuHeader = ({ role }) => {
                       <span>Refer & Earn</span>
                     </Link>
                   </li> */}
-                  <li>
-                    <Link
-                      href="/student/profile"
-                      className={`d-flex align-items-center gap-2 ${
-                        isActive("/student/profile") ? "active" : ""
-                      }`}
-                    >
-                      <span className="svg-icons">
-                        
-                       <Settings />
-                      </span>
-                      <span>Settings</span>
-                    </Link>
-                  </li>
+                  {/* Only show Settings for students without academyId (not created by academy) */}
+                  {(!userData?.academyId) && (
+                    <li>
+                      <Link
+                        href="/student/profile"
+                        className={`d-flex align-items-center gap-2 ${
+                          isActive("/student/profile") ? "active" : ""
+                        }`}
+                      >
+                        <span className="svg-icons">
+                          
+                         <Settings />
+                        </span>
+                        <span>Settings</span>
+                      </Link>
+                    </li>
+                  )}
                 </>
               )}
 
