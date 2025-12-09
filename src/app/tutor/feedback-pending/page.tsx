@@ -592,7 +592,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                           {feedback.student.username.charAt(0).toUpperCase()}
                         </div>
                       )}
-                      <h3>{feedback.student.username}</h3>
+                      <p>{feedback.classes.startTime}</p><h3>{feedback.student.username}</h3>
                     </li>
                     <li>
                       <span className='pending'>

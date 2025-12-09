@@ -126,6 +126,43 @@ export async function GET(request) {
   }
 }
 
+export async function PUT(request) {
+  try {
+    console.log("Updating song")
+    await connect();
+
+    const body = await request.json()
+
+    const song = await Song.findById( body.id );
+    if (!song) {
+      return NextResponse.json(
+        { error: "Song not found" },
+        { status: 404 }
+      );
+    }
+
+    // Update fields
+    Object.keys(body).forEach((key) => {
+      if (key !== 'id' && body[key] !== undefined) {
+        song[key] = body[key];
+      }
+    });
+
+    await song.save();
+    return NextResponse.json({ message: "Song updated successfully" });
+    
+  } catch (error) {
+    console.error('💥 Error fetching songs:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to fetch songs',
+        details: error?.message || 'Unknown error occurred',
+      }, 
+      { status: 500 }
+    );
+  }
+}
+
 // Configure API route
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

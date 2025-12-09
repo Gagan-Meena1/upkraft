@@ -315,13 +315,13 @@ const findSongData = (filename) => {
           cloudinaryResourceType: resourceType,
           cloudinaryFolder: 'music-app/songs',
           
-          primaryInstrumentFocus: songMetadata?.primaryInstrumentFocus || 'Piano',
-          genre: songMetadata?.genre || 'Unknown',
-          difficulty: songMetadata?.difficulty || 'Beginner',
+          primaryInstrumentFocus: songMetadata?.primaryInstrumentFocus || '',
+          genre: songMetadata?.genre || '',
+          difficulty: songMetadata?.difficulty || 'B',
           year: songMetadata?.year || null,
           notes: songMetadata?.notes || '',
-          skills: songMetadata?.skills || 'Grade 1',
-          institution: songMetadata?.institution || 'Trinity',
+          skills: songMetadata?.skills || '',
+          institution: songMetadata?.institution || '',
           
           guitarProVersion: fileExtension.match(/gp(\d+)/)?.[1] || (fileExtension === '.gp' ? 'legacy' : null),
           duration: uploadResult.duration || null,
