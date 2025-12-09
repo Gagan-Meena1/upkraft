@@ -26,7 +26,7 @@ const SideMenuHeader = ({ role }) => {
 
   // Fetch user data to check for academyId
   useEffect(() => {
-    if (role === "student") {
+    if (role === "student" || role === "tutor") {
       const fetchUserData = async () => {
         try {
           const response = await fetch("/Api/users/user");
@@ -44,7 +44,10 @@ const SideMenuHeader = ({ role }) => {
     }
   }, [role]);
 
-console.log("userData",userData)
+  // Determine if the student/tutor is created by an academy
+  const isAcademyStudent = userData?.category === "Student" && userData?.academyId;
+  const isAcademyTutor = userData?.category === "Tutor" && userData?.academyId;
+
   const isActive = (basePath) => {
     return pathname === basePath || pathname.startsWith(basePath + "/");
   };
@@ -238,19 +241,22 @@ console.log("userData",userData)
                       <span>Refer & Earn</span>
                     </Link>
                   </li> */}
-                  <li>
-                    <Link
-                      href="/tutor/profile"
-                      className={`d-flex align-items-center gap-2 ${
-                        isActive("/settings") ? "active" : ""
-                      }`}
-                    >
-                      <span className="svg-icons">
-                       <Settings />
-                      </span>
-                      <span>Settings</span>
-                    </Link>
-                  </li>
+                  {/* Conditionally render Settings for non-academy tutors */}
+                  {!isAcademyTutor && (
+                    <li>
+                      <Link
+                        href="/tutor/profile"
+                        className={`d-flex align-items-center gap-2 ${
+                          isActive("/settings") ? "active" : ""
+                        }`}
+                      >
+                        <span className="svg-icons">
+                         <Settings />
+                        </span>
+                        <span>Settings</span>
+                      </Link>
+                    </li>
+                  )}
                 </>
               )}
               {role == "student" && (
