@@ -29,18 +29,18 @@ export async function PUT(request: NextRequest) {
 
     // Get request body
     const body = await request.json();
-    const { studentName, email, phone, address } = body;
+    const { username, email, phone, address, age, city, timezone } = body;
 
     // Validate required fields
-    if (!studentName || !email) {
+    if (!username || !email) {
       return NextResponse.json({ 
-        error: 'Student name and email are required' 
+        error: 'Username and email are required' 
       }, { status: 400 });
     }
 
     // Prepare update data
     const updateData: any = {
-      username: studentName,
+      username: username,
       email: email
     };
 
@@ -50,6 +50,15 @@ export async function PUT(request: NextRequest) {
     }
     if (address) {
       updateData.address = address;
+    }
+    if (age !== undefined && age !== null && age !== '') {
+      updateData.age = parseInt(age);
+    }
+    if (city !== undefined && city !== null && city !== '') {
+      updateData.city = city;
+    }
+    if (timezone !== undefined && timezone !== null && timezone !== '') {
+      updateData.timezone = timezone;
     }
 
     // Update the user in the database
