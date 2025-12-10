@@ -1171,7 +1171,7 @@ const handleConfirmCancellation = async () => {
 >
   <option value="available">Available</option>
   <option value="unavailable">-</option>
-  {/* Only show Create Class option if slot is available */}
+  {/* Only show Create Class option if slots is available */}
   {status === "available" && (
     <option value="create-class">+ Create Class</option>
   )}
