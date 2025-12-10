@@ -224,6 +224,32 @@ const userSchema = new mongoose.Schema({
             default: 125
         }
     },
+    tutorPayoutSettings: {
+        commissionModel: {
+            type: String,
+            enum: ['Percentage of Course Fee', 'Fixed Amount per Session'],
+            default: 'Percentage of Course Fee'
+        },
+        commissionPercentage: {
+            type: Number,
+            default: 70,
+            min: 0,
+            max: 100
+        },
+        payoutFrequency: {
+            type: String,
+            enum: ['Weekly', 'Monthly'],
+            default: 'Monthly'
+        },
+        minimumPayoutAmount: {
+            type: String,
+            default: '₹1,000'
+        },
+        updatedAt: {
+            type: Date,
+            default: Date.now
+        }
+    },
 },
 {timestamps: true}
 );
