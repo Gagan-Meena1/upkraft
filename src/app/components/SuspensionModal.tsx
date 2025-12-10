@@ -1,14 +1,32 @@
 "use client";
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
+import { Modal, Button } from 'react-bootstrap';
 
 interface SuspensionModalProps {
   message: string;
 }
 
+interface Course {
+  _id: string;
+  title: string;
+  price: number;
+  duration: string;
+  category: string;
+}
+
 const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
   const router = useRouter();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string>('');
+  const [selectedMonths, setSelectedMonths] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState("UPI");
+  const [isPaying, setIsPaying] = useState(false);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(false);
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>(['UPI', 'Credit Card', 'Net Banking']);
+  const [gstRate, setGstRate] = useState<string>('18%');
 
   // Prevent all interactions when modal is open
   useEffect(() => {
@@ -48,6 +66,158 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
     };
   }, []);
 
+  // Fetch courses when payment modal opens
+  useEffect(() => {
+    if (showPaymentModal) {
+      fetchCourses();
+      fetchPaymentMethodsAndTaxSettings();
+    }
+  }, [showPaymentModal]);
+
+  // Add custom styles for payment modal to appear above suspension modal
+  useEffect(() => {
+    if (showPaymentModal) {
+      // Create and inject custom styles
+      const style = document.createElement('style');
+      style.id = 'payment-modal-z-index-fix';
+      style.textContent = `
+        body > .modal-backdrop.show {
+          z-index: 10001 !important;
+        }
+        body > .modal.show {
+          z-index: 10002 !important;
+        }
+        body > .modal.show .modal-dialog {
+          z-index: 10003 !important;
+          position: relative;
+        }
+      `;
+      document.head.appendChild(style);
+
+      return () => {
+        // Cleanup: remove the style when modal closes
+        const styleElement = document.getElementById('payment-modal-z-index-fix');
+        if (styleElement) {
+          styleElement.remove();
+        }
+      };
+    }
+  }, [showPaymentModal]);
+
+  const fetchCourses = async () => {
+    setIsLoadingCourses(true);
+    try {
+      const response = await fetch('/Api/users/user');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.courseDetails && data.courseDetails.length > 0) {
+          setCourses(data.courseDetails);
+          // Auto-select first course
+          if (data.courseDetails.length > 0) {
+            setSelectedCourse(data.courseDetails[0]._id);
+          }
+        } else {
+          toast.error('No courses available for payment');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+      toast.error('Failed to load courses');
+    } finally {
+      setIsLoadingCourses(false);
+    }
+  };
+
+  const fetchPaymentMethodsAndTaxSettings = async () => {
+    try {
+      const [paymentMethodsResponse, taxSettingsResponse] = await Promise.all([
+        fetch("/Api/student/paymentMethods"),
+        fetch("/Api/student/taxSettings")
+      ]);
+      
+      // Handle payment methods
+      if (paymentMethodsResponse.ok) {
+        const data = await paymentMethodsResponse.json();
+        if (data.success && data.paymentMethods?.selectedMethods) {
+          setAvailablePaymentMethods(data.paymentMethods.selectedMethods);
+          const preferredMethod = data.paymentMethods.preferredMethod;
+          if (preferredMethod && data.paymentMethods.selectedMethods.includes(preferredMethod)) {
+            setPaymentMethod(preferredMethod);
+          } else if (data.paymentMethods.selectedMethods.length > 0) {
+            setPaymentMethod(data.paymentMethods.selectedMethods[0]);
+          }
+        }
+      }
+
+      // Handle tax settings
+      if (taxSettingsResponse.ok) {
+        const taxData = await taxSettingsResponse.json();
+        if (taxData.success && taxData.taxSettings?.defaultGSTRate) {
+          setGstRate(taxData.taxSettings.defaultGSTRate);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching payment methods or tax settings:', error);
+    }
+  };
+
+  // Calculate GST amount
+  const parseGSTRate = (rate: string): number => {
+    if (rate === 'No GST') return 0;
+    const numericRate = parseFloat(rate.replace('%', ''));
+    return isNaN(numericRate) ? 0 : numericRate;
+  };
+
+  const selectedCourseData = courses.find(c => c._id === selectedCourse);
+  const monthlyFee = selectedCourseData ? (typeof selectedCourseData.price === "number" ? selectedCourseData.price : 0) : 0;
+  const gstPercentage = parseGSTRate(gstRate);
+  const baseAmount = monthlyFee * selectedMonths;
+  const gstAmount = (baseAmount * gstPercentage) / 100;
+  const calculatedAmount = baseAmount + gstAmount;
+
+  const handleOpenPaymentModal = () => {
+    setSelectedMonths(1);
+    setShowPaymentModal(true);
+  };
+
+  const handlePayment = async () => {
+    if (!selectedCourse) {
+      toast.error('Please select a course');
+      return;
+    }
+    
+    setIsPaying(true);
+    try {
+      const response = await fetch("/Api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: selectedCourse,
+          months: selectedMonths,
+          paymentMethod,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Payment failed");
+      }
+
+      toast.success("Payment successful! Your account will be reactivated.");
+      setShowPaymentModal(false);
+      
+      // Refresh the page to check suspension status again
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error: any) {
+      toast.error(error?.message || "Unable to process payment");
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       const response = await fetch('/Api/users/logout');
@@ -79,7 +249,7 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '20px',
-          pointerEvents: 'auto'
+          pointerEvents: showPaymentModal ? 'none' : 'auto'
         }}
         onClick={(e) => {
           // Prevent closing on backdrop click
@@ -102,7 +272,9 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
             width: '100%',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
             position: 'relative',
-            zIndex: 10000
+            zIndex: 10000,
+            pointerEvents: showPaymentModal ? 'none' : 'auto',
+            opacity: showPaymentModal ? 0.3 : 1
           }}
           onClick={(e) => {
             // Prevent closing on modal click
@@ -170,11 +342,38 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
             </p>
           </div>
 
-          {/* Logout Button */}
+          {/* Action Buttons */}
           <div style={{
             display: 'flex',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            gap: '12px',
+            flexWrap: 'wrap'
           }}>
+            <button
+              onClick={handleOpenPaymentModal}
+              style={{
+                padding: '12px 32px',
+                background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '16px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px rgba(16, 185, 129, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+              }}
+            >
+              Pay Now
+            </button>
             <button
               onClick={handleLogout}
               style={{
@@ -203,6 +402,113 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      <Modal 
+        show={showPaymentModal} 
+        onHide={() => !isPaying && setShowPaymentModal(false)} 
+        centered
+        backdrop="static"
+        keyboard={false}
+        className="payment-modal-override"
+      >
+        <Modal.Header closeButton={!isPaying}>
+          <Modal.Title>Pay Course Fee</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {isLoadingCourses ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <p>Loading courses...</p>
+            </div>
+          ) : courses.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '20px' }}>
+              <p>No courses available for payment.</p>
+            </div>
+          ) : (
+            <div className="d-flex flex-column gap-3">
+              <div>
+                <p className="text-sm text-gray-600 mb-1">Course</p>
+                <select
+                  className="form-select"
+                  value={selectedCourse}
+                  onChange={(e) => setSelectedCourse(e.target.value)}
+                  disabled={isPaying}
+                >
+                  {courses.map((course) => (
+                    <option key={course._id} value={course._id}>
+                      {course.title} - ₹{course.price}/month
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="d-flex flex-column gap-2">
+                <label className="text-sm text-gray-600">Months</label>
+                <select
+                  className="form-select"
+                  value={selectedMonths}
+                  onChange={(e) => setSelectedMonths(parseInt(e.target.value, 10) || 1)}
+                  disabled={isPaying}
+                >
+                  {[1, 2, 3].map((month) => (
+                    <option key={month} value={month}>
+                      {month} {month === 1 ? "Month" : "Months"}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="d-flex flex-column gap-2">
+                <label className="text-sm text-gray-600">Payment Method</label>
+                <select
+                  className="form-select"
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  disabled={isPaying}
+                >
+                  {availablePaymentMethods.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {mode}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="bg-light p-3 rounded">
+                <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+                <h3 className="m-0">₹ {calculatedAmount.toLocaleString("en-IN")}</h3>
+                <div className="mt-2">
+                  <p className="text-xs text-gray-500 mb-1">
+                    Base Amount: ₹ {baseAmount.toLocaleString("en-IN")} ({monthlyFee.toLocaleString("en-IN")} × {selectedMonths} month{selectedMonths > 1 ? 's' : ''})
+                  </p>
+                  {gstPercentage > 0 && (
+                    <p className="text-xs text-gray-500 mb-1">
+                      GST ({gstRate}): ₹ {gstAmount.toLocaleString("en-IN")}
+                    </p>
+                  )}
+                  <p className="text-xs font-semibold text-gray-700 mt-1">
+                    Total: ₹ {calculatedAmount.toLocaleString("en-IN")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className="d-flex justify-content-end gap-2">
+          <Button 
+            variant="secondary" 
+            onClick={() => setShowPaymentModal(false)} 
+            disabled={isPaying}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handlePayment}
+            disabled={isPaying || calculatedAmount <= 0 || !selectedCourse || isLoadingCourses}
+            className="bg-purple-700 border-0"
+          >
+            {isPaying ? "Processing..." : "Pay Now"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </>
   );
 };
