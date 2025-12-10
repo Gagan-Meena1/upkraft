@@ -83,6 +83,15 @@ export default function SettingsPage() {
             setPaymentMethods(paymentMethodsData.paymentMethods);
           }
         }
+
+        // Fetch policies settings
+        const policiesResponse = await fetch("/Api/academy/policies");
+        if (policiesResponse.ok) {
+          const policiesData = await policiesResponse.json();
+          if (policiesData.success && policiesData.policies) {
+            setPolicies(policiesData.policies);
+          }
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
         toast.error('Failed to load academy information');
@@ -208,12 +217,34 @@ export default function SettingsPage() {
 
   const handleSavePolicies = async () => {
     try {
-      // TODO: Implement API call to save policies
-      console.log('Saving policies:', policies);
-      alert('Policies saved successfully!');
-    } catch (error) {
+      const response = await fetch('/Api/academy/policies', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(policies),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update policies');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update policies');
+      }
+
+      toast.success('Policies saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving policies:', error);
-      alert('Failed to save policies');
+      toast.error(error.message || 'Failed to save policies');
     }
   };
 
