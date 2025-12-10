@@ -15,6 +15,11 @@ export async function POST(req: Request) {
     const file = form.get("file") as File | null;
     const title = (form.get("title") as string | null)?.trim();
     const artist = (form.get("artist") as string | null)?.trim() || "";
+    const genre = (form.get("genre") as string | null)?.trim();
+    const difficulty = (form.get("difficulty") as string | null)?.trim();
+    const primaryInstrumentFocus = (form.get("primaryInstrumentFocus") as string | null)?.trim();
+    const year = (form.get("year") as string | null)?.trim();
+    const skills = (form.get("skills") as string | null)?.trim();
 
     if (!file || !title) {
       return NextResponse.json(
@@ -28,12 +33,13 @@ export async function POST(req: Request) {
       "audio/mpeg", // mp3
       "application/octet-stream", // fallback
     ];
-    const allowedExtensions = [".mp3", ".gp5", ".dp"];
+    const allowedExtensions = [ '.mp3', '.gp', '.gp1', '.gp2', '.gp3', '.gp4', '.gp5', 
+      '.gp6', '.gp7', '.gp8', '.gpx', '.dp', '.mxl'];
     const ext = path.extname(file.name).toLowerCase();
 
     if (!allowedExtensions.includes(ext)) {
       return NextResponse.json(
-        { error: "Invalid file type. Only .mp3, .gp5, .dp allowed." },
+        { error: "Invalid file type. Only .mp3, .gp, .gp1, .gp2, .gp3, .gp4, .gp5, .gp6, .gp7, .gp8, .gpx, .dp, .mxl allowed." },
         { status: 400 }
       );
     }
@@ -55,6 +61,11 @@ export async function POST(req: Request) {
       filename: safeName,
       mimeType: file.type || "application/octet-stream",
       url: fileUrl,
+      genre,
+      difficulty,
+      primaryInstrumentFocus,
+      year,
+      skills,
     });
 
     return NextResponse.json(newSong, { status: 201 });

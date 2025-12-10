@@ -41,6 +41,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   const [paymentMethod, setPaymentMethod] = useState("UPI");
   const [isPaying, setIsPaying] = useState(false);
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>(['UPI', 'Credit Card', 'Net Banking']);
+  const [gstRate, setGstRate] = useState<string>('18%');
 
   const shouldShowPayNow = useMemo(
     () => Boolean(userData?.category === "Student" && userData?.academyId),
@@ -48,7 +49,18 @@ const CourseCard: React.FC<CourseCardProps> = ({
   );
 
   const monthlyFee = typeof course.price === "number" ? course.price : 0;
-  const calculatedAmount = monthlyFee * selectedMonths;
+  
+  // Calculate GST amount
+  const parseGSTRate = (rate: string): number => {
+    if (rate === 'No GST') return 0;
+    const numericRate = parseFloat(rate.replace('%', ''));
+    return isNaN(numericRate) ? 0 : numericRate;
+  };
+
+  const gstPercentage = parseGSTRate(gstRate);
+  const baseAmount = monthlyFee * selectedMonths;
+  const gstAmount = (baseAmount * gstPercentage) / 100;
+  const calculatedAmount = baseAmount + gstAmount;
 
   useEffect(() => {
     async function fetchTutorName() {
@@ -70,7 +82,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
     fetchTutorName();
   }, [course.tutorName, course.instructor, (course as any).instructorId]);
 
-  // Fetch payment methods for student's academy
+  // Fetch payment methods and tax settings for student's academy
   useEffect(() => {
     if (shouldShowPayNow && userData?.academyId) {
       const fetchPaymentMethods = async () => {
@@ -97,18 +109,39 @@ const CourseCard: React.FC<CourseCardProps> = ({
           console.error("Error fetching payment methods:", error);
         }
       };
+
+      const fetchTaxSettings = async () => {
+        try {
+          const response = await fetch("/Api/student/taxSettings");
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success && data.taxSettings?.defaultGSTRate) {
+              setGstRate(data.taxSettings.defaultGSTRate);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching tax settings:", error);
+        }
+      };
+
       fetchPaymentMethods();
+      fetchTaxSettings();
     }
   }, [shouldShowPayNow, userData?.academyId]);
 
   const handleOpenPaymentModal = async () => {
     setSelectedMonths(1);
     
-    // Fetch payment methods to get the preferred method
+    // Fetch payment methods and tax settings
     try {
-      const response = await fetch("/Api/student/paymentMethods");
-      if (response.ok) {
-        const data = await response.json();
+      const [paymentMethodsResponse, taxSettingsResponse] = await Promise.all([
+        fetch("/Api/student/paymentMethods"),
+        fetch("/Api/student/taxSettings")
+      ]);
+      
+      // Handle payment methods
+      if (paymentMethodsResponse.ok) {
+        const data = await paymentMethodsResponse.json();
         console.log("Student payment methods API response:", data);
         
         if (data.success && data.paymentMethods?.selectedMethods) {
@@ -141,7 +174,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
           }
         }
       } else {
-        console.error("Failed to fetch payment methods:", response.status, response.statusText);
+        console.error("Failed to fetch payment methods:", paymentMethodsResponse.status, paymentMethodsResponse.statusText);
         // Fallback to first available method or UPI
         if (availablePaymentMethods.length > 0) {
           setPaymentMethod(availablePaymentMethods[0]);
@@ -149,8 +182,16 @@ const CourseCard: React.FC<CourseCardProps> = ({
           setPaymentMethod("UPI");
         }
       }
+
+      // Handle tax settings
+      if (taxSettingsResponse.ok) {
+        const taxData = await taxSettingsResponse.json();
+        if (taxData.success && taxData.taxSettings?.defaultGSTRate) {
+          setGstRate(taxData.taxSettings.defaultGSTRate);
+        }
+      }
     } catch (error) {
-      console.error("Error fetching payment methods:", error);
+      console.error("Error fetching payment methods or tax settings:", error);
       // Fallback to first available method or UPI
       if (availablePaymentMethods.length > 0) {
         setPaymentMethod(availablePaymentMethods[0]);
@@ -330,9 +371,19 @@ const CourseCard: React.FC<CourseCardProps> = ({
             <div className="bg-light p-3 rounded">
               <p className="text-sm text-gray-600 mb-1">Total Amount</p>
               <h3 className="m-0">₹ {calculatedAmount.toLocaleString("en-IN")}</h3>
-              <p className="text-xs text-gray-500 mt-1">
-                ₹ {monthlyFee.toLocaleString("en-IN")} per month × {selectedMonths} month(s)
-              </p>
+              <div className="mt-2">
+                <p className="text-xs text-gray-500 mb-1">
+                  Base Amount: ₹ {baseAmount.toLocaleString("en-IN")} ({monthlyFee.toLocaleString("en-IN")} × {selectedMonths} month{selectedMonths > 1 ? 's' : ''})
+                </p>
+                {gstPercentage > 0 && (
+                  <p className="text-xs text-gray-500 mb-1">
+                    GST ({gstRate}): ₹ {gstAmount.toLocaleString("en-IN")}
+                  </p>
+                )}
+                <p className="text-xs font-semibold text-gray-700 mt-1">
+                  Total: ₹ {calculatedAmount.toLocaleString("en-IN")}
+                </p>
+              </div>
             </div>
           </div>
         </Modal.Body>

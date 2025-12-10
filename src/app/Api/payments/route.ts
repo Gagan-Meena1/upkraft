@@ -62,9 +62,23 @@ export async function POST(request: NextRequest) {
       tutor = await User.findById(course.instructorId).select("username").lean();
     }
 
+    // Get academy's tax settings to calculate GST
+    const academy = await User.findById(student.academyId).select('taxSettings').lean();
+    const gstRateStr = academy?.taxSettings?.defaultGSTRate || '18%';
+    
+    // Parse GST rate
+    const parseGSTRate = (rate: string): number => {
+      if (rate === 'No GST') return 0;
+      const numericRate = parseFloat(rate.replace('%', ''));
+      return isNaN(numericRate) ? 0 : numericRate;
+    };
+    
+    const gstPercentage = parseGSTRate(gstRateStr);
     const baseAmount = typeof course.price === "number" ? course.price : 0;
-    const totalAmount = baseAmount * parsedMonths;
-    const commission = Number((totalAmount * COMMISSION_RATE).toFixed(2));
+    const baseTotal = baseAmount * parsedMonths;
+    const gstAmount = (baseTotal * gstPercentage) / 100;
+    const totalAmount = baseTotal + gstAmount;
+    const commission = Number((baseTotal * COMMISSION_RATE).toFixed(2));
 
     const paymentDate = new Date();
     const validUpto = new Date(paymentDate);
@@ -86,7 +100,10 @@ export async function POST(request: NextRequest) {
       courseId: course._id,
       courseTitle: course.title,
       months: parsedMonths,
-      amount: totalAmount,
+      baseAmount: baseTotal,
+      gstRate: gstRateStr,
+      gstAmount: gstAmount,
+      amount: totalAmount, // Total amount including GST
       commission,
       paymentMethod,
       status: "Paid",

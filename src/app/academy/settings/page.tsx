@@ -83,6 +83,24 @@ export default function SettingsPage() {
             setPaymentMethods(paymentMethodsData.paymentMethods);
           }
         }
+
+        // Fetch policies settings
+        const policiesResponse = await fetch("/Api/academy/policies");
+        if (policiesResponse.ok) {
+          const policiesData = await policiesResponse.json();
+          if (policiesData.success && policiesData.policies) {
+            setPolicies(policiesData.policies);
+          }
+        }
+
+        // Fetch tax settings
+        const taxSettingsResponse = await fetch("/Api/academy/taxSettings");
+        if (taxSettingsResponse.ok) {
+          const taxSettingsData = await taxSettingsResponse.json();
+          if (taxSettingsData.success && taxSettingsData.taxSettings) {
+            setTaxCompliance(taxSettingsData.taxSettings);
+          }
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
         toast.error('Failed to load academy information');
@@ -208,12 +226,34 @@ export default function SettingsPage() {
 
   const handleSavePolicies = async () => {
     try {
-      // TODO: Implement API call to save policies
-      console.log('Saving policies:', policies);
-      alert('Policies saved successfully!');
-    } catch (error) {
+      const response = await fetch('/Api/academy/policies', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(policies),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update policies');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update policies');
+      }
+
+      toast.success('Policies saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving policies:', error);
-      alert('Failed to save policies');
+      toast.error(error.message || 'Failed to save policies');
     }
   };
 
@@ -230,12 +270,34 @@ export default function SettingsPage() {
 
   const handleSaveTaxCompliance = async () => {
     try {
-      // TODO: Implement API call to save tax compliance settings
-      console.log('Saving tax compliance:', taxCompliance);
-      alert('Tax settings saved successfully!');
-    } catch (error) {
+      const response = await fetch('/Api/academy/taxSettings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taxCompliance),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update tax settings');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update tax settings');
+      }
+
+      toast.success('Tax settings saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving tax compliance:', error);
-      alert('Failed to save tax settings');
+      toast.error(error.message || 'Failed to save tax settings');
     }
   };
 
@@ -1157,11 +1219,13 @@ export default function SettingsPage() {
                     color: '#1a1a1a',
                     marginBottom: '8px'
                   }}>
-                    Late Fee Policy
+                    Late Fee Policy(₹)
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={policies.lateFeePolicy}
                     onChange={(e) => setPolicies({ ...policies, lateFeePolicy: e.target.value })}
+                    placeholder="e.g., ₹200 per day (Max ₹1,500)"
                     style={{
                       width: '100%',
                       padding: '12px 16px',
@@ -1169,18 +1233,11 @@ export default function SettingsPage() {
                       borderRadius: '8px',
                       fontSize: '14px',
                       transition: 'border-color 0.3s',
-                      fontFamily: 'inherit',
-                      background: 'white',
-                      cursor: 'pointer'
+                      fontFamily: 'inherit'
                     }}
                     onFocus={(e) => e.target.style.borderColor = '#6200EA'}
                     onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                  >
-                    <option value="No late fee">No late fee</option>
-                    <option value="₹500 per day (Max ₹2,000)">₹500 per day (Max ₹2,000)</option>
-                    <option value="₹200 per day (Max ₹1,500)">₹200 per day (Max ₹1,500)</option>
-                    <option value="5% of amount per month">5% of amount per month</option>
-                  </select>
+                  />
                 </div>
                 <div>
                   <label style={{
