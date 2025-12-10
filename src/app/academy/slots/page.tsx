@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Calendar, Clock, Save, User, Repeat, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, Clock, Save, User, Repeat, X, Edit2, Trash2, AlertCircle } from "lucide-react";
 import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO, addDays } from 'date-fns';
 
@@ -10,6 +10,7 @@ interface Tutor {
   email: string;
   timezone: string;
   slotsAvailable: { startTime: string; endTime: string }[];
+  description?: string;
 }
 
 interface ClassData {
@@ -17,7 +18,23 @@ interface ClassData {
   title: string;
   startTime: string;
   endTime: string;
+  description: string;
 }
+interface Course {
+  _id: string;
+  title: string;
+}
+
+interface CreateClassForm {
+  courseId: string;
+  title: string;
+  description: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
+
 
 const TutorAvailabilitySlots = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
@@ -34,6 +51,27 @@ const TutorAvailabilitySlots = () => {
   const [selectedDays, setSelectedDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [repeatStartDate, setRepeatStartDate] = useState("");
   const [repeatEndDate, setRepeatEndDate] = useState("");
+  // New states for class management
+const [showCreateClassModal, setShowCreateClassModal] = useState(false);
+const [showEditClassModal, setShowEditClassModal] = useState(false);
+const [courses, setCourses] = useState<Course[]>([]);
+const [createClassForm, setCreateClassForm] = useState<CreateClassForm>({
+  courseId: "",
+  title: "",
+  description: "",
+  date: "",
+  startTime: "",
+  endTime: ""
+});
+const [editingClass, setEditingClass] = useState<ClassData | null>(null);
+const [isSubmitting, setIsSubmitting] = useState(false);
+const [errorMessage, setErrorMessage] = useState("");
+// Add these states near your other state declarations
+const [showCancelModal, setShowCancelModal] = useState(false);
+const [cancellingClassId, setCancellingClassId] = useState<string | null>(null);
+const [cancellationReason, setCancellationReason] = useState("");
+// Add this state near your other state declarations
+const [isCancelling, setIsCancelling] = useState(false);
 
   const toast = {
     success: (msg: string) => alert(msg),
@@ -140,6 +178,43 @@ const TutorAvailabilitySlots = () => {
     setSlots(newSlots);
     setSelectedSlots(new Set());
   }, [selectedTutor, currentDate, tutors, userTimezone]);
+
+  // Fetch courses when tutor is selected
+// Fetch courses when tutor is selected
+useEffect(() => {
+  const fetchCourses = async () => {
+    if (!selectedTutor) {
+      setCourses([]);
+      return;
+    }
+
+    try {
+      console.log("Fetching courses for tutor:", selectedTutor);
+      const response = await fetch(`/Api/tutors/courses?tutorId=${selectedTutor}`);
+      console.log("Response status:", response.status);
+      
+      const data = await response.json();
+      console.log("Response data:", data);
+      
+      if (data.success && data.course) {
+        console.log("Setting courses:", data.course);
+        setCourses(data.course);
+      } else if (data.course) {
+        // Handle case where success flag might not be present
+        console.log("Setting courses (no success flag):", data.course);
+        setCourses(data.course);
+      } else {
+        console.log("No courses found in response");
+        setCourses([]);
+      }
+    } catch (error) {
+      console.error("Error fetching courses:", error);
+      toast.error("Failed to load courses");
+    }
+  };
+
+  fetchCourses();
+}, [selectedTutor]);
 
   const getClassesForSlot = (date: string, hour: number): ClassData[] => {
     if (!selectedTutor || classes.length === 0) return [];
@@ -293,6 +368,22 @@ const TutorAvailabilitySlots = () => {
 
     return preview;
   };
+  const handleTimeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  let value = e.target.value;
+  value = value.replace(/[^\d:]/g, '');
+  if (value.length === 2 && !value.includes(':')) {
+    value = value + ':';
+  }
+  if (value.length > 5) {
+    value = value.slice(0, 5);
+  }
+  e.target.value = value;
+  
+  const { name } = e.target;
+  if (showCreateClassModal) {
+    setCreateClassForm(prev => ({ ...prev, [name]: value }));
+  }
+};
 
   const applyRepeatPattern = () => {
     if (!repeatStartDate || !repeatEndDate) {
@@ -455,7 +546,259 @@ const TutorAvailabilitySlots = () => {
 
   const weekDays = getWeekDays();
   const hours = Array.from({ length: 24 }, (_, i) => i);
+  // Handle opening create class modal
+const handleOpenCreateClass = (date: string, hour: number) => {
+  const startTime = `${String(hour).padStart(2, '0')}:00`;
+  const endTime = `${String(hour + 1).padStart(2, '0')}:00`;
+  
+  setCreateClassForm({
+    courseId: "",
+    title: "",
+    description: "",
+    date: date,
+    startTime: startTime,
+    endTime: endTime
+  });
+  setErrorMessage("");
+  setShowCreateClassModal(true);
+};
 
+// Handle create class form change
+const handleCreateClassFormChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+) => {
+  const { name, value } = e.target;
+  setCreateClassForm(prev => ({ ...prev, [name]: value }));
+};
+
+// Validate time
+const validateDateTime = (startTime: string, endTime: string) => {
+  if (!startTime || !endTime) return "";
+  
+  const [startHour, startMin] = startTime.split(':').map(Number);
+  const [endHour, endMin] = endTime.split(':').map(Number);
+  
+  const startMinutes = startHour * 60 + startMin;
+  const endMinutes = endHour * 60 + endMin;
+  
+  if (endMinutes <= startMinutes) {
+    return "End time must be after start time";
+  }
+  
+  return "";
+};
+
+// Handle create class submit
+const handleCreateClassSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setErrorMessage("");
+
+  try {
+    const validationError = validateDateTime(createClassForm.startTime, createClassForm.endTime);
+    if (validationError) {
+      setErrorMessage(validationError);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const tutor = tutors.find((t) => t._id === selectedTutor);
+    const timezoneToSend = tutor?.timezone || userTimezone || "UTC";
+
+    const formData = new FormData();
+    formData.append("title", createClassForm.title);
+    formData.append("description", createClassForm.description);
+    formData.append("date", createClassForm.date);
+    formData.append("startTime", createClassForm.startTime);
+    formData.append("endTime", createClassForm.endTime);
+    formData.append("timezone", timezoneToSend);
+    
+    if (createClassForm.courseId) {
+      formData.append("course", createClassForm.courseId);
+      formData.append("courseId", createClassForm.courseId);
+    }
+
+    const response = await fetch("/Api/classes", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json().catch(() => ({ message: "Invalid response" }));
+
+    if (!response.ok) {
+      throw new Error(result?.message || "Failed to create class");
+    }
+
+    toast.success("Class created successfully!");
+    setShowCreateClassModal(false);
+    
+    // Refresh classes
+    const classesResponse = await fetch(`/Api/classes?userid=${selectedTutor}`);
+    const classesData = await classesResponse.json();
+    if (classesData.classData) {
+      setClasses(classesData.classData);
+    }
+  } catch (err: any) {
+    console.error("Error creating class:", err);
+    setErrorMessage(err?.message || "Failed to create class");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+// Handle edit class
+const handleEditClass = (classItem: ClassData) => {
+  const tutor = tutors.find((t) => t._id === selectedTutor);
+  const tutorTz = tutor?.timezone || userTimezone;
+  
+  const startUTC = parseISO(classItem.startTime);
+  const endUTC = parseISO(classItem.endTime);
+  const startLocal = dateFnsTz.toZonedTime(startUTC, tutorTz);
+  const endLocal = dateFnsTz.toZonedTime(endUTC, tutorTz);
+  
+  setEditingClass({
+    ...classItem,
+    startTime: format(startLocal, 'HH:mm'),
+    endTime: format(endLocal, 'HH:mm')
+  });
+  setErrorMessage("");
+  setShowEditClassModal(true);
+};
+
+// Handle update class submit
+// Handle update class submit
+const handleUpdateClassSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!editingClass) return;
+  
+  setIsSubmitting(true);
+  setErrorMessage("");
+
+  try {
+    const validationError = validateDateTime(editingClass.startTime, editingClass.endTime);
+    if (validationError) {
+      setErrorMessage(validationError);
+      setIsSubmitting(false);
+      return;
+    }
+
+    const tutor = tutors.find((t) => t._id === selectedTutor);
+    const tutorTz = tutor?.timezone || userTimezone;
+    
+    // Parse original class date
+    const originalStartUTC = parseISO(classes.find(c => c._id === editingClass._id)?.startTime || '');
+    const originalStartLocal = dateFnsTz.toZonedTime(originalStartUTC, tutorTz);
+    const classDate = format(originalStartLocal, 'yyyy-MM-dd');
+    
+    const [startHour, startMin] = editingClass.startTime.split(':').map(Number);
+    const [endHour, endMin] = editingClass.endTime.split(':').map(Number);
+    
+    const [year, month, day] = classDate.split('-').map(Number);
+    const startLocal = new Date(year, month - 1, day, startHour, startMin, 0);
+    const endLocal = new Date(year, month - 1, day, endHour, endMin, 0);
+    
+    const startUTC = dateFnsTz.fromZonedTime(startLocal, tutorTz);
+    const endUTC = dateFnsTz.fromZonedTime(endLocal, tutorTz);
+
+    // Use FormData or JSON - keep the same API route
+    const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: editingClass.title,
+        description: editingClass.description,
+        date: classDate,  // Added date
+        startTime: editingClass.startTime,  // Send as HH:mm format
+        endTime: editingClass.endTime,      // Send as HH:mm format
+        timezone: tutorTz,  // Added timezone
+      }),
+    });
+
+    const result = await response.json().catch(() => ({ message: "Invalid response" }));
+
+    if (!response.ok) {
+      throw new Error(result?.message || "Failed to update class");
+    }
+
+    toast.success("Class updated successfully!");
+    setShowEditClassModal(false);
+    setEditingClass(null);
+    
+    // Refresh classes
+    const classesResponse = await fetch(`/Api/classes?userid=${selectedTutor}`);
+    const classesData = await classesResponse.json();
+    if (classesData.classData) {
+      setClasses(classesData.classData);
+    }
+  } catch (err: any) {
+    console.error("Error updating class:", err);
+    setErrorMessage(err?.message || "Failed to update class");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+// Handle delete class
+// Replace the existing handleDeleteClass function with this:
+const handleDeleteClass = async (classId: string) => {
+  setCancellingClassId(classId);
+  setCancellationReason("");
+  setShowCancelModal(true);
+};
+
+// Add new function to handle the actual cancellation
+const handleConfirmCancellation = async () => {
+  if (!cancellingClassId) return;
+  
+  if (!cancellationReason.trim()) {
+    setErrorMessage("Please provide a reason for cancellation");
+    return;
+  }
+
+  setIsCancelling(true); // Start loading
+  setErrorMessage(""); // Clear any previous errors
+
+  try {
+    const tutor = tutors.find((t) => t._id === selectedTutor);
+    const tutorTz = tutor?.timezone || userTimezone;
+
+    const response = await fetch(`/Api/classes?classId=${cancellingClassId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        reasonForCancellation: cancellationReason,
+        timezone: tutorTz
+      }),
+    });
+
+    const result = await response.json().catch(() => ({ message: "Invalid response" }));
+
+    if (!response.ok) {
+      throw new Error(result?.message || "Failed to cancel class");
+    }
+
+    toast.success("Class cancelled successfully!");
+    setShowCancelModal(false);
+    setCancellingClassId(null);
+    setCancellationReason("");
+    
+    // Refresh classes
+    const classesResponse = await fetch(`/Api/classes?userid=${selectedTutor}`);
+    const classesData = await classesResponse.json();
+    if (classesData.classData) {
+      setClasses(classesData.classData);
+    }
+  } catch (err: any) {
+    console.error("Error cancelling class:", err);
+    setErrorMessage(err?.message || "Failed to cancel class");
+  } finally {
+    setIsCancelling(false); // Stop loading
+  }
+};
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
@@ -739,64 +1082,104 @@ const TutorAvailabilitySlots = () => {
                         {String(hour).padStart(2, "0")}:00
                       </div>
 
-                      {weekDays.map((day) => {
-                        const dateStr = formatDateString(day);
-                        const key = `${dateStr}-${hour}`;
-                        const status = slots.get(key) || "unavailable";
-                        const slotClasses = getClassesForSlot(dateStr, hour);
-                        const hasClass = slotClasses.length > 0;
+            {weekDays.map((day) => {
+  const dateStr = formatDateString(day);
+  const key = `${dateStr}-${hour}`;
+  const status = slots.get(key) || "unavailable";
+  const slotClasses = getClassesForSlot(dateStr, hour);
+  const hasClass = slotClasses.length > 0;
 
-                        return (
-                          <div key={key} className="py-1 relative hover:bg-purple-50 transition-colors">
-                            {hasClass ? (
-                              <div className="flex flex-col gap-1">
-                                {slotClasses.map((classItem, idx) => {
-                                  const tutor = tutors.find((t) => t._id === selectedTutor);
-                                  const tutorTz = tutor?.timezone || userTimezone;
-                                  const startLocal = dateFnsTz.toZonedTime(parseISO(classItem.startTime), tutorTz);
-                                  const endLocal = dateFnsTz.toZonedTime(parseISO(classItem.endTime), tutorTz);
-                                  
-                                  return (
-                                    <div
-                                      key={idx}
-                                      className="group/class relative w-full px-2 py-1.5 rounded-lg text-xs font-medium bg-blue-500 text-white border border-blue-600 cursor-pointer hover:bg-blue-600 truncate"
-                                      title={`${classItem.title}\n${format(startLocal, 'HH:mm')} - ${format(endLocal, 'HH:mm')}`}
-                                    >
-                                      {classItem.title}
-                                      
-                                      <div className="absolute hidden group-hover/class:block z-10 w-48 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg -top-2 left-full ml-2 whitespace-normal">
-                                        <div className="font-semibold">{classItem.title}</div>
-                                        <div className="text-gray-300 mt-1">
-                                          {format(startLocal, 'HH:mm')} - {format(endLocal, 'HH:mm')}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <select
-                                value={status}
-                                onChange={(e) =>
-                                  handleSlotChange(
-                                    dateStr,
-                                    hour,
-                                    e.target.value as "available" | "unavailable"
-                                  )
-                                }
-                                className={`w-full px-2 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-                                  status === "available"
-                                    ? "bg-green-100 text-green-800 border-green-300"
-                                    : "bg-gray-100 text-gray-600 border-gray-300"
-                                } border`}
-                              >
-                                <option value="available">Available</option>
-                                <option value="unavailable">-</option>
-                              </select>
-                            )}
-                          </div>
-                        );
-                      })}
+  return (
+    <div key={key} className="py-1 relative hover:bg-purple-50 transition-colors">
+      {hasClass ? (
+        <div className="flex flex-col gap-1">
+          {slotClasses.map((classItem, idx) => {
+            const tutor = tutors.find((t) => t._id === selectedTutor);
+            const tutorTz = tutor?.timezone || userTimezone;
+            const startLocal = dateFnsTz.toZonedTime(parseISO(classItem.startTime), tutorTz);
+            const endLocal = dateFnsTz.toZonedTime(parseISO(classItem.endTime), tutorTz);
+            
+            return (
+              <div
+                key={idx}
+                className="group/class relative w-full px-2 py-1.5 rounded-lg text-xs font-medium bg-blue-500 text-white border border-blue-600 hover:bg-blue-600"
+              >
+                <div className="flex items-center justify-between gap-1">
+                  <span className="truncate flex-1" title={classItem.title}>
+                    {classItem.title}
+                  </span>
+                  <div className="flex gap-1  group-hover/class:opacity-100 transition-opacity">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditClass(classItem);
+                      }}
+                      className="p-0.5 hover:bg-blue-700 rounded"
+                      title="Edit class"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteClass(classItem._id);
+                      }}
+                      className="p-0.5 hover:bg-red-600 rounded"
+                      title="Delete class"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="absolute hidden group-hover/class:block z-10 w-48 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg -top-2 left-full ml-2 whitespace-normal">
+                  <div className="font-semibold">{classItem.title}</div>
+                  <div className="text-gray-300 mt-1">
+                    {format(startLocal, 'HH:mm')} - {format(endLocal, 'HH:mm')}
+                  </div>
+                  {classItem.description && (
+                    <div className="text-gray-400 mt-1 text-xs">
+                      {classItem.description}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <select
+  value={status}
+  onChange={(e) => {
+    const value = e.target.value;
+    if (value === "create-class") {
+      handleOpenCreateClass(dateStr, hour);
+      e.target.value = status; // Reset select
+    } else {
+      handleSlotChange(
+        dateStr,
+        hour,
+        value as "available" | "unavailable"
+      );
+    }
+  }}
+  className={`w-full px-2 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+    status === "available"
+      ? "bg-green-100 text-green-800 border-green-300"
+      : "bg-gray-100 text-gray-600 border-gray-300"
+  } border`}
+>
+  <option value="available">Available</option>
+  <option value="unavailable">-</option>
+  {/* Only show Create Class option if slot is available */}
+  {status === "available" && (
+    <option value="create-class">+ Create Class</option>
+  )}
+</select>
+      )}
+    </div>
+  );
+})}
                     </React.Fragment>
                   ))}
                 </div>
@@ -827,6 +1210,332 @@ const TutorAvailabilitySlots = () => {
           </div>
         )}
       </div>
+      {/* Create Class Modal */}
+{showCreateClassModal && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-gradient-to-br from-blue-50/80 via-purple-50/80 to-white/80 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto border border-white/20">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+            Create New Class
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Date: {createClassForm.date} | Time: {createClassForm.startTime} - {createClassForm.endTime}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreateClassModal(false)}
+          className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-black/5 transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      <form onSubmit={handleCreateClassSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="courseId" className="block text-gray-600 mb-2 text-sm font-medium">
+            Select Course
+          </label>
+          <select
+            id="courseId"
+            name="courseId"
+            value={createClassForm.courseId}
+            onChange={handleCreateClassFormChange}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            required
+          >
+            <option value="">-- Select a course --</option>
+            {courses.map((course) => (
+              <option key={course._id} value={course._id}>
+                {course.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="title" className="block text-gray-600 mb-2 text-sm font-medium">
+            Class Title
+          </label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value={createClassForm.title}
+            onChange={handleCreateClassFormChange}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            placeholder="e.g., Introduction to Algebra"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="description" className="block text-gray-600 mb-2 text-sm font-medium">
+            Description
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            value={createClassForm.description}
+            onChange={handleCreateClassFormChange}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28 transition-all"
+            placeholder="Provide details about the class..."
+            required
+          />
+        </div>
+
+       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+  <div>
+    <label htmlFor="startTime" className="block text-gray-600 mb-2 text-sm font-medium">
+      Start Time (HH:MM)
+    </label>
+    <input
+      type="text"
+      id="startTime"
+      name="startTime"
+      value={createClassForm.startTime}
+      disabled
+      className="w-full px-4 py-2.5 rounded-lg bg-gray-100 border border-gray-300/70 text-gray-600 cursor-not-allowed"
+    />
+  </div>
+
+  <div>
+    <label htmlFor="endTime" className="block text-gray-600 mb-2 text-sm font-medium">
+      End Time (HH:MM)
+    </label>
+    <input
+      type="text"
+      id="endTime"
+      name="endTime"
+      value={createClassForm.endTime}
+      disabled
+      className="w-full px-4 py-2.5 rounded-lg bg-gray-100 border border-gray-300/70 text-gray-600 cursor-not-allowed"
+    />
+  </div>
+</div>
+
+        {errorMessage && (
+          <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-semibold text-white shadow-lg hover:shadow-purple-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
+          disabled={isSubmitting || !!errorMessage}
+        >
+          {isSubmitting ? "Creating..." : "Create Class"}
+        </button>
+      </form>
+    </div>
+  </div>
+)}
+
+{/* Edit Class Modal */}
+{showEditClassModal && editingClass && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-gradient-to-br from-blue-50/80 via-purple-50/80 to-white/80 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto border border-white/20">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+            Edit Class
+          </h2>
+        </div>
+        <button
+          onClick={() => {
+            setShowEditClassModal(false);
+            setEditingClass(null);
+            setErrorMessage("");
+          }}
+          className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-black/5 transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      <form onSubmit={handleUpdateClassSubmit} className="space-y-6">
+        <div>
+          <label htmlFor="edit-title" className="block text-gray-600 mb-2 text-sm font-medium">
+            Class Title
+          </label>
+          <input
+            type="text"
+            id="edit-title"
+            value={editingClass.title}
+            onChange={(e) => setEditingClass({ ...editingClass, title: e.target.value })}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+            required
+          />
+        </div>
+
+        <div>
+          <label htmlFor="edit-description" className="block text-gray-600 mb-2 text-sm font-medium">
+            Description
+          </label>
+          <textarea
+            id="edit-description"
+            value={editingClass.description || ""}
+            onChange={(e) => setEditingClass({ ...editingClass, description: e.target.value })}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28 transition-all"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div>
+            <label htmlFor="edit-startTime" className="block text-gray-600 mb-2 text-sm font-medium">
+              Start Time (HH:MM)
+            </label>
+            <input
+              type="text"
+              id="edit-startTime"
+              value={editingClass.startTime}
+              onChange={(e) => {
+                let value = e.target.value.replace(/[^\d:]/g, '');
+                if (value.length === 2 && !value.includes(':')) value = value + ':';
+                if (value.length > 5) value = value.slice(0, 5);
+                setEditingClass({ ...editingClass, startTime: value });
+              }}
+              pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+              maxLength={5}
+              className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label htmlFor="edit-endTime" className="block text-gray-600 mb-2 text-sm font-medium">
+              End Time (HH:MM)
+            </label>
+            <input
+              type="text"
+              id="edit-endTime"
+              value={editingClass.endTime}
+              onChange={(e) => {
+                let value = e.target.value.replace(/[^\d:]/g, '');
+                if (value.length === 2 && !value.includes(':')) value = value + ':';
+                if (value.length > 5) value = value.slice(0, 5);
+                setEditingClass({ ...editingClass, endTime: value });
+              }}
+              pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+              maxLength={5}
+              className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+        </div>
+
+        {errorMessage && (
+          <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-semibold text-white shadow-lg hover:shadow-purple-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
+          disabled={isSubmitting || !!errorMessage}
+        >
+          {isSubmitting ? "Updating..." : "Update Class"}
+        </button>
+      </form>
+    </div>
+
+  </div>
+)}
+{/* Cancel Class Modal */}
+{showCancelModal && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-gradient-to-br from-red-50/80 via-orange-50/80 to-white/80 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-lg border border-white/20">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+            Cancel Class
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Please provide a reason for cancelling this class
+          </p>
+        </div>
+        <button
+          onClick={() => {
+            setShowCancelModal(false);
+            setCancellingClassId(null);
+            setCancellationReason("");
+            setErrorMessage("");
+          }}
+          className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-black/5 transition-colors"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="cancellationReason" className="block text-gray-600 mb-2 text-sm font-medium">
+            Reason for Cancellation <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            id="cancellationReason"
+            value={cancellationReason}
+            onChange={(e) => setCancellationReason(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 h-32 transition-all"
+            placeholder="e.g., Instructor illness, scheduling conflict, etc."
+            required
+          />
+        </div>
+
+        {errorMessage && (
+          <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        {/* <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg"> */}
+          {/* <div className="flex items-start gap-2"> */}
+            {/* <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" /> */}
+            {/* <div className="text-sm text-yellow-800"> */}
+              {/* <p className="font-medium">Warning</p> */}
+              {/* <p className="mt-1">All enrolled students will be notified via email about this cancellation.</p> */}
+            {/* </div> */}
+          {/* </div> */}
+        {/* </div> */}
+
+    <div className="flex gap-3 pt-2">
+  <button
+    onClick={() => {
+      setShowCancelModal(false);
+      setCancellingClassId(null);
+      setCancellationReason("");
+      setErrorMessage("");
+    }}
+    disabled={isCancelling}
+    className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold text-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    Keep Class
+  </button>
+  <button
+    onClick={handleConfirmCancellation}
+    disabled={!cancellationReason.trim() || isCancelling}
+    className="flex-1 py-3 px-4 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 rounded-lg font-semibold text-white shadow-lg hover:shadow-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+  >
+    {isCancelling ? (
+      <>
+        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        <span>Cancelling...</span>
+      </>
+    ) : (
+      "Cancel Class"
+    )}
+  </button>
+</div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };

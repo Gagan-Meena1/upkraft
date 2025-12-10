@@ -2,7 +2,7 @@
 
 # dependencies
 /node_modules
-/node_modules_old
+/node_modules_old_old
 /.pnp
 .pnp.*
 .yarn/*
