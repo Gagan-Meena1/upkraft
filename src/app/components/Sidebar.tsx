@@ -234,6 +234,14 @@ const Sidebar: React.FC<SidebarProps> = ({
             isMobile={isMobile}
           />
           <SidebarItem
+            title="Music Library"
+            icon={<CheckCircle size={20} className="text-gray-700" />}
+            route="/admin/musicLibrary"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem
             title="Approval Requests"
             icon={<CheckCircle size={20} className="text-gray-700" />}
             route="/admin/approvalRequest"
