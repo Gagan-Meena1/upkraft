@@ -92,6 +92,15 @@ export default function SettingsPage() {
             setPolicies(policiesData.policies);
           }
         }
+
+        // Fetch tax settings
+        const taxSettingsResponse = await fetch("/Api/academy/taxSettings");
+        if (taxSettingsResponse.ok) {
+          const taxSettingsData = await taxSettingsResponse.json();
+          if (taxSettingsData.success && taxSettingsData.taxSettings) {
+            setTaxCompliance(taxSettingsData.taxSettings);
+          }
+        }
       } catch (error) {
         console.error("Error fetching user data:", error);
         toast.error('Failed to load academy information');
@@ -261,12 +270,34 @@ export default function SettingsPage() {
 
   const handleSaveTaxCompliance = async () => {
     try {
-      // TODO: Implement API call to save tax compliance settings
-      console.log('Saving tax compliance:', taxCompliance);
-      alert('Tax settings saved successfully!');
-    } catch (error) {
+      const response = await fetch('/Api/academy/taxSettings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taxCompliance),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update tax settings');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update tax settings');
+      }
+
+      toast.success('Tax settings saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving tax compliance:', error);
-      alert('Failed to save tax settings');
+      toast.error(error.message || 'Failed to save tax settings');
     }
   };
 

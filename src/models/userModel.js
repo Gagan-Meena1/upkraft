@@ -206,6 +206,24 @@ const userSchema = new mongoose.Schema({
             default: 7
         }
     },
+    taxSettings: {
+        defaultGSTRate: {
+            type: String,
+            default: '18%'
+        },
+        academyGSTIN: {
+            type: String,
+            default: ''
+        },
+        invoicePrefix: {
+            type: String,
+            default: 'INV'
+        },
+        nextInvoiceNumber: {
+            type: Number,
+            default: 125
+        }
+    },
 },
 {timestamps: true}
 );
