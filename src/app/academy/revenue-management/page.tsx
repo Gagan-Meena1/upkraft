@@ -250,6 +250,8 @@ export default function RevenueManagement() {
     status: "Paid",
     paymentMethod: "Cash",
   });
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>([]);
+  const [preferredPaymentMethod, setPreferredPaymentMethod] = useState<string>("");
 
   const periods = ["Today", "This Week", "This Month", "This Quarter", "This Year", "Custom"];
 
@@ -292,6 +294,88 @@ export default function RevenueManagement() {
     fetchRevenueTransactions(controller.signal);
     return () => controller.abort();
   }, [fetchRevenueTransactions]);
+
+  // Fetch payment methods settings
+  const fetchPaymentMethods = useCallback(async (setPreferredAsDefault: boolean = false) => {
+    try {
+      const response = await fetch("/Api/academy/paymentMethods", {
+        credentials: 'include',
+        cache: 'no-store'
+      });
+      
+      if (!response.ok) {
+        console.error("Failed to fetch payment methods:", response.status, response.statusText);
+        // Set default methods if API fails
+        setAvailablePaymentMethods(['Cash', 'UPI', 'Net Banking', 'Credit Card']);
+        return;
+      }
+
+      const data = await response.json();
+      console.log("Payment methods API response:", data);
+      
+      if (data.success && data.paymentMethods?.selectedMethods) {
+        // Map payment methods: "Card" -> "Credit Card" for display
+        const mappedMethods = data.paymentMethods.selectedMethods.map((method: string) => 
+          method === 'Card' ? 'Credit Card' : method
+        );
+        console.log("Mapped payment methods:", mappedMethods);
+        setAvailablePaymentMethods(mappedMethods);
+        
+        // Map preferredMethod: "Card" -> "Credit Card" for display
+        const mappedPreferredMethod = data.paymentMethods.preferredMethod === 'Card' 
+          ? 'Credit Card' 
+          : data.paymentMethods.preferredMethod || '';
+        setPreferredPaymentMethod(mappedPreferredMethod);
+        console.log("Preferred payment method (mapped):", mappedPreferredMethod);
+        
+        // Set default payment method
+        setFormData(prev => {
+          let defaultMethod;
+          
+          if (setPreferredAsDefault && mappedPreferredMethod && mappedMethods.includes(mappedPreferredMethod)) {
+            // Use preferred method when opening Add Revenue modal
+            defaultMethod = mappedPreferredMethod;
+            console.log("Setting preferred method as default:", defaultMethod);
+          } else if (!mappedMethods.includes(prev.paymentMethod)) {
+            // Use preferred method if available, otherwise first method
+            defaultMethod = mappedPreferredMethod && mappedMethods.includes(mappedPreferredMethod)
+              ? mappedPreferredMethod
+              : (mappedMethods.length > 0 ? mappedMethods[0] : prev.paymentMethod);
+          } else {
+            // Keep current method if it's still available
+            return prev;
+          }
+          
+          return { ...prev, paymentMethod: defaultMethod };
+        });
+      } else {
+        console.warn("Payment methods data structure unexpected:", data);
+        // Set default methods if data structure is unexpected
+        setAvailablePaymentMethods(['Cash', 'UPI', 'Net Banking', 'Credit Card']);
+      }
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+      // Set default methods on error
+      setAvailablePaymentMethods(['Cash', 'UPI', 'Net Banking', 'Credit Card']);
+    }
+  }, []);
+
+  // Fetch payment methods on mount and when modal opens
+  useEffect(() => {
+    fetchPaymentMethods();
+  }, [fetchPaymentMethods]);
+
+  // Refetch payment methods when modal opens and set preferred method
+  useEffect(() => {
+    if (showAddRevenueModal) {
+      // When opening Add Revenue modal, fetch and set preferred method as default
+      fetchPaymentMethods(true);
+    }
+    if (showEditRevenueModal) {
+      // When opening Edit Revenue modal, just fetch methods (don't change the existing payment method)
+      fetchPaymentMethods(false);
+    }
+  }, [showAddRevenueModal, showEditRevenueModal, fetchPaymentMethods]);
 
   // Fetch active subscriptions (active tutors + total students)
   const fetchActiveSubscriptions = useCallback(async () => {
@@ -1009,6 +1093,9 @@ export default function RevenueManagement() {
       if (Number.isNaN(date.getTime())) return "";
       return date.toISOString().split("T")[0];
     };
+    // Map "Card" to "Credit Card" for display
+    const displayPaymentMethod = transaction.paymentMethod === "Card" ? "Credit Card" : transaction.paymentMethod;
+    
     setFormData({
       transactionDate: formatDateForInput(transaction.paymentDate),
       validUpto: formatDateForInput(transaction.validUpto),
@@ -1018,7 +1105,7 @@ export default function RevenueManagement() {
       amount: transaction.amount.toString(),
       commission: transaction.commission.toString(),
       status: transaction.status,
-      paymentMethod: transaction.paymentMethod,
+      paymentMethod: displayPaymentMethod,
     });
     setShowEditRevenueModal(true);
   };
@@ -2153,10 +2240,20 @@ export default function RevenueManagement() {
                     cursor: "pointer",
                   }}
                 >
-                  <option value="Cash">Cash</option>
-                  <option value="UPI">UPI</option>
-                  <option value="Net Banking">Net Banking</option>
-                  <option value="Credit Card">Credit Card</option>
+                  {availablePaymentMethods.length > 0 ? (
+                    availablePaymentMethods.map((method) => (
+                      <option key={method} value={method}>
+                        {method}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="Cash">Cash</option>
+                      <option value="UPI">UPI</option>
+                      <option value="Net Banking">Net Banking</option>
+                      <option value="Credit Card">Credit Card</option>
+                    </>
+                  )}
                 </select>
               </div>
             </div>

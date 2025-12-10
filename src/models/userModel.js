@@ -170,6 +170,24 @@ const userSchema = new mongoose.Schema({
     forgotPasswordTokenExpiry: Date,
     verifyToken: String,
     verifyTokenExpiry: Date,
+    paymentMethodsSettings: {
+        selectedMethods: {
+            type: [String],
+            default: ['UPI', 'Net Banking', 'Card', 'Cash']
+        },
+        preferredMethod: {
+            type: String,
+            default: 'UPI'
+        },
+        paymentGateway: {
+            type: String,
+            default: 'Razorpay'
+        },
+        currency: {
+            type: String,
+            default: 'INR'
+        }
+    },
 },
 {timestamps: true}
 );

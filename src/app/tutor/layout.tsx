@@ -1,6 +1,6 @@
 "use client";
 import SideMenuHeader from "../components/SideMenuHeader";
-import TopHeader from "../components/TopHeader";
+import TopHeaderTutor from "../components/TopHeaderTutor";
 import "@/styles/style 2.css";
 import "@/styles/custom.css";
 import "../../app/media.css";
@@ -19,7 +19,7 @@ export default function TutorLayout({
         <UserDataProvider>
       <div className="main-sec position-relative  main-tutor-sec">
         <div className="top-header">
-          <TopHeader role="tutor" setRole={() => {}} />
+          <TopHeaderTutor role="tutor" setRole={() => {}} />
         </div>
         <div className="dashboard-sec position-relative d-flex flex-wrap">
           <div className="side-menu-sec">

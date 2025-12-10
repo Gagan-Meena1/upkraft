@@ -48,9 +48,9 @@ export async function POST(request) {
   genre: row.Genre?.toString().trim() || '',
   difficulty: row.Difficulty?.toString().trim() || '',
   year: row.Year ? parseInt(row.Year) : null,
-  notes: row.Notes?.toString().trim() || '',
+  // notes: row.Notes?.toString().trim() || '',
   skills: row.Skills?.toString().trim() || '',
-  
+  institution: row.Institution?.toString().trim() || ''
 }));
       
       
@@ -315,12 +315,13 @@ const findSongData = (filename) => {
           cloudinaryResourceType: resourceType,
           cloudinaryFolder: 'music-app/songs',
           
-          primaryInstrumentFocus: songMetadata?.primaryInstrumentFocus || 'Guitar',
+          primaryInstrumentFocus: songMetadata?.primaryInstrumentFocus || 'Piano',
           genre: songMetadata?.genre || 'Unknown',
           difficulty: songMetadata?.difficulty || 'Beginner',
           year: songMetadata?.year || null,
           notes: songMetadata?.notes || '',
-          skills: songMetadata?.skills || '',
+          skills: songMetadata?.skills || 'Grade 1',
+          institution: songMetadata?.institution || 'Trinity',
           
           guitarProVersion: fileExtension.match(/gp(\d+)/)?.[1] || (fileExtension === '.gp' ? 'legacy' : null),
           duration: uploadResult.duration || null,
@@ -351,6 +352,7 @@ const findSongData = (filename) => {
           year: savedSong.year,
           skills: savedSong.skills,
           matchedFromExcel: !!songMetadata,
+          institution: songData.institution, // Change from savedSong.institution to songData.institution
           uploadedAt: new Date().toISOString()
         });
 
