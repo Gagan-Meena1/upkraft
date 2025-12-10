@@ -50,6 +50,7 @@ export async function POST(request) {
   year: row.Year ? parseInt(row.Year) : null,
   notes: row.Notes?.toString().trim() || '',
   skills: row.Skills?.toString().trim() || '',
+  
 }));
       
       

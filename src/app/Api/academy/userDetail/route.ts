@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const user = await User.findOne({
       _id: userId,
     })
-      .select('username email profileImage timezone contact city attendance')
+      .select('username email profileImage timezone contact city attendance slotsAvailable')
       .lean();
 
     if (!user) {
@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
         contact: user.contact || '',
         city: user.city || '',
         attendance: user.attendance ,
+        slotsAvailable: user.slotsAvailable ,
       }
     });
 

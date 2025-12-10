@@ -150,10 +150,10 @@ const pianoResultSchema = new mongoose.Schema({
       feedback: String,
       suggestion: String
     },
-    song_identification: {
-  feedback: String,
-  suggestion: String
-},
+//     song_identification: {
+//   feedback: String,
+//   suggestion: String
+// },
 timestamp_improvements: {
   feedback: String,
   suggestion: String
@@ -336,10 +336,10 @@ const guitarResultSchema = new mongoose.Schema({
       suggestion: String
     }
   },
-  song_identification: {
-  feedback: String,
-  suggestion: String
-},
+//   song_identification: {
+//   feedback: String,
+//   suggestion: String
+// },
 timestamp_improvements: {
   feedback: String,
   suggestion: String
