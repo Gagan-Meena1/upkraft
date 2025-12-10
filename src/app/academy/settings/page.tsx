@@ -1157,11 +1157,13 @@ export default function SettingsPage() {
                     color: '#1a1a1a',
                     marginBottom: '8px'
                   }}>
-                    Late Fee Policy
+                    Late Fee Policy(₹)
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={policies.lateFeePolicy}
                     onChange={(e) => setPolicies({ ...policies, lateFeePolicy: e.target.value })}
+                    placeholder="e.g., ₹200 per day (Max ₹1,500)"
                     style={{
                       width: '100%',
                       padding: '12px 16px',
@@ -1169,18 +1171,11 @@ export default function SettingsPage() {
                       borderRadius: '8px',
                       fontSize: '14px',
                       transition: 'border-color 0.3s',
-                      fontFamily: 'inherit',
-                      background: 'white',
-                      cursor: 'pointer'
+                      fontFamily: 'inherit'
                     }}
                     onFocus={(e) => e.target.style.borderColor = '#6200EA'}
                     onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                  >
-                    <option value="No late fee">No late fee</option>
-                    <option value="₹500 per day (Max ₹2,000)">₹500 per day (Max ₹2,000)</option>
-                    <option value="₹200 per day (Max ₹1,500)">₹200 per day (Max ₹1,500)</option>
-                    <option value="5% of amount per month">5% of amount per month</option>
-                  </select>
+                  />
                 </div>
                 <div>
                   <label style={{
