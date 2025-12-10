@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import Link from 'next/link';
-import StudentGrowthTrend from "../../components/academy/StudentGrowthTrend";
+// import StudentGrowthTrend from "../../components/academy/StudentGrowthTrend";
 import StudentTable from "../../components/academy/StudentTable";
 
 interface Student {
@@ -137,7 +137,7 @@ const Students = () => {
           <div className="row align-ite">
             <div className="col-lg-12 mb-lg-0 mb-4">
               <div className="card-box">
-                <StudentGrowthTrend />
+                {/* <StudentGrowthTrend /> */}
               </div>
             </div>
           </div>
