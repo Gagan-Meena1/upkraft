@@ -321,7 +321,7 @@ export async function PUT(request) {
       addIfExists(updateData.pianoAnalysis, analysisData, 'understanding_of_the_style_matching_the_genre');
       addIfExists(updateData.pianoAnalysis, analysisData, 'qulaity_of_sound_basis_instrument_sound');
       addIfExists(updateData.pianoAnalysis, analysisData, 'note_accuracy');
-      addIfExists(updateData.pianoAnalysis, analysisData, 'song_identification');
+      // addIfExists(updateData.pianoAnalysis, analysisData, 'song_identification');
       addIfExists(updateData.pianoAnalysis, analysisData, 'timestamp_improvements');
 
     } else if (instrument.toLowerCase() === 'guitar') {
@@ -367,7 +367,7 @@ export async function PUT(request) {
       addIfExists(updateData.guitarAnalysis, analysisData, 'understanding_of_the_style_matching_the_genre');
       addIfExists(updateData.guitarAnalysis, analysisData, 'qulaity_of_sound_basis_instrument_sound');
       addIfExists(updateData.guitarAnalysis, analysisData, 'note_accuracy');
-      addIfExists(updateData.guitarAnalysis, analysisData, 'song_identification');
+      // addIfExists(updateData.guitarAnalysis, analysisData, 'song_identification');
       addIfExists(updateData.guitarAnalysis, analysisData, 'timestamp_improvements');
     }
 
