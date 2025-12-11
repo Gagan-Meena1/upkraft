@@ -27,6 +27,14 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
   const [isLoadingCourses, setIsLoadingCourses] = useState(false);
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>(['UPI', 'Credit Card', 'Net Banking']);
   const [gstRate, setGstRate] = useState<string>('18%');
+  const [pricingModel, setPricingModel] = useState<string>('Monthly Subscription');
+  const [monthlySubscriptionPricing, setMonthlySubscriptionPricing] = useState<Array<{months: number, discount: number}>>([
+    { months: 1, discount: 0 },
+    { months: 3, discount: 5 },
+    { months: 6, discount: 10 },
+    { months: 9, discount: 12 },
+    { months: 12, discount: 15 }
+  ]);
 
   // Prevent all interactions when modal is open
   useEffect(() => {
@@ -156,6 +164,20 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
           setGstRate(taxData.taxSettings.defaultGSTRate);
         }
       }
+
+      // Fetch package pricing settings
+      const packagePricingResponse = await fetch("/Api/student/packagePricing");
+      if (packagePricingResponse.ok) {
+        const packagePricingData = await packagePricingResponse.json();
+        if (packagePricingData.success && packagePricingData.packagePricingSettings) {
+          setPricingModel(packagePricingData.packagePricingSettings.pricingModel || 'Monthly Subscription');
+          if (packagePricingData.packagePricingSettings.monthlySubscriptionPricing && 
+              Array.isArray(packagePricingData.packagePricingSettings.monthlySubscriptionPricing) &&
+              packagePricingData.packagePricingSettings.monthlySubscriptionPricing.length > 0) {
+            setMonthlySubscriptionPricing(packagePricingData.packagePricingSettings.monthlySubscriptionPricing);
+          }
+        }
+      }
     } catch (error) {
       console.error('Error fetching payment methods or tax settings:', error);
     }
@@ -171,7 +193,18 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
   const selectedCourseData = courses.find(c => c._id === selectedCourse);
   const monthlyFee = selectedCourseData ? (typeof selectedCourseData.price === "number" ? selectedCourseData.price : 0) : 0;
   const gstPercentage = parseGSTRate(gstRate);
-  const baseAmount = monthlyFee * selectedMonths;
+  
+  // Get discount for selected months
+  const selectedPricing = monthlySubscriptionPricing.find(p => p.months === selectedMonths);
+  const discountPercentage = selectedPricing?.discount || 0;
+  
+  // Calculate base amount (monthly fee * months)
+  const baseAmountBeforeDiscount = monthlyFee * selectedMonths;
+  // Apply discount
+  const discountAmount = (baseAmountBeforeDiscount * discountPercentage) / 100;
+  const baseAmount = baseAmountBeforeDiscount - discountAmount;
+  
+  // Calculate GST on discounted amount
   const gstAmount = (baseAmount * gstPercentage) / 100;
   const calculatedAmount = baseAmount + gstAmount;
 
@@ -449,11 +482,19 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
                   onChange={(e) => setSelectedMonths(parseInt(e.target.value, 10) || 1)}
                   disabled={isPaying}
                 >
-                  {[1, 2, 3].map((month) => (
-                    <option key={month} value={month}>
-                      {month} {month === 1 ? "Month" : "Months"}
-                    </option>
-                  ))}
+                  {pricingModel === 'Monthly Subscription' 
+                    ? monthlySubscriptionPricing.map((pricing) => (
+                        <option key={pricing.months} value={pricing.months}>
+                          {pricing.months} {pricing.months === 1 ? "Month" : "Months"}
+                          {pricing.discount > 0 && ` (${pricing.discount}% off)`}
+                        </option>
+                      ))
+                    : [1, 2, 3].map((month) => (
+                        <option key={month} value={month}>
+                          {month} {month === 1 ? "Month" : "Months"}
+                        </option>
+                      ))
+                  }
                 </select>
               </div>
               <div className="d-flex flex-column gap-2">
@@ -476,7 +517,15 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
                 <h3 className="m-0">₹ {calculatedAmount.toLocaleString("en-IN")}</h3>
                 <div className="mt-2">
                   <p className="text-xs text-gray-500 mb-1">
-                    Base Amount: ₹ {baseAmount.toLocaleString("en-IN")} ({monthlyFee.toLocaleString("en-IN")} × {selectedMonths} month{selectedMonths > 1 ? 's' : ''})
+                    Base Amount: ₹ {baseAmountBeforeDiscount.toLocaleString("en-IN")} ({monthlyFee.toLocaleString("en-IN")} × {selectedMonths} month{selectedMonths > 1 ? 's' : ''})
+                  </p>
+                  {discountPercentage > 0 && (
+                    <p className="text-xs text-green-600 mb-1">
+                      Discount ({discountPercentage}%): -₹ {discountAmount.toLocaleString("en-IN")}
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-500 mb-1">
+                    Amount After Discount: ₹ {baseAmount.toLocaleString("en-IN")}
                   </p>
                   {gstPercentage > 0 && (
                     <p className="text-xs text-gray-500 mb-1">
