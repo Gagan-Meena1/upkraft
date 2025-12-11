@@ -39,6 +39,13 @@ export default function SettingsPage() {
     { name: 'Gold', sessions: 12, perSessionRate: 350, discount: 12, totalPrice: 4200 },
     { name: 'Platinum', sessions: 24, perSessionRate: 320, discount: 20, totalPrice: 7680 }
   ]);
+  const [monthlySubscriptionPricing, setMonthlySubscriptionPricing] = useState([
+    { months: 1, monthlyRate: 5000, discount: 0, totalPrice: 5000 },
+    { months: 3, monthlyRate: 5000, discount: 5, totalPrice: 14250 },
+    { months: 6, monthlyRate: 5000, discount: 10, totalPrice: 27000 },
+    { months: 9, monthlyRate: 5000, discount: 12, totalPrice: 39600 },
+    { months: 12, monthlyRate: 5000, discount: 15, totalPrice: 51000 }
+  ]);
   const [policies, setPolicies] = useState({
     lateFeePolicy: '₹200 per day (Max ₹1,500)',
     daysUntilOverdue: 3,
@@ -428,6 +435,12 @@ export default function SettingsPage() {
     }
     
     setPackagePricing(updated);
+  };
+
+  const handleMonthlySubscriptionDiscountChange = (index: number, value: number) => {
+    const updated = [...monthlySubscriptionPricing];
+    updated[index] = { ...updated[index], discount: value };
+    setMonthlySubscriptionPricing(updated);
   };
 
   const paymentModelOptions = [
@@ -1139,6 +1152,82 @@ export default function SettingsPage() {
                   })}
                 </div>
               </div>
+
+              {/* Monthly Subscription Pricing Table - Only visible when Monthly Subscription model is selected */}
+              {pricingModel === 'Monthly Subscription' && (
+                <div style={{
+                  background: '#fafafa',
+                  borderLeft: '4px solid #6200EA',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: '#1a1a1a',
+                    marginBottom: '16px'
+                  }}>
+                    Monthly Subscription Pricing (for Monthly Subscription Model)
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      fontSize: '14px'
+                    }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                          <th style={{
+                            padding: '12px',
+                            textAlign: 'left',
+                            fontWeight: 600,
+                            color: '#1a1a1a'
+                          }}>Duration</th>
+                          <th style={{
+                            padding: '12px',
+                            textAlign: 'left',
+                            fontWeight: 600,
+                            color: '#1a1a1a'
+                          }}>Discount %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {monthlySubscriptionPricing.map((subscription, index) => (
+                          <tr key={subscription.months} style={{ borderBottom: index < monthlySubscriptionPricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                            <td style={{
+                              padding: '12px',
+                              fontWeight: 600
+                            }}>
+                              {subscription.months} {subscription.months === 1 ? 'Month' : 'Months'}
+                            </td>
+                            <td style={{ padding: '12px' }}>
+                              <input
+                                type="number"
+                                value={subscription.discount}
+                                onChange={(e) => handleMonthlySubscriptionDiscountChange(index, parseInt(e.target.value) || 0)}
+                                min="0"
+                                max="100"
+                                style={{
+                                  width: '100px',
+                                  padding: '8px',
+                                  border: '2px solid #e0e0e0',
+                                  borderRadius: '8px',
+                                  fontSize: '14px',
+                                  fontFamily: 'inherit',
+                                  backgroundColor: 'white'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
 
               {/* Package Pricing Table - Only visible when Package model is selected */}
               {pricingModel === 'Package' && (
