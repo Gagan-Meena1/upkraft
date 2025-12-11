@@ -396,7 +396,7 @@ export async function PUT(request: NextRequest) {
 
     console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone,reasonForReschedule });
 
-    if (!title || !description || !date || !startTime || !endTime || !reasonForReschedule) {
+    if (!title || !description || !date || !startTime || !endTime ) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 }

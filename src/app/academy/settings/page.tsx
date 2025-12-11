@@ -57,6 +57,12 @@ export default function SettingsPage() {
     invoicePrefix: 'INV',
     nextInvoiceNumber: 125
   });
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [payoutApplyOption, setPayoutApplyOption] = useState<'all' | 'select'>('all');
+  const [tutorsList, setTutorsList] = useState<Array<{_id: string; username: string; email: string}>>([]);
+  const [selectedTutorIds, setSelectedTutorIds] = useState<string[]>([]);
+  const [isSavingPayout, setIsSavingPayout] = useState(false);
+  const [isLoadingTutors, setIsLoadingTutors] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -81,6 +87,24 @@ export default function SettingsPage() {
           const paymentMethodsData = await paymentMethodsResponse.json();
           if (paymentMethodsData.success && paymentMethodsData.paymentMethods) {
             setPaymentMethods(paymentMethodsData.paymentMethods);
+          }
+        }
+
+        // Fetch policies settings
+        const policiesResponse = await fetch("/Api/academy/policies");
+        if (policiesResponse.ok) {
+          const policiesData = await policiesResponse.json();
+          if (policiesData.success && policiesData.policies) {
+            setPolicies(policiesData.policies);
+          }
+        }
+
+        // Fetch tax settings
+        const taxSettingsResponse = await fetch("/Api/academy/taxSettings");
+        if (taxSettingsResponse.ok) {
+          const taxSettingsData = await taxSettingsResponse.json();
+          if (taxSettingsData.success && taxSettingsData.taxSettings) {
+            setTaxCompliance(taxSettingsData.taxSettings);
           }
         }
       } catch (error) {
@@ -208,34 +232,142 @@ export default function SettingsPage() {
 
   const handleSavePolicies = async () => {
     try {
-      // TODO: Implement API call to save policies
-      console.log('Saving policies:', policies);
-      alert('Policies saved successfully!');
-    } catch (error) {
+      const response = await fetch('/Api/academy/policies', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(policies),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update policies');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update policies');
+      }
+
+      toast.success('Policies saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving policies:', error);
-      alert('Failed to save policies');
+      toast.error(error.message || 'Failed to save policies');
     }
   };
 
   const handleSaveTutorPayout = async () => {
+    // Open modal to choose apply option
+    setShowPayoutModal(true);
+    fetchTutorsList();
+  };
+
+  const fetchTutorsList = async () => {
+    setIsLoadingTutors(true);
     try {
-      // TODO: Implement API call to save tutor payout settings
-      console.log('Saving tutor payout:', tutorPayout);
-      alert('Tutor payout settings saved successfully!');
+      const response = await fetch('/Api/academy/tutorsList', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTutorsList(data.tutors || []);
+        }
+      }
     } catch (error) {
-      console.error('Error saving tutor payout:', error);
-      alert('Failed to save tutor payout settings');
+      console.error('Error fetching tutors list:', error);
+      toast.error('Failed to load tutors list');
+    } finally {
+      setIsLoadingTutors(false);
     }
+  };
+
+  const handleSavePayoutSettings = async () => {
+    if (payoutApplyOption === 'select' && selectedTutorIds.length === 0) {
+      toast.error('Please select at least one tutor');
+      return;
+    }
+
+    setIsSavingPayout(true);
+    try {
+      const response = await fetch('/Api/academy/tutorPayoutSettings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          payoutSettings: tutorPayout,
+          applyToAll: payoutApplyOption === 'all',
+          selectedTutorIds: payoutApplyOption === 'select' ? selectedTutorIds : []
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(data.message || 'Payout settings saved successfully!');
+        setShowPayoutModal(false);
+        setPayoutApplyOption('all');
+        setSelectedTutorIds([]);
+      } else {
+        toast.error(data.error || 'Failed to save payout settings');
+      }
+    } catch (error) {
+      console.error('Error saving payout settings:', error);
+      toast.error('Failed to save payout settings');
+    } finally {
+      setIsSavingPayout(false);
+    }
+  };
+
+  const handleTutorToggle = (tutorId: string) => {
+    setSelectedTutorIds(prev => {
+      if (prev.includes(tutorId)) {
+        return prev.filter(id => id !== tutorId);
+      } else {
+        return [...prev, tutorId];
+      }
+    });
   };
 
   const handleSaveTaxCompliance = async () => {
     try {
-      // TODO: Implement API call to save tax compliance settings
-      console.log('Saving tax compliance:', taxCompliance);
-      alert('Tax settings saved successfully!');
-    } catch (error) {
+      const response = await fetch('/Api/academy/taxSettings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(taxCompliance),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update tax settings');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update tax settings');
+      }
+
+      toast.success('Tax settings saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving tax compliance:', error);
-      alert('Failed to save tax settings');
+      toast.error(error.message || 'Failed to save tax settings');
     }
   };
 
@@ -1157,11 +1289,13 @@ export default function SettingsPage() {
                     color: '#1a1a1a',
                     marginBottom: '8px'
                   }}>
-                    Late Fee Policy
+                    Late Fee Policy(₹)
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={policies.lateFeePolicy}
                     onChange={(e) => setPolicies({ ...policies, lateFeePolicy: e.target.value })}
+                    placeholder="e.g., ₹200 per day (Max ₹1,500)"
                     style={{
                       width: '100%',
                       padding: '12px 16px',
@@ -1169,18 +1303,11 @@ export default function SettingsPage() {
                       borderRadius: '8px',
                       fontSize: '14px',
                       transition: 'border-color 0.3s',
-                      fontFamily: 'inherit',
-                      background: 'white',
-                      cursor: 'pointer'
+                      fontFamily: 'inherit'
                     }}
                     onFocus={(e) => e.target.style.borderColor = '#6200EA'}
                     onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                  >
-                    <option value="No late fee">No late fee</option>
-                    <option value="₹500 per day (Max ₹2,000)">₹500 per day (Max ₹2,000)</option>
-                    <option value="₹200 per day (Max ₹1,500)">₹200 per day (Max ₹1,500)</option>
-                    <option value="5% of amount per month">5% of amount per month</option>
-                  </select>
+                  />
                 </div>
                 <div>
                   <label style={{
@@ -1411,7 +1538,6 @@ export default function SettingsPage() {
                   >
                     <option value="Percentage of Course Fee">Percentage of Course Fee</option>
                     <option value="Fixed Amount per Session">Fixed Amount per Session</option>
-                    <option value="Tiered (Based on volume)">Tiered (Based on volume)</option>
                   </select>
                 </div>
                 <div>
@@ -1487,7 +1613,6 @@ export default function SettingsPage() {
                   >
                     <option value="Weekly">Weekly</option>
                     <option value="Monthly">Monthly</option>
-                    <option value="On-demand">On-demand</option>
                   </select>
                 </div>
                 <div>
@@ -1790,6 +1915,205 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Payout Settings Modal */}
+      {showPayoutModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}
+        onClick={() => !isSavingPayout && setShowPayoutModal(false)}
+        >
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '100%',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            position: 'relative',
+            zIndex: 10001
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: 600,
+              color: '#1a1a1a',
+              marginBottom: '20px'
+            }}>
+              Apply Payout Settings
+            </h2>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                marginBottom: '12px',
+                cursor: 'pointer',
+                backgroundColor: payoutApplyOption === 'all' ? '#f3e5f5' : 'white',
+                transition: 'all 0.3s'
+              }}
+              onClick={() => {
+                setPayoutApplyOption('all');
+                setSelectedTutorIds([]);
+              }}
+              >
+                <input
+                  type="radio"
+                  checked={payoutApplyOption === 'all'}
+                  onChange={() => {
+                    setPayoutApplyOption('all');
+                    setSelectedTutorIds([]);
+                  }}
+                  style={{ marginRight: '12px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Set for all tutors</span>
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                backgroundColor: payoutApplyOption === 'select' ? '#f3e5f5' : 'white',
+                transition: 'all 0.3s'
+              }}
+              onClick={() => setPayoutApplyOption('select')}
+              >
+                <input
+                  type="radio"
+                  checked={payoutApplyOption === 'select'}
+                  onChange={() => setPayoutApplyOption('select')}
+                  style={{ marginRight: '12px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Select tutors</span>
+              </label>
+            </div>
+
+            {payoutApplyOption === 'select' && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  marginBottom: '8px'
+                }}>
+                  Select Tutors
+                </label>
+                {isLoadingTutors ? (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <p>Loading tutors...</p>
+                  </div>
+                ) : tutorsList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                    <p>No tutors found</p>
+                  </div>
+                ) : (
+                  <div style={{
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '8px',
+                    padding: '8px'
+                  }}>
+                    {tutorsList.map((tutor) => (
+                      <label
+                        key={tutor._id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                          marginBottom: '4px',
+                          backgroundColor: selectedTutorIds.includes(tutor._id) ? '#e3f2fd' : 'transparent',
+                          transition: 'background-color 0.2s'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTutorIds.includes(tutor._id)}
+                          onChange={() => handleTutorToggle(tutor._id)}
+                          style={{ marginRight: '10px', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '14px' }}>
+                          {tutor.username} ({tutor.email})
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end',
+              marginTop: '20px'
+            }}>
+              <button
+                onClick={() => {
+                  setShowPayoutModal(false);
+                  setPayoutApplyOption('all');
+                  setSelectedTutorIds([]);
+                }}
+                disabled={isSavingPayout}
+                style={{
+                  padding: '10px 20px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  background: 'white',
+                  color: '#666',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: isSavingPayout ? 'not-allowed' : 'pointer',
+                  opacity: isSavingPayout ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePayoutSettings}
+                disabled={isSavingPayout || (payoutApplyOption === 'select' && selectedTutorIds.length === 0)}
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  background: isSavingPayout || (payoutApplyOption === 'select' && selectedTutorIds.length === 0)
+                    ? '#ccc'
+                    : 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: isSavingPayout || (payoutApplyOption === 'select' && selectedTutorIds.length === 0)
+                    ? 'not-allowed'
+                    : 'pointer',
+                  transition: 'all 0.3s'
+                }}
+              >
+                {isSavingPayout ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

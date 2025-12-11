@@ -10,6 +10,7 @@ import {
   ChevronRight,
   User,
   Video,
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -19,7 +20,11 @@ import dynamic from "next/dynamic";
 import TimePicker from 'react-time-picker';
 // ADD these
 import * as dateFnsTz from 'date-fns-tz';
-import { format } from 'date-fns';import { parseISO, addDays } from 'date-fns';
+// import { format } from 'date-fns';
+// import { parseISO, addDays } from 'date-fns';
+import{ formatInTimeZone } from 'date-fns-tz';
+   import { format, parseISO, addDays } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 
 // Create a non-SSR version of the components
@@ -61,6 +66,10 @@ function AddSessionPage() {
   const [repeatType, setRepeatType] = useState<"none" | "daily" | "weekly" | "weekdays">("none");
   const [repeatCount, setRepeatCount] = useState<number>(1); // number of occurrences (including first)
   const [repeatUntil, setRepeatUntil] = useState<string>(""); // yyyy-mm-dd
+  const [availableSlots, setAvailableSlots] = useState([]);
+const [tutorId, setTutorId] = useState(null);
+const [slotsLoading, setSlotsLoading] = useState(false);
+const [tutorClasses, setTutorClasses] = useState([]);
 
   // helper: is weekday (Mon-Fri)
   const isWeekday = (date: Date) => {
@@ -101,6 +110,145 @@ function AddSessionPage() {
     fetchUserTimezone();
   }, []);
 
+
+useEffect(() => {
+  const fetchTutorSlots = async () => {
+    if (!courseId) return;
+    
+    setSlotsLoading(true);
+    try {
+      // First get the course details
+      const courseRes = await fetch(`/Api/academy/course?courseId=${courseId}`);
+      const courseData = await courseRes.json();
+      console.log("Fetched course data:", courseData);
+      
+      // Get instructor ID from academyInstructorId (first element) or fallback to instructorId
+      let instructorId = null;
+      
+      if (courseData.course.academyInstructorId && courseData.course.academyInstructorId.length > 0) {
+        instructorId = courseData.course.academyInstructorId[0]; // Take first instructor from array
+        console.log("Using academyInstructorId:", instructorId);
+        console.log("Full academyInstructorId array:", courseData.course.academyInstructorId);
+      } else if (courseData.instructorId) {
+        instructorId = courseData.instructorId; // Fallback to legacy field
+      }
+      
+      if (!instructorId) {
+        console.error("No instructor found for this course");
+        setErrorMessage("No instructor assigned to this course. Please contact support.");
+        return;
+      }
+      
+      setTutorId(instructorId);
+         // Fetch tutor's available slots
+      const slotsRes = await fetch(`/Api/academy/userDetail?userId=${instructorId}`);
+      const slotsData = await slotsRes.json();
+      console.log("Fetched tutor slots data:", slotsData);
+      
+      if (slotsData.user?.slotsAvailable) {
+        setAvailableSlots(slotsData.user.slotsAvailable);
+      } else {
+        setAvailableSlots([]);
+      }
+    } catch (error) {
+      console.error("Error fetching tutor slots:", error);
+      setErrorMessage("Failed to load tutor availability. Please try again.");
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
+
+  fetchTutorSlots();
+  }, [courseId]);
+
+
+
+// ADD this helper function to check if time is within available slots
+const isTimeInAvailableSlot = (date, startTime, endTime) => {
+  if (!availableSlots || availableSlots.length === 0) {
+    return { 
+      valid: false, 
+      message: "No available slots found for this tutor. Please contact them to set up availability." 
+    };
+  }
+
+  // Get user's timezone (fallback to system timezone)
+  const timezone = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Parse the session date and times in user's timezone
+  const sessionDate = parseISO(date); // YYYY-MM-DD format
+  const [sessionStartHour, sessionStartMin] = startTime.split(':').map(Number);
+  const [sessionEndHour, sessionEndMin] = endTime.split(':').map(Number);
+  
+  // Create full datetime objects for the session in user's timezone
+  const sessionStart = new Date(sessionDate);
+  sessionStart.setHours(sessionStartHour, sessionStartMin, 0, 0);
+  
+  const sessionEnd = new Date(sessionDate);
+  sessionEnd.setHours(sessionEndHour, sessionEndMin, 0, 0);
+
+  // Convert session times to UTC for comparison (since DB stores in UTC)
+  const sessionStartUTC = dateFnsTz.fromZonedTime(sessionStart, timezone);
+  const sessionEndUTC = dateFnsTz.fromZonedTime(sessionEnd, timezone);
+
+  // Check if session falls within any available slot
+  const matchingSlot = availableSlots.find(slot => {
+    const slotStartUTC = new Date(slot.startTime); // Already in UTC from DB
+    const slotEndUTC = new Date(slot.endTime); // Already in UTC from DB
+    
+    // Convert slot times to user's timezone for date comparison
+    const slotStartLocal = dateFnsTz.toZonedTime(slotStartUTC, timezone);
+    const slotEndLocal = dateFnsTz.toZonedTime(slotEndUTC, timezone);
+    
+    // Check if it's the same day in user's timezone
+    const isSameDay = 
+      sessionDate.getDate() === slotStartLocal.getDate() &&
+      sessionDate.getMonth() === slotStartLocal.getMonth() &&
+      sessionDate.getFullYear() === slotStartLocal.getFullYear();
+    
+    if (!isSameDay) return false;
+    
+    // Check if session time is within slot time (compare in UTC)
+    return sessionStartUTC >= slotStartUTC && sessionEndUTC <= slotEndUTC;
+  });
+
+  if (!matchingSlot) {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayName = dayNames[sessionDate.getDay()];
+    
+    // Find slots on the same day in user's timezone
+    const sameDaySlots = availableSlots.filter(slot => {
+      const slotStartUTC = new Date(slot.startTime);
+      const slotStartLocal = dateFnsTz.toZonedTime(slotStartUTC, timezone);
+      
+      return slotStartLocal.getDate() === sessionDate.getDate() &&
+             slotStartLocal.getMonth() === sessionDate.getMonth() &&
+             slotStartLocal.getFullYear() === sessionDate.getFullYear();
+    });
+    
+    if (sameDaySlots.length === 0) {
+      return {
+        valid: false,
+        message: `No available slots on ${dayName}, ${format(sessionDate, 'MMM dd, yyyy')}. Please choose another date.`
+      };
+    }
+    
+    const availableTimes = sameDaySlots.map(s => {
+      const startUTC = new Date(s.startTime);
+      const endUTC = new Date(s.endTime);
+      const startLocal = dateFnsTz.toZonedTime(startUTC, timezone);
+      const endLocal = dateFnsTz.toZonedTime(endUTC, timezone);
+      return `${format(startLocal, 'HH:mm')}-${format(endLocal, 'HH:mm')}`;
+    }).join(', ');
+    
+    return {
+      valid: false,
+      message: `This time slot is not available. Available slots on ${format(sessionDate, 'MMM dd')}: ${availableTimes}`
+    };
+  }
+
+  return { valid: true, message: "" };
+};
   // Helper function to check if a date is in the past (without time consideration)
   const isDateInPast = (year: number, month: number, day: number): boolean => {
     const today = new Date();
@@ -277,37 +425,31 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
     }
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
   setIsSubmitting(true);
   setErrorMessage("");
 
   try {
     // Build occurrences array based on recurrence type
-    const occurrences: { date: string; startTime: string; endTime: string }[] = [];
+    const occurrences = [];
 
     if (repeatType === "none") {
-      // Single occurrence
       occurrences.push({
         date: sessionForm.date,
         startTime: sessionForm.startTime,
         endTime: sessionForm.endTime,
       });
     } else if (repeatType === "weekdays") {
-      // Weekdays only (Mon-Fri)
       let currentDate = parseISO(sessionForm.date);
       let added = 0;
-
-      // Use repeatCount OR repeatUntil
       const maxOccurrences = repeatCount > 0 ? repeatCount : 365;
       const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
 
       while (added < maxOccurrences) {
-        // Check if we've passed the "until" date
         if (untilDate && currentDate > untilDate) break;
 
         const dayOfWeek = currentDate.getDay();
-        // 0 = Sunday, 6 = Saturday
         if (dayOfWeek !== 0 && dayOfWeek !== 6) {
           occurrences.push({
             date: format(currentDate, "yyyy-MM-dd"),
@@ -320,7 +462,6 @@ const handleSubmit = async (e: React.FormEvent) => {
         currentDate = addDays(currentDate, 1);
       }
     } else if (repeatType === "daily") {
-      // Daily recurrence
       let currentDate = parseISO(sessionForm.date);
       const maxOccurrences = repeatCount > 0 ? repeatCount : 365;
       const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
@@ -337,7 +478,6 @@ const handleSubmit = async (e: React.FormEvent) => {
         currentDate = addDays(currentDate, 1);
       }
     } else if (repeatType === "weekly") {
-      // Weekly recurrence (every 7 days)
       let currentDate = parseISO(sessionForm.date);
       const maxOccurrences = repeatCount > 0 ? repeatCount : 52;
       const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
@@ -351,9 +491,48 @@ const handleSubmit = async (e: React.FormEvent) => {
           endTime: sessionForm.endTime,
         });
 
-        currentDate = addDays(currentDate, 7); // Add 7 days
+        currentDate = addDays(currentDate, 7);
       }
     }
+
+    // ========== VALIDATE ALL OCCURRENCES AGAINST AVAILABLE SLOTS ==========
+    const invalidOccurrences = [];
+    
+    for (const occ of occurrences) {
+      const slotCheck = isTimeInAvailableSlot(occ.date, occ.startTime, occ.endTime);
+      if (!slotCheck.valid) {
+        invalidOccurrences.push({
+          date: occ.date,
+          reason: slotCheck.message
+        });
+      }
+    }
+
+    // If any occurrence is invalid, show error and stop
+    if (invalidOccurrences.length > 0) {
+      let errorMsg;
+      
+      if (invalidOccurrences.length === 1) {
+        errorMsg = invalidOccurrences[0].reason;
+      } else {
+        errorMsg = `${invalidOccurrences.length} sessions fall outside available slots.\n\n`;
+        errorMsg += `First issue (${invalidOccurrences[0].date}): ${invalidOccurrences[0].reason}`;
+        
+        if (invalidOccurrences.length <= 3) {
+          // Show all errors if 3 or fewer
+          for (let i = 1; i < invalidOccurrences.length; i++) {
+            errorMsg += `\n\n${invalidOccurrences[i].date}: ${invalidOccurrences[i].reason}`;
+          }
+        } else {
+          errorMsg += `\n\n... and ${invalidOccurrences.length - 1} more conflicts.`;
+        }
+      }
+      
+      setErrorMessage(errorMsg);
+      setIsSubmitting(false);
+      return;
+    }
+    // ========== END VALIDATION ==========
 
     // Get user's timezone
     const timezoneToSend =
@@ -371,18 +550,16 @@ const handleSubmit = async (e: React.FormEvent) => {
       const formData = new FormData();
       formData.append("title", sessionForm.title || "");
       formData.append("description", sessionForm.description || "");
-      formData.append("date", occ.date); // YYYY-MM-DD
-      formData.append("startTime", occ.startTime); // HH:MM
-      formData.append("endTime", occ.endTime); // HH:MM
+      formData.append("date", occ.date);
+      formData.append("startTime", occ.startTime);
+      formData.append("endTime", occ.endTime);
       formData.append("timezone", timezoneToSend);
 
-      // Include course ID
       if (courseId) {
         formData.append("course", courseId);
         formData.append("courseId", courseId);
       }
 
-      // Attach video only for the first occurrence
       if (sessionForm.video && idx === 0) {
         formData.append("video", sessionForm.video);
       }
@@ -409,7 +586,6 @@ const handleSubmit = async (e: React.FormEvent) => {
     alert(`Successfully created ${created} session(s)!`);
     handleCloseForm();
     
-    // Navigate back to course page
     if (courseId) {
       router.push(`/academy/courses/${courseId}`);
     } else {
@@ -422,6 +598,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     setIsSubmitting(false);
   }
 };
+
 
   // Modify your create/submit handler to create multiple weekly copies
   const handleCreateClass = async (e: React.FormEvent) => {
@@ -758,6 +935,61 @@ const handleSubmit = async (e: React.FormEvent) => {
     />
   </div>
 </div>
+{availableSlots.length > 0 && selectedDate && (
+  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+    <div className="flex items-start gap-2">
+      <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+      <div className="flex-1">
+        <p className="text-sm font-medium text-blue-900">Available Time Slots</p>
+        <div className="text-xs text-blue-700 mt-1">
+          {(() => {
+            const timezone = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const sessionDate = parseISO(selectedDate);
+            
+            // Find slots on the selected date (comparing in user's timezone)
+            const sameDaySlots = availableSlots.filter(slot => {
+              const slotStartUTC = new Date(slot.startTime);
+              const slotStartLocal = dateFnsTz.toZonedTime(slotStartUTC, timezone);
+              
+              return slotStartLocal.getDate() === sessionDate.getDate() &&
+                     slotStartLocal.getMonth() === sessionDate.getMonth() &&
+                     slotStartLocal.getFullYear() === sessionDate.getFullYear();
+            });
+            
+            if (sameDaySlots.length === 0) {
+              return `No slots available on ${format(sessionDate, 'MMM dd, yyyy')}. Please choose another date.`;
+            }
+            
+            return (
+              <div className="space-y-1 mt-1">
+                <p className="font-medium">{format(sessionDate, 'EEEE, MMM dd, yyyy')}:</p>
+                {sameDaySlots.map((slot, idx) => {
+                  const startUTC = new Date(slot.startTime);
+                  const endUTC = new Date(slot.endTime);
+                  const startLocal = dateFnsTz.toZonedTime(startUTC, timezone);
+                  const endLocal = dateFnsTz.toZonedTime(endUTC, timezone);
+                  
+                  return (
+                    <div key={idx} className="pl-2">
+                      • {format(startLocal, 'hh:mm a')} - {format(endLocal, 'hh:mm a')}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+{slotsLoading && (
+  <div className="text-sm text-gray-500 flex items-center gap-2">
+    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+    Loading available slots...
+  </div>
+)}
                 {/* Recurrence Controls */}
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                   <div>

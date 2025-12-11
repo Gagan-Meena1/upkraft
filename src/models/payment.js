@@ -75,6 +75,18 @@ const paymentSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    gstRate: {
+      type: String,
+      default: '18%',
+    },
+    gstAmount: {
+      type: Number,
+      default: 0,
+    },
+    baseAmount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

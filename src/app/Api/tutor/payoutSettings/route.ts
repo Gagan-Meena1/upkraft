@@ -1,0 +1,81 @@
+import { NextRequest, NextResponse } from "next/server";
+import User from "@/models/userModel";
+import { connect } from "@/dbConnection/dbConfic";
+import jwt from "jsonwebtoken";
+
+export async function GET(request: NextRequest) {
+  try {
+    await connect();
+
+    // Get tutor user from token
+    const token = request.cookies.get("token")?.value;
+    if (!token) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const decodedToken = jwt.decode(token);
+    const tutorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+    
+    if (!tutorId) {
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+    }
+
+    // Get tutor with payout settings
+    const tutor = await User.findById(tutorId)
+      .select("tutorPayoutSettings academyId category")
+      .lean();
+
+    if (!tutor) {
+      return NextResponse.json({ error: "Tutor not found" }, { status: 404 });
+    }
+
+    if (tutor.category !== "Tutor") {
+      return NextResponse.json({ error: "Only tutors can access this endpoint" }, { status: 403 });
+    }
+
+    // Check if tutor is academy-created
+    if (!tutor.academyId) {
+      return NextResponse.json({ 
+        success: true, 
+        payoutSettings: null,
+        message: "Payout settings are only available for academy-created tutors"
+      });
+    }
+
+    console.log('GET /Api/tutor/payoutSettings - Tutor ID:', tutorId);
+    console.log('GET /Api/tutor/payoutSettings - Raw tutor data:', JSON.stringify(tutor, null, 2));
+    console.log('GET /Api/tutor/payoutSettings - tutorPayoutSettings:', tutor.tutorPayoutSettings);
+    console.log('GET /Api/tutor/payoutSettings - Type of tutorPayoutSettings:', typeof tutor.tutorPayoutSettings);
+    console.log('GET /Api/tutor/payoutSettings - Is tutorPayoutSettings null/undefined?', tutor.tutorPayoutSettings == null);
+
+    // Return payout settings or default values
+    let payoutSettings;
+    if (tutor.tutorPayoutSettings && typeof tutor.tutorPayoutSettings === 'object') {
+      payoutSettings = tutor.tutorPayoutSettings;
+      console.log('GET /Api/tutor/payoutSettings - Using saved settings from DB');
+    } else {
+      payoutSettings = {
+        commissionModel: 'Percentage of Course Fee',
+        commissionPercentage: 70,
+        payoutFrequency: 'Monthly',
+        minimumPayoutAmount: '₹1,000'
+      };
+      console.log('GET /Api/tutor/payoutSettings - Using default settings (field not found in DB)');
+    }
+
+    console.log('GET /Api/tutor/payoutSettings - Returning:', payoutSettings);
+
+    return NextResponse.json({
+      success: true,
+      payoutSettings
+    });
+
+  } catch (error: any) {
+    console.error("Error fetching tutor payout settings:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to fetch payout settings" },
+      { status: 500 }
+    );
+  }
+}
+

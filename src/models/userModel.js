@@ -188,6 +188,68 @@ const userSchema = new mongoose.Schema({
             default: 'INR'
         }
     },
+    policiesSettings: {
+        lateFeePolicy: {
+            type: String,
+            default: '₹200 per day (Max ₹1,500)'
+        },
+        daysUntilOverdue: {
+            type: Number,
+            default: 3
+        },
+        earlyPaymentDiscount: {
+            type: Number,
+            default: 0
+        },
+        autoSuspendAfter: {
+            type: Number,
+            default: 7
+        }
+    },
+    taxSettings: {
+        defaultGSTRate: {
+            type: String,
+            default: '18%'
+        },
+        academyGSTIN: {
+            type: String,
+            default: ''
+        },
+        invoicePrefix: {
+            type: String,
+            default: 'INV'
+        },
+        nextInvoiceNumber: {
+            type: Number,
+            default: 125
+        }
+    },
+    tutorPayoutSettings: {
+        commissionModel: {
+            type: String,
+            enum: ['Percentage of Course Fee', 'Fixed Amount per Session'],
+            default: 'Percentage of Course Fee'
+        },
+        commissionPercentage: {
+            type: Number,
+            default: 70,
+            min: 0,
+            max: 100
+        },
+        payoutFrequency: {
+            type: String,
+            enum: ['Weekly', 'Monthly'],
+            default: 'Monthly'
+        },
+        minimumPayoutAmount: {
+            type: String,
+            default: '₹1,000'
+        },
+        updatedAt: {
+            type: Date,
+            default: Date.now
+        }
+    },
 },
 {timestamps: true}
 );
