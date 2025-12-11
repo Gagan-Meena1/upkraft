@@ -33,11 +33,18 @@ export default function SettingsPage() {
     paymentGateway: 'Razorpay',
     currency: 'INR'
   });
-  const [pricingModel, setPricingModel] = useState('Per Session');
+  const [pricingModel, setPricingModel] = useState('Monthly Subscription');
   const [packagePricing, setPackagePricing] = useState([
     { name: 'Silver', sessions: 4, perSessionRate: 400, discount: 0, totalPrice: 1600 },
     { name: 'Gold', sessions: 12, perSessionRate: 350, discount: 12, totalPrice: 4200 },
     { name: 'Platinum', sessions: 24, perSessionRate: 320, discount: 20, totalPrice: 7680 }
+  ]);
+  const [monthlySubscriptionPricing, setMonthlySubscriptionPricing] = useState([
+    { months: 1, discount: 0 },
+    { months: 3, discount: 5 },
+    { months: 6, discount: 10 },
+    { months: 9, discount: 12 },
+    { months: 12, discount: 15 }
   ]);
   const [policies, setPolicies] = useState({
     lateFeePolicy: '₹200 per day (Max ₹1,500)',
@@ -57,6 +64,14 @@ export default function SettingsPage() {
     invoicePrefix: 'INV',
     nextInvoiceNumber: 125
   });
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [payoutApplyOption, setPayoutApplyOption] = useState<'all' | 'select'>('all');
+  const [tutorsList, setTutorsList] = useState<Array<{_id: string; username: string; email: string}>>([]);
+  const [selectedTutorIds, setSelectedTutorIds] = useState<string[]>([]);
+  const [isSavingPayout, setIsSavingPayout] = useState(false);
+  const [isLoadingTutors, setIsLoadingTutors] = useState(false);
+  const [isSavingPricing, setIsSavingPricing] = useState(false);
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -101,9 +116,31 @@ export default function SettingsPage() {
             setTaxCompliance(taxSettingsData.taxSettings);
           }
         }
+
+        // Fetch package pricing settings
+        setIsLoadingPricing(true);
+        const packagePricingResponse = await fetch("/Api/academy/packagePricing");
+        if (packagePricingResponse.ok) {
+          const packagePricingData = await packagePricingResponse.json();
+          if (packagePricingData.success && packagePricingData.packagePricingSettings) {
+            setPricingModel(packagePricingData.packagePricingSettings.pricingModel || 'Monthly Subscription');
+            if (packagePricingData.packagePricingSettings.packagePricing && 
+                Array.isArray(packagePricingData.packagePricingSettings.packagePricing) &&
+                packagePricingData.packagePricingSettings.packagePricing.length > 0) {
+              setPackagePricing(packagePricingData.packagePricingSettings.packagePricing);
+            }
+            if (packagePricingData.packagePricingSettings.monthlySubscriptionPricing && 
+                Array.isArray(packagePricingData.packagePricingSettings.monthlySubscriptionPricing) &&
+                packagePricingData.packagePricingSettings.monthlySubscriptionPricing.length > 0) {
+              setMonthlySubscriptionPricing(packagePricingData.packagePricingSettings.monthlySubscriptionPricing);
+            }
+          }
+        }
+        setIsLoadingPricing(false);
       } catch (error) {
         console.error("Error fetching user data:", error);
         toast.error('Failed to load academy information');
+        setIsLoadingPricing(false);
       } finally {
         setIsLoadingAcademyInfo(false);
       }
@@ -214,13 +251,41 @@ export default function SettingsPage() {
   ];
 
   const handleSavePricing = async () => {
+    setIsSavingPricing(true);
     try {
-      // TODO: Implement API call to save pricing
-      console.log('Saving pricing:', { pricingModel, packagePricing });
-      alert('Pricing saved successfully!');
-    } catch (error) {
-      console.error('Error saving pricing:', error);
-      alert('Failed to save pricing');
+      const response = await fetch('/Api/academy/packagePricing', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pricingModel,
+          packagePricing: pricingModel === 'Package' ? packagePricing : [],
+          monthlySubscriptionPricing: pricingModel === 'Monthly Subscription' ? monthlySubscriptionPricing : []
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update package pricing');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update package pricing');
+      }
+
+      toast.success('Package pricing saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      console.error('Error saving package pricing:', error);
+      toast.error(error.message || 'Failed to save package pricing');
+      setIsSavingPricing(false);
     }
   };
 
@@ -258,14 +323,78 @@ export default function SettingsPage() {
   };
 
   const handleSaveTutorPayout = async () => {
+    // Open modal to choose apply option
+    setShowPayoutModal(true);
+    fetchTutorsList();
+  };
+
+  const fetchTutorsList = async () => {
+    setIsLoadingTutors(true);
     try {
-      // TODO: Implement API call to save tutor payout settings
-      console.log('Saving tutor payout:', tutorPayout);
-      alert('Tutor payout settings saved successfully!');
+      const response = await fetch('/Api/academy/tutorsList', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTutorsList(data.tutors || []);
+        }
+      }
     } catch (error) {
-      console.error('Error saving tutor payout:', error);
-      alert('Failed to save tutor payout settings');
+      console.error('Error fetching tutors list:', error);
+      toast.error('Failed to load tutors list');
+    } finally {
+      setIsLoadingTutors(false);
     }
+  };
+
+  const handleSavePayoutSettings = async () => {
+    if (payoutApplyOption === 'select' && selectedTutorIds.length === 0) {
+      toast.error('Please select at least one tutor');
+      return;
+    }
+
+    setIsSavingPayout(true);
+    try {
+      const response = await fetch('/Api/academy/tutorPayoutSettings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          payoutSettings: tutorPayout,
+          applyToAll: payoutApplyOption === 'all',
+          selectedTutorIds: payoutApplyOption === 'select' ? selectedTutorIds : []
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast.success(data.message || 'Payout settings saved successfully!');
+        setShowPayoutModal(false);
+        setPayoutApplyOption('all');
+        setSelectedTutorIds([]);
+      } else {
+        toast.error(data.error || 'Failed to save payout settings');
+      }
+    } catch (error) {
+      console.error('Error saving payout settings:', error);
+      toast.error('Failed to save payout settings');
+    } finally {
+      setIsSavingPayout(false);
+    }
+  };
+
+  const handleTutorToggle = (tutorId: string) => {
+    setSelectedTutorIds(prev => {
+      if (prev.includes(tutorId)) {
+        return prev.filter(id => id !== tutorId);
+      } else {
+        return [...prev, tutorId];
+      }
+    });
   };
 
   const handleSaveTaxCompliance = async () => {
@@ -314,8 +443,13 @@ export default function SettingsPage() {
     setPackagePricing(updated);
   };
 
+  const handleMonthlySubscriptionDiscountChange = (index: number, value: number) => {
+    const updated = [...monthlySubscriptionPricing];
+    updated[index] = { ...updated[index], discount: value };
+    setMonthlySubscriptionPricing(updated);
+  };
+
   const paymentModelOptions = [
-    { id: 'Per Session', name: 'Per Session', description: 'Students pay for each session attended' },
     { id: 'Monthly Subscription', name: 'Monthly Subscription', description: 'Fixed monthly fee for unlimited sessions' },
     { id: 'Package', name: 'Package', description: 'Bulk session packages at discounted rates' }
   ];
@@ -925,6 +1059,19 @@ export default function SettingsPage() {
                 Configure how students are charged for courses
               </div>
 
+              {isLoadingPricing ? (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px',
+                  color: '#666'
+                }}>
+                  Loading pricing settings...
+                </div>
+              ) : (
+                <>
+
               {/* Payment Model Selection */}
               <div style={{
                 background: '#fafafa',
@@ -1012,22 +1159,23 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* Package Pricing Table */}
-              <div style={{
-                background: '#fafafa',
-                borderLeft: '4px solid #6200EA',
-                padding: '20px',
-                borderRadius: '8px',
-                marginBottom: '20px'
-              }}>
+              {/* Monthly Subscription Pricing Table - Only visible when Monthly Subscription model is selected */}
+              {pricingModel === 'Monthly Subscription' && (
                 <div style={{
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  color: '#1a1a1a',
-                  marginBottom: '16px'
+                  background: '#fafafa',
+                  borderLeft: '4px solid #6200EA',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
                 }}>
-                  Package Pricing (for Package Model)
-                </div>
+                  <div style={{
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: '#1a1a1a',
+                    marginBottom: '16px'
+                  }}>
+                    Monthly Subscription Pricing (for Monthly Subscription Model)
+                  </div>
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{
                       width: '100%',
@@ -1041,25 +1189,7 @@ export default function SettingsPage() {
                             textAlign: 'left',
                             fontWeight: 600,
                             color: '#1a1a1a'
-                          }}>Package</th>
-                          <th style={{
-                            padding: '12px',
-                            textAlign: 'left',
-                            fontWeight: 600,
-                            color: '#1a1a1a'
-                          }}>Sessions</th>
-                          <th style={{
-                            padding: '12px',
-                            textAlign: 'left',
-                            fontWeight: 600,
-                            color: '#1a1a1a'
-                          }}>Per Session Rate</th>
-                          <th style={{
-                            padding: '12px',
-                            textAlign: 'left',
-                            fontWeight: 600,
-                            color: '#1a1a1a'
-                          }}>Total Price</th>
+                          }}>Duration</th>
                           <th style={{
                             padding: '12px',
                             textAlign: 'left',
@@ -1069,69 +1199,29 @@ export default function SettingsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {packagePricing.map((pkg, index) => (
-                          <tr key={pkg.name} style={{ borderBottom: index < packagePricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                        {monthlySubscriptionPricing.map((subscription, index) => (
+                          <tr key={subscription.months} style={{ borderBottom: index < monthlySubscriptionPricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
                             <td style={{
                               padding: '12px',
                               fontWeight: 600
                             }}>
-                              {pkg.name}
+                              {subscription.months} {subscription.months === 1 ? 'Month' : 'Months'}
                             </td>
                             <td style={{ padding: '12px' }}>
                               <input
                                 type="number"
-                                value={pkg.sessions}
-                                onChange={(e) => handlePackagePricingChange(index, 'sessions', parseInt(e.target.value) || 0)}
+                                value={subscription.discount}
+                                onChange={(e) => handleMonthlySubscriptionDiscountChange(index, parseInt(e.target.value) || 0)}
+                                min="0"
+                                max="100"
                                 style={{
-                                  width: '60px',
+                                  width: '100px',
                                   padding: '8px',
                                   border: '2px solid #e0e0e0',
                                   borderRadius: '8px',
                                   fontSize: '14px',
-                                  fontFamily: 'inherit'
-                                }}
-                                onFocus={(e) => e.target.style.borderColor = '#6200EA'}
-                                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                              />
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span>₹</span>
-                                <input
-                                  type="number"
-                                  value={pkg.perSessionRate}
-                                  onChange={(e) => handlePackagePricingChange(index, 'perSessionRate', parseInt(e.target.value) || 0)}
-                                  style={{
-                                    width: '70px',
-                                    padding: '8px',
-                                    border: '2px solid #e0e0e0',
-                                    borderRadius: '8px',
-                                    fontSize: '14px',
-                                    fontFamily: 'inherit'
-                                  }}
-                                  onFocus={(e) => e.target.style.borderColor = '#6200EA'}
-                                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                                />
-                              </div>
-                            </td>
-                            <td style={{
-                              padding: '12px',
-                              fontWeight: 600
-                            }}>
-                              ₹{pkg.totalPrice.toLocaleString('en-IN')}
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              <input
-                                type="number"
-                                value={pkg.discount}
-                                onChange={(e) => handlePackagePricingChange(index, 'discount', parseInt(e.target.value) || 0)}
-                                style={{
-                                  width: '60px',
-                                  padding: '8px',
-                                  border: '2px solid #e0e0e0',
-                                  borderRadius: '8px',
-                                  fontSize: '14px',
-                                  fontFamily: 'inherit'
+                                  fontFamily: 'inherit',
+                                  backgroundColor: 'white'
                                 }}
                                 onFocus={(e) => e.target.style.borderColor = '#6200EA'}
                                 onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
@@ -1143,6 +1233,141 @@ export default function SettingsPage() {
                     </table>
                   </div>
                 </div>
+              )}
+
+              {/* Package Pricing Table - Only visible when Package model is selected */}
+              {pricingModel === 'Package' && (
+                <div style={{
+                  background: '#fafafa',
+                  borderLeft: '4px solid #6200EA',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
+                }}>
+                  <div style={{
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: '#1a1a1a',
+                    marginBottom: '16px'
+                  }}>
+                    Package Pricing (for Package Model)
+                  </div>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        fontSize: '14px'
+                      }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                            <th style={{
+                              padding: '12px',
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Package</th>
+                            <th style={{
+                              padding: '12px',
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Sessions</th>
+                            <th style={{
+                              padding: '12px',
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Per Session Rate</th>
+                            <th style={{
+                              padding: '12px',
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Total Price</th>
+                            <th style={{
+                              padding: '12px',
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Discount %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {packagePricing.map((pkg, index) => (
+                            <tr key={pkg.name} style={{ borderBottom: index < packagePricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                              <td style={{
+                                padding: '12px',
+                                fontWeight: 600
+                              }}>
+                                {pkg.name}
+                              </td>
+                              <td style={{ padding: '12px' }}>
+                                <input
+                                  type="number"
+                                  value={pkg.sessions}
+                                  onChange={(e) => handlePackagePricingChange(index, 'sessions', parseInt(e.target.value) || 0)}
+                                  style={{
+                                    width: '60px',
+                                    padding: '8px',
+                                    border: '2px solid #e0e0e0',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontFamily: 'inherit'
+                                  }}
+                                  onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                />
+                              </td>
+                              <td style={{ padding: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span>₹</span>
+                                  <input
+                                    type="number"
+                                    value={pkg.perSessionRate}
+                                    onChange={(e) => handlePackagePricingChange(index, 'perSessionRate', parseInt(e.target.value) || 0)}
+                                    style={{
+                                      width: '70px',
+                                      padding: '8px',
+                                      border: '2px solid #e0e0e0',
+                                      borderRadius: '8px',
+                                      fontSize: '14px',
+                                      fontFamily: 'inherit'
+                                    }}
+                                    onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                                    onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                  />
+                                </div>
+                              </td>
+                              <td style={{
+                                padding: '12px',
+                                fontWeight: 600
+                              }}>
+                                ₹{pkg.totalPrice.toLocaleString('en-IN')}
+                              </td>
+                              <td style={{ padding: '12px' }}>
+                                <input
+                                  type="number"
+                                  value={pkg.discount}
+                                  onChange={(e) => handlePackagePricingChange(index, 'discount', parseInt(e.target.value) || 0)}
+                                  style={{
+                                    width: '60px',
+                                    padding: '8px',
+                                    border: '2px solid #e0e0e0',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontFamily: 'inherit'
+                                  }}
+                                  onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+              )}
 
               <div style={{
                 display: 'flex',
@@ -1151,29 +1376,39 @@ export default function SettingsPage() {
               }}>
                 <button
                   onClick={handleSavePricing}
+                  disabled={isSavingPricing}
                   style={{
                     padding: '12px 24px',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: 'pointer',
+                    cursor: isSavingPricing ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: 600,
-                    background: 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
+                    background: isSavingPricing 
+                      ? '#ccc' 
+                      : 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
                     color: 'white',
-                    transition: 'all 0.3s'
+                    transition: 'all 0.3s',
+                    opacity: isSavingPricing ? 0.7 : 1
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 16px rgba(98, 0, 234, 0.3)';
+                    if (!isSavingPricing) {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 16px rgba(98, 0, 234, 0.3)';
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
+                    if (!isSavingPricing) {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
                   }}
                 >
-                  Save Pricing
+                  {isSavingPricing ? 'Saving...' : 'Save Pricing'}
                 </button>
               </div>
+                </>
+              )}
             </div>
           )}
 
@@ -1468,7 +1703,6 @@ export default function SettingsPage() {
                   >
                     <option value="Percentage of Course Fee">Percentage of Course Fee</option>
                     <option value="Fixed Amount per Session">Fixed Amount per Session</option>
-                    <option value="Tiered (Based on volume)">Tiered (Based on volume)</option>
                   </select>
                 </div>
                 <div>
@@ -1544,7 +1778,6 @@ export default function SettingsPage() {
                   >
                     <option value="Weekly">Weekly</option>
                     <option value="Monthly">Monthly</option>
-                    <option value="On-demand">On-demand</option>
                   </select>
                 </div>
                 <div>
@@ -1847,6 +2080,205 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* Payout Settings Modal */}
+      {showPayoutModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}
+        onClick={() => !isSavingPayout && setShowPayoutModal(false)}
+        >
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '100%',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            position: 'relative',
+            zIndex: 10001
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: 600,
+              color: '#1a1a1a',
+              marginBottom: '20px'
+            }}>
+              Apply Payout Settings
+            </h2>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                marginBottom: '12px',
+                cursor: 'pointer',
+                backgroundColor: payoutApplyOption === 'all' ? '#f3e5f5' : 'white',
+                transition: 'all 0.3s'
+              }}
+              onClick={() => {
+                setPayoutApplyOption('all');
+                setSelectedTutorIds([]);
+              }}
+              >
+                <input
+                  type="radio"
+                  checked={payoutApplyOption === 'all'}
+                  onChange={() => {
+                    setPayoutApplyOption('all');
+                    setSelectedTutorIds([]);
+                  }}
+                  style={{ marginRight: '12px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Set for all tutors</span>
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                backgroundColor: payoutApplyOption === 'select' ? '#f3e5f5' : 'white',
+                transition: 'all 0.3s'
+              }}
+              onClick={() => setPayoutApplyOption('select')}
+              >
+                <input
+                  type="radio"
+                  checked={payoutApplyOption === 'select'}
+                  onChange={() => setPayoutApplyOption('select')}
+                  style={{ marginRight: '12px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Select tutors</span>
+              </label>
+            </div>
+
+            {payoutApplyOption === 'select' && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  marginBottom: '8px'
+                }}>
+                  Select Tutors
+                </label>
+                {isLoadingTutors ? (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <p>Loading tutors...</p>
+                  </div>
+                ) : tutorsList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                    <p>No tutors found</p>
+                  </div>
+                ) : (
+                  <div style={{
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '8px',
+                    padding: '8px'
+                  }}>
+                    {tutorsList.map((tutor) => (
+                      <label
+                        key={tutor._id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                          marginBottom: '4px',
+                          backgroundColor: selectedTutorIds.includes(tutor._id) ? '#e3f2fd' : 'transparent',
+                          transition: 'background-color 0.2s'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedTutorIds.includes(tutor._id)}
+                          onChange={() => handleTutorToggle(tutor._id)}
+                          style={{ marginRight: '10px', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '14px' }}>
+                          {tutor.username} ({tutor.email})
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end',
+              marginTop: '20px'
+            }}>
+              <button
+                onClick={() => {
+                  setShowPayoutModal(false);
+                  setPayoutApplyOption('all');
+                  setSelectedTutorIds([]);
+                }}
+                disabled={isSavingPayout}
+                style={{
+                  padding: '10px 20px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  background: 'white',
+                  color: '#666',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: isSavingPayout ? 'not-allowed' : 'pointer',
+                  opacity: isSavingPayout ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePayoutSettings}
+                disabled={isSavingPayout || (payoutApplyOption === 'select' && selectedTutorIds.length === 0)}
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  background: isSavingPayout || (payoutApplyOption === 'select' && selectedTutorIds.length === 0)
+                    ? '#ccc'
+                    : 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: isSavingPayout || (payoutApplyOption === 'select' && selectedTutorIds.length === 0)
+                    ? 'not-allowed'
+                    : 'pointer',
+                  transition: 'all 0.3s'
+                }}
+              >
+                {isSavingPayout ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

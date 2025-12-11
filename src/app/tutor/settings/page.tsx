@@ -42,6 +42,8 @@ export default function TutorSettingsPage() {
   const tzDropdownRef = useRef<HTMLDivElement | null>(null);
   const [policies, setPolicies] = useState<any>(null);
   const [isLoadingPolicies, setIsLoadingPolicies] = useState(false);
+  const [payoutSettings, setPayoutSettings] = useState<any>(null);
+  const [isLoadingPayout, setIsLoadingPayout] = useState(false);
   const router = useRouter();
 
   const deviceTimeZone = useMemo(
@@ -195,7 +197,7 @@ export default function TutorSettingsPage() {
           timezone: userData.user?.timezone || deviceTimeZone
         });
 
-        // Fetch policies if tutor has academyId
+        // Fetch policies and payout settings if tutor has academyId
         if (userData.user?.academyId) {
           setIsLoadingPolicies(true);
           try {
@@ -210,6 +212,22 @@ export default function TutorSettingsPage() {
             console.error("Error fetching policies:", error);
           } finally {
             setIsLoadingPolicies(false);
+          }
+
+          // Fetch payout settings
+          setIsLoadingPayout(true);
+          try {
+            const payoutResponse = await fetch("/Api/tutor/payoutSettings");
+            if (payoutResponse.ok) {
+              const payoutData = await payoutResponse.json();
+              if (payoutData.success && payoutData.payoutSettings) {
+                setPayoutSettings(payoutData.payoutSettings);
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching payout settings:", error);
+          } finally {
+            setIsLoadingPayout(false);
           }
         }
       } catch (error) {
@@ -273,7 +291,10 @@ export default function TutorSettingsPage() {
 
   const settingsNavItems = [
     { id: 'tutor', label: '👤 Tutor Info', section: 'General' },
-    ...(userData?.academyId ? [{ id: 'policies', label: '📋 Policies', section: 'Academy' }] : [])
+    ...(userData?.academyId ? [
+      { id: 'policies', label: '📋 Policies', section: 'Academy' },
+      { id: 'payout', label: '💰 Your Payout', section: 'Academy' }
+    ] : [])
   ];
 
   const groupedNavItems = settingsNavItems.reduce((acc, item) => {
@@ -1134,6 +1155,198 @@ export default function TutorSettingsPage() {
                   }}>
                     Policies have not been set by your academy yet.
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Payout Settings Section */}
+          {activeSection === 'payout' && (
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '25px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+            }}>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: 600,
+                color: '#1a1a1a',
+                marginBottom: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                Your Payout Settings
+              </div>
+              <div style={{
+                fontSize: '14px',
+                color: '#666',
+                marginBottom: '25px'
+              }}>
+                View your payout settings configured by your academy
+              </div>
+
+              {isLoadingPayout ? (
+                <>
+                  <style dangerouslySetInnerHTML={{__html: `
+                    @keyframes spin-loader {
+                      0% { transform: rotate(0deg); }
+                      100% { transform: rotate(360deg); }
+                    }
+                  `}} />
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: '60px 20px',
+                    flexDirection: 'column',
+                    gap: '20px'
+                  }}>
+                    <div 
+                      style={{
+                        width: '50px',
+                        height: '50px',
+                        border: '4px solid #f3f3f3',
+                        borderTop: '4px solid #6200EA',
+                        borderRadius: '50%',
+                        animation: 'spin-loader 1s linear infinite'
+                      }}
+                    ></div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#666'
+                    }}>
+                      Loading payout settings...
+                    </div>
+                  </div>
+                </>
+              ) : payoutSettings ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '24px'
+                }}>
+                  {/* Commission Model */}
+                  <div style={{
+                    padding: '20px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '12px',
+                    background: '#f9fafb'
+                  }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: '#666',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Commission Model
+                    </div>
+                    <div style={{
+                      fontSize: '16px',
+                      color: '#1a1a1a',
+                      fontWeight: 500
+                    }}>
+                      {payoutSettings.commissionModel || 'Not set'}
+                    </div>
+                  </div>
+
+                  {/* Commission Percentage */}
+                  <div style={{
+                    padding: '20px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '12px',
+                    background: '#f9fafb'
+                  }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: '#666',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Commission Percentage
+                    </div>
+                    <div style={{
+                      fontSize: '16px',
+                      color: '#1a1a1a',
+                      fontWeight: 500
+                    }}>
+                      {payoutSettings.commissionPercentage !== undefined ? `${payoutSettings.commissionPercentage}%` : 'Not set'}
+                    </div>
+                    {payoutSettings.commissionPercentage !== undefined && (
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#999',
+                        marginTop: '4px'
+                      }}>
+                        You get {payoutSettings.commissionPercentage}%, Academy gets {100 - payoutSettings.commissionPercentage}%
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payout Frequency */}
+                  <div style={{
+                    padding: '20px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '12px',
+                    background: '#f9fafb'
+                  }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: '#666',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Payout Frequency
+                    </div>
+                    <div style={{
+                      fontSize: '16px',
+                      color: '#1a1a1a',
+                      fontWeight: 500
+                    }}>
+                      {payoutSettings.payoutFrequency || 'Not set'}
+                    </div>
+                  </div>
+
+                  {/* Minimum Payout Amount */}
+                  <div style={{
+                    padding: '20px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '12px',
+                    background: '#f9fafb'
+                  }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: '#666',
+                      marginBottom: '8px',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px'
+                    }}>
+                      Minimum Payout Amount
+                    </div>
+                    <div style={{
+                      fontSize: '16px',
+                      color: '#1a1a1a',
+                      fontWeight: 500
+                    }}>
+                      {payoutSettings.minimumPayoutAmount || 'Not set'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px 20px',
+                  color: '#999'
+                }}>
+                  <p>No payout settings found. Please contact your academy administrator.</p>
                 </div>
               )}
             </div>

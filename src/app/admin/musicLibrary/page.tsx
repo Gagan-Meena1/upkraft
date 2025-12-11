@@ -203,7 +203,6 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
     institution: ""
   });
 
-  // Edit Song Form State
   const [editForm, setEditForm] = useState({
     title: "",
     artist: "",
@@ -212,10 +211,10 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
     instrument: "",
     year: "",
     skills: "",
-    institution: ""
+    institution: "",
+    file: null as File | null, 
   });
 
-  // Handle Edit Click
   const handleEdit = (song) => {
     setEditingSong(song);
     setEditForm({
@@ -226,25 +225,46 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
       instrument: song.primaryInstrumentFocus || "",
       year: song.year || "",
       skills: song.skills || "",
-      institution: song.institution || ""
+      institution: song.institution || "",
+      file: null, 
     });
     setShowEditModal(true);
   };
 
-  // Handle Edit Submit
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const res = await fetch("/Api/songs", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: editingSong._id,
-          ...editForm,
-          primaryInstrumentFocus: editForm.instrument,
-        }),
-      });
+      let res;
+      
+      if (editForm.file) {
+        const formData = new FormData();
+        formData.append("id", editingSong._id);
+        formData.append("file", editForm.file);
+        formData.append("title", editForm.title);
+        formData.append("artist", editForm.artist);
+        formData.append("genre", editForm.genre);
+        formData.append("difficulty", editForm.difficulty);
+        formData.append("primaryInstrumentFocus", editForm.instrument);
+        formData.append("year", editForm.year);
+        formData.append("skills", editForm.skills);
+        formData.append("institution", editForm.institution);
+
+        res = await fetch("/Api/songs", {
+          method: "PUT",
+          body: formData,
+        });
+      } else {
+        res = await fetch("/Api/songs", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editingSong._id,
+            ...editForm,
+            primaryInstrumentFocus: editForm.instrument,
+          }),
+        });
+      }
 
       if (res.ok) {
         toast.success("Song updated successfully");
@@ -262,7 +282,6 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
     }
   };
 
-  // Handle Add Submit
   const handleAddSubmit = async (e) => {
     e.preventDefault();
     if (!addForm.file) {
@@ -280,7 +299,10 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
       formData.append("primaryInstrumentFocus", addForm.instrument);
       formData.append("year", addForm.year);
       formData.append("skills", addForm.skills);
-      // if (isTrinity) formData.append("institution", "Trinity");
+      
+      if (addForm.institution) {
+        formData.append("institution", addForm.institution);
+      }
 
       const res = await fetch("/Api/songs/upload", {
         method: "POST",
@@ -314,12 +336,10 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
     }
   };
 
-  // Add handleDelete function
   const handleDelete = async (song) => {
     if (!window.confirm(`Are you sure you want to delete "${song.title}"?`)) return;
 
     try {
-      // Using the deleteSongs endpoint which accepts titles array
       const res = await fetch("/Api/deleteSongs", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -404,7 +424,6 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
     };
   }, []);
 
-  // favourites from localStorage
   useEffect(() => {
     if (!userId) return;
     try {
@@ -416,7 +435,6 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
     }
   }, [userId]);
 
-  // update localStorage when favourites change
   useEffect(() => {
     if (!userId) return;
     try {
@@ -425,20 +443,17 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
     } catch {}
   }, [favourites, userId]);
 
-  // Format file size
   const formatFileSize = (bytes) => {
     if (!bytes) return "N/A";
     const mb = bytes / (1024 * 1024);
     return mb < 1 ? `${(bytes / 1024).toFixed(1)}KB` : `${mb.toFixed(1)}MB`;
   };
 
-  // Format skills text
   const formatSkills = (skills) => {
     if (!skills) return "";
     return skills.length > 50 ? `${skills.substring(0, 50)}...` : skills;
   };
 
-  // Get file type icon
   const getFileIcon = (fileType, extension) => {
     if (fileType === "audio" || extension === ".mp3") {
       return <Music className="w-4 h-4 text-orange-500" />;
@@ -446,7 +461,6 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
     return <FileText className="w-4 h-4 text-green-500" />;
   };
 
-  // Handle download
   const handleDownload = (song) => {
     if (song.url) {
       window.open(song.url, "_blank");
@@ -460,7 +474,6 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
     if (!id) return;
 
     const willAdd = !favourites.includes(id);
-    // optimistic update
     setFavourites((prev) =>
       willAdd ? [...prev, id] : prev.filter((x) => x !== id)
     );
@@ -578,7 +591,7 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
           {/* Add Song Button */}
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center justify-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
+            className="flex items-center justify-center !px-4 !py-2 bg-orange-600 text-white !rounded-lg hover:bg-orange-700 transition-colors !font-medium"
           >
             <PlusCircle size={18} className="mr-2" />
             Add Song
@@ -963,6 +976,20 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
         </Modal.Header>
         <Modal.Body>
           <Form onSubmit={handleEditSubmit}>
+            {/* Add File Input for Edit */}
+            <Form.Group className="mb-3">
+              <Form.Label>Update Song File (Optional)</Form.Label>
+              <Form.Control
+                type="file"
+                onChange={(e: any) =>
+                  setEditForm({ ...editForm, file: e.target.files[0] })
+                }
+              />
+              <Form.Text className="text-muted">
+                Leave empty to keep current file
+              </Form.Text>
+            </Form.Group>
+
             <Form.Group className="mb-3">
               <Form.Label>Title</Form.Label>
               <Form.Control
@@ -1153,13 +1180,13 @@ const MusicLibraryPage = () => {
             <div className="inline-flex !mr-auto rounded-lg bg-gray-100 p-1">
               <button
                 onClick={() => setActiveView("songs")}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeView === "songs" ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-800"}`}
+                className={`!px-3 !py-2 !rounded-md text-sm !font-medium !transition ${activeView === "songs" ? "bg-purple-700 shadow-sm text-white" : "text-gray-600 hover:text-gray-800"}`}
               >
                 Songs
               </button>
               <button
                 onClick={() => setActiveView("trinity")}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeView === "trinity" ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-800"}`}
+                className={`!px-3 !py-2 !rounded-md text-sm !font-medium !transition ${activeView === "trinity" ? "bg-purple-700 shadow-sm text-white" : "text-gray-600 hover:text-gray-800"}`}
               >
                 Trinity
               </button>
@@ -1168,7 +1195,7 @@ const MusicLibraryPage = () => {
             {/* Favourites page link */}
             <Link
               href="/admin/musicLibrary/favourites"
-              className="inline-flex items-center px-3 py-2 rounded-md font-medium transition-all bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+              className="inline-flex items-center !px-3 !py-2 !rounded-md !font-medium !transition-all bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
             >
               <Folder className="w-4 h-4 mr-2" />
               Favourites

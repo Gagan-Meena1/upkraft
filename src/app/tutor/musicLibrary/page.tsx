@@ -696,13 +696,13 @@ const MusicLibraryPage = () => {
             <div className="inline-flex rounded-lg bg-gray-100 p-1">
               <button
                 onClick={() => setActiveView("songs")}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeView === "songs" ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-800"}`}
+                className={`!px-3 !py-2 !rounded-md text-sm !font-medium !transition ${activeView === "songs" ? "bg-purple-700 shadow-sm text-white" : "text-gray-600 hover:text-gray-800"}`}
               >
                 Songs
               </button>
               <button
                 onClick={() => setActiveView("trinity")}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeView === "trinity" ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-800"}`}
+                className={`!px-3 !py-2 !rounded-md text-sm !font-medium !transition ${activeView === "trinity" ? "bg-purple-700 shadow-sm text-white" : "text-gray-600 hover:text-gray-800"}`}
               >
                 Trinity
               </button>
@@ -711,19 +711,19 @@ const MusicLibraryPage = () => {
             {/* Favourites page link */}
             <Link
               href="/tutor/musicLibrary/favourites"
-              className="inline-flex items-center px-3 py-2 rounded-md font-medium transition-all bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+              className="inline-flex items-center !px-3 !py-2 !rounded-md !font-medium !transition-all bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
             >
               <Folder className="w-4 h-4 mr-2" />
               Favourites
             </Link>
 
-            <Button
+            {/* <Button
               onClick={() => window.location.reload()}
               className="btn btn-primary d-flex align-items-center !py-1"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
-            </Button>
+            </Button> */}
           </div>
          </header>
 

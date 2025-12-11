@@ -231,6 +231,13 @@ const FeedbackPendingDetails = () => {
   const handleTextChange = (value: string) => {
     setFeedbackData(prev => ({ ...prev, personalFeedback: value }));
   };
+
+  const formatClassDate = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+  };
   
   const handleSubmit = async () => {
     if (!selectedFeedback) return;
@@ -567,6 +574,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                 <div className='feedback-img-text'>
                   <ul className='list-unstyled p-0 m-0 d-flex align-items-center position-relative justify-content-between gap-2'>
                     <li className='d-flex align-items-center gap-2'>
+                      {/* avatar */}
                       {feedback.student.profileImage ? (
                         <Image 
                           src={feedback.student.profileImage} 
@@ -592,7 +600,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                           {feedback.student.username.charAt(0).toUpperCase()}
                         </div>
                       )}
-                      <p>{feedback.classes.startTime}</p><h3>{feedback.student.username}</h3>
+                      <h3 className="m-0">{feedback.student.username}</h3>
                     </li>
                     <li>
                       <span className='pending'>
@@ -610,8 +618,13 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                         e.stopPropagation();
                         handleSelectClass(index, classIndex);
                       }}
+                      title={`${cls.title} • ${formatClassDate(cls.startTime)}`} // tooltip
                     >
-                      {cls.title}
+                      {/* Show class title and date */}
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="text-muted small ms-2">{formatClassDate(cls.startTime)}</span>
+                        <span className="text-end">{cls.title}</span>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -628,6 +641,9 @@ const getButtonText = (classId: string, isUploading: boolean) => {
     <p>
       <strong>{selectedFeedback.student.username}</strong> - {selectedFeedback.classes[selectedFeedback.selectedClassIndex].title}
       <span className="ms-2 badge bg-secondary">{currentCategory}</span>
+     <span className="text-muted small ms-2">
+       {formatClassDate(selectedFeedback.classes[selectedFeedback.selectedClassIndex].startTime)}
+     </span>
     </p>
   </div>
   <div className='btn-right d-flex gap-2 align-items-center flex-wrap'>

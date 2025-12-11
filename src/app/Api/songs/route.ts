@@ -1,6 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { Song } from '@/models/Songs';
-import { connect } from '@/dbConnection/dbConfic'; // Adjust path as needed
+import { connect } from '@/dbConnection/dbConfic';
+import fs from 'fs';
+import path from 'path';
+import { writeFile } from 'fs/promises';
+
 export async function GET(request) {
   try {
     console.log('🔍 Fetching all songs...');
@@ -53,7 +57,6 @@ export async function GET(request) {
     const [songs, totalCount] = await Promise.all([
       Song.find(query)
         .select({
-          // Select only the fields we need for the table
           title: 1,
           artist: 1,
           primaryInstrumentFocus: 1,
@@ -68,7 +71,8 @@ export async function GET(request) {
           fileSize: 1,
           uploadDate: 1,
           downloadCount: 1,
-          cloudinaryPublicId: 1
+          cloudinaryPublicId: 1,
+          institution: 1 
         })
         .sort({ uploadDate: -1 }) // Latest first
         .skip(skip)
@@ -126,36 +130,89 @@ export async function GET(request) {
   }
 }
 
-export async function PUT(request) {
+export async function PUT(request: NextRequest) {
   try {
-    console.log("Updating song")
+    console.log("Updating song");
     await connect();
 
-    const body = await request.json()
+    const contentType = request.headers.get("content-type") || "";
+    let id;
+    let updateData: any = {};
 
-    const song = await Song.findById( body.id );
-    if (!song) {
-      return NextResponse.json(
-        { error: "Song not found" },
-        { status: 404 }
-      );
+    // Handle File Upload (FormData)
+    if (contentType.includes("multipart/form-data")) {
+      const formData = await request.formData();
+      id = formData.get("id") as string;
+      
+      // Extract text fields
+      updateData.title = formData.get("title") as string;
+      updateData.artist = formData.get("artist") as string;
+      updateData.genre = formData.get("genre") as string;
+      updateData.difficulty = formData.get("difficulty") as string;
+      updateData.primaryInstrumentFocus = formData.get("primaryInstrumentFocus") as string;
+      updateData.year = formData.get("year") as string;
+      updateData.skills = formData.get("skills") as string;
+      updateData.institution = formData.get("institution") as string;
+
+      const file = formData.get("file") as File | null;
+      
+      // If a new file is provided, save it
+      if (file && file.size > 0) {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const uploadDir = path.join(process.cwd(), "public/uploads/music");
+        
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const safeName = Date.now() + "-" + file.name.replace(/\s+/g, "_");
+        const filePath = path.join(uploadDir, safeName);
+        
+        await writeFile(filePath, buffer);
+        
+        // Update file metadata
+        updateData.url = `/uploads/music/${safeName}`;
+        updateData.filename = safeName;
+        updateData.mimeType = file.type;
+        updateData.fileSize = file.size;
+        
+        const ext = path.extname(file.name).toLowerCase();
+        updateData.extension = ext;
+        updateData.fileType = (ext === '.mp3' || ext === '.wav') ? 'audio' : 'tablature';
+      }
+
+    } else {
+      // Handle JSON (Metadata only)
+      const body = await request.json();
+      id = body.id;
+      const { id: _, ...rest } = body;
+      updateData = rest;
     }
 
-    // Update fields
-    Object.keys(body).forEach((key) => {
-      if (key !== 'id' && body[key] !== undefined) {
-        song[key] = body[key];
+    if (!id) {
+      return NextResponse.json({ error: "Song ID is required" }, { status: 400 });
+    }
+
+    const song = await Song.findById(id);
+    if (!song) {
+      return NextResponse.json({ error: "Song not found" }, { status: 404 });
+    }
+
+    // Apply updates
+    Object.keys(updateData).forEach((key) => {
+      if (updateData[key] !== undefined && updateData[key] !== null) {
+        song[key] = updateData[key];
       }
     });
 
     await song.save();
-    return NextResponse.json({ message: "Song updated successfully" });
+    return NextResponse.json({ message: "Song updated successfully", song });
     
-  } catch (error) {
-    console.error('💥 Error fetching songs:', error);
+  } catch (error: any) {
+    console.error('💥 Error updating song:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to fetch songs',
+        error: 'Failed to update song',
         details: error?.message || 'Unknown error occurred',
       }, 
       { status: 500 }
