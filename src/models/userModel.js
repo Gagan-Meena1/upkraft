@@ -250,6 +250,53 @@ const userSchema = new mongoose.Schema({
             default: Date.now
         }
     },
+    packagePricingSettings: {
+        pricingModel: {
+            type: String,
+            enum: ['Monthly Subscription', 'Package'],
+            default: 'Monthly Subscription'
+        },
+        packagePricing: [{
+            name: {
+                type: String,
+                required: true
+            },
+            sessions: {
+                type: Number,
+                required: true,
+                min: 1
+            },
+            perSessionRate: {
+                type: Number,
+                required: true,
+                min: 0
+            },
+            discount: {
+                type: Number,
+                default: 0,
+                min: 0,
+                max: 100
+            },
+            totalPrice: {
+                type: Number,
+                required: true,
+                min: 0
+            }
+        }],
+        monthlySubscriptionPricing: [{
+            months: {
+                type: Number,
+                required: true,
+                enum: [1, 3, 6, 9, 12]
+            },
+            discount: {
+                type: Number,
+                default: 0,
+                min: 0,
+                max: 100
+            }
+        }]
+    },
 },
 {timestamps: true}
 );
