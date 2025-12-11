@@ -1081,97 +1081,79 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              {/* Package Pricing Table */}
-              <div style={{
-                background: '#fafafa',
-                borderLeft: '4px solid #6200EA',
-                padding: '20px',
-                borderRadius: '8px',
-                marginBottom: '20px'
-              }}>
+              {/* Package Pricing Table - Only visible when Package model is selected */}
+              {pricingModel === 'Package' && (
                 <div style={{
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  color: '#1a1a1a',
-                  marginBottom: '16px'
+                  background: '#fafafa',
+                  borderLeft: '4px solid #6200EA',
+                  padding: '20px',
+                  borderRadius: '8px',
+                  marginBottom: '20px'
                 }}>
-                  Package Pricing (for Package Model)
-                </div>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      fontSize: '14px'
-                    }}>
-                      <thead>
-                        <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
-                          <th style={{
-                            padding: '12px',
-                            textAlign: 'left',
-                            fontWeight: 600,
-                            color: '#1a1a1a'
-                          }}>Package</th>
-                          <th style={{
-                            padding: '12px',
-                            textAlign: 'left',
-                            fontWeight: 600,
-                            color: '#1a1a1a'
-                          }}>Sessions</th>
-                          <th style={{
-                            padding: '12px',
-                            textAlign: 'left',
-                            fontWeight: 600,
-                            color: '#1a1a1a'
-                          }}>Per Session Rate</th>
-                          <th style={{
-                            padding: '12px',
-                            textAlign: 'left',
-                            fontWeight: 600,
-                            color: '#1a1a1a'
-                          }}>Total Price</th>
-                          <th style={{
-                            padding: '12px',
-                            textAlign: 'left',
-                            fontWeight: 600,
-                            color: '#1a1a1a'
-                          }}>Discount %</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {packagePricing.map((pkg, index) => (
-                          <tr key={pkg.name} style={{ borderBottom: index < packagePricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
-                            <td style={{
+                  <div style={{
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: '#1a1a1a',
+                    marginBottom: '16px'
+                  }}>
+                    Package Pricing (for Package Model)
+                  </div>
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        fontSize: '14px'
+                      }}>
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                            <th style={{
                               padding: '12px',
-                              fontWeight: 600
-                            }}>
-                              {pkg.name}
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              <input
-                                type="number"
-                                value={pkg.sessions}
-                                onChange={(e) => handlePackagePricingChange(index, 'sessions', parseInt(e.target.value) || 0)}
-                                style={{
-                                  width: '60px',
-                                  padding: '8px',
-                                  border: '2px solid #e0e0e0',
-                                  borderRadius: '8px',
-                                  fontSize: '14px',
-                                  fontFamily: 'inherit'
-                                }}
-                                onFocus={(e) => e.target.style.borderColor = '#6200EA'}
-                                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                              />
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <span>₹</span>
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Package</th>
+                            <th style={{
+                              padding: '12px',
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Sessions</th>
+                            <th style={{
+                              padding: '12px',
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Per Session Rate</th>
+                            <th style={{
+                              padding: '12px',
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Total Price</th>
+                            <th style={{
+                              padding: '12px',
+                              textAlign: 'left',
+                              fontWeight: 600,
+                              color: '#1a1a1a'
+                            }}>Discount %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {packagePricing.map((pkg, index) => (
+                            <tr key={pkg.name} style={{ borderBottom: index < packagePricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                              <td style={{
+                                padding: '12px',
+                                fontWeight: 600
+                              }}>
+                                {pkg.name}
+                              </td>
+                              <td style={{ padding: '12px' }}>
                                 <input
                                   type="number"
-                                  value={pkg.perSessionRate}
-                                  onChange={(e) => handlePackagePricingChange(index, 'perSessionRate', parseInt(e.target.value) || 0)}
+                                  value={pkg.sessions}
+                                  onChange={(e) => handlePackagePricingChange(index, 'sessions', parseInt(e.target.value) || 0)}
                                   style={{
-                                    width: '70px',
+                                    width: '60px',
                                     padding: '8px',
                                     border: '2px solid #e0e0e0',
                                     borderRadius: '8px',
@@ -1181,37 +1163,57 @@ export default function SettingsPage() {
                                   onFocus={(e) => e.target.style.borderColor = '#6200EA'}
                                   onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                                 />
-                              </div>
-                            </td>
-                            <td style={{
-                              padding: '12px',
-                              fontWeight: 600
-                            }}>
-                              ₹{pkg.totalPrice.toLocaleString('en-IN')}
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              <input
-                                type="number"
-                                value={pkg.discount}
-                                onChange={(e) => handlePackagePricingChange(index, 'discount', parseInt(e.target.value) || 0)}
-                                style={{
-                                  width: '60px',
-                                  padding: '8px',
-                                  border: '2px solid #e0e0e0',
-                                  borderRadius: '8px',
-                                  fontSize: '14px',
-                                  fontFamily: 'inherit'
-                                }}
-                                onFocus={(e) => e.target.style.borderColor = '#6200EA'}
-                                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                              </td>
+                              <td style={{ padding: '12px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span>₹</span>
+                                  <input
+                                    type="number"
+                                    value={pkg.perSessionRate}
+                                    onChange={(e) => handlePackagePricingChange(index, 'perSessionRate', parseInt(e.target.value) || 0)}
+                                    style={{
+                                      width: '70px',
+                                      padding: '8px',
+                                      border: '2px solid #e0e0e0',
+                                      borderRadius: '8px',
+                                      fontSize: '14px',
+                                      fontFamily: 'inherit'
+                                    }}
+                                    onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                                    onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                  />
+                                </div>
+                              </td>
+                              <td style={{
+                                padding: '12px',
+                                fontWeight: 600
+                              }}>
+                                ₹{pkg.totalPrice.toLocaleString('en-IN')}
+                              </td>
+                              <td style={{ padding: '12px' }}>
+                                <input
+                                  type="number"
+                                  value={pkg.discount}
+                                  onChange={(e) => handlePackagePricingChange(index, 'discount', parseInt(e.target.value) || 0)}
+                                  style={{
+                                    width: '60px',
+                                    padding: '8px',
+                                    border: '2px solid #e0e0e0',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontFamily: 'inherit'
+                                  }}
+                                  onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
+              )}
 
               <div style={{
                 display: 'flex',
