@@ -282,6 +282,19 @@ const userSchema = new mongoose.Schema({
                 required: true,
                 min: 0
             }
+        }],
+        monthlySubscriptionPricing: [{
+            months: {
+                type: Number,
+                required: true,
+                enum: [1, 3, 6, 9, 12]
+            },
+            discount: {
+                type: Number,
+                default: 0,
+                min: 0,
+                max: 100
+            }
         }]
     },
 },

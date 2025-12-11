@@ -40,11 +40,11 @@ export default function SettingsPage() {
     { name: 'Platinum', sessions: 24, perSessionRate: 320, discount: 20, totalPrice: 7680 }
   ]);
   const [monthlySubscriptionPricing, setMonthlySubscriptionPricing] = useState([
-    { months: 1, monthlyRate: 5000, discount: 0, totalPrice: 5000 },
-    { months: 3, monthlyRate: 5000, discount: 5, totalPrice: 14250 },
-    { months: 6, monthlyRate: 5000, discount: 10, totalPrice: 27000 },
-    { months: 9, monthlyRate: 5000, discount: 12, totalPrice: 39600 },
-    { months: 12, monthlyRate: 5000, discount: 15, totalPrice: 51000 }
+    { months: 1, discount: 0 },
+    { months: 3, discount: 5 },
+    { months: 6, discount: 10 },
+    { months: 9, discount: 12 },
+    { months: 12, discount: 15 }
   ]);
   const [policies, setPolicies] = useState({
     lateFeePolicy: '₹200 per day (Max ₹1,500)',
@@ -128,6 +128,11 @@ export default function SettingsPage() {
                 Array.isArray(packagePricingData.packagePricingSettings.packagePricing) &&
                 packagePricingData.packagePricingSettings.packagePricing.length > 0) {
               setPackagePricing(packagePricingData.packagePricingSettings.packagePricing);
+            }
+            if (packagePricingData.packagePricingSettings.monthlySubscriptionPricing && 
+                Array.isArray(packagePricingData.packagePricingSettings.monthlySubscriptionPricing) &&
+                packagePricingData.packagePricingSettings.monthlySubscriptionPricing.length > 0) {
+              setMonthlySubscriptionPricing(packagePricingData.packagePricingSettings.monthlySubscriptionPricing);
             }
           }
         }
@@ -255,7 +260,8 @@ export default function SettingsPage() {
         },
         body: JSON.stringify({
           pricingModel,
-          packagePricing: pricingModel === 'Package' ? packagePricing : []
+          packagePricing: pricingModel === 'Package' ? packagePricing : [],
+          monthlySubscriptionPricing: pricingModel === 'Monthly Subscription' ? monthlySubscriptionPricing : []
         }),
         credentials: 'include'
       });

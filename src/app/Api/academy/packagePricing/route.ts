@@ -22,12 +22,26 @@ export async function GET(request: NextRequest) {
 
     const userId = decodedToken.id;
 
-    // Get user - use lean() to get raw data without Mongoose defaults interfering
-    const user = await User.findById(userId).select('packagePricingSettings').lean();
+    // Try using native MongoDB first for more reliable data retrieval
+    const mongoose = await import('mongoose');
+    const db = mongoose.default.connection.db;
+    const usersCollection = db.collection('users');
+    const objectId = new mongoose.default.Types.ObjectId(userId);
+    
+    // Get user using native MongoDB
+    const userDoc = await usersCollection.findOne(
+      { _id: objectId },
+      { projection: { packagePricingSettings: 1 } }
+    );
 
-    if (!user) {
+    if (!userDoc) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    console.log('GET /Api/academy/packagePricing - Raw user data (native MongoDB):', JSON.stringify(userDoc, null, 2));
+    console.log('GET /Api/academy/packagePricing - User packagePricingSettings:', userDoc.packagePricingSettings);
+    console.log('GET /Api/academy/packagePricing - Type of packagePricingSettings:', typeof userDoc.packagePricingSettings);
+    console.log('GET /Api/academy/packagePricing - Is packagePricingSettings null/undefined?', userDoc.packagePricingSettings == null);
 
     // Return package pricing settings or default values
     const defaultSettings = {
@@ -36,20 +50,34 @@ export async function GET(request: NextRequest) {
         { name: 'Silver', sessions: 4, perSessionRate: 400, discount: 0, totalPrice: 1600 },
         { name: 'Gold', sessions: 12, perSessionRate: 350, discount: 12, totalPrice: 4200 },
         { name: 'Platinum', sessions: 24, perSessionRate: 320, discount: 20, totalPrice: 7680 }
+      ],
+      monthlySubscriptionPricing: [
+        { months: 1, discount: 0 },
+        { months: 3, discount: 5 },
+        { months: 6, discount: 10 },
+        { months: 9, discount: 12 },
+        { months: 12, discount: 15 }
       ]
     };
 
     // Check if packagePricingSettings exists in the actual database document
     let packagePricingSettings;
-    if (user.packagePricingSettings && 
-        typeof user.packagePricingSettings === 'object' &&
-        user.packagePricingSettings.pricingModel !== undefined) {
+    if (userDoc.packagePricingSettings && 
+        typeof userDoc.packagePricingSettings === 'object' &&
+        userDoc.packagePricingSettings.pricingModel !== undefined) {
       // Field exists in database and has valid data
-      packagePricingSettings = user.packagePricingSettings;
+      packagePricingSettings = userDoc.packagePricingSettings;
+      console.log('GET /Api/academy/packagePricing - Using saved settings from DB');
+      console.log('GET /Api/academy/packagePricing - Saved pricingModel:', packagePricingSettings.pricingModel);
+      console.log('GET /Api/academy/packagePricing - Saved packagePricing length:', packagePricingSettings.packagePricing?.length || 0);
+      console.log('GET /Api/academy/packagePricing - Saved monthlySubscriptionPricing length:', packagePricingSettings.monthlySubscriptionPricing?.length || 0);
     } else {
       // Field doesn't exist or is empty - use defaults
       packagePricingSettings = defaultSettings;
+      console.log('GET /Api/academy/packagePricing - Using default settings (field not found in DB)');
     }
+
+    console.log('GET /Api/academy/packagePricing - Returning:', JSON.stringify(packagePricingSettings, null, 2));
 
     return NextResponse.json({
       success: true,
@@ -85,7 +113,7 @@ export async function PUT(request: NextRequest) {
 
     // Get request body
     const body = await request.json();
-    const { pricingModel, packagePricing } = body;
+    const { pricingModel, packagePricing, monthlySubscriptionPricing } = body;
 
     // Validate required fields
     if (pricingModel === undefined) {
@@ -123,6 +151,33 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // If Monthly Subscription model is selected, validate monthlySubscriptionPricing array
+    if (pricingModel === 'Monthly Subscription') {
+      if (!Array.isArray(monthlySubscriptionPricing) || monthlySubscriptionPricing.length === 0) {
+        return NextResponse.json({ 
+          success: false,
+          error: 'Monthly subscription pricing array is required when Monthly Subscription model is selected' 
+        }, { status: 400 });
+      }
+
+      // Validate each subscription in the array
+      const validMonths = [1, 3, 6, 9, 12];
+      for (const subscription of monthlySubscriptionPricing) {
+        if (subscription.months === undefined || !validMonths.includes(subscription.months)) {
+          return NextResponse.json({ 
+            success: false,
+            error: 'Each subscription must have a valid months value (1, 3, 6, 9, or 12)' 
+          }, { status: 400 });
+        }
+        if (subscription.discount === undefined || subscription.discount < 0 || subscription.discount > 100) {
+          return NextResponse.json({ 
+            success: false,
+            error: 'Each subscription must have a valid discount value (0-100)' 
+          }, { status: 400 });
+        }
+      }
+    }
+
     // Find the user document (not using lean() so we can save it)
     const user = await User.findById(userId);
     
@@ -136,46 +191,64 @@ export async function PUT(request: NextRequest) {
     // Create the package pricing settings object
     const newPackagePricingSettings = {
       pricingModel: pricingModel,
-      packagePricing: pricingModel === 'Package' ? packagePricing : []
+      packagePricing: pricingModel === 'Package' ? packagePricing : [],
+      monthlySubscriptionPricing: pricingModel === 'Monthly Subscription' ? monthlySubscriptionPricing : []
     };
 
-    // Update the package pricing settings directly on the user object
-    user.packagePricingSettings = newPackagePricingSettings;
+    console.log('PUT /Api/academy/packagePricing - Saving settings:', JSON.stringify(newPackagePricingSettings, null, 2));
 
-    // Mark the field as modified to ensure Mongoose saves it
-    user.markModified('packagePricingSettings');
-    
-    // Save the user document
-    const savedUser = await user.save();
+    // Use native MongoDB for more reliable persistence
+    const mongoose = await import('mongoose');
+    const db = mongoose.default.connection.db;
+    const usersCollection = db.collection('users');
+    const objectId = new mongoose.default.Types.ObjectId(userId);
 
-    // Also try direct MongoDB update as backup
-    await User.updateOne(
-      { _id: userId },
+    // Use native MongoDB update
+    const updateResult = await usersCollection.updateOne(
+      { _id: objectId },
       { $set: { packagePricingSettings: newPackagePricingSettings } }
     );
 
-    // Wait a moment to ensure database write is complete
-    await new Promise(resolve => setTimeout(resolve, 300));
+    console.log('PUT /Api/academy/packagePricing - Native MongoDB update result:', {
+      matchedCount: updateResult.matchedCount,
+      modifiedCount: updateResult.modifiedCount,
+      acknowledged: updateResult.acknowledged
+    });
 
-    // Verify the update was saved by fetching the user again with lean() to get raw data
-    const verifyUser = await User.findById(userId).select('packagePricingSettings').lean();
+    // Also try Mongoose save as backup
+    user.packagePricingSettings = newPackagePricingSettings;
+    user.markModified('packagePricingSettings');
+    await user.save();
+
+    // Wait a moment to ensure database write is complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Verify the update was saved using native MongoDB
+    const verifyDoc = await usersCollection.findOne(
+      { _id: objectId },
+      { projection: { packagePricingSettings: 1 } }
+    );
     
-    if (!verifyUser) {
+    if (!verifyDoc) {
       return NextResponse.json({ 
         success: false,
         error: 'User not found after update' 
       }, { status: 404 });
     }
 
+    console.log('PUT /Api/academy/packagePricing - Verification (native MongoDB):', JSON.stringify(verifyDoc.packagePricingSettings, null, 2));
+
     // Get the updated package pricing settings
     let savedSettings;
-    if (verifyUser.packagePricingSettings && 
-        typeof verifyUser.packagePricingSettings === 'object' &&
-        verifyUser.packagePricingSettings.pricingModel !== undefined) {
-      savedSettings = verifyUser.packagePricingSettings;
+    if (verifyDoc.packagePricingSettings && 
+        typeof verifyDoc.packagePricingSettings === 'object' &&
+        verifyDoc.packagePricingSettings.pricingModel !== undefined) {
+      savedSettings = verifyDoc.packagePricingSettings;
+      console.log('PUT /Api/academy/packagePricing - Using verified settings from DB');
     } else {
       // Fallback to what we tried to save
       savedSettings = newPackagePricingSettings;
+      console.log('PUT /Api/academy/packagePricing - Using fallback settings (DB verification failed)');
     }
 
     return NextResponse.json({
