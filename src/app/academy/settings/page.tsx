@@ -63,6 +63,8 @@ export default function SettingsPage() {
   const [selectedTutorIds, setSelectedTutorIds] = useState<string[]>([]);
   const [isSavingPayout, setIsSavingPayout] = useState(false);
   const [isLoadingTutors, setIsLoadingTutors] = useState(false);
+  const [isSavingPricing, setIsSavingPricing] = useState(false);
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -107,9 +109,26 @@ export default function SettingsPage() {
             setTaxCompliance(taxSettingsData.taxSettings);
           }
         }
+
+        // Fetch package pricing settings
+        setIsLoadingPricing(true);
+        const packagePricingResponse = await fetch("/Api/academy/packagePricing");
+        if (packagePricingResponse.ok) {
+          const packagePricingData = await packagePricingResponse.json();
+          if (packagePricingData.success && packagePricingData.packagePricingSettings) {
+            setPricingModel(packagePricingData.packagePricingSettings.pricingModel || 'Monthly Subscription');
+            if (packagePricingData.packagePricingSettings.packagePricing && 
+                Array.isArray(packagePricingData.packagePricingSettings.packagePricing) &&
+                packagePricingData.packagePricingSettings.packagePricing.length > 0) {
+              setPackagePricing(packagePricingData.packagePricingSettings.packagePricing);
+            }
+          }
+        }
+        setIsLoadingPricing(false);
       } catch (error) {
         console.error("Error fetching user data:", error);
         toast.error('Failed to load academy information');
+        setIsLoadingPricing(false);
       } finally {
         setIsLoadingAcademyInfo(false);
       }
@@ -220,13 +239,40 @@ export default function SettingsPage() {
   ];
 
   const handleSavePricing = async () => {
+    setIsSavingPricing(true);
     try {
-      // TODO: Implement API call to save pricing
-      console.log('Saving pricing:', { pricingModel, packagePricing });
-      alert('Pricing saved successfully!');
-    } catch (error) {
-      console.error('Error saving pricing:', error);
-      alert('Failed to save pricing');
+      const response = await fetch('/Api/academy/packagePricing', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pricingModel,
+          packagePricing: pricingModel === 'Package' ? packagePricing : []
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update package pricing');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update package pricing');
+      }
+
+      toast.success('Package pricing saved successfully!');
+      
+      // Reload the page after a short delay to show the toast message
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      console.error('Error saving package pricing:', error);
+      toast.error(error.message || 'Failed to save package pricing');
+      setIsSavingPricing(false);
     }
   };
 
@@ -994,6 +1040,19 @@ export default function SettingsPage() {
                 Configure how students are charged for courses
               </div>
 
+              {isLoadingPricing ? (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '40px',
+                  color: '#666'
+                }}>
+                  Loading pricing settings...
+                </div>
+              ) : (
+                <>
+
               {/* Payment Model Selection */}
               <div style={{
                 background: '#fafafa',
@@ -1222,29 +1281,39 @@ export default function SettingsPage() {
               }}>
                 <button
                   onClick={handleSavePricing}
+                  disabled={isSavingPricing}
                   style={{
                     padding: '12px 24px',
                     border: 'none',
                     borderRadius: '8px',
-                    cursor: 'pointer',
+                    cursor: isSavingPricing ? 'not-allowed' : 'pointer',
                     fontSize: '14px',
                     fontWeight: 600,
-                    background: 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
+                    background: isSavingPricing 
+                      ? '#ccc' 
+                      : 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
                     color: 'white',
-                    transition: 'all 0.3s'
+                    transition: 'all 0.3s',
+                    opacity: isSavingPricing ? 0.7 : 1
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 8px 16px rgba(98, 0, 234, 0.3)';
+                    if (!isSavingPricing) {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 8px 16px rgba(98, 0, 234, 0.3)';
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
+                    if (!isSavingPricing) {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
                   }}
                 >
-                  Save Pricing
+                  {isSavingPricing ? 'Saving...' : 'Save Pricing'}
                 </button>
               </div>
+                </>
+              )}
             </div>
           )}
 
