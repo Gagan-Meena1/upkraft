@@ -20,6 +20,7 @@ export async function POST(req: Request) {
     const primaryInstrumentFocus = (form.get("primaryInstrumentFocus") as string | null)?.trim();
     const year = (form.get("year") as string | null)?.trim();
     const skills = (form.get("skills") as string | null)?.trim();
+    const institution = (form.get("institution") as string | null)?.trim(); // <--- ADD THIS
 
     if (!file || !title) {
       return NextResponse.json(
@@ -66,6 +67,7 @@ export async function POST(req: Request) {
       primaryInstrumentFocus,
       year,
       skills,
+      institution,
     });
 
     return NextResponse.json(newSong, { status: 201 });
