@@ -33,7 +33,7 @@ export default function SettingsPage() {
     paymentGateway: 'Razorpay',
     currency: 'INR'
   });
-  const [pricingModel, setPricingModel] = useState('Per Session');
+  const [pricingModel, setPricingModel] = useState('Monthly Subscription');
   const [packagePricing, setPackagePricing] = useState([
     { name: 'Silver', sessions: 4, perSessionRate: 400, discount: 0, totalPrice: 1600 },
     { name: 'Gold', sessions: 12, perSessionRate: 350, discount: 12, totalPrice: 4200 },
@@ -385,7 +385,6 @@ export default function SettingsPage() {
   };
 
   const paymentModelOptions = [
-    { id: 'Per Session', name: 'Per Session', description: 'Students pay for each session attended' },
     { id: 'Monthly Subscription', name: 'Monthly Subscription', description: 'Fixed monthly fee for unlimited sessions' },
     { id: 'Package', name: 'Package', description: 'Bulk session packages at discounted rates' }
   ];
