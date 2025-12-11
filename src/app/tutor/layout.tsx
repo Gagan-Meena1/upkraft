@@ -5,6 +5,8 @@ import "@/styles/style 2.css";
 import "@/styles/custom.css";
 import "../../app/media.css";
 import { UserDataProvider } from "../providers/UserData/page";
+import { Provider } from "react-redux";
+import {store} from "@/store/store";
 
 // import "../../app/academyStyle.css"
 
@@ -16,6 +18,8 @@ export default function TutorLayout({
 
   return (
     <>
+        <Provider store={store}>
+
         <UserDataProvider>
       <div className="main-sec position-relative  main-tutor-sec">
         <div className="top-header">
@@ -29,6 +33,7 @@ export default function TutorLayout({
         </div>
       </div>
     </UserDataProvider>
+    </Provider>
     </>
   );
 }
