@@ -120,7 +120,7 @@ export async function GET(request) {
     // Fetch all classes in one query
     const classes = await Class.find({
       _id: { $in: Array.from(allClassIds) },
-      endTime: { $lt: new Date() }  // Only classes where endTime is in the past
+      endTime: { $lt: new Date() }
     }).select("_id title description startTime endTime").lean();
 
     // Create a map for quick class lookup
@@ -221,7 +221,7 @@ export async function GET(request) {
               courseId: course._id,
               courseName: course.title,
               courseCategory: category,
-              classDate: (classItem as any).date || (classItem as any).scheduledDate,
+              classDate: classItem.startTime,
               attendanceStatus,
               feedbackModelRequired:
                 category === "Music" ? "feedback" :

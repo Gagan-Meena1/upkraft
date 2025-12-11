@@ -578,7 +578,7 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
           {/* Add Song Button */}
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center justify-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
+            className="flex items-center justify-center !px-4 !py-2 bg-orange-600 text-white !rounded-lg hover:bg-orange-700 transition-colors !font-medium"
           >
             <PlusCircle size={18} className="mr-2" />
             Add Song
@@ -1153,13 +1153,13 @@ const MusicLibraryPage = () => {
             <div className="inline-flex !mr-auto rounded-lg bg-gray-100 p-1">
               <button
                 onClick={() => setActiveView("songs")}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeView === "songs" ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-800"}`}
+                className={`!px-3 !py-2 !rounded-md text-sm !font-medium !transition ${activeView === "songs" ? "bg-purple-700 shadow-sm text-white" : "text-gray-600 hover:text-gray-800"}`}
               >
                 Songs
               </button>
               <button
                 onClick={() => setActiveView("trinity")}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition ${activeView === "trinity" ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-800"}`}
+                className={`!px-3 !py-2 !rounded-md text-sm !font-medium !transition ${activeView === "trinity" ? "bg-purple-700 shadow-sm text-white" : "text-gray-600 hover:text-gray-800"}`}
               >
                 Trinity
               </button>
@@ -1168,7 +1168,7 @@ const MusicLibraryPage = () => {
             {/* Favourites page link */}
             <Link
               href="/admin/musicLibrary/favourites"
-              className="inline-flex items-center px-3 py-2 rounded-md font-medium transition-all bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+              className="inline-flex items-center !px-3 !py-2 !rounded-md !font-medium !transition-all bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
             >
               <Folder className="w-4 h-4 mr-2" />
               Favourites
