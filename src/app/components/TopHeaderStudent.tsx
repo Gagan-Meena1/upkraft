@@ -7,45 +7,15 @@ import Image from 'next/image'
 import Chat from './Chat'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
-
-interface UserData {
-  _id: string;
-  username: string;
-  email: string;
-  category: string;
-  age: number;
-  address: string;
-  contact: string;
-  courses: any[];
-  createdAt: string;
-  profileImage?: string;
-  academyId?: string;
-}
-
+import { useUserData } from "@/app/providers/UserData/page"; // ✅ Also works
 const TopHeaderStudent = ({ role, setRole }) => {
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  
+  // ✅ KEEP ONLY THIS
+  const { userData, loading } = useUserData();
 
-  // Fetch complete user data including academyId
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch("/Api/users/user");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.user) {
-            setUserData(data.user);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
-
-    fetchUserData();
-  }, []);
 
   // Only show dropdown for students created by academy (have academyId)
   const shouldShowDropdown = userData?.category === "Student" && userData?.academyId;
