@@ -36,6 +36,8 @@ const UpcomingLessons = () => {
   const [tutorsMap, setTutorsMap] = useState<{ [key: string]: string | null }>({});
   const router = useRouter();
   const userTz = userData?.timezone || getUserTimeZone();
+  const [loadingTutors, setLoadingTutors] = useState(false);
+
 
   // ✅ REPLACE the first useEffect with this simpler version
   useEffect(() => {
@@ -49,7 +51,8 @@ const UpcomingLessons = () => {
           .sort(
             (a: ClassData, b: ClassData) =>
               new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-          );
+          )
+        .slice(0, 10); // ✅ ADD THIS LINE - Limit to 10 classes
 
         setClasses(futureClasses);
       } catch (err) {
@@ -59,33 +62,49 @@ const UpcomingLessons = () => {
     }
   }, [contextLoading, classDetails]);
 
-  // ✅ Keep the tutor fetching useEffect as is
-  useEffect(() => {
-    const fetchTutors = async () => {
-      const map: { [key: string]: string | null } = {};
-      for (let cls of classes) {
-        const instructorId = cls.instructorId || (cls as any).instructor;
-        if (!instructorId) {
-          map[cls._id] = null;
-          continue;
-        }
-        try {
-          const res = await fetch(
-            `/Api/tutorInfoForStudent?tutorId=${encodeURIComponent(instructorId)}`
-          );
-          const data = await res.json();
-          const name = data?.tutor?.username?.trim() || null;
-          map[cls._id] = name;
-        } catch (err) {
-          console.error("Error fetching tutor for class", cls._id, err);
-          map[cls._id] = null;
-        }
-      }
-      setTutorsMap(map);
-    };
 
-    if (classes.length > 0) fetchTutors();
-  }, [classes]);
+
+// 3️⃣ REPLACE the entire tutor fetching useEffect with this:
+useEffect(() => {
+  const fetchTutorNames = async () => {
+    if (classes.length === 0) return;
+
+    setLoadingTutors(true);
+    try {
+      const classIds = classes.map((cls) => cls._id);
+
+      const response = await fetch("/Api/academy/tutors/names", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ classIds }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch tutor names");
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.tutorNames) {
+        setTutorsMap(data.tutorNames);
+      }
+    } catch (err) {
+      console.error("Error fetching tutor names:", err);
+      // Set all to null on error
+      const fallbackMap: { [key: string]: string | null } = {};
+      classes.forEach((cls) => {
+        fallbackMap[cls._id] = null;
+      });
+      setTutorsMap(fallbackMap);
+    } finally {
+      setLoadingTutors(false);
+    }
+  };
+
+  fetchTutorNames();
+}, [classes]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -206,11 +225,15 @@ const UpcomingLessons = () => {
                     </div>
                   </td>
                   <th>{classItem.title}</th>
-                  <td>
-                    {tutorsMap[classItem._id]
-                      ? tutorsMap[classItem._id]
-                      : "No tutor assigned"}
-                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+  {loadingTutors ? (
+    <span className="text-gray-400">Loading...</span>
+  ) : tutorsMap[classItem._id] ? (
+    tutorsMap[classItem._id]
+  ) : (
+    <span className="text-gray-400">No tutor assigned</span>
+  )}
+</td>
                   <td>
                     <button
                       onClick={() => handleJoinMeeting(classItem._id)}
