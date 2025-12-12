@@ -91,6 +91,8 @@ const AssignmentSchema = new mongoose.Schema({
   ],
 });
 
+AssignmentSchema.index({ classId: 1});
+
 // Check if the model already exists to prevent overwriting during hot reloads
 const Assignment = mongoose.models.Assignment || mongoose.model('Assignment', AssignmentSchema);
 

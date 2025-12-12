@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     await connect();
 
     const { classIds } = await request.json();
-    console.log("Received classIds:", classIds);
+    // console.log("Received classIds:", classIds);
 
     // Validate input
     if (!classIds || !Array.isArray(classIds) || classIds.length === 0) {

@@ -31,24 +31,7 @@ const TopHeaderTutor = ({ role, setRole }) => {
     const { userData, loading } = useUserData();
   
 
-  // Fetch complete user data including academyId
-  // useEffect(() => {
-  //   const fetchUserData = async () => {
-  //     try {
-  //       const response = await fetch("/Api/DashboardData");
-  //       if (response.ok) {
-  //         const data = await response.json();
-  //         if (data.success && data.user) {
-  //           setUserData(data.user);
-  //         }
-  //       }
-  //     } catch (error) {
-  //       console.error("Error fetching user data:", error);
-  //     }
-  //   };
 
-  //   fetchUserData();
-  // }, []);
 
   // Only show dropdown for tutors created by academy (have academyId)
   const shouldShowDropdown = userData?.category === "Tutor" && userData?.academyId;
