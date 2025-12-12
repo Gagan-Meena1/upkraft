@@ -301,7 +301,7 @@ const userSchema = new mongoose.Schema({
 {timestamps: true}
 );
 
-userSchema.index({ instructorId: 1, category: 1 });
+userSchema.index({ _id: 1, category: 1 });
 userSchema.index({ likedSongs: 1 });
 
 const User = mongoose.models.users || mongoose.model("users", userSchema);
