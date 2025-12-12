@@ -384,7 +384,7 @@ const AddStudentPage = () => {
                 </p>
                 
                 <Link
-                  href="/tutor/myStudents"
+                  href="/academy/students"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
                 >
                   Return to Dashboard
