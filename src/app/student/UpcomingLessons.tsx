@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { useUserData } from "../providers/UserData/page"; // ✅ Add this import
 import {
   formatInTz,
   formatTimeRangeInTz,
@@ -15,76 +16,50 @@ interface ClassData {
   description: string;
   startTime: string;
   endTime: string;
-  instructorId?: string; // added to use tutor lookup
+  instructorId?: string;
   students?: Array<{
     _id: string;
     username: string;
   }>;
 }
 
-interface UserData {
-  _id: string;
-  username?: string;
-  name?: string;
-  email?: string;
-  category: string;
-  timezone?: string; // add timezone from API
-}
-
 const UpcomingLessons = () => {
+  // ✅ REPLACE the state and API call with context hook
+  const { userData, classDetails, loading: contextLoading } = useUserData();
+  
+  // ❌ REMOVE these lines:
+  // const [userData, setUserData] = useState<UserData | null>(null);
+  // const [loading, setLoading] = useState<boolean>(true);
+  
   const [classes, setClasses] = useState<ClassData[]>([]);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [tutorData, setTutorData] = useState<UserData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tutorsMap, setTutorsMap] = useState<{ [key: string]: string | null }>(
-    {}
-  );
+  const [tutorsMap, setTutorsMap] = useState<{ [key: string]: string | null }>({});
   const router = useRouter();
   const userTz = userData?.timezone || getUserTimeZone();
 
+  // ✅ REPLACE the first useEffect with this simpler version
   useEffect(() => {
-    const fetchClasses = async () => {
+    if (!contextLoading && classDetails) {
       try {
-        setLoading(true);
-        const userResponse = await fetch("/Api/users/user");
-        const userResponseData = await userResponse.json();
-
-        // Save user data
-        if (userResponseData.user) {
-          setUserData(userResponseData.user);
-        }
-
-        if (
-          userResponseData.classDetails &&
-          userResponseData.classDetails.length > 0
-        ) {
-         const now = new Date();
+        const now = new Date();
         const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-        const futureClasses = userResponseData.classDetails
+        const futureClasses = classDetails
           .filter((cls: ClassData) => new Date(cls.startTime) > twentyFourHoursAgo)
           .sort(
             (a: ClassData, b: ClassData) =>
-              new Date(a.startTime).getTime() -
-              new Date(b.startTime).getTime()
+              new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
           );
 
-          setClasses(futureClasses);
-        } else {
-          setClasses([]);
-        }
+        setClasses(futureClasses);
       } catch (err) {
-        console.error("Error fetching classes:", err);
+        console.error("Error processing classes:", err);
         setError("Failed to load upcoming lessons");
-      } finally {
-        setLoading(false);
       }
-    };
+    }
+  }, [contextLoading, classDetails]);
 
-    fetchClasses();
-  }, []);
-
+  // ✅ Keep the tutor fetching useEffect as is
   useEffect(() => {
     const fetchTutors = async () => {
       const map: { [key: string]: string | null } = {};
@@ -96,9 +71,7 @@ const UpcomingLessons = () => {
         }
         try {
           const res = await fetch(
-            `/Api/tutorInfoForStudent?tutorId=${encodeURIComponent(
-              instructorId
-            )}`
+            `/Api/tutorInfoForStudent?tutorId=${encodeURIComponent(instructorId)}`
           );
           const data = await res.json();
           const name = data?.tutor?.username?.trim() || null;
@@ -163,7 +136,8 @@ const UpcomingLessons = () => {
     }
   };
 
-  if (loading) {
+  // ✅ Use contextLoading instead of loading
+  if (contextLoading) {
     return (
       <div className="card-box table-sec">
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
@@ -190,7 +164,9 @@ const UpcomingLessons = () => {
       <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
         <div className="flex gap-2 items-center">
           <h2 className="!text-[20px] !mb-0">Upcoming Sessions</h2>
-          <span className="!text-sm text-gray-500">(Timezone: {userData.timezone})</span>
+          <span className="!text-sm text-gray-500">
+            (Timezone: {userData?.timezone || 'Loading...'})
+          </span>
         </div>
         <Link href="/student/calendar" className="btn-text">
           View All

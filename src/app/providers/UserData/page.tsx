@@ -40,6 +40,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const [studentCount, setStudentCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [classDetails, setClassDetails] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null); // ADD THIS
   const pathname = usePathname();
   const prevPathRef = useRef<string | null>(null);
 
@@ -55,12 +56,19 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
           cache: "no-store",
         });
         const data = await response.json();
-        setUserData(data.user);
-        setCourseDetails(data.courseDetails || []);
-        setStudentCount(data.studentCount || 0);
-        setClassDetails(data.classDetails || []);
-      } catch (error) {
+        
+        if (data.success) { // ADD THIS CHECK
+          setUserData(data.user);
+          setCourseDetails(data.courseDetails || []);
+          setStudentCount(data.studentCount || 0);
+          setClassDetails(data.classDetails || []);
+          setError(null); // ADD THIS
+        } else {
+          setError(data.error || "Failed to fetch data"); // ADD THIS
+        }
+      } catch (error: any) { // CHANGE THIS
         console.error("Error fetching dashboard data:", error);
+        setError(error.message); // ADD THIS
       } finally {
         if (!silent) {
           setLoading(false);
@@ -90,14 +98,23 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     prevPathRef.current = pathname;
   }, [pathname, fetchData]);
 
-  return (
+    return (
     <UserDataContext.Provider
-      value={{ userData, courseDetails, studentCount, loading, classDetails }}
+      value={{ 
+        userData, 
+        courseDetails, 
+        studentCount, 
+        loading, 
+        classDetails,
+        error, // ADD THIS
+        refetch: fetchData // ADD THIS
+      }}
     >
       {children}
     </UserDataContext.Provider>
   );
 }
+
 
 export function useUserData() {
   const context = useContext(UserDataContext);

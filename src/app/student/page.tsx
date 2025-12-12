@@ -10,6 +10,8 @@ import {
   FileText,
   AlertCircle,
 } from "lucide-react";
+import { useUserData } from "@/app/providers/UserData/page"; // ✅ Also works
+
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -486,13 +488,19 @@ const useResponsiveItemsPerPage = () => {
 // Main Component
 const StudentDashboard: React.FC = () => {
   const router = useRouter();
-  const [loading, setLoading] = useState<boolean>(true);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [classData, setClassData] = useState<ClassData[] | null>(null);
-  const [assignmentData, setAssignmentData] = useState<AssignmentData[] | null>(
-    null
-  );
-  const [error, setError] = useState<string | null>(null);
+  // const [loading, setLoading] = useState<boolean>(true);
+  // const [userData, setUserData] = useState<UserData | null>(null);
+  // const [classData, setClassData] = useState<ClassData[] | null>(null);
+  const { 
+    userData, 
+    classDetails: classData, 
+    loading, 
+    error 
+  } = useUserData();
+  
+
+  const [assignmentData, setAssignmentData] = useState<AssignmentData[] | null>( null);
+  // const [error, setError] = useState<string | null>(null);
   const [currentClassSlide, setCurrentClassSlide] = useState(0);
   const [currentAssignmentSlide, setCurrentAssignmentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -533,47 +541,33 @@ const StudentDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
+useEffect(() => {
+    const fetchAdditionalData = async () => {
       try {
-        setLoading(true);
-        const [userResponse, classResponse, assignmentResponse, perResponse] =
-          await Promise.all([
-            axios.get("/Api/users/user"),
-            axios.get("/Api/student/tutors"),
-            axios.get("/Api/assignment"),
-            axios.get("Api/studentOverallPerformance")
-          ]);
+        const [assignmentResponse, perResponse] = await Promise.all([
+          fetch("/Api/assignment"),
+          fetch("/Api/studentOverallPerformance")
+        ]);
 
-        if (userResponse?.data?.user) {
-          setUserData(userResponse.data.user);
-        }
+        const assignmentData = await assignmentResponse.json();
+        const assignments = assignmentData?.data?.assignments || [];
+        setAssignmentData(assignments);
 
-        if (classResponse?.data?.classDetails) {
-          setClassData(classResponse.data.classDetails);
-          console.log("classData:", classResponse.data.classDetails);
-        }
-
-        // FIX: parse assignments from data.assignments
-        const assignments = assignmentResponse?.data?.data?.assignments || [];
-        if (assignments) {
-          setAssignmentData(assignments);
-        }
-
-        const perScore = perResponse?.data?.averageScore
+        const perData = await perResponse.json();
+        const perScore = perData?.averageScore;
         if (perScore) {
           setStudentPerformance(perScore);
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
-        setError("Failed to fetch dashboard data");
-      } finally {
-        setLoading(false);
+        console.error("Error fetching additional data:", error);
       }
     };
 
-    fetchData();
-  }, []);
+    if (!loading && userData) {
+      fetchAdditionalData();
+    }
+  }, [loading, userData]);
+  
   // Reset slides when items per page changes
   useEffect(() => {
     setCurrentClassSlide(0);

@@ -7,6 +7,7 @@ import Image from 'next/image'
 import Chat from './Chat'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
+import { useUserData } from "../providers/UserData/page"; // ✅ Add this import
 
 interface UserData {
   _id: string;
@@ -23,29 +24,31 @@ interface UserData {
 }
 
 const TopHeaderTutor = ({ role, setRole }) => {
-  const [userData, setUserData] = useState<UserData | null>(null);
+  // const [userData, setUserData] = useState<UserData | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+    const { userData, loading } = useUserData();
+  
 
   // Fetch complete user data including academyId
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const response = await fetch("/Api/users/user");
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.user) {
-            setUserData(data.user);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchUserData = async () => {
+  //     try {
+  //       const response = await fetch("/Api/DashboardData");
+  //       if (response.ok) {
+  //         const data = await response.json();
+  //         if (data.success && data.user) {
+  //           setUserData(data.user);
+  //         }
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching user data:", error);
+  //     }
+  //   };
 
-    fetchUserData();
-  }, []);
+  //   fetchUserData();
+  // }, []);
 
   // Only show dropdown for tutors created by academy (have academyId)
   const shouldShowDropdown = userData?.category === "Tutor" && userData?.academyId;

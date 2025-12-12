@@ -1378,7 +1378,7 @@ export default function Dashboard() {
     const loadPendingFeedback = async () => {
       try {
         const feedbackResponse = await fetch("/Api/dashboard/pendingFeedbackCount");
-        const feedbackResponses = await fetch("/Api/pendingFeedback"); // need to remove
+        // const feedbackResponses = await fetch("/Api/pendingFeedback"); // need to remove
 
         if (!feedbackResponse.ok) {
           console.error("Feedback API error:", feedbackResponse.status);
