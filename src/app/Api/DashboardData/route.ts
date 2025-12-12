@@ -144,7 +144,7 @@ export async function GET(request) {
 
     const courseDetails = await courseName
       .find({ _id: { $in: user.courses } })
-      .select("_id category class")
+      .select("_id category class title academyInstructorId")
       .lean();
 
     const allClassIds = courseDetails.flatMap(course => course.class);

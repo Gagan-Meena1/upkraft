@@ -7,6 +7,7 @@ import { connect } from '@/dbConnection/dbConfic';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
+import courseName from '@/models/courseName';
 
 // Configure Cloudinary
 cloudinary.config({
