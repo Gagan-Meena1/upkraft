@@ -13,6 +13,8 @@ interface SessionFeedback {
   tutorCSAT: number | null; // Change from string to number | null
   assignmentCompletionRate: number;
   tutorFeedback: string;
+  totalAssignments?: number;
+  completedAssignments?: number;
 }
 
 const calculateAverageCSAT = (csatArray: Array<{ userId: any; rating: number }>) => {
@@ -43,7 +45,8 @@ const StarRating = ({ rating }: { rating: number }) => {
 const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: string }) => {
   const [sessions, setSessions] = useState<SessionFeedback[]>([]);
   const [loading, setLoading] = useState(true);
-  const [classesCSAT, setClassesCSAT] = useState<Map<string, number | null>>(new Map());
+    const [classesCSAT, setClassesCSAT] = useState<Map<string, number | null>>(new Map());
+
 
   // Helper: choose endpoint by category (Music default)
   const getFeedbackEndpoint = (category?: string) => {
@@ -71,29 +74,50 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
           return;
         }
 
-        // 2) Fetch class meta and CSAT once, build maps
+        // 2) Fetch class meta
         const classesRes = await fetch(`/Api/getClasses?tutorId=${tutorId}`);
         const classesJson = await classesRes.json();
-        const csatMap = new Map<string, number | null>();
-        const classMeta = new Map<string, { title?: string; startTime?: string }>();
+                const csatMap = new Map<string, number | null>();
 
+        const classMeta = new Map<string, { title?: string; startTime?: string }>();
+        const classIds: string[] = [];
         if (classesJson?.success && Array.isArray(classesJson.classes)) {
           classesJson.classes.forEach((cls: any) => {
-            const avgCSAT = calculateAverageCSAT(cls.csat || []);
+                        const avgCSAT = calculateAverageCSAT(cls.csat || []);
+
             const id = String(cls._id);
-            csatMap.set(id, avgCSAT);
+                        csatMap.set(id, avgCSAT);
+
             classMeta.set(id, { title: cls.title, startTime: cls.startTime });
+            classIds.push(id);
           });
         }
-        setClassesCSAT(csatMap);
 
-        // 3) Fetch feedback per course using category-specific endpoint
+        // 3) For each class, fetch assignment stats for this student
+        const statsEntries = await Promise.all(
+          classIds.map(async (id) => {
+            try {
+              const res = await fetch(`/Api/sessionSummary?classId=${id}&studentId=${studentId}`);
+              if (!res.ok) {
+                return [id, { total: 0, completed: 0 }] as const;
+              }
+              const d = await res.json();
+              console.log("Fetched stats for classId ", id, ": ", d);
+              return [id, { total: Number(d.totalStudentAssignments || 0), completed: Number(d.completedAssignments || 0) }] as const;
+            } catch {
+              return [id, { total: 0, completed: 0 }] as const;
+            }
+          })
+        );
+        const statsMap = new Map<string, { total: number; completed: number }>(statsEntries);
+
+        // 4) Fetch feedback per course using category-specific endpoint
         const feedbackResults = await Promise.all(
           courses.map(async (c: any) => {
             const endpoint = getFeedbackEndpoint(c?.category);
             try {
               const res = await fetch(`${endpoint}?courseId=${c._id}&studentId=${studentId}`);
-              if (!res.ok) return null; // ignore 404s etc.
+              if (!res.ok) return null;
               return await res.json();
             } catch {
               return null;
@@ -101,7 +125,7 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
           })
         );
 
-        // 4) Flatten and normalize to table rows
+        // 5) Flatten and normalize to table rows, enrich with assignment stats
         const rows: SessionFeedback[] = [];
         feedbackResults.forEach((fj: any) => {
           if (fj?.success && Array.isArray(fj.data)) {
@@ -113,6 +137,10 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
               const meta = classId ? classMeta.get(classId) : undefined;
               const start = meta?.startTime || item.class?.startTime || item.createdAt;
 
+              const stat = classId ? statsMap.get(classId) : undefined;
+              const totalStudentAssignments = stat?.total ?? 0;
+              const completedAssignments = stat?.completed ?? 0;
+
               rows.push({
                 _id: String(item._id),
                 classId,
@@ -122,14 +150,13 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
                   meta?.title ||
                   `Session ${idx + 1}`,
                 date: start ? new Date(start).toLocaleDateString() : '',
-                // performance score exists across categories (music/dance/drawing)
                 performanceScore: Number(item.performance ?? 0),
-                // quality score not present in these APIs – default to 0 if missing
                 qualityScore: Number(item.qualityScore ?? 0),
                 tutorCSAT: classId ? (csatMap.get(classId) ?? null) : null,
-                // not available from these endpoints – default to 0 if missing
-                assignmentCompletionRate: Number(item.assignmentCompletionRate ?? 0),
+                assignmentCompletionRate: 0,
                 tutorFeedback: item.personalFeedback ?? item.feedback ?? '',
+                totalAssignments: totalStudentAssignments,
+                completedAssignments: completedAssignments,
               });
             });
           }
@@ -138,6 +165,7 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
         // Sort by date desc
         rows.sort((a, b) => (new Date(b.date).getTime() || 0) - (new Date(a.date).getTime() || 0));
         setSessions(rows);
+
       } finally {
         setLoading(false);
       }
@@ -162,17 +190,18 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
                   <th>Date</th>
                   <th className='text-center'>Performance Score</th>
                   <th className='text-center'>Session Quality Score</th>
-                  <th className='text-center'>Tutor CSAT</th>
-                  <th className='text-center'>Assignment Completion Rate</th>
+                                    <th className='text-center'>Tutor CSAT</th>
+
+                  <th className='text-center'>Assignments (Completed/Total)</th>
                   <th>Tutor Feedback / Remarks</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={8}>Loading...</td></tr>
+                  <tr><td colSpan={7}>Loading...</td></tr>
                 ) : sessions.length === 0 ? (
-                  <tr><td colSpan={8}>No sessions found.</td></tr>
+                  <tr><td colSpan={7}>No sessions found.</td></tr>
                 ) : (
                   sessions.map(session => (
                     <tr key={session._id}>
@@ -187,7 +216,9 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
                           <span className="text-muted small">Not Rated</span>
                         )}
                       </td>
-                      <td className='text-center'>{session.assignmentCompletionRate}%</td>
+                      <td className='text-center'>
+                        {(session.completedAssignments ?? 0)} / {(session.totalAssignments ?? 0)}
+                      </td>
                       <td>{session.tutorFeedback}</td>
                       <td>
                         <Link href={`/tutor`} className='btn btn-primary d-flex align-items-center gap-2 justify-content-center small'>
