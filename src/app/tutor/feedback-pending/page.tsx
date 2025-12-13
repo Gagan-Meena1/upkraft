@@ -181,12 +181,18 @@ const FeedbackPendingDetails = () => {
         });
 
         studentMap.forEach((value) => {
+          const sortedClasses = (value.classes || []).slice().sort((a: any, b: any) => {
+            const ta = a?.startTime ? new Date(a.startTime).getTime() : 0;
+            const tb = b?.startTime ? new Date(b.startTime).getTime() : 0;
+            return tb - ta; 
+          });
+
           pendingFeedbacks.push({
             student: value.student,
-            classes: value.classes,
+            classes: sortedClasses,
             selectedClassIndex: 0
           });
-        });
+         });
 
         setPendingFeedbacks(pendingFeedbacks);
 
