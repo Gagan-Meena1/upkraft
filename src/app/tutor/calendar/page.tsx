@@ -825,9 +825,7 @@ const StudentCalendarView = () => {
               <Button
                 variant="outline-danger"
                 className="flex-1 !rounded-md !py-2"
-                onClick={() => {
-                  setShowDeleteModal(true);
-                }}
+                onClick={() => setShowDeleteModal(true)}
               >
                 Cancel
               </Button>
@@ -836,12 +834,48 @@ const StudentCalendarView = () => {
                 variant="success"
                 className="flex-1 !rounded-md !py-2"
                 onClick={() => {
-                  if (selectedClass?. _id) handleJoinMeeting(selectedClass._id);
+                  if (selectedClass?._id) handleJoinMeeting(selectedClass._id);
                   handleCloseClassModal();
                 }}
               >
                 Join Meeting
               </Button>
+
+              {/* Google Meet Button */}
+              {selectedClass?.googleMeetUrl ? (
+                <a
+                  href={selectedClass.googleMeetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 !rounded-md !py-2 btn btn-outline-success"
+                  style={{ textAlign: "center", display: "inline-block" }}
+                >
+                  Google Meet
+                </a>
+              ) : (
+                <Button
+                  variant="outline-success"
+                  className="flex-1 !rounded-md !py-2"
+                  onClick={async () => {
+                    window.open("https://meet.new", "_blank");
+                    const url = prompt("Paste your Google Meet link here:");
+                    if (url && selectedClass?._id) {
+                      await fetch("/Api/classes/update", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          classId: selectedClass._id,
+                          googleMeetUrl: url,
+                        }),
+                      });
+                      // Optionally, refresh class data here
+                      toast.success("Google Meet link saved!");
+                    }
+                  }}
+                >
+                  Add Google Meet
+                </Button>
+              )}
             </div>
           </div>
         </Modal.Body>

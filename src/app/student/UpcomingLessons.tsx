@@ -235,12 +235,25 @@ useEffect(() => {
   )}
 </td>
                   <td>
-                    <button
-                      onClick={() => handleJoinMeeting(classItem._id)}
-                      className="bg-purple-700 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Join
-                    </button>
+                    <div className="flex flex-col sm:items-end gap-2 shrink-0">
+  <button
+    onClick={() => handleJoinMeeting(classItem._id)}
+    className="bg-purple-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors w-full sm:w-auto"
+  >
+    Join Class
+  </button>
+  {classItem.googleMeetUrl && (
+    <a
+      href={classItem.googleMeetUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="bg-green-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors w-full sm:w-auto text-center"
+      style={{ marginTop: "4px" }}
+    >
+      Google Meet
+    </a>
+  )}
+</div>
                   </td>
                 </tr>
               ))

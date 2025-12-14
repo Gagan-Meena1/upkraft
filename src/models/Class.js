@@ -114,6 +114,10 @@ const ClassSchema = new mongoose.Schema({
     communication_justification: String,
     overall_quality_score: Number,
     overall_quality_justification: String
+  },
+  googleMeetUrl: {
+    type: String,
+    default: ""
   }
   
 }, {
