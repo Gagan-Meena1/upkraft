@@ -40,6 +40,11 @@ const Banner = () => {
             <li>Piano</li>
             <li>Drums</li>
             <li>Vocals</li>
+            <li>Violin</li>
+            <li>Dance</li>
+            <li>Drawing</li>
+
+
           </ul>
         </div>
       </div>

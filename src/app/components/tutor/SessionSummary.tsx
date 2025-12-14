@@ -193,7 +193,7 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
                                     <th className='text-center'>Tutor CSAT</th>
 
                   <th className='text-center'>Assignments (Completed/Total)</th>
-                  <th>Tutor Feedback / Remarks</th>
+                  <th>Performance Feedback</th>
                   <th></th>
                 </tr>
               </thead>
