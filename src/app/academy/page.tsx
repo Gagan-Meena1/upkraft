@@ -55,197 +55,198 @@ const Dashboard = () => {
   // Add shared data states to pass to child components
 const [tutorsData, setTutorsData] = useState<any[]>([]);
 const [studentsData, setStudentsData] = useState<any[]>([]);
+const [tutorClassCounts, setTutorClassCounts] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    const fetchTutorStats = async () => {
-      setIsTutorStatsLoading(true);
-      setTutorStatsError(null);
+//   useEffect(() => {
+//     const fetchTutorStats = async () => {
+//       setIsTutorStatsLoading(true);
+//       setTutorStatsError(null);
 
-      try {
-        const response = await fetch("/Api/academy/tutors", {
-          method: "GET",
-          credentials: "include",
-        });
+//       try {
+//         const response = await fetch("/Api/academy/tutors", {
+//           method: "GET",
+//           credentials: "include",
+//         });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch active tutors");
-        }
+//         if (!response.ok) {
+//           throw new Error("Failed to fetch active tutors");
+//         }
         
 
-        const data = await response.json();
-        const tutors = Array.isArray(data?.tutors) ? data.tutors : [];
+//         const data = await response.json();
+//         const tutors = Array.isArray(data?.tutors) ? data.tutors : [];
 
-        const totalTutors =
-          typeof data?.total === "number" ? data.total : tutors.length;
+//         const totalTutors =
+//           typeof data?.total === "number" ? data.total : tutors.length;
 
-        const now = new Date();
-        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+//         const now = new Date();
+//         const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+//         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-        const tutorsJoinedThisMonth = tutors.filter((tutor: any) => {
-          if (!tutor?.createdAt) return false;
-          const createdAt = new Date(tutor.createdAt);
-          return createdAt >= thisMonthStart;
-        }).length;
+//         const tutorsJoinedThisMonth = tutors.filter((tutor: any) => {
+//           if (!tutor?.createdAt) return false;
+//           const createdAt = new Date(tutor.createdAt);
+//           return createdAt >= thisMonthStart;
+//         }).length;
 
-        const tutorsJoinedLastMonth = tutors.filter((tutor: any) => {
-          if (!tutor?.createdAt) return false;
-          const createdAt = new Date(tutor.createdAt);
-          return createdAt >= lastMonthStart && createdAt < thisMonthStart;
-        }).length;
+//         const tutorsJoinedLastMonth = tutors.filter((tutor: any) => {
+//           if (!tutor?.createdAt) return false;
+//           const createdAt = new Date(tutor.createdAt);
+//           return createdAt >= lastMonthStart && createdAt < thisMonthStart;
+//         }).length;
 
-        const totalTutorsLastMonth = tutors.filter((tutor: any) => {
-          if (!tutor?.createdAt) return true;
-          const createdAt = new Date(tutor.createdAt);
-          return createdAt < thisMonthStart;
-        }).length;
+//         const totalTutorsLastMonth = tutors.filter((tutor: any) => {
+//           if (!tutor?.createdAt) return true;
+//           const createdAt = new Date(tutor.createdAt);
+//           return createdAt < thisMonthStart;
+//         }).length;
 
-        setActiveTutorsCount(totalTutors);
-        setActiveTutorsLastMonthCount(totalTutorsLastMonth);
-        setNewTutorsThisMonth(tutorsJoinedThisMonth);
-        setNewTutorsLastMonth(tutorsJoinedLastMonth);
-setTutorsData(tutors); 
-      } catch (error: any) {
-        console.error("Error while fetching active tutors:", error);
-        setTutorStatsError(
-          error?.message || "Something went wrong while fetching tutor stats."
-        );
-        setActiveTutorsCount(null);
-        setNewTutorsThisMonth(null);
-      } finally {
-        setIsTutorStatsLoading(false);
-      }
-    };
+//         setActiveTutorsCount(totalTutors);
+//         setActiveTutorsLastMonthCount(totalTutorsLastMonth);
+//         setNewTutorsThisMonth(tutorsJoinedThisMonth);
+//         setNewTutorsLastMonth(tutorsJoinedLastMonth);
+// setTutorsData(tutors); 
+//       } catch (error: any) {
+//         console.error("Error while fetching active tutors:", error);
+//         setTutorStatsError(
+//           error?.message || "Something went wrong while fetching tutor stats."
+//         );
+//         setActiveTutorsCount(null);
+//         setNewTutorsThisMonth(null);
+//       } finally {
+//         setIsTutorStatsLoading(false);
+//       }
+//     };
 
-    fetchTutorStats();
-  }, []);
+//     fetchTutorStats();
+//   }, []);
 
-  useEffect(() => {
-    const fetchStudentStats = async () => {
-      setIsStudentsStatsLoading(true);
-      setStudentsStatsError(null);
+//   useEffect(() => {
+//     const fetchStudentStats = async () => {
+//       setIsStudentsStatsLoading(true);
+//       setStudentsStatsError(null);
 
-      try {
-        // Fetch total count first
-        const countResponse = await fetch("/Api/academy/students?page=1&limit=1", {
-          method: "GET",
-          credentials: "include",
-        });
+//       try {
+//         // Fetch total count first
+//         const countResponse = await fetch("/Api/academy/students?page=1&limit=1", {
+//           method: "GET",
+//           credentials: "include",
+//         });
 
-        if (!countResponse.ok) {
-          throw new Error("Failed to fetch students count");
-        }
+//         if (!countResponse.ok) {
+//           throw new Error("Failed to fetch students count");
+//         }
 
-        const countData = await countResponse.json();
-        const totalCount = countData?.pagination?.totalStudents || 0;
-        setTotalStudentsCount(totalCount);
+//         const countData = await countResponse.json();
+//         const totalCount = countData?.pagination?.totalStudents || 0;
+//         setTotalStudentsCount(totalCount);
 
-        // Fetch all students to calculate percentage change
-        // Using a high limit to get all students for calculation
-        const allStudentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
-          method: "GET",
-          credentials: "include",
-        });
+//         // Fetch all students to calculate percentage change
+//         // Using a high limit to get all students for calculation
+//         const allStudentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
+//           method: "GET",
+//           credentials: "include",
+//         });
 
-        if (!allStudentsResponse.ok) {
-          // If we can't fetch all students, just use the count
-          setStudentsStatsError("Unable to load detailed student stats");
-          setStudentsPercentageChange({
-            thisMonth: null,
-            lastMonth: null,
-          });
-          setStudentsNewCounts({
-            thisMonth: null,
-            lastMonth: null,
-          });
-          setTotalStudentsLastMonthCount(null);
-          return;
-        }
+//         if (!allStudentsResponse.ok) {
+//           // If we can't fetch all students, just use the count
+//           setStudentsStatsError("Unable to load detailed student stats");
+//           setStudentsPercentageChange({
+//             thisMonth: null,
+//             lastMonth: null,
+//           });
+//           setStudentsNewCounts({
+//             thisMonth: null,
+//             lastMonth: null,
+//           });
+//           setTotalStudentsLastMonthCount(null);
+//           return;
+//         }
 
-        const allStudentsData = await allStudentsResponse.json();
-        const students = Array.isArray(allStudentsData?.students) ? allStudentsData.students : [];
+//         const allStudentsData = await allStudentsResponse.json();
+//         const students = Array.isArray(allStudentsData?.students) ? allStudentsData.students : [];
 
-        // Calculate students created this month and last month
-        const now = new Date();
-        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const monthBeforeLastStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+//         // Calculate students created this month and last month
+//         const now = new Date();
+//         const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+//         const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+//         const monthBeforeLastStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
 
-        // Count students created this month
-        const studentsThisMonth = students.filter((student: any) => {
-          if (!student?.createdAt) return false;
-          const createdAt = new Date(student.createdAt);
-          return createdAt >= thisMonthStart;
-        }).length;
+//         // Count students created this month
+//         const studentsThisMonth = students.filter((student: any) => {
+//           if (!student?.createdAt) return false;
+//           const createdAt = new Date(student.createdAt);
+//           return createdAt >= thisMonthStart;
+//         }).length;
 
-        // Count students created last month
-        const studentsLastMonth = students.filter((student: any) => {
-          if (!student?.createdAt) return false;
-          const createdAt = new Date(student.createdAt);
-          return createdAt >= lastMonthStart && createdAt < thisMonthStart;
-        }).length;
+//         // Count students created last month
+//         const studentsLastMonth = students.filter((student: any) => {
+//           if (!student?.createdAt) return false;
+//           const createdAt = new Date(student.createdAt);
+//           return createdAt >= lastMonthStart && createdAt < thisMonthStart;
+//         }).length;
 
-        // Count students created in month before last
-        const studentsMonthBeforeLast = students.filter((student: any) => {
-          if (!student?.createdAt) return false;
-          const createdAt = new Date(student.createdAt);
-          return createdAt >= monthBeforeLastStart && createdAt < lastMonthStart;
-        }).length;
+//         // Count students created in month before last
+//         const studentsMonthBeforeLast = students.filter((student: any) => {
+//           if (!student?.createdAt) return false;
+//           const createdAt = new Date(student.createdAt);
+//           return createdAt >= monthBeforeLastStart && createdAt < lastMonthStart;
+//         }).length;
 
-        const totalStudentsLastMonth = students.filter((student: any) => {
-          if (!student?.createdAt) return true;
-          const createdAt = new Date(student.createdAt);
-          return createdAt < thisMonthStart;
-        }).length;
+//         const totalStudentsLastMonth = students.filter((student: any) => {
+//           if (!student?.createdAt) return true;
+//           const createdAt = new Date(student.createdAt);
+//           return createdAt < thisMonthStart;
+//         }).length;
 
-        let thisMonthPercentage: number | null = null;
-        if (studentsLastMonth > 0) {
-          thisMonthPercentage = ((studentsThisMonth - studentsLastMonth) / studentsLastMonth) * 100;
-        } else if (studentsThisMonth > 0) {
-          thisMonthPercentage = 100;
-        }
+//         let thisMonthPercentage: number | null = null;
+//         if (studentsLastMonth > 0) {
+//           thisMonthPercentage = ((studentsThisMonth - studentsLastMonth) / studentsLastMonth) * 100;
+//         } else if (studentsThisMonth > 0) {
+//           thisMonthPercentage = 100;
+//         }
 
-        let lastMonthPercentage: number | null = null;
-        if (studentsMonthBeforeLast > 0) {
-          lastMonthPercentage = ((studentsLastMonth - studentsMonthBeforeLast) / studentsMonthBeforeLast) * 100;
-        } else if (studentsLastMonth > 0) {
-          lastMonthPercentage = 100;
-        }
+//         let lastMonthPercentage: number | null = null;
+//         if (studentsMonthBeforeLast > 0) {
+//           lastMonthPercentage = ((studentsLastMonth - studentsMonthBeforeLast) / studentsMonthBeforeLast) * 100;
+//         } else if (studentsLastMonth > 0) {
+//           lastMonthPercentage = 100;
+//         }
 
-        setStudentsNewCounts({
-          thisMonth: studentsThisMonth,
-          lastMonth: studentsLastMonth,
-        });
-        setTotalStudentsLastMonthCount(totalStudentsLastMonth);
-        setStudentsPercentageChange({
-          thisMonth: thisMonthPercentage,
-          lastMonth: lastMonthPercentage,
-        });
-        // Inside the try block, after all setStudents... calls
-setStudentsData(students); // Store students data for child components
+//         setStudentsNewCounts({
+//           thisMonth: studentsThisMonth,
+//           lastMonth: studentsLastMonth,
+//         });
+//         setTotalStudentsLastMonthCount(totalStudentsLastMonth);
+//         setStudentsPercentageChange({
+//           thisMonth: thisMonthPercentage,
+//           lastMonth: lastMonthPercentage,
+//         });
+//         // Inside the try block, after all setStudents... calls
+// setStudentsData(students); // Store students data for child components
         
-      } catch (error: any) {
-        console.error("Error while fetching student stats:", error);
-        setStudentsStatsError(
-          error?.message || "Something went wrong while fetching student stats."
-        );
-        setTotalStudentsCount(null);
-        setTotalStudentsLastMonthCount(null);
-        setStudentsPercentageChange({
-          thisMonth: null,
-          lastMonth: null,
-        });
-        setStudentsNewCounts({
-          thisMonth: null,
-          lastMonth: null,
-        });
-      } finally {
-        setIsStudentsStatsLoading(false);
-      }
-    };
+//       } catch (error: any) {
+//         console.error("Error while fetching student stats:", error);
+//         setStudentsStatsError(
+//           error?.message || "Something went wrong while fetching student stats."
+//         );
+//         setTotalStudentsCount(null);
+//         setTotalStudentsLastMonthCount(null);
+//         setStudentsPercentageChange({
+//           thisMonth: null,
+//           lastMonth: null,
+//         });
+//         setStudentsNewCounts({
+//           thisMonth: null,
+//           lastMonth: null,
+//         });
+//       } finally {
+//         setIsStudentsStatsLoading(false);
+//       }
+//     };
 
-    fetchStudentStats();
-  }, []);
+//     fetchStudentStats();
+//   }, []);
 
   useEffect(() => {
     const fetchRevenueStats = async () => {
@@ -319,548 +320,938 @@ setStudentsData(students); // Store students data for child components
     fetchRevenueStats();
   }, []);
 
-  useEffect(() => {
-    const fetchCSATStats = async () => {
-      setIsCSATLoading(true);
-      setCsatError(null);
+  // useEffect(() => {
+  //   const fetchCSATStats = async () => {
+  //     setIsCSATLoading(true);
+  //     setCsatError(null);
 
-      try {
-        const response = await fetch("/Api/academy/tutors", {
-          method: "GET",
-          credentials: "include",
-        });
+  //     try {
+  //       const response = await fetch("/Api/academy/tutors", {
+  //         method: "GET",
+  //         credentials: "include",
+  //       });
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch tutors data");
-        }
+  //       if (!response.ok) {
+  //         throw new Error("Failed to fetch tutors data");
+  //       }
 
-        const data = await response.json();
-        if (!data.success || !Array.isArray(data.tutors)) {
-          throw new Error("Invalid tutors data format");
-        }
+  //       const data = await response.json();
+  //       if (!data.success || !Array.isArray(data.tutors)) {
+  //         throw new Error("Invalid tutors data format");
+  //       }
 
-        const tutors = data.tutors;
+  //       const tutors = data.tutors;
 
-        // Calculate average CSAT for all tutors (overall average)
-        const tutorsWithCSAT = tutors.filter((tutor: any) => 
-          tutor.csatScore != null && tutor.csatScore > 0
-        );
+  //       // Calculate average CSAT for all tutors (overall average)
+  //       const tutorsWithCSAT = tutors.filter((tutor: any) => 
+  //         tutor.csatScore != null && tutor.csatScore > 0
+  //       );
         
-        const totalCSAT = tutorsWithCSAT.reduce((sum: number, tutor: any) => 
-          sum + (tutor.csatScore || 0), 0
-        );
-        const averageCSAT = tutorsWithCSAT.length > 0 
-          ? totalCSAT / tutorsWithCSAT.length 
-          : 0;
+  //       const totalCSAT = tutorsWithCSAT.reduce((sum: number, tutor: any) => 
+  //         sum + (tutor.csatScore || 0), 0
+  //       );
+  //       const averageCSAT = tutorsWithCSAT.length > 0 
+  //         ? totalCSAT / tutorsWithCSAT.length 
+  //         : 0;
 
-        // For percentage change, compare average CSAT of tutors created this month vs last month
-        const now = new Date();
-        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  //       // For percentage change, compare average CSAT of tutors created this month vs last month
+  //       const now = new Date();
+  //       const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  //       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-        const tutorsThisMonth = tutors.filter((tutor: any) => {
-          if (!tutor.createdAt) return false;
-          const createdAt = new Date(tutor.createdAt);
-          return createdAt >= thisMonthStart;
-        });
+  //       const tutorsThisMonth = tutors.filter((tutor: any) => {
+  //         if (!tutor.createdAt) return false;
+  //         const createdAt = new Date(tutor.createdAt);
+  //         return createdAt >= thisMonthStart;
+  //       });
 
-        const tutorsLastMonth = tutors.filter((tutor: any) => {
-          if (!tutor.createdAt) return false;
-          const createdAt = new Date(tutor.createdAt);
-          return createdAt >= lastMonthStart && createdAt < thisMonthStart;
-        });
+  //       const tutorsLastMonth = tutors.filter((tutor: any) => {
+  //         if (!tutor.createdAt) return false;
+  //         const createdAt = new Date(tutor.createdAt);
+  //         return createdAt >= lastMonthStart && createdAt < thisMonthStart;
+  //       });
 
-        const tutorsThisMonthWithCSAT = tutorsThisMonth.filter((tutor: any) => 
-          tutor.csatScore != null && tutor.csatScore > 0
-        );
-        const totalCSATThisMonth = tutorsThisMonthWithCSAT.reduce((sum: number, tutor: any) => 
-          sum + (tutor.csatScore || 0), 0
-        );
-        const averageCSATThisMonth = tutorsThisMonthWithCSAT.length > 0 
-          ? totalCSATThisMonth / tutorsThisMonthWithCSAT.length 
-          : null;
+  //       const tutorsThisMonthWithCSAT = tutorsThisMonth.filter((tutor: any) => 
+  //         tutor.csatScore != null && tutor.csatScore > 0
+  //       );
+  //       const totalCSATThisMonth = tutorsThisMonthWithCSAT.reduce((sum: number, tutor: any) => 
+  //         sum + (tutor.csatScore || 0), 0
+  //       );
+  //       const averageCSATThisMonth = tutorsThisMonthWithCSAT.length > 0 
+  //         ? totalCSATThisMonth / tutorsThisMonthWithCSAT.length 
+  //         : null;
 
-        const tutorsLastMonthWithCSAT = tutorsLastMonth.filter((tutor: any) => 
-          tutor.csatScore != null && tutor.csatScore > 0
-        );
-        const totalCSATLastMonth = tutorsLastMonthWithCSAT.reduce((sum: number, tutor: any) => 
-          sum + (tutor.csatScore || 0), 0
-        );
-        const averageCSATLastMonth = tutorsLastMonthWithCSAT.length > 0 
-          ? totalCSATLastMonth / tutorsLastMonthWithCSAT.length 
-          : null;
+  //       const tutorsLastMonthWithCSAT = tutorsLastMonth.filter((tutor: any) => 
+  //         tutor.csatScore != null && tutor.csatScore > 0
+  //       );
+  //       const totalCSATLastMonth = tutorsLastMonthWithCSAT.reduce((sum: number, tutor: any) => 
+  //         sum + (tutor.csatScore || 0), 0
+  //       );
+  //       const averageCSATLastMonth = tutorsLastMonthWithCSAT.length > 0 
+  //         ? totalCSATLastMonth / tutorsLastMonthWithCSAT.length 
+  //         : null;
 
-        // Set the overall average CSAT score
-        setAvgCSATScore(averageCSAT);
-        setLastMonthAvgCSATScore(averageCSATLastMonth);
+  //       // Set the overall average CSAT score
+  //       setAvgCSATScore(averageCSAT);
+  //       setLastMonthAvgCSATScore(averageCSATLastMonth);
 
-        // Calculate percentage change: compare this month's new tutors' average CSAT vs last month's new tutors' average CSAT
-        let percentageChange: number | null = null;
-        if (averageCSATLastMonth != null && averageCSATLastMonth > 0 && averageCSATThisMonth != null) {
-          percentageChange = ((averageCSATThisMonth - averageCSATLastMonth) / averageCSATLastMonth) * 100;
-        } else if (averageCSATThisMonth != null && averageCSATThisMonth > 0) {
-          percentageChange = 100; // New tutors with ratings this month
-        } else if (averageCSATLastMonth != null && averageCSATLastMonth > 0) {
-          percentageChange = -100; // No new tutors with ratings this month
-        }
+  //       // Calculate percentage change: compare this month's new tutors' average CSAT vs last month's new tutors' average CSAT
+  //       let percentageChange: number | null = null;
+  //       if (averageCSATLastMonth != null && averageCSATLastMonth > 0 && averageCSATThisMonth != null) {
+  //         percentageChange = ((averageCSATThisMonth - averageCSATLastMonth) / averageCSATLastMonth) * 100;
+  //       } else if (averageCSATThisMonth != null && averageCSATThisMonth > 0) {
+  //         percentageChange = 100; // New tutors with ratings this month
+  //       } else if (averageCSATLastMonth != null && averageCSATLastMonth > 0) {
+  //         percentageChange = -100; // No new tutors with ratings this month
+  //       }
 
-        setCsatPercentageChange(percentageChange);
-      } catch (error: any) {
-        console.error("Error while fetching CSAT stats:", error);
-        setCsatError(
-          error?.message || "Something went wrong while fetching CSAT stats."
-        );
-        setAvgCSATScore(null);
-        setLastMonthAvgCSATScore(null);
-        setCsatPercentageChange(null);
-      } finally {
-        setIsCSATLoading(false);
+  //       setCsatPercentageChange(percentageChange);
+  //     } catch (error: any) {
+  //       console.error("Error while fetching CSAT stats:", error);
+  //       setCsatError(
+  //         error?.message || "Something went wrong while fetching CSAT stats."
+  //       );
+  //       setAvgCSATScore(null);
+  //       setLastMonthAvgCSATScore(null);
+  //       setCsatPercentageChange(null);
+  //     } finally {
+  //       setIsCSATLoading(false);
+  //     }
+  //   };
+
+  //   fetchCSATStats();
+  // }, []);
+
+// REPLACE the existing fetchTutorStats, fetchCSATStats, and the tutors part of fetchClassesStats
+useEffect(() => {
+  const fetchAllTutorsData = async () => {
+    setIsTutorStatsLoading(true);
+    setIsCSATLoading(true);
+    setTutorStatsError(null);
+    setCsatError(null);
+
+    try {
+      const response = await fetch("/Api/academy/tutors", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch tutors");
+
+      const data = await response.json();
+      const tutors = Array.isArray(data?.tutors) ? data.tutors : [];
+      setTutorsData(tutors);
+
+      // Calculate all tutor-related stats in one place
+      const now = new Date();
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+      // Tutor counts
+      const totalTutors = typeof data?.total === "number" ? data.total : tutors.length;
+      const tutorsJoinedThisMonth = tutors.filter((tutor: any) => {
+        if (!tutor?.createdAt) return false;
+        const createdAt = new Date(tutor.createdAt);
+        return createdAt >= thisMonthStart;
+      }).length;
+      const tutorsJoinedLastMonth = tutors.filter((tutor: any) => {
+        if (!tutor?.createdAt) return false;
+        const createdAt = new Date(tutor.createdAt);
+        return createdAt >= lastMonthStart && createdAt < thisMonthStart;
+      }).length;
+      const totalTutorsLastMonth = tutors.filter((tutor: any) => {
+        if (!tutor?.createdAt) return true;
+        const createdAt = new Date(tutor.createdAt);
+        return createdAt < thisMonthStart;
+      }).length;
+
+      setActiveTutorsCount(totalTutors);
+      setActiveTutorsLastMonthCount(totalTutorsLastMonth);
+      setNewTutorsThisMonth(tutorsJoinedThisMonth);
+      setNewTutorsLastMonth(tutorsJoinedLastMonth);
+
+      // CSAT calculations
+      const tutorsWithCSAT = tutors.filter((tutor: any) => 
+        tutor.csatScore != null && tutor.csatScore > 0
+      );
+      const totalCSAT = tutorsWithCSAT.reduce((sum: number, tutor: any) => 
+        sum + (tutor.csatScore || 0), 0
+      );
+      const averageCSAT = tutorsWithCSAT.length > 0 ? totalCSAT / tutorsWithCSAT.length : 0;
+
+      const tutorsThisMonth = tutors.filter((tutor: any) => {
+        if (!tutor.createdAt) return false;
+        const createdAt = new Date(tutor.createdAt);
+        return createdAt >= thisMonthStart;
+      });
+      const tutorsLastMonth = tutors.filter((tutor: any) => {
+        if (!tutor.createdAt) return false;
+        const createdAt = new Date(tutor.createdAt);
+        return createdAt >= lastMonthStart && createdAt < thisMonthStart;
+      });
+
+      const tutorsThisMonthWithCSAT = tutorsThisMonth.filter((tutor: any) => 
+        tutor.csatScore != null && tutor.csatScore > 0
+      );
+      const totalCSATThisMonth = tutorsThisMonthWithCSAT.reduce((sum: number, tutor: any) => 
+        sum + (tutor.csatScore || 0), 0
+      );
+      const averageCSATThisMonth = tutorsThisMonthWithCSAT.length > 0 
+        ? totalCSATThisMonth / tutorsThisMonthWithCSAT.length : null;
+
+      const tutorsLastMonthWithCSAT = tutorsLastMonth.filter((tutor: any) => 
+        tutor.csatScore != null && tutor.csatScore > 0
+      );
+      const totalCSATLastMonth = tutorsLastMonthWithCSAT.reduce((sum: number, tutor: any) => 
+        sum + (tutor.csatScore || 0), 0
+      );
+      const averageCSATLastMonth = tutorsLastMonthWithCSAT.length > 0 
+        ? totalCSATLastMonth / tutorsLastMonthWithCSAT.length : null;
+
+      setAvgCSATScore(averageCSAT);
+      setLastMonthAvgCSATScore(averageCSATLastMonth);
+
+      let csatPercentageChange: number | null = null;
+      if (averageCSATLastMonth != null && averageCSATLastMonth > 0 && averageCSATThisMonth != null) {
+        csatPercentageChange = ((averageCSATThisMonth - averageCSATLastMonth) / averageCSATLastMonth) * 100;
+      } else if (averageCSATThisMonth != null && averageCSATThisMonth > 0) {
+        csatPercentageChange = 100;
+      } else if (averageCSATLastMonth != null && averageCSATLastMonth > 0) {
+        csatPercentageChange = -100;
       }
-    };
+      setCsatPercentageChange(csatPercentageChange);
 
-    fetchCSATStats();
-  }, []);
+    } catch (error: any) {
+      console.error("Error fetching tutors data:", error);
+      setTutorStatsError(error?.message || "Failed to fetch tutor stats");
+      setCsatError(error?.message || "Failed to fetch CSAT stats");
+    } finally {
+      setIsTutorStatsLoading(false);
+      setIsCSATLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    const fetchClassesStats = async () => {
-      setIsClassesLoading(true);
-      setClassesError(null);
+  fetchAllTutorsData();
+}, []);
 
-      try {
-        // Fetch all tutors for the academy
-        const tutorsResponse = await fetch("/Api/academy/tutors", {
-          method: "GET",
-          credentials: "include",
-        });
+  // useEffect(() => {
+  //   const fetchClassesStats = async () => {
+  //     setIsClassesLoading(true);
+  //     setClassesError(null);
 
-        if (!tutorsResponse.ok) {
-          throw new Error("Failed to fetch tutors data");
-        }
+  //     try {
+  //       // Fetch all tutors for the academy
+  //       // const tutorsResponse = await fetch("/Api/academy/tutors", {
+  //       //   method: "GET",
+  //       //   credentials: "include",
+  //       // });
 
-        const tutorsData = await tutorsResponse.json();
-        if (!tutorsData?.success || !Array.isArray(tutorsData.tutors)) {
-          throw new Error("Invalid tutors data format");
-        }
+  //       // if (!tutorsResponse.ok) {
+  //       //   throw new Error("Failed to fetch tutors data");
+  //       // }
 
-        const tutors = tutorsData.tutors;
+  //       // const tutorsData = await tutorsResponse.json();
+  //       // if (!tutorsData?.success || !Array.isArray(tutorsData.tutors)) {
+  //       //   throw new Error("Invalid tutors data format");
+  //       // }
+
+  //       // const tutors = tutorsData.tutors;
         
-        if (tutors.length === 0) {
-          setClassesThisMonth(0);
-          setClassesLastMonth(0);
-          return;
-        }
+  //       // if (tutors.length === 0) {
+  //       //   setClassesThisMonth(0);
+  //       //   setClassesLastMonth(0);
+  //       //   return;
+  //       // }
 
-        // Fetch classes for all tutors in parallel
-        const classPromises = tutors.map(async (tutor: any) => {
-          try {
-            const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
-              method: "GET",
-              credentials: "include",
-            });
-            if (classResponse.ok) {
-              const classData = await classResponse.json();
-              if (classData?.success && Array.isArray(classData.classes)) {
-                return classData.classes;
-              }
+  //       // Fetch classes for all tutors in parallel
+  //       const classPromises = tutors.map(async (tutor: any) => {
+  //         try {
+  //           const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
+  //             method: "GET",
+  //             credentials: "include",
+  //           });
+  //           if (classResponse.ok) {
+  //             const classData = await classResponse.json();
+  //             if (classData?.success && Array.isArray(classData.classes)) {
+  //               return classData.classes;
+  //             }
+  //           }
+  //           return [];
+  //         } catch (error) {
+  //           console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
+  //           return [];
+  //         }
+  //       });
+
+  //       const classArrays = await Promise.all(classPromises);
+        
+  //       // Flatten and remove duplicates based on _id
+  //       const allClassesMap = new Map();
+  //       classArrays.forEach((classes: any[]) => {
+  //         classes.forEach((cls: any) => {
+  //           if (cls._id) {
+  //             const id = cls._id.toString();
+  //             if (!allClassesMap.has(id)) {
+  //               allClassesMap.set(id, cls);
+  //             }
+  //           }
+  //         });
+  //       });
+
+  //       const uniqueClasses = Array.from(allClassesMap.values());
+
+  //       // Calculate date ranges
+  //       const now = new Date();
+  //       const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  //       const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  //       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  //       const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+  //       // Count classes this month (based on startTime)
+  //       const classesThisMonthCount = uniqueClasses.filter((cls: any) => {
+  //         if (!cls.startTime) return false;
+  //         const startTime = new Date(cls.startTime);
+  //         return startTime >= thisMonthStart && startTime <= thisMonthEnd;
+  //       }).length;
+
+  //       // Count classes last month
+  //       const classesLastMonthCount = uniqueClasses.filter((cls: any) => {
+  //         if (!cls.startTime) return false;
+  //         const startTime = new Date(cls.startTime);
+  //         return startTime >= lastMonthStart && startTime <= lastMonthEnd;
+  //       }).length;
+
+  //       setClassesThisMonth(classesThisMonthCount);
+  //       setClassesLastMonth(classesLastMonthCount);
+  //     } catch (error: any) {
+  //       console.error("Error while fetching classes stats:", error);
+  //       setClassesError(
+  //         error?.message || "Something went wrong while fetching classes stats."
+  //       );
+  //       setClassesThisMonth(null);
+  //       setClassesLastMonth(null);
+  //     } finally {
+  //       setIsClassesLoading(false);
+  //     }
+  //   };
+
+  //   fetchClassesStats();
+  // }, []);
+
+  // REPLACE the existing fetchClassesStats useEffect
+useEffect(() => {
+  const fetchAllClassesData = async () => {
+    // Only fetch if we have tutors data
+    if (tutorsData.length === 0) return;
+
+    setIsClassesLoading(true);
+    setIsAttendanceLoading(true);
+    setClassesError(null);
+
+    try {
+      // Fetch classes for all tutors in parallel (only once)
+      const classPromises = tutorsData.map(async (tutor: any) => {
+        try {
+          const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
+            method: "GET",
+            credentials: "include",
+          });
+          if (classResponse.ok) {
+            const classData = await classResponse.json();
+            if (classData?.success && Array.isArray(classData.classes)) {
+              return classData.classes;
             }
-            return [];
-          } catch (error) {
-            console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
-            return [];
+          }
+          return [];
+        } catch (error) {
+          console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
+          return [];
+        }
+      });
+
+      const classArrays = await Promise.all(classPromises);
+      
+      // Flatten and remove duplicates
+      const allClassesMap = new Map();
+      classArrays.forEach((classes: any[]) => {
+        classes.forEach((cls: any) => {
+          if (cls._id) {
+            const id = cls._id.toString();
+            if (!allClassesMap.has(id)) {
+              allClassesMap.set(id, cls);
+            }
           }
         });
+      });
 
-        const classArrays = await Promise.all(classPromises);
+      const uniqueClasses = Array.from(allClassesMap.values());
+
+      // Calculate date ranges
+      const now = new Date();
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+      // Count classes
+      const classesThisMonthCount = uniqueClasses.filter((cls: any) => {
+        if (!cls.startTime) return false;
+        const startTime = new Date(cls.startTime);
+        return startTime >= thisMonthStart && startTime <= thisMonthEnd;
+      }).length;
+
+      const classesLastMonthCount = uniqueClasses.filter((cls: any) => {
+        if (!cls.startTime) return false;
+        const startTime = new Date(cls.startTime);
+        return startTime >= lastMonthStart && startTime <= lastMonthEnd;
+      }).length;
+
+      setClassesThisMonth(classesThisMonthCount);
+      setClassesLastMonth(classesLastMonthCount);
+
+      // Calculate classes per tutor for this month
+      const tutorClassCountsMap: Record<string, number> = {};
+      
+      tutorsData.forEach((tutor: any) => {
+        const tutorId = tutor._id.toString();
         
-        // Flatten and remove duplicates based on _id
-        const allClassesMap = new Map();
-        classArrays.forEach((classes: any[]) => {
-          classes.forEach((cls: any) => {
-            if (cls._id) {
-              const id = cls._id.toString();
-              if (!allClassesMap.has(id)) {
-                allClassesMap.set(id, cls);
-              }
-            }
-          });
-        });
-
-        const uniqueClasses = Array.from(allClassesMap.values());
-
-        // Calculate date ranges
-        const now = new Date();
-        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-        const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-
-        // Count classes this month (based on startTime)
-        const classesThisMonthCount = uniqueClasses.filter((cls: any) => {
+        // Count classes for this tutor in current month
+        const tutorClassesThisMonth = uniqueClasses.filter((cls: any) => {
           if (!cls.startTime) return false;
+          
           const startTime = new Date(cls.startTime);
-          return startTime >= thisMonthStart && startTime <= thisMonthEnd;
+          const isThisMonth = startTime >= thisMonthStart && startTime <= thisMonthEnd;
+          
+          // Check if this class belongs to this tutor
+          const classTutorId = cls.tutorId?.toString() || cls.tutor?._id?.toString() || cls.tutor?.toString();
+          const belongsToTutor = classTutorId === tutorId;
+          
+          return isThisMonth && belongsToTutor;
         }).length;
-
-        // Count classes last month
-        const classesLastMonthCount = uniqueClasses.filter((cls: any) => {
-          if (!cls.startTime) return false;
-          const startTime = new Date(cls.startTime);
-          return startTime >= lastMonthStart && startTime <= lastMonthEnd;
-        }).length;
-
-        setClassesThisMonth(classesThisMonthCount);
-        setClassesLastMonth(classesLastMonthCount);
-      } catch (error: any) {
-        console.error("Error while fetching classes stats:", error);
-        setClassesError(
-          error?.message || "Something went wrong while fetching classes stats."
-        );
-        setClassesThisMonth(null);
-        setClassesLastMonth(null);
-      } finally {
-        setIsClassesLoading(false);
-      }
-    };
-
-    fetchClassesStats();
-  }, []);
-
-  useEffect(() => {
-    const fetchAttendanceStats = async () => {
-      setIsAttendanceLoading(true);
-      setAttendanceError(null);
-
-      try {
-        // Fetch all students for the academy
-        const studentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!studentsResponse.ok) {
-          throw new Error("Failed to fetch students data");
-        }
-
-        const studentsData = await studentsResponse.json();
-        if (!studentsData?.success || !Array.isArray(studentsData.students)) {
-          throw new Error("Invalid students data format");
-        }
-
-        const students = studentsData.students;
-
-        // Fetch all tutors to get their classes
-        const tutorsResponse = await fetch("/Api/academy/tutors", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!tutorsResponse.ok) {
-          throw new Error("Failed to fetch tutors data");
-        }
-
-        const tutorsData = await tutorsResponse.json();
-        if (!tutorsData?.success || !Array.isArray(tutorsData.tutors)) {
-          throw new Error("Invalid tutors data format");
-        }
-
-        const tutors = tutorsData.tutors;
-
-        if (tutors.length === 0 || students.length === 0) {
-          setAttendanceRate(0);
-          return;
-        }
-
-        // Fetch classes for all tutors in parallel
-        const classPromises = tutors.map(async (tutor: any) => {
-          try {
-            const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
-              method: "GET",
-              credentials: "include",
-            });
-            if (classResponse.ok) {
-              const classData = await classResponse.json();
-              if (classData?.success && Array.isArray(classData.classes)) {
-                return classData.classes;
-              }
-            }
-            return [];
-          } catch (error) {
-            console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
-            return [];
-          }
-        });
-
-        const classArrays = await Promise.all(classPromises);
         
-        // Flatten and remove duplicates
-        const allClassesMap = new Map();
-        classArrays.forEach((classes: any[]) => {
-          classes.forEach((cls: any) => {
-            if (cls._id) {
-              const id = cls._id.toString();
-              if (!allClassesMap.has(id)) {
-                allClassesMap.set(id, cls);
-              }
-            }
-          });
-        });
+        tutorClassCountsMap[tutorId] = tutorClassesThisMonth;
+      });
+      
+      setTutorClassCounts(tutorClassCountsMap);
 
-        const uniqueClasses = Array.from(allClassesMap.values());
-
-        // Filter classes that have already occurred (for attendance calculation)
-        const now = new Date();
+      // Calculate attendance (if we have students data)
+      if (studentsData.length > 0) {
         const pastClasses = uniqueClasses.filter((cls: any) => {
           if (!cls.startTime) return false;
           const startTime = new Date(cls.startTime);
           return startTime < now;
         });
 
-        if (pastClasses.length === 0) {
-          setAttendanceRate(0);
-          return;
-        }
+        if (pastClasses.length > 0) {
+          let totalExpectedAttendance = 0;
+          let totalPresentAttendance = 0;
 
-        // For each class, count present vs total enrolled students
-        let totalExpectedAttendance = 0;
-        let totalPresentAttendance = 0;
-
-        // Create a map of student IDs to their attendance records
-        const studentAttendanceMap = new Map();
-        
-        // Map students with their attendance data
-        students.forEach((student: any) => {
-          if (student._id) {
-            const studentId = student._id.toString();
-            // The students API should include attendance if it's in the User model
-            // If not, we'll use an empty array
-            const attendance = student.attendance || [];
-            studentAttendanceMap.set(studentId, attendance);
-          }
-        });
-
-        // For each past class, calculate attendance
-        for (const classItem of pastClasses) {
-          const classId = classItem._id.toString();
-          
-          // Find students enrolled in this class
-          // Students are enrolled if they have this classId in their classes array
-          const enrolledStudents = students.filter((student: any) => {
-            // Check if student has this class in their classes array
-            if (student.classes && Array.isArray(student.classes)) {
-              return student.classes.some((cid: any) => {
-                const cidStr = typeof cid === 'string' ? cid : (cid?._id?.toString() || cid?.toString());
-                return cidStr === classId;
-              });
-            }
-            return false;
-          });
-
-          totalExpectedAttendance += enrolledStudents.length;
-
-          // Count present attendance for this class
-          enrolledStudents.forEach((student: any) => {
-            const studentId = student._id?.toString();
-            const attendanceRecords = studentAttendanceMap.get(studentId) || student.attendance || [];
+          for (const classItem of pastClasses) {
+            const classId = classItem._id.toString();
             
-            if (Array.isArray(attendanceRecords)) {
-              const attendanceRecord = attendanceRecords.find(
-                (att: any) => {
-                  const attClassId = att.classId?.toString() || att.classId?._id?.toString();
-                  return attClassId === classId;
-                }
-              );
-              if (attendanceRecord && attendanceRecord.status === "present") {
-                totalPresentAttendance++;
-              }
-            }
-          });
-        }
-
-        // Calculate attendance rate percentage
-        const rate = totalExpectedAttendance > 0 
-          ? (totalPresentAttendance / totalExpectedAttendance) * 100 
-          : 0;
-
-        setAttendanceRate(Math.round(rate * 10) / 10); // Round to 1 decimal place
-      } catch (error: any) {
-        console.error("Error while fetching attendance stats:", error);
-        setAttendanceError(
-          error?.message || "Something went wrong while fetching attendance stats."
-        );
-        setAttendanceRate(null);
-      } finally {
-        setIsAttendanceLoading(false);
-      }
-    };
-
-    fetchAttendanceStats();
-  }, []);
-
-  useEffect(() => {
-    const fetchRetentionStats = async () => {
-      setIsRetentionLoading(true);
-      setRetentionError(null);
-
-      try {
-        // Fetch all students for the academy
-        const studentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!studentsResponse.ok) {
-          throw new Error("Failed to fetch students data");
-        }
-
-        const studentsData = await studentsResponse.json();
-        if (!studentsData?.success || !Array.isArray(studentsData.students)) {
-          throw new Error("Invalid students data format");
-        }
-
-        const students = studentsData.students;
-
-        if (students.length === 0) {
-          setStudentRetention(0);
-          return;
-        }
-
-        // Fetch all tutors to get their classes
-        const tutorsResponse = await fetch("/Api/academy/tutors", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!tutorsResponse.ok) {
-          throw new Error("Failed to fetch tutors data");
-        }
-
-        const tutorsData = await tutorsResponse.json();
-        if (!tutorsData?.success || !Array.isArray(tutorsData.tutors)) {
-          throw new Error("Invalid tutors data format");
-        }
-
-        const tutors = tutorsData.tutors;
-
-        // Fetch classes for all tutors in parallel
-        const classPromises = tutors.map(async (tutor: any) => {
-          try {
-            const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
-              method: "GET",
-              credentials: "include",
-            });
-            if (classResponse.ok) {
-              const classData = await classResponse.json();
-              if (classData?.success && Array.isArray(classData.classes)) {
-                return classData.classes;
-              }
-            }
-            return [];
-          } catch (error) {
-            console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
-            return [];
-          }
-        });
-
-        const classArrays = await Promise.all(classPromises);
-        
-        // Flatten and remove duplicates
-        const allClassesMap = new Map();
-        classArrays.forEach((classes: any[]) => {
-          classes.forEach((cls: any) => {
-            if (cls._id) {
-              const id = cls._id.toString();
-              if (!allClassesMap.has(id)) {
-                allClassesMap.set(id, cls);
-              }
-            }
-          });
-        });
-
-        const uniqueClasses = Array.from(allClassesMap.values());
-
-        // Calculate retention
-        // A student is considered "retained" if they:
-        // 1. Are enrolled in at least one course
-        // 2. AND have attended classes (marked as "present") during their course enrollment
-        // 
-        // Simple logic: If a student is assigned to a course and attends classes (marked present),
-        // they are counted as retained. This includes:
-        // - Students currently enrolled with upcoming classes
-        // - Students who have attended classes in the past (completed or ongoing courses)
-        // - Students who have at least one "present" attendance record
-        
-        const now = new Date();
-        
-        let activeStudents = 0;
-        const totalStudents = students.length;
-
-        students.forEach((student: any) => {
-          // Check if student is enrolled in at least one course
-          const hasCourses = student.courses && Array.isArray(student.courses) && student.courses.length > 0;
-          
-          if (!hasCourses) {
-            return; // Not enrolled in any course, not retained
-          }
-
-          // Check if student has attended at least one class (marked as "present")
-          let hasAttendedClasses = false;
-
-          // 1. Check if student has any "present" attendance records
-          if (student.attendance && Array.isArray(student.attendance)) {
-            const hasPresentAttendance = student.attendance.some((att: any) => {
-              return att.status === "present";
-            });
-            
-            if (hasPresentAttendance) {
-              hasAttendedClasses = true;
-            }
-          }
-
-          // 2. If no attendance records yet, check if student has upcoming classes
-          // (They're enrolled and have classes scheduled, so they're actively engaged)
-          if (!hasAttendedClasses && student.classes && Array.isArray(student.classes)) {
-            const hasUpcomingClass = student.classes.some((classId: any) => {
-              const classIdStr = typeof classId === 'string' ? classId : (classId?._id?.toString() || classId?.toString());
-              const classItem = allClassesMap.get(classIdStr);
-              if (classItem && classItem.startTime) {
-                const startTime = new Date(classItem.startTime);
-                return startTime > now; // Future class
+            const enrolledStudents = studentsData.filter((student: any) => {
+              if (student.classes && Array.isArray(student.classes)) {
+                return student.classes.some((cid: any) => {
+                  const cidStr = typeof cid === 'string' ? cid : (cid?._id?.toString() || cid?.toString());
+                  return cidStr === classId;
+                });
               }
               return false;
             });
-            
-            if (hasUpcomingClass) {
-              hasAttendedClasses = true; // Enrolled with upcoming classes = actively engaged
-            }
+
+            totalExpectedAttendance += enrolledStudents.length;
+
+            enrolledStudents.forEach((student: any) => {
+              const attendanceRecords = student.attendance || [];
+              if (Array.isArray(attendanceRecords)) {
+                const attendanceRecord = attendanceRecords.find(
+                  (att: any) => {
+                    const attClassId = att.classId?.toString() || att.classId?._id?.toString();
+                    return attClassId === classId;
+                  }
+                );
+                if (attendanceRecord && attendanceRecord.status === "present") {
+                  totalPresentAttendance++;
+                }
+              }
+            });
           }
 
-          // Student is retained if:
-          // - They are enrolled in at least one course
-          // - AND they have attended classes (present) OR have upcoming classes
-          if (hasCourses && hasAttendedClasses) {
-            activeStudents++;
-          }
-        });
-
-        // Calculate retention rate percentage
-        const retentionRate = totalStudents > 0 
-          ? (activeStudents / totalStudents) * 100 
-          : 0;
-
-        setStudentRetention(Math.round(retentionRate * 10) / 10); // Round to 1 decimal place
-      } catch (error: any) {
-        console.error("Error while fetching retention stats:", error);
-        setRetentionError(
-          error?.message || "Something went wrong while fetching retention stats."
-        );
-        setStudentRetention(null);
-      } finally {
-        setIsRetentionLoading(false);
+          const rate = totalExpectedAttendance > 0 
+            ? (totalPresentAttendance / totalExpectedAttendance) * 100 
+            : 0;
+          setAttendanceRate(Math.round(rate * 10) / 10);
+        } else {
+          setAttendanceRate(0);
+        }
       }
-    };
 
-    fetchRetentionStats();
-  }, []);
+    } catch (error: any) {
+      console.error("Error fetching classes data:", error);
+      setClassesError(error?.message || "Failed to fetch classes stats");
+    } finally {
+      setIsClassesLoading(false);
+      setIsAttendanceLoading(false);
+    }
+  };
+
+  fetchAllClassesData();
+}, [tutorsData, studentsData]); // Depend on tutorsData and studentsData
+
+  // REPLACE the existing fetchStudentStats, fetchAttendanceStats, and fetchRetentionStats
+useEffect(() => {
+  const fetchAllStudentsData = async () => {
+    setIsStudentsStatsLoading(true);
+    setIsAttendanceLoading(true);
+    setIsRetentionLoading(true);
+    setStudentsStatsError(null);
+    setAttendanceError(null);
+    setRetentionError(null);
+
+    try {
+      // Fetch all students once
+      const allStudentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!allStudentsResponse.ok) throw new Error("Failed to fetch students");
+
+      const allStudentsData = await allStudentsResponse.json();
+      const students = Array.isArray(allStudentsData?.students) ? allStudentsData.students : [];
+      const totalCount = allStudentsData?.pagination?.totalStudents || students.length;
+      setStudentsData(students);
+      setTotalStudentsCount(totalCount);
+
+      const now = new Date();
+      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const monthBeforeLastStart = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+
+      // Student count calculations
+      const studentsThisMonth = students.filter((student: any) => {
+        if (!student?.createdAt) return false;
+        const createdAt = new Date(student.createdAt);
+        return createdAt >= thisMonthStart;
+      }).length;
+
+      const studentsLastMonth = students.filter((student: any) => {
+        if (!student?.createdAt) return false;
+        const createdAt = new Date(student.createdAt);
+        return createdAt >= lastMonthStart && createdAt < thisMonthStart;
+      }).length;
+
+      const studentsMonthBeforeLast = students.filter((student: any) => {
+        if (!student?.createdAt) return false;
+        const createdAt = new Date(student.createdAt);
+        return createdAt >= monthBeforeLastStart && createdAt < lastMonthStart;
+      }).length;
+
+      const totalStudentsLastMonth = students.filter((student: any) => {
+        if (!student?.createdAt) return true;
+        const createdAt = new Date(student.createdAt);
+        return createdAt < thisMonthStart;
+      }).length;
+
+      let thisMonthPercentage: number | null = null;
+      if (studentsLastMonth > 0) {
+        thisMonthPercentage = ((studentsThisMonth - studentsLastMonth) / studentsLastMonth) * 100;
+      } else if (studentsThisMonth > 0) {
+        thisMonthPercentage = 100;
+      }
+
+      let lastMonthPercentage: number | null = null;
+      if (studentsMonthBeforeLast > 0) {
+        lastMonthPercentage = ((studentsLastMonth - studentsMonthBeforeLast) / studentsMonthBeforeLast) * 100;
+      } else if (studentsLastMonth > 0) {
+        lastMonthPercentage = 100;
+      }
+
+      setStudentsNewCounts({
+        thisMonth: studentsThisMonth,
+        lastMonth: studentsLastMonth,
+      });
+      setTotalStudentsLastMonthCount(totalStudentsLastMonth);
+      setStudentsPercentageChange({
+        thisMonth: thisMonthPercentage,
+        lastMonth: lastMonthPercentage,
+      });
+
+      // Retention calculation (no need to fetch students again)
+      let activeStudents = 0;
+      students.forEach((student: any) => {
+        const hasCourses = student.courses && Array.isArray(student.courses) && student.courses.length > 0;
+        if (!hasCourses) return;
+
+        let hasAttendedClasses = false;
+        if (student.attendance && Array.isArray(student.attendance)) {
+          const hasPresentAttendance = student.attendance.some((att: any) => att.status === "present");
+          if (hasPresentAttendance) hasAttendedClasses = true;
+        }
+
+        if (!hasAttendedClasses && student.classes && Array.isArray(student.classes)) {
+          const hasUpcomingClass = student.classes.length > 0; // Simplified - you can add date checking if needed
+          if (hasUpcomingClass) hasAttendedClasses = true;
+        }
+
+        if (hasCourses && hasAttendedClasses) activeStudents++;
+      });
+
+      const retentionRate = students.length > 0 ? (activeStudents / students.length) * 100 : 0;
+      setStudentRetention(Math.round(retentionRate * 10) / 10);
+
+    } catch (error: any) {
+      console.error("Error fetching students data:", error);
+      const errorMsg = error?.message || "Failed to fetch student data";
+      setStudentsStatsError(errorMsg);
+      setAttendanceError(errorMsg);
+      setRetentionError(errorMsg);
+    } finally {
+      setIsStudentsStatsLoading(false);
+      setIsAttendanceLoading(false);
+      setIsRetentionLoading(false);
+    }
+  };
+
+  fetchAllStudentsData();
+}, []);
+
+  // useEffect(() => {
+  //   const fetchAttendanceStats = async () => {
+  //     setIsAttendanceLoading(true);
+  //     setAttendanceError(null);
+
+  //     try {
+  //       // Fetch all students for the academy
+  //       const studentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
+  //         method: "GET",
+  //         credentials: "include",
+  //       });
+
+  //       if (!studentsResponse.ok) {
+  //         throw new Error("Failed to fetch students data");
+  //       }
+
+  //       const studentsData = await studentsResponse.json();
+  //       if (!studentsData?.success || !Array.isArray(studentsData.students)) {
+  //         throw new Error("Invalid students data format");
+  //       }
+
+  //       const students = studentsData.students;
+
+  //       // Fetch all tutors to get their classes
+  //       const tutorsResponse = await fetch("/Api/academy/tutors", {
+  //         method: "GET",
+  //         credentials: "include",
+  //       });
+
+  //       if (!tutorsResponse.ok) {
+  //         throw new Error("Failed to fetch tutors data");
+  //       }
+
+  //       const tutorsData = await tutorsResponse.json();
+  //       if (!tutorsData?.success || !Array.isArray(tutorsData.tutors)) {
+  //         throw new Error("Invalid tutors data format");
+  //       }
+
+  //       const tutors = tutorsData.tutors;
+
+  //       if (tutors.length === 0 || students.length === 0) {
+  //         setAttendanceRate(0);
+  //         return;
+  //       }
+
+  //       // Fetch classes for all tutors in parallel
+  //       const classPromises = tutors.map(async (tutor: any) => {
+  //         try {
+  //           const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
+  //             method: "GET",
+  //             credentials: "include",
+  //           });
+  //           if (classResponse.ok) {
+  //             const classData = await classResponse.json();
+  //             if (classData?.success && Array.isArray(classData.classes)) {
+  //               return classData.classes;
+  //             }
+  //           }
+  //           return [];
+  //         } catch (error) {
+  //           console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
+  //           return [];
+  //         }
+  //       });
+
+  //       const classArrays = await Promise.all(classPromises);
+        
+  //       // Flatten and remove duplicates
+  //       const allClassesMap = new Map();
+  //       classArrays.forEach((classes: any[]) => {
+  //         classes.forEach((cls: any) => {
+  //           if (cls._id) {
+  //             const id = cls._id.toString();
+  //             if (!allClassesMap.has(id)) {
+  //               allClassesMap.set(id, cls);
+  //             }
+  //           }
+  //         });
+  //       });
+
+  //       const uniqueClasses = Array.from(allClassesMap.values());
+
+  //       // Filter classes that have already occurred (for attendance calculation)
+  //       const now = new Date();
+  //       const pastClasses = uniqueClasses.filter((cls: any) => {
+  //         if (!cls.startTime) return false;
+  //         const startTime = new Date(cls.startTime);
+  //         return startTime < now;
+  //       });
+
+  //       if (pastClasses.length === 0) {
+  //         setAttendanceRate(0);
+  //         return;
+  //       }
+
+  //       // For each class, count present vs total enrolled students
+  //       let totalExpectedAttendance = 0;
+  //       let totalPresentAttendance = 0;
+
+  //       // Create a map of student IDs to their attendance records
+  //       const studentAttendanceMap = new Map();
+        
+  //       // Map students with their attendance data
+  //       students.forEach((student: any) => {
+  //         if (student._id) {
+  //           const studentId = student._id.toString();
+  //           // The students API should include attendance if it's in the User model
+  //           // If not, we'll use an empty array
+  //           const attendance = student.attendance || [];
+  //           studentAttendanceMap.set(studentId, attendance);
+  //         }
+  //       });
+
+  //       // For each past class, calculate attendance
+  //       for (const classItem of pastClasses) {
+  //         const classId = classItem._id.toString();
+          
+  //         // Find students enrolled in this class
+  //         // Students are enrolled if they have this classId in their classes array
+  //         const enrolledStudents = students.filter((student: any) => {
+  //           // Check if student has this class in their classes array
+  //           if (student.classes && Array.isArray(student.classes)) {
+  //             return student.classes.some((cid: any) => {
+  //               const cidStr = typeof cid === 'string' ? cid : (cid?._id?.toString() || cid?.toString());
+  //               return cidStr === classId;
+  //             });
+  //           }
+  //           return false;
+  //         });
+
+  //         totalExpectedAttendance += enrolledStudents.length;
+
+  //         // Count present attendance for this class
+  //         enrolledStudents.forEach((student: any) => {
+  //           const studentId = student._id?.toString();
+  //           const attendanceRecords = studentAttendanceMap.get(studentId) || student.attendance || [];
+            
+  //           if (Array.isArray(attendanceRecords)) {
+  //             const attendanceRecord = attendanceRecords.find(
+  //               (att: any) => {
+  //                 const attClassId = att.classId?.toString() || att.classId?._id?.toString();
+  //                 return attClassId === classId;
+  //               }
+  //             );
+  //             if (attendanceRecord && attendanceRecord.status === "present") {
+  //               totalPresentAttendance++;
+  //             }
+  //           }
+  //         });
+  //       }
+
+  //       // Calculate attendance rate percentage
+  //       const rate = totalExpectedAttendance > 0 
+  //         ? (totalPresentAttendance / totalExpectedAttendance) * 100 
+  //         : 0;
+
+  //       setAttendanceRate(Math.round(rate * 10) / 10); // Round to 1 decimal place
+  //     } catch (error: any) {
+  //       console.error("Error while fetching attendance stats:", error);
+  //       setAttendanceError(
+  //         error?.message || "Something went wrong while fetching attendance stats."
+  //       );
+  //       setAttendanceRate(null);
+  //     } finally {
+  //       setIsAttendanceLoading(false);
+  //     }
+  //   };
+
+  //   fetchAttendanceStats();
+  // }, []);
+
+  // useEffect(() => {
+  //   const fetchRetentionStats = async () => {
+  //     setIsRetentionLoading(true);
+  //     setRetentionError(null);
+
+  //     try {
+  //       // Fetch all students for the academy
+  //       const studentsResponse = await fetch("/Api/academy/students?page=1&limit=10000", {
+  //         method: "GET",
+  //         credentials: "include",
+  //       });
+
+  //       if (!studentsResponse.ok) {
+  //         throw new Error("Failed to fetch students data");
+  //       }
+
+  //       const studentsData = await studentsResponse.json();
+  //       if (!studentsData?.success || !Array.isArray(studentsData.students)) {
+  //         throw new Error("Invalid students data format");
+  //       }
+
+  //       const students = studentsData.students;
+
+  //       if (students.length === 0) {
+  //         setStudentRetention(0);
+  //         return;
+  //       }
+
+  //       // Fetch all tutors to get their classes
+  //       const tutorsResponse = await fetch("/Api/academy/tutors", {
+  //         method: "GET",
+  //         credentials: "include",
+  //       });
+
+  //       if (!tutorsResponse.ok) {
+  //         throw new Error("Failed to fetch tutors data");
+  //       }
+
+  //       const tutorsData = await tutorsResponse.json();
+  //       if (!tutorsData?.success || !Array.isArray(tutorsData.tutors)) {
+  //         throw new Error("Invalid tutors data format");
+  //       }
+
+  //       const tutors = tutorsData.tutors;
+
+  //       // Fetch classes for all tutors in parallel
+  //       const classPromises = tutors.map(async (tutor: any) => {
+  //         try {
+  //           const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
+  //             method: "GET",
+  //             credentials: "include",
+  //           });
+  //           if (classResponse.ok) {
+  //             const classData = await classResponse.json();
+  //             if (classData?.success && Array.isArray(classData.classes)) {
+  //               return classData.classes;
+  //             }
+  //           }
+  //           return [];
+  //         } catch (error) {
+  //           console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
+  //           return [];
+  //         }
+  //       });
+
+  //       const classArrays = await Promise.all(classPromises);
+        
+  //       // Flatten and remove duplicates
+  //       const allClassesMap = new Map();
+  //       classArrays.forEach((classes: any[]) => {
+  //         classes.forEach((cls: any) => {
+  //           if (cls._id) {
+  //             const id = cls._id.toString();
+  //             if (!allClassesMap.has(id)) {
+  //               allClassesMap.set(id, cls);
+  //             }
+  //           }
+  //         });
+  //       });
+
+  //       const uniqueClasses = Array.from(allClassesMap.values());
+
+  //       // Calculate retention
+  //       // A student is considered "retained" if they:
+  //       // 1. Are enrolled in at least one course
+  //       // 2. AND have attended classes (marked as "present") during their course enrollment
+  //       // 
+  //       // Simple logic: If a student is assigned to a course and attends classes (marked present),
+  //       // they are counted as retained. This includes:
+  //       // - Students currently enrolled with upcoming classes
+  //       // - Students who have attended classes in the past (completed or ongoing courses)
+  //       // - Students who have at least one "present" attendance record
+        
+  //       const now = new Date();
+        
+  //       let activeStudents = 0;
+  //       const totalStudents = students.length;
+
+  //       students.forEach((student: any) => {
+  //         // Check if student is enrolled in at least one course
+  //         const hasCourses = student.courses && Array.isArray(student.courses) && student.courses.length > 0;
+          
+  //         if (!hasCourses) {
+  //           return; // Not enrolled in any course, not retained
+  //         }
+
+  //         // Check if student has attended at least one class (marked as "present")
+  //         let hasAttendedClasses = false;
+
+  //         // 1. Check if student has any "present" attendance records
+  //         if (student.attendance && Array.isArray(student.attendance)) {
+  //           const hasPresentAttendance = student.attendance.some((att: any) => {
+  //             return att.status === "present";
+  //           });
+            
+  //           if (hasPresentAttendance) {
+  //             hasAttendedClasses = true;
+  //           }
+  //         }
+
+  //         // 2. If no attendance records yet, check if student has upcoming classes
+  //         // (They're enrolled and have classes scheduled, so they're actively engaged)
+  //         if (!hasAttendedClasses && student.classes && Array.isArray(student.classes)) {
+  //           const hasUpcomingClass = student.classes.some((classId: any) => {
+  //             const classIdStr = typeof classId === 'string' ? classId : (classId?._id?.toString() || classId?.toString());
+  //             const classItem = allClassesMap.get(classIdStr);
+  //             if (classItem && classItem.startTime) {
+  //               const startTime = new Date(classItem.startTime);
+  //               return startTime > now; // Future class
+  //             }
+  //             return false;
+  //           });
+            
+  //           if (hasUpcomingClass) {
+  //             hasAttendedClasses = true; // Enrolled with upcoming classes = actively engaged
+  //           }
+  //         }
+
+  //         // Student is retained if:
+  //         // - They are enrolled in at least one course
+  //         // - AND they have attended classes (present) OR have upcoming classes
+  //         if (hasCourses && hasAttendedClasses) {
+  //           activeStudents++;
+  //         }
+  //       });
+
+  //       // Calculate retention rate percentage
+  //       const retentionRate = totalStudents > 0 
+  //         ? (activeStudents / totalStudents) * 100 
+  //         : 0;
+
+  //       setStudentRetention(Math.round(retentionRate * 10) / 10); // Round to 1 decimal place
+  //     } catch (error: any) {
+  //       console.error("Error while fetching retention stats:", error);
+  //       setRetentionError(
+  //         error?.message || "Something went wrong while fetching retention stats."
+  //       );
+  //       setStudentRetention(null);
+  //     } finally {
+  //       setIsRetentionLoading(false);
+  //     }
+  //   };
+
+  //   fetchRetentionStats();
+  // }, []);
 
   const displayedActiveTutors =
     selectedRange === "thisMonth" || activeTutorsLastMonthCount === null
@@ -1097,8 +1488,12 @@ setStudentsData(students); // Store students data for child components
         </div>
 
         <div className="table-box">
-          <PerformingTutors />
-        </div>
+<PerformingTutors 
+  tutorsData={tutorsData} 
+  tutorClassCounts={tutorClassCounts}
+  isTutorsLoading={isTutorStatsLoading}
+  tutorsError={tutorStatsError}
+/>        </div>
 
       </div>
     </div>
