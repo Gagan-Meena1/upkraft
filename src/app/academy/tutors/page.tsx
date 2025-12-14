@@ -16,40 +16,46 @@ const Tutors = () => {
     monthlyRevenue: 0
   });
   const [loadingStats, setLoadingStats] = useState(true);
+  const [tutors, setTutors] = useState([]);
+
   const router = useRouter();
 
   useEffect(() => {
     fetchStats();
   }, [refreshKey]);
 
-  const fetchStats = async () => {
-    try {
-      setLoadingStats(true);
-      const response = await fetch("/Api/academy/tutors");
+const fetchStats = async () => {
+  try {
+    setLoadingStats(true);
+    const response = await fetch("/Api/academy/tutors");
+    
+    if (response.ok) {
+      const data = await response.json();
       
-      if (response.ok) {
-        const data = await response.json();
+      if (data.success && data.tutors) {
+        const tutorsData = data.tutors;
         
-        if (data.success && data.tutors) {
-          const tutors = data.tutors;
-          const activeTutors = tutors.filter(t => t.isVerified).length;
-          const totalStudents = tutors.reduce((sum, t) => sum + (t.studentCount || 0), 0);
-          const monthlyRevenue = tutors.reduce((sum, t) => sum + (t.revenue || 0), 0);
-          
-          setStats({
-            totalTutors: tutors.length,
-            activeTutors,
-            totalStudents,
-            monthlyRevenue
-          });
-        }
+        // Store tutors data
+        setTutors(tutorsData);
+        
+        const activeTutors = tutorsData.filter(t => t.isVerified).length;
+        const totalStudents = tutorsData.reduce((sum, t) => sum + (t.studentCount || 0), 0);
+        const monthlyRevenue = tutorsData.reduce((sum, t) => sum + (t.revenue || 0), 0);
+        
+        setStats({
+          totalTutors: tutorsData.length,
+          activeTutors,
+          totalStudents,
+          monthlyRevenue
+        });
       }
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-    } finally {
-      setLoadingStats(false);
     }
-  };
+  } catch (error) {
+    console.error("Error fetching stats:", error);
+  } finally {
+    setLoadingStats(false);
+  }
+};
 
   const handleTutorAdded = () => {
     // Trigger refresh of tutor table and stats
@@ -130,8 +136,11 @@ const Tutors = () => {
         </div>
       </div>
       <div className="table-box container-fluid">
-        <TutorTable key={refreshKey} />
-      </div>
+<TutorTable 
+  key={refreshKey} 
+  tutorsData={tutors} 
+  loading={loadingStats}
+/>      </div>
       <AddNewTutorModal onTutorAdded={handleTutorAdded} />
     </div>
   );

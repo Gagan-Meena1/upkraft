@@ -3,47 +3,32 @@ import React, { useState, useEffect } from "react";
 import Image from 'next/image'
 import Profile from "../../../assets/Mask-profile.png";
 
-const PerformingTutors = () => {
-  const [tutors, setTutors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+// interface PerformingTutorsProps {
+//   tutorsData: any[];
+//   tutorClassCounts: Record<string, number>;
+//   isTutorsLoading: boolean;
+//   tutorsError: string | null;
+// }
 
+const PerformingTutors= ({ 
+  tutorsData, 
+  tutorClassCounts,
+  isTutorsLoading, 
+  tutorsError 
+}) => {
+  const [sortedTutors, setSortedTutors] = useState([]);
+
+  // Sort tutors by CSAT score when data changes
   useEffect(() => {
-    const fetchTutors = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch("/Api/academy/tutors", {
-          method: "GET",
-          credentials: "include",
-        });
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch tutors");
-        }
-
-        const data = await response.json();
-        
-        if (data.success && Array.isArray(data.tutors)) {
-          // Sort by CSAT score (performance) in descending order
-          const sortedTutors = [...data.tutors].sort((a, b) => {
-            return (b.csatScore || 0) - (a.csatScore || 0);
-          });
-          setTutors(sortedTutors);
-        } else {
-          setTutors([]);
-        }
-      } catch (error) {
-        console.error("Error fetching tutors:", error);
-        setError("Failed to load tutors");
-        setTutors([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTutors();
-  }, []);
+    if (tutorsData && tutorsData.length > 0) {
+      const sorted = [...tutorsData].sort((a, b) => {
+        return (b.csatScore || 0) - (a.csatScore || 0);
+      });
+      setSortedTutors(sorted);
+    } else {
+      setSortedTutors([]);
+    }
+  }, [tutorsData]);
 
   const formatCurrency = (amount) => {
     if (!amount || amount === 0) return "₹0";
@@ -67,55 +52,8 @@ const PerformingTutors = () => {
     return "lighter-red";
   };
 
-  // Calculate classes this month for tutors
-  const [classesCounts, setClassesCounts] = useState({});
-
-  useEffect(() => {
-    const fetchClassesCounts = async () => {
-      if (tutors.length === 0 || loading) return;
-      
-      const countsMap = {};
-      
-      const classesPromises = tutors.map(async (tutor) => {
-        try {
-          const classResponse = await fetch(`/Api/getClasses?tutorId=${tutor._id}`, {
-            method: "GET",
-            credentials: "include",
-          });
-          if (classResponse.ok) {
-            const classData = await classResponse.json();
-            if (classData?.success && Array.isArray(classData.classes)) {
-              const now = new Date();
-              const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-              const thisMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-              
-              const classesThisMonth = classData.classes.filter((cls) => {
-                if (!cls.startTime) return false;
-                const startTime = new Date(cls.startTime);
-                return startTime >= thisMonthStart && startTime <= thisMonthEnd;
-              }).length;
-              
-              countsMap[tutor._id] = classesThisMonth;
-              return;
-            }
-          }
-        } catch (error) {
-          console.error(`Error fetching classes for tutor ${tutor._id}:`, error);
-        }
-        // Fallback to classCount if we can't fetch classes
-        countsMap[tutor._id] = tutor.classCount || 0;
-      });
-
-      await Promise.all(classesPromises);
-      setClassesCounts(countsMap);
-    };
-
-    // Only fetch when loading is complete and we have tutors
-    if (!loading && tutors.length > 0 && Object.keys(classesCounts).length === 0) {
-      fetchClassesCounts();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading]); // Only run when loading state changes
+  const loading = isTutorsLoading;
+  const error = tutorsError;
 
   return (
     <div className="card-box">
@@ -152,22 +90,22 @@ const PerformingTutors = () => {
                         {error}
                       </td>
                     </tr>
-                  ) : tutors.length === 0 ? (
+                  ) : sortedTutors.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="text-center py-4">
                         No tutors found
                       </td>
                     </tr>
                   ) : (
-                    tutors.map((tutor) => {
+                    sortedTutors.map((tutor) => {
                       // Get primary skill/subject from tutor courses or skills
                       const primarySkill = tutor.tutorCourses && tutor.tutorCourses.length > 0
                         ? tutor.tutorCourses[0]?.category || tutor.tutorCourses[0]?.title || "N/A"
                         : tutor.skills || "N/A";
 
-                      // Get classes this month from the counts map, fallback to classCount
-                      const classesThisMonth = classesCounts[tutor._id] !== undefined
-                        ? classesCounts[tutor._id]
+                      // Get classes this month from passed data, fallback to classCount
+                      const classesThisMonth = tutorClassCounts[tutor._id] !== undefined
+                        ? tutorClassCounts[tutor._id]
                         : tutor.classCount || 0;
 
                       return (
