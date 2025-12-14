@@ -6,7 +6,7 @@ import { Button, Dropdown, Form } from "react-bootstrap";
 import Pagination from "react-bootstrap/Pagination";
 import Profile from "../../../assets/Mask-profile.png";
 
-const TutorTable = ({ refreshKey }) => {
+const TutorTable = ({ refreshKey, tutorsData, loading: externalLoading }) => {
   const [tutors, setTutors] = useState([]);
   const [filteredTutors, setFilteredTutors] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,38 +14,24 @@ const TutorTable = ({ refreshKey }) => {
   const [subjectFilter, setSubjectFilter] = useState("All Subjects");
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [sortBy, setSortBy] = useState("Performance");
-
   useEffect(() => {
-    fetchTutors();
-  }, [refreshKey]);
+  if (tutorsData && tutorsData.length >= 0) {
+    setTutors(tutorsData);
+    setLoading(false);
+  }
+}, [tutorsData]);
+
+  // useEffect(() => {
+  //   fetchTutors();
+  // }, [refreshKey]);
 
   useEffect(() => {
     applyFilters();
   }, [tutors, searchTerm, subjectFilter, statusFilter, sortBy]);
 
-  const fetchTutors = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/Api/academy/tutors");
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch tutors");
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setTutors(data.tutors || []);
-      } else {
-        console.error("Error fetching tutors:", data.error);
-      }
-    } catch (error) {
-      console.error("Error fetching tutors:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  useEffect(() => {
+    setLoading(externalLoading);
+  }, [externalLoading]);
   const applyFilters = () => {
     let filtered = [...tutors];
 
