@@ -65,11 +65,15 @@ export default function SettingsPage() {
     nextInvoiceNumber: 125
   });
   const [showPayoutModal, setShowPayoutModal] = useState(false);
-  const [payoutApplyOption, setPayoutApplyOption] = useState<'all' | 'select'>('all');
+  const [payoutApplyOption, setPayoutApplyOption] = useState<'all' | 'select' | 'selectWithStudents'>('all');
   const [tutorsList, setTutorsList] = useState<Array<{_id: string; username: string; email: string}>>([]);
   const [selectedTutorIds, setSelectedTutorIds] = useState<string[]>([]);
+  const [selectedTutorForStudents, setSelectedTutorForStudents] = useState<string>('');
+  const [studentsList, setStudentsList] = useState<Array<{_id: string; username: string; email: string}>>([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
   const [isSavingPayout, setIsSavingPayout] = useState(false);
   const [isLoadingTutors, setIsLoadingTutors] = useState(false);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isSavingPricing, setIsSavingPricing] = useState(false);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const router = useRouter();
@@ -348,10 +352,47 @@ export default function SettingsPage() {
     }
   };
 
+  const fetchStudentsForTutor = async (tutorId: string) => {
+    setIsLoadingStudents(true);
+    setStudentsList([]);
+    setSelectedStudentIds([]);
+    try {
+      const response = await fetch(`/Api/myStudents?tutorId=${tutorId}`, {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.filteredUsers) {
+          setStudentsList(data.filteredUsers.map((student: any) => ({
+            _id: student._id,
+            username: student.username,
+            email: student.email
+          })));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching students for tutor:', error);
+      toast.error('Failed to load students');
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  };
+
   const handleSavePayoutSettings = async () => {
     if (payoutApplyOption === 'select' && selectedTutorIds.length === 0) {
       toast.error('Please select at least one tutor');
       return;
+    }
+
+    if (payoutApplyOption === 'selectWithStudents') {
+      if (!selectedTutorForStudents) {
+        toast.error('Please select a tutor');
+        return;
+      }
+      if (selectedStudentIds.length === 0) {
+        toast.error('Please select at least one student');
+        return;
+      }
     }
 
     setIsSavingPayout(true);
@@ -364,7 +405,11 @@ export default function SettingsPage() {
         body: JSON.stringify({
           payoutSettings: tutorPayout,
           applyToAll: payoutApplyOption === 'all',
-          selectedTutorIds: payoutApplyOption === 'select' ? selectedTutorIds : []
+          selectedTutorIds: payoutApplyOption === 'select' ? selectedTutorIds : [],
+          tutorWithStudents: payoutApplyOption === 'selectWithStudents' ? {
+            tutorId: selectedTutorForStudents,
+            studentIds: selectedStudentIds
+          } : null
         }),
         credentials: 'include'
       });
@@ -376,6 +421,9 @@ export default function SettingsPage() {
         setShowPayoutModal(false);
         setPayoutApplyOption('all');
         setSelectedTutorIds([]);
+        setSelectedTutorForStudents('');
+        setSelectedStudentIds([]);
+        setStudentsList([]);
       } else {
         toast.error(data.error || 'Failed to save payout settings');
       }
@@ -395,6 +443,26 @@ export default function SettingsPage() {
         return [...prev, tutorId];
       }
     });
+  };
+
+  const handleStudentToggle = (studentId: string) => {
+    setSelectedStudentIds(prev => {
+      if (prev.includes(studentId)) {
+        return prev.filter(id => id !== studentId);
+      } else {
+        return [...prev, studentId];
+      }
+    });
+  };
+
+  const handleTutorSelectForStudents = (tutorId: string) => {
+    setSelectedTutorForStudents(tutorId);
+    if (tutorId) {
+      fetchStudentsForTutor(tutorId);
+    } else {
+      setStudentsList([]);
+      setSelectedStudentIds([]);
+    }
   };
 
   const handleSaveTaxCompliance = async () => {
@@ -2096,7 +2164,16 @@ export default function SettingsPage() {
           justifyContent: 'center',
           padding: '20px'
         }}
-        onClick={() => !isSavingPayout && setShowPayoutModal(false)}
+        onClick={() => {
+          if (!isSavingPayout) {
+            setShowPayoutModal(false);
+            setPayoutApplyOption('all');
+            setSelectedTutorIds([]);
+            setSelectedTutorForStudents('');
+            setSelectedStudentIds([]);
+            setStudentsList([]);
+          }
+        }}
         >
           <div style={{
             background: 'white',
@@ -2134,6 +2211,9 @@ export default function SettingsPage() {
               onClick={() => {
                 setPayoutApplyOption('all');
                 setSelectedTutorIds([]);
+                setSelectedTutorForStudents('');
+                setSelectedStudentIds([]);
+                setStudentsList([]);
               }}
               >
                 <input
@@ -2142,6 +2222,9 @@ export default function SettingsPage() {
                   onChange={() => {
                     setPayoutApplyOption('all');
                     setSelectedTutorIds([]);
+                    setSelectedTutorForStudents('');
+                    setSelectedStudentIds([]);
+                    setStudentsList([]);
                   }}
                   style={{ marginRight: '12px', cursor: 'pointer' }}
                 />
@@ -2154,19 +2237,57 @@ export default function SettingsPage() {
                 padding: '12px',
                 border: '2px solid #e0e0e0',
                 borderRadius: '8px',
+                marginBottom: '12px',
                 cursor: 'pointer',
                 backgroundColor: payoutApplyOption === 'select' ? '#f3e5f5' : 'white',
                 transition: 'all 0.3s'
               }}
-              onClick={() => setPayoutApplyOption('select')}
+              onClick={() => {
+                setPayoutApplyOption('select');
+                setSelectedTutorForStudents('');
+                setSelectedStudentIds([]);
+                setStudentsList([]);
+              }}
               >
                 <input
                   type="radio"
                   checked={payoutApplyOption === 'select'}
-                  onChange={() => setPayoutApplyOption('select')}
+                  onChange={() => {
+                    setPayoutApplyOption('select');
+                    setSelectedTutorForStudents('');
+                    setSelectedStudentIds([]);
+                    setStudentsList([]);
+                  }}
                   style={{ marginRight: '12px', cursor: 'pointer' }}
                 />
                 <span style={{ fontSize: '14px', fontWeight: 500 }}>Select tutors</span>
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                backgroundColor: payoutApplyOption === 'selectWithStudents' ? '#f3e5f5' : 'white',
+                transition: 'all 0.3s'
+              }}
+              onClick={() => {
+                setPayoutApplyOption('selectWithStudents');
+                setSelectedTutorIds([]);
+              }}
+              >
+                <input
+                  type="radio"
+                  checked={payoutApplyOption === 'selectWithStudents'}
+                  onChange={() => {
+                    setPayoutApplyOption('selectWithStudents');
+                    setSelectedTutorIds([]);
+                  }}
+                  style={{ marginRight: '12px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Select tutors with students</span>
               </label>
             </div>
 
@@ -2227,6 +2348,111 @@ export default function SettingsPage() {
               </div>
             )}
 
+            {payoutApplyOption === 'selectWithStudents' && (
+              <div style={{ marginBottom: '20px' }}>
+                {/* Tutor Selection Dropdown */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#1a1a1a',
+                    marginBottom: '8px'
+                  }}>
+                    Select Tutor
+                  </label>
+                  {isLoadingTutors ? (
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                      <p>Loading tutors...</p>
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedTutorForStudents}
+                      onChange={(e) => handleTutorSelectForStudents(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        border: '2px solid #e0e0e0',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        transition: 'border-color 0.3s',
+                        fontFamily: 'inherit',
+                        background: 'white',
+                        cursor: 'pointer'
+                      }}
+                      onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                      onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                    >
+                      <option value="">-- Select a tutor --</option>
+                      {tutorsList.map((tutor) => (
+                        <option key={tutor._id} value={tutor._id}>
+                          {tutor.username} ({tutor.email})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                {/* Students List */}
+                {selectedTutorForStudents && (
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      color: '#1a1a1a',
+                      marginBottom: '8px'
+                    }}>
+                      Select Students
+                    </label>
+                    {isLoadingStudents ? (
+                      <div style={{ textAlign: 'center', padding: '20px' }}>
+                        <p>Loading students...</p>
+                      </div>
+                    ) : studentsList.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                        <p>No students found for this tutor</p>
+                      </div>
+                    ) : (
+                      <div style={{
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        border: '2px solid #e0e0e0',
+                        borderRadius: '8px',
+                        padding: '8px'
+                      }}>
+                        {studentsList.map((student) => (
+                          <label
+                            key={student._id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '8px 12px',
+                              cursor: 'pointer',
+                              borderRadius: '4px',
+                              marginBottom: '4px',
+                              backgroundColor: selectedStudentIds.includes(student._id) ? '#e3f2fd' : 'transparent',
+                              transition: 'background-color 0.2s'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedStudentIds.includes(student._id)}
+                              onChange={() => handleStudentToggle(student._id)}
+                              style={{ marginRight: '10px', cursor: 'pointer' }}
+                            />
+                            <span style={{ fontSize: '14px' }}>
+                              {student.username} ({student.email})
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{
               display: 'flex',
               gap: '12px',
@@ -2238,6 +2464,9 @@ export default function SettingsPage() {
                   setShowPayoutModal(false);
                   setPayoutApplyOption('all');
                   setSelectedTutorIds([]);
+                  setSelectedTutorForStudents('');
+                  setSelectedStudentIds([]);
+                  setStudentsList([]);
                 }}
                 disabled={isSavingPayout}
                 style={{
@@ -2256,18 +2485,26 @@ export default function SettingsPage() {
               </button>
               <button
                 onClick={handleSavePayoutSettings}
-                disabled={isSavingPayout || (payoutApplyOption === 'select' && selectedTutorIds.length === 0)}
+                disabled={
+                  isSavingPayout || 
+                  (payoutApplyOption === 'select' && selectedTutorIds.length === 0) ||
+                  (payoutApplyOption === 'selectWithStudents' && (!selectedTutorForStudents || selectedStudentIds.length === 0))
+                }
                 style={{
                   padding: '10px 20px',
                   border: 'none',
                   borderRadius: '8px',
-                  background: isSavingPayout || (payoutApplyOption === 'select' && selectedTutorIds.length === 0)
+                  background: isSavingPayout || 
+                    (payoutApplyOption === 'select' && selectedTutorIds.length === 0) ||
+                    (payoutApplyOption === 'selectWithStudents' && (!selectedTutorForStudents || selectedStudentIds.length === 0))
                     ? '#ccc'
                     : 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
                   color: 'white',
                   fontSize: '14px',
                   fontWeight: 600,
-                  cursor: isSavingPayout || (payoutApplyOption === 'select' && selectedTutorIds.length === 0)
+                  cursor: isSavingPayout || 
+                    (payoutApplyOption === 'select' && selectedTutorIds.length === 0) ||
+                    (payoutApplyOption === 'selectWithStudents' && (!selectedTutorForStudents || selectedStudentIds.length === 0))
                     ? 'not-allowed'
                     : 'pointer',
                   transition: 'all 0.3s'
