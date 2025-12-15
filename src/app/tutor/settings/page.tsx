@@ -43,6 +43,7 @@ export default function TutorSettingsPage() {
   const [policies, setPolicies] = useState<any>(null);
   const [isLoadingPolicies, setIsLoadingPolicies] = useState(false);
   const [payoutSettings, setPayoutSettings] = useState<any>(null);
+  const [studentSpecificSettings, setStudentSpecificSettings] = useState<any[]>([]);
   const [isLoadingPayout, setIsLoadingPayout] = useState(false);
   const router = useRouter();
 
@@ -222,6 +223,9 @@ export default function TutorSettingsPage() {
               const payoutData = await payoutResponse.json();
               if (payoutData.success && payoutData.payoutSettings) {
                 setPayoutSettings(payoutData.payoutSettings);
+                if (payoutData.studentSpecificSettings && Array.isArray(payoutData.studentSpecificSettings)) {
+                  setStudentSpecificSettings(payoutData.studentSpecificSettings);
+                }
               }
             }
           } catch (error) {
@@ -1339,6 +1343,123 @@ export default function TutorSettingsPage() {
                       {payoutSettings.minimumPayoutAmount || 'Not set'}
                     </div>
                   </div>
+
+                  {/* Student-Specific Payout Settings */}
+                  {studentSpecificSettings.length > 0 && (
+                    <div style={{
+                      marginTop: '32px',
+                      padding: '24px',
+                      border: '2px solid #e3f2fd',
+                      borderRadius: '12px',
+                      background: 'linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%)'
+                    }}>
+                      <div style={{
+                        fontSize: '18px',
+                        fontWeight: 600,
+                        color: '#1a1a1a',
+                        marginBottom: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span>👥</span>
+                        Student-Specific Payout Settings
+                      </div>
+                      <div style={{
+                        fontSize: '14px',
+                        color: '#666',
+                        marginBottom: '20px'
+                      }}>
+                        The academy has set custom payout settings for specific students
+                      </div>
+                      
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px'
+                      }}>
+                        {studentSpecificSettings.map((item, index) => (
+                          <div 
+                            key={item.studentId}
+                            style={{
+                              padding: '16px',
+                              border: '1px solid #90caf9',
+                              borderRadius: '8px',
+                              background: 'white'
+                            }}
+                          >
+                            <div style={{
+                              fontSize: '14px',
+                              fontWeight: 600,
+                              color: '#1565c0',
+                              marginBottom: '12px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}>
+                              <span style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '12px',
+                                fontWeight: 'bold'
+                              }}>
+                                {index + 1}
+                              </span>
+                              {item.studentName}
+                              <span style={{
+                                fontSize: '12px',
+                                color: '#999',
+                                fontWeight: 400
+                              }}>
+                                ({item.studentEmail})
+                              </span>
+                            </div>
+                            
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(2, 1fr)',
+                              gap: '12px',
+                              fontSize: '13px'
+                            }}>
+                              <div>
+                                <span style={{ color: '#666', fontWeight: 500 }}>Commission Model:</span>
+                                <div style={{ color: '#1a1a1a', fontWeight: 600, marginTop: '4px' }}>
+                                  {item.payoutSettings.commissionModel}
+                                </div>
+                              </div>
+                              <div>
+                                <span style={{ color: '#666', fontWeight: 500 }}>Commission:</span>
+                                <div style={{ color: '#1a1a1a', fontWeight: 600, marginTop: '4px' }}>
+                                  {item.payoutSettings.commissionPercentage}%
+                                  <span style={{ fontSize: '11px', color: '#999', marginLeft: '4px' }}>
+                                    (Academy: {100 - item.payoutSettings.commissionPercentage}%)
+                                  </span>
+                                </div>
+                              </div>
+                              <div>
+                                <span style={{ color: '#666', fontWeight: 500 }}>Frequency:</span>
+                                <div style={{ color: '#1a1a1a', fontWeight: 600, marginTop: '4px' }}>
+                                  {item.payoutSettings.payoutFrequency}
+                                </div>
+                              </div>
+                              <div>
+                                <span style={{ color: '#666', fontWeight: 500 }}>Minimum:</span>
+                                <div style={{ color: '#1a1a1a', fontWeight: 600, marginTop: '4px' }}>
+                                  {item.payoutSettings.minimumPayoutAmount}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div style={{
