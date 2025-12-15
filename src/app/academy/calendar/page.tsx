@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-reac
 import { toast } from "react-hot-toast";
 import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO } from 'date-fns';
+import { Suspense } from 'react';
+
 
 interface Course {
   _id: string;
@@ -431,4 +433,14 @@ const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   );
 };
 
-export default AcademyCalendarView;
+export default function DayViewPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      </div>
+    }>
+      <AcademyCalendarView />
+    </Suspense>
+  );
+}
