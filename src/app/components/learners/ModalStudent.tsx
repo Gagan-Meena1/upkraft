@@ -51,12 +51,12 @@ const [formData, setFormData] = useState({
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Generate time slots (9 AM - 9 PM, 30-min intervals)
+// Generate time slots (10 AM - 8 PM, 30-min intervals)
 const generateTimeSlots = () => {
   const slots = [];
-  for (let hour = 8; hour <= 20; hour++) {
+  for (let hour = 10; hour <= 20; hour++) {  // Changed from 8 to 10
     for (let min = 0; min < 60; min += 30) {
-      if (hour === 20 && min > 0) break; // Stop at 9:00 PM
+      if (hour === 20 && min > 0) break; // Stop at 8:00 PM
       const time24 = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
       const hour12 = hour > 12 ? hour - 12 : hour === 0 ? 12 : hour;
       const ampm = hour >= 12 ? "PM" : "AM";
@@ -67,9 +67,10 @@ const generateTimeSlots = () => {
   return slots;
 };
 
-// Get minimum date (today)
+// Get minimum date (24 hours from now = tomorrow)
 const getMinDate = () => {
   const today = new Date();
+  today.setDate(today.getDate() + 1); // Add 1 day for 24-hour advance booking
   return today.toISOString().split("T")[0];
 };
 
