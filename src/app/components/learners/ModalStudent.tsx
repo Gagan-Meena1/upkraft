@@ -50,6 +50,7 @@ const [formData, setFormData] = useState({
 });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [dateTimeError, setDateTimeError] = useState("");
 
 // Generate time slots (10 AM - 8 PM, 30-min intervals)
 const generateTimeSlots = () => {
@@ -66,12 +67,31 @@ const generateTimeSlots = () => {
   }
   return slots;
 };
+// Check if selected date and time is at least 24 hours from now
+const isValidDateTime = (date, time) => {
+  if (!date || !time) return true; // Don't validate if not fully selected
+  
+  const selectedDateTime = new Date(`${date}T${time}`);
+  const now = new Date();
+  const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  
+  return selectedDateTime >= twentyFourHoursFromNow;
+};
 
-// Get minimum date (24 hours from now = tomorrow)
+// Get formatted time 24 hours from now for display
+const get24HoursFromNow = () => {
+  const future = new Date();
+  future.setHours(future.getHours() + 24);
+  const date = future.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const time = future.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${date} at ${time}`;
+};
+
+// Get minimum date (24 hours from now)
 const getMinDate = () => {
-  const today = new Date();
-  today.setDate(today.getDate() + 1); // Add 1 day for 24-hour advance booking
-  return today.toISOString().split("T")[0];
+  const tomorrow = new Date();
+  tomorrow.setHours(tomorrow.getHours() + 24); // Add exactly 24 hours
+  return tomorrow.toISOString().split("T")[0];
 };
 
 // Calculate end time (start time + 30 minutes)
@@ -91,20 +111,43 @@ const calculateEndTime = (startTime) => {
   return `${hour12}:${endMin.toString().padStart(2, "0")} ${ampm}`;
 };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "phone") {
-      const formatted = formatPhoneNumber(value, formData.countryCode);
-      setFormData({ ...formData, phone: formatted });
-    } else {
-      setFormData({ ...formData, [name]: value });
+ const handleChange = (e) => {
+  const { name, value } = e.target;
+  
+  if (name === "phone") {
+    const formatted = formatPhoneNumber(value, formData.countryCode);
+    setFormData({ ...formData, phone: formatted });
+  } else {
+    const updatedFormData = { ...formData, [name]: value };
+    setFormData(updatedFormData);
+    
+    // Validate date/time if both are selected
+    if (name === "demoDate" || name === "demoTime") {
+      const dateToCheck = name === "demoDate" ? value : formData.demoDate;
+      const timeToCheck = name === "demoTime" ? value : formData.demoTime;
+      
+      if (dateToCheck && timeToCheck) {
+        if (!isValidDateTime(dateToCheck, timeToCheck)) {
+          setDateTimeError(`⚠️ Please select a date and time at least 24 hours from now (after ${get24HoursFromNow()})`);
+        } else {
+          setDateTimeError("");
+        }
+      }
     }
-  };
+  }
+};
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setMessage("");
+     if (!isValidDateTime(formData.demoDate, formData.demoTime)) {
+    setDateTimeError(`⚠️ Please select a date and time at least 24 hours from now (after ${get24HoursFromNow()})`);
+    return;
+  }
+  
+  setLoading(true);
+  setMessage("");
+  setDateTimeError("");
+  
 
     try {
      const submissionData = {
@@ -280,6 +323,13 @@ const calculateEndTime = (startTime) => {
       </Form.Text>
     )}
   </Form.Group>
+  {dateTimeError && (
+  <div className="col-lg-12">
+    <div className="alert alert-warning mt-2 mb-3" role="alert">
+      {dateTimeError}
+    </div>
+  </div>
+)}
 </div>
 
         <div className="col-lg-12">
@@ -311,19 +361,20 @@ const calculateEndTime = (startTime) => {
             <Tabs
               id="controlled-tab-example"
               activeKey={key}
-              onSelect={(k) => {
-                setKey(k);
-                   setFormData({
-  name: "",
-  email: "",
-  city: "",
-  phone: "",
-  countryCode: formData.countryCode,
-  skill: "",
-  demoDate: "",
-  demoTime: "",
-});
-              }}
+           onSelect={(k) => {
+  setKey(k);
+  setDateTimeError(""); // Add this line
+  setFormData({
+    name: "",
+    email: "",
+    city: "",
+    phone: "",
+    countryCode: formData.countryCode,
+    skill: "",
+    demoDate: "",
+    demoTime: "",
+  });
+}}
             >
               <Tab eventKey="Student" title="Student">
                 {renderForm()}
