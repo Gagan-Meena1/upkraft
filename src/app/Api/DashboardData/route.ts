@@ -118,7 +118,7 @@ export async function GET(request) {
 
     const [user, studentCount] = await Promise.all([
       User.findById(userId)
-        .select("_id username email category profileImage courses timezone")
+        .select("_id username email category profileImage courses timezone academyId")
         .lean(),
 
       User.countDocuments({

@@ -17,32 +17,18 @@ import { FileMusic } from 'lucide-react';
 import { Music } from 'lucide-react';
 import { BookOpen } from 'lucide-react';
 import { CreditCard } from 'lucide-react';
+import { useUserData } from "@/app/providers/UserData/page"; // ✅ Also works
+
 
 
 
 const SideMenuHeader = ({ role }) => {
   const pathname = usePathname();
-  const [userData, setUserData] = useState<any>(null);
+    const { userData, loading } = useUserData();
+  
 
   // Fetch user data to check for academyId
-  useEffect(() => {
-    if (role === "student" || role === "tutor") {
-      const fetchUserData = async () => {
-        try {
-          const response = await fetch("/Api/users/user");
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.user) {
-              setUserData(data.user);
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      };
-      fetchUserData();
-    }
-  }, [role]);
+
 
   // Determine if the student/tutor is created by an academy
   const isAcademyStudent = userData?.category === "Student" && userData?.academyId;

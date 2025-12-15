@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import { useUserData } from "../providers/UserData/page"; // ✅ Add this import
 import {
   formatInTz,
   formatTimeRangeInTz,
@@ -15,104 +16,95 @@ interface ClassData {
   description: string;
   startTime: string;
   endTime: string;
-  instructorId?: string; // added to use tutor lookup
+  instructorId?: string;
   students?: Array<{
     _id: string;
     username: string;
   }>;
 }
 
-interface UserData {
-  _id: string;
-  username?: string;
-  name?: string;
-  email?: string;
-  category: string;
-  timezone?: string; // add timezone from API
-}
-
 const UpcomingLessons = () => {
+  // ✅ REPLACE the state and API call with context hook
+  const { userData, classDetails, loading: contextLoading } = useUserData();
+  
+  // ❌ REMOVE these lines:
+  // const [userData, setUserData] = useState<UserData | null>(null);
+  // const [loading, setLoading] = useState<boolean>(true);
+  
   const [classes, setClasses] = useState<ClassData[]>([]);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [tutorData, setTutorData] = useState<UserData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tutorsMap, setTutorsMap] = useState<{ [key: string]: string | null }>(
-    {}
-  );
+  const [tutorsMap, setTutorsMap] = useState<{ [key: string]: string | null }>({});
   const router = useRouter();
   const userTz = userData?.timezone || getUserTimeZone();
+  const [loadingTutors, setLoadingTutors] = useState(false);
 
+
+  // ✅ REPLACE the first useEffect with this simpler version
   useEffect(() => {
-    const fetchClasses = async () => {
+    if (!contextLoading && classDetails) {
       try {
-        setLoading(true);
-        const userResponse = await fetch("/Api/users/user");
-        const userResponseData = await userResponse.json();
-
-        // Save user data
-        if (userResponseData.user) {
-          setUserData(userResponseData.user);
-        }
-
-        if (
-          userResponseData.classDetails &&
-          userResponseData.classDetails.length > 0
-        ) {
-         const now = new Date();
+        const now = new Date();
         const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-        const futureClasses = userResponseData.classDetails
+        const futureClasses = classDetails
           .filter((cls: ClassData) => new Date(cls.startTime) > twentyFourHoursAgo)
           .sort(
             (a: ClassData, b: ClassData) =>
-              new Date(a.startTime).getTime() -
-              new Date(b.startTime).getTime()
-          );
+              new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+          )
+        .slice(0, 10); // ✅ ADD THIS LINE - Limit to 10 classes
 
-          setClasses(futureClasses);
-        } else {
-          setClasses([]);
-        }
+        setClasses(futureClasses);
       } catch (err) {
-        console.error("Error fetching classes:", err);
+        console.error("Error processing classes:", err);
         setError("Failed to load upcoming lessons");
-      } finally {
-        setLoading(false);
       }
-    };
+    }
+  }, [contextLoading, classDetails]);
 
-    fetchClasses();
-  }, []);
 
-  useEffect(() => {
-    const fetchTutors = async () => {
-      const map: { [key: string]: string | null } = {};
-      for (let cls of classes) {
-        const instructorId = cls.instructorId || (cls as any).instructor;
-        if (!instructorId) {
-          map[cls._id] = null;
-          continue;
-        }
-        try {
-          const res = await fetch(
-            `/Api/tutorInfoForStudent?tutorId=${encodeURIComponent(
-              instructorId
-            )}`
-          );
-          const data = await res.json();
-          const name = data?.tutor?.username?.trim() || null;
-          map[cls._id] = name;
-        } catch (err) {
-          console.error("Error fetching tutor for class", cls._id, err);
-          map[cls._id] = null;
-        }
+
+// 3️⃣ REPLACE the entire tutor fetching useEffect with this:
+useEffect(() => {
+  const fetchTutorNames = async () => {
+    if (classes.length === 0) return;
+
+    setLoadingTutors(true);
+    try {
+      const classIds = classes.map((cls) => cls._id);
+
+      const response = await fetch("/Api/academy/tutors/names", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ classIds }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch tutor names");
       }
-      setTutorsMap(map);
-    };
 
-    if (classes.length > 0) fetchTutors();
-  }, [classes]);
+      const data = await response.json();
+      
+      if (data.success && data.tutorNames) {
+        setTutorsMap(data.tutorNames);
+      }
+    } catch (err) {
+      console.error("Error fetching tutor names:", err);
+      // Set all to null on error
+      const fallbackMap: { [key: string]: string | null } = {};
+      classes.forEach((cls) => {
+        fallbackMap[cls._id] = null;
+      });
+      setTutorsMap(fallbackMap);
+    } finally {
+      setLoadingTutors(false);
+    }
+  };
+
+  fetchTutorNames();
+}, [classes]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -163,7 +155,8 @@ const UpcomingLessons = () => {
     }
   };
 
-  if (loading) {
+  // ✅ Use contextLoading instead of loading
+  if (contextLoading) {
     return (
       <div className="card-box table-sec">
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
@@ -190,7 +183,9 @@ const UpcomingLessons = () => {
       <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
         <div className="flex gap-2 items-center">
           <h2 className="!text-[20px] !mb-0">Upcoming Sessions</h2>
-          <span className="!text-sm text-gray-500">(Timezone: {userData.timezone})</span>
+          <span className="!text-sm text-gray-500">
+            (Timezone: {userData?.timezone || 'Loading...'})
+          </span>
         </div>
         <Link href="/student/calendar" className="btn-text">
           View All
@@ -230,11 +225,15 @@ const UpcomingLessons = () => {
                     </div>
                   </td>
                   <th>{classItem.title}</th>
-                  <td>
-                    {tutorsMap[classItem._id]
-                      ? tutorsMap[classItem._id]
-                      : "No tutor assigned"}
-                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+  {loadingTutors ? (
+    <span className="text-gray-400">Loading...</span>
+  ) : tutorsMap[classItem._id] ? (
+    tutorsMap[classItem._id]
+  ) : (
+    <span className="text-gray-400">No tutor assigned</span>
+  )}
+</td>
                   <td>
                     <button
                       onClick={() => handleJoinMeeting(classItem._id)}
