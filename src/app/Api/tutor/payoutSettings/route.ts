@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // Get tutor with payout settings
     const tutor = await User.findById(tutorId)
-      .select("tutorPayoutSettings academyId category")
+      .select("tutorPayoutSettings studentSpecificPayoutSettings academyId category")
       .lean();
 
     if (!tutor) {
@@ -65,9 +65,37 @@ export async function GET(request: NextRequest) {
 
     console.log('GET /Api/tutor/payoutSettings - Returning:', payoutSettings);
 
+    // Process student-specific payout settings if they exist
+    let studentSpecificSettings = [];
+    if (tutor.studentSpecificPayoutSettings && typeof tutor.studentSpecificPayoutSettings === 'object') {
+      console.log('GET /Api/tutor/payoutSettings - Found student-specific settings');
+      
+      // Get student IDs that have custom settings
+      const studentIds = Object.keys(tutor.studentSpecificPayoutSettings);
+      
+      if (studentIds.length > 0) {
+        // Fetch student details
+        const students = await User.find({
+          _id: { $in: studentIds },
+          category: "Student"
+        })
+        .select("_id username email")
+        .lean();
+        
+        // Map student info with their payout settings
+        studentSpecificSettings = students.map(student => ({
+          studentId: student._id.toString(),
+          studentName: student.username,
+          studentEmail: student.email,
+          payoutSettings: tutor.studentSpecificPayoutSettings![student._id.toString()]
+        }));
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      payoutSettings
+      payoutSettings,
+      studentSpecificSettings
     });
 
   } catch (error: any) {
