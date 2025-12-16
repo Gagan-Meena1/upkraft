@@ -161,7 +161,7 @@ const AcademyDayDetailsPage = () => {
       grouped.get(courseId)!.classes.push(classItem);
     });
 
-    // Sort classes within each course by start time
+    // Sort classes within each course by start timee
     grouped.forEach(group => {
       group.classes.sort((a, b) => 
         parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime()
