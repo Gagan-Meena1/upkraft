@@ -102,7 +102,7 @@ const ExclusiveBenefitsTutors = () => {
                 {/* ✅ Centered Button */}
                 <div className="text-center mt-4">
                     <Link href="" className="btn btn-orange" onClick={handleShow}>
-                       Request Demo
+                       Book a Demo
                     </Link>
                 </div>
             </div>

@@ -68,7 +68,7 @@ const CustomerInterestModal: React.FC<CustomerInterestModalProps> = ({ isOpen, o
         >
           &times;
         </button>
-        <h2 className="text-2xl font-semibold mb-4">Request Demo</h2>
+        <h2 className="text-2xl font-semibold mb-4">Book a Demo</h2>
         {success ? (
           <div className="text-green-600 mb-4">Thank you! Your interest has been submitted.</div>
         ) : (

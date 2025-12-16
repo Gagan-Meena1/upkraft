@@ -15,7 +15,7 @@ const WhyChoose = () => {
               <h2 className='mb-3'>
                 Why Choose <span>UpKraft?</span>
               </h2>
-              <p>Learners, tutors, parents—Upkraft is built for all.</p>
+              <p>Learners, tutors, parents—UpKraft is built for all.</p>
             </div>
           </div>
 

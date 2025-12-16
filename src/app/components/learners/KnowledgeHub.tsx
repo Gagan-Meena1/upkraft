@@ -49,7 +49,7 @@ const KnowledgeHub = () => {
                         {/* ---------------- Start Lessons Button ---------------- */}
                         <div className='w-100 d-flex justify-content-center mt-4'>
                             <Link href="" className='btn btn-orange m-auto' onClick={handleShow}>
-                                Start Free Lessons Today
+                                Explore UpKraft Channel
                             </Link>
                         </div>
                     </div>

@@ -28,11 +28,11 @@ const Banner = () => {
 
       <div className='text-box-banner'>
         <div className='text-box'>
-          <h1 className='mb-2'>Reimagine Music Learning with AI</h1>
-          <h3 className='mb-2'>Built for Music Tutors & Students Worldwide</h3>
-          <p>UpKraft is one stop solution to make music learning smarter, faster, and trackable.</p>
+          <h1 className='mb-2'>Reimagining Extracurricular Learning With AI</h1>
+          <h3 className='mb-2'>Built for Tutors & Students Worldwide</h3>
+          <p>UpKraft is one stop solution to make extracurricular learning smarter, faster, and trackable.</p>
           <Link href="" className='btn btn-orange' onClick={handleShow}>
-            Request Demo
+            Book a Demo
           </Link>
 
           <ul className='d-flex p-0 m-0 mt-xl-5 mt-4 list-unstyled justify-content-center'>
@@ -43,7 +43,6 @@ const Banner = () => {
             <li>Violin</li>
             <li>Dance</li>
             <li>Drawing</li>
-
 
           </ul>
         </div>
