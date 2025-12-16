@@ -1,7 +1,4 @@
-//Need to create new api
-
 // src>app>api>dashboard>pendingFeedbackCount>route.ts
-
 
 import { NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
@@ -31,7 +28,7 @@ export async function GET(request) {
       tutorId = decodedToken.id;
     }
 
-    // Fetch all students of this tutor
+    // Single aggregation query to get students with their course IDs
     const students = await User.find({
       instructorId: tutorId,
       category: "Student"
@@ -42,35 +39,110 @@ export async function GET(request) {
     }
 
     const studentIds = students.map(s => s._id);
+    const allCourseIds = [...new Set(students.flatMap(s => s.courses))];
+
+    // Fetch courses with populated class data in single query
     const tutorCourses = await courseName.find({
-      _id: { $in: students.flatMap(s => s.courses) },
+      _id: { $in: allCourseIds },
       instructorId: tutorId
     }).select("_id class category").lean();
 
-    const classesPast = tutorCourses
-      .flatMap(c => c.class.map(cls => ({ cls, category: c.category })));
+    if (!tutorCourses.length) {
+      return NextResponse.json({ success: true, count: 0 });
+    }
 
-    if (!classesPast.length) return NextResponse.json({ success: true, count: 0 });
+    // Build class-to-category map
+    const classCategoryMap = new Map();
+    const allClassIds = [];
+    
+    tutorCourses.forEach(course => {
+      course.class.forEach(classId => {
+        const classIdStr = classId.toString();
+        classCategoryMap.set(classIdStr, course.category);
+        allClassIds.push(classId);
+      });
+    });
 
+    if (!allClassIds.length) {
+      return NextResponse.json({ success: true, count: 0 });
+    }
+
+    // Fetch only past classes
     const pastClasses = await Class.find({
-      _id: { $in: classesPast.map(c => c.cls) },
+      _id: { $in: allClassIds },
       endTime: { $lt: new Date() }
     }).select("_id").lean();
 
-    const classIds = pastClasses.map(c => c._id);
+    if (!pastClasses.length) {
+      return NextResponse.json({ success: true, count: 0 });
+    }
 
-    // Parallel count calls for 3 subjects
-    const [musicGiven, danceGiven, drawingGiven] = await Promise.all([
-      feedback.countDocuments({ userId: { $in: studentIds }, classId: { $in: classIds } }),
-      feedbackDance.countDocuments({ userId: { $in: studentIds }, classId: { $in: classIds } }),
-      feedbackDrawing.countDocuments({ userId: { $in: studentIds }, classId: { $in: classIds } })
+    // Categorize past classes
+    const categorizedClasses = {
+      Music: [],
+      Dance: [],
+      Drawing: []
+    };
+
+    pastClasses.forEach(cls => {
+      const category = classCategoryMap.get(cls._id.toString());
+      if (categorizedClasses[category]) {
+        categorizedClasses[category].push(cls._id);
+      }
+    });
+
+    // Parallel fetch all existing feedbacks
+    const [musicFeedbacks, danceFeedbacks, drawingFeedbacks] = await Promise.all([
+      categorizedClasses.Music.length > 0
+        ? feedback.find({
+            userId: { $in: studentIds },
+            classId: { $in: categorizedClasses.Music }
+          }).select("userId classId").lean()
+        : Promise.resolve([]),
+      
+      categorizedClasses.Dance.length > 0
+        ? feedbackDance.find({
+            userId: { $in: studentIds },
+            classId: { $in: categorizedClasses.Dance }
+          }).select("userId classId").lean()
+        : Promise.resolve([]),
+      
+      categorizedClasses.Drawing.length > 0
+        ? feedbackDrawing.find({
+            userId: { $in: studentIds },
+            classId: { $in: categorizedClasses.Drawing }
+          }).select("userId classId").lean()
+        : Promise.resolve([])
     ]);
 
-    const totalFeedbackNeeded = classIds.length * studentIds.length;
-    const pendingFeedback = totalFeedbackNeeded - (musicGiven + danceGiven + drawingGiven);
+    // Create efficient lookup sets
+    const feedbackSets = {
+      Music: new Set(musicFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+      Dance: new Set(danceFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+      Drawing: new Set(drawingFeedbacks.map(f => `${f.userId}_${f.classId}`))
+    };
 
-    return NextResponse.json({ success: true, count: pendingFeedback });
-  } catch (err) {
+    // Calculate pending feedbacks by checking what's missing
+    let pendingCount = 0;
+
+    Object.entries(categorizedClasses).forEach(([category, classIds]) => {
+      const feedbackSet = feedbackSets[category];
+      studentIds.forEach(studentId => {
+        classIds.forEach(classId => {
+          if (!feedbackSet.has(`${studentId}_${classId}`)) {
+            pendingCount++;
+          }
+        });
+      });
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      count: pendingCount 
+    });
+
+  } catch (err:any) {
+    console.error("Error in pendingFeedbackCount:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
