@@ -4,7 +4,9 @@ import jwt  from 'jsonwebtoken';
 import courseName from "@/models/courseName";
 import {connect} from '@/dbConnection/dbConfic'
 import User from "@/models/userModel"
+import mongoose from 'mongoose';
 import { ca } from 'date-fns/locale';
+import { sub } from 'date-fns';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,7 +43,9 @@ export async function POST(request: NextRequest) {
         duration: courseData.duration,
         price: courseData.price,
         curriculum: courseData.curriculum,
-        category: courseData.category
+        category: courseData.category,
+        subCategory: courseData?.subCategory || '',
+        maxStudentCount: courseData?.maxStudentCount ,
     });
         console.log(newCourse);
         const savednewCourse=await newCourse.save();

@@ -120,7 +120,8 @@ export async function GET(request) {
     // Fetch all classes in one query
     const classes = await Class.find({
       _id: { $in: Array.from(allClassIds) },
-      endTime: { $lt: new Date() }
+      endTime: { $lt: new Date() },
+      status:{ $ne: 'canceled'}
     }).select("_id title description startTime endTime").lean();
 
     // Create a map for quick class lookup

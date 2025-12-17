@@ -2,11 +2,9 @@
 
 import type { FormEvent } from 'react';
 import { useState, useEffect } from 'react';
-import type { IconProps } from 'lucide-react';
-import { IndianRupee, Plus, Book, Clock, FileText, List, Tag, ChevronLeft, X } from 'lucide-react';
+import { IndianRupee, Plus, Book, Clock, FileText, List, Tag, ChevronLeft, X ,Music} from 'lucide-react';
 import type { LinkProps } from 'next/link';
 import Link from 'next/link';
-import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context';
 import { useRouter } from 'next/navigation';
 import { toast, Toaster } from 'react-hot-toast';
 
@@ -29,6 +27,10 @@ export default function CreateCourse() {
   ]);
   const [isEditing, setIsEditing] = useState(false);
   const [courseId, setCourseId] = useState<string | null>(null);
+  const [subCategory, setSubCategory] = useState(''); 
+  const [maxStudentCount, setMaxStudentCount] = useState(''); 
+
+
 
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -42,25 +44,37 @@ export default function CreateCourse() {
     }
   }, []);
 
-  const fetchCourseDetails = async (id: string) => {
-    try {
-      const response = await fetch(`/Api/tutors/courses/${id}`);
-      if (!response.ok) throw new Error('Failed to fetch course details');
-      
-      const data = await response.json();
-      const course = data.courseDetails;
-      
-      setTitle(course.title);
-      setCategory(course.category);
-      setDescription(course.description);
-      setDuration(course.duration);
-      setPrice(course.price.toString());
-      setCurriculum(course.curriculum);
-    } catch (error) {
-      console.error('Error fetching course details:', error);
-      toast.error('Failed to load course details');
-    }
-  };
+const fetchCourseDetails = async (id: string) => {
+  try {
+    const response = await fetch(`/Api/tutors/courses/${id}`);
+    if (!response.ok) throw new Error('Failed to fetch course details');
+    
+    const data = await response.json();
+    const course = data.courseDetails;
+    
+    setTitle(course.title);
+    setCategory(course.category);
+    setSubCategory(course.subCategory || '');
+    setDescription(course.description);
+    setDuration(course.duration);
+    setPrice(course.price.toString());
+    setMaxStudentCount(course.maxStudentCount?.toString() || ''); // ADD THIS LINE
+    setCurriculum(course.curriculum);
+  } catch (error) {
+    console.error('Error fetching course details:', error);
+    toast.error('Failed to load course details');
+  }
+};
+
+// Add this function
+const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const newCategory = e.target.value;
+  setCategory(newCategory);
+  // Reset subCategory when category changes to non-Music
+  if (newCategory !== 'Music') {
+    setSubCategory('');
+  }
+};
 
   const addCurriculumSession = () => {
     setCurriculum([
@@ -99,42 +113,52 @@ export default function CreateCourse() {
     setCurriculum(updatedCurriculum);
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
 
-    try {
-      const endpoint = isEditing ? `/Api/tutors/courses/${courseId}` : '/Api/tutors/courses';
-      const method = isEditing ? 'PUT' : 'POST';
-      
-      const response = await fetch(endpoint, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title,
-          category,
-          description,
-          duration,
-          price: parseFloat(price),
-          curriculum
-        }),
-      });
+  try {
+    const endpoint = isEditing ? `/Api/tutors/courses/${courseId}` : '/Api/tutors/courses';
+    const method = isEditing ? 'PUT' : 'POST';
+    
+    // Prepare the request body
+    const requestBody: any = {
+      title,
+      category,
+      description,
+      duration,
+      price: parseFloat(price),
+      curriculum,
+      maxStudentCount: parseInt(maxStudentCount), // ADD THIS LINE
 
-      if (!response.ok) {
-        throw new Error(isEditing ? 'Failed to update course' : 'Failed to create course');
-      }
-
-      toast.success(isEditing ? 'Course updated successfully!' : 'Course created successfully!');
-      router.push('/academy/courses');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'An error occurred');
-      console.error('Error:', error);
-    } finally {
-      setIsSubmitting(false);
+    };
+    
+    // Add subCategory only if category is Music
+    if (category === 'Music') {
+      requestBody.subCategory = subCategory;
     }
-  };
+    
+    const response = await fetch(endpoint, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!response.ok) {
+      throw new Error(isEditing ? 'Failed to update course' : 'Failed to create course');
+    }
+
+    toast.success(isEditing ? 'Course updated successfully!' : 'Course created successfully!');
+    router.push('/academy/courses');
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : 'An error occurred');
+    console.error('Error:', error);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
@@ -183,17 +207,38 @@ export default function CreateCourse() {
               <label className="text-purple-700 font-semibold text-sm sm:text-base">Course Category</label>
             </div>
             <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full bg-gray-50 text-gray-800 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
-              required
-            >
-              <option value="" disabled>Select a category</option>
-              <option value="Music">Music</option>
-              <option value="Dance">Dance</option>
-              <option value="Drawing">Drawing</option>
-            </select>
+  value={category}
+  onChange={handleCategoryChange} // CHANGE THIS FROM onChange={(e) => setCategory(e.target.value)}
+  className="w-full bg-gray-50 text-gray-800 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
+  required
+>
+  <option value="" disabled>Select a category</option>
+  <option value="Music">Music</option>
+  <option value="Dance">Dance</option>
+  <option value="Drawing">Drawing</option>
+</select>
           </div>
+
+          {/* Course SubCategory - Only show for Music */}
+{category === 'Music' && (
+  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
+    <div className="flex items-center gap-2 sm:gap-3 mb-3">
+      <Music className="text-purple-700" size={20} />
+      <label className="text-purple-700 font-semibold text-sm sm:text-base">Music SubCategory</label>
+    </div>
+    <select
+      value={subCategory}
+      onChange={(e) => setSubCategory(e.target.value)}
+      className="w-full bg-gray-50 text-gray-800 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
+      required
+    >
+      <option value="" disabled>Select a subcategory</option>
+      <option value="Piano">Piano</option>
+      <option value="Guitar">Guitar</option>
+    
+    </select>
+  </div>
+)}
 
           {/* Course Description */}
           <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
@@ -245,7 +290,26 @@ export default function CreateCourse() {
                 step="0.01"
               />
             </div>
+
+              {/* Max Student Count */}
+  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
+    <div className="flex items-center gap-2 sm:gap-3 mb-3">
+      <Book className="text-purple-700" size={20} />
+      <label className="text-purple-700 font-semibold text-sm sm:text-base">Max Student Count</label>
+    </div>
+    <input 
+      type="number"
+      value={maxStudentCount}
+      onChange={(e) => setMaxStudentCount(e.target.value)}
+      placeholder="Maximum students (e.g., 30)"
+      className="w-full bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
+      required
+      step="1"
+    />
+  </div>
+            
           </div>
+          
 
           {/* Curriculum - Mobile Optimized */}
           <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
