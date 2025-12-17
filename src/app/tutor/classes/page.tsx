@@ -61,8 +61,6 @@ function AddSessionPage() {
   });
   // NEW: recurrence state
   const [repeatType, setRepeatType] = useState<"none" | "daily" | "weekly" | "weekdays">("none");
-  // String input so you can clear and type freely; parse on submit
-  const [repeatCountInput, setRepeatCountInput] = useState<string>("1");
   const [repeatUntil, setRepeatUntil] = useState<string>(""); // yyyy-mm-dd
   // Add these state variables after your existing useState declarations
 const [showStartTimePicker, setShowStartTimePicker] = useState(false);
@@ -283,41 +281,10 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
     }
   };
 
-  // Helpers for occurrences input
-  const bumpOccurrences = (delta: number) => {
-    const n = parseInt(repeatCountInput || "0", 10);
-    const next = isNaN(n) ? 1 : Math.min(999, Math.max(1, n + delta));
-    setRepeatCountInput(String(next));
-  };
-  
-  const handleOccurrencesKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    const STEP = e.shiftKey ? 5 : 1;
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      bumpOccurrences(STEP);
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      bumpOccurrences(-STEP);
-    } else if (e.key === "Home") {
-      e.preventDefault();
-      setRepeatCountInput("1");
-    } else if (e.key === "End") {
-      e.preventDefault();
-      setRepeatCountInput("999");
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setErrorMessage("");
-
-    // Parse occurrences with bounds
-    const parsedCount = (() => {
-      const n = parseInt(repeatCountInput, 10);
-      if (isNaN(n) || n < 1) return 1;
-      return Math.min(n, 999);
-    })();
 
     try {
       // Build occurrences array based on recurrence type
@@ -331,12 +298,11 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
         });
       } else if (repeatType === "weekdays") {
         let currentDate = parseISO(sessionForm.date);
-        let added = 0;
-        const maxOccurrences = parsedCount > 0 ? parsedCount : 365;
         const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+        const hardCap = 365; // safety cap
+        let generated = 0;
 
-        while (added < maxOccurrences) {
-          // Check if we've passed the "until" date
+        while (generated < hardCap) {
           if (untilDate && currentDate > untilDate) break;
 
           const dayOfWeek = currentDate.getDay();
@@ -347,17 +313,20 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
               startTime: sessionForm.startTime,
               endTime: sessionForm.endTime,
             });
-            added++;
+            generated++;
           }
-          
+
+          // If no repeat-until date is provided, only create the first valid weekday
+          if (!untilDate && occurrences.length > 0) break;
+
           currentDate = addDays(currentDate, 1);
         }
       } else if (repeatType === "daily") {
         let currentDate = parseISO(sessionForm.date);
-        const maxOccurrences = parsedCount > 0 ? parsedCount : 365;
         const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+        const hardCap = 365; // safety cap
 
-        for (let i = 0; i < maxOccurrences; i++) {
+        for (let i = 0; i < hardCap; i++) {
           if (untilDate && currentDate > untilDate) break;
 
           occurrences.push({
@@ -365,15 +334,18 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
             startTime: sessionForm.startTime,
             endTime: sessionForm.endTime,
           });
+
+          // If no repeat-until date is provided, create only the first occurrence
+          if (!untilDate) break;
 
           currentDate = addDays(currentDate, 1);
         }
       } else if (repeatType === "weekly") {
         let currentDate = parseISO(sessionForm.date);
-        const maxOccurrences = parsedCount > 0 ? parsedCount : 52;
         const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+        const hardCap = 52; // safety cap
 
-        for (let i = 0; i < maxOccurrences; i++) {
+        for (let i = 0; i < hardCap; i++) {
           if (untilDate && currentDate > untilDate) break;
 
           occurrences.push({
@@ -381,6 +353,9 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
             startTime: sessionForm.startTime,
             endTime: sessionForm.endTime,
           });
+
+          // If no repeat-until date is provided, create only the first occurrence
+          if (!untilDate) break;
 
           currentDate = addDays(currentDate, 7); // Add 7 days
         }
@@ -907,7 +882,7 @@ const timeOptions = generateTimeOptions();
   </div>
 </div>
                 {/* Recurrence Controls */}
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Repeat</label>
                     <select
@@ -920,47 +895,6 @@ const timeOptions = generateTimeOptions();
                       <option value="weekdays">Weekdays (Mon–Fri)</option>
                       <option value="weekly">Weekly</option>
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Occurrences</label>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => bumpOccurrences(-1)}
-                        disabled={repeatType === "none"}
-                        className="px-2 py-2 border rounded bg-white hover:bg-gray-50"
-                        aria-label="Decrease occurrences"
-                      >
-                        −
-                      </button>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="e.g. 5"
-                        value={repeatCountInput}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/[^\d]/g, "");
-                          setRepeatCountInput(digits);
-                        }}
-                        onBlur={() => {
-                          if (!repeatCountInput) setRepeatCountInput("1");
-                        }}
-                        onKeyDown={handleOccurrencesKeyDown}
-                        disabled={repeatType === "none"}
-                        className="w-full px-3 py-2 border rounded"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => bumpOccurrences(1)}
-                        disabled={repeatType === "none"}
-                        className="px-2 py-2 border rounded bg-white hover:bg-gray-50"
-                        aria-label="Increase occurrences"
-                      >
-                        +
-                      </button>
-                    </div>
-                    {/* <p className="mt-1 text-xs text-gray-500">Type freely, use arrow keys, or click − / +.</p> */}
                   </div>
 
                   <div>
