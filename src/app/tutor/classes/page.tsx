@@ -898,7 +898,7 @@ const timeOptions = generateTimeOptions();
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Or repeat until</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Repeat until</label>
                     <input
                       type="date"
                       value={repeatUntil}

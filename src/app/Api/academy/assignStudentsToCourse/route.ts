@@ -78,6 +78,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
+      // 2. Check if maxStudentCount would be exceeded
+    const currentEnrolledCount = course.studentEnrolledCount || 0;
+    const maxStudentCount = course.maxStudentCount || 0;
+
+    const newStudentIds = studentIds.filter(id => 
+      !course.students.some(existingId => existingId.toString() === id.toString())
+    );
+    
+    if (newStudentIds.length === 0) {
+      return NextResponse.json(
+        { error: 'All selected students are already enrolled in this course' },
+        { status: 400 }
+      );
+    }
+
+    const newEnrolledCount = currentEnrolledCount + newStudentIds.length;
+
+    if (maxStudentCount > 0 && newEnrolledCount > maxStudentCount) {
+      const remainingSeats = maxStudentCount - currentEnrolledCount;
+      return NextResponse.json(
+        { 
+          error: `Cannot enroll ${newStudentIds.length} students. Only ${remainingSeats} seat(s) remaining. Course capacity: ${maxStudentCount}` 
+        },
+        { status: 400 }
+      );
+    }
+
     // 2. Verify all students exist and belong to the academy
     const students = await User.find({
       _id: { $in: studentIds },
@@ -96,7 +123,9 @@ export async function POST(request: NextRequest) {
     const updatedCourse = await CourseName.findByIdAndUpdate(
       courseId,
       {
-        $addToSet: { students: { $each: studentIds } }
+        $addToSet: { students: { $each: studentIds } },
+        $inc: { studentEnrolledCount: newStudentIds.length } // Increment by number of NEW students
+
       },
       { new: true }
     );
@@ -217,6 +246,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // 2. Count how many students are actually enrolled (to avoid negative count)
+    const actuallyEnrolledStudents = studentIds.filter(id =>
+      course.students.some(existingId => existingId.toString() === id.toString())
+    );
+
+    if (actuallyEnrolledStudents.length === 0) {
+      return NextResponse.json(
+        { error: 'None of the selected students are enrolled in this course' },
+        { status: 400 }
+      );
+    }
+
     // 2. Get tutor IDs from the course
     const tutorIds = course.academyInstructorId || [];
 
@@ -224,7 +265,9 @@ export async function DELETE(request: NextRequest) {
     const updatedCourse = await CourseName.findByIdAndUpdate(
       courseId,
       {
-        $pull: { students: { $in: studentIds } }
+        $pull: { students: { $in: studentIds } },
+        $inc: { studentEnrolledCount: -actuallyEnrolledStudents.length } // Decrement by number of students removed
+
       },
       { new: true }
     );
