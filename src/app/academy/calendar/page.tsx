@@ -14,6 +14,8 @@ interface Course {
   category: string;
   class: string[];
     subCategory?: string; // ADD THIS LINE
+    maxStudentCount: number;
+    studentEnrolledCount: number;
 
 }
 
@@ -25,6 +27,8 @@ interface ClassData {
     title: string;
     category: string;
         subCategory?: string; // ADD THIS LINE
+        maxStudentCount: number;
+    studentEnrolledCount: number;
 
   };
   startTime: string;
@@ -138,16 +142,25 @@ const getClassesForDate = (date: Date) => {
     const courseCategory = typeof classItem.course === 'object'
       ? classItem.course?.category
       : courses.find(c => c._id === courseId)?.category || 'Unknown';
-    const courseSubCategory = typeof classItem.course === 'object' // ADD THIS
+    const courseSubCategory = typeof classItem.course === 'object'
       ? classItem.course?.subCategory 
       : courses.find(c => c._id === courseId)?.subCategory || '';
+    // ADD THESE LINES:
+    const maxStudentCount = typeof classItem.course === 'object'
+      ? classItem.course?.maxStudentCount
+      : courses.find(c => c._id === courseId)?.maxStudentCount || 0;
+    const studentEnrolledCount = typeof classItem.course === 'object'
+      ? classItem.course?.studentEnrolledCount
+      : courses.find(c => c._id === courseId)?.studentEnrolledCount || 0;
     
     return {
       ...classItem,
       courseId,
       courseName,
       courseCategory,
-      courseSubCategory // ADD THIS
+      courseSubCategory,
+      maxStudentCount,        // ADD THIS
+      studentEnrolledCount    // ADD THIS
     };
   });
 };
@@ -383,43 +396,57 @@ if (courseFilter !== "All Courses") {
     </div>
   </div>
 
-  {/* Hover Tooltip - Fixed positioning */}
-  {activeTooltip === (classItem._id || `${cIdx}`) && tooltipPos && (
-    <div 
-      className="fixed z-[9999] pointer-events-none"
-      style={{
-        left: `${tooltipPos.x}px`,
-        top: `${tooltipPos.y}px`,
-      }}
-    >
-      <div className="relative bg-gray-900 text-white rounded-lg shadow-xl p-4 min-w-[250px] max-w-[400px] w-max">
-        {/* Title */}
-        <div className="font-bold text-sm mb-2 whitespace-normal">
-          {classItem.title || "Untitled Class"}
-        </div>
-        
-        {/* Course Name */}
-        <div className="text-gray-300 text-sm mb-3 whitespace-normal">
-          <span className="font-semibold">Course:</span> {classItem.courseName || "Unknown"}
-        </div>
-        
-        {/* Time */}
-        <div className="text-gray-300 text-sm mb-2 font-medium">
-          🕐 {format(dateFnsTz.toZonedTime(parseISO(classItem.startTime), userTz), 'HH:mm')} - {format(dateFnsTz.toZonedTime(parseISO(classItem.endTime), userTz), 'HH:mm')}
-        </div>
-        
-        {/* Description */}
-        {classItem.description && (
-          <div className="text-gray-400 text-sm mt-3 pt-3 border-t border-gray-700 whitespace-normal">
-            {classItem.description}
-          </div>
-        )}
-        
-        {/* Arrow pointing up */}
-        <div className="absolute -top-1 left-4 w-3 h-3 bg-gray-900 transform rotate-45"></div>
+{/* Hover Tooltip - Fixed positioning */}
+{activeTooltip === (classItem._id || `${cIdx}`) && tooltipPos && (
+  <div 
+    className="fixed z-[9999] pointer-events-none"
+    style={{
+      left: `${tooltipPos.x}px`,
+      top: `${tooltipPos.y}px`,
+    }}
+  >
+    <div className="relative bg-gray-900 text-white rounded-lg shadow-xl p-4 min-w-[250px] max-w-[400px] w-max">
+      {/* Title */}
+      <div className="font-bold text-sm mb-2 whitespace-normal">
+        {classItem.title || "Untitled Class"}
       </div>
+      
+      {/* Course Name */}
+      <div className="text-gray-300 text-sm mb-3 whitespace-normal">
+        <span className="font-semibold">Course:</span> {classItem.courseName || "Unknown"}
+      </div>
+      
+      {/* ADD THIS SECTION - Student Enrollment */}
+      <div className="text-gray-300 text-sm mb-2 flex items-center gap-2">
+        <span className="font-semibold">👥 Enrollment:</span>
+        <span className={`font-medium ${
+          classItem.studentEnrolledCount >= classItem.maxStudentCount 
+            ? 'text-red-400' 
+            : classItem.studentEnrolledCount >= classItem.maxStudentCount * 0.8
+              ? 'text-yellow-400'
+              : 'text-green-400'
+        }`}>
+          {classItem.studentEnrolledCount || 0} / {classItem.maxStudentCount || 0}
+        </span>
+      </div>
+      
+      {/* Time */}
+      <div className="text-gray-300 text-sm mb-2 font-medium">
+        🕐 {format(dateFnsTz.toZonedTime(parseISO(classItem.startTime), userTz), 'HH:mm')} - {format(dateFnsTz.toZonedTime(parseISO(classItem.endTime), userTz), 'HH:mm')}
+      </div>
+      
+      {/* Description */}
+      {classItem.description && (
+        <div className="text-gray-400 text-sm mt-3 pt-3 border-t border-gray-700 whitespace-normal">
+          {classItem.description}
+        </div>
+      )}
+      
+      {/* Arrow pointing up */}
+      <div className="absolute -top-1 left-4 w-3 h-3 bg-gray-900 transform rotate-45"></div>
     </div>
-  )}
+  </div>
+)}
 </div>
                             </div>
                           ))

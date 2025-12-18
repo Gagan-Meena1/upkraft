@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import { ChevronLeft, ChevronRight, Calendar, Clock, Save, User, Repeat, X, Edit2, Trash2, AlertCircle } from "lucide-react";
 import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO, addDays } from 'date-fns';
-
+import { useRouter } from "next/navigation";
 interface Tutor {
   _id: string;
   username: string;
@@ -72,6 +72,8 @@ const [cancellingClassId, setCancellingClassId] = useState<string | null>(null);
 const [cancellationReason, setCancellationReason] = useState("");
 // Add this state near your other state declarations
 const [isCancelling, setIsCancelling] = useState(false);
+const router = useRouter();
+
 
   const toast = {
     success: (msg: string) => alert(msg),
@@ -543,6 +545,9 @@ useEffect(() => {
       setSaving(false);
     }
   };
+  const handleCalendar = () => {
+    router.push(`/academy/calendar`);
+  };
 
   const weekDays = getWeekDays();
   const hours = Array.from({ length: 24 }, (_, i) => i);
@@ -833,6 +838,15 @@ const handleConfirmCancellation = async () => {
                 ))}
               </select>
             </div>
+
+            <button
+              onClick={handleCalendar}
+              
+              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <Calendar size={18} />
+              View Calendar
+            </button>
 
             <button
               onClick={handleSave}

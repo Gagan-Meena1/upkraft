@@ -46,6 +46,8 @@ interface Course {
   class?: any[];
   students?: any[];
   tutors?: any[];
+   subCategory?: string; // ADD THIS
+  maxStudentCount?: number; // ADD THIS
 }
 
 interface MyCourseProps {
@@ -72,6 +74,7 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [updatingCourseId, setUpdatingCourseId] = useState<string | null>(null);
+
 
   console.log("category in MyCourse:", category);
 
