@@ -341,7 +341,7 @@ const StudentProfileDetails = ({ data, assignmentCount = 0, pendingAssignmentCou
                                 </li>
                                 <li>
                                   <Link
-                                    href={`/tutor/session-summary?studentId=${data.studentId}&tutorId=${courses[0]?.instructorId}`}
+                                    href={`/tutor/session-summary?studentId=${data.studentId}&tutorId=${courses[0]?.instructorId}&courseId=${course._id}`}
                                     className="btn btn-border padding-fixed d-flex align-items-center justify-content-center gap-2"
                                   >
                                     <span>Session Summary</span>

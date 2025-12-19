@@ -42,10 +42,10 @@ const StarRating = ({ rating }: { rating: number }) => {
   );
 };
 
-const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: string }) => {
+const SessionSummary = ({ studentId, tutorId, courseId }: { studentId: string, tutorId: string, courseId: string }) => {
   const [sessions, setSessions] = useState<SessionFeedback[]>([]);
   const [loading, setLoading] = useState(true);
-    const [classesCSAT, setClassesCSAT] = useState<Map<string, number | null>>(new Map());
+  const [classesCSAT, setClassesCSAT] = useState<Map<string, number | null>>(new Map());
 
 
   // Helper: choose endpoint by category (Music default)
@@ -74,49 +74,42 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
           return;
         }
 
-        // 2) Fetch class meta
-        const classesRes = await fetch(`/Api/getClasses?tutorId=${tutorId}`);
+        // 2) Fetch class meta for the specific courseId
+        const classesRes = await fetch(`/Api/tutors/courses/${courseId}`);
         const classesJson = await classesRes.json();
-                const csatMap = new Map<string, number | null>();
+        const csatMap = new Map<string, number | null>();
 
         const classMeta = new Map<string, { title?: string; startTime?: string }>();
         const classIds: string[] = [];
-        if (classesJson?.success && Array.isArray(classesJson.classes)) {
-          classesJson.classes.forEach((cls: any) => {
-                        const avgCSAT = calculateAverageCSAT(cls.csat || []);
-
+        if (classesJson?.classDetails && Array.isArray(classesJson.classDetails)) {
+          classesJson.classDetails.forEach((cls: any) => {
+            const avgCSAT = calculateAverageCSAT(cls.csat || []);
             const id = String(cls._id);
-                        csatMap.set(id, avgCSAT);
-
+            csatMap.set(id, avgCSAT);
             classMeta.set(id, { title: cls.title, startTime: cls.startTime });
             classIds.push(id);
           });
         }
 
-        // 3) For each class, fetch assignment stats for this student
-        const statsEntries = await Promise.all(
-          classIds.map(async (id) => {
-            try {
-              const res = await fetch(`/Api/sessionSummary?classId=${id}&studentId=${studentId}`);
-              if (!res.ok) {
-                return [id, { total: 0, completed: 0 }] as const;
-              }
-              const d = await res.json();
-              console.log("Fetched stats for classId ", id, ": ", d);
-              return [id, { total: Number(d.totalStudentAssignments || 0), completed: Number(d.completedAssignments || 0) }] as const;
-            } catch {
-              return [id, { total: 0, completed: 0 }] as const;
-            }
-          })
-        );
-        const statsMap = new Map<string, { total: number; completed: number }>(statsEntries);
-
         // 4) Fetch feedback per course using category-specific endpoint
-        const feedbackResults = await Promise.all(
-          courses.map(async (c: any) => {
-            const endpoint = getFeedbackEndpoint(c?.category);
+        let feedbackResults: any[] = [];
+        // Group courses by category for batching
+        const categoryMap: Record<string, any[]> = {};
+        courses.forEach((c: any) => {
+          const cat = (c?.category || 'music').toLowerCase();
+          if (!categoryMap[cat]) categoryMap[cat] = [];
+          categoryMap[cat].push(c._id);
+        });
+
+        feedbackResults = await Promise.all(
+          Object.entries(categoryMap).map(async ([category, courseIds]) => {
+            const endpoint = getFeedbackEndpoint(category);
             try {
-              const res = await fetch(`${endpoint}?courseId=${c._id}&studentId=${studentId}`);
+              const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ courseIds, studentId }),
+              });
               if (!res.ok) return null;
               return await res.json();
             } catch {
@@ -137,10 +130,6 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
               const meta = classId ? classMeta.get(classId) : undefined;
               const start = meta?.startTime || item.class?.startTime || item.createdAt;
 
-              const stat = classId ? statsMap.get(classId) : undefined;
-              const totalStudentAssignments = stat?.total ?? 0;
-              const completedAssignments = stat?.completed ?? 0;
-
               rows.push({
                 _id: String(item._id),
                 classId,
@@ -155,21 +144,63 @@ const SessionSummary = ({ studentId, tutorId }: { studentId: string, tutorId: st
                 tutorCSAT: classId ? (csatMap.get(classId) ?? null) : null,
                 assignmentCompletionRate: 0,
                 tutorFeedback: item.personalFeedback ?? item.feedback ?? '',
-                totalAssignments: totalStudentAssignments,
-                completedAssignments: completedAssignments,
+                totalAssignments: 0, // will be filled after stats fetch
+                completedAssignments: 0, // will be filled after stats fetch
               });
             });
           }
         });
 
+        // Get unique classIds from rows
+        const uniqueClassIds = Array.from(
+          new Set(rows.map(r => r.classId).filter(Boolean))
+        );
+
+        // Fetch assignment stats only for these classIds
+        let statsMap = new Map<string, { total: number; completed: number }>();
+        if (uniqueClassIds.length > 0) {
+          try {
+            const res = await fetch('/Api/sessionSummary', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ classIds: uniqueClassIds, studentId }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              statsMap = new Map(
+                Object.entries(data.stats || {}).map(([id, stat]) => [
+                  id,
+                  {
+                    total: Number(stat.totalStudentAssignments || 0),
+                    completed: Number(stat.completedAssignments || 0),
+                  },
+                ])
+              );
+            }
+          } catch {
+            // fallback: leave statsMap empty
+          }
+        }
+
+        // Now enrich rows with assignment stats
+        const enrichedRows = rows.map(row => {
+          const stat = row.classId ? statsMap.get(row.classId) : undefined;
+          return {
+            ...row,
+            totalAssignments: stat?.total ?? 0,
+            completedAssignments: stat?.completed ?? 0,
+          };
+        });
+
         // Sort by date desc
-        rows.sort((a, b) => (new Date(b.date).getTime() || 0) - (new Date(a.date).getTime() || 0));
-        setSessions(rows);
+        enrichedRows.sort((a, b) => (new Date(b.date).getTime() || 0) - (new Date(a.date).getTime() || 0));
+        setSessions(enrichedRows);
 
       } finally {
         setLoading(false);
       }
     }
+
     if (studentId && tutorId) fetchSummary();
   }, [studentId, tutorId]);
 

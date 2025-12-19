@@ -13,6 +13,7 @@ import SchoolsAcademies from "./learners/SchoolsAcademies";
 import KnowledgeHub from "./learners/KnowledgeHub";
 import Faq from "./learners/Faq";
 import ModalStudent from "@/app/components/learners/ModalStudent";
+import AcademicPartners from "./learners/AcademicPartners";
 
 const Learners = () => {
   const [showModal, setShowModal] = useState(false);
@@ -74,6 +75,9 @@ const Learners = () => {
       </div>
       <div className="schools-academies-sec" id="schools">
         <SchoolsAcademies />
+      </div>
+      <div className="schools-academies-sec" id="schools">
+        <AcademicPartners />
       </div>
       <div className="knowledge-hub-sec">
         <KnowledgeHub />

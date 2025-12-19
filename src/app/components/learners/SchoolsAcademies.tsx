@@ -18,7 +18,7 @@ const SchoolsAcademies = () => {
                 <div className='col-lg-6'>
                     <div className='m-0 me-lg-5'>
                         <div className='heading-box text-start mb-5'>
-                            <h2 className='mb-3'>UpKraft for <span>Schools & Academies</span></h2>
+                            <h2 className='mb-3 !text-[32px]'>UpKraft for <span>Schools & Academies</span></h2>
                             <p>AI-Powered Music Learning, Simplified for Academies & Schools</p>
                             <Link href="" className='btn btn-orange' onClick={handleShow}>Book a Demo</Link>
                         </div>

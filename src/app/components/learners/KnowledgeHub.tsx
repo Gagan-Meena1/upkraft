@@ -5,7 +5,7 @@ import VideoImg01 from '@/assets/video-placeholder.png'
 import Link from 'next/link';
 import ModalStudent from './ModalStudent';
 import Modal from 'react-bootstrap/Modal';
-import YTImage from '@/assets/yt-video.png';
+import img from '@/assets/img.png';
 
 const KnowledgeHub = () => {
     const [showModal, setShowModal] = useState(false);
@@ -23,7 +23,7 @@ const KnowledgeHub = () => {
                 <div className='row justify-content-center'>
                     <div className='col-lg-10'>
                         <div className='heading-box text-center'>
-                            <h2 className='mb-3'><span>UpKraft</span> Knowledge Hub </h2>
+                            <h2 className='mb-3 !text-[32px]'><span>UpKraft</span> Knowledge Hub </h2>
                             <p>Access 500+ video lessons from UpKraft tutors and begin your journey with free, easy-to-follow tutorials that make learning simple and fun. Build a strong foundation, then unlock advanced modules to keep growing and play like a pro.</p>
                         </div>
 
@@ -31,7 +31,7 @@ const KnowledgeHub = () => {
                         <div className='video-box'>
                             <div className='learn-video position-relative' onClick={handleVideoOpen} style={{ cursor: 'pointer' }}>
                                 <img
-                                    src={YTImage.src}
+                                    src={img.src}
                                     alt="Video Banner"
                                     width="100%"
                                     height="600"
@@ -48,7 +48,7 @@ const KnowledgeHub = () => {
 
                         {/* ---------------- Start Lessons Button ---------------- */}
                         <div className='w-100 d-flex justify-content-center mt-4'>
-                            <Link href="" className='btn btn-orange m-auto' onClick={handleShow}>
+                            <Link href="https://www.youtube.com/@upkraft_music" className='btn btn-orange m-auto' onClick={handleShow}>
                                 Explore UpKraft Channel
                             </Link>
                         </div>

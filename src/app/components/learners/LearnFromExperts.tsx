@@ -3,9 +3,9 @@
 import React, { useRef, useState } from "react";
 import ModalStudent from "./ModalStudent";
 import Videoquality from "@/assets/Videoquality.png";
-import Reel1 from "@/assets/reel1.png";
-import Reel2 from "@/assets/reel2.png";
-import Reel3 from "@/assets/reel3.png";
+import reel1thumbnail from "@/assets/reel1thumbnail.png";
+import gminorthumbnail from "@/assets/gminorthumbnail.png";
+import mazurkathumbnail from "@/assets/mazurkathumbnail.png";
 import Reel4 from "@/assets/reel4.png";
 
 declare global {
@@ -31,9 +31,9 @@ const LearnFromExperts = () => {
   const [selectedTutor, setSelectedTutor] = useState<string | null>(null);
 
   const tutorVideos: TutorVideo[] = [
-    { ref: video1, name: "Alfred", videoSrc: "/videos/reel1.mp4", poster: Reel1.src },
-    { ref: video2, name: "Alfred", videoSrc: "/videos/reel2.mp4", poster: Reel2.src },
-    { ref: video3, name: "Alfred", videoSrc: "/videos/reel3.mp4", poster: Reel3.src },
+    { ref: video1, name: "Alfred", videoSrc: "/videos/Chord-Strumming.mp4", poster: reel1thumbnail.src },
+    { ref: video2, name: "Alfred", videoSrc: "/videos/G-Minor.mp4", poster: gminorthumbnail.src },
+    { ref: video3, name: "Rohan", videoSrc: "/videos/Mazurka.mp4", poster: mazurkathumbnail.src },
     { ref: video4, name: "Hangshing", videoSrc: "/videos/reel4.mp4", poster: Reel4.src },
   ];
 
@@ -113,7 +113,7 @@ const LearnFromExperts = () => {
     <div className="learn-experts-sec">
       <div className="container">
         <div className="heading-box text-center mb-4">
-          <h2 className="mb-3">
+          <h2 className="mb-3 !text-[34px]">
             Learn from <span>Experts</span>
           </h2>
           <p>
