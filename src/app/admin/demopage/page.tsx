@@ -9,6 +9,13 @@ import "../../../styles/style.css";
 import logoo from "@/assets/logoo.jpeg";
 import ExclusiveBenefitsdemo from "@/app/components/learners/ExclusiveBenefitsdemo";
 import StudentForm from "@/app/components/learners/StudentForm";
+import rsl1 from "@/assets/rsl1.png";
+import trinitylogo from "@/assets/trinitylogo.png";
+import line1 from "@/assets/line1.png";
+import line2 from "@/assets/line2.png";
+import line3 from "@/assets/line3.png";
+import line4 from "@/assets/line4.png";
+import line5 from "@/assets/line5.png";
 
 export default function AdminDemoPage() {
   const [form, setForm] = useState({
@@ -135,102 +142,100 @@ export default function AdminDemoPage() {
         </div>
       </header>
 
-      <main className="w-full bg-[#6106CB] flex-grow flex items-center">
+      <main className="w-full bg-[url('/path/to/your/image.jpg')] flex-grow flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             {/* Left content */}
-            <div className="text-white">
-              <h3 className="!text-sm uppercase font-semibold mb-4 text-blue-300 tracking-wider">
+            <div className="text-black">
+              <h3 className="!text-sm uppercase font-semibold mb-4 text-black tracking-wider">
                 Schedule a Demo
               </h3>
               <h1 className="!text-3xl lg:text-5xl font-bold mb-6 leading-tight">
                 Learn Music the Smart Way with UpKraft
               </h1>
-              <p className="text-blue-200 !mb-10 text-lg leading-relaxed">
+              <p className="text-black !mb-10 text-lg leading-relaxed">
                 Personalised learning • Expert teachers • AI Music Companion to
                 help you practice between classes and learn faster
               </p>
-              <h2 className="!text-2xl font-bold !mb-6 text-blue-100">
+              <h2 className="!text-2xl font-bold !mb-6 text-black">
                 Why Choose UpKraft?
               </h2>
-              <ul className="gap-3 !pl-0 md:mt-4 flex flex-col text-blue-100 text-base">
+              <ul className="gap-3 !pl-0 md:mt-4 flex flex-col text-black text-base">
                 <li className="flex items-start gap-3">
-                  <svg
-                    className="flex-none mt-1 h-5 w-5 text-green-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  <span>1-on-1 live classes with certified music teachers</span>
+                  <Image
+                    src={line1.src}
+                    alt="Line"
+                    width={20}
+                    height={20}
+                    color="black">
+                  </Image>
+                  
+                  <span>
+                    POCSO Certified, Verified Tutors</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <svg
-                    className="flex-none mt-1 h-5 w-5 text-green-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  <span>
-                    Fully interactive sessions — no pre-recorded videos
+                  <Image
+                    src={line2.src}
+                    alt="Line"
+                    width={20}
+                    height={20}
+                    color="black">
+                  </Image>
+                  <span className="flex items-center gap-3">
+                    <span>Clear Pathway for Certifications</span>
+                    <span className="inline-flex items-center gap-3 ml-3">
+                      <Image
+                        src={rsl1.src}
+                        alt="Rsl Logo"
+                        width={50}
+                        height={50}
+                        className=""
+                      />
+                      <Image
+                        src={trinitylogo.src}
+                        alt="Trinity Logo"
+                        width={50}
+                        height={50}
+                        className=""
+                      />
+                    </span>
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <svg
-                    className="flex-none mt-1 h-5 w-5 text-green-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
+                  <Image
+                    src={line3.src}
+                    alt="Line"
+                    width={20}
+                    height={20}
+                    color="black">
+                  </Image>
                   <span>
-                    Personalised learning paths tailored to your goals
+Personalised Learning for Every Age & Goal
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <svg
-                    className="flex-none mt-1 h-5 w-5 text-green-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
+                 <Image
+                    src={line4.src}
+                    alt="Line"
+                    width={20}
+                    height={20}
+                    color="black">
+                  </Image>
                   <span>
-                    AI Music Companion for guided practice between classes
+Al-Powered Practice for Faster Mastery
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <svg
-                    className="flex-none mt-1 h-5 w-5 text-green-400"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                  <span>Indian & Western music programs</span>
+                  <Image
+                    src={line5.src}
+                    alt="Line"
+                    width={20}
+                    height={20}
+                    color="black">
+                  </Image>
+                  <span>Transparent Progress Dashboards</span>
                 </li>
-                <li className="flex items-start gap-3">
+                {/* <li className="flex items-start gap-3">
                   <svg
                     className="flex-none mt-1 h-5 w-5 text-green-400"
                     viewBox="0 0 24 24"
@@ -257,7 +262,7 @@ export default function AdminDemoPage() {
                     <path d="M20 6L9 17l-5-5" />
                   </svg>
                   <span>Flexible scheduling with 24/7 access</span>
-                </li>
+                </li> */}
               </ul>
             </div>
 
@@ -400,14 +405,14 @@ export default function AdminDemoPage() {
           </div>
         </div>
       </main>
-
+<section className="my-12 px-8">
+        <BannerBottomBox />
+      </section>
       <section className="">
         <ExclusiveBenefitsdemo />
       </section>
 
-      <section className="my-12 px-8">
-        <BannerBottomBox />
-      </section>
+      
 
       <section className="px-8 faq-sec">
         <Faq />

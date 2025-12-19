@@ -333,7 +333,7 @@ const StudentForm: React.FC<StudentFormProps> = ({ tutorName, onSuccess }) => {
   );
 
   return (
-    <div className="student-form-card bg-white p-6 rounded-lg shadow-md">
+    <div className="student-form-card bg-transparent backdrop-blur-md p-6 rounded-lg shadow-md">
       <div className="mb-4 text-sm font-medium">I am a :</div>
       <Tabs
         id="student-form-tabs"
