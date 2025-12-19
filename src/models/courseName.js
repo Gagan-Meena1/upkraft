@@ -10,6 +10,18 @@ const courseNameSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
+  subCategory: { 
+    type: String, 
+     
+  },
+  maxStudentCount:{
+    type:Number,
+    default:0
+  },
+  studentEnrolledCount:{
+    type:Number,
+    default:0
+  },
   instructorId:{
     type:mongoose.Schema.Types.ObjectId,
     ref:"users",

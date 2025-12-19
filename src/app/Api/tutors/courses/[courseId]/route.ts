@@ -91,7 +91,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ cour
         duration: courseData.duration,
         price: courseData.price,
         curriculum: courseData.curriculum,
-        category: courseData.category
+        category: courseData.category,
+         subCategory: courseData?.subCategory|| '', // ADD THIS
+    maxStudentCount: courseData?.maxStudentCount
       },
       { new: true } // Return the updated document
     );

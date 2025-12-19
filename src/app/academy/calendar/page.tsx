@@ -13,6 +13,10 @@ interface Course {
   title: string;
   category: string;
   class: string[];
+    subCategory?: string; // ADD THIS LINE
+    maxStudentCount: number;
+    studentEnrolledCount: number;
+
 }
 
 interface ClassData {
@@ -22,6 +26,10 @@ interface ClassData {
     _id: string;
     title: string;
     category: string;
+        subCategory?: string; // ADD THIS LINE
+        maxStudentCount: number;
+    studentEnrolledCount: number;
+
   };
   startTime: string;
   endTime: string;
@@ -39,6 +47,8 @@ const AcademyCalendarView = () => {
   const [courseFilter, setCourseFilter] = useState<string>("All Courses");
   const [tooltipPos, setTooltipPos] = useState<{x: number, y: number} | null>(null);
 const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+const [subCategoryFilter, setSubCategoryFilter] = useState<string>("All SubCategories"); // CHANGE THIS
+
 
   useEffect(() => {
     // Get user timezone
@@ -118,45 +128,57 @@ const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   };
 
   // Get classes for a specific date with proper course mapping
-  const getClassesForDate = (date: Date) => {
-    return allClasses.filter(classItem => {
-      if (!classItem.startTime) return false;
-      return isSameDayInTz(classItem.startTime, date, userTz);
-    }).map(classItem => {
-      // Map course info from the course object in classItem
-      const courseId = typeof classItem.course === 'string' 
-        ? classItem.course 
-        : classItem.course?._id || '';
-      const courseName = typeof classItem.course === 'object' 
-        ? classItem.course?.title 
-        : courses.find(c => c._id === courseId)?.title || 'Unknown Course';
-      const courseCategory = typeof classItem.course === 'object'
-        ? classItem.course?.category
-        : courses.find(c => c._id === courseId)?.category || 'Unknown';
-      
-      return {
-        ...classItem,
-        courseId,
-        courseName,
-        courseCategory
-      };
-    });
-  };
+const getClassesForDate = (date: Date) => {
+  return allClasses.filter(classItem => {
+    if (!classItem.startTime) return false;
+    return isSameDayInTz(classItem.startTime, date, userTz);
+  }).map(classItem => {
+    const courseId = typeof classItem.course === 'string' 
+      ? classItem.course 
+      : classItem.course?._id || '';
+    const courseName = typeof classItem.course === 'object' 
+      ? classItem.course?.title 
+      : courses.find(c => c._id === courseId)?.title || 'Unknown Course';
+    const courseCategory = typeof classItem.course === 'object'
+      ? classItem.course?.category
+      : courses.find(c => c._id === courseId)?.category || 'Unknown';
+    const courseSubCategory = typeof classItem.course === 'object'
+      ? classItem.course?.subCategory 
+      : courses.find(c => c._id === courseId)?.subCategory || '';
+    // ADD THESE LINES:
+    const maxStudentCount = typeof classItem.course === 'object'
+      ? classItem.course?.maxStudentCount
+      : courses.find(c => c._id === courseId)?.maxStudentCount || 0;
+    const studentEnrolledCount = typeof classItem.course === 'object'
+      ? classItem.course?.studentEnrolledCount
+      : courses.find(c => c._id === courseId)?.studentEnrolledCount || 0;
+    
+    return {
+      ...classItem,
+      courseId,
+      courseName,
+      courseCategory,
+      courseSubCategory,
+      maxStudentCount,        // ADD THIS
+      studentEnrolledCount    // ADD THIS
+    };
+  });
+};
 
   // Get course summary for a date (grouped by course)
   const getCourseSummaryForDate = (date: Date) => {
     const classes = getClassesForDate(date);
     
     // Apply filters
-    let filteredClasses = classes;
-    
-    if (categoryFilter !== "All Categories") {
-      filteredClasses = filteredClasses.filter(c => c.courseCategory === categoryFilter);
-    }
-    
-    if (courseFilter !== "All Courses") {
-      filteredClasses = filteredClasses.filter(c => c.course === courseFilter);
-    }
+      let filteredClasses = classes;
+  
+  if (subCategoryFilter !== "All SubCategories") { // CHANGE THIS
+    filteredClasses = filteredClasses.filter(c => c.courseSubCategory === subCategoryFilter); // CHANGE THIS
+  }
+  
+  if (courseFilter !== "All Courses") {
+    filteredClasses = filteredClasses.filter(c => c.course === courseFilter);
+  }
     
     // Group by course
     const courseMap = new Map<string, { courseName: string; count: number }>();
@@ -192,11 +214,13 @@ const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
     setCurrentDate(new Date());
   };
 
-  // Get unique categories and courses for filters
-  const uniqueCategories = Array.from(new Set(courses.map(c => c.category)));
-  const filteredCourses = categoryFilter === "All Categories" 
-    ? courses 
-    : courses.filter(c => c.category === categoryFilter);
+// Get unique subCategories and courses for filters
+const uniqueSubCategories = Array.from(
+  new Set(courses.map(c => c.subCategory).filter(Boolean))
+); // CHANGE THIS
+const filteredCourses = subCategoryFilter === "All SubCategories" // CHANGE THIS
+  ? courses 
+  : courses.filter(c => c.subCategory === subCategoryFilter); // CHANGE THIS
 
   if (loading) {
     return (
@@ -254,37 +278,37 @@ const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
                 </button>
               </div>
 
-              {/* Filters */}
-              <div className="flex flex-wrap items-center gap-3">
-                {/* Category Filter */}
-                <select
-                  value={categoryFilter}
-                  onChange={(e) => {
-                    setCategoryFilter(e.target.value);
-                    setCourseFilter("All Courses"); // Reset course filter
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option>All Categories</option>
-                  {uniqueCategories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
+            {/* Filters */}
+<div className="flex flex-wrap items-center gap-3">
+  {/* SubCategory Filter */}
+  <select
+    value={subCategoryFilter}
+    onChange={(e) => {
+      setSubCategoryFilter(e.target.value);
+      setCourseFilter("All Courses"); // Reset course filter
+    }}
+    className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+  >
+    <option>All SubCategories</option>
+    {uniqueSubCategories.map(subCategory => (
+      <option key={subCategory} value={subCategory}>{subCategory}</option>
+    ))}
+  </select>
 
-                {/* Course Filter */}
-                <select
-                  value={courseFilter}
-                  onChange={(e) => setCourseFilter(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option>All Courses</option>
-                  {filteredCourses.map(course => (
-                    <option key={course._id} value={course._id}>
-                      {course.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
+  {/* Course Filter */}
+  <select
+    value={courseFilter}
+    onChange={(e) => setCourseFilter(e.target.value)}
+    className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+  >
+    <option>All Courses</option>
+    {filteredCourses.map(course => (
+      <option key={course._id} value={course._id}>
+        {course.title}
+      </option>
+    ))}
+  </select>
+</div>
             </div>
 
             {/* Calendar Grid */}
@@ -310,14 +334,14 @@ const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
                   const dayClasses = getClassesForDate(day);
                   
-                  // Apply filters
-                  let filteredDayClasses = dayClasses;
-                  if (categoryFilter !== "All Categories") {
-                    filteredDayClasses = filteredDayClasses.filter(c => c.courseCategory === categoryFilter);
-                  }
-                  if (courseFilter !== "All Courses") {
-                    filteredDayClasses = filteredDayClasses.filter(c => c.course === courseFilter);
-                  }
+                // Apply filters
+let filteredDayClasses = dayClasses;
+if (subCategoryFilter !== "All SubCategories") { // CHANGE THIS
+  filteredDayClasses = filteredDayClasses.filter(c => c.courseSubCategory === subCategoryFilter); // CHANGE THIS
+}
+if (courseFilter !== "All Courses") {
+  filteredDayClasses = filteredDayClasses.filter(c => c.course === courseFilter);
+}
                   
                   const isToday = isSameDayInTz(new Date(), day, userTz);
 
@@ -372,43 +396,57 @@ const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
     </div>
   </div>
 
-  {/* Hover Tooltip - Fixed positioning */}
-  {activeTooltip === (classItem._id || `${cIdx}`) && tooltipPos && (
-    <div 
-      className="fixed z-[9999] pointer-events-none"
-      style={{
-        left: `${tooltipPos.x}px`,
-        top: `${tooltipPos.y}px`,
-      }}
-    >
-      <div className="relative bg-gray-900 text-white rounded-lg shadow-xl p-4 min-w-[250px] max-w-[400px] w-max">
-        {/* Title */}
-        <div className="font-bold text-sm mb-2 whitespace-normal">
-          {classItem.title || "Untitled Class"}
-        </div>
-        
-        {/* Course Name */}
-        <div className="text-gray-300 text-sm mb-3 whitespace-normal">
-          <span className="font-semibold">Course:</span> {classItem.courseName || "Unknown"}
-        </div>
-        
-        {/* Time */}
-        <div className="text-gray-300 text-sm mb-2 font-medium">
-          🕐 {format(dateFnsTz.toZonedTime(parseISO(classItem.startTime), userTz), 'HH:mm')} - {format(dateFnsTz.toZonedTime(parseISO(classItem.endTime), userTz), 'HH:mm')}
-        </div>
-        
-        {/* Description */}
-        {classItem.description && (
-          <div className="text-gray-400 text-sm mt-3 pt-3 border-t border-gray-700 whitespace-normal">
-            {classItem.description}
-          </div>
-        )}
-        
-        {/* Arrow pointing up */}
-        <div className="absolute -top-1 left-4 w-3 h-3 bg-gray-900 transform rotate-45"></div>
+{/* Hover Tooltip - Fixed positioning */}
+{activeTooltip === (classItem._id || `${cIdx}`) && tooltipPos && (
+  <div 
+    className="fixed z-[9999] pointer-events-none"
+    style={{
+      left: `${tooltipPos.x}px`,
+      top: `${tooltipPos.y}px`,
+    }}
+  >
+    <div className="relative bg-gray-900 text-white rounded-lg shadow-xl p-4 min-w-[250px] max-w-[400px] w-max">
+      {/* Title */}
+      <div className="font-bold text-sm mb-2 whitespace-normal">
+        {classItem.title || "Untitled Class"}
       </div>
+      
+      {/* Course Name */}
+      <div className="text-gray-300 text-sm mb-3 whitespace-normal">
+        <span className="font-semibold">Course:</span> {classItem.courseName || "Unknown"}
+      </div>
+      
+      {/* ADD THIS SECTION - Student Enrollment */}
+      <div className="text-gray-300 text-sm mb-2 flex items-center gap-2">
+        <span className="font-semibold">👥 Enrollment:</span>
+        <span className={`font-medium ${
+          classItem.studentEnrolledCount >= classItem.maxStudentCount 
+            ? 'text-red-400' 
+            : classItem.studentEnrolledCount >= classItem.maxStudentCount * 0.8
+              ? 'text-yellow-400'
+              : 'text-green-400'
+        }`}>
+          {classItem.studentEnrolledCount || 0} / {classItem.maxStudentCount || 0}
+        </span>
+      </div>
+      
+      {/* Time */}
+      <div className="text-gray-300 text-sm mb-2 font-medium">
+        🕐 {format(dateFnsTz.toZonedTime(parseISO(classItem.startTime), userTz), 'HH:mm')} - {format(dateFnsTz.toZonedTime(parseISO(classItem.endTime), userTz), 'HH:mm')}
+      </div>
+      
+      {/* Description */}
+      {classItem.description && (
+        <div className="text-gray-400 text-sm mt-3 pt-3 border-t border-gray-700 whitespace-normal">
+          {classItem.description}
+        </div>
+      )}
+      
+      {/* Arrow pointing up */}
+      <div className="absolute -top-1 left-4 w-3 h-3 bg-gray-900 transform rotate-45"></div>
     </div>
-  )}
+  </div>
+)}
 </div>
                             </div>
                           ))

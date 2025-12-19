@@ -64,7 +64,6 @@ function AddSessionPage() {
   });
   // NEW: recurrence state
   const [repeatType, setRepeatType] = useState<"none" | "daily" | "weekly" | "weekdays">("none");
-  const [repeatCount, setRepeatCount] = useState<number>(1); // number of occurrences (including first)
   const [repeatUntil, setRepeatUntil] = useState<string>(""); // yyyy-mm-dd
   const [availableSlots, setAvailableSlots] = useState([]);
 const [tutorId, setTutorId] = useState(null);
@@ -442,11 +441,11 @@ const handleSubmit = async (e) => {
       });
     } else if (repeatType === "weekdays") {
       let currentDate = parseISO(sessionForm.date);
-      let added = 0;
-      const maxOccurrences = repeatCount > 0 ? repeatCount : 365;
       const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+      const hardCap = 365; // safety cap
+      let generated = 0;
 
-      while (added < maxOccurrences) {
+      while (generated < hardCap) {
         if (untilDate && currentDate > untilDate) break;
 
         const dayOfWeek = currentDate.getDay();
@@ -456,17 +455,20 @@ const handleSubmit = async (e) => {
             startTime: sessionForm.startTime,
             endTime: sessionForm.endTime,
           });
-          added++;
+          generated++;
         }
-        
+
+        // If no repeat-until date is provided, only create the first valid weekday
+        if (!untilDate && occurrences.length > 0) break;
+
         currentDate = addDays(currentDate, 1);
       }
     } else if (repeatType === "daily") {
       let currentDate = parseISO(sessionForm.date);
-      const maxOccurrences = repeatCount > 0 ? repeatCount : 365;
       const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+      const hardCap = 365; // safety cap
 
-      for (let i = 0; i < maxOccurrences; i++) {
+      for (let i = 0; i < hardCap; i++) {
         if (untilDate && currentDate > untilDate) break;
 
         occurrences.push({
@@ -474,15 +476,18 @@ const handleSubmit = async (e) => {
           startTime: sessionForm.startTime,
           endTime: sessionForm.endTime,
         });
+
+        // If no repeat-until date is provided, create only the first occurrence
+        if (!untilDate) break;
 
         currentDate = addDays(currentDate, 1);
       }
     } else if (repeatType === "weekly") {
       let currentDate = parseISO(sessionForm.date);
-      const maxOccurrences = repeatCount > 0 ? repeatCount : 52;
       const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
+      const hardCap = 52; // safety cap
 
-      for (let i = 0; i < maxOccurrences; i++) {
+      for (let i = 0; i < hardCap; i++) {
         if (untilDate && currentDate > untilDate) break;
 
         occurrences.push({
@@ -490,6 +495,9 @@ const handleSubmit = async (e) => {
           startTime: sessionForm.startTime,
           endTime: sessionForm.endTime,
         });
+
+        // If no repeat-until date is provided, create only the first occurrence
+        if (!untilDate) break;
 
         currentDate = addDays(currentDate, 7);
       }
@@ -991,7 +999,7 @@ const handleSubmit = async (e) => {
   </div>
 )}
                 {/* Recurrence Controls */}
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-1">Repeat</label>
                     <select
@@ -1007,19 +1015,7 @@ const handleSubmit = async (e) => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Occurrences</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={repeatCount}
-                      onChange={(e) => setRepeatCount(Math.max(1, Number(e.target.value || 1)))}
-                      disabled={repeatType === "none"}
-                      className="w-full px-3 py-2 border rounded"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Or repeat until</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Repeat until</label>
                     <input
                       type="date"
                       value={repeatUntil}
