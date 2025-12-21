@@ -7,12 +7,13 @@ function SessionSummaryContent() {
   const searchParams = useSearchParams();
   const studentId = searchParams?.get('studentId') || '';
   const tutorId = searchParams?.get('tutorId') || '';
+  const courseId = searchParams?.get('courseId') || '';
 
   return (
     <div className="container-fluid">
       <div className="row">
         <div className="col-12">
-          <SessionSummary studentId={studentId} tutorId={tutorId} />
+          <SessionSummary studentId={studentId} tutorId={tutorId} courseId={courseId} />
         </div>
       </div>
     </div>

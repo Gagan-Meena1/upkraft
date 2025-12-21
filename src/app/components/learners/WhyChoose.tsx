@@ -12,10 +12,10 @@ const WhyChoose = () => {
         <div className='row'>
           <div className='col-md-12'>
             <div className='heading-box text-center'>
-              <h2 className='mb-3'>
+              <h2 className='mb-3 !text-[24px]'>
                 Why Choose <span>UpKraft?</span>
               </h2>
-              <p>Learners, tutors, parents—Upkraft is built for all.</p>
+              <p>Learners, tutors, parents—UpKraft is built for all.</p>
             </div>
           </div>
 

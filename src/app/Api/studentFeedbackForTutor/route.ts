@@ -97,3 +97,54 @@ export async function GET(request: NextRequest) {
         }, { status: 500 });
     }
 }
+
+export async function POST(request: NextRequest) {
+    try {
+        await connect();
+        const { courseIds, studentId } = await request.json();
+
+        if (!Array.isArray(courseIds) || !studentId) {
+            return NextResponse.json({
+                success: false,
+                error: 'courseIds (array) and studentId are required'
+            }, { status: 400 });
+        }
+
+        // Find all classes for the given courses
+        const classes = await Class.find({ course: { $in: courseIds } }).exec();
+        if (!classes || classes.length === 0) {
+            return NextResponse.json({
+                success: false,
+                error: 'No classes found for the specified courses'
+            }, { status: 404 });
+        }
+
+        const classIds = classes.map(cls => cls._id);
+
+        // Find feedback for the student in these classes
+        const feedbackData = await feedback.find({
+            classId: { $in: classIds },
+            userId: studentId
+        }).exec();
+
+        // Optionally, get all feedback for these classes (not just for this student)
+        const feedbackAllStudent = await feedback.find({
+            classId: { $in: classIds }
+        }).exec();
+
+        return NextResponse.json({
+            success: true,
+            count: feedbackData.length,
+            data: feedbackData,
+            feedbackAllStudent
+        }, { status: 200 });
+
+    } catch (error: any) {
+        console.error('[API/studentFeedbackForTutor][POST] Error:', error);
+        return NextResponse.json({
+            success: false,
+            message: error.message || 'Failed to fetch feedback',
+            error: error.stack
+        }, { status: 500 });
+    }
+}

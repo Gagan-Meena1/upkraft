@@ -10,7 +10,7 @@ const HowItWorks = () => {
     <div className='how-it-work'>
         <div className='container'>
             <div className='heading-box text-start'>
-                <h2>How it works </h2>
+                <h2 className="!text-[34px]">How it Works </h2>
             </div>
             <div className='how-it-work-inner'>
                 <div className='top-img-box text-how-it-work'>
