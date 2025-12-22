@@ -10,6 +10,7 @@ import { useRef } from 'react';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
 import { Upload } from 'lucide-react';
+import { useVoiceInput } from '@/hooks/useVoiceInput'; // Add this import
 
 interface Student {
   _id: string;
@@ -138,6 +139,153 @@ const FeedbackPendingDetails = () => {
     selectedFeedback?.classes[selectedFeedback.selectedClassIndex]?.courseCategory || "Music";
   const currentFields = CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS["Music"];
   const splitIndex = Math.ceil(currentFields.length / 2);
+  // Add these after your existing useState declarations
+// const [isVoiceMode, setIsVoiceMode] = useState(false);
+// const [voiceTranscript, setVoiceTranscript] = useState('');
+
+const {
+  isListening,
+  transcript,
+  startListening,
+  stopListening,
+  resetTranscript,
+  isSupported
+} = useVoiceInput({
+  onResult: (text) => {
+    parseVoiceCommand(text);
+  },
+  continuous: true
+});
+
+// Add this function before the return statement
+const parseVoiceCommand = (text: string) => {
+  const lowerText = text.toLowerCase();
+  
+  // Check for modal confirmation commands FIRST (when modal is open)
+  if (showAbsentConfirm) {
+    if (lowerText.includes('yes') || 
+        lowerText.includes('confirm') || 
+        lowerText.includes('mark absent')) {
+      toast.success('Confirming absence...');
+      setTimeout(() => {
+        handleMarkAbsent();
+      }, 300);
+      return;
+    } else if (lowerText.includes('no') || 
+               lowerText.includes('cancel')) {
+      setShowAbsentConfirm(false);
+      setAttendanceStatus('present');
+      toast.success('Cancelled');
+      return;
+    }
+  }
+  
+  // Parse attendance - check for student name and status
+  if (selectedFeedback) {
+    const studentName = selectedFeedback.student.username.toLowerCase();
+    
+    // Check if command mentions the student OR general attendance commands
+    const mentionsStudent = lowerText.includes(studentName);
+    
+    // Present commands
+    if (lowerText.includes('present') || lowerText.includes('here') || 
+        (mentionsStudent && (lowerText.includes('attend') || lowerText.includes('came')))) {
+      setAttendanceStatus('present');
+      setShowAbsentConfirm(false);
+      toast.success(`${selectedFeedback.student.username} marked as present`);
+      return;
+    } 
+    // Absent commands - Show the modal instead of directly marking absent
+    else if (
+      lowerText.includes('absent') || 
+      lowerText.includes('not here') ||
+      lowerText.includes('mark absent') ||
+      lowerText.includes('was absent') ||
+      (lowerText.includes('mark') && lowerText.includes('absent'))
+    ) {
+      setAttendanceStatus('absent');
+      setShowAbsentConfirm(true);
+      toast.success('Please confirm absence');
+      return;
+    }
+  }
+
+  // Check for submit command
+if (
+  lowerText.includes('submit evaluation') ||
+  lowerText.includes('submit feedback') ||
+  lowerText.includes('submit the evaluation') ||
+  lowerText.includes('submit the feedback') ||
+  (lowerText.includes('submit') && (lowerText.includes('evaluation') || lowerText.includes('feedback')))
+) {
+  // Check current attendance status at the time of submission
+  const currentAttendance = attendanceStatus;
+  
+  if (currentAttendance === 'present') {
+    toast.success('Submitting evaluation...');
+    setTimeout(() => {
+      handleSubmit();
+    }, 500);
+  } else if (currentAttendance === 'absent') {
+    // If already marked absent and modal is not showing, directly call handleMarkAbsent
+    if (!showAbsentConfirm) {
+      toast.success('Marking as absent...');
+      setTimeout(() => {
+        handleMarkAbsent();
+      }, 500);
+    } else {
+      // If modal is showing, remind to confirm
+      toast('Please confirm absence in the modal');
+    }
+  }
+  return;
+}
+
+  // Parse field ratings (rhythm 8, technique 7, etc.)
+  currentFields.forEach(field => {
+    const fieldName = field.label.toLowerCase();
+    
+    // Match patterns like "rhythm 8", "rhythm is 8", "set rhythm to 8"
+    const patterns = [
+      new RegExp(`${fieldName}\\s+(is\\s+)?(\\d+)`, 'i'),
+      new RegExp(`set\\s+${fieldName}\\s+to\\s+(\\d+)`, 'i'),
+      new RegExp(`${fieldName}\\s+rating\\s+(\\d+)`, 'i')
+    ];
+
+    patterns.forEach(pattern => {
+      const match = lowerText.match(pattern);
+      if (match) {
+        const value = parseInt(match[match.length - 1]);
+        if (value >= 1 && value <= 10) {
+          handleSliderChange(field.key, value);
+          toast.success(`${field.label} set to ${value}`);
+        }
+      }
+    });
+  });
+
+  // Parse personal feedback
+  // Check for trigger phrases like "feedback is", "notes are", "comment is"
+  const feedbackTriggers = [
+    /feedback\s+is\s+(.+?)(?:\.|$)/i,
+    /personal\s+feedback\s+(.+?)(?:\.|$)/i,
+    /notes?\s+(?:are|is)\s+(.+?)(?:\.|$)/i,
+    /comment\s+(?:is|are)\s+(.+?)(?:\.|$)/i
+  ];
+
+  feedbackTriggers.forEach(pattern => {
+    const match = lowerText.match(pattern);
+    if (match && match[1]) {
+      const feedbackText = match[1].trim();
+      setFeedbackData(prev => ({
+        ...prev,
+        personalFeedback: prev.personalFeedback 
+          ? `${prev.personalFeedback} ${feedbackText}` 
+          : feedbackText
+      }));
+    }
+  });
+};
 
   // Fetch data on component mount
   useEffect(() => {
@@ -653,6 +801,37 @@ const getButtonText = (classId: string, isUploading: boolean) => {
     </p>
   </div>
   <div className='btn-right d-flex gap-2 align-items-center flex-wrap'>
+{/* Voice Input Toggle */}
+{isSupported && (
+  <button
+    onClick={() => {
+      if (isListening) {
+        stopListening();
+      } else {
+        resetTranscript();
+        startListening();
+      }
+    }}
+    className={`btn d-flex align-items-center gap-2 ${
+      isListening ? 'btn-danger' : 'btn-success'
+    }`}
+    style={{
+      minWidth: '140px',
+      animation: isListening ? 'pulse 1.5s infinite' : 'none'
+    }}
+  >
+    {isListening ? (
+      <>
+        <span className="spinner-grow spinner-grow-sm" />
+        Stop Voice
+      </>
+    ) : (
+      <>
+        🎤 Start Voice
+      </>
+    )}
+  </button>
+)}
     {/* Attendance Dropdown */}
     <div className="dropdown">
       <button
@@ -744,6 +923,46 @@ const getButtonText = (classId: string, isUploading: boolean) => {
     </button>
   </div>
 </div>
+{/* Voice Transcript Display */}
+{isListening && (
+  <div className="alert alert-info mb-3">
+    <div className="d-flex justify-content-between align-items-start">
+      <div className="flex-grow-1">
+        <strong>🎤 Voice Commands Active</strong>
+        {!showAbsentConfirm ? (
+          <p className="mb-1 mt-2 small">
+            <strong>Examples:</strong><br/>
+            • "{selectedFeedback.student.username} present" or "mark absent"<br/>
+            • "rhythm 8" or "set technique to 7"<br/>
+            • "feedback is student did well"<br/>
+            • "submit evaluation" (to submit the form)
+          </p>
+        ) : (
+          <p className="mb-1 mt-2 small">
+            <strong>Modal is open. Say:</strong><br/>
+            • "Yes" or "Confirm" to mark absent<br/>
+            • "No" or "Cancel" to go back
+          </p>
+        )}
+        {transcript && (
+          <div className="mt-2 p-2 bg-white rounded">
+            <small className="text-muted">Last heard:</small>
+            <p className="mb-0"><strong>{transcript}</strong></p>
+          </div>
+        )}
+      </div>
+      <button
+        className="btn btn-sm btn-outline-secondary"
+        onClick={() => {
+          resetTranscript();
+          setVoiceTranscript('');
+        }}
+      >
+        Clear
+      </button>
+    </div>
+  </div>
+)}
               <div className='bottom-feedback-box row'>
                 <div className='col-xxl-6 mb-0'>
                   <div className='progressbar-line-sec'>
