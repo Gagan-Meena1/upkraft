@@ -113,7 +113,7 @@ const LearnFromExperts = () => {
     <div className="learn-experts-sec">
       <div className="container">
         <div className="heading-box text-center mb-4">
-          <h2 className="mb-3 !text-[34px]">
+          <h2 className="mb-3 ">
             Learn from <span>Experts</span>
           </h2>
           <p>

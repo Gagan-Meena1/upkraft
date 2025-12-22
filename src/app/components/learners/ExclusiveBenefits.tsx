@@ -21,7 +21,7 @@ const ExclusiveBenefits = () => {
             <div className='row'>
                 <div className='col-lg-4 col-md-5'>
                     <div className='exclusive-left-text'>
-                        <h2 className="!text-[32px]">Exclusive Benefits for Learners</h2>
+                        <h2 className="">Exclusive Benefits for Learners</h2>
                         <p>Master music faster with our AI Practice Studio delivering real-time feedback, guided by expert tutors aligned to your style and goals. Track measurable progress every week, practice the songs you truly love, and keep parents engaged with family-friendly features that celebrate every milestone.</p>
                         <Link href="" className='btn btn-orange' onClick={handleShow}>Find my Tutor</Link>
                     </div>

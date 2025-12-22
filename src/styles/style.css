@@ -1213,3 +1213,63 @@ h3,
     text-align: center;
   }
 }
+
+
+
+.landing-page h2.heading-text {
+  font-weight: 700;
+  font-size: 34px !important;
+  line-height: 140%;
+  letter-spacing: 0px;
+}
+
+.landing-page h2 {
+  font-size: 34px !important;
+  line-height: 140%;
+  font-weight: 600;
+  letter-spacing: 0px;
+}
+
+@media only screen and (max-width: 1200px) {
+
+  
+
+.landing-page h2.heading-text {
+  font-size: 28px !important;
+}
+
+.landing-page h2 {
+  font-size: 28px !important;
+}
+
+}
+
+
+@media only screen and (max-width: 992px) {
+
+  
+
+.landing-page h2.heading-text {
+  font-size: 25px !important;
+}
+
+.landing-page h2 {
+  font-size: 25px !important;
+}
+
+}
+
+
+@media only screen and (max-width: 767px) {
+
+  
+
+.landing-page h2.heading-text {
+  font-size: 22px !important;
+}
+
+.landing-page h2 {
+  font-size: 22px !important;
+}
+
+}
