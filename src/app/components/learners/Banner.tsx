@@ -26,9 +26,10 @@ const Banner = () => {
         />
       </div>
 
-      <div className='text-box-banner'>
+      <div className='text-box-banner heading-box'>
         <div className='text-box'>
-          <h1 className='mb-2 '>Reimagining Extracurricular Learning With AI</h1>
+          {/* <h1 className='mb-2 '>Reimagining Extracurricular Learning With AI</h1> */}
+          <h2 className="mb-3 "><span>Reimagining Extracurricular Learning With AI</span></h2>
           <h3 className='mb-2'>Built for Tutors & Students Worldwide</h3>
           <p>UpKraft is one stop solution to make extracurricular learning smarter, faster, and trackable.</p>
           <Link href="" className='btn btn-orange' onClick={handleShow}>
