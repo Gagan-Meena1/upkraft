@@ -157,7 +157,7 @@ export default function AdminDemoPage() {
                 Personalised learning • Expert teachers • AI Music Companion to
                 help you practice between classes and learn faster
               </p>
-              <h2 className="!text-2xl font-bold !mb-6 text-black">
+              <h2 className=" font-bold !mb-6 text-black">
                 Why Choose UpKraft?
               </h2>
               <ul className="gap-3 !pl-0 md:mt-4 flex flex-col text-black text-base">
