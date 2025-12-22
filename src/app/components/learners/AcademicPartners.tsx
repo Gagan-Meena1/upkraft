@@ -8,9 +8,13 @@ function AcademicPartners() {
   return (
     <section className="my-12 px-8">
             <div>
-              <h1 className="!text-2xl font-semibold !mb-10 text-center">
+              <div className='heading-box'>
+              <h2 className="text-center ">
+                <span>
                 Academic Partners
-              </h1>
+                </span>
+              </h2>
+              </div>
               <div className="flex gap-5 justify-center">
                 <div className="flex gap-5">
                   <div className="!m-auto">
