@@ -115,20 +115,20 @@ const Students = () => {
                   <span className="badge tag-exam">↑  new</span>
                 </Link>
               </div>
-              <div className='col-lg-3 col-6 mb-4'>
+              {/* <div className='col-lg-3 col-6 mb-4'>
                 <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
                   <h2>35</h2>
                   <p className='m-0 p-0 pt-2'>Trial Students</p>
                   <span className="badge tag-exam">↑ 5 this week</span>
                 </Link>
-              </div>
-              <div className='col-lg-3 col-6 mb-4'>
+              </div> */}
+              {/* <div className='col-lg-3 col-6 mb-4'>
                 <Link href="/" className='card-box academy-card d-block p-md-5 p-4 px-md-3 px-3'>
                   <h2>91%</h2>
                   <p className='m-0 p-0 pt-2'>Retention Rate</p>
                   <span className="badge tag-exam">↑ 2.3%</span>
                 </Link>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
