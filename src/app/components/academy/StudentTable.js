@@ -5,9 +5,16 @@ import Link from 'next/link';
 import { Button, Form, ProgressBar } from "react-bootstrap";
 import Pagination from "react-bootstrap/Pagination";
 import Profile from "../../../assets/Mask-profile.png";
+import { useState } from 'react';
 
 const StudentTable = ({ students, pagination, onPageChange }) => {
   console.log("StudentTable students:", students);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+const [selectedStudent, setSelectedStudent] = useState(null);
+const [formData, setFormData] = useState({});
+const [isSubmitting, setIsSubmitting] = useState(false);
+const [updateSuccess, setUpdateSuccess] = useState(false);
+const [formErrors, setFormErrors] = useState({});
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -55,6 +62,108 @@ const StudentTable = ({ students, pagination, onPageChange }) => {
     }
   };
 
+  const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  setFormData((prev) => ({ ...prev, [name]: value }));
+  
+  if (formErrors[name]) {
+    setFormErrors((prev) => ({ ...prev, [name]: "" }));
+  }
+};
+
+const validateForm = () => {
+  const errors = {};
+  
+  if (!formData.username?.trim()) {
+    errors.username = "Name is required";
+  }
+  
+  if (!formData.email?.trim()) {
+    errors.email = "Email is required";
+  } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    errors.email = "Please enter a valid email address";
+  }
+  
+  setFormErrors(errors);
+  return Object.keys(errors).length === 0;
+};
+
+const handleEditClick = (student) => {
+  setSelectedStudent(student);
+  setFormData({
+    username: student.username,
+    email: student.email,
+    contact: student.contact || '',
+    address: student.address || ''
+  });
+  setIsEditModalOpen(true);
+};
+
+const handleModalClose = () => {
+  setIsEditModalOpen(false);
+  setFormErrors({});
+  setUpdateSuccess(false);
+  setSelectedStudent(null);
+  setFormData({});
+};
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  if (!selectedStudent?._id) return;
+  
+  if (!validateForm()) {
+    return;
+  }
+  
+  setIsSubmitting(true);
+  try {
+    // Create FormData to match the API's expected format
+    const submitFormData = new FormData();
+    
+    // Add user data as JSON string (matching the API expectation)
+    submitFormData.append('userData', JSON.stringify(formData));
+    
+    const response = await fetch(`/Api/userUpdate?userId=${selectedStudent._id}`, {
+      method: "PUT",
+      body: submitFormData, // Send FormData instead of JSON
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Update error:', errorData);
+      throw new Error(errorData.message || "Failed to update student");
+    }
+    
+    const result = await response.json();
+    console.log("Update success:", result);
+    
+    // Update the local student data to reflect changes
+    if (students && Array.isArray(students)) {
+      const updatedStudents = students.map(s => 
+        s._id === selectedStudent._id 
+          ? { ...s, ...formData }
+          : s
+      );
+      // If you have a way to update the parent component's state, call it here
+      // For example: onStudentUpdate && onStudentUpdate(updatedStudents);
+    }
+    
+    setUpdateSuccess(true);
+    
+    setTimeout(() => {
+      handleModalClose();
+      // Optionally reload the page to reflect changes
+      window.location.reload();
+    }, 1500);
+  } catch (err) {
+    console.error("Error updating student:", err);
+    alert(err.message || "Failed to update student. Please try again.");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
   const renderPaginationItems = () => {
     if (!pagination) return null;
 
@@ -94,6 +203,7 @@ const StudentTable = ({ students, pagination, onPageChange }) => {
     if (currentPage < totalPages - 2) {
       items.push(<Pagination.Ellipsis key="ellipsis-end" disabled />);
     }
+    
 
     // Always show last page if there's more than one page
     if (totalPages > 1) {
@@ -231,15 +341,18 @@ const StudentTable = ({ students, pagination, onPageChange }) => {
                           <td className="text-center">
                             <ul className="d-flex align-items-center justify-content-center gap-2 list-unstyled m-0 p-0">
                               <li>
-                                <Link className="link-btn" href={`/academy/students/${student._id}`}>
-                                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M3.50195 21H21.502" stroke="#1E88E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    <path d="M5.50391 13.36V17H9.16241L19.5039 6.654L15.8514 3L5.50391 13.36Z" stroke="#1E88E5" strokeWidth="2" strokeLinejoin="round"/>
-                                  </svg>
-                                </Link>
+                                <button 
+  className="link-btn border-0 bg-transparent"
+  onClick={() => handleEditClick(student)}
+>
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3.50195 21H21.502" stroke="#1E88E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5.50391 13.36V17H9.16241L19.5039 6.654L15.8514 3L5.50391 13.36Z" stroke="#1E88E5" strokeWidth="2" strokeLinejoin="round"/>
+  </svg>
+</button>
                               </li>
                               <li>
-                                <button 
+                                {/* <button 
                                   className="link-btn border-0 bg-transparent"
                                   onClick={() => {
                                     if (confirm(`Delete student ${student.username}?`)) {
@@ -250,7 +363,7 @@ const StudentTable = ({ students, pagination, onPageChange }) => {
                                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M8.625 6.375C8.625 5.47989 8.98058 4.62145 9.61351 3.98851C10.2464 3.35558 11.1049 3 12 3C12.8951 3 13.7536 3.35558 14.3865 3.98851C15.0194 4.62145 15.375 5.47989 15.375 6.375M8.625 6.375H15.375M8.625 6.375H5.25M15.375 6.375H18.75M5.25 6.375H3M5.25 6.375V18.75C5.25 19.3467 5.48705 19.919 5.90901 20.341C6.33097 20.7629 6.90326 21 7.5 21H16.5C17.0967 21 17.669 20.7629 18.091 20.341C18.5129 19.919 18.75 19.3467 18.75 18.75V6.375M18.75 6.375H21" stroke="#E53935" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                                   </svg>
-                                </button>
+                                </button> */}
                               </li>
                             </ul>
                           </td>
@@ -280,6 +393,148 @@ const StudentTable = ({ students, pagination, onPageChange }) => {
           )}
         </div>
       </div>
+      {/* Edit Student Modal */}
+{isEditModalOpen && selectedStudent && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4">
+    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-2xl font-bold text-gray-900">
+            Edit Student
+          </h3>
+          <Button
+            onClick={handleModalClose}
+            className="text-gray-500 hover:text-gray-700 transition-colors bg-transparent p-0 border-0"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </Button>
+        </div>
+
+        <Form onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            {/* Name Field */}
+            <Form.Group>
+              <Form.Label className="block text-sm font-bold text-gray-900 mb-2">
+                Name <span className="text-red-500">*</span>
+              </Form.Label>
+              <Form.Control
+                type="text"
+                name="username"
+                value={formData.username || ""}
+                onChange={handleInputChange}
+                className={`block w-full px-4 py-3 border rounded-lg ${
+                  formErrors.username
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300"
+                }`}
+                placeholder="Enter student name"
+                required
+              />
+              {formErrors.username && (
+                <Form.Text className="text-red-600 font-medium">
+                  {formErrors.username}
+                </Form.Text>
+              )}
+            </Form.Group>
+
+            {/* Email Field */}
+            <Form.Group>
+              <Form.Label className="block text-sm font-bold text-gray-900 mb-2">
+                Email <span className="text-red-500">*</span>
+              </Form.Label>
+              <Form.Control
+                type="email"
+                name="email"
+                value={formData.email || ""}
+                onChange={handleInputChange}
+                className={`block w-full px-4 py-3 border rounded-lg ${
+                  formErrors.email
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300"
+                }`}
+                placeholder="Enter email address"
+                required
+              />
+              {formErrors.email && (
+                <Form.Text className="text-red-600 font-medium">
+                  {formErrors.email}
+                </Form.Text>
+              )}
+            </Form.Group>
+
+            {/* Phone Field */}
+            <Form.Group>
+              <Form.Label className="block text-sm font-bold text-gray-900 mb-2">
+                Phone
+              </Form.Label>
+              <Form.Control
+                type="text"
+                name="contact"
+                value={formData.contact || ""}
+                onChange={handleInputChange}
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg"
+                placeholder="Enter phone number"
+              />
+            </Form.Group>
+
+            {/* Address Field */}
+            <Form.Group>
+              <Form.Label className="block text-sm font-bold text-gray-900 mb-2">
+                Address
+              </Form.Label>
+              <Form.Control
+                type="text"
+                name="address"
+                value={formData.address || ""}
+                onChange={handleInputChange}
+                className="block w-full px-4 py-3 border border-gray-300 rounded-lg"
+                placeholder="Enter address"
+              />
+            </Form.Group>
+          </div>
+
+          {/* Submit Button */}
+          <div className="mt-6">
+            <Button
+              type="submit"
+              className="w-full py-3 px-6 border-0 rounded-lg text-base font-bold text-white bg-purple-700 hover:bg-purple-800 disabled:opacity-50"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Updating...
+                </div>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+
+            {/* Success Message */}
+            {updateSuccess && (
+              <div className="mt-4 p-3 text-center text-sm font-medium text-green-800 bg-green-100 rounded-lg border border-green-200">
+                Student updated successfully!
+              </div>
+            )}
+          </div>
+        </Form>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 };
