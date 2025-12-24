@@ -23,7 +23,7 @@ const KnowledgeHub = () => {
                 <div className='row justify-content-center'>
                     <div className='col-lg-10'>
                         <div className='heading-box text-center'>
-                            <h2 className='mb-3 !text-[32px]'><span>UpKraft</span> Knowledge Hub </h2>
+                            <h2 className='mb-3'><span>UpKraft</span> Knowledge Hub </h2>
                             <p>Access 500+ video lessons from UpKraft tutors and begin your journey with free, easy-to-follow tutorials that make learning simple and fun. Build a strong foundation, then unlock advanced modules to keep growing and play like a pro.</p>
                         </div>
 

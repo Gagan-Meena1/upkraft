@@ -248,7 +248,7 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
       <div className="assignments-list-sec">
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
           <div className="left-head d-flex align-items-center gap-2">
-            <Link href="/tutor" className='link-text back-btn'>
+            <Link href={category === "Academic" ? "/academy" : "/tutor"} className='link-text back-btn'>
               <ChevronLeft />
             </Link>
             <h2 className="m-0">My Courses</h2>

@@ -10,7 +10,7 @@ const Faq = () => {
                 <div className='row'>
                     <div className='col-md-12'>
                         <div className='heading-box text-center'>
-                            <h2 className='mb-3 !text-2xl font-semibold'>Frequently Asked Questions</h2>
+                            <h2 className='mb-3'>Frequently Asked Questions</h2>
                             <p>UpKraft stands out as the right choice because it blends innovation, reliability, and customer-centric solutions to deliver real value.</p>
                         </div>
                     </div>
