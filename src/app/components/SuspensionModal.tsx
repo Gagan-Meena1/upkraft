@@ -382,7 +382,7 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
             gap: '12px',
             flexWrap: 'wrap'
           }}>
-            <button
+            {/* <button
               onClick={handleOpenPaymentModal}
               style={{
                 padding: '12px 32px',
@@ -406,7 +406,7 @@ const SuspensionModal: React.FC<SuspensionModalProps> = ({ message }) => {
               }}
             >
               Pay Now
-            </button>
+            </button> */}
             <button
               onClick={handleLogout}
               style={{
