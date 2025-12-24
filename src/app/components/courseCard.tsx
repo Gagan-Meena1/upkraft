@@ -351,7 +351,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
                     </button>
                   </Link>
                 </li>
-                {shouldShowPayNow && (
+                {/* {shouldShowPayNow && (
                   <li>
                     <button
                       className="w-full bg-white border border-green-200 text-green-700 hover:bg-green-50 !px-4 !py-3 !rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
@@ -361,7 +361,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
                       Pay Now
                     </button>
                   </li>
-                )}
+                )} */}
                 <li>
                   <Link
                     href={`${
