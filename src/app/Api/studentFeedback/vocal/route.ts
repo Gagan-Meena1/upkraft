@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         dictionAndArticulation: Number(dictionAndArticulation),
         expressionAndPerformance: Number(expressionAndPerformance),
         progressAndPracticeHabits: Number(progressAndPracticeHabits),
-        feedback: personalFeedback
+        personalFeedback
       };
              
       const newFeedback = await feedbackVocal.create(feedbackData);

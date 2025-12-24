@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         toneQualityAndSoundProduction: Number(toneQualityAndSoundProduction),
         rhythmMusicalityAndExpression: Number(rhythmMusicalityAndExpression),
         progressAndPracticeHabits: Number(progressAndPracticeHabits),
-        feedback: personalFeedback
+        personalFeedback
       };
              
       const newFeedback = await feedbackViolin.create(feedbackData);

@@ -55,6 +55,12 @@ const SessionSummary = ({ studentId, tutorId, courseId }: { studentId: string, t
         return '/Api/studentFeedbackForTutor/dance';
       case 'drawing':
         return '/Api/studentFeedbackForTutor/drawing';
+      case 'violin':
+        return '/Api/studentFeedbackForTutor/violin';
+      case 'vocal':
+        return '/Api/studentFeedbackForTutor/vocal';
+      case 'drums':
+        return '/Api/studentFeedbackForTutor/drums';
       default:
         return '/Api/studentFeedbackForTutor'; // Music
     }

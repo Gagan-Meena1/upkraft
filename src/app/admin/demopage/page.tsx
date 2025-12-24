@@ -11,11 +11,12 @@ import ExclusiveBenefitsdemo from "@/app/components/learners/ExclusiveBenefitsde
 import StudentForm from "@/app/components/learners/StudentForm";
 import rsl1 from "@/assets/rsl1.png";
 import trinitylogo from "@/assets/trinitylogo.png";
-import line1 from "@/assets/line1.png";
-import line2 from "@/assets/line2.png";
-import line3 from "@/assets/line3.png";
-import line4 from "@/assets/line4.png";
-import line5 from "@/assets/line5.png";
+import linee1 from "@/assets/linee1.png";
+import linee2 from "@/assets/linee2.png";
+import linee3 from "@/assets/linee3.png";
+import linee4 from "@/assets/linee4.png";
+import linee5 from "@/assets/linee5.png";
+import demoimg from "@/assets/demoimg.jpeg";
 
 export default function AdminDemoPage() {
   const [form, setForm] = useState({
@@ -142,28 +143,37 @@ export default function AdminDemoPage() {
         </div>
       </header>
 
-      <main className="w-full bg-[url('/path/to/your/image.jpg')] flex-grow flex items-center">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+      <main className="w-full flex-grow flex items-center relative">
+        {/* background image layer with reduced opacity */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-center bg-no-repeat bg-cover pointer-events-none z-0 bg-[#6106CB]"
+          style={{ backgroundImage: `url(})` }}
+        />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+          <div className="grid md:grid-cols-2 gap-12 items-start">
             {/* Left content */}
-            <div className="text-black">
-              <h3 className="!text-sm uppercase font-semibold mb-4 text-black tracking-wider">
+            <div className="text-white">
+              <h3 className="!text-sm uppercase font-semibold mb-4 text- tracking-wider">
                 Schedule a Demo
               </h3>
               <h1 className="!text-3xl lg:text-5xl font-bold mb-6 leading-tight">
                 Learn Music the Smart Way with UpKraft
               </h1>
-              <p className="text-black !mb-10 text-lg leading-relaxed">
-                Personalised learning • Expert teachers • AI Music Companion to
-                help you practice between classes and learn faster
+              <p className="text-white !mb-10 text-lg leading-relaxed">
+                <ul>
+                <li className="pb-3 pr-1">• Personalised learning </li>
+                <li className="pb-3">• Expert teachers </li>
+                <li className="pb-3">• AI Music Companion to help you practice between classes and learn <span className="pl-3">faster</span></li>
+                </ul>
               </p>
-              <h2 className="!text-2xl font-bold !mb-6 text-black">
+              <h2 className="!text-2xl font-bold !mb-6 text-white">
                 Why Choose UpKraft?
               </h2>
-              <ul className="gap-3 !pl-0 md:mt-4 flex flex-col text-black text-base">
+              <ul className="gap-3 !pl-0 md:mt-4 flex flex-col text-white text-base">
                 <li className="flex items-start gap-3">
                   <Image
-                    src={line1.src}
+                    src={linee1.src}
                     alt="Line"
                     width={20}
                     height={20}
@@ -175,35 +185,36 @@ export default function AdminDemoPage() {
                 </li>
                 <li className="flex items-start gap-3">
                   <Image
-                    src={line2.src}
+                    src={linee2.src}
                     alt="Line"
                     width={20}
                     height={20}
-                    color="black">
+                    color="black"
+                    className="pt-2">
                   </Image>
                   <span className="flex items-center gap-3">
                     <span>Clear Pathway for Certifications</span>
-                    <span className="inline-flex items-center gap-3 ml-3">
+                    <span className="inline-flex items-center gap-3 ml-3  px-2 py-1 rounded-full">
                       <Image
                         src={rsl1.src}
                         alt="Rsl Logo"
                         width={50}
                         height={50}
-                        className=""
+                        className="bg-amber-50 rounded p-2"
                       />
                       <Image
                         src={trinitylogo.src}
                         alt="Trinity Logo"
                         width={50}
                         height={50}
-                        className=""
+                        className="bg-amber-50 rounded px-1"
                       />
                     </span>
                   </span>
                 </li>
-                <li className="flex items-start gap-3">
+                <li className="flex items-start gap-3 !pb-3">
                   <Image
-                    src={line3.src}
+                    src={linee3.src}
                     alt="Line"
                     width={20}
                     height={20}
@@ -213,9 +224,9 @@ export default function AdminDemoPage() {
 Personalised Learning for Every Age & Goal
                   </span>
                 </li>
-                <li className="flex items-start gap-3">
+                <li className="flex items-start gap-3 pb-3">
                  <Image
-                    src={line4.src}
+                    src={linee4.src}
                     alt="Line"
                     width={20}
                     height={20}
@@ -227,7 +238,7 @@ Al-Powered Practice for Faster Mastery
                 </li>
                 <li className="flex items-start gap-3">
                   <Image
-                    src={line5.src}
+                    src={linee5.src}
                     alt="Line"
                     width={20}
                     height={20}
@@ -399,7 +410,7 @@ Al-Powered Practice for Faster Mastery
                 </button>
               </form>
             </div> */}
-            <div className="flex justify-center">
+            <div className="flex justify-center bg-white rounded-xl shadow-2xl">
               <StudentForm />
             </div>
           </div>
