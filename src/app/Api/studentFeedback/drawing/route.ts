@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         proportionPerspective: Number(proportionPerspective),
         valueShading: Number(valueShading),
         compositionCreativity: Number(compositionCreativity),
-        feedback: personalFeedback
+        personalFeedback
       };
              
       const newFeedback = await feedbackDrawing.create(feedbackData);

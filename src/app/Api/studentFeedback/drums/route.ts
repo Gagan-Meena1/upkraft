@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         dynamicsAndMusicality: Number(dynamicsAndMusicality),
         patternKnowledgeAndReading: Number(patternKnowledgeAndReading),
         progressAndPracticeHabits: Number(progressAndPracticeHabits),
-        feedback: personalFeedback
+        personalFeedback
       };
              
       const newFeedback = await feedbackDrums.create(feedbackData);

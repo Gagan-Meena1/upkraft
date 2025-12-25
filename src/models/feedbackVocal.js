@@ -33,6 +33,9 @@ const feedbackVocalSchema = new mongoose.Schema({
   },
   progressAndPracticeHabits:{
     type:String
+  },
+  personalFeedback: {
+    type: String,
   }
 
 }, {

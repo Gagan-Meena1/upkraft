@@ -33,6 +33,9 @@ const feedbackViolinSchema = new mongoose.Schema({
   },
   progressAndPracticeHabits:{
     type:String
+  },
+  personalFeedback: {
+    type: String,
   }
 
 }, {

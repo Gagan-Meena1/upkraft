@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         technique: Number(technique),
         retention: Number(retention),
         effort: Number(effort),
-        feedback: personalFeedback
+        personalFeedback
       };
              
       const newFeedback = await feedbackDance.create(feedbackData);

@@ -35,13 +35,13 @@ export async function POST(request: NextRequest) {
       // Extract fields from JSON
       const {
         rhythm,
-        theoretical,
+        theoreticalUnderstanding,
         understanding,
         performance,
         earTraining,
         assignment,
         technique,
-        feedback: personalFeedback
+        personalFeedback
       } = data;
 
       const {attendanceStatus} = data;
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
         userId: studentId,
         classId: classId,
         rhythm: Number(rhythm),
-        theoreticalUnderstanding: Number(theoretical),
+        theoreticalUnderstanding: Number(theoreticalUnderstanding),
         performance: Number(performance),
         earTraining: Number(earTraining),
         assignment: Number(assignment),
