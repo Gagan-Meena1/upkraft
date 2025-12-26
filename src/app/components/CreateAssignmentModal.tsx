@@ -873,7 +873,7 @@ export default function CreateAssignmentModal({
             {/* Practice Studio, Speed, Metronome, Loop */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Practice Studio Toggle */}
-              <div className="flex items-center gap-4">
+              {/* <div className="flex items-center gap-4">
                 <input
                   type="checkbox"
                   checked={practiceStudio}
@@ -888,10 +888,10 @@ export default function CreateAssignmentModal({
                 >
                   Add to Practice Studio
                 </label>
-              </div>
+              </div> */}
 
               {/* Speed */}
-              <div>
+              {/* <div>
                 <label className="!block !text-sm !font-semibold !text-gray-700 !mb-2">
                   Speed
                 </label>
@@ -908,10 +908,10 @@ export default function CreateAssignmentModal({
                   <option value="75%">75%</option>
                   <option value="100%">100%</option>
                 </select>
-              </div>
+              </div> */}
 
               {/* Metronome */}
-              <div>
+              {/* <div>
                 <label className="!block !text-sm !font-semibold !text-gray-700 !mb-2">
                   Metronome
                 </label>
@@ -928,7 +928,7 @@ export default function CreateAssignmentModal({
                   <option value="75%">75%</option>
                   <option value="100%">100%</option>
                 </select>
-              </div>
+              </div> */}
 
               {/* Loop */}
               {/* <div>
