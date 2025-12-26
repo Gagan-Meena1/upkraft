@@ -498,7 +498,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handlePackagePricingChange = (index: number, field: string, value: number) => {
+  const handlePackagePricingChange = (index: number, field: string, value: number | string) => {
     const updated = [...packagePricing];
     updated[index] = { ...updated[index], [field]: value };
     
@@ -1362,12 +1362,24 @@ export default function SettingsPage() {
                         </thead>
                         <tbody>
                           {packagePricing.map((pkg, index) => (
-                            <tr key={pkg.name} style={{ borderBottom: index < packagePricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
-                              <td style={{
-                                padding: '12px',
-                                fontWeight: 600
-                              }}>
-                                {pkg.name}
+                            <tr key={index} style={{ borderBottom: index < packagePricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                              <td style={{ padding: '12px' }}>
+                                <input
+                                  type="text"
+                                  value={pkg.name}
+                                  onChange={(e) => handlePackagePricingChange(index, 'name', e.target.value)}
+                                  style={{
+                                    width: '100px',
+                                    padding: '8px',
+                                    border: '2px solid #e0e0e0',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    fontFamily: 'inherit',
+                                    fontWeight: 600
+                                  }}
+                                  onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                />
                               </td>
                               <td style={{ padding: '12px' }}>
                                 <input
