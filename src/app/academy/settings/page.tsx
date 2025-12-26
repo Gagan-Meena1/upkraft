@@ -76,6 +76,11 @@ export default function SettingsPage() {
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [isSavingPricing, setIsSavingPricing] = useState(false);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [pricingApplyOption, setPricingApplyOption] = useState<'all' | 'select'>('all');
+  const [pricingStudentsList, setPricingStudentsList] = useState<Array<{_id: string; username: string; email: string}>>([]);
+  const [selectedPricingStudentIds, setSelectedPricingStudentIds] = useState<string[]>([]);
+  const [isLoadingPricingStudents, setIsLoadingPricingStudents] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -255,6 +260,51 @@ export default function SettingsPage() {
   ];
 
   const handleSavePricing = async () => {
+    // Open modal to choose apply option
+    setShowPricingModal(true);
+    fetchPricingStudentsList();
+  };
+
+  const fetchPricingStudentsList = async () => {
+    setIsLoadingPricingStudents(true);
+    try {
+      const response = await fetch('/Api/academy/students?page=1&limit=1000', {
+        credentials: 'include'
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.students) {
+          setPricingStudentsList(data.students.map((student: any) => ({
+            _id: student._id,
+            username: student.username,
+            email: student.email
+          })));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching students list:', error);
+      toast.error('Failed to load students list');
+    } finally {
+      setIsLoadingPricingStudents(false);
+    }
+  };
+
+  const handlePricingStudentToggle = (studentId: string) => {
+    setSelectedPricingStudentIds(prev => {
+      if (prev.includes(studentId)) {
+        return prev.filter(id => id !== studentId);
+      } else {
+        return [...prev, studentId];
+      }
+    });
+  };
+
+  const handleSavePricingSettings = async () => {
+    if (pricingApplyOption === 'select' && selectedPricingStudentIds.length === 0) {
+      toast.error('Please select at least one student');
+      return;
+    }
+
     setIsSavingPricing(true);
     try {
       const response = await fetch('/Api/academy/packagePricing', {
@@ -265,7 +315,9 @@ export default function SettingsPage() {
         body: JSON.stringify({
           pricingModel,
           packagePricing: pricingModel === 'Package' ? packagePricing : [],
-          monthlySubscriptionPricing: pricingModel === 'Monthly Subscription' ? monthlySubscriptionPricing : []
+          monthlySubscriptionPricing: pricingModel === 'Monthly Subscription' ? monthlySubscriptionPricing : [],
+          applyToAll: pricingApplyOption === 'all',
+          selectedStudentIds: pricingApplyOption === 'select' ? selectedPricingStudentIds : []
         }),
         credentials: 'include'
       });
@@ -281,6 +333,9 @@ export default function SettingsPage() {
       }
 
       toast.success('Package pricing saved successfully!');
+      setShowPricingModal(false);
+      setPricingApplyOption('all');
+      setSelectedPricingStudentIds([]);
       
       // Reload the page after a short delay to show the toast message
       setTimeout(() => {
@@ -2523,6 +2578,220 @@ export default function SettingsPage() {
                 }}
               >
                 {isSavingPayout ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pricing Settings Modal */}
+      {showPricingModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}
+        onClick={() => {
+          if (!isSavingPricing) {
+            setShowPricingModal(false);
+            setPricingApplyOption('all');
+            setSelectedPricingStudentIds([]);
+          }
+        }}
+        >
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '30px',
+            maxWidth: '500px',
+            width: '100%',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            position: 'relative',
+            zIndex: 10001
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: 600,
+              color: '#1a1a1a',
+              marginBottom: '20px'
+            }}>
+              Apply Pricing Settings
+            </h2>
+
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                marginBottom: '12px',
+                cursor: 'pointer',
+                backgroundColor: pricingApplyOption === 'all' ? '#f3e5f5' : 'white',
+                transition: 'all 0.3s'
+              }}
+              onClick={() => {
+                setPricingApplyOption('all');
+                setSelectedPricingStudentIds([]);
+              }}
+              >
+                <input
+                  type="radio"
+                  checked={pricingApplyOption === 'all'}
+                  onChange={() => {
+                    setPricingApplyOption('all');
+                    setSelectedPricingStudentIds([]);
+                  }}
+                  style={{ marginRight: '12px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Apply to all students</span>
+              </label>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '12px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                backgroundColor: pricingApplyOption === 'select' ? '#f3e5f5' : 'white',
+                transition: 'all 0.3s'
+              }}
+              onClick={() => {
+                setPricingApplyOption('select');
+              }}
+              >
+                <input
+                  type="radio"
+                  checked={pricingApplyOption === 'select'}
+                  onChange={() => {
+                    setPricingApplyOption('select');
+                  }}
+                  style={{ marginRight: '12px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '14px', fontWeight: 500 }}>Select Students</span>
+              </label>
+            </div>
+
+            {pricingApplyOption === 'select' && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#1a1a1a',
+                  marginBottom: '8px'
+                }}>
+                  Select Students
+                </label>
+                {isLoadingPricingStudents ? (
+                  <div style={{ textAlign: 'center', padding: '20px' }}>
+                    <p>Loading students...</p>
+                  </div>
+                ) : pricingStudentsList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#999' }}>
+                    <p>No students found</p>
+                  </div>
+                ) : (
+                  <div style={{
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '8px',
+                    padding: '8px'
+                  }}>
+                    {pricingStudentsList.map((student) => (
+                      <label
+                        key={student._id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                          marginBottom: '4px',
+                          backgroundColor: selectedPricingStudentIds.includes(student._id) ? '#e3f2fd' : 'transparent',
+                          transition: 'background-color 0.2s'
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedPricingStudentIds.includes(student._id)}
+                          onChange={() => handlePricingStudentToggle(student._id)}
+                          style={{ marginRight: '10px', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '14px' }}>
+                          {student.username} ({student.email})
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              justifyContent: 'flex-end',
+              marginTop: '20px'
+            }}>
+              <button
+                onClick={() => {
+                  setShowPricingModal(false);
+                  setPricingApplyOption('all');
+                  setSelectedPricingStudentIds([]);
+                }}
+                disabled={isSavingPricing}
+                style={{
+                  padding: '10px 20px',
+                  border: '2px solid #e0e0e0',
+                  borderRadius: '8px',
+                  background: 'white',
+                  color: '#666',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: isSavingPricing ? 'not-allowed' : 'pointer',
+                  opacity: isSavingPricing ? 0.5 : 1
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSavePricingSettings}
+                disabled={
+                  isSavingPricing || 
+                  (pricingApplyOption === 'select' && selectedPricingStudentIds.length === 0)
+                }
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  background: isSavingPricing || 
+                    (pricingApplyOption === 'select' && selectedPricingStudentIds.length === 0)
+                    ? '#ccc'
+                    : 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
+                  color: 'white',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: isSavingPricing || 
+                    (pricingApplyOption === 'select' && selectedPricingStudentIds.length === 0)
+                    ? 'not-allowed'
+                    : 'pointer',
+                  transition: 'all 0.3s'
+                }}
+              >
+                {isSavingPricing ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>
