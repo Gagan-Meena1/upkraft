@@ -40,6 +40,9 @@ export default function StudentSettingsPage() {
   const tzDropdownRef = useRef<HTMLDivElement | null>(null);
   const [policies, setPolicies] = useState<any>(null);
   const [isLoadingPolicies, setIsLoadingPolicies] = useState(false);
+  const [pricingSettings, setPricingSettings] = useState<any>(null);
+  const [isLoadingPricing, setIsLoadingPricing] = useState(false);
+  const [selectedPricingModel, setSelectedPricingModel] = useState<'Monthly Subscription' | 'Package'>('Monthly Subscription');
   const router = useRouter();
 
   const deviceTimeZone = useMemo(
@@ -202,6 +205,26 @@ export default function StudentSettingsPage() {
           } finally {
             setIsLoadingPolicies(false);
           }
+
+          // Fetch pricing settings
+          setIsLoadingPricing(true);
+          try {
+            const pricingResponse = await fetch("/Api/student/packagePricing");
+            if (pricingResponse.ok) {
+              const pricingData = await pricingResponse.json();
+              if (pricingData.success && pricingData.packagePricingSettings) {
+                setPricingSettings(pricingData.packagePricingSettings);
+                // Set initial selected model based on academy's active model
+                if (pricingData.packagePricingSettings.pricingModel) {
+                  setSelectedPricingModel(pricingData.packagePricingSettings.pricingModel as 'Monthly Subscription' | 'Package');
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching pricing settings:", error);
+          } finally {
+            setIsLoadingPricing(false);
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -263,7 +286,10 @@ export default function StudentSettingsPage() {
   const settingsNavItems = [
     { id: 'student', label: '👤 Student Info', section: 'General' },
     { id: 'courses', label: '📚 Enrolled Courses', section: 'General' },
-    ...(userData?.academyId ? [{ id: 'policies', label: '📋 Policies', section: 'Academy' }] : [])
+    ...(userData?.academyId ? [
+      { id: 'pricing', label: '💰 Pricing & Models', section: 'Academy' },
+      { id: 'policies', label: '📋 Policies', section: 'Academy' }
+    ] : [])
   ];
 
   const groupedNavItems = settingsNavItems.reduce((acc, item) => {
@@ -1060,10 +1086,382 @@ export default function StudentSettingsPage() {
                   </>
                 )}
               </div>
-            )}
+          )}
 
-            {/* Policies Section */}
-            {activeSection === 'policies' && (
+          {/* Pricing & Models Section */}
+          {activeSection === 'pricing' && (
+            <div style={{
+              background: 'white',
+              borderRadius: '16px',
+              padding: '25px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+            }}>
+              <div style={{
+                fontSize: '20px',
+                fontWeight: 600,
+                color: '#1a1a1a',
+                marginBottom: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                💰 Pricing & Revenue Models
+              </div>
+              <div style={{
+                fontSize: '14px',
+                color: '#666',
+                marginBottom: '25px'
+              }}>
+                View your academy's pricing and revenue model settings
+              </div>
+
+              {isLoadingPricing ? (
+                <>
+                  <style dangerouslySetInnerHTML={{__html: `
+                    @keyframes spin-loader {
+                      0% { transform: rotate(0deg); }
+                      100% { transform: rotate(360deg); }
+                    }
+                  `}} />
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    padding: '60px 20px',
+                    flexDirection: 'column',
+                    gap: '20px'
+                  }}>
+                    <div 
+                      style={{
+                        width: '50px',
+                        height: '50px',
+                        border: '4px solid #f3f3f3',
+                        borderTop: '4px solid #6200EA',
+                        borderRadius: '50%',
+                        animation: 'spin-loader 1s linear infinite'
+                      }}
+                    ></div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#666'
+                    }}>
+                      Loading pricing settings...
+                    </div>
+                  </div>
+                </>
+              ) : pricingSettings ? (
+                <>
+                  {/* Payment Model Selection - Tabbed Interface */}
+                  <div style={{
+                    background: '#fafafa',
+                    borderLeft: '4px solid #6200EA',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      fontSize: '15px',
+                      fontWeight: 600,
+                      color: '#1a1a1a',
+                      marginBottom: '16px'
+                    }}>
+                      Payment Model
+                    </div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                      gap: '16px'
+                    }}>
+                      <div
+                        onClick={() => setSelectedPricingModel('Monthly Subscription')}
+                        style={{
+                          border: `2px solid ${selectedPricingModel === 'Monthly Subscription' ? '#6200EA' : '#ddd'}`,
+                          borderRadius: '12px',
+                          padding: '16px',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s',
+                          background: selectedPricingModel === 'Monthly Subscription' ? '#f5f0ff' : 'white',
+                          position: 'relative'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedPricingModel !== 'Monthly Subscription') {
+                            e.currentTarget.style.borderColor = '#6200EA';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedPricingModel !== 'Monthly Subscription') {
+                            e.currentTarget.style.borderColor = '#ddd';
+                          }
+                        }}
+                      >
+                        {selectedPricingModel === 'Monthly Subscription' && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '10px',
+                            right: '15px',
+                            width: '24px',
+                            height: '24px',
+                            background: 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}>
+                            ✓
+                          </div>
+                        )}
+                        <div style={{
+                          fontWeight: 600,
+                          fontSize: '15px',
+                          color: '#1a1a1a',
+                          marginBottom: '8px'
+                        }}>
+                          Monthly Subscription
+                        </div>
+                        <div style={{
+                          fontSize: '13px',
+                          color: '#666',
+                          lineHeight: '1.4'
+                        }}>
+                          Fixed monthly fee for unlimited sessions
+                        </div>
+                      </div>
+                      <div
+                        onClick={() => setSelectedPricingModel('Package')}
+                        style={{
+                          border: `2px solid ${selectedPricingModel === 'Package' ? '#6200EA' : '#ddd'}`,
+                          borderRadius: '12px',
+                          padding: '16px',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s',
+                          background: selectedPricingModel === 'Package' ? '#f5f0ff' : 'white',
+                          position: 'relative'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedPricingModel !== 'Package') {
+                            e.currentTarget.style.borderColor = '#6200EA';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedPricingModel !== 'Package') {
+                            e.currentTarget.style.borderColor = '#ddd';
+                          }
+                        }}
+                      >
+                        {selectedPricingModel === 'Package' && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '10px',
+                            right: '15px',
+                            width: '24px',
+                            height: '24px',
+                            background: 'linear-gradient(135deg, #6200EA 0%, #7C4DFF 100%)',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontSize: '14px',
+                            fontWeight: 'bold'
+                          }}>
+                            ✓
+                          </div>
+                        )}
+                        <div style={{
+                          fontWeight: 600,
+                          fontSize: '15px',
+                          color: '#1a1a1a',
+                          marginBottom: '8px'
+                        }}>
+                          Package
+                        </div>
+                        <div style={{
+                          fontSize: '13px',
+                          color: '#666',
+                          lineHeight: '1.4'
+                        }}>
+                          Bulk session packages at discounted rates
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Monthly Subscription Pricing Table - Only visible when Monthly Subscription model is selected */}
+                  {selectedPricingModel === 'Monthly Subscription' && pricingSettings.monthlySubscriptionPricing && pricingSettings.monthlySubscriptionPricing.length > 0 && (
+                    <div style={{
+                      background: '#fafafa',
+                      borderLeft: '4px solid #6200EA',
+                      padding: '20px',
+                      borderRadius: '8px',
+                      marginBottom: '20px'
+                    }}>
+                      <div style={{
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        color: '#1a1a1a',
+                        marginBottom: '16px'
+                      }}>
+                        Monthly Subscription Pricing (for Monthly Subscription Model)
+                      </div>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{
+                          width: '100%',
+                          borderCollapse: 'collapse',
+                          fontSize: '14px'
+                        }}>
+                          <thead>
+                            <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                              <th style={{
+                                padding: '12px',
+                                textAlign: 'left',
+                                fontWeight: 600,
+                                color: '#1a1a1a'
+                              }}>Duration</th>
+                              <th style={{
+                                padding: '12px',
+                                textAlign: 'left',
+                                fontWeight: 600,
+                                color: '#1a1a1a'
+                              }}>Discount %</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pricingSettings.monthlySubscriptionPricing.map((subscription: any, index: number) => (
+                              <tr key={subscription.months} style={{ borderBottom: index < pricingSettings.monthlySubscriptionPricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                                <td style={{
+                                  padding: '12px',
+                                  fontWeight: 600
+                                }}>
+                                  {subscription.months} {subscription.months === 1 ? 'Month' : 'Months'}
+                                </td>
+                                <td style={{ padding: '12px' }}>
+                                  {subscription.discount || 0}%
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Package Pricing Table - Only visible when Package model is selected */}
+                  {selectedPricingModel === 'Package' && pricingSettings.packagePricing && pricingSettings.packagePricing.length > 0 && (
+                    <div style={{
+                      background: '#fafafa',
+                      borderLeft: '4px solid #6200EA',
+                      padding: '20px',
+                      borderRadius: '8px',
+                      marginBottom: '20px'
+                    }}>
+                      <div style={{
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        color: '#1a1a1a',
+                        marginBottom: '16px'
+                      }}>
+                        Package Pricing (for Package Model)
+                      </div>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{
+                          width: '100%',
+                          borderCollapse: 'collapse',
+                          fontSize: '14px'
+                        }}>
+                          <thead>
+                            <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                              <th style={{
+                                padding: '12px',
+                                textAlign: 'left',
+                                fontWeight: 600,
+                                color: '#1a1a1a'
+                              }}>Package</th>
+                              <th style={{
+                                padding: '12px',
+                                textAlign: 'left',
+                                fontWeight: 600,
+                                color: '#1a1a1a'
+                              }}>Sessions</th>
+                              <th style={{
+                                padding: '12px',
+                                textAlign: 'left',
+                                fontWeight: 600,
+                                color: '#1a1a1a'
+                              }}>Per Session Rate</th>
+                              <th style={{
+                                padding: '12px',
+                                textAlign: 'left',
+                                fontWeight: 600,
+                                color: '#1a1a1a'
+                              }}>Total Price</th>
+                              <th style={{
+                                padding: '12px',
+                                textAlign: 'left',
+                                fontWeight: 600,
+                                color: '#1a1a1a'
+                              }}>Discount %</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {pricingSettings.packagePricing.map((pkg: any, index: number) => (
+                              <tr key={index} style={{ borderBottom: index < pricingSettings.packagePricing.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                                <td style={{
+                                  padding: '12px',
+                                  fontWeight: 600
+                                }}>
+                                  {pkg.name}
+                                </td>
+                                <td style={{ padding: '12px' }}>
+                                  {pkg.sessions}
+                                </td>
+                                <td style={{ padding: '12px' }}>
+                                  ₹{pkg.perSessionRate?.toLocaleString('en-IN') || '0'}
+                                </td>
+                                <td style={{
+                                  padding: '12px',
+                                  fontWeight: 600
+                                }}>
+                                  ₹{pkg.totalPrice?.toLocaleString('en-IN') || '0'}
+                                </td>
+                                <td style={{ padding: '12px' }}>
+                                  {pkg.discount || 0}%
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{
+                  padding: '60px 20px',
+                  textAlign: 'center',
+                  color: '#666'
+                }}>
+                  <div style={{
+                    fontSize: '48px',
+                    marginBottom: '16px'
+                  }}>
+                    💰
+                  </div>
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: 500
+                  }}>
+                    No pricing settings available
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Policies Section */}
+          {activeSection === 'policies' && (
               <div style={{
                 background: 'white',
                 borderRadius: '16px',

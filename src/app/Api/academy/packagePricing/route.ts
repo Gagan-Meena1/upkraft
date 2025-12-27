@@ -113,7 +113,7 @@ export async function PUT(request: NextRequest) {
 
     // Get request body
     const body = await request.json();
-    const { pricingModel, packagePricing, monthlySubscriptionPricing } = body;
+    const { pricingModel, packagePricing, monthlySubscriptionPricing, applyToAll, selectedStudentIds } = body;
 
     // Validate required fields
     if (pricingModel === undefined) {
@@ -188,11 +188,17 @@ export async function PUT(request: NextRequest) {
       }, { status: 404 });
     }
 
+    // Get existing settings to preserve the inactive model's data
+    const existingSettings = user.packagePricingSettings || {};
+    
     // Create the package pricing settings object
+    // Preserve both arrays so students can see both models
     const newPackagePricingSettings = {
       pricingModel: pricingModel,
-      packagePricing: pricingModel === 'Package' ? packagePricing : [],
-      monthlySubscriptionPricing: pricingModel === 'Monthly Subscription' ? monthlySubscriptionPricing : []
+      packagePricing: pricingModel === 'Package' ? packagePricing : (existingSettings.packagePricing || []),
+      monthlySubscriptionPricing: pricingModel === 'Monthly Subscription' ? monthlySubscriptionPricing : (existingSettings.monthlySubscriptionPricing || []),
+      applyToAll: applyToAll !== undefined ? applyToAll : true,
+      selectedStudentIds: Array.isArray(selectedStudentIds) ? selectedStudentIds : []
     };
 
     console.log('PUT /Api/academy/packagePricing - Saving settings:', JSON.stringify(newPackagePricingSettings, null, 2));
@@ -219,6 +225,51 @@ export async function PUT(request: NextRequest) {
     user.packagePricingSettings = newPackagePricingSettings;
     user.markModified('packagePricingSettings');
     await user.save();
+
+    // Update students' pricing settings
+    if (newPackagePricingSettings.applyToAll) {
+      // Apply to all students in this academy
+      const studentsCollection = db.collection('users');
+      const academyObjectId = new mongoose.default.Types.ObjectId(userId);
+      await studentsCollection.updateMany(
+        { 
+          category: 'Student',
+          academyId: academyObjectId
+        },
+        { 
+          $set: { 
+            appliedPricingSettings: {
+              academyId: userId,
+              pricingModel: newPackagePricingSettings.pricingModel,
+              packagePricing: newPackagePricingSettings.packagePricing,
+              monthlySubscriptionPricing: newPackagePricingSettings.monthlySubscriptionPricing,
+              appliedAt: new Date()
+            }
+          } 
+        }
+      );
+    } else if (Array.isArray(selectedStudentIds) && selectedStudentIds.length > 0) {
+      // Apply to selected students only
+      const studentsCollection = db.collection('users');
+      const studentObjectIds = selectedStudentIds.map((id: string) => new mongoose.default.Types.ObjectId(id));
+      await studentsCollection.updateMany(
+        { 
+          _id: { $in: studentObjectIds },
+          category: 'Student'
+        },
+        { 
+          $set: { 
+            appliedPricingSettings: {
+              academyId: userId,
+              pricingModel: newPackagePricingSettings.pricingModel,
+              packagePricing: newPackagePricingSettings.packagePricing,
+              monthlySubscriptionPricing: newPackagePricingSettings.monthlySubscriptionPricing,
+              appliedAt: new Date()
+            }
+          } 
+        }
+      );
+    }
 
     // Wait a moment to ensure database write is complete
     await new Promise(resolve => setTimeout(resolve, 500));
