@@ -15,6 +15,9 @@ interface Course {
   title: string;
   category: string;
   class: string[];
+   maxStudentCount?: number; 
+  studentEnrolledCount?: number; 
+  students?: string[]; 
 }
 
 interface ClassData {
@@ -41,6 +44,8 @@ interface GroupedClasses {
   courseName: string;
   courseCategory: string;
   classes: ClassData[];
+   maxStudents: number; // Add this
+  enrolledStudents: number; // Add this
 }
 
 const AcademyDayDetailsPage = () => {
@@ -133,43 +138,54 @@ const AcademyDayDetailsPage = () => {
     });
   };
 
-  // Group classes by course
-  const getGroupedClasses = (): GroupedClasses[] => {
-    const classes = getClassesForDate();
-    const grouped = new Map<string, GroupedClasses>();
+// Replace the existing getGroupedClasses function with this:
+const getGroupedClasses = (): GroupedClasses[] => {
+  const classes = getClassesForDate();
+  const grouped = new Map<string, GroupedClasses>();
 
-    classes.forEach(classItem => {
-      const courseId = typeof classItem.course === 'string' 
-        ? classItem.course 
-        : classItem.course?._id || '';
-      const courseName = typeof classItem.course === 'object'
-        ? classItem.course?.title
-        : courses.find(c => c._id === courseId)?.title || "Unknown Course";
-      const courseCategory = typeof classItem.course === 'object'
-        ? classItem.course?.category
-        : courses.find(c => c._id === courseId)?.category || "Unknown";
-      
-      if (!grouped.has(courseId)) {
-        grouped.set(courseId, {
-          courseId,
-          courseName,
-          courseCategory,
-          classes: []
-        });
-      }
-      
-      grouped.get(courseId)!.classes.push(classItem);
-    });
+  classes.forEach(classItem => {
+    const courseId = typeof classItem.course === 'string' 
+      ? classItem.course 
+      : classItem.course?._id || '';
+    
+    // Find the course to get enrollment data
+    const foundCourse = courses.find(c => c._id === courseId);
+    
+    const courseName = typeof classItem.course === 'object'
+      ? classItem.course?.title
+      : foundCourse?.title || "Unknown Course";
+    
+    const courseCategory = typeof classItem.course === 'object'
+      ? classItem.course?.category
+      : foundCourse?.category || "Unknown";
+    
+    // Get enrollment data
+    const maxStudents = foundCourse?.maxStudentCount || 0;
+    const enrolledStudents = foundCourse?.students?.length || foundCourse?.studentEnrolledCount || 0;
+    
+    if (!grouped.has(courseId)) {
+      grouped.set(courseId, {
+        courseId,
+        courseName,
+        courseCategory,
+        classes: [],
+        maxStudents, // Add this
+        enrolledStudents // Add this
+      });
+    }
+    
+    grouped.get(courseId)!.classes.push(classItem);
+  });
 
-    // Sort classes within each course by start timee
-    grouped.forEach(group => {
-      group.classes.sort((a, b) => 
-        parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime()
-      );
-    });
+  // Sort classes within each course by start time
+  grouped.forEach(group => {
+    group.classes.sort((a, b) => 
+      parseISO(a.startTime).getTime() - parseISO(b.startTime).getTime()
+    );
+  });
 
-    return Array.from(grouped.values());
-  };
+  return Array.from(grouped.values());
+};
 
   // Format time range in user's timezone
   const formatTimeRange = (startTime: string, endTime: string) => {
@@ -253,18 +269,32 @@ const AcademyDayDetailsPage = () => {
                 className="bg-white rounded-lg shadow-md overflow-hidden"
               >
                 {/* Course Header */}
-                <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold">{group.courseName}</h2>
-                      <p className="text-purple-100 text-sm mt-1">
-                        {group.courseCategory} • {group.classes.length}{" "}
-                        {group.classes.length === 1 ? "class" : "classes"}
-                      </p>
-                    </div>
-                    <BookOpen className="w-8 h-8 text-purple-200" />
-                  </div>
-                </div>
+               <div className="bg-gradient-to-r from-purple-600 to-purple-500 text-white p-4">
+  <div className="flex items-center justify-between">
+    <div className="flex-1">
+      <h2 className="text-xl font-bold">{group.courseName}</h2>
+      <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
+        <span className="text-purple-100">{group.courseCategory}</span>
+        <span className="text-purple-200">•</span>
+        <span className="text-purple-100">
+          {group.classes.length} {group.classes.length === 1 ? "class" : "classes"}
+        </span>
+        {group.maxStudents > 0 && (
+          <>
+            <span className="text-purple-200">•</span>
+            <div className="flex items-center gap-1.5 bg-purple-500/30 px-2 py-1 rounded-full">
+              <User className="w-4 h-4" />
+              <span className="font-medium">
+                {group.enrolledStudents} / {group.maxStudents}
+              </span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+    <BookOpen className="w-8 h-8 text-purple-200 flex-shrink-0 ml-4" />
+  </div>
+</div>
 
                 {/* Classes List */}
                 <div className="divide-y divide-gray-200">

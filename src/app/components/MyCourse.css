@@ -530,6 +530,28 @@
     box-shadow: none !important;
     border-color: #dee2e6 !important;
 }
+/* Fix search input cursor and focus styles */
+.search-box .form-control {
+  cursor: text !important;
+}
+
+.search-box .form-control:hover,
+.search-box .form-control:focus {
+  cursor: text !important;
+}
+
+/* Ensure proper padding for the search input to prevent text overflow */
+.search-box .position-relative .form-control {
+  padding-right: 40px; /* Make space for the search icon */
+}
+
+/* Position the search button properly */
+.search-box .position-relative .btn {
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none; /* Prevent button from interfering with input */
+}
 
 
 
