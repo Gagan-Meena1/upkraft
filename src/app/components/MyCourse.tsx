@@ -74,17 +74,31 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [updatingCourseId, setUpdatingCourseId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
 
   console.log("category in MyCourse:", category);
+  // Sort courses by createdAt date (newest first) and filter by search query
+const sortedAndFilteredCourses = courses
+  .sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA; // Descending order (newest first)
+  })
+  .filter((course) =>
+    course.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Pagination logic
-  const totalCourses = courses.length;
-  const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
-  const paginatedCourses = courses.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
+const totalCourses = searchQuery ? sortedAndFilteredCourses.length : courses.length;
+const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
+
+  const displayCourses = searchQuery
+  ? sortedAndFilteredCourses
+  : sortedAndFilteredCourses.slice(
+      (currentPage - 1) * ITEMS_PER_PAGE,
+      currentPage * ITEMS_PER_PAGE
+    );
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -257,35 +271,40 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
             <Form>
               <div className="right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap">
                 <div className="search-box">
-                  <Form.Group className="position-relative mb-0">
-                    <Form.Label className="d-none">search</Form.Label>
-                    <Form.Control type="text" placeholder="Search here" />
-                    <Button
-                      type="button"
-                      className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute btn btn-primary"
-                    >
-                      <svg
-                        width="20"
-                        height="20"
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M17.4995 17.5L13.8828 13.8833"
-                          stroke="#505050"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                        <path
-                          d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
-                          stroke="#505050"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </Button>
-                  </Form.Group>
+              <Form.Group className="position-relative mb-0">
+  <Form.Label className="d-none">search</Form.Label>
+  <Form.Control
+    type="text"
+    placeholder="Search here"
+    value={searchQuery}
+    onChange={(e) => setSearchQuery(e.target.value)}
+  />
+  <Button
+    type="button"
+    className="  border-0 bg-transparent p-0 m-0 position-absolute "
+  >
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M17.4995 17.5L13.8828 13.8833"
+        stroke="#505050"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
+        stroke="#505050"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  </Button>
+</Form.Group>
                 </div>
                 <div className="select-box">
                   <Form.Select aria-label="Default select example">
@@ -344,8 +363,8 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
         <hr className="hr-light" />
 
         {/* Course List */}
-        {paginatedCourses.map((course) => (
-          <div key={course._id} className="assignments-list-box">
+{displayCourses.map((course) => (
+  <div key={course._id} className="assignments-list-box">
             <div className="w-100">
               <div className="d-flex align-items-center justify-content-left mb-3 flex-wrap gap-3">
                 <h3 className="mb-0">{course.title}</h3>
@@ -583,30 +602,32 @@ const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
           </div>
         ))}
 
-        {/* Pagination */}
-        <div className="pagination-sec d-flex align-items-center justify-content-center mt-4">
-          <Pagination>
-            <Pagination.Prev
-              onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-              disabled={currentPage === 1}
-            />
-            {[...Array(totalPages)].map((_, idx) => (
-              <Pagination.Item
-                key={idx + 1}
-                active={currentPage === idx + 1}
-                onClick={() => handlePageChange(idx + 1)}
-              >
-                {idx + 1}
-              </Pagination.Item>
-            ))}
-            <Pagination.Next
-              onClick={() =>
-                handlePageChange(Math.min(currentPage + 1, totalPages))
-              }
-              disabled={currentPage === totalPages}
-            />
-          </Pagination>
-        </div>
+    {/* Pagination */}
+{!searchQuery && (
+  <div className="pagination-sec d-flex align-items-center justify-content-center mt-4">
+    <Pagination>
+      <Pagination.Prev
+        onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+        disabled={currentPage === 1}
+      />
+      {[...Array(totalPages)].map((_, idx) => (
+        <Pagination.Item
+          key={idx + 1}
+          active={currentPage === idx + 1}
+          onClick={() => handlePageChange(idx + 1)}
+        >
+          {idx + 1}
+        </Pagination.Item>
+      ))}
+      <Pagination.Next
+        onClick={() =>
+          handlePageChange(Math.min(currentPage + 1, totalPages))
+        }
+        disabled={currentPage === totalPages}
+      />
+    </Pagination>
+  </div>
+)}
       </div>
       <EditCourseModal
         show={showEditModal}

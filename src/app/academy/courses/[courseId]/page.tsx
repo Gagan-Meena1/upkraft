@@ -24,6 +24,7 @@ interface Class {
   startTime: string;
   endTime: string;
   recordingUrl?: string;
+  status: string;
 }
 
 interface CourseDetailsData {
@@ -104,6 +105,13 @@ const [showMore, setShowMore] = useState<{students: boolean; tutors: boolean}>({
 const [category, setCategory] = useState<string | null>(null);
 const [selectedUsers, setSelectedUsers] = useState<Set<string>>(new Set());
 const [isRemoving, setIsRemoving] = useState(false);
+// Add these near your other state declarations
+const [showCancelModal, setShowCancelModal] = useState(false);
+const [cancellingClassId, setCancellingClassId] = useState<string | null>(null);
+const [cancellationReason, setCancellationReason] = useState("");
+const [isCancelling, setIsCancelling] = useState(false);
+const [rescheduleReason, setRescheduleReason] = useState("");
+const [originalDateTime, setOriginalDateTime] = useState<{date: string; startTime: string; endTime: string} | null>(null);
   // Helper function to format date and time
   /*
 const formatDateTime = (dateTimeString: string) => {
@@ -180,6 +188,11 @@ const extractDateTimeForForm = (dateTimeString: string) => {
     dateStr: `${year}-${month}-${day}`,  // Exact: "2024-01-15"
     timeStr: `${hours}:${minutes}`       // Exact: "14:30"
   };
+};
+
+// Add this helper function near the top with other helpers
+const isClassCanceled = (classSession: Class) => {
+  return classSession.status === 'canceled';
 };
 
 
@@ -318,7 +331,17 @@ const handleSubmitAttendance = async () => {
         }
         
         const data = await response.json();
-        setCourseData(data);
+
+// Sort classDetails by startTime (newest first)
+if (data.classDetails && data.classDetails.length > 0) {
+  data.classDetails.sort((a: Class, b: Class) => {
+    const dateA = new Date(a.startTime).getTime();
+    const dateB = new Date(b.startTime).getTime();
+    return dateB - dateA; // Descending order (newest first)
+  });
+}
+
+setCourseData(data);
         setAcademyId(data.academyId || null); // Add this line
         setLoading(false);
 
@@ -454,27 +477,31 @@ const handleRemoveUsers = async () => {
     fetchUserTimezone();
   }, []);
 
-  // Handle edit class
+
 const handleEditClass = (classSession: Class) => {
   setEditingClass(classSession);
   
-  // Extract EXACT values using UTC methods
   const startDateTime = extractDateTimeForForm(classSession.startTime);
   const endDateTime = extractDateTimeForForm(classSession.endTime);
   
-  console.log('EDITING CLASS - EXTRACTED VALUES:', {
+  const formData = {
+    title: classSession.title,
+    description: classSession.description,
     startTime: startDateTime.timeStr,
     endTime: endDateTime.timeStr,
     date: startDateTime.dateStr
+  };
+  
+  setEditForm(formData);
+  
+  // Store original date/time to detect changes
+  setOriginalDateTime({
+    date: startDateTime.dateStr,
+    startTime: startDateTime.timeStr,
+    endTime: endDateTime.timeStr
   });
   
-  setEditForm({
-    title: classSession.title,
-    description: classSession.description,
-    startTime: startDateTime.timeStr,  // Exact: "14:30"
-    endTime: endDateTime.timeStr,      // Exact: "16:00"
-    date: startDateTime.dateStr        // Exact: "2024-01-15"
-  });
+  setRescheduleReason("");
   setShowEditModal(true);
   setEditError('');
 };
@@ -521,6 +548,7 @@ const handleEditClass = (classSession: Class) => {
   };
 
   // Handle update class
+// Replace existing handleUpdateClass with this
 const handleUpdateClass = async (e: React.FormEvent) => {
   e.preventDefault();
   if (!editingClass) return;
@@ -533,25 +561,38 @@ const handleUpdateClass = async (e: React.FormEvent) => {
       throw new Error('End time must be after start time');
     }
 
-    console.log('UPDATING CLASS - SENDING VALUES:', {
-      date: editForm.date,        // "2024-01-15"
-      startTime: editForm.startTime, // "14:30"
-      endTime: editForm.endTime,     // "16:00"
-    });
+    // Check if date/time changed
+    const isDateTimeChanged = originalDateTime && (
+      editForm.date !== originalDateTime.date || 
+      editForm.startTime !== originalDateTime.startTime || 
+      editForm.endTime !== originalDateTime.endTime
+    );
+
+    // Validate reschedule reason if date/time changed
+    if (isDateTimeChanged && !rescheduleReason.trim()) {
+      throw new Error('Please provide a reason for rescheduling');
+    }
+
+    const requestBody: any = {
+      title: editForm.title,
+      description: editForm.description,
+      date: editForm.date,
+      startTime: editForm.startTime,
+      endTime: editForm.endTime,
+      timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+
+    // Only include reschedule reason if date/time changed
+    if (isDateTimeChanged) {
+      requestBody.reasonForReschedule = rescheduleReason;
+    }
 
     const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        title: editForm.title,
-        description: editForm.description,
-        date: editForm.date,        // Send exact: "2024-01-15"
-        startTime: editForm.startTime, // Send exact: "14:30"
-        endTime: editForm.endTime,     // Send exact: "16:00"
-        timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -562,11 +603,21 @@ const handleUpdateClass = async (e: React.FormEvent) => {
     toast.success('Class updated successfully!');
     setShowEditModal(false);
     setEditingClass(null);
+    setOriginalDateTime(null);
     
     // Refresh data
     const refreshResponse = await fetch(`/Api/tutors/courses/${params.courseId}`);
     if (refreshResponse.ok) {
       const refreshedData = await refreshResponse.json();
+      
+      if (refreshedData.classDetails && refreshedData.classDetails.length > 0) {
+        refreshedData.classDetails.sort((a: Class, b: Class) => {
+          const dateA = new Date(a.startTime).getTime();
+          const dateB = new Date(b.startTime).getTime();
+          return dateB - dateA;
+        });
+      }
+      
       setCourseData(refreshedData);
     }
   } catch (error) {
@@ -577,35 +628,70 @@ const handleUpdateClass = async (e: React.FormEvent) => {
   }
 };
   // Handle delete class
-  const handleDeleteClass = async (classId: string, classTitle: string) => {
-    if (!window.confirm(`Are you sure you want to delete the class "${classTitle}"? This action cannot be undone.`)) {
-      return;
+// Replace existing handleDeleteClass with this
+const handleDeleteClass = async (classId: string, classTitle: string) => {
+  setCancellingClassId(classId);
+  setCancellationReason("");
+  setEditError("");
+  setShowCancelModal(true);
+};
+
+// Add new function for actual cancellation
+const handleConfirmCancellation = async () => {
+  if (!cancellingClassId) return;
+  
+  if (!cancellationReason.trim()) {
+    setEditError("Please provide a reason for cancellation");
+    return;
+  }
+
+  setIsCancelling(true);
+  setEditError("");
+
+  try {
+    const response = await fetch(`/Api/classes?classId=${cancellingClassId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        reasonForCancellation: cancellationReason,
+        timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to cancel class');
     }
 
-    try {
-      const response = await fetch(`/Api/classes?classId=${classId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to delete class');
-      }
-
-      toast.success('Class deleted successfully!');
+    toast.success('Class cancelled successfully!');
+    setShowCancelModal(false);
+    setCancellingClassId(null);
+    setCancellationReason("");
+    
+    // Refresh data
+    const refreshResponse = await fetch(`/Api/tutors/courses/${params.courseId}`);
+    if (refreshResponse.ok) {
+      const refreshedData = await refreshResponse.json();
       
-      // Refresh the course data
-      const refreshResponse = await fetch(`/Api/tutors/courses/${params.courseId}`);
-      if (refreshResponse.ok) {
-        const refreshedData = await refreshResponse.json();
-        setCourseData(refreshedData);
-        
+      if (refreshedData.classDetails && refreshedData.classDetails.length > 0) {
+        refreshedData.classDetails.sort((a: Class, b: Class) => {
+          const dateA = new Date(a.startTime).getTime();
+          const dateB = new Date(b.startTime).getTime();
+          return dateB - dateA;
+        });
       }
-    } catch (error) {
-      console.error('Error deleting class:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete class');
+      
+      setCourseData(refreshedData);
     }
-  };
+  } catch (error) {
+    console.error('Error cancelling class:', error);
+    setEditError(error instanceof Error ? error.message : 'Failed to cancel class');
+  } finally {
+    setIsCancelling(false);
+  }
+};
 
   const fetchCourseUsers = async (tutorIds: any[], studentIds: any[]) => {
   try {
@@ -1043,230 +1129,250 @@ const handleUpdateClass = async (e: React.FormEvent) => {
             </h2>
             
             <div className="!space-y-4 !sm:space-y-6">
-              {courseData.classDetails.map((classSession) => {
-                const { date, time } = formatDateTime(classSession.startTime, classSession.endTime);
-                const isUploading = uploadLoading[classSession._id] || false;
+            {courseData.classDetails.map((classSession) => {
+  const { date, time } = formatDateTime(classSession.startTime, classSession.endTime);
+  const isUploading = uploadLoading[classSession._id] || false;
+  const isCanceled = isClassCanceled(classSession); // Add this line
 
-                return (
-                  <div 
-                    key={classSession._id} 
-                    className="!bg-white !rounded-xl !shadow-md !hover:shadow-xl !transition-shadow"
-                  >
-                    <div className="!p-4 !sm:p-6">
-                      {/* Mobile Layout */}
-                      <div className="block lg:hidden !text-gray-800">
-                        <div className="!flex !gap-3">
-                          {/* Edit/Delete Icons on extreme left */}
-                          <div className="!flex !flex-col !gap-2">
-                            <button
-                              onClick={() => handleEditClass(classSession)}
-                              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
-                              title="Edit class"
-                            >
-                              <Edit size={16} />
-                              
-                            </button>
-                            <button
-                              onClick={() => handleDeleteClass(classSession._id, classSession.title)}
-                              className="!p-1 !text-red-500 !hover:text-red-700 !hover:bg-red-50 !rounded-full !transition-colors group relative"
-                              title="Delete class"
-                            >
-                              <Trash2 size={16} />
-                             
-                            </button>
-                          </div>
-
-                          {/* Content Area */}
-                          <div className="flex-1 !space-y-4">
-                            {/* Date and Time */}
-                            <div className="!bg-gray-100 !rounded-lg !p-3 !text-center">
-                              <div className="!text-sm !font-bold !text-gray-800">{date}</div>
-                              <div className="!text-xs !text-gray-600">
-                                {time}
-                              </div>
-                            </div>
-
-                            {/* Session Details */}
-                            <div>
-                              <h3 className="!text-lg !font-semibold !text-gray-800 !mb-2">
-                                {classSession.title}
-                              </h3>
-                              <p className="!text-gray-600 !text-sm !leading-relaxed">
-                                {classSession.description}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="!flex !flex-col !gap-2 !ml-10">
-                          {/* Hidden file input */}
-                          <input
-                            type="file"
-                            accept="video/*"
-                            className="hidden"
-                            ref={el => { fileInputRefs.current[classSession._id] = el; }}
-                            onChange={(e) => handleFileChange(classSession._id, e)}
-                          />
-
-                          <div className="!flex !gap-2">
-
-                            {/* Add this button after the Assignment button in mobile layout */}
-<button
-  onClick={() => handleOpenAttendance(classSession)}
-  className="w-full px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs font-medium shadow-sm"
->
-  <UserCheck className="mr-1" size={14} />
-  Mark Attendance
-</button>
-
-
-
-                            {/* Class Quality button */}
-                            {classSession.recordingUrl && (
-                              <Link 
-                                href={`/academy/classQuality/${classSession._id}`}
-                                className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
-                              >
-                                <BarChart3 className="!mr-1" size={14} />
-                                Quality
-                              </Link>
-                            )}
-
-                            {/* Upload Recording button */}
-                            <button
-                              onClick={() => triggerFileInput(classSession._id)}
-                              disabled={isUploading}
-                              className={`flex-1 px-3 py-2 ${
-                                isUploading ? 'bg-gray-400 cursor-not-allowed' 
-                                  : 'bg-purple-500 hover:bg-purple-600'
-                              } text-white rounded-lg transition-colors flex items-center justify-center text-xs`}
-                            >
-                              <Upload className="!mr-1" size={14} />
-                              {getButtonText(classSession, isUploading)}
-                            </button>
-                          </div>
-
-                          {/* Assignment Button */}
-                       {/* <Link 
-  href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
-  className="w-full px-3 py-2 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-xs font-medium shadow-sm"
->
-  <FileText className="mr-1" size={14} />
-  Add Assignment
-</Link> */}
-                        </div>
-                      </div>
-
-                      {/* Desktop Layout */}
-                      <div className="hidden lg:block">
-                        <div className="!flex !gap-6 !items-center">
-                          {/* Edit/Delete Icons on extreme left */}
-                          <div className="!flex !flex-col !gap-2">
-                            <button
-                              onClick={() => handleEditClass(classSession)}
-                              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
-                              title="Edit class"
-                            >
-                              <Edit size={18} />
-                             
-                            </button>
-                            <button
-                              onClick={() => handleDeleteClass(classSession._id, classSession.title)}
-                              className="!p-1 !text-red-500 !hover:text-red-700 !hover:bg-red-50 !rounded-full !transition-colors group relative"
-                              title="Delete class"
-                            >
-                              <Trash2 size={18} />
-                              
-                            </button>
-                          </div>
-
-                          {/* Date and Time */}
-                          <div className="!bg-gray-100 !rounded-lg !p-4 !text-center !min-w-[200px]">
-                            <div className="!text-xl !font-bold !text-gray-800">{date}</div>
-                            <div className="!text-gray-600">
-                              {time}
-                            </div>
-                          </div>
-
-                          {/* Session Details */}
-                          <div className="flex-1">
-                            <h3 className="!text-xl !font-semibold !text-gray-800 !mb-2">
-                              {classSession.title}
-                            </h3>
-                            <p className="!text-gray-600">
-                              {classSession.description}
-                            </p>
-                          </div>
-
-                          {/* Actions */}
-                          {/* Actions */}
-<div className="flex flex-col gap-3 min-w-[180px]">
-
-
-  {/* Add this button after the Assignment button in desktop layout */}
-<button
-  onClick={() => handleOpenAttendance(classSession)}
-  style={{ backgroundColor: '#10b981', color: '#ffffff' }}
-  className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
->
-  <UserCheck className="mr-2" size={16} />
-  Mark Attendance
-</button>
-  {/* Hidden file input */}
-  <input
-    type="file"
-    accept="video/*"
-    className="hidden"
-    ref={el => { fileInputRefs.current[classSession._id] = el; }}
-    onChange={(e) => handleFileChange(classSession._id, e)}
-  />
-
-  {/* Class Quality button */}
-  {classSession.recordingUrl && (
-    <Link 
-      href={`/academy/classQuality/${classSession._id}`}
-      style={{ backgroundColor: 'purple', color: '#ffffff' }}
-      className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+  return (
+    <div 
+      key={classSession._id} 
+      className={`!bg-white !rounded-xl !shadow-md !hover:shadow-xl !transition-shadow ${
+        isCanceled ? '!opacity-50 !cursor-not-allowed' : ''
+      }`}
     >
-      <BarChart3 className="mr-2" size={16} />
-      Class Quality
-    </Link>
-  )}
+      <div className="!p-4 !sm:p-6">
+        {/* Mobile Layout */}
+        <div className="block lg:hidden !text-gray-800">
+          {/* Add canceled badge at the top */}
+          {/* {isCanceled && (
+            <div className="!mb-3 !bg-red-100 !border !border-red-300 !rounded-lg !p-2 !text-center">
+              <span className="!text-red-700 !font-semibold !text-sm">❌ CLASS CANCELED</span>
+            </div>
+          )} */}
+          
+          <div className="!flex !gap-3">
+            {/* Edit/Delete Icons */}
+            <div className="!flex !flex-col !gap-2">
+              <button
+                onClick={() => !isCanceled && handleEditClass(classSession)}
+                disabled={isCanceled}
+                className={`!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors ${
+                  isCanceled ? '!opacity-30 !cursor-not-allowed' : ''
+                }`}
+                title={isCanceled ? "Cannot edit canceled class" : "Edit class"}
+              >
+                <Edit size={16} />
+              </button>
+              <button
+                onClick={() => !isCanceled && handleDeleteClass(classSession._id, classSession.title)}
+                disabled={isCanceled}
+                className={`!p-1 !text-red-500 !hover:text-red-700 !hover:bg-red-50 !rounded-full !transition-colors ${
+                  isCanceled ? '!opacity-30 !cursor-not-allowed' : ''
+                }`}
+                title={isCanceled ? "Cannot delete canceled class" : "Delete class"}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
 
-  {/* Upload Recording button */}
-  <button
-    onClick={() => triggerFileInput(classSession._id)}
-    disabled={isUploading}
-    style={{ 
-      backgroundColor: isUploading ? 'blueviolet' : 'blue',
-      color: '#ffffff'
-    }}
-    className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
-      isUploading ? 'cursor-not-allowed' : 'hover:opacity-90'
-    }`}
-  >
-    <Upload className="mr-2" size={16} />
-    {getButtonText(classSession, isUploading)}
-  </button>
+            {/* Content Area */}
+            <div className="flex-1 !space-y-4">
+              {/* Date and Time */}
+              <div className={`!bg-gray-100 !rounded-lg !p-3 !text-center ${
+                isCanceled ? '!bg-gray-200' : ''
+              }`}>
+                <div className="!text-sm !font-bold !text-gray-800">{date}</div>
+                <div className="!text-xs !text-gray-600">{time}</div>
+              </div>
 
-  {/* Assignment Button */}
-  {/* <Link 
-    href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-    style={{ backgroundColor: 'blueviolet', color: '#ffffff' }}
-    className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
-  >
-    <FileText className="mr-2" size={16} />
-    Add Assignment
-  </Link> */}
-</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {/* Session Details */}
+              <div>
+                <h3 className="!text-lg !font-semibold !text-gray-800 !mb-2">
+                  {classSession.title}
+                </h3>
+                <p className="!text-gray-600 !text-sm !leading-relaxed">
+                  {classSession.description}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="!flex !flex-col !gap-2 !ml-10">
+            <input
+              type="file"
+              accept="video/*"
+              className="hidden"
+              ref={el => { fileInputRefs.current[classSession._id] = el; }}
+              onChange={(e) => handleFileChange(classSession._id, e)}
+              disabled={isCanceled}
+            />
+
+            <div className="!flex !gap-2">
+              {/* Mark Attendance button */}
+              <button
+                onClick={() => !isCanceled && handleOpenAttendance(classSession)}
+                disabled={isCanceled}
+                className={`w-full px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs font-medium shadow-sm ${
+                  isCanceled ? '!opacity-30 !cursor-not-allowed' : ''
+                }`}
+              >
+                <UserCheck className="mr-1" size={14} />
+                Mark Attendance
+              </button>
+
+              {/* Class Quality button */}
+              {classSession.recordingUrl && (
+                <Link 
+                  href={isCanceled ? '#' : `/academy/classQuality/${classSession._id}`}
+                  className={`flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs ${
+                    isCanceled ? '!opacity-30 !cursor-not-allowed !pointer-events-none' : ''
+                  }`}
+                  onClick={(e) => isCanceled && e.preventDefault()}
+                >
+                  <BarChart3 className="!mr-1" size={14} />
+                  Quality
+                </Link>
+              )}
+
+              {/* Upload Recording button */}
+              <button
+                onClick={() => !isCanceled && triggerFileInput(classSession._id)}
+                disabled={isUploading || isCanceled}
+                className={`flex-1 px-3 py-2 ${
+                  isUploading || isCanceled ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-purple-500 hover:bg-purple-600'
+                } text-white rounded-lg transition-colors flex items-center justify-center text-xs ${
+                  isCanceled ? '!opacity-30' : ''
+                }`}
+              >
+                <Upload className="!mr-1" size={14} />
+                {getButtonText(classSession, isUploading)}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Layout */}
+        <div className="hidden lg:block">
+          {/* Add canceled badge at the top */}
+          {/* {isCanceled && (
+            <div className="!mb-4 !bg-red-100 !border !border-red-300 !rounded-lg !p-3 !text-center">
+              <span className="!text-red-700 !font-semibold">❌ CLASS CANCELED</span>
+            </div>
+          )} */}
+          
+          <div className="!flex !gap-6 !items-center">
+            {/* Edit/Delete Icons */}
+            <div className="!flex !flex-col !gap-2">
+              <button
+                onClick={() => !isCanceled && handleEditClass(classSession)}
+                disabled={isCanceled}
+                className={`!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors ${
+                  isCanceled ? '!opacity-30 !cursor-not-allowed' : ''
+                }`}
+                title={isCanceled ? "Cannot edit canceled class" : "Edit class"}
+              >
+                <Edit size={18} />
+              </button>
+              <button
+                onClick={() => !isCanceled && handleDeleteClass(classSession._id, classSession.title)}
+                disabled={isCanceled}
+                className={`!p-1 !text-red-500 !hover:text-red-700 !hover:bg-red-50 !rounded-full !transition-colors ${
+                  isCanceled ? '!opacity-30 !cursor-not-allowed' : ''
+                }`}
+                title={isCanceled ? "Cannot delete canceled class" : "Delete class"}
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+
+            {/* Date and Time */}
+            <div className={`!bg-gray-100 !rounded-lg !p-4 !text-center !min-w-[200px] ${
+              isCanceled ? '!bg-gray-200' : ''
+            }`}>
+              <div className="!text-xl !font-bold !text-gray-800">{date}</div>
+              <div className="!text-gray-600">{time}</div>
+            </div>
+
+            {/* Session Details */}
+            <div className="flex-1">
+              <h3 className="!text-xl !font-semibold !text-gray-800 !mb-2">
+                {classSession.title}
+              </h3>
+              <p className="!text-gray-600">
+                {classSession.description}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-3 min-w-[180px]">
+              {/* Mark Attendance button */}
+              <button
+                onClick={() => !isCanceled && handleOpenAttendance(classSession)}
+                disabled={isCanceled}
+                style={{ 
+                  backgroundColor: isCanceled ? '#9CA3AF' : '#10b981',
+                  color: '#ffffff'
+                }}
+                className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
+                  isCanceled ? '!opacity-30 !cursor-not-allowed' : 'hover:opacity-90'
+                }`}
+              >
+                <UserCheck className="mr-2" size={16} />
+                Mark Attendance
+              </button>
+
+              <input
+                type="file"
+                accept="video/*"
+                className="hidden"
+                ref={el => { fileInputRefs.current[classSession._id] = el; }}
+                onChange={(e) => handleFileChange(classSession._id, e)}
+                disabled={isCanceled}
+              />
+
+              {/* Class Quality button */}
+              {classSession.recordingUrl && (
+                <Link 
+                  href={isCanceled ? '#' : `/academy/classQuality/${classSession._id}`}
+                  style={{ 
+                    backgroundColor: isCanceled ? '#9CA3AF' : 'purple',
+                    color: '#ffffff'
+                  }}
+                  className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
+                    isCanceled ? '!opacity-30 !cursor-not-allowed !pointer-events-none' : 'hover:opacity-90'
+                  }`}
+                  onClick={(e) => isCanceled && e.preventDefault()}
+                >
+                  <BarChart3 className="mr-2" size={16} />
+                  Class Quality
+                </Link>
+              )}
+
+              {/* Upload Recording button */}
+              <button
+                onClick={() => !isCanceled && triggerFileInput(classSession._id)}
+                disabled={isUploading || isCanceled}
+                style={{ 
+                  backgroundColor: isUploading || isCanceled ? '#9CA3AF' : 'blue',
+                  color: '#ffffff'
+                }}
+                className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
+                  isUploading || isCanceled ? '!cursor-not-allowed !opacity-30' : 'hover:opacity-90'
+                }`}
+              >
+                <Upload className="mr-2" size={16} />
+                {getButtonText(classSession, isUploading)}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+})}
             </div>
           </section>
         )}
@@ -1395,6 +1501,31 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
                       />
                     </div>
                   </div>
+
+                  {/* Add this after the grid with startTime/endTime inputs */}
+{originalDateTime && (
+  editForm.date !== originalDateTime.date || 
+  editForm.startTime !== originalDateTime.startTime || 
+  editForm.endTime !== originalDateTime.endTime
+) && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Reason for Rescheduling <span className="text-red-500">*</span>
+    </label>
+    <textarea
+      name="rescheduleReason"
+      value={rescheduleReason}
+      onChange={(e) => setRescheduleReason(e.target.value)}
+      rows={3}
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      placeholder="Please provide a reason for rescheduling this class"
+      required
+    />
+    <p className="text-xs text-gray-500 mt-1">
+      Required when changing date or time
+    </p>
+  </div>
+)}
 
                   {editError && (
                     <div className="!text-red-600 !text-sm !bg-red-50 !p-3 !rounded-md">
@@ -1636,6 +1767,95 @@ style={{ backgroundColor: '#fb923c', color: '#ffffff' }}
               'Mark Attendance'
             )}
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+{/* Cancel Class Modal - Add after Edit Modal */}
+{showCancelModal && cancellingClassId && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Cancel Class</h3>
+            <p className="text-sm text-gray-500 mt-1">
+              Please provide a reason for cancelling this class
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setShowCancelModal(false);
+              setCancellingClassId(null);
+              setCancellationReason("");
+              setEditError("");
+            }}
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X size={20} className="text-gray-500" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Reason for Cancellation <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={cancellationReason}
+              onChange={(e) => setCancellationReason(e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+              placeholder="e.g., Instructor illness, scheduling conflict, etc."
+              required
+            />
+          </div>
+
+          {editError && (
+            <div className="bg-red-50 border border-red-300 text-red-700 p-3 rounded-md text-sm flex items-start gap-2">
+              <X className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>{editError}</span>
+            </div>
+          )}
+
+          <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-md">
+            <div className="flex items-start gap-2">
+              <span className="text-yellow-600 text-sm font-medium">⚠️ Note:</span>
+              <p className="text-sm text-yellow-800">
+                All enrolled students will be notified via email about this cancellation.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => {
+                setShowCancelModal(false);
+                setCancellingClassId(null);
+                setCancellationReason("");
+                setEditError("");
+              }}
+              disabled={isCancelling}
+              className="flex-1 py-2 px-4 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Keep Class
+            </button>
+            <button
+              onClick={handleConfirmCancellation}
+              disabled={!cancellationReason.trim() || isCancelling}
+              className="flex-1 py-2 px-4 bg-red-500 hover:bg-red-600 rounded-md text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isCancelling ? (
+                <>
+                  <Clock className="animate-spin" size={16} />
+                  Cancelling...
+                </>
+              ) : (
+                'Cancel Class'
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
