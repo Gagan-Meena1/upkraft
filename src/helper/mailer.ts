@@ -6,7 +6,7 @@ console.log("[Mailer] Module initialized");
 
 interface EmailParams {
   email: string;
-  emailType: "VERIFY" | "RESET" | "RESET_PASSWORD" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION" | "REQUEST_APPROVED" | "STUDENT_INVITATION" | "CLASS_RESCHEDULED" | "CLASS_CANCELLED";
+  emailType: "VERIFY" | "RESET" | "RESET_PASSWORD" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION" | "REQUEST_APPROVED" | "STUDENT_INVITATION" | "CLASS_RESCHEDULED" | "CLASS_CANCELLED" | "FEEDBACK_RECEIVED";
   userId?: string;
   username?: string;
   category?: string;
@@ -17,19 +17,23 @@ interface EmailParams {
   newDate?: string;
   newTime?: string;
   reasonForReschedule?: string;
-    reasonForCancellation?: string; // Add this
-  originalDate?: string; // Add this
-  originalTime?: string; // Add this
+  reasonForCancellation?: string;
+  originalDate?: string; 
+  originalTime?: string; 
+  personalFeedback?: string; 
+  averageScore?: string;
 }
 
 export const sendEmail = async ({ email, emailType, userId, username, category, resetToken, tutorName, courseName,
-  className,      // Add
-  newDate,        // Add
-  newTime,        // Add
-  reasonForReschedule , // Add
-  reasonForCancellation, // Add
-  originalDate,  // Add
-  originalTime   // Add
+  className,     
+  newDate,        
+  newTime,        
+  reasonForReschedule , 
+  reasonForCancellation, 
+  originalDate,  
+  originalTime,    
+  personalFeedback, 
+  averageScore    
   
  }: EmailParams) => {
   console.log(`[Mailer] Sending ${emailType} email to: ${email}`);
@@ -374,12 +378,75 @@ else if (emailType === "CLASS_CANCELLED") {
         </div>
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
           <p style="color: #888; font-size: 12px;">
-            © 2024 UpKraft. All rights reserved.
+            © 2025 UpKraft. All rights reserved.
           </p>
         </div>
       </div>
     `
   };
+}
+
+else if (emailType === "FEEDBACK_RECEIVED") {
+ mailOptions = {
+  from: fromAddress,
+  to: email,
+  subject: `New feedback received${courseName ? ` — ${courseName}` : ''}`,
+  html: `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Student Feedback Summary</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8f8f6; font-family: Arial, sans-serif;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; min-height: 100vh;">
+    <h1 style="color: #ff8c00; text-align: center; margin-bottom: 20px;">Feedback Received</h1>
+    <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); text-align: center;">
+      <p style="font-size: 16px; color: #333; margin: 10px 0; line-height: 1.5;">
+        Hi <strong>${username}</strong>,
+      </p>
+      <p style="font-size: 16px; color: #333; margin: 10px 0; line-height: 1.5;">
+        Here is a summary of your recent feedback from <strong>${tutorName}</strong> for the class <strong>"${className}"</strong> in <strong>${courseName}</strong> course.
+      </p>
+      <div
+  style="
+    width: 100px;
+    height: 100px;
+    background-color: #ff8c00;
+    border-radius: 50%;
+    margin: 20px auto 10px auto;
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    line-height: 100px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  "
+>
+  ${averageScore}/10
+</div>
+      <span style="font-size: 14px; color: #666; margin-top: -15px; margin-bottom: 20px; display: block;">Average Score</span>
+      
+      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: left;">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; color: #333; font-size: 18px;">Tutor's Feedback</h3>
+        <p style="font-size: 15px; color: #555; font-style: italic;">
+          "${personalFeedback}"
+        </p>
+      </div>
+      
+      <div style="margin-top: 30px;">
+        <a href="${process.env.DOMAIN}/" style="background-color: #333; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Detailed Report</a>
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #888;">
+      © 2024 UpKraft. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
+  `
+};
 }
     else {
       // Regular verification email

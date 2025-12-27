@@ -5,7 +5,7 @@ import feedback from '@/models/feedback';
 import jwt from 'jsonwebtoken'
 import courseName from '@/models/courseName';
 import User  from '@/models/userModel';
-// import { getServerSession } from 'next-auth/next'; // If using next-auth
+import {sendEmail} from '@/helper/mailer';
 
 await connect();
 
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
           message: 'Class not found'
         }, { status: 404 });
       }
-              // Step 1: Get all classes for this course
+
       const course = await courseName.findById(courseId).populate('class');
       
       if (!course) {
@@ -136,6 +136,24 @@ export async function POST(request: NextRequest) {
         // Average across all metrics and all feedbacks
         const averageScore = totalScores / (studentFeedbacks.length * 6);
 
+         // Send notification email to the student
+      try {
+        const studentUser = await User.findById(studentId).select('email username').lean();
+        if (studentUser && studentUser.email) {
+          await sendEmail({
+            email: studentUser.email,
+            emailType: "FEEDBACK_RECEIVED",
+            username: studentUser.username,
+            courseName: (await courseName.findById(courseId).select('title'))?.title || undefined,
+            className: updatedClass.title,
+            personalFeedback: personalFeedback,
+            averageScore: averageScore.toFixed(2),
+          });
+        }
+      } catch (mailErr) {
+        console.error('[studentFeedback] Error sending feedback email:', mailErr);
+      }
+      
         // Step 5: Update or add the performance score in the course
         const existingScoreIndex = course.performanceScores.findIndex(
           (score: any) => score.userId.toString() === studentId.toString()
