@@ -344,7 +344,7 @@ const filteredCourses = subCategoryFilter === "All SubCategories"
 
             {/* Calendar Grid */}
             <div className="mt-4">
-              {/* Weekday Headers */}
+              {/* Weekday Header*/}
               <div className="grid grid-cols-7 gap-2 mb-2">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                   <div
