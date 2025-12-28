@@ -213,9 +213,13 @@ const handleSubmit = async (e: FormEvent) => {
   required
 >
   <option value="" disabled>Select a category</option>
-  <option value="Music">Music</option>
-  <option value="Dance">Dance</option>
-  <option value="Drawing">Drawing</option>
+ <option value="" disabled>Select a category</option>
+              <option value="Music">Music(Piano/Guitar)</option>
+              <option value="Dance">Dance</option>
+              <option value="Drawing">Painting</option>
+              <option value="Drums">Drums</option>
+              <option value="Violin">Violin</option>
+              <option value="Vocal">Vocal</option>
 </select>
           </div>
 

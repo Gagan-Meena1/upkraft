@@ -8,9 +8,9 @@ import courseName from "@/models/courseName";
 import feedback from "@/models/feedback";
 import feedbackDance from "@/models/feedbackDance";
 import feedbackDrawing from "@/models/feedbackDrawing";
-// import feedbackDrums from "@/models/feedbackDrums";
-// import feedbackVocal from "@/models/feedbackVocal";
-// import feedbackViolin from "@/models/feedbackViolin";
+import feedbackDrums from "@/models/feedbackDrums";
+import feedbackVocal from "@/models/feedbackVocal";
+import feedbackViolin from "@/models/feedbackViolin";
 import jwt from "jsonwebtoken";
 
 export async function GET(request) {
@@ -123,10 +123,10 @@ export async function GET(request) {
       const categorizedClasses = {
         Music: [],
         Dance: [],
-        Drawing: []
-        // Drums: [],
-        // Vocal: [],
-        // Violin: []
+        Drawing: [],
+        Drums: [],
+        Vocal: [],
+        Violin: []
       };
 
       pastClasses.forEach(cls => {
@@ -227,91 +227,91 @@ export async function GET(request) {
       }
 
       // // Drums feedback
-      // if (categorizedClasses.Drums.length > 0) {
-      //   const drumsFeedbacks = await feedbackDrums.find({
-      //     userId: studentId,
-      //     classId: { $in: categorizedClasses.Drums }
-      //   }).select("classId").lean();
+      if (categorizedClasses.Drums.length > 0) {
+        const drumsFeedbacks = await feedbackDrums.find({
+          userId: studentId,
+          classId: { $in: categorizedClasses.Drums }
+        }).select("classId").lean();
 
-      //   const feedbackClassIds = new Set(drumsFeedbacks.map(f => f.classId.toString()));
+        const feedbackClassIds = new Set(drumsFeedbacks.map(f => f.classId.toString()));
         
-      //   categorizedClasses.Drums.forEach(classId => {
-      //     const classIdStr = classId.toString();
+        categorizedClasses.Drums.forEach(classId => {
+          const classIdStr = classId.toString();
           
-      //     // Check if student was absent in this class
-      //     const attendanceStatus = attendanceMap.get(classIdStr);
-      //     if (attendanceStatus === "absent") {
-      //       return; // Skip this class - student was absent
-      //     }
+          // Check if student was absent in this class
+          const attendanceStatus = attendanceMap.get(classIdStr);
+          if (attendanceStatus === "absent") {
+            return; // Skip this class - student was absent
+          }
           
-      //     if (!feedbackClassIds.has(classIdStr)) {
-      //       studentPendingClasses.push({
-      //         classId: classIdStr,
-      //         className: classNameMap.get(classIdStr),
-      //         category: "Drums"
-      //       });
-      //       totalPendingCount++;
-      //     }
-      //   });
-      // }
+          if (!feedbackClassIds.has(classIdStr)) {
+            studentPendingClasses.push({
+              classId: classIdStr,
+              className: classNameMap.get(classIdStr),
+              category: "Drums"
+            });
+            totalPendingCount++;
+          }
+        });
+      }
 
-      // // Vocal feedback
-      // if (categorizedClasses.Vocal.length > 0) {
-      //   const vocalFeedback = await feedbackVocal.find({
-      //     userId: studentId,
-      //     classId: { $in: categorizedClasses.Vocal }
-      //   }).select("classId").lean();
+      // Vocal feedback
+      if (categorizedClasses.Vocal.length > 0) {
+        const vocalFeedback = await feedbackVocal.find({
+          userId: studentId,
+          classId: { $in: categorizedClasses.Vocal }
+        }).select("classId").lean();
 
-      //   const feedbackClassIds = new Set(vocalFeedback.map(f => f.classId.toString()));
+        const feedbackClassIds = new Set(vocalFeedback.map(f => f.classId.toString()));
         
-      //   categorizedClasses.Vocal.forEach(classId => {
-      //     const classIdStr = classId.toString();
+        categorizedClasses.Vocal.forEach(classId => {
+          const classIdStr = classId.toString();
           
-      //     // Check if student was absent in this class
-      //     const attendanceStatus = attendanceMap.get(classIdStr);
-      //     if (attendanceStatus === "absent") {
-      //       return; // Skip this class - student was absent
-      //     }
+          // Check if student was absent in this class
+          const attendanceStatus = attendanceMap.get(classIdStr);
+          if (attendanceStatus === "absent") {
+            return; // Skip this class - student was absent
+          }
           
-      //     if (!feedbackClassIds.has(classIdStr)) {
-      //       studentPendingClasses.push({
-      //         classId: classIdStr,
-      //         className: classNameMap.get(classIdStr),
-      //         category: "Vocal"
-      //       });
-      //       totalPendingCount++;
-      //     }
-      //   });
-      // }
+          if (!feedbackClassIds.has(classIdStr)) {
+            studentPendingClasses.push({
+              classId: classIdStr,
+              className: classNameMap.get(classIdStr),
+              category: "Vocal"
+            });
+            totalPendingCount++;
+          }
+        });
+      }
 
-      // // Violin feedback
-      // if (categorizedClasses.Violin.length > 0) {
-      //   const violinFeedback = await feedbackViolin.find({
-      //     userId: studentId,
-      //     classId: { $in: categorizedClasses.Violin }
-      //   }).select("classId").lean();
+      // Violin feedback
+      if (categorizedClasses.Violin.length > 0) {
+        const violinFeedback = await feedbackViolin.find({
+          userId: studentId,
+          classId: { $in: categorizedClasses.Violin }
+        }).select("classId").lean();
 
-      //   const feedbackClassIds = new Set(violinFeedback.map(f => f.classId.toString()));
+        const feedbackClassIds = new Set(violinFeedback.map(f => f.classId.toString()));
         
-      //   categorizedClasses.Violin.forEach(classId => {
-      //     const classIdStr = classId.toString();
+        categorizedClasses.Violin.forEach(classId => {
+          const classIdStr = classId.toString();
           
-      //     // Check if student was absent in this class
-      //     const attendanceStatus = attendanceMap.get(classIdStr);
-      //     if (attendanceStatus === "absent") {
-      //       return; // Skip this class - student was absent
-      //     }
+          // Check if student was absent in this class
+          const attendanceStatus = attendanceMap.get(classIdStr);
+          if (attendanceStatus === "absent") {
+            return; // Skip this class - student was absent
+          }
           
-      //     if (!feedbackClassIds.has(classIdStr)) {
-      //       studentPendingClasses.push({
-      //         classId: classIdStr,
-      //         className: classNameMap.get(classIdStr),
-      //         category: "Violin"
-      //       });
-      //       totalPendingCount++;
-      //     }
-      //   });
-      // }
+          if (!feedbackClassIds.has(classIdStr)) {
+            studentPendingClasses.push({
+              classId: classIdStr,
+              className: classNameMap.get(classIdStr),
+              category: "Violin"
+            });
+            totalPendingCount++;
+          }
+        });
+      }
 
       // Add student details only if they have pending feedbacks
       if (studentPendingClasses.length > 0) {
