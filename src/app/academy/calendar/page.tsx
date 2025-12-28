@@ -50,6 +50,7 @@ const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 const [subCategoryFilter, setSubCategoryFilter] = useState<string>("All SubCategories"); // CHANGE THIS
 
 
+
   useEffect(() => {
     // Get user timezone
     const fetchUserData = async () => {
@@ -171,6 +172,10 @@ const getClassesForDate = (date: Date) => {
     
     // Apply filters
       let filteredClasses = classes;
+
+      if (categoryFilter !== "All Categories") {
+  filteredClasses = filteredClasses.filter(c => c.courseCategory === categoryFilter);
+}
   
   if (subCategoryFilter !== "All SubCategories") { // CHANGE THIS
     filteredClasses = filteredClasses.filter(c => c.courseSubCategory === subCategoryFilter); // CHANGE THIS
@@ -214,13 +219,22 @@ const getClassesForDate = (date: Date) => {
     setCurrentDate(new Date());
   };
 
-// Get unique subCategories and courses for filters
+// uniqueSubCategories and filteredCourses section
+const uniqueCategories = Array.from(
+  new Set(courses.map(c => c.category).filter(Boolean))
+);
+
+const categorizedCourses = categoryFilter === "All Categories"
+  ? courses
+  : courses.filter(c => c.category === categoryFilter);
+
 const uniqueSubCategories = Array.from(
-  new Set(courses.map(c => c.subCategory).filter(Boolean))
-); // CHANGE THIS
-const filteredCourses = subCategoryFilter === "All SubCategories" // CHANGE THIS
-  ? courses 
-  : courses.filter(c => c.subCategory === subCategoryFilter); // CHANGE THIS
+  new Set(categorizedCourses.map(c => c.subCategory).filter(Boolean))
+);
+
+const filteredCourses = subCategoryFilter === "All SubCategories"
+  ? categorizedCourses
+  : categorizedCourses.filter(c => c.subCategory === subCategoryFilter);
 
   if (loading) {
     return (
@@ -279,13 +293,30 @@ const filteredCourses = subCategoryFilter === "All SubCategories" // CHANGE THIS
               </div>
 
             {/* Filters */}
+{/* Filters */}
 <div className="flex flex-wrap items-center gap-3">
+  {/* Category Filter */}
+  <select
+    value={categoryFilter}
+    onChange={(e) => {
+      setCategoryFilter(e.target.value);
+      setSubCategoryFilter("All SubCategories");
+      setCourseFilter("All Courses");
+    }}
+    className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+  >
+    <option>All Categories</option>
+    {uniqueCategories.map(category => (
+      <option key={category} value={category}>{category}</option>
+    ))}
+  </select>
+
   {/* SubCategory Filter */}
   <select
     value={subCategoryFilter}
     onChange={(e) => {
       setSubCategoryFilter(e.target.value);
-      setCourseFilter("All Courses"); // Reset course filter
+      setCourseFilter("All Courses");
     }}
     className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
   >
@@ -313,7 +344,7 @@ const filteredCourses = subCategoryFilter === "All SubCategories" // CHANGE THIS
 
             {/* Calendar Grid */}
             <div className="mt-4">
-              {/* Weekday Headers */}
+              {/* Weekday Header*/}
               <div className="grid grid-cols-7 gap-2 mb-2">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                   <div
@@ -336,9 +367,15 @@ const filteredCourses = subCategoryFilter === "All SubCategories" // CHANGE THIS
                   
                 // Apply filters
 let filteredDayClasses = dayClasses;
-if (subCategoryFilter !== "All SubCategories") { // CHANGE THIS
-  filteredDayClasses = filteredDayClasses.filter(c => c.courseSubCategory === subCategoryFilter); // CHANGE THIS
+
+if (categoryFilter !== "All Categories") {
+  filteredDayClasses = filteredDayClasses.filter(c => c.courseCategory === categoryFilter);
 }
+
+if (subCategoryFilter !== "All SubCategories") {
+  filteredDayClasses = filteredDayClasses.filter(c => c.courseSubCategory === subCategoryFilter);
+}
+
 if (courseFilter !== "All Courses") {
   filteredDayClasses = filteredDayClasses.filter(c => c.course === courseFilter);
 }
