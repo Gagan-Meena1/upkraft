@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
       const {
         rhythm,
         theoreticalUnderstanding,
-        understanding,
         performance,
         earTraining,
         assignment,
@@ -133,6 +132,12 @@ export async function POST(request: NextRequest) {
             techniqueScore;
         }, 0);
 
+        const avgScore = (rhythm+
+        theoreticalUnderstanding+
+        performance+
+        earTraining+
+        assignment+
+        technique)/6;
         // Average across all metrics and all feedbacks
         const averageScore = totalScores / (studentFeedbacks.length * 6);
 
@@ -147,7 +152,24 @@ export async function POST(request: NextRequest) {
             courseName: (await courseName.findById(courseId).select('title'))?.title || undefined,
             className: updatedClass.title,
             personalFeedback: personalFeedback,
-            averageScore: averageScore.toFixed(2),
+            averageScore: avgScore.toFixed(1),
+            classId:classId,
+            userId:studentId,
+            feedbackCategory: 'Music',
+            classDate: updatedClass.startTime ? new Date(updatedClass.startTime).toLocaleDateString('en-IN', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }) : undefined,
+            feedbackDetails: {
+              rhythm: Number(rhythm),
+              theoreticalUnderstanding: Number(theoreticalUnderstanding),
+              performance: Number(performance),
+              earTraining: Number(earTraining),
+              assignment: Number(assignment),
+              technique: Number(technique)
+            }
           });
         }
       } catch (mailErr) {

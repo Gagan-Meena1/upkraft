@@ -10,6 +10,7 @@ import { useRef } from 'react';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
 import { Upload } from 'lucide-react';
+import { useRouter } from 'next/navigation'
 
 interface Student {
   _id: string;
@@ -129,6 +130,7 @@ const FeedbackPendingDetails = () => {
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({}); 
   const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'absent'>('present');
   const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
+  const router = useRouter();
 
   // Replace fixed shape with dynamic map per category
   const [feedbackData, setFeedbackData] = useState<Record<string, number | string>>(buildDefaults("Music"));
@@ -146,10 +148,13 @@ const FeedbackPendingDetails = () => {
         setLoading(true);
         const response = await fetch('/Api/pendingFeedback');
         const data = await response.json();
-        if (!response.ok || !data.success) {
+        console.log('Fetched pending feedbacks:', response);
+        if(response.status === 401) {
+          router.push('/login')
+        } else if (!data.success) {
+          console.error('API Error:', data.error);
           throw new Error(data.error || 'Failed to load pending feedbacks');
         }
-
         const pendingFeedbacks: PendingFeedback[] = [];
         const studentMap = new Map<string, { student: Student, classes: Class[] }>();
 

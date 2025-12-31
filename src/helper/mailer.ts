@@ -11,6 +11,7 @@ interface EmailParams {
   username?: string;
   category?: string;
   resetToken?: string;
+  classId?:string;
   tutorName?: string;
   courseName?: string;
   className?: string;
@@ -22,6 +23,9 @@ interface EmailParams {
   originalTime?: string; 
   personalFeedback?: string; 
   averageScore?: string;
+  feedbackCategory?:string;
+  classDate?: string;
+  feedbackDetails?: any;
 }
 
 export const sendEmail = async ({ email, emailType, userId, username, category, resetToken, tutorName, courseName,
@@ -30,10 +34,14 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
   newTime,        
   reasonForReschedule , 
   reasonForCancellation, 
+  classId,
   originalDate,  
   originalTime,    
   personalFeedback, 
-  averageScore    
+  averageScore,
+  feedbackCategory,
+  classDate,
+  feedbackDetails
   
  }: EmailParams) => {
   console.log(`[Mailer] Sending ${emailType} email to: ${email}`);
@@ -406,7 +414,7 @@ else if (emailType === "FEEDBACK_RECEIVED") {
         Hi <strong>${username}</strong>,
       </p>
       <p style="font-size: 16px; color: #333; margin: 10px 0; line-height: 1.5;">
-        Here is a summary of your recent feedback from <strong>${tutorName}</strong> for the class <strong>"${className}"</strong> in <strong>${courseName}</strong> course.
+        Here is a summary of your recent feedback for the class <strong>"${className}"</strong>${classDate ? ` on <strong>${classDate}</strong>` : ''} in <strong>${courseName}</strong> course.
       </p>
       <div
   style="
@@ -427,6 +435,31 @@ else if (emailType === "FEEDBACK_RECEIVED") {
 </div>
       <span style="font-size: 14px; color: #666; margin-top: -15px; margin-bottom: 20px; display: block;">Average Score</span>
       
+      ${feedbackDetails ? `
+      <div style="margin: 20px 0;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th style="padding: 10px; border-bottom: 2px solid #dee2e6; color: #495057;">Skill</th>
+              <th style="padding: 10px; border-bottom: 2px solid #dee2e6; color: #495057; text-align: right;">Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${Object.entries(feedbackDetails).map(([key, value]) => `
+              <tr>
+                <td style="padding: 10px; border-bottom: 1px solid #dee2e6; color: #212529; text-transform: capitalize;">
+                  ${key.replace(/([A-Z])/g, ' $1').trim()}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #dee2e6; color: #212529; text-align: right; font-weight: bold;">
+                  ${value}/10
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      ` : ''}
+
       <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: left;">
         <h3 style="margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; color: #333; font-size: 18px;">Tutor's Feedback</h3>
         <p style="font-size: 15px; color: #555; font-style: italic;">
@@ -435,7 +468,7 @@ else if (emailType === "FEEDBACK_RECEIVED") {
       </div>
       
       <div style="margin-top: 30px;">
-        <a href="${process.env.DOMAIN}/" style="background-color: #333; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Detailed Report</a>
+        <a href="${process.env.DOMAIN}/student/singleFeedback/${feedbackCategory}?classId=${classId}&studentId=${userId}" style="background-color: #333; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Detailed Report</a>
       </div>
     </div>
     
