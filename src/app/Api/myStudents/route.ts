@@ -281,6 +281,9 @@ export async function POST(request: NextRequest) {
       email: { $regex: `^${email}$`, $options: 'i' } 
     });
 
+    const instructor = await User.findById(tutorId);
+
+
     if (!student) {
       console.log("student not found");
       return NextResponse.json({ 
@@ -304,6 +307,14 @@ export async function POST(request: NextRequest) {
       { $push: { instructorId: tutorId } },
       { new: true }
     );
+
+    if (instructor.category == "Academic") {
+      await User.findByIdAndUpdate(
+        student._id,
+        { $set: { academyId: tutorId } },
+        { new: true }
+      );
+    }
 
     await User.findByIdAndUpdate(
       tutorId,

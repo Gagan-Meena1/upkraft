@@ -22,37 +22,29 @@ export async function GET(request: NextRequest) {
 
     const studentId = decodedToken.id;
 
-    // Get student to find their academyId
-    const student = await User.findById(studentId).select('academyId').lean();
-    
-    if (!student) {
-      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
-    }
-
-    if (!student.academyId) {
-      return NextResponse.json({ 
-        error: 'Student is not associated with an academy' 
-      }, { status: 400 });
-    }
-
-    // Get academy's package pricing settings using native MongoDB
+    // Get student to find their applied pricing settings
     const mongoose = await import('mongoose');
     const db = mongoose.default.connection.db;
     const usersCollection = db.collection('users');
-    const academyObjectId = new mongoose.default.Types.ObjectId(student.academyId);
+    const studentObjectId = new mongoose.default.Types.ObjectId(studentId);
     
-    const academyDoc = await usersCollection.findOne(
-      { _id: academyObjectId },
-      { projection: { packagePricingSettings: 1 } }
+    const studentDoc = await usersCollection.findOne(
+      { _id: studentObjectId },
+      { projection: { appliedPricingSettings: 1, academyId: 1 } }
     );
 
-    if (!academyDoc) {
-      return NextResponse.json({ error: 'Academy not found' }, { status: 404 });
+    if (!studentDoc) {
+      return NextResponse.json({ error: 'Student not found' }, { status: 404 });
     }
 
     // Return package pricing settings or default values
     const defaultSettings = {
       pricingModel: 'Monthly Subscription',
+      packagePricing: [
+        { name: 'Silver', sessions: 4, perSessionRate: 400, discount: 0, totalPrice: 1600 },
+        { name: 'Gold', sessions: 12, perSessionRate: 350, discount: 12, totalPrice: 4200 },
+        { name: 'Platinum', sessions: 24, perSessionRate: 320, discount: 20, totalPrice: 7680 }
+      ],
       monthlySubscriptionPricing: [
         { months: 1, discount: 0 },
         { months: 3, discount: 5 },
@@ -62,15 +54,29 @@ export async function GET(request: NextRequest) {
       ]
     };
 
-    // Check if packagePricingSettings exists in the actual database document
+    // Get full academy pricing settings (both models) for display
     let packagePricingSettings;
-    if (academyDoc.packagePricingSettings && 
-        typeof academyDoc.packagePricingSettings === 'object' &&
-        academyDoc.packagePricingSettings.pricingModel !== undefined) {
-      // Field exists in database and has valid data
-      packagePricingSettings = academyDoc.packagePricingSettings;
+    if (studentDoc.academyId) {
+      const academyObjectId = new mongoose.default.Types.ObjectId(studentDoc.academyId);
+      const academyDoc = await usersCollection.findOne(
+        { _id: academyObjectId },
+        { projection: { packagePricingSettings: 1 } }
+      );
+
+      if (academyDoc && academyDoc.packagePricingSettings && 
+          typeof academyDoc.packagePricingSettings === 'object' &&
+          academyDoc.packagePricingSettings.pricingModel !== undefined) {
+        // Return full academy pricing settings (both models)
+        const academySettings = academyDoc.packagePricingSettings;
+        packagePricingSettings = {
+          pricingModel: academySettings.pricingModel, // Currently active model
+          packagePricing: academySettings.packagePricing || [],
+          monthlySubscriptionPricing: academySettings.monthlySubscriptionPricing || []
+        };
+      } else {
+        packagePricingSettings = defaultSettings;
+      }
     } else {
-      // Field doesn't exist or is empty - use defaults
       packagePricingSettings = defaultSettings;
     }
 

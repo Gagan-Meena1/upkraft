@@ -67,21 +67,21 @@ const generateTimeSlots = () => {
   }
   return slots;
 };
-// Check if selected date and time is at least 24 hours from now
+// Check if selected date and time is at least 48 hours from now
 const isValidDateTime = (date, time) => {
   if (!date || !time) return true; // Don't validate if not fully selected
   
   const selectedDateTime = new Date(`${date}T${time}`);
   const now = new Date();
-  const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const fortyEightHoursFromNow = new Date(now.getTime() + 48 * 60 * 60 * 1000); // Changed variable name for clarity
   
-  return selectedDateTime >= twentyFourHoursFromNow;
+  return selectedDateTime >= fortyEightHoursFromNow;
 };
 
 // Get formatted time 24 hours from now for display
 const get24HoursFromNow = () => {
   const future = new Date();
-  future.setHours(future.getHours() + 24);
+  future.setHours(future.getHours() + 48);
   const date = future.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const time = future.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   return `${date} at ${time}`;
@@ -90,7 +90,7 @@ const get24HoursFromNow = () => {
 // Get minimum date (24 hours from now)
 const getMinDate = () => {
   const tomorrow = new Date();
-  tomorrow.setHours(tomorrow.getHours() + 24); // Add exactly 24 hours
+  tomorrow.setHours(tomorrow.getHours() + 48); // Add exactly 24 hours
   return tomorrow.toISOString().split("T")[0];
 };
 
@@ -128,7 +128,7 @@ const calculateEndTime = (startTime) => {
       
       if (dateToCheck && timeToCheck) {
         if (!isValidDateTime(dateToCheck, timeToCheck)) {
-          setDateTimeError(`⚠️ Please select a date and time at least 24 hours from now (after ${get24HoursFromNow()})`);
+          setDateTimeError(`⚠️ Please select a date and time at least 48 hours from now (after ${get24HoursFromNow()})`);
         } else {
           setDateTimeError("");
         }
@@ -140,7 +140,7 @@ const calculateEndTime = (startTime) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
      if (!isValidDateTime(formData.demoDate, formData.demoTime)) {
-    setDateTimeError(`⚠️ Please select a date and time at least 24 hours from now (after ${get24HoursFromNow()})`);
+    setDateTimeError(`⚠️ Please select a date and time at least 48 hours from now (after ${get24HoursFromNow()})`);
     return;
   }
   

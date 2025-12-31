@@ -7,7 +7,7 @@ import { toast, Toaster } from "react-hot-toast";
 import Image from "next/image";
 import Profile from "../../../assets/Mask-profile.png";
 
-// Loading component
+// Loading components
 const LoadingFallback = () => (
   <div className="card-box">
     <div className="text-center py-5">

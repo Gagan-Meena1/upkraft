@@ -69,6 +69,8 @@ function AddSessionPage() {
 const [tutorId, setTutorId] = useState(null);
 const [slotsLoading, setSlotsLoading] = useState(false);
 const [tutorClasses, setTutorClasses] = useState([]);
+const [showSlotWarning, setShowSlotWarning] = useState(false);
+const [pendingSubmission, setPendingSubmission] = useState(null);
 
   // helper: is weekday (Mon-Fri)
   const isWeekday = (date: Date) => {
@@ -442,7 +444,7 @@ const handleSubmit = async (e) => {
     } else if (repeatType === "weekdays") {
       let currentDate = parseISO(sessionForm.date);
       const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
-      const hardCap = 365; // safety cap
+      const hardCap = 365;
       let generated = 0;
 
       while (generated < hardCap) {
@@ -458,7 +460,6 @@ const handleSubmit = async (e) => {
           generated++;
         }
 
-        // If no repeat-until date is provided, only create the first valid weekday
         if (!untilDate && occurrences.length > 0) break;
 
         currentDate = addDays(currentDate, 1);
@@ -466,7 +467,7 @@ const handleSubmit = async (e) => {
     } else if (repeatType === "daily") {
       let currentDate = parseISO(sessionForm.date);
       const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
-      const hardCap = 365; // safety cap
+      const hardCap = 365;
 
       for (let i = 0; i < hardCap; i++) {
         if (untilDate && currentDate > untilDate) break;
@@ -477,7 +478,6 @@ const handleSubmit = async (e) => {
           endTime: sessionForm.endTime,
         });
 
-        // If no repeat-until date is provided, create only the first occurrence
         if (!untilDate) break;
 
         currentDate = addDays(currentDate, 1);
@@ -485,7 +485,7 @@ const handleSubmit = async (e) => {
     } else if (repeatType === "weekly") {
       let currentDate = parseISO(sessionForm.date);
       const untilDate = repeatUntil ? parseISO(repeatUntil) : null;
-      const hardCap = 52; // safety cap
+      const hardCap = 52;
 
       for (let i = 0; i < hardCap; i++) {
         if (untilDate && currentDate > untilDate) break;
@@ -496,14 +496,13 @@ const handleSubmit = async (e) => {
           endTime: sessionForm.endTime,
         });
 
-        // If no repeat-until date is provided, create only the first occurrence
         if (!untilDate) break;
 
         currentDate = addDays(currentDate, 7);
       }
     }
 
-    // ========== VALIDATE ALL OCCURRENCES AGAINST AVAILABLE SLOTS ==========
+    // ========== CHECK SLOT AVAILABILITY (but don't block) ==========
     const invalidOccurrences = [];
     
     for (const occ of occurrences) {
@@ -516,33 +515,45 @@ const handleSubmit = async (e) => {
       }
     }
 
-    // If any occurrence is invalid, show error and stop
+    // If any occurrence is invalid, show warning popup instead of blocking
     if (invalidOccurrences.length > 0) {
-      let errorMsg;
+      let warningMsg;
       
       if (invalidOccurrences.length === 1) {
-        errorMsg = invalidOccurrences[0].reason;
+        warningMsg = invalidOccurrences[0].reason;
       } else {
-        errorMsg = `${invalidOccurrences.length} sessions fall outside available slots.\n\n`;
-        errorMsg += `First issue (${invalidOccurrences[0].date}): ${invalidOccurrences[0].reason}`;
+        warningMsg = `${invalidOccurrences.length} sessions fall outside available slots.\n\n`;
+        warningMsg += `First issue (${invalidOccurrences[0].date}): ${invalidOccurrences[0].reason}`;
         
         if (invalidOccurrences.length <= 3) {
-          // Show all errors if 3 or fewer
           for (let i = 1; i < invalidOccurrences.length; i++) {
-            errorMsg += `\n\n${invalidOccurrences[i].date}: ${invalidOccurrences[i].reason}`;
+            warningMsg += `\n\n${invalidOccurrences[i].date}: ${invalidOccurrences[i].reason}`;
           }
         } else {
-          errorMsg += `\n\n... and ${invalidOccurrences.length - 1} more conflicts.`;
+          warningMsg += `\n\n... and ${invalidOccurrences.length - 1} more conflicts.`;
         }
       }
       
-      setErrorMessage(errorMsg);
+      // Store the occurrences for later use if user confirms
+      setPendingSubmission({ occurrences, warningMsg });
+      setShowSlotWarning(true);
       setIsSubmitting(false);
       return;
     }
-    // ========== END VALIDATION ==========
+    // ========== END CHECK ==========
 
-    // Get user's timezone
+    // If all slots are valid, proceed directly
+    await createSessions(occurrences);
+
+  } catch (err) {
+    console.error("Error creating session(s):", err);
+    setErrorMessage(err?.message || "Failed to create session(s)");
+    setIsSubmitting(false);
+  }
+};
+
+const createSessions = async (occurrences) => {
+  try {
     const timezoneToSend =
       userTimezone ||
       Intl.DateTimeFormat().resolvedOptions().timeZone ||
@@ -550,7 +561,6 @@ const handleSubmit = async (e) => {
 
     console.log(`Creating ${occurrences.length} session(s)...`);
 
-    // Create each occurrence
     let created = 0;
     for (let idx = 0; idx < occurrences.length; idx++) {
       const occ = occurrences[idx];
@@ -599,14 +609,30 @@ const handleSubmit = async (e) => {
     } else {
       router.push("/academy/calendar");
     }
-  } catch (err: any) {
-    console.error("Error creating session(s):", err);
+  } catch (err:any) {
+    console.error("Error creating sessions:", err);
     setErrorMessage(err?.message || "Failed to create session(s)");
+    throw err;
   } finally {
     setIsSubmitting(false);
+    setShowSlotWarning(false);
+    setPendingSubmission(null);
   }
 };
 
+
+const handleConfirmSlotWarning = async () => {
+  if (pendingSubmission) {
+    setIsSubmitting(true);
+    await createSessions(pendingSubmission.occurrences);
+  }
+};
+
+const handleCancelSlotWarning = () => {
+  setShowSlotWarning(false);
+  setPendingSubmission(null);
+  setIsSubmitting(false);
+};
 
   // Modify your create/submit handler to create multiple weekly copies
   const handleCreateClass = async (e: React.FormEvent) => {
@@ -1043,7 +1069,56 @@ const handleSubmit = async (e) => {
             </div>
           </div>
         )}
+
+        {/* Slot Warning Confirmation Modal */}
+        {showSlotWarning && pendingSubmission && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+            <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-md border border-orange-200">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="w-8 h-8 text-orange-500" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                    Slot Not Available
+                  </h3>
+                  <div className="text-sm text-gray-600 whitespace-pre-line">
+                    {pendingSubmission.warningMsg}
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                <p className="text-sm font-medium text-orange-900">
+                  Do you still want to create this session?
+                </p>
+                <p className="text-xs text-orange-700 mt-1">
+                  The tutor will be notified about the session outside their available hours.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelSlotWarning}
+                  className="flex-1 py-2.5 px-4 bg-gray-200 hover:bg-gray-300 rounded-lg font-medium text-gray-800 transition-colors"
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmSlotWarning}
+                  className="flex-1 py-2.5 px-4 bg-orange-600 hover:bg-orange-700 rounded-lg font-medium text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Creating..." : "Yes, Create Anyway"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+     
       </div>
+      
     </div>
   );
 }
