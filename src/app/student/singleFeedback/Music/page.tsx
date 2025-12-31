@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Modal } from 'react-bootstrap'
-import { RateClassForm } from '@/student/rateClass';
+import { RateClassForm } from "../../rateClass/page";
 
 interface FeedbackData {
   _id: string;

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Modal } from 'react-bootstrap';
-import { RateClassForm } from '@/student/rateClass'; // Adjust path if needed
+import { RateClassForm } from "../../rateClass/page";
 
 interface DrumsFeedbackData {
   _id: string;
