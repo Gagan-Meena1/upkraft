@@ -1,3 +1,278 @@
+// // src>app>api>dashboard>pendingFeedbackCount>route.ts
+
+// import { NextResponse } from "next/server";
+// import { connect } from "@/dbConnection/dbConfic";
+// import User from "@/models/userModel";
+// import Class from "@/models/Class";
+// import courseName from "@/models/courseName";
+// import feedback from "@/models/feedback";
+// import feedbackDance from "@/models/feedbackDance";
+// import feedbackDrawing from "@/models/feedbackDrawing";
+// import feedbackDrums from "@/models/feedbackDrums";
+// import feedbackVocal from "@/models/feedbackVocal";
+// import feedbackViolin from "@/models/feedbackViolin";
+// import jwt from "jsonwebtoken";
+
+// export async function GET(request) {
+//   try {
+//     await connect();
+
+//     const { searchParams } = new URL(request.url);
+//     let tutorId = searchParams.get("tutorId");
+
+//     if (!tutorId) {
+//       const token = request.cookies.get("token")?.value;
+//       if (!token) return NextResponse.json({ error: "No token" }, { status: 401 });
+
+//       const decodedToken = jwt.decode(token);
+//       if (!decodedToken || typeof decodedToken !== "object" || !decodedToken.id) {
+//         return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+//       }
+//       tutorId = decodedToken.id;
+//     }
+
+//     // Step 1: Get tutor courses
+//     const tutor = await User.findById(tutorId).select("courses").lean();
+
+//     if (!tutor || !tutor.courses || tutor.courses.length === 0) {
+//       return NextResponse.json({ success: true, count: 0 });
+//     }
+
+//     const tutorCourseIds = tutor.courses.map(c => c.toString());
+
+//     // Step 2: Get all students with common courses in ONE query
+//     const students = await User.find({
+//       instructorId: tutorId,
+//       category: "Student",
+//       courses: { $in: tutorCourseIds }
+//     }).select("_id courses attendance").lean();
+
+//     if (!students.length) {
+//       return NextResponse.json({ success: true, count: 0 });
+//     }
+
+//     const studentIds = students.map(s => s._id);
+
+//     // Step 3: Fetch ALL courses the tutor teaches
+//     const commonCourses = await courseName.find({
+//       _id: { $in: tutorCourseIds }
+//     }).select("_id class category students").lean();
+
+//     if (!commonCourses.length) {
+//       return NextResponse.json({ success: true, count: 0 });
+//     }
+
+//     // Build maps: classId -> category and classId -> courseId
+//     const classCategoryMap = new Map();
+//     const classToCourseMap = new Map();
+//     const allClassIds = [];
+
+//     commonCourses.forEach(course => {
+//       const courseIdStr = course._id.toString();
+//       course.class.forEach(classId => {
+//         const classIdStr = classId.toString();
+//         classCategoryMap.set(classIdStr, course.category);
+//         classToCourseMap.set(classIdStr, courseIdStr);
+//         allClassIds.push(classId);
+//       });
+//     });
+
+//     if (!allClassIds.length) {
+//       return NextResponse.json({ success: true, count: 0 });
+//     }
+
+//     // Step 4: Fetch ALL past classes in ONE query
+//     const pastClasses = await Class.find({
+//       _id: { $in: allClassIds },
+//       endTime: { $lt: new Date() },
+//       status: { $ne: 'canceled' }
+//     }).select("_id").lean();
+
+//     if (!pastClasses.length) {
+//       return NextResponse.json({ success: true, count: 0 });
+//     }
+
+//     const pastClassIds = pastClasses.map(c => c._id);
+
+//     // Categorize classes by type
+//     const categorizedClasses = {
+//       Music: [],
+//       Dance: [],
+//       Drawing: [],
+//       Drums: [],
+//       Vocal: [],
+//       Violin: []
+//     };
+
+//     pastClassIds.forEach(classId => {
+//       const category = classCategoryMap.get(classId.toString());
+//       if (categorizedClasses[category]) {
+//         categorizedClasses[category].push(classId);
+//       }
+//     });
+
+//     // Step 5: Fetch ALL feedbacks for ALL students in PARALLEL
+//     const feedbackPromises = [];
+
+//     if (categorizedClasses.Music.length > 0) {
+//       feedbackPromises.push(
+//         feedback.find({
+//           userId: { $in: studentIds },
+//           classId: { $in: categorizedClasses.Music }
+//         }).select("userId classId").lean()
+//       );
+//     } else {
+//       feedbackPromises.push(Promise.resolve([]));
+//     }
+
+//     if (categorizedClasses.Dance.length > 0) {
+//       feedbackPromises.push(
+//         feedbackDance.find({
+//           userId: { $in: studentIds },
+//           classId: { $in: categorizedClasses.Dance }
+//         }).select("userId classId").lean()
+//       );
+//     } else {
+//       feedbackPromises.push(Promise.resolve([]));
+//     }
+
+//     if (categorizedClasses.Drawing.length > 0) {
+//       feedbackPromises.push(
+//         feedbackDrawing.find({
+//           userId: { $in: studentIds },
+//           classId: { $in: categorizedClasses.Drawing }
+//         }).select("userId classId").lean()
+//       );
+//     } else {
+//       feedbackPromises.push(Promise.resolve([]));
+//     }
+
+//     if (categorizedClasses.Drums.length > 0) {
+//       feedbackPromises.push(
+//         feedbackDrums.find({
+//           userId: { $in: studentIds },
+//           classId: { $in: categorizedClasses.Drums }
+//         }).select("userId classId").lean()
+//       );
+//     } else {
+//       feedbackPromises.push(Promise.resolve([]));
+//     }
+
+//     if (categorizedClasses.Vocal.length > 0) {
+//       feedbackPromises.push(
+//         feedbackVocal.find({
+//           userId: { $in: studentIds },
+//           classId: { $in: categorizedClasses.Vocal }
+//         }).select("userId classId").lean()
+//       );
+//     } else {
+//       feedbackPromises.push(Promise.resolve([]));
+//     }
+
+//     if (categorizedClasses.Violin.length > 0) {
+//       feedbackPromises.push(
+//         feedbackViolin.find({
+//           userId: { $in: studentIds },
+//           classId: { $in: categorizedClasses.Violin }
+//         }).select("userId classId").lean()
+//       );
+//     } else {
+//       feedbackPromises.push(Promise.resolve([]));
+//     }
+
+//     const [
+//       musicFeedbacks,
+//       danceFeedbacks,
+//       drawingFeedbacks,
+//       drumsFeedbacks,
+//       vocalFeedbacks,
+//       violinFeedbacks
+//     ] = await Promise.all(feedbackPromises);
+
+//     // Step 6: Build feedback lookup maps (userId+classId -> exists)
+//     const feedbackMaps = {
+//       Music: new Set(),
+//       Dance: new Set(),
+//       Drawing: new Set(),
+//       Drums: new Set(),
+//       Vocal: new Set(),
+//       Violin: new Set()
+//     };
+
+//     musicFeedbacks.forEach(f =>
+//       feedbackMaps.Music.add(`${f.userId}_${f.classId}`)
+//     );
+//     danceFeedbacks.forEach(f =>
+//       feedbackMaps.Dance.add(`${f.userId}_${f.classId}`)
+//     );
+//     drawingFeedbacks.forEach(f =>
+//       feedbackMaps.Drawing.add(`${f.userId}_${f.classId}`)
+//     );
+//     drumsFeedbacks.forEach(f =>
+//       feedbackMaps.Drums.add(`${f.userId}_${f.classId}`)
+//     );
+//     vocalFeedbacks.forEach(f =>
+//       feedbackMaps.Vocal.add(`${f.userId}_${f.classId}`)
+//     );
+//     violinFeedbacks.forEach(f =>
+//       feedbackMaps.Violin.add(`${f.userId}_${f.classId}`)
+//     );
+
+//     // Step 7: Count pending feedbacks
+//     let totalPendingCount = 0;
+
+//     students.forEach(student => {
+//       const studentId = student._id.toString();
+
+//       // Build attendance map
+//       const attendanceMap = new Map();
+//       if (student.attendance && Array.isArray(student.attendance)) {
+//         student.attendance.forEach(att => {
+//           if (att.classId) {
+//             attendanceMap.set(att.classId.toString(), att.status);
+//           }
+//         });
+//       }
+
+//       // Get student's course IDs as Set for O(1) lookup
+//       const studentCourseSet = new Set(student.courses.map(c => c.toString()));
+
+//       // Check each category
+//       Object.entries(categorizedClasses).forEach(([category, classIds]) => {
+//         classIds.forEach(classId => {
+//           const classIdStr = classId.toString();
+
+//           // Skip if student was absent
+//           if (attendanceMap.get(classIdStr) === "absent") {
+//             return;
+//           }
+
+//           // Check if this class belongs to a course the student is enrolled in
+//           const courseIdForClass = classToCourseMap.get(classIdStr);
+//           if (!courseIdForClass || !studentCourseSet.has(courseIdForClass)) {
+//             return;
+//           }
+
+//           // Check if feedback exists
+//           const feedbackKey = `${studentId}_${classIdStr}`;
+//           if (!feedbackMaps[category].has(feedbackKey)) {
+//             totalPendingCount++;
+//           }
+//         });
+//       });
+//     });
+
+//     return NextResponse.json({
+//       success: true,
+//       count: totalPendingCount
+//     });
+
+//   } catch (err) {
+//     console.error("Error in pendingFeedbackCount:", err);
+//     return NextResponse.json({ error: err.message }, { status: 500 });
+//   }
+// }
+
 // src>app>api>dashboard>pendingFeedbackCount>route.ts
 
 import { NextResponse } from "next/server";
@@ -31,34 +306,130 @@ export async function GET(request) {
       tutorId = decodedToken.id;
     }
 
-    // Step 1: Get the tutor and their courses
-    const tutor = await User.findById(tutorId).select("courses").lean();
+    // Fetch tutor, students, and courses in parallel
+    const [tutor, students] = await Promise.all([
+      User.findById(tutorId).select("courses").lean(),
+      User.find({
+        instructorId: tutorId,
+        category: "Student"
+      }).select("_id courses attendance").lean()
+    ]);
     
     if (!tutor || !tutor.courses || tutor.courses.length === 0) {
-      return NextResponse.json({ success: true, count: 0, details: [] });
+      return NextResponse.json({ success: true, count: 0 });
+    }
+
+    if (!students.length) {
+      return NextResponse.json({ success: true, count: 0 });
     }
 
     const tutorCourseIds = tutor.courses.map(c => c.toString());
 
-    // Step 2: Find all students who have this tutor in their instructorId array
-    const students = await User.find({
-      instructorId: tutorId,
-      category: "Student"
-    }).select("_id username courses attendance").lean();
+    // Fetch all courses the tutor teaches
+    const courses = await courseName.find({
+      _id: { $in: tutorCourseIds }
+    }).select("_id class category").lean();
 
-    if (!students.length) {
-      return NextResponse.json({ success: true, count: 0, details: [] });
+    if (!courses.length) {
+      return NextResponse.json({ success: true, count: 0 });
     }
 
-    let totalPendingCount = 0;
-    const pendingFeedbackDetails = [];
+    // Build maps for O(1) lookups
+    const classToCategoryMap = new Map();
+    const classToCourseMap = new Map();
+    const allClassIds = [];
+    
+    courses.forEach(course => {
+      const courseIdStr = course._id.toString();
+      course.class.forEach(classId => {
+        const classIdStr = classId.toString();
+        classToCategoryMap.set(classIdStr, course.category);
+        classToCourseMap.set(classIdStr, courseIdStr);
+        allClassIds.push(classId);
+      });
+    });
 
-    // Process each student individually
-    for (const student of students) {
+    if (!allClassIds.length) {
+      return NextResponse.json({ success: true, count: 0 });
+    }
+
+    // Fetch all past classes
+    const pastClasses = await Class.find({
+      _id: { $in: allClassIds },
+      endTime: { $lt: new Date() },
+      status: { $ne: 'canceled' }
+    }).select("_id").lean();
+
+    if (!pastClasses.length) {
+      return NextResponse.json({ success: true, count: 0 });
+    }
+
+    const pastClassIds = pastClasses.map(c => c._id);
+
+    // Categorize classes by type
+    const categorizedClasses = {
+      Music: [],
+      Dance: [],
+      Drawing: [],
+      Drums: [],
+      Vocal: [],
+      Violin: []
+    };
+
+    pastClassIds.forEach(classId => {
+      const category = classToCategoryMap.get(classId.toString());
+      if (categorizedClasses[category]) {
+        categorizedClasses[category].push(classId);
+      }
+    });
+
+    // Get all student IDs
+    const studentIds = students.map(s => s._id);
+
+    // Fetch ALL feedbacks in parallel (only for categories with classes)
+    const feedbackPromises = [];
+    const feedbackCategories = [];
+    
+    Object.entries(categorizedClasses).forEach(([category, classIds]) => {
+      if (classIds.length > 0) {
+        feedbackCategories.push(category);
+        
+        let feedbackModel;
+        switch(category) {
+          case 'Music': feedbackModel = feedback; break;
+          case 'Dance': feedbackModel = feedbackDance; break;
+          case 'Drawing': feedbackModel = feedbackDrawing; break;
+          case 'Drums': feedbackModel = feedbackDrums; break;
+          case 'Vocal': feedbackModel = feedbackVocal; break;
+          case 'Violin': feedbackModel = feedbackViolin; break;
+          default: return;
+        }
+        
+        feedbackPromises.push(
+          feedbackModel.find({
+            userId: { $in: studentIds },
+            classId: { $in: classIds }
+          }).select("userId classId").lean()
+        );
+      }
+    });
+
+    const feedbackResults = await Promise.all(feedbackPromises);
+
+    // Build feedback lookup set (userId+classId -> exists)
+    const feedbackSet = new Set();
+    feedbackResults.forEach(feedbacks => {
+      feedbacks.forEach(f => {
+        feedbackSet.add(`${f.userId}_${f.classId}`);
+      });
+    });
+
+    // Pre-build student data structures
+    const studentDataMap = new Map();
+    students.forEach(student => {
       const studentId = student._id.toString();
-      const studentCourseIds = student.courses.map(c => c.toString());
       
-      // Create attendance map for quick lookup (classId -> status)
+      // Build attendance map
       const attendanceMap = new Map();
       if (student.attendance && Array.isArray(student.attendance)) {
         student.attendance.forEach(att => {
@@ -68,284 +439,52 @@ export async function GET(request) {
         });
       }
       
-      // Step 3: Find common courses between tutor and this student
-      const commonCourseIds = studentCourseIds.filter(courseId => 
-        tutorCourseIds.includes(courseId)
-      );
+      // Build student course set
+      const studentCourseSet = new Set(student.courses.map(c => c.toString()));
       
-      if (commonCourseIds.length === 0) {
-        continue; // Skip this student if no common courses
-      }
+      studentDataMap.set(studentId, {
+        attendanceMap,
+        studentCourseSet
+      });
+    });
 
-      // Step 4: Fetch course details for common courses only
-      const commonCourses = await courseName.find({
-        _id: { $in: commonCourseIds }
-      }).select("_id class category").lean();
+    // Count pending feedbacks
+    let totalPendingCount = 0;
 
-      if (!commonCourses.length) {
-        continue;
-      }
-
-      // Build class-to-category map and collect all class IDs for this student
-      const classCategoryMap = new Map();
-      const allClassIds = [];
+    pastClassIds.forEach(classId => {
+      const classIdStr = classId.toString();
+      const courseId = classToCourseMap.get(classIdStr);
       
-      commonCourses.forEach(course => {
-        course.class.forEach(classId => {
-          const classIdStr = classId.toString();
-          classCategoryMap.set(classIdStr, course.category);
-          allClassIds.push(classId);
-        });
-      });
+      if (!courseId) return;
 
-      if (!allClassIds.length) {
-        continue;
-      }
-
-      // Step 5: Fetch only past classes for this student's common courses
-      const pastClasses = await Class.find({
-        _id: { $in: allClassIds },
-        endTime: { $lt: new Date() },
-        status: { $ne: 'canceled' }
-      }).select("_id className").lean();
-
-      if (!pastClasses.length) {
-        continue;
-      }
-
-      // Create a map for quick class name lookup
-      const classNameMap = new Map();
-      pastClasses.forEach(cls => {
-        classNameMap.set(cls._id.toString(), cls.className);
-      });
-
-      // Categorize past classes by Music/Dance/Drawing
-      const categorizedClasses = {
-        Music: [],
-        Dance: [],
-        Drawing: [],
-        Drums: [],
-        Vocal: [],
-        Violin: []
-      };
-
-      pastClasses.forEach(cls => {
-        const category = classCategoryMap.get(cls._id.toString());
-        if (categorizedClasses[category]) {
-          categorizedClasses[category].push(cls._id);
+      students.forEach(student => {
+        const studentId = student._id.toString();
+        const studentData = studentDataMap.get(studentId);
+        
+        // Skip if student not enrolled in this course
+        if (!studentData.studentCourseSet.has(courseId)) {
+          return;
+        }
+        
+        // Skip if student was absent
+        if (studentData.attendanceMap.get(classIdStr) === "absent") {
+          return;
+        }
+        
+        // Check if feedback exists
+        const feedbackKey = `${studentId}_${classIdStr}`;
+        if (!feedbackSet.has(feedbackKey)) {
+          totalPendingCount++;
         }
       });
-
-      const studentPendingClasses = [];
-
-      // Step 6: Check feedbacks in respective schemas for this student
-      // Music feedback
-      if (categorizedClasses.Music.length > 0) {
-        const musicFeedbacks = await feedback.find({
-          userId: studentId,
-          classId: { $in: categorizedClasses.Music }
-        }).select("classId").lean();
-
-        const feedbackClassIds = new Set(musicFeedbacks.map(f => f.classId.toString()));
-        
-        categorizedClasses.Music.forEach(classId => {
-          const classIdStr = classId.toString();
-          
-          // Check if student was absent in this class
-          const attendanceStatus = attendanceMap.get(classIdStr);
-          if (attendanceStatus === "absent") {
-            return; // Skip this class - student was absent
-          }
-          
-          if (!feedbackClassIds.has(classIdStr)) {
-            studentPendingClasses.push({
-              classId: classIdStr,
-              className: classNameMap.get(classIdStr),
-              category: "Music"
-            });
-            totalPendingCount++;
-          }
-        });
-      }
-
-      // Dance feedback
-      if (categorizedClasses.Dance.length > 0) {
-        const danceFeedbacks = await feedbackDance.find({
-          userId: studentId,
-          classId: { $in: categorizedClasses.Dance }
-        }).select("classId").lean();
-
-        const feedbackClassIds = new Set(danceFeedbacks.map(f => f.classId.toString()));
-        
-        categorizedClasses.Dance.forEach(classId => {
-          const classIdStr = classId.toString();
-          
-          // Check if student was absent in this class
-          const attendanceStatus = attendanceMap.get(classIdStr);
-          if (attendanceStatus === "absent") {
-            return; // Skip this class - student was absent
-          }
-          
-          if (!feedbackClassIds.has(classIdStr)) {
-            studentPendingClasses.push({
-              classId: classIdStr,
-              className: classNameMap.get(classIdStr),
-              category: "Dance"
-            });
-            totalPendingCount++;
-          }
-        });
-      }
-
-      // Drawing feedback
-      if (categorizedClasses.Drawing.length > 0) {
-        const drawingFeedbacks = await feedbackDrawing.find({
-          userId: studentId,
-          classId: { $in: categorizedClasses.Drawing }
-        }).select("classId").lean();
-
-        const feedbackClassIds = new Set(drawingFeedbacks.map(f => f.classId.toString()));
-        
-        categorizedClasses.Drawing.forEach(classId => {
-          const classIdStr = classId.toString();
-          
-          // Check if student was absent in this class
-          const attendanceStatus = attendanceMap.get(classIdStr);
-          if (attendanceStatus === "absent") {
-            return; // Skip this class - student was absent
-          }
-          
-          if (!feedbackClassIds.has(classIdStr)) {
-            studentPendingClasses.push({
-              classId: classIdStr,
-              className: classNameMap.get(classIdStr),
-              category: "Drawing"
-            });
-            totalPendingCount++;
-          }
-        });
-      }
-
-      // // Drums feedback
-      if (categorizedClasses.Drums.length > 0) {
-        const drumsFeedbacks = await feedbackDrums.find({
-          userId: studentId,
-          classId: { $in: categorizedClasses.Drums }
-        }).select("classId").lean();
-
-        const feedbackClassIds = new Set(drumsFeedbacks.map(f => f.classId.toString()));
-        
-        categorizedClasses.Drums.forEach(classId => {
-          const classIdStr = classId.toString();
-          
-          // Check if student was absent in this class
-          const attendanceStatus = attendanceMap.get(classIdStr);
-          if (attendanceStatus === "absent") {
-            return; // Skip this class - student was absent
-          }
-          
-          if (!feedbackClassIds.has(classIdStr)) {
-            studentPendingClasses.push({
-              classId: classIdStr,
-              className: classNameMap.get(classIdStr),
-              category: "Drums"
-            });
-            totalPendingCount++;
-          }
-        });
-      }
-
-      // Vocal feedback
-      if (categorizedClasses.Vocal.length > 0) {
-        const vocalFeedback = await feedbackVocal.find({
-          userId: studentId,
-          classId: { $in: categorizedClasses.Vocal }
-        }).select("classId").lean();
-
-        const feedbackClassIds = new Set(vocalFeedback.map(f => f.classId.toString()));
-        
-        categorizedClasses.Vocal.forEach(classId => {
-          const classIdStr = classId.toString();
-          
-          // Check if student was absent in this class
-          const attendanceStatus = attendanceMap.get(classIdStr);
-          if (attendanceStatus === "absent") {
-            return; // Skip this class - student was absent
-          }
-          
-          if (!feedbackClassIds.has(classIdStr)) {
-            studentPendingClasses.push({
-              classId: classIdStr,
-              className: classNameMap.get(classIdStr),
-              category: "Vocal"
-            });
-            totalPendingCount++;
-          }
-        });
-      }
-
-      // Violin feedback
-      if (categorizedClasses.Violin.length > 0) {
-        const violinFeedback = await feedbackViolin.find({
-          userId: studentId,
-          classId: { $in: categorizedClasses.Violin }
-        }).select("classId").lean();
-
-        const feedbackClassIds = new Set(violinFeedback.map(f => f.classId.toString()));
-        
-        categorizedClasses.Violin.forEach(classId => {
-          const classIdStr = classId.toString();
-          
-          // Check if student was absent in this class
-          const attendanceStatus = attendanceMap.get(classIdStr);
-          if (attendanceStatus === "absent") {
-            return; // Skip this class - student was absent
-          }
-          
-          if (!feedbackClassIds.has(classIdStr)) {
-            studentPendingClasses.push({
-              classId: classIdStr,
-              className: classNameMap.get(classIdStr),
-              category: "Violin"
-            });
-            totalPendingCount++;
-          }
-        });
-      }
-
-      // Add student details only if they have pending feedbacks
-      if (studentPendingClasses.length > 0) {
-        pendingFeedbackDetails.push({
-          studentId: studentId,
-          studentName: student.username,
-          pendingCount: studentPendingClasses.length,
-          pendingClasses: studentPendingClasses
-        });
-      }
-    }
-
-    // Console log the details
-    // console.log("=== Pending Feedback Details ===");
-    // console.log(`Total Pending Count: ${totalPendingCount}`);
-    // pendingFeedbackDetails.forEach((detail, index) => {
-    //   console.log(`\n--- Student ${index + 1} ---`);
-    //   console.log(`Student Name: ${detail.studentName}`);
-    //   console.log(`Student ID: ${detail.studentId}`);
-    //   console.log(`Pending Feedback Count: ${detail.pendingCount}`);
-    //   console.log(`Classes:`);
-    //   detail.pendingClasses.forEach((cls, idx) => {
-    //     console.log(`  ${idx + 1}. ${cls.className} (${cls.category}) - Class ID: ${cls.classId}`);
-    //   });
-    // });
-    // console.log("\n================================");
+    });
 
     return NextResponse.json({ 
       success: true, 
-      count: totalPendingCount,
-      details: pendingFeedbackDetails
+      count: totalPendingCount
     });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error("Error in pendingFeedbackCount:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
