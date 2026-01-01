@@ -1,6 +1,8 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { Modal } from 'react-bootstrap';
+import { RateClassForm } from "../../rateClass/page";
 
 interface DanceFeedbackData {
   _id: string;
@@ -36,24 +38,20 @@ const DanceFeedbackPage = () => {
   const [classId, setClassId] = useState<string | null>(null);
   const [studentId, setStudentId] = useState<string | null>(null);
 
-  // Get IDs from URL using window.location (works in browser)
+  // Modal state
+  const [showRateModal, setShowRateModal] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Method 1: Using URLSearchParams with window.location.search
       const urlParams = new URLSearchParams(window.location.search);
       const classIdFromUrl = urlParams.get('classId');
       const studentIdFromUrl = urlParams.get('studentId');
-      
       setClassId(classIdFromUrl);
       setStudentId(studentIdFromUrl);
-
-      console.log('Current URL:', window.location.href);
-      console.log('Class ID:', classIdFromUrl);
-      console.log('Student ID:', studentIdFromUrl);
     }
   }, []);
 
-  // Fetch feedback data from API
   useEffect(() => {
     const fetchFeedback = async () => {
       if (!classId || !studentId) {
@@ -61,56 +59,32 @@ const DanceFeedbackPage = () => {
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
         const response = await fetch(`/Api/singleFeedback/Dance?classId=${classId}&studentId=${studentId}`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include', // Include cookies for authentication
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         const result: DanceFeedbackResponse = await response.json();
-
-        if (result.success) {
-          setFeedbackData(result.data || []);
-        } else {
-          setError('Failed to fetch feedback data');
-        }
+        if (result.success) setFeedbackData(result.data || []);
+        else setError('Failed to fetch feedback data');
       } catch (err) {
-        console.error('Error fetching feedback:', err);
         setError(err instanceof Error ? err.message : 'An error occurred while fetching feedback');
       } finally {
         setLoading(false);
       }
     };
-
-    // Only fetch when we have both IDs
-    if (classId && studentId) {
-      fetchFeedback();
-    }
+    if (classId && studentId) fetchFeedback();
   }, [classId, studentId]);
 
-  const handleBack = () => {
-    // Handle back navigation
-    window.history.back();
-  };
+  const handleBack = () => window.history.back();
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-  };
 
   if (loading) {
     return (
@@ -183,7 +157,6 @@ const DanceFeedbackPage = () => {
                         {feedback.technique || 'No feedback provided'}
                       </p>
                     </div>
-
                     {/* Musicality */}
                     <div>
                       <h3 className="text-lg font-semibold text-orange-600 mb-2">
@@ -193,7 +166,6 @@ const DanceFeedbackPage = () => {
                         {feedback.musicality || 'No feedback provided'}
                       </p>
                     </div>
-
                     {/* Retention */}
                     <div>
                       <h3 className="text-lg font-semibold text-orange-600 mb-2">Retention</h3>
@@ -201,7 +173,6 @@ const DanceFeedbackPage = () => {
                         {feedback.retention || 'No feedback provided'}
                       </p>
                     </div>
-
                     {/* Performance */}
                     <div>
                       <h3 className="text-lg font-semibold text-orange-600 mb-2">Performance</h3>
@@ -209,7 +180,6 @@ const DanceFeedbackPage = () => {
                         {feedback.performance || 'No feedback provided'}
                       </p>
                     </div>
-
                     {/* Effort */}
                     <div>
                       <h3 className="text-lg font-semibold text-orange-600 mb-2">Effort</h3>
@@ -218,7 +188,6 @@ const DanceFeedbackPage = () => {
                       </p>
                     </div>
                   </div>
-
                   {/* Personal Feedback - Full Width */}
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold text-orange-600 mb-2">
@@ -227,6 +196,15 @@ const DanceFeedbackPage = () => {
                     <p className="text-gray-700 bg-gray-50 p-4 rounded-md">
                       {feedback.personalFeedback || 'No personal feedback provided'}
                     </p>
+                    <button 
+                      className="btn btn-primary mt-3"
+                      onClick={() => {
+                        setSelectedClassId(feedback.classId._id);
+                        setShowRateModal(true);
+                      }}
+                    >
+                      Give Rating
+                    </button>
                   </div>
                 </div>
               </div>
@@ -234,6 +212,17 @@ const DanceFeedbackPage = () => {
           </div>
         )}
       </div>
+
+      <Modal show={showRateModal} onHide={() => setShowRateModal(false)} centered>
+        <Modal.Header closeButton />
+        <Modal.Body>
+          <RateClassForm 
+            classId={selectedClassId} 
+            isModal={true} 
+            onSuccess={() => setShowRateModal(false)}
+          />
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
