@@ -4,6 +4,15 @@ import { connect } from '@/dbConnection/dbConfic';
 import fs from 'fs';
 import path from 'path';
 import { writeFile } from 'fs/promises';
+import { v2 as cloudinary } from 'cloudinary';
+import mongoose from 'mongoose';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function GET(request) {
   try {
@@ -213,6 +222,252 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Failed to update song',
+        details: error?.message || 'Unknown error occurred',
+      }, 
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    console.log('🗑️ Deleting song...');
+    await connect();
+
+    // Get song ID, title, or artist from query parameter or request body
+    const { searchParams } = new URL(request.url);
+    let songId = searchParams.get('id');
+    let title = searchParams.get('title');
+    let artist = searchParams.get('artist');
+
+    // If not in query params, try to get from request body
+    if (!songId || !title || !artist) {
+      try {
+        const body = await request.json();
+        songId = songId || body.id;
+        title = title || body.title;
+        artist = artist || body.artist;
+      } catch (e) {
+        // Request body might be empty, that's okay
+      }
+    }
+
+    // If no ID provided, try to find by title and artist
+    if (!songId && title && artist) {
+      console.log(`🔍 Searching for song by title and artist: "${title}" by ${artist}`);
+      const songByTitle = await Song.findOne({
+        title: { $regex: new RegExp(`^${title}$`, 'i') },
+        artist: { $regex: new RegExp(`^${artist}$`, 'i') }
+      });
+      
+      if (songByTitle) {
+        songId = songByTitle._id.toString();
+        console.log(`✅ Found song by title/artist. ID: ${songId}`);
+      } else {
+        return NextResponse.json(
+          { 
+            error: 'Song not found by title and artist',
+            searchedTitle: title,
+            searchedArtist: artist,
+            hint: 'Make sure the title and artist match exactly (case-insensitive)'
+          },
+          { status: 404 }
+        );
+      }
+    }
+
+    if (!songId) {
+      return NextResponse.json(
+        { 
+          error: 'Song identifier is required. Provide either:',
+          options: [
+            'Query parameter: ?id=...',
+            'Request body: { "id": "..." }',
+            'Query parameters: ?title=...&artist=...',
+            'Request body: { "title": "...", "artist": "..." }'
+          ]
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(songId)) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid song ID format',
+          receivedId: songId,
+          hint: 'Song ID must be a valid MongoDB ObjectId (24 character hex string)'
+        },
+        { status: 400 }
+      );
+    }
+
+    console.log(`🔍 Looking for song with ID: ${songId}`);
+
+    // Convert to ObjectId
+    const objectId = new mongoose.Types.ObjectId(songId);
+
+    // Try to find the song - search without any filters (including isActive)
+    // This ensures we can delete even if the song is marked as inactive
+    let song = await Song.findById(objectId);
+    
+    // If not found with findById, try findOne with _id
+    if (!song) {
+      console.log(`⚠️ Song not found with findById, trying findOne with _id...`);
+      song = await Song.findOne({ _id: objectId });
+    }
+    
+    // Also try without ObjectId wrapper (string match)
+    if (!song) {
+      console.log(`⚠️ Song not found with ObjectId, trying string match...`);
+      song = await Song.findOne({ _id: songId });
+    }
+    
+    if (!song) {
+      // Get some sample songs to help debug
+      const sampleSongs = await Song.find({}).select('_id title artist').limit(10).lean();
+      const sampleIds = sampleSongs.map(s => ({
+        id: s._id.toString(),
+        title: s.title,
+        artist: s.artist
+      }));
+      
+      // Also check if there's a song with a similar ID (maybe a typo)
+      const similarIdSongs = await Song.find({
+        $or: [
+          { _id: { $gte: objectId } },
+          { _id: { $lte: objectId } }
+        ]
+      }).select('_id title artist').limit(5).lean();
+      
+      console.log(`📋 Sample song IDs in database:`, sampleIds);
+      console.log(`🔍 Searched for ID: ${songId} (ObjectId: ${objectId.toString()})`);
+      
+      return NextResponse.json(
+        { 
+          error: 'Song not found',
+          receivedId: songId,
+          objectIdFormat: objectId.toString(),
+          sampleSongs: sampleIds,
+          similarIds: similarIdSongs.map(s => ({
+            id: s._id.toString(),
+            title: s.title,
+            artist: s.artist
+          })),
+          hint: 'The song ID might be incorrect, or the song may have already been deleted. Check the sample songs above to find the correct ID.'
+        },
+        { status: 404 }
+      );
+    }
+
+    console.log(`✅ Found song: "${song.title}" by ${song.artist}`);
+
+    const deletionResults = {
+      songId: song._id.toString(),
+      title: song.title,
+      artist: song.artist,
+      localFileDeleted: false,
+      cloudinaryFileDeleted: false,
+      databaseDeleted: false,
+      errors: [] as string[]
+    };
+
+    // Delete local file if it exists
+    if (song.url && song.url.startsWith('/uploads/')) {
+      try {
+        const filePath = path.join(process.cwd(), 'public', song.url);
+        
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`✅ Deleted local file: ${filePath}`);
+          deletionResults.localFileDeleted = true;
+        } else {
+          console.log(`⚠️ Local file not found: ${filePath}`);
+        }
+      } catch (localFileError: any) {
+        console.error(`❌ Error deleting local file:`, localFileError.message);
+        deletionResults.errors.push(`Local file: ${localFileError.message}`);
+        // Continue with other deletions even if local file deletion fails
+      }
+    }
+
+    // Delete from Cloudinary if cloudinaryPublicId exists
+    if (song.cloudinaryPublicId) {
+      try {
+        console.log(`☁️ Deleting from Cloudinary: ${song.cloudinaryPublicId}`);
+        
+        // Determine resource type for deletion
+        const resourceType = song.cloudinaryResourceType || 
+          (song.fileType === 'audio' ? 'video' : 'raw');
+        
+        const cloudinaryResult = await cloudinary.uploader.destroy(
+          song.cloudinaryPublicId,
+          { 
+            resource_type: resourceType,
+            invalidate: true 
+          }
+        );
+        
+        console.log(`✅ Cloudinary deletion result:`, cloudinaryResult.result);
+        
+        if (cloudinaryResult.result === 'ok' || cloudinaryResult.result === 'not found') {
+          deletionResults.cloudinaryFileDeleted = true;
+        } else {
+          console.warn(`⚠️ Cloudinary deletion warning: ${cloudinaryResult.result}`);
+          deletionResults.errors.push(`Cloudinary: ${cloudinaryResult.result}`);
+        }
+      } catch (cloudinaryError: any) {
+        console.error(`❌ Cloudinary deletion error:`, cloudinaryError.message);
+        deletionResults.errors.push(`Cloudinary: ${cloudinaryError.message}`);
+        // Continue with database deletion even if Cloudinary fails
+      }
+    } else {
+      console.log(`ℹ️ No Cloudinary public ID found for this song`);
+    }
+
+    // Delete from database
+    try {
+      await Song.findByIdAndDelete(songId);
+      console.log(`✅ Deleted from database: ${songId}`);
+      deletionResults.databaseDeleted = true;
+    } catch (dbError: any) {
+      console.error(`❌ Database deletion error:`, dbError.message);
+      deletionResults.errors.push(`Database: ${dbError.message}`);
+      return NextResponse.json(
+        { 
+          error: 'Failed to delete song from database',
+          details: dbError.message,
+          partialResults: deletionResults
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log(`🎉 Song deletion complete!`);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Song deleted successfully',
+      deletedSong: {
+        id: deletionResults.songId,
+        title: deletionResults.title,
+        artist: deletionResults.artist
+      },
+      deletionDetails: {
+        localFileDeleted: deletionResults.localFileDeleted,
+        cloudinaryFileDeleted: deletionResults.cloudinaryFileDeleted,
+        databaseDeleted: deletionResults.databaseDeleted,
+        errors: deletionResults.errors.length > 0 ? deletionResults.errors : undefined
+      },
+      deletedAt: new Date().toISOString()
+    }, { status: 200 });
+
+  } catch (error: any) {
+    console.error('💥 Error deleting song:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to delete song',
         details: error?.message || 'Unknown error occurred',
       }, 
       { status: 500 }
