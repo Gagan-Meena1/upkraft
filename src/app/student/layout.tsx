@@ -51,9 +51,9 @@ export default function TutorLayout({
         </div>
         
         {/* Show suspension modal if account is suspended */}
-        {!isCheckingSuspension && isSuspended && (
+        {/* {!isCheckingSuspension && isSuspended && (
           <SuspensionModal message={suspensionMessage} />
-        )}
+        )} */}
       </div>
     </UserDataProvider> 
   );
