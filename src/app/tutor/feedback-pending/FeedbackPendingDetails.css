@@ -153,3 +153,53 @@
     box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
   }
 }
+
+/* Ensure class titles wrap and don't overflow */
+.card-feedback .feedback-img-text h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.2;
+  white-space: normal;        /* allow wrapping */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+/* Make the header area align to top when title wraps */
+.card-feedback .feedback-img-text ul {
+  align-items: flex-start;
+}
+
+/* Student list item: allow wrapped content and consistent spacing */
+.chat-list-box .card-chat {
+  padding: 8px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;           /* allow long names to wrap */
+}
+
+/* Keep the date compact and allow the student name to wrap below if needed */
+.chat-list-box .card-chat .text-muted {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.chat-list-box .card-chat .text-end {
+  flex: 1 1 auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Checkbox alignment */
+.chat-list-box .card-chat input[type="checkbox"] {
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
+/* Small responsive tweaks */
+@media (max-width: 768px) {
+  .card-feedback .feedback-img-text h3 { font-size: 0.95rem; }
+  .chat-list-box .card-chat { padding: 10px; }
+}

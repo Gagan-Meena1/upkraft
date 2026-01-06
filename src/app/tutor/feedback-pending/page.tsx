@@ -27,14 +27,14 @@ interface Class {
   endTime: string;
   feedbackId?: string;
   course: string;
-  courseCategory?: string; // added
-  feedbackModelRequired?: string; // added (from API)
+  courseCategory?: string;
+  feedbackModelRequired?: string;
 }
 
-interface Course {
-  _id: string;
-  title: string;
-  class: string[];
+interface PendingClass {
+  class: Class;
+  students: Student[];
+  selectedStudentIndex: number;
 }
 
 // Category → fields (keys must match model/API field names)
@@ -121,91 +121,79 @@ const getSubmitEndpoint = (category?: string, feedbackModelRequired?: string) =>
 };
 
 const FeedbackPendingDetails = () => {
-  const [pendingFeedbacks, setPendingFeedbacks] = useState<PendingFeedback[]>([]);
-  const [selectedFeedback, setSelectedFeedback] = useState<PendingFeedback | null>(null);
+  const [pendingClasses, setPendingClasses] = useState<PendingClass[]>([]);
+  const [selectedClassEntry, setSelectedClassEntry] = useState<PendingClass | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});  // ADD THIS
-  const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({}); 
+  const [uploadLoading, setUploadLoading] = useState<{[key: string]: boolean}>({});
+  const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({});
   const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'absent'>('present');
   const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
   const router = useRouter();
 
-  // Replace fixed shape with dynamic map per category
+  // New: search term + selected students per class (for bulk ops)
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedStudentsMap, setSelectedStudentsMap] = useState<Record<string, Set<string>>>({});
+
   const [feedbackData, setFeedbackData] = useState<Record<string, number | string>>(buildDefaults("Music"));
 
-  // Derived category helpers for header badge and dynamic fields
-  const currentCategory =
-    selectedFeedback?.classes[selectedFeedback.selectedClassIndex]?.courseCategory || "Music";
+  const currentClass = selectedClassEntry?.class || null;
+  const currentStudent = selectedClassEntry ? selectedClassEntry.students[selectedClassEntry.selectedStudentIndex] : null;
+  const currentCategory = currentClass?.courseCategory || "Music";
   const currentFields = CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS["Music"];
   const splitIndex = Math.ceil(currentFields.length / 2);
 
-  // Fetch data on component mount
   useEffect(() => {
     const fetchPendingFeedbacks = async () => {
       try {
         setLoading(true);
         const response = await fetch('/Api/pendingFeedback');
         const data = await response.json();
-        console.log('Fetched pending feedbacks:', response);
         if(response.status === 401) {
           router.push('/login')
+          return;
         } else if (!data.success) {
-          console.error('API Error:', data.error);
           throw new Error(data.error || 'Failed to load pending feedbacks');
         }
-        const pendingFeedbacks: PendingFeedback[] = [];
-        const studentMap = new Map<string, { student: Student, classes: Class[] }>();
 
-        data.missingFeedbackClasses.forEach((item: any) => {
-          const studentId = item.studentId;
+        // Group by classId -> build PendingClass[]
+        const classMap = new Map<string, PendingClass>();
 
-          if (!studentMap.has(studentId)) {
-            studentMap.set(studentId, {
-              student: {
-                _id: item.studentId,
-                username: item.studentName,
-                email: '',
-                profileImage: item.profileImage || undefined,
-              },
-              classes: []
-            });
+        (data.missingFeedbackClasses || []).forEach((item: any) => {
+          const classId = item.classId;
+          if (!classMap.has(classId)) {
+            const cls: Class = {
+              _id: item.classId,
+              title: item.className,
+              description: '',
+              startTime: item.classDate || '',
+              endTime: '',
+              course: item.courseId,
+              courseCategory: item.courseCategory,
+              feedbackModelRequired: item.feedbackModelRequired
+            };
+            classMap.set(classId, { class: cls, students: [], selectedStudentIndex: 0 });
           }
-
-          studentMap.get(studentId)!.classes.push({
-            _id: item.classId,
-            title: item.className,
-            description: '',
-            startTime: item.classDate || '',
-            endTime: '',
-            course: item.courseId,
-            courseCategory: item.courseCategory, // keep category
-            feedbackModelRequired: item.feedbackModelRequired, // keep model
+          const entry = classMap.get(classId)!;
+          entry.students.push({
+            _id: item.studentId,
+            username: item.studentName,
+            email: '',
+            profileImage: item.profileImage || undefined
           });
         });
 
-        studentMap.forEach((value) => {
-          const sortedClasses = (value.classes || []).slice().sort((a: any, b: any) => {
-            const ta = a?.startTime ? new Date(a.startTime).getTime() : 0;
-            const tb = b?.startTime ? new Date(b.startTime).getTime() : 0;
-            return tb - ta; 
-          });
+        // Convert to array and sort classes by date desc
+        const pendingArr: PendingClass[] = Array.from(classMap.values()).sort((a,b) => {
+          const ta = a.class.startTime ? new Date(a.class.startTime).getTime() : 0;
+          const tb = b.class.startTime ? new Date(b.class.startTime).getTime() : 0;
+          return tb - ta;
+        });
 
-          pendingFeedbacks.push({
-            student: value.student,
-            classes: sortedClasses,
-            selectedClassIndex: 0
-          });
-         });
-
-        setPendingFeedbacks(pendingFeedbacks);
-
-        if (pendingFeedbacks.length > 0) {
-          setSelectedFeedback(pendingFeedbacks[0]);
-        }
+        setPendingClasses(pendingArr);
+        if (pendingArr.length > 0) setSelectedClassEntry(pendingArr[0]);
       } catch (err) {
-        console.error('Error fetching pending feedbacks:', err);
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
       } finally {
         setLoading(false);
@@ -214,25 +202,165 @@ const FeedbackPendingDetails = () => {
 
     fetchPendingFeedbacks();
   }, []);
-  
-  // Re-init sliders when selection changes (student or class)
+
   useEffect(() => {
-    if (!selectedFeedback) return;
-    const currentClass = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
-    const category = currentClass?.courseCategory || "Music";
+    if (!selectedClassEntry) return;
+    const category = selectedClassEntry.class?.courseCategory || "Music";
     setFeedbackData(buildDefaults(category));
     setAttendanceStatus('present');
-  }, [selectedFeedback]);
+  }, [selectedClassEntry]);
 
-  const handleSelectStudent = (feedback: PendingFeedback) => {
-    setSelectedFeedback(feedback);
+  // Utilities for selection/search
+  const getVisibleStudents = (entry: PendingClass) => {
+    if (!searchTerm) return entry.students;
+    const q = searchTerm.trim().toLowerCase();
+    return entry.students.filter(s => s.username.toLowerCase().includes(q));
+  };
+  
+  // Filter classes so only classes (or students) matching the search are shown
+  const filteredPendingClasses = pendingClasses.filter(entry => {
+    if (!searchTerm) return true;
+    const q = searchTerm.trim().toLowerCase();
+    if ((entry.class.title || '').toLowerCase().includes(q)) return true;
+    return entry.students.some(s => s.username.toLowerCase().includes(q));
+  });
+  
+  // Keep selection in sync when search/pendingClasses changes
+  useEffect(() => {
+    if (!searchTerm) {
+      if (pendingClasses.length > 0) setSelectedClassEntry(pendingClasses[0]);
+      return;
+    }
+    if (filteredPendingClasses.length > 0) {
+      const exists = selectedClassEntry && filteredPendingClasses.some(e => e.class._id === selectedClassEntry.class._id);
+      if (!exists) setSelectedClassEntry(filteredPendingClasses[0]);
+    } else {
+      setSelectedClassEntry(null);
+    }
+  }, [searchTerm, pendingClasses]);
+
+  const toggleStudentSelection = (classId: string, studentId: string) => {
+    setSelectedStudentsMap(prev => {
+      const existing = prev[classId] ? new Set(Array.from(prev[classId])) : new Set<string>();
+      if (existing.has(studentId)) existing.delete(studentId);
+      else existing.add(studentId);
+      return { ...prev, [classId]: existing };
+    });
   };
 
-  const handleSelectClass = (feedbackIndex: number, classIndex: number) => {
-    const updatedFeedbacks = [...pendingFeedbacks];
-    updatedFeedbacks[feedbackIndex].selectedClassIndex = classIndex;
-    setPendingFeedbacks(updatedFeedbacks);
-    setSelectedFeedback(updatedFeedbacks[feedbackIndex]);
+  const selectAllVisibleForClass = (classId: string, visibleStudents: Student[]) => {
+    setSelectedStudentsMap(prev => {
+      const setAll = new Set<string>(visibleStudents.map(s => s._id));
+      return { ...prev, [classId]: setAll };
+    });
+  };
+
+  const clearAllSelectionsForClass = (classId: string) => {
+    setSelectedStudentsMap(prev => {
+      if (!prev[classId]) return prev;
+      const copy = { ...prev };
+      copy[classId] = new Set<string>();
+      return copy;
+    });
+  };
+
+  const isStudentSelected = (classId: string, studentId: string) => {
+    return !!selectedStudentsMap[classId] && selectedStudentsMap[classId].has(studentId);
+  };
+
+  // New: submit same feedback for all selected students in current class
+  const handleSubmitForSelected = async () => {
+    if (!selectedClassEntry || !currentClass) return;
+    const classId = currentClass._id;
+    const selectedSet = selectedStudentsMap[classId] ? Array.from(selectedStudentsMap[classId]) : [];
+    if (selectedSet.length === 0) {
+      alert('No students selected for bulk submission.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const courseId = currentClass.course;
+      const category = currentClass.courseCategory || "Music";
+      const endpoint = getSubmitEndpoint(category, currentClass.feedbackModelRequired);
+      const fields = CATEGORY_FIELDS[category] || CATEGORY_FIELDS["Music"];
+
+      // Build payload template (same for all students)
+      const basePayload: any = {
+        attendanceStatus,
+        courseId,
+        classId,
+        personalFeedback: String(feedbackData.personalFeedback || "")
+      };
+      fields.forEach(f => {
+        const v = feedbackData[f.key];
+        basePayload[f.key] = typeof v === "number" ? v : Number(v) || 5;
+      });
+
+      // Send requests sequentially to reuse existing removal logic
+      let updated = [...pendingClasses];
+      for (const studentId of selectedSet) {
+        try {
+          const response = await fetch(
+            `${endpoint}?studentId=${studentId}&courseId=${courseId}&classId=${classId}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...basePayload, studentId })
+            }
+          );
+          const result = await response.json();
+          if (result.success) {
+            // Remove student from pending list in updated
+            const idx = updated.findIndex(e => e.class._id === classId);
+            if (idx !== -1) {
+              const entry = updated[idx];
+              const remaining = entry.students.filter(s => s._id !== studentId);
+              if (remaining.length > 0) {
+                updated[idx] = { ...entry, students: remaining, selectedStudentIndex: 0 };
+              } else {
+                updated.splice(idx, 1);
+              }
+            }
+          } else {
+            console.warn(`Bulk submit failed for student ${studentId}:`, result.message || 'unknown');
+          }
+        } catch (err) {
+          console.error('Error bulk submitting for student', studentId, err);
+        }
+      }
+
+      setPendingClasses(updated);
+      // select first available class if any
+      setSelectedClassEntry(updated.length > 0 ? updated[0] : null);
+      // clear selection for this class
+      setSelectedStudentsMap(prev => {
+        const copy = { ...prev };
+        copy[classId] = new Set<string>();
+        return copy;
+      });
+      const nextCat = updated.length && updated[0].class ? updated[0].class.courseCategory : "Music";
+      setFeedbackData(buildDefaults(nextCat));
+      setAttendanceStatus('present');
+      alert('Bulk feedback submitted for selected students.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSelectClass = (index: number) => {
+    const entry = pendingClasses[index];
+    setSelectedClassEntry(entry);
+  };
+
+  const handleSelectStudent = (classIndex: number, studentIndex: number) => {
+    const updated = [...pendingClasses];
+    updated[classIndex] = {
+      ...updated[classIndex],
+      selectedStudentIndex: studentIndex
+    };
+    setPendingClasses(updated);
+    setSelectedClassEntry(updated[classIndex]);
   };
 
   const handleSliderChange = (key: string, value: number) => {
@@ -249,13 +377,13 @@ const FeedbackPendingDetails = () => {
     if (isNaN(d.getTime())) return "";
     return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
   };
-  
+
   const handleSubmit = async () => {
-    if (!selectedFeedback) return;
+    if (!selectedClassEntry || !currentStudent) return;
 
     setIsSubmitting(true);
-    const student = selectedFeedback.student;
-    const classData = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
+    const student = currentStudent;
+    const classData = currentClass!;
 
     try {
       const courseId = classData.course;
@@ -264,7 +392,6 @@ const FeedbackPendingDetails = () => {
       const category = classData.courseCategory || "Music";
       const endpoint = getSubmitEndpoint(category, classData.feedbackModelRequired);
 
-      // Build payload from current category fields
       const fields = CATEGORY_FIELDS[category] || CATEGORY_FIELDS["Music"];
       const payload: any = {
         attendanceStatus,
@@ -275,7 +402,6 @@ const FeedbackPendingDetails = () => {
       };
       fields.forEach(f => {
         const v = feedbackData[f.key];
-        // Coerce number fields to string/number (API can accept either as models use String)
         payload[f.key] = typeof v === "number" ? v : Number(v) || 5;
       });
 
@@ -291,47 +417,23 @@ const FeedbackPendingDetails = () => {
       const result = await response.json();
 
       if (result.success) {
-        // Remove the submitted class from the list
-        let updatedFeedbacks = [...pendingFeedbacks];
-        const currentFeedbackIndex = updatedFeedbacks.findIndex(
-          f => f.student._id === studentId
-        );
-
-        if (currentFeedbackIndex !== -1) {
-          const currentFeedback = updatedFeedbacks[currentFeedbackIndex];
-          const remainingClasses = currentFeedback.classes.filter(c => c._id !== classId);
-
-          if (remainingClasses.length > 0) {
-            updatedFeedbacks[currentFeedbackIndex] = {
-              ...currentFeedback,
-              classes: remainingClasses,
-              selectedClassIndex: 0
-            };
+        // remove this student from the pendingClasses[class]
+        let updated = [...pendingClasses];
+        const idx = updated.findIndex(e => e.class._id === classId);
+        if (idx !== -1) {
+          const entry = updated[idx];
+          const remaining = entry.students.filter(s => s._id !== studentId);
+          if (remaining.length > 0) {
+            updated[idx] = { ...entry, students: remaining, selectedStudentIndex: 0 };
           } else {
-            updatedFeedbacks.splice(currentFeedbackIndex, 1);
+            updated.splice(idx, 1);
           }
         }
-
-        setPendingFeedbacks(updatedFeedbacks);
-
-        if (updatedFeedbacks.length > 0) {
-          const nextIndex = Math.min(
-            Math.max(0, updatedFeedbacks.findIndex(f => f.student._id === studentId)),
-            updatedFeedbacks.length - 1
-          );
-          setSelectedFeedback(updatedFeedbacks[nextIndex] || updatedFeedbacks[0]);
-        } else {
-          setSelectedFeedback(null);
-        }
-
+        setPendingClasses(updated);
+        setSelectedClassEntry(updated.length > 0 ? updated[Math.min(0, updated.length-1)] : null);
         setAttendanceStatus('present');
-        // Reset form to defaults for next selected item (use effect will also reset)
-        const nextCat =
-          updatedFeedbacks.length && updatedFeedbacks[0].classes.length
-            ? updatedFeedbacks[0].classes[0].courseCategory
-            : "Music";
+        const nextCat = updated.length && updated[0].class ? updated[0].class.courseCategory : "Music";
         setFeedbackData(buildDefaults(nextCat));
-
         alert('Feedback submitted successfully!');
       } else {
         alert(result.message || 'Failed to submit feedback');
@@ -345,11 +447,11 @@ const FeedbackPendingDetails = () => {
   };
 
   const handleMarkAbsent = async () => {
-    if (!selectedFeedback) return;
+    if (!selectedClassEntry || !currentStudent) return;
 
     setIsSubmitting(true);
-    const student = selectedFeedback.student;
-    const classData = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
+    const student = currentStudent;
+    const classData = currentClass!;
 
     try {
       const studentId = student._id;
@@ -371,43 +473,23 @@ const FeedbackPendingDetails = () => {
       const result = await response.json();
 
       if (result.success) {
-        // same remove-logic...
-        let updatedFeedbacks = [...pendingFeedbacks];
-        const currentFeedbackIndex = updatedFeedbacks.findIndex(
-          f => f.student._id === studentId
-        );
-        if (currentFeedbackIndex !== -1) {
-          const currentFeedback = updatedFeedbacks[currentFeedbackIndex];
-          const remainingClasses = currentFeedback.classes.filter(c => c._id !== classId);
-
-          if (remainingClasses.length > 0) {
-            updatedFeedbacks[currentFeedbackIndex] = {
-              ...currentFeedback,
-              classes: remainingClasses,
-              selectedClassIndex: 0
-            };
+        let updated = [...pendingClasses];
+        const idx = updated.findIndex(e => e.class._id === classId);
+        if (idx !== -1) {
+          const entry = updated[idx];
+          const remaining = entry.students.filter(s => s._id !== studentId);
+          if (remaining.length > 0) {
+            updated[idx] = { ...entry, students: remaining, selectedStudentIndex: 0 };
           } else {
-            updatedFeedbacks.splice(currentFeedbackIndex, 1);
+            updated.splice(idx, 1);
           }
         }
-
-        setPendingFeedbacks(updatedFeedbacks);
-
-        if (updatedFeedbacks.length > 0) {
-          const nextIndex = Math.min(currentFeedbackIndex, updatedFeedbacks.length - 1);
-          setSelectedFeedback(updatedFeedbacks[nextIndex]);
-        } else {
-          setSelectedFeedback(null);
-        }
-
+        setPendingClasses(updated);
+        setSelectedClassEntry(updated.length > 0 ? updated[Math.min(idx, updated.length-1)] : null);
         setAttendanceStatus('present');
         setShowAbsentConfirm(false);
-        const nextCat =
-          updatedFeedbacks.length && updatedFeedbacks[0].classes.length
-            ? updatedFeedbacks[0].classes[0].courseCategory
-            : "Music";
+        const nextCat = updated.length && updated[0].class ? updated[0].class.courseCategory : "Music";
         setFeedbackData(buildDefaults(nextCat));
-
         alert('Student marked as absent successfully!');
       } else {
         alert(result.message || 'Failed to mark attendance');
@@ -421,21 +503,6 @@ const FeedbackPendingDetails = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className='feedback-pending-details-sec'>
-        <div className='feed-back-heading'>
-          <h2>Feedback Pending</h2>
-        </div>
-        <div className='text-center py-5'>
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Handle file upload
 const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLInputElement>) => {
   if (!event.target.files || event.target.files.length === 0) {
@@ -443,7 +510,6 @@ const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLIn
   }
 
   const file = event.target.files[0];
-  console.log("File selected:", { name: file.name, size: file.size, type: file.type });
   const maxSize = 800 * 1024 * 1024; // 800MB
   if (file.size > maxSize) {
     toast.error('File size must be less than 800MB');
@@ -451,11 +517,8 @@ const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLIn
   }
 
   setUploadLoading((prev) => ({ ...prev, [classId]: true }));
-  console.log(`[${classId}] Starting upload process...`);
 
   try {
-    // 1. Get presigned URL
-    console.log(`[${classId}] Requesting presigned URL...`);
     const presignedUrlResponse = await axios.post('/Api/upload/presigned-url', {
       fileName: file.name,
       fileType: file.type,
@@ -463,10 +526,7 @@ const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLIn
     });
 
     const { publicUrl } = presignedUrlResponse.data;
-    console.log(`[${classId}] Public URL: ${publicUrl}`);
 
-    // 2. Upload file directly to S3
-    console.log(`[${classId}] Starting direct upload to S3...`);
     await axios.put(presignedUrlResponse.data.uploadUrl, file, {
       headers: { 'Content-Type': file.type },
       onUploadProgress: (progressEvent) => {
@@ -478,40 +538,23 @@ const handleFileChange = async (classId: string, event: React.ChangeEvent<HTMLIn
     });
 
     toast.success('Recording uploaded successfully!');
-    console.log(`[${classId}] Direct upload to S3 completed.`);
 
-    // 3. save the public URL in mongoDB
-    console.log(`[${classId}] Notifying mongoDB to update class with public URL: ${publicUrl}`);
     await axios.post('/Api/classes/update', { classId, recordingUrl: publicUrl });
-    
-    console.log(`[${classId}] recordingUrl updated in mongoDB.`);
 
-    // 4. Trigger background processing
     toast('Video evaluation and performance video generation have started.');
 
-    // Trigger evaluation process (fire-and-forget)
     axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`)
-      .catch((evalError) => {
-        console.error(`[${classId}] Failed to start evaluation:`, evalError.message);
-      });
-    
-    // Trigger highlight generation process (fire-and-forget)
+      .catch((evalError) => console.error(`[${classId}] eval start failed`, evalError.message));
     axios.post(`/Api/proxy/generate-highlights?item_id=${classId}`)
-      .catch((highlightError) => {
-        console.error(`[${classId}] Failed to start highlight generation:`, highlightError.message);
-      });
+      .catch((highlightError) => console.error(`[${classId}] highlights start failed`, highlightError.message));
 
   } catch (err) {
     const error = err as AxiosError<{ error: string }>;
-    console.error(`[${classId}] Upload process failed:`, error.message);
     toast.error(error.response?.data?.error || 'Failed to upload recording.');
   } finally {
     setUploadLoading((prev) => ({ ...prev, [classId]: false }));
-    console.log(`[${classId}] Upload process finished.`);
     const inputRef = fileInputRefs.current[classId];
-    if (inputRef) {
-      inputRef.value = '';
-    }
+    if (inputRef) inputRef.value = '';
   }
 };
 
@@ -522,7 +565,6 @@ const triggerFileInput = (classId: string) => {
 
 const getButtonText = (classId: string, isUploading: boolean) => {
   if (isUploading) return 'Uploading...';
-  // You can add logic here to check if recording exists
   return 'Upload Recording';
 };
   
@@ -539,7 +581,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
     );
   }
   
-  if (pendingFeedbacks.length === 0) {
+  if (pendingClasses.length === 0) {
     return (
       <div className='feedback-pending-details-sec'>
         <div className='feed-back-heading'>
@@ -565,7 +607,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
       <div className='feed-back-heading'>
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-md-3 flex-xl-nowrap flex-wrap">
             <div className='left-head'>
-                <h2 className='m-0'>Feedback Pending ({pendingFeedbacks.length} students)</h2>
+                <h2 className='m-0'>Feedback Pending ({pendingClasses.length} classes)</h2>
             </div>
             <div className='right-form'>
                <Link href="/tutor" className='link-text'>Back to Dashboard</Link>
@@ -575,90 +617,102 @@ const getButtonText = (classId: string, isUploading: boolean) => {
       </div>
       <div className='feedback-pending-box d-flex flex-wrap'>
         <div className='feedback-left-box'>
+          <div className='mb-2 px-2'>
+            <input
+              type="search"
+              className="form-control"
+              placeholder="Search students or classes..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
           <div className='feedback-box-scroll'>
-            {pendingFeedbacks.map((feedback, index) => (
+            {filteredPendingClasses.map((entry, index) => {
+               const visibleStudents = getVisibleStudents(entry);
+               return (
               <div 
-                key={`${feedback.student._id}-${index}`} 
-                className={`card-feedback ${selectedFeedback?.student._id === feedback.student._id ? 'active' : ''}`}
-                onClick={() => handleSelectStudent(feedback)}
+                key={`${entry.class._id}-${index}`} 
+                className={`card-feedback ${selectedClassEntry?.class._id === entry.class._id ? 'active' : ''}`}
+                onClick={() => handleSelectClass(index)}
               >
                 <div className='feedback-img-text'>
                   <ul className='list-unstyled p-0 m-0 d-flex align-items-center position-relative justify-content-between gap-2'>
                     <li className='d-flex align-items-center gap-2'>
-                      {/* avatar */}
-                      {feedback.student.profileImage ? (
-                        <Image 
-                          src={feedback.student.profileImage} 
-                          alt={feedback.student.username} 
-                          width={40} 
-                          height={40}
-                          className="rounded-circle"
-                          style={{ objectFit: 'cover' }}
-                        />
-                      ) : (
-                        <div className="student-initials" style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '50%',
-                          backgroundColor: 'purple',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontWeight: 'bold',
-                          fontSize: '16px'
-                        }}>
-                          {feedback.student.username.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                      <h3 className="m-0">{feedback.student.username}</h3>
+                      <h3 className="m-0">{entry.class.title}</h3>
                     </li>
-                    <li>
+                    <li className='d-flex align-items-center gap-2'>
                       <span className='pending'>
-                        {feedback.classes.length} {feedback.classes.length === 1 ? 'class' : 'classes'}
+                        {entry.students.length} {entry.students.length === 1 ? 'student' : 'students'}
                       </span>
+                      {selectedClassEntry?.class._id === entry.class._id && visibleStudents.length > 0 && (
+                        <>
+                          <button
+                            className="btn btn-sm btn-outline-primary ms-2"
+                            onClick={(e) => { e.stopPropagation(); selectAllVisibleForClass(entry.class._id, visibleStudents); }}
+                          >
+                            Select all
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-secondary ms-2"
+                            onClick={(e) => { e.stopPropagation(); clearAllSelectionsForClass(entry.class._id); }}
+                          >
+                            Clear all
+                          </button>
+                        </>
+                      )}
                     </li>
                   </ul>
                 </div>
                 <ul className='chat-list-box list-unstyled p-0 m-0'>
-                  {feedback.classes.map((cls, classIndex) => (
+                  {visibleStudents.map((stu, studentIndex) => (
                     <li 
-                      key={cls._id} 
-                      className={`card-chat ${feedback.selectedClassIndex === classIndex && selectedFeedback?.student._id === feedback.student._id ? 'active' : ''}`}
+                      key={stu._id} 
+                      className={`card-chat ${entry.selectedStudentIndex === studentIndex && selectedClassEntry?.class._id === entry.class._id ? 'active' : ''}`}
                       onClick={(e) => {
+                        // clicking list item still selects single student for individual evaluation
                         e.stopPropagation();
-                        handleSelectClass(index, classIndex);
+                        handleSelectStudent(index, studentIndex);
                       }}
-                      title={`${cls.title} • ${formatClassDate(cls.startTime)}`} // tooltip
+                      title={`${stu.username}`} 
                     >
-                      {/* Show class title and date */}
                       <div className="d-flex justify-content-between align-items-center">
-                        <span className="text-muted small ms-2">{formatClassDate(cls.startTime)}</span>
-                        <span className="text-end">{cls.title}</span>
+                        <div className="d-flex align-items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isStudentSelected(entry.class._id, stu._id)}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleStudentSelection(entry.class._id, stu._id);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span className="text-muted small ms-2">{formatClassDate(entry.class.startTime)}</span>
+                          <span className="text-end ms-2">{stu.username}</span>
+                        </div>
                       </div>
                     </li>
                   ))}
                 </ul>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
-        {selectedFeedback && (
+
+        {selectedClassEntry && currentStudent && currentClass && (
           <div className='feedback-right-box'>
             <div className='feedback-box'>
               <div className='head-feedback d-flex align-items-center gap-2 justify-content-between flex-md-nowrap flex-wrap'>
   <div className='text-head-feedback'>
     <h2>Student Performance Evaluation</h2>
     <p>
-      <strong>{selectedFeedback.student.username}</strong> - {selectedFeedback.classes[selectedFeedback.selectedClassIndex].title}
+      {currentClass.title}
       <span className="ms-2 badge bg-secondary">{currentCategory}</span>
-     <span className="text-muted small ms-2">
-       {formatClassDate(selectedFeedback.classes[selectedFeedback.selectedClassIndex].startTime)}
-     </span>
+      <span className="text-muted small ms-2">{formatClassDate(currentClass.startTime)}</span>
     </p>
   </div>
   <div className='btn-right d-flex gap-2 align-items-center flex-wrap'>
-    {/* Attendance Dropdown */}
     <div className="dropdown">
       <button
         className="btn dropdown-toggle"
@@ -704,35 +758,34 @@ const getButtonText = (classId: string, isUploading: boolean) => {
       </ul>
     </div>
 
-    {/* Hidden file input */}
     <input
       type="file"
       accept="video/*"
       className="d-none"
       ref={el => { 
-        if (selectedFeedback) {
-          fileInputRefs.current[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] = el; 
+        if (currentClass) {
+          fileInputRefs.current[currentClass._id] = el; 
         }
       }}
       onChange={(e) => {
-        if (selectedFeedback) {
-          handleFileChange(selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id, e);
+        if (currentClass) {
+          handleFileChange(currentClass._id, e);
         }
       }}
     />
     
     <button 
       onClick={() => {
-        if (selectedFeedback) {
-          triggerFileInput(selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id);
+        if (currentClass) {
+          triggerFileInput(currentClass._id);
         }
       }}
-      disabled={selectedFeedback ? uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] : false}
+      disabled={currentClass ? uploadLoading[currentClass._id] : false}
       style={{ 
-        backgroundColor: selectedFeedback && uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] ? '#a855f7' : '#9333ea',
+        backgroundColor: currentClass && uploadLoading[currentClass._id] ? '#a855f7' : '#9333ea',
         color: '#ffffff',
         border: 'none',
-        boxShadow: selectedFeedback && !uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] 
+        boxShadow: currentClass && !uploadLoading[currentClass._id] 
           ? '0 0 12px rgba(147, 51, 234, 0.4)' 
           : 'none',
         transition: 'all 0.3s ease'
@@ -741,14 +794,15 @@ const getButtonText = (classId: string, isUploading: boolean) => {
     >
       <Upload size={16} />
       <span>
-        {selectedFeedback && getButtonText(
-          selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id,
-          uploadLoading[selectedFeedback.classes[selectedFeedback.selectedClassIndex]._id] || false
+        {currentClass && getButtonText(
+          currentClass._id,
+          uploadLoading[currentClass._id] || false
         )}
       </span>
     </button>
   </div>
 </div>
+
               <div className='bottom-feedback-box row'>
                 <div className='col-xxl-6 mb-0'>
                   <div className='progressbar-line-sec'>
@@ -815,48 +869,83 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                       />
                     </Form.Group>
                   </Form>
+
                   <div className='d-flex align-items-end justify-content-end mt-4 gap-2'>
-  {attendanceStatus === 'present' ? (
-    <Button 
-      type='button' 
-      className='btn btn-primary'
-      onClick={handleSubmit}
-      disabled={isSubmitting}
-    >
-      {isSubmitting ? (
-        <>
-          <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-          Submitting...
-        </>
-      ) : (
-        'Submit Evaluation'
-      )}
-    </Button>
-  ) : (
-    <Button 
-      type='button' 
-      className='btn btn-danger'
-      onClick={handleMarkAbsent}
-      disabled={isSubmitting}
-    >
-      {isSubmitting ? (
-        <>
-          <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-          Marking Absent...
-        </>
-      ) : (
-        'Confirm & Mark Absent'
-      )}
-    </Button>
-  )}
-</div>
+                    {attendanceStatus === 'present' ? (
+                      <>
+                        <Button 
+                          type='button' 
+                          className='btn btn-primary'
+                          onClick={() => {
+                            if (currentClass && selectedStudentsMap[currentClass._id] && selectedStudentsMap[currentClass._id].size > 0) {
+                              handleSubmitForSelected();
+                            } else {
+                              handleSubmit();
+                            }
+                          }}
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                              Submitting...
+                            </>
+                          ) : (
+                            'Submit Evaluation'
+                          )}
+                        </Button>
+
+                        {/* Bulk submit button (enabled when any selected in this class) */}
+                        <Button
+                          type='button'
+                          className='btn btn-success'
+                          onClick={handleSubmitForSelected}
+                          disabled={isSubmitting || !(selectedStudentsMap[currentClass._id] && selectedStudentsMap[currentClass._id].size > 0)}
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                              Submitting...
+                            </>
+                          ) : (
+                            'Submit for Selected'
+                          )}
+                        </Button>
+
+                        <Button
+                          type='button'
+                          variant='outline-secondary'
+                          className='btn'
+                          onClick={() => clearAllSelectionsForClass(currentClass._id)}
+                        >
+                          Clear All
+                        </Button>
+                      </>
+                    ) : (
+                      <Button 
+                        type='button' 
+                        className='btn btn-danger'
+                        onClick={handleMarkAbsent}
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                            Marking Absent...
+                          </>
+                        ) : (
+                          'Confirm & Mark Absent'
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         )}
       </div>
-      {/* Absent Confirmation Modal */}
+
 {showAbsentConfirm && (
   <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
     <div className="modal-dialog modal-dialog-centered">
@@ -870,7 +959,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
           ></button>
         </div>
         <div className="modal-body">
-          <p>Are you sure you want to mark <strong>{selectedFeedback?.student.username}</strong> as absent for <strong>{selectedFeedback?.classes[selectedFeedback.selectedClassIndex].title}</strong>?</p>
+          <p>Are you sure you want to mark <strong>{currentStudent?.username}</strong> as absent for <strong>{currentClass?.title}</strong>?</p>
           <p className="text-muted small">This will skip the evaluation form and only record the absence.</p>
         </div>
         <div className="modal-footer">
@@ -890,8 +979,7 @@ const getButtonText = (classId: string, isUploading: boolean) => {
             onClick={() => {
               setAttendanceStatus('absent');
               setShowAbsentConfirm(false);
-                  handleMarkAbsent(); // ADD THIS LINE - Actually trigger the API call
-
+              handleMarkAbsent();
             }}
           >
             Yes, Mark Absent
