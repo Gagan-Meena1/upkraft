@@ -6,6 +6,7 @@ import { MdDelete } from "react-icons/md";
 import { ChevronLeft, ArrowLeft } from "lucide-react";
 import AddNewStudentModal from "../../components/AddNewStudentModal";
 import { Button, Dropdown, Form } from "react-bootstrap";
+import CommonTable from "@/components/tutor/CommonTable";
 
 interface Course {
   _id: string;
@@ -56,6 +57,16 @@ interface AssignmentDetail {
   status: boolean;
 }
 
+// Type definitions
+interface Column<T> {
+  key: keyof T | string;
+  label: string;
+  sortable?: boolean;
+  filterable?: boolean;
+  render?: (value: any, row: T) => React.ReactNode;
+  cellClassName?: (value: any, row: T) => string;
+}
+
 export default function MyStudents() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -67,6 +78,105 @@ export default function MyStudents() {
   const [loadingAssignments, setLoadingAssignments] = useState<Set<string>>(
     new Set()
   );
+
+  const columns: Column<Student>[] = [
+    {
+      key: 'username',
+      label: 'Name',
+      sortable: true,
+      filterable: true,
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      sortable: true,
+      filterable: true,
+    },
+    {
+      key: 'contact',
+      label: 'Contact',
+      sortable: true,
+      filterable: true,
+    },
+    {
+      key: 'city',
+      label: 'Location',
+      sortable: true,
+      filterable: true,
+      render: (value: string | null) => value || 'N/A',
+    },
+    {
+      key: 'pendingAssignments',
+      label: 'Pending',
+      sortable: true,
+      filterable: false,
+      render: (value: number, row: Student) => {
+        // If you have loadingAssignments state, you can pass it via context or props
+        // For now, just showing the value
+        return <span>{value || 0}</span>;
+      },
+    },
+    {
+      key: 'performanceAverage',
+      label: 'Perf Avg',
+      sortable: true,
+      filterable: false,
+      render: (value: number) => {
+        return value && value > 0 ? value : 'N/A';
+      },
+      cellClassName: (value: number) => {
+        if (!value || value <= 0) return 'text-gray-400';
+        if (value >= 80) return 'text-green-600 font-semibold';
+        if (value >= 60) return 'text-yellow-600 font-semibold';
+        return 'text-red-600 font-semibold';
+      },
+    },
+    {
+      key: 'courseQualityAverage',
+      label: 'Quality Avg',
+      sortable: true,
+      filterable: false,
+      render: (value: number) => {
+        return value && value > 0 ? value : 'N/A';
+      },
+      cellClassName: (value: number) => {
+        if (!value || value <= 0) return 'text-gray-400';
+        if (value >= 80) return 'text-green-600 font-semibold';
+        if (value >= 60) return 'text-yellow-600 font-semibold';
+        return 'text-red-600 font-semibold';
+      },
+    },
+    {
+      key: 'assign',
+      label: 'Assign',
+      sortable: false,
+      filterable: false,
+      render: (value: any, row: Student) => (
+        <a
+          href={`/tutor/addToCourseTutor?studentId=${row._id}`}
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
+        >
+          Course
+        </a>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      filterable: false,
+      render: (value: any, row: Student) => (
+        <div className="flex items-center gap-2">
+          <a
+            href={`/tutor/studentDetails?studentId=${row._id}`}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
+          >
+            Details
+          </a>
+        </div>
+      ),
+    },
+  ];
 
   const calculatePerformanceAverage = (student: Student): number => {
     if (!student.courses || student.courses.length === 0) return 0;
@@ -164,16 +274,16 @@ export default function MyStudents() {
 
       if (data && data.filteredUsers) {
         const studentsWithDetails = data.filteredUsers.map((student: Student) => {
-  const performanceAverage = calculatePerformanceAverage(student);
-  const courseQualityAverage = calculateCourseQualityAverage(student);
+          const performanceAverage = calculatePerformanceAverage(student);
+          const courseQualityAverage = calculateCourseQualityAverage(student);
 
-  return {
-    ...student,
-    // pendingAssignments is already coming from API
-    performanceAverage,
-    courseQualityAverage,
-  };
-});
+          return {
+            ...student,
+            // pendingAssignments is already coming from API
+            performanceAverage,
+            courseQualityAverage,
+          };
+        });
 
         setStudents(studentsWithDetails);
       } else {
@@ -240,10 +350,10 @@ export default function MyStudents() {
 
   return (
     <div className='right-form'>
-           
-    <div className="card-box">
-      
-      {/* <Link
+
+      <div className="card-box">
+
+        {/* <Link
             className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
             href="/tutor"
           >
@@ -251,285 +361,250 @@ export default function MyStudents() {
             Back to Dashboard
           </Link> */}
 
-      {/* Main Content */}
-      <div className="assignments-list-sec mobile-left-right">
-        {/* Header Section */}
-        <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
-          <div className="left-head d-flex align-items-center gap-2">
+        {/* Main Content */}
+        <div className="assignments-list-sec mobile-left-right">
+          {/* Header Section */}
+          {/* <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
+            <div className="left-head d-flex align-items-center gap-2">
               <Link href="/tutor" className='link-text back-btn'>
                 <ChevronLeft />
               </Link>
               <h2 className="m-0">
                 My Students
-
               </h2>
             </div>
-          <div className="right-form">
-            {!academyId && (
-              <Link 
-                href="/tutor/createStudent" 
-                className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
-              > 
-                <span className="mr-2">+</span> Add Student
-              </Link>
-            )}
-          </div>
-        </div>
-        <hr className="hr-light"></hr>
-
-        {loading ? (
-          <div className="w-full flex justify-center py-12 sm:py-20">
-            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-gray-900"></div>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 max-w-md w-full text-center">
-              <svg
-                className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-red-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-              <h3 className="mt-4 text-base sm:text-lg font-medium text-red-800">
-                Failed to Load Students
-              </h3>
-              <p className="mt-2 text-sm text-red-600">{error}</p>
-              <button
-                onClick={() => {
-                  setError(null);
-                  setLoading(true);
-                  fetchStudents();
-                }}
-                className="mt-4 px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors text-sm sm:text-base"
-              >
-                Try Again
-              </button>
+            <div className="right-form">
+              {!academyId && (
+                <Link
+                  href="/tutor/createStudent"
+                  className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
+                >
+                  <span className="mr-2">+</span> Add Student
+                </Link>
+              )}
             </div>
-          </div>
-        ) : (
-          <div className="assignments-list-com table-responsive">
-            {students.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
-                <div className="text-center">
-                  <svg
-                    className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                    />
-                  </svg>
-                  <h3 className="mt-4 text-base sm:text-lg font-medium text-gray-900">
-                    No Students Yet
-                  </h3>
-                  <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-                    You haven't added any students to your list. Start by adding
-                    your first student to begin managing your classes.
-                  </p>
-                  {!academyId && (
-                    <Link href="/tutor/createStudent">
-                      <button className="mt-5 px-4 sm:px-6 py-2 sm:py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors inline-flex items-center text-sm sm:text-base">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Add Your First Student
-                      </button>
-                    </Link>
-                  )}
-                </div>
+          </div> */}
+          {/* <hr className="hr-light"></hr> */}
+
+          {loading ? (
+            <div className="w-full flex justify-center py-12 sm:py-20">
+              <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-gray-900"></div>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 max-w-md w-full text-center">
+                <svg
+                  className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-red-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <h3 className="mt-4 text-base sm:text-lg font-medium text-red-800">
+                  Failed to Load Students
+                </h3>
+                <p className="mt-2 text-sm text-red-600">{error}</p>
+                <button
+                  onClick={() => {
+                    setError(null);
+                    setLoading(true);
+                    fetchStudents();
+                  }}
+                  className="mt-4 px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors text-sm sm:text-base"
+                >
+                  Try Again
+                </button>
               </div>
-            ) : (
-              <>
-                {/* Desktop Table View - Hidden on mobile */}
-                  <div className="table-responsive w-1230">
-                <div className=" table-sec">
-                  <table className="table align-middle m-0">
-                    <thead >
-                      <tr>
-                        <th>
-                          Name
-                        </th>
-                        <th>
-                          Email
-                        </th>
-                        <th>
-                          Contact
-                        </th>
-                        <th>
-                          Location
-                        </th>
-                        <th>
-                          Pending
-                        </th>
-                        <th>
-                          Perf Avg
-                        </th>
-                        <th>
-                          Quality Avg
-                        </th>
-                        <th>
-                          Assign
-                        </th>
-                        <th>
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((student) => (
-                        <tr
-                          key={student._id}
-                        >
-                          <td
-                            title={student.username}
-                          >
-                            {student.username}
-                          </td>
-                          <td
-                            title={student.email}
-                          >
-                            {student.email}
-                          </td>
-                          <td >
-                            {student.contact}
-                          </td>
-                          <td
-                            title={student.city || "N/A"}
-                          >
-                            {student.city || "N/A"}
-                          </td>
-                          <td>
-                            {loadingAssignments.has(student._id) ? (
-                              <div></div>
-                            ) : (
-                              <span>
-                                {student.pendingAssignments || 0}
-                              </span>
-                            )}
-                          </td>
-                          <td >
-                            <span className={` ${
-                              student.performanceAverage 
-                            }`}>
-                              {student.performanceAverage && student.performanceAverage > 0 
-                                ? `${student.performanceAverage}` 
-                                : 'N/A'}
-                            </span>
-                          </td>
-                          <td>
-                            <span
-                              className={` ${
-                                student.courseQualityAverage 
-                                // student.courseQualityAverage > 0
-                                //   ? student.courseQualityAverage >= 4
-                                //     ? "bg-green-100 text-green-800"
-                                //     : student.courseQualityAverage >= 3
-                                //     ? "bg-yellow-100 text-yellow-800"
-                                //     : "bg-red-100 text-red-800"
-                                //   : "bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              {student.courseQualityAverage &&
-                              student.courseQualityAverage > 0
-                                ? `${student.courseQualityAverage}`
-                                : "N/A"}
-                            </span>
-                          </td>
-                          <td>
-                            <Link
-                              href={`/tutor/addToCourseTutor?studentId=${student._id}`}
-                              className=""
-                            >
-                              Course
-                              </Link>
-                            </td>
-                            {/* <td className="">
-  <span className="">
-    {student.pendingAssignments || 0}
-  </span>
-</td>
-                            <td >
-                              <span
-                                className={` ${student.performanceAverage}`}
-                              >
-                                {student.performanceAverage &&
-                                student.performanceAverage > 0
-                                  ? `${student.performanceAverage}`
-                                  : "N/A"}
-                              </span>
-                            </td> */}
-                            {/* <td>
-                              <span
-                                className={`${
-                                  student.courseQualityAverage
-                                  // student.courseQualityAverage > 0
-                                  //   ? student.courseQualityAverage >= 4
-                                  //     ? "bg-green-100 text-green-800"
-                                  //     : student.courseQualityAverage >= 3
-                                  //     ? "bg-yellow-100 text-yellow-800"
-                                  //     : "bg-red-100 text-red-800"
-                                  //   : "bg-gray-100 text-gray-600"
-                                }`}
-                              >
-                                {student.courseQualityAverage &&
-                                student.courseQualityAverage > 0
-                                  ? `${student.courseQualityAverage}`
-                                  : "N/A"}
-                              </span>
-                            </td> */}
-                            <td>
-                              <div className="d-flex align-content-center justify-content-between gap-2">
-                              <Link
-                                href={`/tutor/studentDetails?studentId=${student._id}`}
-                                className=""
-                              >
-                                Details
-                              </Link>
-                              {/* <button
-                                onClick={() => handleDeleteStudent(student._id)}
-                                disabled={deletingStudents.has(student._id)}
-                                className={`btn-delete ${
-                                  deletingStudents.has(student._id)
-                                    ? "cursor-not-allowed"
-                                    : "btn-delete"
-                                }`}
-                                title="Delete Student"
-                              >
-                                
-                                {deletingStudents.has(student._id) ? (
-                                  <div className="btn-d"></div>
-                                ) : (
-                                  <MdDelete className="" />
-                                )}
-                              </button> */}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+            </div>
+          ) : (
+            <div className="assignments-list-com table-responsive">
+              {students.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+                  <div className="text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                      />
+                    </svg>
+                    <h3 className="mt-4 text-base sm:text-lg font-medium text-gray-900">
+                      No Students Yet
+                    </h3>
+                    <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
+                      You haven't added any students to your list. Start by adding
+                      your first student to begin managing your classes.
+                    </p>
+                    {!academyId && (
+                      <Link href="/tutor/createStudent">
+                        <button className="mt-5 px-4 sm:px-6 py-2 sm:py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors inline-flex items-center text-sm sm:text-base">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          Add Your First Student
+                        </button>
+                      </Link>
+                    )}
                   </div>
                 </div>
-
-               
-              </>
-            )}
-          </div>
-        )}
+              ) : (
+                <>
+                  {/* Desktop Table View - Hidden on mobile */}
+                  <div className="table-responsive w-1230">
+                    <div className=" table-sec">
+                      {/* <table className="table align-middle m-0">
+                        <thead >
+                          <tr>
+                            <th>
+                              Name
+                            </th>
+                            <th>
+                              Email
+                            </th>
+                            <th>
+                              Contact
+                            </th>
+                            <th>
+                              Location
+                            </th>
+                            <th>
+                              Pending
+                            </th>
+                            <th>
+                              Perf Avg
+                            </th>
+                            <th>
+                              Quality Avg
+                            </th>
+                            <th>
+                              Assign
+                            </th>
+                            <th>
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {students.map((student) => (
+                            <tr
+                              key={student._id}
+                            >
+                              <td
+                                title={student.username}
+                              >
+                                {student.username}
+                              </td>
+                              <td
+                                title={student.email}
+                              >
+                                {student.email}
+                              </td>
+                              <td >
+                                {student.contact}
+                              </td>
+                              <td
+                                title={student.city || "N/A"}
+                              >
+                                {student.city || "N/A"}
+                              </td>
+                              <td>
+                                {loadingAssignments.has(student._id) ? (
+                                  <div></div>
+                                ) : (
+                                  <span>
+                                    {student.pendingAssignments || 0}
+                                  </span>
+                                )}
+                              </td>
+                              <td >
+                                <span className={` ${student.performanceAverage
+                                  }`}>
+                                  {student.performanceAverage && student.performanceAverage > 0
+                                    ? `${student.performanceAverage}`
+                                    : 'N/A'}
+                                </span>
+                              </td>
+                              <td>
+                                <span
+                                  className={` ${student.courseQualityAverage
+                                    }`}
+                                >
+                                  {student.courseQualityAverage &&
+                                    student.courseQualityAverage > 0
+                                    ? `${student.courseQualityAverage}`
+                                    : "N/A"}
+                                </span>
+                              </td>
+                              <td>
+                                <Link
+                                  href={`/tutor/addToCourseTutor?studentId=${student._id}`}
+                                  className=""
+                                >
+                                  Course
+                                </Link>
+                              </td>
+                              <td>
+                                <div className="d-flex align-content-center justify-content-between gap-2">
+                                  <Link
+                                    href={`/tutor/studentDetails?studentId=${student._id}`}
+                                    className=""
+                                  >
+                                    Details
+                                  </Link>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table> */}
+                      <CommonTable
+                        headerContent={
+                          <div className="head-com-sec w-full d-flex align-items-center gap-2 justify-between mb-2">
+                            {/* <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap"> */}
+                            <div className="left-head d-flex align-items-center gap-2">
+                              <Link href="/tutor" className='link-text back-btn'>
+                                <ChevronLeft />
+                              </Link>
+                              <h2 className="m-0">
+                                My Students
+                              </h2>
+                            </div>
+                            <div className="right-form">
+                              {!academyId && (
+                                <Link
+                                  href="/tutor/createStudent"
+                                  className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
+                                >
+                                  <span className="mr-2">+</span> Add Student
+                                </Link>
+                              )}
+                            </div>
+                            {/* </div> */}
+                          </div>
+                        }
+                        columns={columns}
+                        data={students}
+                        rowKey="_id" />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
     </div>
   );
 }
