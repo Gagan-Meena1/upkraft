@@ -308,9 +308,66 @@ const StudentCalendarView = () => {
 
     return studentClasses.classes.filter((classItem) => {
       if (!classItem.startTime) return false;
-      // Compare dates in user's timezone to ensure correct date matching
       return isSameDayInTz(classItem.startTime, date, userTz);
     });
+  };
+
+  // Color classes by status PER STUDENT
+  const getClassStatusColor = (classItem: any, studentId: string) => {
+    // Possible per‑student attendance list (if present)
+    const attendanceList =
+      classItem.attendance ||
+      classItem.attendanceRecords ||
+      [];
+
+    const record =
+      attendanceList.find((att: any) =>
+        att.studentId === studentId ||
+        att.student === studentId ||
+        att.studentId?._id === studentId ||
+        att.student?._id === studentId
+      ) || null;
+
+    // Collect all possible status strings for this class/student
+    const candidates: string[] = [];
+    const addStatus = (val?: string) => {
+      if (typeof val === "string" && val.trim()) {
+        candidates.push(val.toLowerCase());
+      }
+    };
+
+    // Class-level fields
+    addStatus(classItem.status);
+    addStatus(classItem.attendanceStatus);
+    addStatus((classItem as any).studentStatus);
+    addStatus((classItem as any).state);
+
+    if (record) {
+      addStatus(record.status);
+      addStatus(record.attendanceStatus);
+    }
+
+    let effective: "canceled" | "present" | "absent" | null = null;
+
+    if (candidates.some((s) => s === "cancelled" || s === "canceled" || s === "cancel")) {
+      effective = "canceled";
+    } else if (candidates.some((s) => s === "present")) {
+      effective = "present";
+    } else if (candidates.some((s) => s === "absent")) {
+      effective = "absent";
+    }
+
+    if (effective === "canceled") {
+      return "bg-gray-300 border-gray-400 text-gray-700"; // cancelled → gray
+    }
+    if (effective === "present") {
+      return "bg-green-100 border-green-500 text-green-800"; // present → green
+    }
+    if (effective === "absent") {
+      return "bg-red-100 border-red-500 text-red-800"; // absent → red
+    }
+
+    return "bg-purple-50 border-purple-400 text-[#212121]";
   };
 
   const handleJoinMeeting = async (classId: string) => {
@@ -741,12 +798,16 @@ const StudentCalendarView = () => {
                                   classes.map((classItem, cIdx) => (
                                     <div
                                       key={classItem._id || cIdx}
-                                      className="mb-2 last:mb-0 p-2 bg-purple-50 border-l-4 border-purple-400 hover:bg-purple-100 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                                      className={`mb-2 last:mb-0 p-2 border-l-4 text-xs rounded-md shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:opacity-90 ${getClassStatusColor(classItem, student._id)}`}
                                       title={`${classItem.title || "Class"} - ${formatTime(classItem.startTime, classItem.endTime)}`}
                                       onClick={() => handleClassClick(classItem)}
                                     >
-                                      <div className="font-medium text-[13px] truncate">{classItem.title || "Class"}</div>
-                                      <div className="text-[11px] text-gray-600 truncate">{formatTime(classItem.startTime, classItem.endTime)}</div>
+                                      <div className="font-medium text-[13px] truncate">
+                                        {classItem.title || "Class"}
+                                      </div>
+                                      <div className="text-[11px] text-gray-600 truncate">
+                                        {formatTime(classItem.startTime, classItem.endTime)}
+                                      </div>
                                     </div>
                                   ))
                                 )}

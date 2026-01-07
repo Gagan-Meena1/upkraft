@@ -10,7 +10,7 @@ import {
   Users,
   UserCheck,
 } from "lucide-react";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 
 interface Course {
   _id: string;
@@ -58,7 +58,7 @@ interface Assignment {
     _id: string;
     title: string;
   };
-  userId?: string[]; 
+  userId?: string[];
 }
 
 interface CreateAssignmentModalProps {
@@ -67,8 +67,23 @@ interface CreateAssignmentModalProps {
   onSuccess?: () => void;
   courses: Course[];
   classes: Class[];
-  editingAssignment?: Assignment | null; 
+  editingAssignment?: Assignment | null;
 }
+
+type ExtraAssignment = {
+  title: string;
+  description: string;
+  deadline: string;
+  course: string;
+  class: string;
+  selectedStudents: string[];
+  songName?: string;
+  customSongName?: string;
+  assignmentFile?: File | null;
+  // per-extra lists so UI for extra matches main assignment
+  courseClasses?: Class[];
+  availableStudents?: Student[];
+};
 
 export default function CreateAssignmentModal({
   isOpen,
@@ -78,10 +93,13 @@ export default function CreateAssignmentModal({
   classes,
   editingAssignment,
 }: CreateAssignmentModalProps) {
-  const router = useRouter(); 
+  const router = useRouter();
   const [formData, setFormData] = useState(() => {
     try {
-      const saved = typeof window !== "undefined" ? localStorage.getItem("assignmentDefaults") : null;
+      const saved =
+        typeof window !== "undefined"
+          ? localStorage.getItem("assignmentDefaults")
+          : null;
       const defaults = saved ? JSON.parse(saved) : {};
       return {
         title: "",
@@ -111,6 +129,75 @@ export default function CreateAssignmentModal({
     }
   });
 
+  const [extraAssignments, setExtraAssignments] = useState<ExtraAssignment[]>(
+    []
+  );
+
+  const [musicSheet, setMusicSheet] = useState<File | null>(null);
+  const [assignmentFile, setAssignmentFile] = useState<File | null>(null);
+  const [practiceStudio, setPracticeStudio] = useState(false);
+
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [coursesOptions, setCoursesOptions] = useState<Course[]>([]);
+  const [classesOptions, setClassesOptions] = useState<Class[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [loadingClasses, setLoadingClasses] = useState(false);
+
+  const [songSearchResults, setSongSearchResults] = useState<Song[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSongResults, setShowSongResults] = useState(false);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const songInputRef = useRef<HTMLDivElement>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+
+  const initialSnapshotRef = useRef<any>(null);
+
+  const arraysEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  };
+
+  const isAssignmentChanged = () => {
+    if (!editingAssignment) return true;
+    const init = initialSnapshotRef.current;
+    if (!init) return false;
+
+    const f = formData;
+    const keys = [
+      "title",
+      "description",
+      "deadline",
+      "songName",
+      "customSongName",
+      "course",
+      "class",
+      "speed",
+      "metronome",
+      "loop",
+    ];
+    for (const k of keys) {
+      if ((f as any)[k] !== init.formData[k]) return true;
+    }
+
+    if (practiceStudio !== init.practiceStudio) return true;
+
+    const currStudents = [...selectedStudents].sort();
+    const initStudents = [...(init.selectedStudents || [])].sort();
+    if (!arraysEqual(currStudents, initStudents)) return true;
+
+    if (assignmentFile || musicSheet) return true;
+
+    return false;
+  };
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -130,7 +217,8 @@ export default function CreateAssignmentModal({
           customSongName: "",
           course: editingAssignment.course?._id || prev.course || "",
           speed: editingAssignment.speed || prev.speed || "100%",
-          metronome: editingAssignment.metronome || prev.metronome || "100%",
+          metronome:
+            editingAssignment.metronome || prev.metronome || "100%",
           loop: editingAssignment.loop || prev.loop || "Set A",
         }));
 
@@ -139,7 +227,13 @@ export default function CreateAssignmentModal({
         if (editingAssignment.course?._id) {
           setCoursesOptions((prev) => {
             if (!prev.find((c) => c._id === editingAssignment.course._id)) {
-              return [...prev, { _id: editingAssignment.course._id, title: editingAssignment.course.title }];
+              return [
+                ...prev,
+                {
+                  _id: editingAssignment.course._id,
+                  title: editingAssignment.course.title,
+                },
+              ];
             }
             return prev;
           });
@@ -173,120 +267,42 @@ export default function CreateAssignmentModal({
             loop: editingAssignment.loop || "Set A",
           },
           practiceStudio: Boolean(editingAssignment.practiceStudio),
-          selectedStudents: Array.isArray(editingAssignment.userId) ? [...editingAssignment.userId] : [],
+          selectedStudents: Array.isArray(editingAssignment.userId)
+            ? [...editingAssignment.userId]
+            : [],
         };
- 
-       } else {
-         try {
-           const saved = typeof window !== "undefined" ? localStorage.getItem("assignmentDefaults") : null;
-           const defaults = saved ? JSON.parse(saved) : {};
-           setFormData((prev) => ({
-             ...prev,
-             course: defaults.course || prev.course || "",
-             class: defaults.class || prev.class || "",
-             speed: defaults.speed || prev.speed || "100%",
-             metronome: defaults.metronome || prev.metronome || "100%",
-             loop: defaults.loop || prev.loop || "Set A",
-           }));
-           setPracticeStudio(Boolean(defaults.practiceStudio));
-         } catch {
-         }
-         setMusicSheet(null);
-         setAssignmentFile(null);
-         setSelectedStudents([]);
-       }
-     };
- 
-     init();
-   }, [editingAssignment, isOpen]);
 
-  const [musicSheet, setMusicSheet] = useState<File | null>(null);
-  const [assignmentFile, setAssignmentFile] = useState<File | null>(null);
-  const [practiceStudio, setPracticeStudio] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [coursesOptions, setCoursesOptions] = useState<Course[]>([]);
-  const [classesOptions, setClassesOptions] = useState<Class[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(false);
-  const [loadingClasses, setLoadingClasses] = useState(false);
-
-  const [songSearchResults, setSongSearchResults] = useState<Song[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showSongResults, setShowSongResults] = useState(false);
-  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const songInputRef = useRef<HTMLDivElement>(null);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-
-  // Snapshot to detect changes when editing
-  const initialSnapshotRef = useRef<any>(null);
-
-  const arraysEqual = (a: string[], b: string[]) => {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-    return true;
-  };
-
-  const isAssignmentChanged = () => {
-    if (!editingAssignment) return true; 
-    const init = initialSnapshotRef.current;
-    if (!init) return false; 
-
-    const f = formData;
-    const keys = [
-      "title",
-      "description",
-      "deadline",
-      "songName",
-      "customSongName",
-      "course",
-      "class",
-      "speed",
-      "metronome",
-      "loop",
-    ];
-    for (const k of keys) {
-      if ((f as any)[k] !== init.formData[k]) return true;
-    }
-
-    if (practiceStudio !== init.practiceStudio) return true;
-
-    const currStudents = [...selectedStudents].sort();
-    const initStudents = [...(init.selectedStudents || [])].sort();
-    if (!arraysEqual(currStudents, initStudents)) return true;
-
-    // any newly added files mark as changed
-    if (assignmentFile || musicSheet) return true;
-
-    return false;
-  };
-
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const fetchCurrentUser = async () => {
-      try {
-        const res = await fetch("/Api/users/user");
-        if (!res.ok) return;
-        const data = await res.json();
-        const id =
-          data?.data?._id ||
-          data?.user?._id ||
-          data?.user?._id ||
-          data?._id ||
-          null;
-        if (id) setCurrentUserId(id.toString());
-      } catch (e) {
-        console.warn("Failed to fetch current user id:", e);
+        // reset extras when editing existing assignment
+        setExtraAssignments([]);
+      } else {
+        try {
+          const saved =
+            typeof window !== "undefined"
+              ? localStorage.getItem("assignmentDefaults")
+              : null;
+          const defaults = saved ? JSON.parse(saved) : {};
+          setFormData((prev) => ({
+            ...prev,
+            course: defaults.course || prev.course || "",
+            class: defaults.class || prev.class || "",
+            speed: defaults.speed || prev.speed || "100%",
+            metronome:
+              defaults.metronome || prev.metronome || "100%",
+            loop: defaults.loop || prev.loop || "Set A",
+          }));
+          setPracticeStudio(Boolean(defaults.practiceStudio));
+        } catch {
+          //
+        }
+        setMusicSheet(null);
+        setAssignmentFile(null);
+        setSelectedStudents([]);
+        setExtraAssignments([]);
       }
     };
-    fetchCurrentUser();
-  }, [isOpen]);
+
+    init();
+  }, [editingAssignment, isOpen]);
 
   useEffect(() => {
     if (isOpen) fetchCourses();
@@ -298,9 +314,6 @@ export default function CreateAssignmentModal({
       const res = await fetch("/Api/tutors/courses");
       if (!res.ok) throw new Error("Failed to fetch courses");
       const data = await res.json();
-
-      console.log("Courses API response:", data);
-
       setCoursesOptions(data.course || data.result || []);
     } catch (err) {
       console.error("Fetch courses error:", err);
@@ -327,21 +340,8 @@ export default function CreateAssignmentModal({
       const res = await fetch(`/Api/tutors/courses/${courseId}`);
       if (!res.ok) throw new Error("Failed to fetch classes and students");
       const data = await res.json();
-
-      console.log(
-        `Classes and Students API response for course ${courseId}:`,
-        data
-      );
-
       setClassesOptions(data.classDetails || data.classes || []);
       setStudents(data.enrolledStudents || []);
-
-      if (!editingAssignment) {
-        const allStudentIds = (data.enrolledStudents || []).map(
-          (student: Student) => student._id
-        );
-        setSelectedStudents(allStudentIds);
-      }
     } catch (err) {
       console.error("Fetch classes and students error:", err);
       setClassesOptions([]);
@@ -350,6 +350,49 @@ export default function CreateAssignmentModal({
     } finally {
       setLoadingClasses(false);
       setLoadingStudents(false);
+    }
+  };
+
+  const fetchClassesAndStudentsForExtra = async (index: number, courseId: string) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      copy[index] = {
+        ...copy[index],
+        course: courseId,
+        class: "",
+        courseClasses: [],
+        availableStudents: [],
+        selectedStudents: [],
+      };
+      return copy;
+    });
+
+    try {
+      const res = await fetch(`/Api/tutors/courses/${courseId}`);
+      if (!res.ok) throw new Error("Failed to fetch classes and students for extra");
+      const data = await res.json();
+      setExtraAssignments((prev) => {
+        const copy = [...prev];
+        const slot = copy[index];
+        if (!slot) return prev;
+        slot.courseClasses = data.classDetails || data.classes || [];
+        slot.availableStudents = data.enrolledStudents || [];
+        slot.selectedStudents = [];
+        copy[index] = slot;
+        return copy;
+      });
+    } catch (err) {
+      console.error("Fetch extra classes/students error:", err);
+      setExtraAssignments((prev) => {
+        const copy = [...prev];
+        const slot = copy[index];
+        if (!slot) return prev;
+        slot.courseClasses = [];
+        slot.availableStudents = [];
+        slot.selectedStudents = [];
+        copy[index] = slot;
+        return copy;
+      });
     }
   };
 
@@ -371,6 +414,107 @@ export default function CreateAssignmentModal({
   const handleClearAllStudents = () => {
     setSelectedStudents([]);
   };
+
+  const addExtraAssignment = () => {
+    setExtraAssignments((prev) => [
+      ...prev,
+      {
+        title: formData.title || "",
+        description: "",
+        deadline: "",
+        course: formData.course || "",
+        class: formData.class || "",
+        selectedStudents: [],
+        songName: "",
+        customSongName: "",
+        assignmentFile: null,
+        courseClasses: formData.course ? classesOptions : [],
+        availableStudents: formData.course ? students : [],
+      },
+    ]);
+  };
+
+  const removeExtraAssignment = (index: number) => {
+    setExtraAssignments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateExtraAssignmentField = (
+    index: number,
+    field: keyof ExtraAssignment,
+    value: any
+  ) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+
+    // If course changed for extra, fetch its classes & students
+    if (field === "course" && value) {
+      fetchClassesAndStudentsForExtra(index, String(value));
+    }
+  };
+
+  const toggleExtraStudent = (slotIndex: number, studentId: string) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      const slot = copy[slotIndex];
+      if (!slot) return prev;
+      const setIds = new Set(slot.selectedStudents || []);
+      if (setIds.has(studentId)) setIds.delete(studentId);
+      else setIds.add(studentId);
+      // create a new slot object to avoid mutating nested state
+      const newSlot = { ...slot, selectedStudents: Array.from(setIds) };
+      copy[slotIndex] = newSlot;
+      return copy;
+    });
+  };
+
+  const handleExtraSelectAll = (index: number) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      const slot = copy[index];
+      if (!slot) return prev;
+      slot.selectedStudents = (slot.availableStudents || []).map((s) => s._id);
+      const newSlot = { ...slot, selectedStudents: (slot.availableStudents || []).map((s) => s._id) };
+      copy[index] = newSlot;
+      return copy;
+    });
+  };
+
+  const handleExtraClearAll = (index: number) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      const slot = copy[index];
+      if (!slot) return prev;
+      slot.selectedStudents = [];
+      const newSlot = { ...slot, selectedStudents: [] };
+      copy[index] = newSlot;
+      return copy;
+    });
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchCurrentUser = async () => {
+      try {
+        const res = await fetch("/Api/users/user");
+        if (!res.ok) return;
+        const data = await res.json();
+        const id =
+          data?.data?._id ||
+          data?.user?._id ||
+          data?.user?._id ||
+          data?._id ||
+          null;
+        if (id) setCurrentUserId(id.toString());
+      } catch (e) {
+        console.warn("Failed to fetch current user id:", e);
+      }
+    };
+    fetchCurrentUser();
+  }, [isOpen]);
+
   useEffect(() => {
     const searchTerm = formData.songName.trim();
     if (searchTerm.length > 2 && !selectedSong) {
@@ -451,6 +595,9 @@ export default function CreateAssignmentModal({
       setAssignmentFile(e.target.files[0]);
   };
 
+  const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+  const [searchTermGlobal, setSearchTermGlobal] = useState("");
+
   const handleSubmit = async () => {
     if (!formData.title.trim())
       return setError("Please enter an assignment title");
@@ -460,7 +607,7 @@ export default function CreateAssignmentModal({
     if (!formData.description.trim())
       return setError("Please enter a description");
     if (selectedStudents.length === 0)
-      return setError("Please select at least one student"); 
+      return setError("Please select at least one student");
 
     setIsSubmitting(true);
     setError(null);
@@ -472,7 +619,6 @@ export default function CreateAssignmentModal({
       submitData.append("deadline", new Date(formData.deadline).toISOString());
       submitData.append("courseId", formData.course);
       submitData.append("classId", formData.class);
-      // Build unique string IDs and ensure tutor id is included
       const studentIdsToSend = Array.from(
         new Set([
           ...selectedStudents.map((s) => String(s)),
@@ -487,26 +633,25 @@ export default function CreateAssignmentModal({
       if (finalSongName) submitData.append("songName", finalSongName);
 
       submitData.append("practiceStudio", practiceStudio ? "true" : "false");
-      submitData.append("speed", formData.speed);
-      submitData.append("metronome", formData.metronome);
-      submitData.append("loop", formData.loop);
+      submitData.append("speed", (formData as any).speed || "100%");
+      submitData.append("metronome", (formData as any).metronome || "100%");
+      submitData.append("loop", (formData as any).loop || "Set A");
 
       if (musicSheet) submitData.append("musicSheet", musicSheet);
       if (assignmentFile) submitData.append("assignmentFile", assignmentFile);
 
       const isEditing = !!editingAssignment;
       const url = isEditing
-        ? `/Api/assignment?assignmentId=${editingAssignment._id}`
+        ? `/Api/assignment?assignmentId=${editingAssignment?._id}`
         : `/Api/assignment?classId=${formData.class}&courseId=${formData.course}`;
-      const method = isEditing ? "PUT" : "POST";
 
       const res = await fetch(url, {
-        method,
+        method: isEditing ? "PUT" : "POST",
         body: submitData,
       });
 
       if (!res.ok) {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({}));
         throw new Error(
           errData.message ||
             `Failed to ${isEditing ? "update" : "create"} assignment`
@@ -516,14 +661,72 @@ export default function CreateAssignmentModal({
       const result = await res.json();
 
       if (result.success) {
+        if (!isEditing && extraAssignments.length > 0) {
+          for (const extra of extraAssignments) {
+            if (!extra.title?.trim()) continue;
+            if (!extra.course || !extra.class) {
+              console.warn(
+                "Extra assignment missing course/class - skipping",
+                extra
+              );
+              continue;
+            }
+            if (!extra.selectedStudents || extra.selectedStudents.length === 0) {
+              console.warn(
+                "Extra assignment missing students - skipping",
+                extra
+              );
+              continue;
+            }
+            const extraForm = new FormData();
+            extraForm.append("title", extra.title);
+            extraForm.append("description", extra.description || "");
+            if (extra.deadline) {
+              extraForm.append(
+                "deadline",
+                new Date(extra.deadline).toISOString()
+              );
+            } else {
+              extraForm.append("deadline", new Date().toISOString());
+            }
+            extraForm.append("courseId", extra.course);
+            extraForm.append("classId", extra.class);
+            const extraSongName = extra.songName || extra.customSongName || "";
+            if (extraSongName) extraForm.append("songName", extraSongName);
+            const extraStudentIds = Array.from(
+              new Set(extra.selectedStudents.map(String))
+            );
+            extraForm.append("studentIds", JSON.stringify(extraStudentIds));
+            if (extra.assignmentFile)
+              extraForm.append("assignmentFile", extra.assignmentFile);
+
+            const extraRes = await fetch(
+              `/Api/assignment?classId=${extra.class}&courseId=${extra.course}`,
+              {
+                method: "POST",
+                body: extraForm,
+              }
+            );
+            if (!extraRes.ok) {
+              const err = await extraRes.json().catch(() => ({}));
+              console.warn("Failed to create extra assignment:", err);
+            } else {
+              const er = await extraRes.json().catch(() => null);
+              if (!er?.success) {
+                console.warn("Failed to create extra assignment:", er);
+              }
+            }
+          }
+        }
+
         if (!isEditing) {
           const defaultsToSave = {
             course: formData.course,
             class: formData.class,
             practiceStudio: practiceStudio,
-            speed: formData.speed,
-            metronome: formData.metronome,
-            loop: formData.loop,
+            speed: (formData as any).speed || "100%",
+            metronome: (formData as any).metronome || "100%",
+            loop: (formData as any).loop || "Set A",
           };
           localStorage.setItem(
             "assignmentDefaults",
@@ -531,8 +734,7 @@ export default function CreateAssignmentModal({
           );
         }
 
-        const assignmentId =
-          result?.data?._id || editingAssignment?._id; 
+        const assignmentId = result?.data?._id || editingAssignment?._id;
         if (assignmentId) {
           setFormData({
             title: "",
@@ -550,11 +752,12 @@ export default function CreateAssignmentModal({
           setAssignmentFile(null);
           setPracticeStudio(false);
           setSelectedSong(null);
+          setExtraAssignments([]);
           if (onSuccess) onSuccess();
           onClose();
           router.push(
             `/tutor/assignments/singleAssignment?assignmentId=${assignmentId}`
-          ); 
+          );
           return;
         }
       } else {
@@ -581,7 +784,6 @@ export default function CreateAssignmentModal({
       />
 
       <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6 border-b border-purple-500">
           <button
             onClick={onClose}
@@ -600,7 +802,6 @@ export default function CreateAssignmentModal({
           </p>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="!mx-8 !mt-4 !p-4 !bg-red-50 !border !border-red-200 !rounded-lg">
             <p className="!text-sm !text-red-600">{error}</p>
@@ -675,7 +876,8 @@ export default function CreateAssignmentModal({
                 </select>
               </div>
             </div>
-            {/* Students Selection - ADD THIS ENTIRE SECTION */}
+
+            {/* Students Selection */}
             {formData.course && (
               <div>
                 <label className="!text-sm !font-semibold !text-gray-700 !mb-2 !flex !items-center !gap-2">
@@ -1016,7 +1218,227 @@ export default function CreateAssignmentModal({
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* ADDED: Additional Assignments UI (matches main form UI + selectable students per extra) */}
+            <div className="mt-4 border-t pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-semibold text-gray-700">
+                  Additional Assignments
+                </h4>
+                <button
+                  type="button"
+                  onClick={addExtraAssignment}
+                  className="!px-3 !py-1 !bg-purple-50 !text-purple-600 !rounded-lg hover:!bg-purple-100"
+                  disabled={isSubmitting}
+                  title="Adds another assignment slot. You can edit course/class and select students per additional assignment."
+                >
+                  + Add More
+                </button>
+              </div>
+
+              {extraAssignments.length === 0 && (
+                <p className="text-sm text-gray-500">
+                  No additional assignments added.
+                </p>
+              )}
+
+              {extraAssignments.map((slot, idx) => (
+                <div key={idx} className="mb-4 p-3 border rounded-lg bg-gray-50">
+                  <div className="flex justify-between items-start mb-2">
+                    <strong>Assignment {idx + 2}</strong>
+                    <button
+                      type="button"
+                      onClick={() => removeExtraAssignment(idx)}
+                      className="text-sm text-red-500"
+                      disabled={isSubmitting}
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-sm text-gray-600">Title</label>
+                      <input
+                        type="text"
+                        value={slot.title}
+                        onChange={(e) =>
+                          updateExtraAssignmentField(idx, "title", e.target.value)
+                        }
+                        className="mt-1 w-full p-2 border rounded"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-gray-600">Due Date</label>
+                      <input
+                        type="date"
+                        value={slot.deadline}
+                        onChange={(e) =>
+                          updateExtraAssignmentField(idx, "deadline", e.target.value)
+                        }
+                        className="mt-1 w-full p-2 border rounded"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm text-gray-600">Course / Class</label>
+                      <div className="mt-1 text-sm text-gray-700 space-y-2">
+                        <select
+                          value={slot.course}
+                          onChange={(e) => updateExtraAssignmentField(idx, "course", e.target.value)}
+                          className="w-full p-2 border rounded"
+                          disabled={isSubmitting || loadingCourses}
+                        >
+                          <option value="">{loadingCourses ? "Loading courses..." : "Choose a course"}</option>
+                          {coursesOptions.map((c) => (
+                            <option key={c._id} value={c._id}>{c.title}</option>
+                          ))}
+                        </select>
+
+                        <select
+                          value={slot.class}
+                          onChange={(e) => updateExtraAssignmentField(idx, "class", e.target.value)}
+                          className="w-full p-2 border rounded"
+                          disabled={isSubmitting || !(slot.course) || (slot.courseClasses?.length === 0)}
+                        >
+                          <option value="">{(slot.courseClasses && slot.courseClasses.length>0) ? "Choose a class" : "No classes"}</option>
+                          {(slot.courseClasses || []).map((cl) => (
+                            <option key={cl._id} value={cl._id}>{cl.title}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="block text-sm text-gray-600 mb-2">Description</label>
+                    <textarea
+                      value={slot.description}
+                      onChange={(e) =>
+                        updateExtraAssignmentField(idx, "description", e.target.value)
+                      }
+                      className="w-full p-2 border rounded"
+                      rows={3}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-2">Song Name</label>
+                      <input
+                        type="text"
+                        value={slot.songName || ""}
+                        onChange={(e) =>
+                          updateExtraAssignmentField(idx, "songName", e.target.value)
+                        }
+                        className="w-full p-2 border rounded"
+                        placeholder="Type song name or artist"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-2">Custom Song Name</label>
+                      <input
+                        type="text"
+                        value={slot.customSongName || ""}
+                        onChange={(e) =>
+                          updateExtraAssignmentField(idx, "customSongName", e.target.value)
+                        }
+                        className="w-full p-2 border rounded"
+                        placeholder="Optional custom song name"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="block text-sm text-gray-600 mb-2">
+                      Assignment File (optional)
+                    </label>
+                    <div className="mt-1 border border-dashed border-gray-300 rounded-lg bg-white px-3 py-2">
+                      <input
+                        type="file"
+                        onChange={(e) =>
+                          updateExtraAssignmentField(
+                            idx,
+                            "assignmentFile",
+                            e.target.files?.[0] || null
+                          )
+                        }
+                        className="w-full text-sm text-gray-700"
+                        disabled={isSubmitting}
+                      />
+                      {slot.assignmentFile && (
+                        <p className="mt-2 text-xs text-gray-600 truncate">
+                          Selected file:{" "}
+                          <span className="font-medium">
+                            {(slot.assignmentFile as File).name}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2">
+                    <label className="block text-sm text-gray-600 mb-2">Select Students</label>
+                    <div className="max-h-40 overflow-y-auto border p-2 rounded bg-white">
+                      {(slot.availableStudents?.length || 0) === 0 ? (
+                        <div className="text-sm text-gray-500">No students</div>
+                      ) : (
+                        <>
+                          <div className="flex gap-2 mb-2">
+                            <button
+                              type="button"
+                              onClick={() => handleExtraSelectAll(idx)}
+                              disabled={isSubmitting}
+                              className="px-2 py-1 text-xs bg-purple-50 text-purple-600 rounded"
+                            >
+                              Select All ({slot.availableStudents?.length || 0})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleExtraClearAll(idx)}
+                              disabled={isSubmitting}
+                              className="px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded"
+                            >
+                              Clear
+                            </button>
+                            <div className="ml-auto text-xs text-gray-600 flex items-center">
+                              Selected: <span className="font-medium ml-1">{(slot.selectedStudents || []).length}</span>
+                            </div>
+                          </div>
+
+                          {(slot.availableStudents || []).map((s) => {
+                            const inputId = `extra-${idx}-student-${s._id}`;
+                            return (
+                              <div key={s._id} className="flex items-center gap-2 py-1">
+                                <input
+                                  id={inputId}
+                                  type="checkbox"
+                                  checked={(slot.selectedStudents || []).includes(s._id)}
+                                  onChange={() => toggleExtraStudent(idx, s._id)}
+                                  disabled={isSubmitting}
+                                  className="form-checkbox"
+                                />
+                                <label htmlFor={inputId} className="text-sm cursor-pointer">
+                                  {s.username} • {s.email}
+                                </label>
+                              </div>
+                            );
+                          })}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+            </div>
+
+            {/* Submit */}
             <div className="mt-6 flex justify-end">
               <button
                 type="button"
