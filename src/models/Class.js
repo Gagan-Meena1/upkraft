@@ -3,51 +3,51 @@ import { type } from 'os';
 import feedback from './feedback';
 
 const ClassSchema = new mongoose.Schema({
-  title: { 
-    type: String, 
-    required: true 
+  title: {
+    type: String,
+    required: true
   },
   // sessionNo:{
   //   type:Number,
   //   required:true
   // },
-  course: { 
-    type:mongoose.Schema.Types.ObjectId,
+  course: {
+    type: mongoose.Schema.Types.ObjectId,
     ref: "courseName"
-       
-    },
-  instructor: { 
+
+  },
+  instructor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "users"
   },
-  feedbackId:{
-    type:mongoose.Schema.Types.ObjectId, //make array type array m object(feedbackid and user id)
-    ref:"feedback"
+  feedbackId: {
+    type: mongoose.Schema.Types.ObjectId, //make array type array m object(feedbackid and user id)
+    ref: "feedback"
   },
-  assignmentId:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"Assignment"
+  assignmentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Assignment"
   },
-  description: { 
-    type: String, 
-    required: true 
+  description: {
+    type: String,
+    required: true
   },
-  startTime: { 
-    type: Date, 
-    required: true 
+  startTime: {
+    type: Date,
+    required: true
   },
-  endTime: { 
-    type: Date, 
-    required: true 
+  endTime: {
+    type: Date,
+    required: true
   },
 
-  reasonForReschedule:{
-    type:String,
-    default:""
+  reasonForReschedule: {
+    type: String,
+    default: ""
   },
-  reasonForCancelation:{
-    type:String,
-    default:""
+  reasonForCancelation: {
+    type: String,
+    default: ""
   },
   recurrenceType: {
     type: String,
@@ -64,10 +64,10 @@ const ClassSchema = new mongoose.Schema({
     default: null
   },
 
-  recording:{
+  recording: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "GridFSFile" // Reference to GridFS file
-  }  ,
+  },
   recordingFileName: String,      // Original filename
 
   recordingUrl: {
@@ -80,24 +80,24 @@ const ClassSchema = new mongoose.Schema({
   },
   performanceVideoFileName: String, // Original filename
 
-  csat:{
-    type:[{
-      userId:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"users"
+  csat: {
+    type: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "users"
       },
-      rating:{
-        type:Number
+      rating: {
+        type: Number
       },
-      feedback:String
+      feedback: String
     }]
   },
-  status:{
-    type:String,
-    enum:['scheduled','rescheduled','completed','canceled'],
-    default:'scheduled'
+  status: {
+    type: String,
+    enum: ['scheduled', 'rescheduled', 'completed', 'canceled'],
+    default: 'scheduled'
   },
-  
+
   // Class Quality Evaluation Data
   evaluation: {
     session_focus_clarity_score: Number,
@@ -115,12 +115,13 @@ const ClassSchema = new mongoose.Schema({
     overall_quality_score: Number,
     overall_quality_justification: String
   }
-  
+
 }, {
   timestamps: true
 });
 
 // db.classes.createIndex({ startTime: 1 });
 // db.classes.createIndex({ _id: 1, startTime: 1 });
+ClassSchema.index({ _id: 1, endTime: 1, status: 1 });
 
 export default mongoose.models.Class || mongoose.model('Class', ClassSchema);

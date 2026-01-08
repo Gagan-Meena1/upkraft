@@ -9,22 +9,22 @@ const userSchema = new mongoose.Schema({
     },
     age: {
         type: Number,
-        default: 1  
+        default: 1
     },
     address: {
         type: String,
         default: ""
     },
     attendance: {
-        type:[{
-            classId:{
+        type: [{
+            classId: {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "Class"
             },
-            status:{
-                type:String,
-                enum:["present","absent","canceled","not_marked"],
-                default:"not_marked"
+            status: {
+                type: String,
+                enum: ["present", "absent", "canceled", "not_marked"],
+                default: "not_marked"
 
         },
         videoUrl:{
@@ -92,7 +92,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: "Asia/Calcutta"
     },
-   
+
     skills: {
         type: String,
         default: ""
@@ -111,57 +111,57 @@ const userSchema = new mongoose.Schema({
     },
     teachingMode: {
         type: String,
-        enum: ["Online", "In-person", "Both", "","Hybrid"],
+        enum: ["Online", "In-person", "Both", "", "Hybrid"],
         default: ""
     },
-    instagramLink:{
-        type:String,
-        default:""
+    instagramLink: {
+        type: String,
+        default: ""
     },
-    assignment:[{
+    assignment: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Assignment"
     }],
 
     pendingAssignments: [{
-       studentId: {
-           type: mongoose.Schema.Types.ObjectId,
-           ref: "users"
-       },
-       assignmentIds: [{
-           type: mongoose.Schema.Types.ObjectId,
-           ref: "Assignment"
-       }]
-   }],
+        studentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "users"
+        },
+        assignmentIds: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Assignment"
+        }]
+    }],
 
     aboutMyself: {
         type: String,
         default: ""
     },
-    state:{
-        type:String,
-        enum:["active","inactive","vacation","dormant","blocked"],
-        default:"active"
+    state: {
+        type: String,
+        enum: ["active", "inactive", "vacation", "dormant", "blocked"],
+        default: "active"
     },
-    slotsAvailable:{
-        type:[{
+    slotsAvailable: {
+        type: [{
             startTime: Date,
             endTime: Date
         }]
     },
-    academyId:{
+    academyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "users"
     },
-    tutors:{
-        type:[{
+    tutors: {
+        type: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: "users"
         }],
 
     },
-    students:{
-        type:[{
+    students: {
+        type: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: "users"
         }],
@@ -304,11 +304,11 @@ const userSchema = new mongoose.Schema({
         }]
     },
 },
-{timestamps: true}
+    { timestamps: true }
 );
 
-userSchema.index({ _id: 1, category: 1 });
-userSchema.index({ likedSongs: 1 });
+userSchema.index({ instructorId: 1, category: 1 });
+userSchema.index({ _id: 1, courses: 1 });
 
 const User = mongoose.models.users || mongoose.model("users", userSchema);
 export default User;

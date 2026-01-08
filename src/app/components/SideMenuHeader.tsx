@@ -19,12 +19,14 @@ import { BookOpen } from 'lucide-react';
 import { CreditCard } from 'lucide-react';
 import { useUserData } from "@/app/providers/UserData/page"; // ✅ Also works
 
-
+import { toast } from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 
 const SideMenuHeader = ({ role }) => {
   const pathname = usePathname();
-    const { userData, loading } = useUserData();
+  const { userData, loading } = useUserData();
+  const router = useRouter();
   
 
   // Fetch user data to check for academyId
@@ -36,6 +38,21 @@ const SideMenuHeader = ({ role }) => {
 
   const isActive = (basePath) => {
     return pathname === basePath || pathname.startsWith(basePath + "/");
+  };
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/Api/users/logout');
+      if (response.ok) {
+        toast.success('Logged out successfully');
+        router.push('/login');
+      } else {
+        toast.error('Failed to logout');
+      }
+    } catch (error) {
+      toast.error('Error during logout');
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -661,7 +678,7 @@ const SideMenuHeader = ({ role }) => {
                 </>
               )}
             </ul>
-            <div className="log-out-btn !w-fit d-flex align-items-center gap-2 mt-auto">
+            <div onClick={handleLogout} className="log-out-btn !w-fit d-flex align-items-center gap-2 mt-auto">
               <Link href="/" className="text-log-out bg-transparent d-flex align-items-center gap-2">
                 <svg
                   width="24"
