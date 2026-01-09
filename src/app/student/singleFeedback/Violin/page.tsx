@@ -1,13 +1,11 @@
-"use client";
+"use client"
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { Modal } from 'react-bootstrap'
+import { Modal } from 'react-bootstrap';
 import { RateClassForm } from "../../rateClass/page";
 
-interface FeedbackData {
+interface ViolinFeedbackData {
   _id: string;
-  attendance: number;
   userId: {
     _id: string;
     name: string;
@@ -17,63 +15,44 @@ interface FeedbackData {
     _id: string;
     className: string;
   };
-  rhythm: string;
-  theoreticalUnderstanding: string;
-  performance: string;
-  earTraining: string;
-  assignment: string;
-  technique: string;
+  postureAndInstrumentHold: string;
+  bowingTechnique: string;
+  intonationAndPitchAccuracy: string;
+  toneQualityAndSoundProduction: string;
+  rhythmMusicalityAndExpression: string;
+  progressAndPracticeHabits: string;
   personalFeedback: string;
   createdAt: string;
   updatedAt: string;
 }
 
-interface FeedbackResponse {
+interface ViolinFeedbackResponse {
   success: boolean;
   count: number;
-  data: FeedbackData[];
-  feedbackAllStudent: FeedbackData[];
+  data: ViolinFeedbackData[];
 }
 
-const FeedbackPage = () => {
-  const [feedbackData, setFeedbackData] = useState<FeedbackData[]>([]);
+const ViolinFeedbackPage = () => {
+  const [feedbackData, setFeedbackData] = useState<ViolinFeedbackData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [classId, setclassId] = useState<string | null>(null);
+  const [classId, setClassId] = useState<string | null>(null);
   const [studentId, setStudentId] = useState<string | null>(null);
-  const [showRateModal, setShowRateModal] = useState(false);
-  const [selectedClassId, setSelectedClassId] = useState<string>('');
-  const router = useRouter();
 
-  // Get IDs from URL using window.location (works in browser)
+  // Modal state
+  const [showRateModal, setShowRateModal] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Method 1: Using URLSearchParams with window.location.search
       const urlParams = new URLSearchParams(window.location.search);
       const classIdFromUrl = urlParams.get('classId');
       const studentIdFromUrl = urlParams.get('studentId');
-      
-      setclassId(classIdFromUrl);
+      setClassId(classIdFromUrl);
       setStudentId(studentIdFromUrl);
-
-      // Method 2: Alternative - parsing window.location.href manually
-      // const url = new URL(window.location.href);
-      // const classIdFromUrl = url.searchParams.get('classId');
-      // const studentIdFromUrl = url.searchParams.get('studentId');
-
-      // Method 3: Alternative - using window.location.pathname for route params
-      // If your URL structure is like: /feedback/classId/studentId
-      // const pathParts = window.location.pathname.split('/');
-      // const classIdFromUrl = pathParts[2]; // Adjust index based on your route structure
-      // const studentIdFromUrl = pathParts[3];
-
-      console.log('Current URL:', window.location.href);
-      console.log('class ID:', classIdFromUrl);
-      console.log('Student ID:', studentIdFromUrl);
     }
   }, []);
 
-  // Fetch feedback data from API
   useEffect(() => {
     const fetchFeedback = async () => {
       if (!classId || !studentId) {
@@ -81,62 +60,37 @@ const FeedbackPage = () => {
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
-        const response = await fetch(`/Api/singleFeedback/Music?classId=${classId}&userId=${studentId}`, {
+        const response = await fetch(`/Api/singleFeedback/violin?classId=${classId}&studentId=${studentId}`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include', // Include cookies for authentication
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
         });
-
-        if (response.status === 401) {
-          router.push('/login');
-          return;
-        }
-
-        const result: FeedbackResponse = await response.json();
-
-        if (result.success) {
-          setFeedbackData(result.data || []);
-        } else {
-          setError('Failed to fetch feedback data');
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const result: ViolinFeedbackResponse = await response.json();
+        if (result.success) setFeedbackData(result.data || []);
+        else setError('Failed to fetch feedback data');
       } catch (err) {
-        console.error('Error fetching feedback:', err);
         setError(err instanceof Error ? err.message : 'An error occurred while fetching feedback');
       } finally {
         setLoading(false);
       }
     };
-
-    // Only fetch when we have both IDs
-    if (classId && studentId) {
-      fetchFeedback();
-    }
+    if (classId && studentId) fetchFeedback();
   }, [classId, studentId]);
 
-  const handleBack = () => {
-    // Handle back navigation
-    window.history.back();
-  };
+  const handleBack = () => window.history.back();
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="text-gray-600">Loading feedback...</div>
+        <div className="text-gray-600">Loading violin feedback...</div>
       </div>
     );
   }
@@ -166,11 +120,11 @@ const FeedbackPage = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-orange-600 mb-8">Student Feedback</h1>
+        <h1 className="text-3xl font-bold text-orange-600 mb-8">Violin Student Feedback</h1>
         
         {feedbackData.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <p className="text-gray-500">No feedback data available.</p>
+            <p className="text-gray-500">No violin feedback data available.</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -190,7 +144,6 @@ const FeedbackPage = () => {
                       <p className="text-sm text-gray-500">
                         {formatDate(feedback.createdAt)}
                       </p>
-                      
                     </div>
                   </div>
                 </div>
@@ -198,57 +151,49 @@ const FeedbackPage = () => {
                 {/* Feedback Details */}
                 <div className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Rhythm */}
+                    {/* Posture and Instrument Hold */}
                     <div>
-                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Rhythm</h3>
+                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Posture & Instrument Hold</h3>
                       <p className="text-gray-700 bg-gray-50 p-3 rounded-md">
-                        {feedback.rhythm || 'No feedback provided'}
+                        {feedback.postureAndInstrumentHold || 'No feedback provided'}
                       </p>
                     </div>
-
-                    {/* Theoretical Understanding */}
+                    {/* Bowing Technique */}
                     <div>
-                      <h3 className="text-lg font-semibold text-orange-600 mb-2">
-                        Theoretical Understanding
-                      </h3>
+                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Bowing Technique</h3>
                       <p className="text-gray-700 bg-gray-50 p-3 rounded-md">
-                        {feedback.theoreticalUnderstanding || 'No feedback provided'}
+                        {feedback.bowingTechnique || 'No feedback provided'}
                       </p>
                     </div>
-
-                    {/* Performance */}
+                    {/* Intonation and Pitch Accuracy */}
                     <div>
-                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Performance</h3>
+                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Intonation & Pitch Accuracy</h3>
                       <p className="text-gray-700 bg-gray-50 p-3 rounded-md">
-                        {feedback.performance || 'No feedback provided'}
+                        {feedback.intonationAndPitchAccuracy || 'No feedback provided'}
                       </p>
                     </div>
-
-                    {/* Ear Training */}
+                    {/* Tone Quality and Sound Production */}
                     <div>
-                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Ear Training</h3>
+                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Tone Quality & Sound Production</h3>
                       <p className="text-gray-700 bg-gray-50 p-3 rounded-md">
-                        {feedback.earTraining || 'No feedback provided'}
+                        {feedback.toneQualityAndSoundProduction || 'No feedback provided'}
                       </p>
                     </div>
-
-                    {/* Assignment */}
+                    {/* Rhythm, Musicality and Expression */}
                     <div>
-                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Assignment</h3>
+                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Rhythm, Musicality & Expression</h3>
                       <p className="text-gray-700 bg-gray-50 p-3 rounded-md">
-                        {feedback.assignment || 'No feedback provided'}
+                        {feedback.rhythmMusicalityAndExpression || 'No feedback provided'}
                       </p>
                     </div>
-
-                    {/* Technique */}
+                    {/* Progress and Practice Habits */}
                     <div>
-                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Technique</h3>
+                      <h3 className="text-lg font-semibold text-orange-600 mb-2">Progress & Practice Habits</h3>
                       <p className="text-gray-700 bg-gray-50 p-3 rounded-md">
-                        {feedback.technique || 'No feedback provided'}
+                        {feedback.progressAndPracticeHabits || 'No feedback provided'}
                       </p>
                     </div>
                   </div>
-
                   {/* Personal Feedback - Full Width */}
                   <div className="mt-6">
                     <h3 className="text-lg font-semibold text-orange-600 mb-2">
@@ -275,16 +220,12 @@ const FeedbackPage = () => {
       </div>
 
       <Modal show={showRateModal} onHide={() => setShowRateModal(false)} centered>
-        <Modal.Header closeButton>
-        </Modal.Header>
+        <Modal.Header closeButton />
         <Modal.Body>
           <RateClassForm 
-            classId={classId} 
+            classId={selectedClassId} 
             isModal={true} 
-            onSuccess={() => {
-              setShowRateModal(false);
-              // Optionally, refetch feedback data or update UI
-            }}
+            onSuccess={() => setShowRateModal(false)}
           />
         </Modal.Body>
       </Modal>
@@ -292,4 +233,4 @@ const FeedbackPage = () => {
   );
 };
 
-export default FeedbackPage;
+export default ViolinFeedbackPage;
