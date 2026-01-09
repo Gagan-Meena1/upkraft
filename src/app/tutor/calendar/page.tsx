@@ -142,47 +142,40 @@ const StudentCalendarView = () => {
     setRescheduleReason(""); // Reset reason
   };
 
-  const handleCancelClass = async (type: "single" | "all") => {
+  const handleCancelClass = async () => {
     if (!selectedClass) return;
-    
+
     if (!cancellationReason.trim()) {
       toast.error("Please provide a reason for cancellation");
       return;
     }
 
     try {
-      const classId = selectedClass._id;
-      const endpoint = type === "single" 
-        ? `/Api/calendar/classes/${classId}`
-        : `/Api/calendar/classes/${classId}/series`;
-      
-      const res = await fetch(endpoint, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: "cancelled",
-          reasonForCancelation: cancellationReason, // Match the field name from courses page
-        })
-      });
+      const timezone =
+        userData?.timezone ||
+        getUserTimeZone() ||
+        Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      if (!res.ok) {
-        const text = await res.text();
-        let errorMsg = "Failed to cancel class";
-        try {
-          const data = JSON.parse(text);
-          errorMsg = data.error || data.message || errorMsg;
-        } catch (e) {
-          console.error("Invalid JSON response:", text);
+      const res = await fetch(
+        `/Api/classes?classId=${encodeURIComponent(selectedClass._id)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reasonForCancellation: cancellationReason.trim(),
+            timezone,
+          }),
         }
-        throw new Error(errorMsg);
+      );
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || data.message || "Failed to cancel class");
       }
 
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : {};
-
-      toast.success(type === "single" ? "Class cancelled" : "All classes cancelled");
+      toast.success("Class cancelled");
       setShowCancelModal(false);
       setShowClassModal(false);
       setSelectedClass(null);
@@ -200,11 +193,6 @@ const StudentCalendarView = () => {
 
   const handleDeleteClass = async (type: "single" | "all") => {
     if (!selectedClass) return;
-    
-    if (!cancellationReason.trim()) {
-      toast.error("Please provide a reason for cancellation");
-      return;
-    }
 
     try {
       const classId = selectedClass._id;
@@ -217,9 +205,9 @@ const StudentCalendarView = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            cancellationReason: cancellationReason
-          })
+          body: JSON.stringify(
+            cancellationReason.trim() ? { cancellationReason } : {}
+          ),
         }
       );
 
@@ -354,14 +342,15 @@ const StudentCalendarView = () => {
   };
 
   const getClassAttendanceStatus = (classItem: any) => {
-    // prefer explicit class status on the class item (handles rescheduled/cancelled)
+    // Use explicit class status only for cancel / reschedule,
+    // otherwise derive from attendance data (present/absent/etc.)
     const rawStatus = (classItem?.status || "").toString().toLowerCase();
-    if (rawStatus) {
-      if (rawStatus === "canceled") return "cancelled";
-      if (rawStatus === "cancelled") return "cancelled";
-      if (rawStatus === "reschedule") return "rescheduled";
-      if (rawStatus === "rescheduled") return "rescheduled";
-      return rawStatus;
+
+    if (rawStatus === "canceled" || rawStatus === "cancelled") {
+      return "cancelled";
+    }
+    if (rawStatus === "reschedule" || rawStatus === "rescheduled") {
+      return "rescheduled";
     }
 
     const studentId = classItem.studentId || classItem.student?._id;
@@ -383,7 +372,14 @@ const StudentCalendarView = () => {
       case "absent":
         return { bg: "bg-red-50", border: "border-red-400", text: "text-red-700", dot: "bg-red-500" };
       case "cancelled":
-        return { bg: "bg-gray-50", border: "border-gray-400", text: "text-gray-700", dot: "bg-gray-500", strikethrough: true };
+        return {
+          // same styling as pending, but with strike-through
+          bg: "bg-purple-50",
+          border: "border-purple-400",
+          text: "text-purple-700",
+          dot: "bg-purple-500",
+          strikethrough: true,
+        };
       case "rescheduled":
         return { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-600", dot: "bg-gray-400" };
       case "pending":
@@ -1136,7 +1132,7 @@ const StudentCalendarView = () => {
         </Modal.Header>
         <Modal.Body className="pt-2">
           <p className="text-sm text-gray-600 mb-3">
-            Do you want to cancel only this occurrence or the entire series?
+            You are about to cancel this class. Students will see it as cancelled on their calendar.
           </p>
 
           <div className="mb-4">
@@ -1151,39 +1147,31 @@ const StudentCalendarView = () => {
               rows={3}
               maxLength={500}
             />
-            <div className="text-xs text-gray-400 mt-1">{cancellationReason.length}/500</div>
+            <div className="text-xs text-gray-400 mt-1">
+              {cancellationReason.length}/500
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              variant="warning"
+              variant="secondary"
               className="flex-1 !py-2 !rounded-md !text-sm"
-              onClick={() => handleCancelClass("single")}
-              disabled={!cancellationReason.trim()}
-            >
-              This Event
-            </Button>
-
-            <Button
-              variant="outline-warning"
-              className="flex-1 !py-2 !rounded-md !text-sm"
-              onClick={() => handleCancelClass("all")}
-              disabled={!cancellationReason.trim()}
-            >
-              All Events
-            </Button>
-          </div>
-
-          <div className="mt-3 text-right">
-            <button
-              className="text-sm text-gray-500 hover:text-gray-700 underline"
               onClick={() => {
                 setShowCancelModal(false);
                 setCancellationReason("");
               }}
             >
-              Close
-            </button>
+              Keep Class
+            </Button>
+
+            <Button
+              variant="warning"
+              className="flex-1 !py-2 !rounded-md !text-sm"
+              onClick={handleCancelClass}
+              disabled={!cancellationReason.trim()}
+            >
+              Cancel Class
+            </Button>
           </div>
         </Modal.Body>
       </Modal>

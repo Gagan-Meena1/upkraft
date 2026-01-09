@@ -1058,7 +1058,7 @@ export default function CreateAssignmentModal({
                                 </div>
 
                                 {checked && isFirstSelected && (
-                                  <label className="flex items-center gap-2 text-sm font-medium text-purple-700 cursor-pointer whitespace-nowrap ml-4">
+                                  <label className="!flex !items-center !gap-2 text-sm font-medium text-purple-700 cursor-pointer whitespace-nowrap ml-4">
                                     <input
                                       type="checkbox"
                                       className="w-4 h-4 accent-purple-600 rounded"
@@ -1090,7 +1090,7 @@ export default function CreateAssignmentModal({
                                 )}
 
                                 {checked && !isFirstSelected && (
-                                  <label className="flex items-center gap-2 text-sm font-medium text-purple-700 cursor-pointer whitespace-nowrap ml-4">
+                                  <label className="!flex !items-center !gap-2 text-sm font-medium text-purple-700 cursor-pointer whitespace-nowrap ml-4">
                                     <input
                                       type="checkbox"
                                       className="w-4 h-4 accent-purple-600 rounded"
@@ -1109,7 +1109,7 @@ export default function CreateAssignmentModal({
 
                               {/* Fields row - only show if checked and not using same as above */}
                               {checked && !fields.sameAsAbove && (
-                                <div className="px-4 pb-4 grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 rounded-b">
+                                <div className="px-4 pb-3 pt-3 grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 rounded-b">
                                   <div>
                                     <label className="block text-xs font-semibold text-gray-700 mb-2">
                                       Deadline
