@@ -45,12 +45,29 @@ const StudentCalendarView = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [userId, setUserId] = useState(null);
   const [userData, setUserData] = useState<UserData | null>(null);
-
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+  
   // Add view state
   const [activeView, setActiveView] = useState<"day" | "week" | "month">("week");
   const handleSetView = (v: "day" | "week" | "month") => {
     setActiveView(v);
   };
+ 
+  // fetch attendance for current student (used to display present/absent)
+  useEffect(() => {
+    if (!userId) return;
+    const fetchAttendance = async () => {
+      try {
+        const res = await fetch(`/Api/student/attendanceData?studentId=${userId}`);
+        const data = await res.json();
+        setAttendanceRecords(data.attendance || []);
+      } catch (err) {
+        console.error("Failed to fetch attendance:", err);
+        setAttendanceRecords([]);
+      }
+    };
+    fetchAttendance();
+  }, [userId]);
 
   // Check if mobile
   useEffect(() => {
@@ -298,6 +315,42 @@ const StudentCalendarView = () => {
     gridTemplateColumns: "200px repeat(7, minmax(0, 1fr))",
   };
 
+  // Add helper (copy of tutor calendar's getStatusColor)
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "present":
+        return { bg: "bg-green-50", border: "border-green-400", text: "text-green-700", dot: "bg-green-500" };
+      case "absent":
+        return { bg: "bg-red-50", border: "border-red-400", text: "text-red-700", dot: "bg-red-500" };
+      case "cancelled":
+        return { bg: "bg-gray-50", border: "border-gray-400", text: "text-gray-700", dot: "bg-gray-500", strikethrough: true };
+      case "rescheduled":
+        return { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-600", dot: "bg-gray-400" };
+      case "pending":
+      default:
+        return { bg: "bg-purple-50", border: "border-purple-400", text: "text-purple-700", dot: "bg-purple-500" };
+    }
+  };
+  
+  // Resolve attendance/status for a class (prefers explicit class.status, otherwise attendance records)
+  const getClassAttendanceStatus = (classItem: any) => {
+    const rawStatus = (classItem?.status || "").toString().toLowerCase();
+    if (rawStatus) {
+      if (rawStatus === "canceled") return "cancelled";
+      if (rawStatus === "cancelled") return "cancelled";
+      if (rawStatus === "reschedule") return "rescheduled";
+      if (rawStatus === "rescheduled") return "rescheduled";
+      return rawStatus;
+    }
+
+    if (!attendanceRecords || attendanceRecords.length === 0) return "pending";
+    const classRecord = attendanceRecords.find(
+      (rec) => rec.classId === classItem._id || rec.sessionId === classItem._id
+    );
+    if (!classRecord) return "pending";
+    return (classRecord.status || "pending").toString().toLowerCase();
+  };
+
   return (
     <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
       {/* Mobile Overlay */}
@@ -509,29 +562,42 @@ const StudentCalendarView = () => {
                           ) : (
                             <>
                               {/* Classes */}
-                              {dayClasses.map((classItem, cIdx) => (
-                                <div
-                                  key={classItem._id || `c-${cIdx}`}
-                                  className="mb-2 p-2 bg-orange-50 border-l-4 border-purple-400 text-xs text-[#212121] rounded-md shadow-sm hover:cursor-pointer hover:bg-purple-100"
-                                  title={`${
-                                    classItem.title || "Class"
-                                  } - ${formatTime(
-                                    classItem.startTime,
-                                    classItem.endTime
-                                  )}`}
-                                  onClick={() => handleJoinMeeting(classItem._id)}
-                                >
-                                  <div className="font-medium text-[13px] truncate">
-                                    {classItem.title || "Class"}
+                              {dayClasses.map((classItem, cIdx) => {
+                                const attendanceStatus = getClassAttendanceStatus(classItem);
+                                const statusColor = getStatusColor(attendanceStatus);
+
+                                return (
+                                  <div
+                                    key={classItem._id || `c-${cIdx}`}
+                                    className={`mb-2 p-2 ${statusColor.bg} border-l-4 ${statusColor.border} text-xs text-[#212121] rounded-md shadow-sm hover:cursor-pointer hover:opacity-90 ${statusColor.strikethrough ? 'overflow-hidden relative' : ''}`}
+                                    title={`${classItem.title || "Class"} - ${formatTime(classItem.startTime, classItem.endTime)}`}
+                                    onClick={() => handleJoinMeeting(classItem._id)}
+                                  >
+                                    {statusColor.strikethrough && (
+                                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <div className="w-full h-[2px] bg-red-500 transform rotate-[-15deg]" />
+                                      </div>
+                                    )}
+                                     <div className="flex items-center justify-between gap-2">
+                                       <div className="font-medium text-[13px] truncate">{classItem.title || "Class"}</div>
+                                       <span className={`w-2 h-2 rounded-full ${statusColor.dot}`} title={attendanceStatus}></span>
+                                     </div>
+                                    <div className="text-[11px] text-gray-600 truncate">{formatTime(classItem.startTime, classItem.endTime)}</div>
+
+                                    {classItem.reasonForReschedule && classItem.status === "rescheduled" && (
+                                      <div className="mt-1 text-[10px] text-yellow-700 bg-yellow-50 p-1 rounded">
+                                        <span className="font-semibold">Rescheduled:</span> {classItem.reasonForReschedule}
+                                      </div>
+                                    )}
+
+                                    {classItem.reasonForCancelation && (classItem.status === "canceled" || classItem.status === "cancelled") && (
+                                      <div className="mt-1 text-[10px] text-red-700 bg-red-50 p-1 rounded">
+                                        <span className="font-semibold">Cancelled:</span> {classItem.reasonForCancelation}
+                                      </div>
+                                    )}
                                   </div>
-                                  <div className="text-[11px] text-gray-600 truncate">
-                                    {formatInTz(classItem.startTime, userTz, {
-                                      hour: "2-digit",
-                                      minute: "2-digit",
-                                    })}
-                                  </div>
-                                </div>
-                              ))}
+                                );
+                              })}
 
                               {/* Assignments */}
                               {dayAssignments.map((a, aIdx) => (
