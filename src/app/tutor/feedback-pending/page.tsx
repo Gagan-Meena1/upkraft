@@ -9,7 +9,8 @@ import Image from 'next/image';
 import { useRef } from 'react';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
-import { Upload } from 'lucide-react';
+import { Upload,Video, StopCircle, Play, X, Check } from 'lucide-react';
+
 
 interface Student {
   _id: string;
@@ -138,6 +139,183 @@ const FeedbackPendingDetails = () => {
     selectedFeedback?.classes[selectedFeedback.selectedClassIndex]?.courseCategory || "Music";
   const currentFields = CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS["Music"];
   const splitIndex = Math.ceil(currentFields.length / 2);
+
+
+// Add these new state variables after your existing state declarations:
+const [isRecording, setIsRecording] = useState(false);
+const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+const [showPreviewModal, setShowPreviewModal] = useState(false);
+const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+const videoStreamRef = useRef<MediaStream | null>(null);
+const recordedChunksRef = useRef<Blob[]>([]);
+const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+const [recordingTime, setRecordingTime] = useState(0);
+const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
+// Add this with your other state variables:
+const [showLivePreview, setShowLivePreview] = useState(false);
+const livePreviewRef = useRef<HTMLVideoElement | null>(null);
+
+
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { 
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      }, 
+      audio: true 
+    });
+    
+    videoStreamRef.current = stream;
+    recordedChunksRef.current = [];
+
+    // ✅ Show live preview FIRST
+    setShowLivePreview(true);
+    
+    // ✅ Wait for next render cycle, then set video source
+    setTimeout(() => {
+      if (livePreviewRef.current) {
+        livePreviewRef.current.srcObject = stream;
+      }
+    }, 100);
+
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm;codecs=vp8,opus'
+    });
+
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        recordedChunksRef.current.push(event.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+      
+      const sizeMB = blob.size / (1024 * 1024);
+      if (sizeMB > 200) {
+        alert('Video size exceeds 200MB limit. Please record a shorter video.');
+        cleanupRecording();
+        return;
+      }
+      
+      setRecordedBlob(blob);
+      setShowPreviewModal(true);
+      setShowLivePreview(false);
+      cleanupRecording();
+    };
+
+    mediaRecorder.start(1000);
+    mediaRecorderRef.current = mediaRecorder;
+    setIsRecording(true);
+    setRecordingTime(0);
+
+    recordingTimerRef.current = setInterval(() => {
+      setRecordingTime(prev => prev + 1);
+    }, 1000);
+
+  } catch (err) {
+    console.error('Error starting recording:', err);
+    alert('Failed to access camera/microphone. Please grant permissions.');
+    setShowLivePreview(false);
+  }
+};
+
+const stopRecording = () => {
+  if (mediaRecorderRef.current && isRecording) {
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  }
+};
+
+const cleanupRecording = () => {
+  if (videoStreamRef.current) {
+    videoStreamRef.current.getTracks().forEach(track => track.stop());
+    videoStreamRef.current = null;
+  }
+  if (recordingTimerRef.current) {
+    clearInterval(recordingTimerRef.current);
+    recordingTimerRef.current = null;
+  }
+    if (livePreviewRef.current) {
+    livePreviewRef.current.srcObject = null;
+  }
+};
+
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+const handleReRecord = () => {
+  setRecordedBlob(null);
+  setShowPreviewModal(false);
+  setRecordingTime(0);
+};
+
+const handleConfirmVideo = async () => {
+  if (!recordedBlob || !selectedFeedback) return;
+
+  setIsUploadingVideo(true);
+  const student = selectedFeedback.student;
+  const classData = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
+
+  try {
+    const reader = new FileReader();
+    reader.readAsDataURL(recordedBlob);
+    
+    reader.onloadend = async () => {
+      const base64data = reader.result;
+
+      const uploadResponse = await axios.post('/Api/upload/cloudinary', {
+        videoData: base64data,
+        classId: classData._id,
+        studentId: student._id,
+      });
+
+      if (uploadResponse.data.success) {
+        const videoUrl = uploadResponse.data.videoUrl;
+
+        await axios.post('/Api/attendance/video', {
+          studentId: student._id,
+          classId: classData._id,
+          videoUrl: videoUrl,
+        });
+
+        alert('Video recorded and saved successfully! ✅');
+        setShowPreviewModal(false);
+        setRecordedBlob(null);
+      } else {
+        throw new Error('Upload failed');
+      }
+    };
+
+    reader.onerror = () => {
+      throw new Error('Failed to read video file');
+    };
+
+  } catch (err: any) {
+    console.error('Error uploading video:', err);
+    alert(err.response?.data?.error || 'Failed to upload video. Please try again.');
+  } finally {
+    setIsUploadingVideo(false);
+  }
+};
+
+useEffect(() => {
+  if (showPreviewModal && recordedBlob && previewVideoRef.current) {
+    const videoUrl = URL.createObjectURL(recordedBlob);
+    previewVideoRef.current.src = videoUrl;
+    return () => URL.revokeObjectURL(videoUrl);
+  }
+}, [showPreviewModal, recordedBlob]);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -699,6 +877,32 @@ const getButtonText = (classId: string, isUploading: boolean) => {
       </ul>
     </div>
 
+     <button 
+    onClick={isRecording ? stopRecording : startRecording}
+    disabled={isUploadingVideo}
+    style={{ 
+      backgroundColor: isRecording ? '#ef4444' : '#10b981',
+      color: '#ffffff',
+      border: 'none',
+      boxShadow: isRecording ? '0 0 20px rgba(239, 68, 68, 0.6)' : 'none',
+      animation: isRecording ? 'pulse 1.5s infinite' : 'none',
+      transition: 'all 0.3s ease'
+    }}
+    className='btn-link d-flex align-items-center gap-2 justify-content-center px-3 py-2 rounded'
+  >
+    {isRecording ? (
+      <>
+        <StopCircle size={16} />
+        <span>Stop Rec ({formatTime(recordingTime)})</span>
+      </>
+    ) : (
+      <>
+        <Video size={16} />
+        <span>Start Rec</span>
+      </>
+    )}
+  </button>
+
     {/* Hidden file input */}
     <input
       type="file"
@@ -890,6 +1094,119 @@ const getButtonText = (classId: string, isUploading: boolean) => {
             }}
           >
             Yes, Mark Absent
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+{/* ✅ Live Recording Preview Modal */}
+{showLivePreview && (
+  <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.9)', zIndex: 9999 }}>
+    <div className="modal-dialog modal-dialog-centered modal-xl">
+      <div className="modal-content" style={{ backgroundColor: '#1a1a1a', border: 'none' }}>
+        <div className="modal-header" style={{ borderBottom: '1px solid #333' }}>
+          <h5 className="modal-title text-white d-flex align-items-center gap-2">
+            <span style={{ 
+              display: 'inline-block',
+              width: '12px',
+              height: '12px',
+              borderRadius: '50%',
+              backgroundColor: '#ef4444',
+              animation: 'blink 1s infinite'
+            }}></span>
+            Recording - {formatTime(recordingTime)}
+          </h5>
+        </div>
+        <div className="modal-body" style={{ padding: '20px' }}>
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', backgroundColor: '#000', borderRadius: '8px', overflow: 'hidden' }}>
+            <video 
+              ref={livePreviewRef}
+              autoPlay
+              muted
+              playsInline
+              style={{ 
+                width: '100%', 
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block'
+              }}
+            />
+          </div>
+          <div className="d-flex justify-content-center mt-4">
+            <button 
+              onClick={stopRecording}
+              className="btn btn-danger btn-lg d-flex align-items-center gap-2"
+              style={{
+                padding: '15px 40px',
+                fontSize: '18px'
+              }}
+            >
+              <StopCircle size={24} />
+              Stop Recording
+            </button>
+          </div>
+          <p className="text-center text-muted mt-3">
+            Recording time: {formatTime(recordingTime)} | Max size: 200MB
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Keep your existing Video Preview Modal here */}
+{/* ✅ Video Preview Modal */}
+{showPreviewModal && (
+  <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999 }}>
+    <div className="modal-dialog modal-dialog-centered modal-lg">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h5 className="modal-title">Preview Recording</h5>
+          <button 
+            type="button" 
+            className="btn-close" 
+            onClick={() => setShowPreviewModal(false)}
+            disabled={isUploadingVideo}
+          ></button>
+        </div>
+        <div className="modal-body">
+          <video 
+            ref={previewVideoRef}
+            controls 
+            style={{ width: '100%', maxHeight: '400px', backgroundColor: '#000' }}
+          />
+          <p className="text-muted mt-3">
+            Review your recording. If satisfied, click "Confirm & Upload". Otherwise, you can re-record.
+          </p>
+        </div>
+        <div className="modal-footer">
+          <button 
+            type="button" 
+            className="btn btn-secondary d-flex align-items-center gap-2" 
+            onClick={handleReRecord}
+            disabled={isUploadingVideo}
+          >
+            <X size={16} />
+            Re-record
+          </button>
+          <button 
+            type="button" 
+            className="btn btn-success d-flex align-items-center gap-2" 
+            onClick={handleConfirmVideo}
+            disabled={isUploadingVideo}
+          >
+            {isUploadingVideo ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Check size={16} />
+                Confirm & Upload
+              </>
+            )}
           </button>
         </div>
       </div>

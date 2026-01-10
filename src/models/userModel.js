@@ -26,8 +26,13 @@ const userSchema = new mongoose.Schema({
                 enum: ["present", "absent", "canceled", "not_marked"],
                 default: "not_marked"
 
-            }
-        }]
+        },
+        videoUrl:{
+            type:String,
+            default:""
+        },
+        
+    }]
     },
     contact: {
         type: String,
