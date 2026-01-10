@@ -116,8 +116,8 @@ const StudentCalendarView = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
   const [attendanceMap, setAttendanceMap] = useState<Record<string, any[]>>({});
-  const [cancellationReason, setCancellationReason] = useState("");
   const [rescheduleReason, setRescheduleReason] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // view state: 'day' | 'week' | 'month'
   const [activeView, setActiveView] = useState<"day" | "week" | "month">(
@@ -184,13 +184,44 @@ const StudentCalendarView = () => {
     setRescheduleReason(""); // Reset reason
   };
 
-  const handleCancelClass = async () => {
-    if (!selectedClass) return;
+  const handleCancelClass = async (reasonFromModal: string) => {
+    if (!selectedClass || isCancelling) return;
 
-    if (!cancellationReason.trim()) {
+    const finalReason = reasonFromModal.trim();
+    if (!finalReason) {
       toast.error("Please provide a reason for cancellation");
       return;
     }
+
+    const classId = selectedClass._id;
+    const prevAllClasses = allClasses;
+
+    // 1) Optimistic UI: update state + close modals immediately
+    setAllClasses((prev: any[]) =>
+      prev.map((block: any) => ({
+        ...block,
+        classes: (block.classes || []).map((cls: any) =>
+          cls._id === classId
+            ? {
+                ...cls,
+                status: "cancelled",
+                cancellationReason: finalReason,
+              }
+            : cls
+        ),
+      }))
+    );
+
+    setSelectedClass((prev: any) =>
+      prev && prev._id === classId
+        ? { ...prev, status: "cancelled", cancellationReason: finalReason }
+        : prev
+    );
+
+    setShowCancelModal(false);
+    setShowClassModal(false);
+
+    setIsCancelling(true);
 
     try {
       const timezone =
@@ -199,14 +230,12 @@ const StudentCalendarView = () => {
         Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       const res = await fetch(
-        `/Api/classes?classId=${encodeURIComponent(selectedClass._id)}`,
+        `/Api/classes?classId=${encodeURIComponent(classId)}`,
         {
           method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            reasonForCancellation: cancellationReason.trim(),
+            reasonForCancellation: finalReason,
             timezone,
           }),
         }
@@ -218,18 +247,22 @@ const StudentCalendarView = () => {
       }
 
       toast.success("Class cancelled");
-      setShowCancelModal(false);
-      setShowClassModal(false);
-      setSelectedClass(null);
-      setCancellationReason("");
 
-      const studentList = await fetchStudents();
-      if (studentList.length > 0) {
-        await fetchAllClasses(studentList);
-      }
+      // 2) Background refresh to sync with server
+      (async () => {
+        const studentList = await fetchStudents();
+        if (studentList.length > 0) {
+          await fetchAllClasses(studentList);
+        }
+      })();
     } catch (err: any) {
       console.error("Cancel error:", err);
       toast.error(err.message || "Failed to cancel class");
+
+      // Roll back optimistic change if API failed
+      setAllClasses(prevAllClasses);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -247,9 +280,7 @@ const StudentCalendarView = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(
-            cancellationReason.trim() ? { cancellationReason } : {}
-          ),
+          body: JSON.stringify({}),
         }
       );
 
@@ -263,7 +294,6 @@ const StudentCalendarView = () => {
       setShowDeleteModal(false);
       setShowClassModal(false);
       setSelectedClass(null);
-      setCancellationReason("");
 
       const studentList = await fetchStudents();
       if (studentList.length > 0) {
@@ -276,40 +306,80 @@ const StudentCalendarView = () => {
   };
 
   const handleEditSuccess = async (updatedData?: any) => {
-    try {
-      // Save reschedule reason if provided
-      if (rescheduleReason.trim() && editingClassId) {
-        const res = await fetch(`/Api/calendar/classes/${editingClassId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            reasonForReschedule: rescheduleReason,
-            status: "rescheduled",
-          }),
-        });
+    const classId = editingClassId;
+    const reason = rescheduleReason.trim();
 
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("Failed to save reschedule reason:", text);
-        }
-      }
+    // 1) Optimistic UI update
+    if (classId) {
+      setAllClasses((prev: any[]) =>
+        prev.map((block: any) => ({
+          ...block,
+          classes: (block.classes || []).map((cls: any) =>
+            cls._id === classId
+              ? {
+                  ...cls,
+                  ...(updatedData || {}),
+                  ...(reason
+                    ? {
+                        status: "rescheduled",
+                        rescheduleReason: reason,
+                        reasonForReschedule: reason,
+                      }
+                    : {}),
+                }
+              : cls
+          ),
+        }))
+      );
 
-      const studentList = await fetchStudents();
-      if (studentList.length > 0) {
-        await fetchAllClasses(studentList);
-      }
-
-      setShowEditModal(false);
-      setEditingClassId(null);
-      setSelectedClass(null);
-      setRescheduleReason("");
-      toast.success("Class updated successfully");
-    } catch (err) {
-      console.error("Refresh after edit failed:", err);
-      toast.error("Failed to update class");
+      setSelectedClass((prev: any) =>
+        prev && prev._id === classId
+          ? {
+              ...prev,
+              ...(updatedData || {}),
+              ...(reason
+                ? {
+                    status: "rescheduled",
+                    rescheduleReason: reason,
+                    reasonForReschedule: reason,
+                  }
+                : {}),
+            }
+          : prev
+      );
     }
+
+    // Close modal immediately so it feels fast
+    setShowEditModal(false);
+    setEditingClassId(null);
+    setRescheduleReason("");
+    toast.success("Class updated");
+
+    // 2) Network calls in background
+    (async () => {
+      try {
+        if (reason && classId) {
+          await fetch(`/Api/calendar/classes/${classId}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              reasonForReschedule: reason,
+              status: "rescheduled",
+            }),
+          });
+        }
+
+        const studentList = await fetchStudents();
+        if (studentList.length > 0) {
+          await fetchAllClasses(studentList);
+        }
+      } catch (err) {
+        console.error("Refresh after edit failed:", err);
+        toast.error("Server sync failed, please refresh");
+      }
+    })();
   };
 
   useEffect(() => {
@@ -1062,7 +1132,7 @@ const StudentCalendarView = () => {
                                         )} */}
 
                                         {/* Add this block for cancellation reason */}
-                                        {classItem.reasonForCancelation &&
+                                        {/* {classItem.reasonForCancelation &&
                                           classItem.status === "canceled" && (
                                             <div className="mt-1 text-[10px] text-red-700 bg-red-50 p-1 rounded">
                                               <span className="font-semibold">
@@ -1070,7 +1140,7 @@ const StudentCalendarView = () => {
                                               </span>{" "}
                                               {classItem.reasonForCancelation}
                                             </div>
-                                          )}
+                                          )} */}
                                       </div>
                                     );
                                   })
@@ -1227,7 +1297,7 @@ const StudentCalendarView = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
               <Button
                 variant="outline-primary"
                 className="!rounded-md !py-2 !text-sm"
@@ -1251,7 +1321,7 @@ const StudentCalendarView = () => {
                 Cancel
               </Button>
 
-              <Button
+              {/* <Button
                 variant="outline-danger"
                 className="!rounded-md !py-2 !text-sm"
                 onClick={() => {
@@ -1259,7 +1329,7 @@ const StudentCalendarView = () => {
                 }}
               >
                 Delete
-              </Button>
+              </Button> */}
 
               <Button
                 variant="success"
@@ -1281,7 +1351,6 @@ const StudentCalendarView = () => {
         show={showCancelModal}
         onHide={() => {
           setShowCancelModal(false);
-          setCancellationReason("");
         }}
         centered
         dialogClassName="max-w-md"
@@ -1303,15 +1372,15 @@ const StudentCalendarView = () => {
               Reason for Cancellation <span className="text-red-500">*</span>
             </label>
             <textarea
-              value={cancellationReason}
-              onChange={(e) => setCancellationReason(e.target.value)}
+              value={rescheduleReason}
+              onChange={(e) => setRescheduleReason(e.target.value)}
               placeholder="Please provide a reason..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
               rows={3}
               maxLength={500}
             />
             <div className="text-xs text-gray-400 mt-1">
-              {cancellationReason.length}/500
+              {rescheduleReason.length}/500
             </div>
           </div>
 
@@ -1321,7 +1390,6 @@ const StudentCalendarView = () => {
               className="flex-1 !py-2 !rounded-md !text-sm"
               onClick={() => {
                 setShowCancelModal(false);
-                setCancellationReason("");
               }}
             >
               Keep Class
@@ -1331,7 +1399,7 @@ const StudentCalendarView = () => {
               variant="warning"
               className="flex-1 !py-2 !rounded-md !text-sm"
               onClick={handleCancelClass}
-              disabled={!cancellationReason.trim()}
+              disabled={!rescheduleReason.trim()}
             >
               Cancel Class
             </Button>
@@ -1420,73 +1488,78 @@ const StudentCalendarView = () => {
       {/* Cancel Class Modal - New Component */}
       <CancelClassModal
         show={showCancelModal}
-        onHide={() => setShowCancelModal(false)}
+        onHide={() => {
+          setShowCancelModal(false);
+        }}
         onCancel={async (reason) => {
-          setCancellationReason(reason);
-          await handleCancelClass();
+          await handleCancelClass(reason);
         }}
         disabled={
           selectedClass &&
           (getClassAttendanceStatus(selectedClass) === "cancelled" ||
             getClassAttendanceStatus(selectedClass) === "canceled")
         }
+        loading={isCancelling}
       />
     </div>
   );
 };
 
-const CancelClassModal = React.memo(({ show, onHide, onCancel, disabled }) => {
-  const [reason, setReason] = useState("");
-  useEffect(() => {
-    if (!show) setReason("");
-  }, [show]);
-  return (
-    <Modal show={show} onHide={onHide} centered dialogClassName="max-w-md">
-      <Modal.Header closeButton className="border-0 pb-0">
-        <div className="flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-orange-500" />
-          <h5 className="mb-0 text-lg font-semibold">Cancel Class</h5>
-        </div>
-      </Modal.Header>
-      <Modal.Body className="pt-2">
-        <p className="text-sm text-gray-600 mb-3">
-          You are about to cancel this class. Students will see it as cancelled
-          on their calendar.
-        </p>
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Reason for Cancellation <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Please provide a reason..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-            rows={3}
-            maxLength={500}
-          />
-          <div className="text-xs text-gray-400 mt-1">{reason.length}/500</div>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="secondary"
-            className="flex-1 !py-2 !rounded-md !text-sm"
-            onClick={onHide}
-          >
-            Keep Class
-          </Button>
-          <Button
-            variant="warning"
-            className="flex-1 !py-2 !rounded-md !text-sm"
-            onClick={() => onCancel(reason)}
-            disabled={!reason.trim() || disabled}
-          >
-            Cancel Class
-          </Button>
-        </div>
-      </Modal.Body>
-    </Modal>
-  );
-});
+const CancelClassModal = React.memo(
+  ({ show, onHide, onCancel, disabled, loading }) => {
+    const [reason, setReason] = useState("");
+    useEffect(() => {
+      if (!show) setReason("");
+    }, [show]);
+    return (
+      <Modal show={show} onHide={onHide} centered dialogClassName="max-w-md">
+        <Modal.Header closeButton className="border-0 pb-0">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-orange-500" />
+            <h5 className="mb-0 text-lg font-semibold">Cancel Class</h5>
+          </div>
+        </Modal.Header>
+        <Modal.Body className="pt-2">
+          <p className="text-sm text-gray-600 mb-3">
+            You are about to cancel this class. Students will see it as
+            cancelled on their calendar.
+          </p>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Reason for Cancellation <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Please provide a reason..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+              rows={3}
+              maxLength={500}
+            />
+            <div className="text-xs text-gray-400 mt-1">{reason.length}/500</div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              variant="secondary"
+              className="flex-1 !py-2 !rounded-md !text-sm"
+              onClick={onHide}
+              disabled={loading}
+            >
+              Keep Class
+            </Button>
+            <Button
+              variant="warning"
+              className="flex-1 !py-2 !rounded-md !text-sm"
+              onClick={() => onCancel(reason)}
+              disabled={!reason.trim() || disabled || loading}
+            >
+              {loading ? "Cancelling..." : "Cancel Class"}
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
+    );
+  }
+);
 
 export default StudentCalendarView;

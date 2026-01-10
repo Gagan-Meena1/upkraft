@@ -1109,8 +1109,8 @@ export default function CreateAssignmentModal({
 
                               {/* Fields row - only show if checked and not using same as above */}
                               {checked && !fields.sameAsAbove && (
-                                <div className="px-4 pb-3 pt-3 grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 rounded-b">
-                                  <div>
+                                <div className="px-4 pb-3 pt-3 grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50 rounded-b">
+                                  <div className="md:col-span-1">
                                     <label className="block text-xs font-semibold text-gray-700 mb-2">
                                       Deadline
                                     </label>
@@ -1127,7 +1127,7 @@ export default function CreateAssignmentModal({
                                       className="w-full px-2 py-1 border rounded text-sm"
                                     />
                                   </div>
-                                  <div>
+                                  <div className="md:col-span-3">
                                     <label className="block text-xs font-semibold text-gray-700 mb-2">
                                       Description
                                     </label>
@@ -1144,21 +1144,23 @@ export default function CreateAssignmentModal({
                                       rows={2}
                                     />
                                   </div>
-                                  <div>
+                                  <div className="md:col-span-1">
                                     <label className="block text-xs font-semibold text-gray-700 mb-2">
                                       Assignment File
                                     </label>
-                                    <input
-                                      type="file"
-                                      onChange={(e) =>
-                                        handlePerStudentFieldChange(
-                                          student._id,
-                                          "assignmentFile",
-                                          e.target.files?.[0] || null
-                                        )
-                                      }
-                                      className="w-full text-xs text-gray-700"
-                                    />
+                                    <div className="border border-gray-300 rounded-md px-2 py-2 bg-white">
+                                      <input
+                                        type="file"
+                                        onChange={(e) =>
+                                          handlePerStudentFieldChange(
+                                            student._id,
+                                            "assignmentFile",
+                                            e.target.files?.[0] || null
+                                          )
+                                        }
+                                        className="w-full text-xs text-gray-700"
+                                      />
+                                    </div>
                                     {fields.assignmentFile && (
                                       <p className="mt-1 text-xs text-gray-600 truncate">
                                         {fields.assignmentFile.name}

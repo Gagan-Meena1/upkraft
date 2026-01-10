@@ -1,22 +1,26 @@
 import React, { useEffect, useState } from "react";
-import { Modal, Button } from "react-bootstrap";
-import { Clock, X } from "lucide-react";
-import { formatInTz, getUserTimeZone } from "@/helper/time";
+import { Modal, Button, Form } from "react-bootstrap";
+import { Clock } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { getUserTimeZone } from "@/helper/time";
 
 interface EditClassModalProps {
   show: boolean;
   onHide: () => void;
   classId?: string | null;
-  initialData?: any; // the class object passed from calendar/course pages
+  initialData?: any;
   userTimezone?: string;
   onSuccess?: (updated?: any) => void;
   customFields?: React.ReactNode;
 }
 
-const extractDateTimeForForm = (dateTimeString: string, tz: string) => {
-  const date = new Date(dateTimeString);
+const extractDateTimeForForm = (iso?: string, tz?: string) => {
+  if (!iso) return { dateStr: "", timeStr: "" };
+  const d = new Date(iso);
+  const timeZone =
+    tz || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
+    timeZone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -24,16 +28,15 @@ const extractDateTimeForForm = (dateTimeString: string, tz: string) => {
     minute: "2-digit",
     hour12: false,
   });
-  const parts = formatter.formatToParts(date);
+  const parts = formatter.formatToParts(d);
   const year = parts.find((p) => p.type === "year")?.value || "";
   const month = parts.find((p) => p.type === "month")?.value || "";
   const day = parts.find((p) => p.type === "day")?.value || "";
-  const hours = parts.find((p) => p.type === "hour")?.value || "";
-  const minutes = parts.find((p) => p.type === "minute")?.value || "";
-  return {
-    dateStr: `${year}-${month}-${day}`,
-    timeStr: `${hours}:${minutes}`,
-  };
+  const hour =
+    parts.find((p) => p.type === "hour")?.value?.padStart(2, "0") || "00";
+  const minute =
+    parts.find((p) => p.type === "minute")?.value?.padStart(2, "0") || "00";
+  return { dateStr: `${year}-${month}-${day}`, timeStr: `${hour}:${minute}` };
 };
 
 const EditClassModal: React.FC<EditClassModalProps> = ({
@@ -47,165 +50,358 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
 }) => {
   const tz = userTimezone || getUserTimeZone();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [reasonForReschedule, setReasonForReschedule] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  const [original, setOriginal] = useState({ date: "", startTime: "", endTime: "" });
-  // only track DATE changes (require reschedule reason only when date changes)
-  const [hasDateChanged, setHasDateChanged] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    date: "",
+    startTime: "",
+    endTime: "",
+  });
+  const [original, setOriginal] = useState({
+    date: "",
+    startTime: "",
+    endTime: "",
+  });
+  const [reasonForReschedule, setReasonForReschedule] = useState("");
+  const [hasRecurrence, setHasRecurrence] = useState(false);
+
+  const hasDateChanged = form.date && form.date !== original.date;
 
   useEffect(() => {
-    if (!initialData) return;
-    setTitle(initialData.title || "");
-    setDescription(initialData.description || "");
-    const s = extractDateTimeForForm(initialData.startTime, tz);
-    const e = extractDateTimeForForm(initialData.endTime, tz);
-    setDate(s.dateStr);
-    setStartTime(s.timeStr);
-    setEndTime(e.timeStr);
-    setReasonForReschedule(initialData.reasonForReschedule || "");
-    setOriginal({ date: s.dateStr, startTime: s.timeStr, endTime: e.timeStr });
-    setHasDateChanged(false);
+    let mounted = true;
+    const load = async () => {
+      if (!show) return;
+      setError("");
+      setLoading(true);
+      setIsSaving(false); // reset saving state whenever modal is opened
+
+      const effectiveTz =
+        tz || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
+      if (initialData) {
+        const start = extractDateTimeForForm(
+          initialData.startTime,
+          effectiveTz
+        );
+        const end = extractDateTimeForForm(initialData.endTime, effectiveTz);
+        if (!mounted) return;
+        setForm({
+          title: initialData.title || "",
+          description: initialData.description || "",
+          date: start.dateStr || "",
+          startTime: start.timeStr || "",
+          endTime: end.timeStr || "",
+        });
+        setOriginal({
+          date: start.dateStr || "",
+          startTime: start.timeStr || "",
+          endTime: end.timeStr || "",
+        });
+        setReasonForReschedule(initialData.reasonForReschedule || "");
+        setHasRecurrence(!!initialData.recurrenceId);
+        setLoading(false);
+        return;
+      }
+
+      if (!classId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/Api/calendar/classes?classId=${classId}`);
+        const data = await res.json();
+        const cls =
+          Array.isArray(data) ? data[0] : data.classData?.[0] || data.class || data;
+        if (!cls) throw new Error("Class data not found");
+        const start = extractDateTimeForForm(cls.startTime, effectiveTz);
+        const end = extractDateTimeForForm(cls.endTime, effectiveTz);
+        if (!mounted) return;
+        setForm({
+          title: cls.title || "",
+          description: cls.description || "",
+          date: start.dateStr || "",
+          startTime: start.timeStr || "",
+          endTime: end.timeStr || "",
+        });
+        setOriginal({
+          date: start.dateStr || "",
+          startTime: start.timeStr || "",
+          endTime: end.timeStr || "",
+        });
+        setReasonForReschedule(cls.reasonForReschedule || "");
+        setHasRecurrence(!!cls.recurrenceId);
+      } catch (err: any) {
+        console.error("Failed to load class:", err);
+        setError(err?.message || "Failed to load class");
+        toast.error("Failed to load class details");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [show, classId, initialData, tz]);
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
     setError("");
-  }, [initialData, tz, show]);
-
-  useEffect(() => {
-    const dateChanged = date !== original.date;
-    setHasDateChanged(dateChanged);
-    if (!dateChanged) setError("");
-  }, [date, original]);
+  };
 
   const validate = () => {
-    if (!date || !startTime || !endTime) return "Please provide date and time";
-    const [y, m, d] = date.split("-").map(Number);
-    const [sh, sm] = startTime.split(":").map(Number);
-    const [eh, em] = endTime.split(":").map(Number);
-    const sdt = new Date(y, m - 1, d, sh, sm);
-    const edt = new Date(y, m - 1, d, eh, em);
-    if (edt <= sdt) return "End time must be after start time";
-    // require reason only when DATE was changed
-    if (hasDateChanged && !reasonForReschedule.trim()) return "Please provide a reason for rescheduling";
+    if (!form.title.trim()) return "Title is required";
+    if (!form.date || !form.startTime || !form.endTime)
+      return "Date and times are required";
+    if (form.endTime <= form.startTime)
+      return "End time must be after start time";
+    if (hasDateChanged && !reasonForReschedule.trim())
+      return "Please provide a reason for rescheduling";
     return "";
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const submitWithType = async (
+    e: React.FormEvent | null,
+    editType: "single" | "all"
+  ) => {
+    if (e) e.preventDefault();
     const v = validate();
     if (v) {
       setError(v);
       return;
     }
-    if (!classId) {
-      setError("Missing class id");
+
+    const id = classId || initialData?._id;
+    if (!id) {
+      setError("Class id not available");
       return;
     }
 
-    setIsSubmitting(true);
+    setIsSaving(true);
     setError("");
 
-    try {
-      const payload = {
-        title,
-        description,
-        date,
-        startTime,
-        endTime,
-        reasonForReschedule: hasDateChanged ? reasonForReschedule : "",
-        timezone: tz,
-      };
+    const timezoneToSend =
+      userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      const res = await fetch(`/Api/classes?classId=${classId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+    const payload = {
+      title: form.title,
+      description: form.description,
+      date: form.date,
+      startTime: form.startTime,
+      endTime: form.endTime,
+      timezone: timezoneToSend,
+      reasonForReschedule: hasDateChanged ? reasonForReschedule : "",
+    };
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.message || "Failed to update class");
+    // Build ISO strings for UI state so calendar logic keeps working
+    const buildIsoFromDateTime = (dateStr: string, timeStr: string) => {
+      try {
+        if (!dateStr || !timeStr) return undefined;
+        const [y, m, d] = dateStr.split("-").map(Number);
+        const [hh, mm] = timeStr.split(":").map(Number);
+        const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1, hh || 0, mm || 0));
+        if (isNaN(dt.getTime())) return undefined;
+        return dt.toISOString();
+      } catch {
+        return undefined;
       }
+    };
 
-      if (onSuccess) onSuccess();
-      onHide();
-    } catch (err: any) {
-      setError(err?.message || "Update failed");
-    } finally {
-      setIsSubmitting(false);
+    const newStartIso =
+      buildIsoFromDateTime(form.date, form.startTime) ||
+      initialData?.startTime;
+    const newEndIso =
+      buildIsoFromDateTime(form.date, form.endTime) || initialData?.endTime;
+
+    // Optimistic UI: notify parent and close modal immediately
+    if (onSuccess) {
+      const updatedForUi = {
+        ...(initialData || {}),
+        title: form.title,
+        description: form.description,
+        startTime: newStartIso,
+        endTime: newEndIso,
+        ...(hasDateChanged && reasonForReschedule.trim()
+          ? {
+              status: "rescheduled",
+              rescheduleReason: reasonForReschedule,
+              reasonForReschedule: reasonForReschedule,
+            }
+          : {}),
+      };
+      onSuccess(updatedForUi);
     }
+    onHide();
+
+    // Do network work in background
+    (async () => {
+      try {
+        const res = await fetch(
+          `/Api/classes?classId=${id}&editType=${editType}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok)
+          throw new Error(data.message || data.error || "Update failed");
+
+        toast.success(
+          editType === "all"
+            ? `Updated series${data.updatedCount ? ` (${data.updatedCount})` : ""}`
+            : "Class updated"
+        );
+      } catch (err: any) {
+        console.error("Update error:", err);
+        const msg = err?.message || "Failed to update class";
+        toast.error(msg);
+      } finally {
+        // allow future edits
+        setIsSaving(false);
+      }
+    })();
   };
+
+  const isSaveDisabled = !!validate() || isSaving;
 
   return (
     <Modal show={show} onHide={onHide} centered dialogClassName="max-w-md">
       <Modal.Header closeButton>
-        <Modal.Title>Edit Class</Modal.Title>
+        <Modal.Title>{loading ? "Loading..." : "Edit Class"}</Modal.Title>
       </Modal.Header>
 
-      <Modal.Body>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Title</label>
-            <input value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full px-3 py-2 border rounded" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} required className="w-full px-3 py-2 border rounded" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="w-full px-3 py-2 border rounded" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Start Time</label>
-              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required className="w-full px-3 py-2 border rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">End Time</label>
-              <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required className="w-full px-3 py-2 border rounded" />
-            </div>
-          </div>
-
-          {/* Show reschedule reason only when date/time changed */}
-          {hasDateChanged && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Reason for Reschedule <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                value={reasonForReschedule}
-                onChange={(e) => setReasonForReschedule(e.target.value)}
-                rows={3}
-                placeholder="Please provide a reason for rescheduling this class..."
-                required
-                className="w-full px-3 py-2 border rounded"
-              />
-              <p className="text-xs text-gray-500 mt-1">Students will be notified about this reschedule</p>
+      <Form onSubmit={(e) => submitWithType(e, "single")}>
+        <Modal.Body>
+          {error && (
+            <div className="text-sm text-red-600 mb-3 bg-red-50 p-2 rounded">
+              {error}
             </div>
           )}
 
-          {/* allow parent to inject custom fields (keeps backward compatibility) */}
-          {customFields}
+          <Form.Group className="mb-3">
+            <Form.Label>Title</Form.Label>
+            <Form.Control
+              name="title"
+              value={form.title}
+              onChange={handleChange}
+              placeholder="Session title"
+            />
+          </Form.Group>
 
-          {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</div>}
+          <Form.Group className="mb-3">
+            <Form.Label>Description</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              placeholder="Session description"
+            />
+          </Form.Group>
 
-          <div className="flex gap-2 mt-2">
-            <Button variant="outline-secondary" onClick={onHide} className="flex-1">Cancel</Button>
-            <Button variant="primary" type="submit" disabled={isSubmitting} className="flex-1">
-              {isSubmitting ? (<><Clock className="animate-spin mr-2" /> Updating...</>) : "Update Class"}
-            </Button>
+          <div className="d-flex gap-2">
+            <div style={{ flex: 1 }}>
+              <Form.Label>Date</Form.Label>
+              <Form.Control
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Form.Label>Start</Form.Label>
+              <Form.Control
+                type="time"
+                name="startTime"
+                value={form.startTime}
+                onChange={handleChange}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Form.Label>End</Form.Label>
+              <Form.Control
+                type="time"
+                name="endTime"
+                value={form.endTime}
+                onChange={handleChange}
+              />
+            </div>
           </div>
-        </form>
-      </Modal.Body>
+
+          {hasDateChanged && (
+            <Form.Group className="mt-3">
+              <Form.Label>
+                Reason for Reschedule <span className="text-red-500">*</span>
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={reasonForReschedule}
+                onChange={(e) => setReasonForReschedule(e.target.value)}
+                placeholder="Please provide a reason for rescheduling this class..."
+              />
+              <div className="text-xs text-gray-500 mt-1">
+                Students will be notified about this reschedule
+              </div>
+            </Form.Group>
+          )}
+
+          {customFields}
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button variant="secondary" onClick={onHide} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSaveDisabled}
+            title="Apply only to this occurrence"
+          >
+            {isSaving ? (
+              <>
+                <Clock className="w-4 h-4 mr-1 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save this event"
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="warning"
+            disabled={isSaveDisabled || !hasRecurrence}
+            onClick={(e) => submitWithType(e as any, "all")}
+            title={
+              hasRecurrence
+                ? "Apply to all events in this series"
+                : "This event is not part of a series"
+            }
+          >
+            {isSaving ? (
+              <>
+                <Clock className="w-4 h-4 mr-1 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save all in series"
+            )}
+          </Button>
+        </Modal.Footer>
+      </Form>
     </Modal>
   );
 };
