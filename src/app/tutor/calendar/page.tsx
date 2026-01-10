@@ -57,6 +57,45 @@ interface Class {
   studentId?: string;
 }
 
+const STATUS_COLORS = {
+  present: {
+    bg: "bg-green-50",
+    border: "border-green-400",
+    text: "text-green-700",
+    dot: "bg-green-500",
+    label: "Present",
+  },
+  absent: {
+    bg: "bg-red-50",
+    border: "border-red-400",
+    text: "text-red-700",
+    dot: "bg-red-500",
+    label: "Absent",
+  },
+  cancelled: {
+    bg: "bg-gray-100",
+    border: "border-gray-400",
+    text: "text-gray-500",
+    dot: "bg-gray-400",
+    strikethrough: "line-through",
+    label: "Cancelled",
+  },
+  rescheduled: {
+    bg: "bg-blue-50",
+    border: "border-blue-400",
+    text: "text-blue-700",
+    dot: "bg-blue-500",
+    label: "Rescheduled",
+  },
+  pending: {
+    bg: "bg-purple-50",
+    border: "border-purple-400",
+    text: "text-purple-700",
+    dot: "bg-purple-500",
+    label: "Pending",
+  },
+};
+
 const StudentCalendarView = () => {
   const router = useRouter();
   const [students, setStudents] = useState([]);
@@ -81,7 +120,9 @@ const StudentCalendarView = () => {
   const [rescheduleReason, setRescheduleReason] = useState("");
 
   // view state: 'day' | 'week' | 'month'
-  const [activeView, setActiveView] = useState<"day" | "week" | "month">("week");
+  const [activeView, setActiveView] = useState<"day" | "week" | "month">(
+    "week"
+  );
   const handleSetView = (v: "day" | "week" | "month") => {
     setActiveView(v);
   };
@@ -96,7 +137,8 @@ const StudentCalendarView = () => {
     const startPad = first.getDay();
     const days: (Date | null)[] = [];
     for (let i = 0; i < startPad; i++) days.push(null);
-    for (let d = 1; d <= last.getDate(); d++) days.push(new Date(year, month, d));
+    for (let d = 1; d <= last.getDate(); d++)
+      days.push(new Date(year, month, d));
     return days;
   };
 
@@ -197,9 +239,9 @@ const StudentCalendarView = () => {
     try {
       const classId = selectedClass._id;
       const res = await fetch(
-        `/Api/calendar/classes?classId=${encodeURIComponent(classId)}&deleteType=${encodeURIComponent(
-          type
-        )}`,
+        `/Api/calendar/classes?classId=${encodeURIComponent(
+          classId
+        )}&deleteType=${encodeURIComponent(type)}`,
         {
           method: "DELETE",
           headers: {
@@ -212,9 +254,12 @@ const StudentCalendarView = () => {
       );
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || data.message || "Failed to delete class");
+      if (!res.ok)
+        throw new Error(data.error || data.message || "Failed to delete class");
 
-      toast.success(type === "single" ? "Deleted this event" : "Deleted all events");
+      toast.success(
+        type === "single" ? "Deleted this event" : "Deleted all events"
+      );
       setShowDeleteModal(false);
       setShowClassModal(false);
       setSelectedClass(null);
@@ -229,7 +274,7 @@ const StudentCalendarView = () => {
       toast.error(err.message || "Failed to delete class");
     }
   };
-  
+
   const handleEditSuccess = async (updatedData?: any) => {
     try {
       // Save reschedule reason if provided
@@ -241,8 +286,8 @@ const StudentCalendarView = () => {
           },
           body: JSON.stringify({
             reasonForReschedule: rescheduleReason,
-            status: "rescheduled"
-          })
+            status: "rescheduled",
+          }),
         });
 
         if (!res.ok) {
@@ -255,7 +300,7 @@ const StudentCalendarView = () => {
       if (studentList.length > 0) {
         await fetchAllClasses(studentList);
       }
-      
+
       setShowEditModal(false);
       setEditingClassId(null);
       setSelectedClass(null);
@@ -299,7 +344,9 @@ const StudentCalendarView = () => {
   const fetchAllClasses = async (studentList) => {
     try {
       const classPromises = studentList.map(async (student) => {
-        const response = await fetch(`/Api/calendar/classes?userid=${student._id}`);
+        const response = await fetch(
+          `/Api/calendar/classes?userid=${student._id}`
+        );
         const data = await response.json();
         return {
           studentId: student._id,
@@ -309,7 +356,7 @@ const StudentCalendarView = () => {
 
       const results = await Promise.all(classPromises);
       setAllClasses(results);
-      
+
       // Fetch attendance for all students
       await fetchAttendanceForStudents(studentList);
     } catch (error) {
@@ -321,15 +368,20 @@ const StudentCalendarView = () => {
     try {
       const attendancePromises = studentList.map(async (student) => {
         try {
-          const response = await fetch(`/Api/student/attendanceData?studentId=${student._id}`);
+          const response = await fetch(
+            `/Api/student/attendanceData?studentId=${student._id}`
+          );
           const data = await response.json();
           return { studentId: student._id, attendance: data.attendance || [] };
         } catch (err) {
-          console.error(`Failed to fetch attendance for student ${student._id}`, err);
+          console.error(
+            `Failed to fetch attendance for student ${student._id}`,
+            err
+          );
           return { studentId: student._id, attendance: [] };
         }
       });
-      
+
       const results = await Promise.all(attendancePromises);
       const map: Record<string, any[]> = {};
       results.forEach(({ studentId, attendance }) => {
@@ -358,7 +410,8 @@ const StudentCalendarView = () => {
 
     const attendance = attendanceMap[studentId];
     const classRecord = attendance.find(
-      (record) => record.classId === classItem._id || record.sessionId === classItem._id
+      (record) =>
+        record.classId === classItem._id || record.sessionId === classItem._id
     );
 
     if (!classRecord) return "pending";
@@ -368,23 +421,17 @@ const StudentCalendarView = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "present":
-        return { bg: "bg-green-50", border: "border-green-400", text: "text-green-700", dot: "bg-green-500" };
+        return STATUS_COLORS.present;
       case "absent":
-        return { bg: "bg-red-50", border: "border-red-400", text: "text-red-700", dot: "bg-red-500" };
+        return STATUS_COLORS.absent;
       case "cancelled":
-        return {
-          // same styling as pending, but with strike-through
-          bg: "bg-purple-50",
-          border: "border-purple-400",
-          text: "text-purple-700",
-          dot: "bg-purple-500",
-          strikethrough: true,
-        };
+      case "canceled":
+        return STATUS_COLORS.cancelled;
       case "rescheduled":
-        return { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-600", dot: "bg-gray-400" };
+        return STATUS_COLORS.rescheduled;
       case "pending":
       default:
-        return { bg: "bg-purple-50", border: "border-purple-400", text: "text-purple-700", dot: "bg-purple-500" };
+        return STATUS_COLORS.pending;
     }
   };
 
@@ -436,7 +483,7 @@ const StudentCalendarView = () => {
   const getWeekDays = () => {
     const ref = cloneDate(currentDate);
     const day = ref.getDay();
-    const diff = ref.getDate() - day + (day === 0 ? -6 : 1); 
+    const diff = ref.getDate() - day + (day === 0 ? -6 : 1);
     const startOfWeek = cloneDate(ref);
     startOfWeek.setDate(diff);
 
@@ -453,17 +500,17 @@ const StudentCalendarView = () => {
 
   // Helper to get date components in user's timezone
   const getDateComponentsInTz = (date: Date | string, tz: string) => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    const formatter = new Intl.DateTimeFormat('en-US', {
+    const d = typeof date === "string" ? new Date(date) : date;
+    const formatter = new Intl.DateTimeFormat("en-US", {
       timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
     const parts = formatter.formatToParts(d);
-    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0');
-    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
+    const year = parseInt(parts.find((p) => p.type === "year")?.value || "0");
+    const month = parseInt(parts.find((p) => p.type === "month")?.value || "0");
+    const day = parseInt(parts.find((p) => p.type === "day")?.value || "0");
     return { year, month, day };
   };
 
@@ -480,14 +527,16 @@ const StudentCalendarView = () => {
     );
     if (!studentClasses) return [];
 
-    return studentClasses.classes.filter((classItem) => {
-      if (!classItem.startTime) return false;
-      // Compare dates in user's timezone to ensure correct date matching
-      return isSameDayInTz(classItem.startTime, date, userTz);
-    }).map((classItem) => ({
-      ...classItem,
-      studentId: studentId // Add studentId to each class item
-    }));
+    return studentClasses.classes
+      .filter((classItem) => {
+        if (!classItem.startTime) return false;
+        // Compare dates in user's timezone to ensure correct date matching
+        return isSameDayInTz(classItem.startTime, date, userTz);
+      })
+      .map((classItem) => ({
+        ...classItem,
+        studentId: studentId, // Add studentId to each class item
+      }));
   };
 
   const handleJoinMeeting = async (classId: string) => {
@@ -521,7 +570,7 @@ const StudentCalendarView = () => {
         `/tutor/video-call?url=${encodeURIComponent(data.url)}&userRole=${
           userData.category
         }&token=${encodeURIComponent(data.token || "")}`,
-        '_blank'
+        "_blank"
       );
     } catch (error: any) {
       console.error("[Meeting] Error details:", error);
@@ -541,7 +590,9 @@ const StudentCalendarView = () => {
   const handlePrev = () => {
     if (activeView === "month") {
       // go to previous month (keep to first day of that month for consistent month view)
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+      setCurrentDate(
+        new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+      );
     } else if (activeView === "week") {
       // shift one week back
       const d = cloneDate(currentDate);
@@ -554,7 +605,9 @@ const StudentCalendarView = () => {
 
   const handleNext = () => {
     if (activeView === "month") {
-      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+      setCurrentDate(
+        new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+      );
     } else if (activeView === "week") {
       const d = cloneDate(currentDate);
       d.setDate(d.getDate() + 7);
@@ -626,15 +679,14 @@ const StudentCalendarView = () => {
 
       {/* Main Content */}
       <div className="flex-1 min-h-screen">
-        
         {/* Header */}
         <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center gap-5px">
           <Link
-                          href={`/tutor`}
-                          className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
-                        >
-                          <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
-                        </Link>
+            href={`/tutor`}
+            className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
+          >
+            <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
+          </Link>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Tutor Calendar
           </h1>
@@ -676,7 +728,10 @@ const StudentCalendarView = () => {
                 >
                   {">"}
                 </button>
-                <button onClick={handleToday} className="ml-3 px-3 py-1 rounded bg-gray-100 text-sm">
+                <button
+                  onClick={handleToday}
+                  className="ml-3 px-3 py-1 rounded bg-gray-100 text-sm"
+                >
                   Today
                 </button>
               </div>
@@ -788,7 +843,10 @@ const StudentCalendarView = () => {
                 <div className="bg-white p-4 rounded-lg">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold">
-                      {currentDate.toLocaleString("en-US", { month: "long", year: "numeric" })}
+                      {currentDate.toLocaleString("en-US", {
+                        month: "long",
+                        year: "numeric",
+                      })}
                     </h3>
                     {/* <div className="flex gap-2">
                       <button
@@ -810,16 +868,24 @@ const StudentCalendarView = () => {
                   </div>
 
                   <div className="grid grid-cols-7 gap-1 text-xs text-center text-gray-500 mb-2">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                      <div key={d} className="py-2">
-                        {d}
-                      </div>
-                    ))}
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                      (d) => (
+                        <div key={d} className="py-2">
+                          {d}
+                        </div>
+                      )
+                    )}
                   </div>
 
                   <div className="grid grid-cols-7 gap-2">
                     {generateMonthDays(currentDate).map((d, idx) => {
-                      const classCount = d ? filteredStudents.reduce((acc, s) => acc + getClassesForDate(s._id, d).length, 0) : 0;
+                      const classCount = d
+                        ? filteredStudents.reduce(
+                            (acc, s) =>
+                              acc + getClassesForDate(s._id, d).length,
+                            0
+                          )
+                        : 0;
 
                       return (
                         <div
@@ -829,16 +895,23 @@ const StudentCalendarView = () => {
                             setCurrentDate(d);
                             setActiveView("day");
                           }}
-                          className={`min-h-[88px] p-2 border rounded ${d ? "bg-white cursor-pointer hover:bg-gray-50" : "bg-transparent"}`}
+                          className={`min-h-[88px] p-2 border rounded ${
+                            d
+                              ? "bg-white cursor-pointer hover:bg-gray-50"
+                              : "bg-transparent"
+                          }`}
                         >
                           {d ? (
                             <>
-                              <div className="text-sm font-medium">{d.getDate()}</div>
+                              <div className="text-sm font-medium">
+                                {d.getDate()}
+                              </div>
 
                               <div className="mt-2 text-xs text-gray-600">
                                 {classCount > 0 ? (
                                   <span className="inline-block px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
-                                    {classCount} class{classCount !== 1 ? "es" : ""}
+                                    {classCount} class
+                                    {classCount !== 1 ? "es" : ""}
                                   </span>
                                 ) : (
                                   <span className="text-gray-300">—</span>
@@ -854,7 +927,10 @@ const StudentCalendarView = () => {
               ) : (
                 <>
                   {/* Header Row */}
-                  <div className="grid items-stretch bg-white" style={gridTemplate}>
+                  <div
+                    className="grid items-stretch bg-white"
+                    style={gridTemplate}
+                  >
                     {/* Search Input Cell */}
                     <div className="p-3 bg-white">
                       <input
@@ -883,25 +959,39 @@ const StudentCalendarView = () => {
                   <div className="max-h-[70vh] overflow-auto">
                     {filteredStudents.length === 0 ? (
                       <div className="p-8 text-center">
-                        <div className="text-[16px] text-[#9B9B9B] mb-2">No students to display</div>
+                        <div className="text-[16px] text-[#9B9B9B] mb-2">
+                          No students to display
+                        </div>
                         <div className="text-[14px] text-[#C4C4C4]">
-                          {searchTerm ? "Try adjusting your search terms" : "No students found in the system"}
+                          {searchTerm
+                            ? "Try adjusting your search terms"
+                            : "No students found in the system"}
                         </div>
                       </div>
                     ) : (
                       filteredStudents.map((student) => (
-                        <div key={student._id} className="grid items-center hover:bg-gray-50 transition-colors" style={gridTemplate}>
+                        <div
+                          key={student._id}
+                          className="grid items-center hover:bg-gray-50 transition-colors"
+                          style={gridTemplate}
+                        >
                           {/* Student Info Cell */}
                           <div className="p-3 flex items-center gap-3 min-h-[88px] border-r border-gray-200">
                             {student.profileImage ? (
-                              <img src={student.profileImage} alt={student.username} className="w-10 h-10 rounded-full object-cover" />
+                              <img
+                                src={student.profileImage}
+                                alt={student.username}
+                                className="w-10 h-10 rounded-full object-cover"
+                              />
                             ) : (
                               <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-sm font-medium text-purple-800">
                                 {getInitials(student.username)}
                               </div>
                             )}
                             <div>
-                              <div className="text-[14px] text-[#212121] font-medium">{student.username}</div>
+                              <div className="text-[14px] text-[#212121] font-medium">
+                                {student.username}
+                              </div>
                             </div>
                           </div>
 
@@ -912,29 +1002,57 @@ const StudentCalendarView = () => {
                               <div key={idx} className="p-3 min-h-[88px]">
                                 {classes.length === 0 ? (
                                   <div className="h-full flex items-center justify-center">
-                                    <div className="text-[12px] text-[#E0E0E0]">No classes</div>
+                                    <div className="text-[12px] text-[#E0E0E0]">
+                                      No classes
+                                    </div>
                                   </div>
                                 ) : (
                                   classes.map((classItem, cIdx) => {
-                                    const attendanceStatus = getClassAttendanceStatus(classItem);
-                                    const statusColor = getStatusColor(attendanceStatus);
+                                    const attendanceStatus =
+                                      getClassAttendanceStatus(classItem);
+                                    const statusColor =
+                                      getStatusColor(attendanceStatus);
                                     return (
                                       <div
                                         key={classItem._id || cIdx}
-                                        className={`mb-2 last:mb-0 p-2 ${statusColor.bg} border-l-4 ${statusColor.border} hover:opacity-90 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-all cursor-pointer relative ${statusColor.strikethrough ? 'overflow-hidden' : ''}`}
-                                        title={`${classItem.title || "Class"} - ${formatTime(classItem.startTime, classItem.endTime)}`}
-                                        onClick={() => handleClassClick(classItem)}
+                                        className={`mb-2 last:mb-0 p-2 ${statusColor.bg} border-l-4 ${statusColor.border} hover:opacity-90 text-xs text-[#212121] rounded-md shadow-sm hover:shadow-md transition-all cursor-pointer relative`}
+                                        title={`${
+                                          classItem.title || "Class"
+                                        } - ${formatTime(
+                                          classItem.startTime,
+                                          classItem.endTime
+                                        )}`}
+                                        onClick={() =>
+                                          handleClassClick(classItem)
+                                        }
                                       >
-                                        {statusColor.strikethrough && (
-                                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                            <div className="w-full h-[2px] bg-red-500 transform rotate-[-15deg]" />
-                                          </div>
-                                        )}
                                         <div className="flex items-center justify-between gap-2">
-                                          <div className="font-medium text-[13px] truncate">{classItem.title || "Class"}</div>
-                                          <span className={`w-2 h-2 rounded-full ${statusColor.dot}`} title={attendanceStatus}></span>
+                                          <div
+                                            className={`font-medium text-[13px] truncate ${
+                                              statusColor.strikethrough
+                                                ? "line-through"
+                                                : ""
+                                            } ${statusColor.text}`}
+                                          >
+                                            {classItem.title || "Class"}
+                                          </div>
+                                          <span
+                                            className={`w-2 h-2 rounded-full ${statusColor.dot}`}
+                                            title={attendanceStatus}
+                                          ></span>
                                         </div>
-                                        <div className="text-[11px] text-gray-600 truncate">{formatTime(classItem.startTime, classItem.endTime)}</div>
+                                        <div
+                                          className={`text-[11px] truncate ${
+                                            statusColor.strikethrough
+                                              ? "line-through"
+                                              : "text-gray-600"
+                                          }`}
+                                        >
+                                          {formatTime(
+                                            classItem.startTime,
+                                            classItem.endTime
+                                          )}
+                                        </div>
 
                                         {/* Add this block for reschedule reason */}
                                         {/* {classItem.reasonForReschedule && classItem.status === 'rescheduled' && (
@@ -944,11 +1062,15 @@ const StudentCalendarView = () => {
                                         )} */}
 
                                         {/* Add this block for cancellation reason */}
-                                        {classItem.reasonForCancelation && classItem.status === 'canceled' && (
-                                          <div className="mt-1 text-[10px] text-red-700 bg-red-50 p-1 rounded">
-                                            <span className="font-semibold">Cancelled:</span> {classItem.reasonForCancelation}
-                                          </div>
-                                        )}
+                                        {classItem.reasonForCancelation &&
+                                          classItem.status === "canceled" && (
+                                            <div className="mt-1 text-[10px] text-red-700 bg-red-50 p-1 rounded">
+                                              <span className="font-semibold">
+                                                Cancelled:
+                                              </span>{" "}
+                                              {classItem.reasonForCancelation}
+                                            </div>
+                                          )}
                                       </div>
                                     );
                                   })
@@ -963,10 +1085,28 @@ const StudentCalendarView = () => {
                 </>
               )}
             </div>
+
+            {/* Add this legend component just below your calendar grid, before the closing </div> of the main calendar container: */}
+            <div className="mt-6 flex flex-wrap gap-4 items-center justify-center">
+              {Object.entries(STATUS_COLORS).map(([key, val]) => (
+                <div key={key} className="flex items-center gap-2">
+                  <span
+                    className={`inline-block w-4 h-4 rounded-full border ${val.dot} ${val.border}`}
+                  ></span>
+                  <span
+                    className={`text-xs text-gray-700 ${
+                      val.strikethrough || ""
+                    }`}
+                  >
+                    {val.label}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </main>
       </div>
-      
+
       {/* Class Options Modal */}
       <Modal
         show={showClassModal}
@@ -986,18 +1126,23 @@ const StudentCalendarView = () => {
                   ""}
               </div>
             </div>
-            {selectedClass && (
+            {selectedClass &&
               (() => {
-                const attendanceStatus = getClassAttendanceStatus(selectedClass);
+                const attendanceStatus =
+                  getClassAttendanceStatus(selectedClass);
                 const statusColor = getStatusColor(attendanceStatus);
                 return (
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${statusColor.bg} ${statusColor.text} border ${statusColor.border}`}>
-                    <span className={`w-2 h-2 rounded-full ${statusColor.dot}`}></span>
-                    {attendanceStatus.charAt(0).toUpperCase() + attendanceStatus.slice(1)}
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${statusColor.bg} ${statusColor.text} border ${statusColor.border}`}
+                  >
+                    <span
+                      className={`w-2 h-2 rounded-full ${statusColor.dot}`}
+                    ></span>
+                    {attendanceStatus.charAt(0).toUpperCase() +
+                      attendanceStatus.slice(1)}
                   </span>
                 );
-              })()
-            )}
+              })()}
           </div>
         </Modal.Header>
         <Modal.Body className="pt-2">
@@ -1006,11 +1151,15 @@ const StudentCalendarView = () => {
               <Clock className="w-4 h-4 text-gray-500" />
               <div>
                 <div className="font-medium">
-                  {formatTime(selectedClass?.startTime, selectedClass?.endTime) ||
-                    "No time"}
+                  {formatTime(
+                    selectedClass?.startTime,
+                    selectedClass?.endTime
+                  ) || "No time"}
                 </div>
                 <div className="text-xs text-gray-400">
-                  {new Date(selectedClass?.startTime || Date.now()).toLocaleDateString()}
+                  {new Date(
+                    selectedClass?.startTime || Date.now()
+                  ).toLocaleDateString()}
                 </div>
               </div>
             </div>
@@ -1025,15 +1174,23 @@ const StudentCalendarView = () => {
 
             {selectedClass?.cancellationReason && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                <div className="text-xs font-semibold text-red-700 mb-1">Cancellation Reason:</div>
-                <div className="text-sm text-red-600">{selectedClass.cancellationReason}</div>
+                <div className="text-xs font-semibold text-red-700 mb-1">
+                  Cancellation Reason:
+                </div>
+                <div className="text-sm text-red-600">
+                  {selectedClass.cancellationReason}
+                </div>
               </div>
             )}
 
             {selectedClass?.rescheduleReason && (
               <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                <div className="text-xs font-semibold text-gray-700 mb-1">Reschedule Reason:</div>
-                <div className="text-sm text-gray-600">{selectedClass.rescheduleReason}</div>
+                <div className="text-xs font-semibold text-gray-700 mb-1">
+                  Reschedule Reason:
+                </div>
+                <div className="text-sm text-gray-600">
+                  {selectedClass.rescheduleReason}
+                </div>
               </div>
             )}
 
@@ -1085,6 +1242,11 @@ const StudentCalendarView = () => {
                 onClick={() => {
                   setShowCancelModal(true);
                 }}
+                disabled={
+                  selectedClass &&
+                  (getClassAttendanceStatus(selectedClass) === "cancelled" ||
+                    getClassAttendanceStatus(selectedClass) === "canceled")
+                }
               >
                 Cancel
               </Button>
@@ -1132,7 +1294,8 @@ const StudentCalendarView = () => {
         </Modal.Header>
         <Modal.Body className="pt-2">
           <p className="text-sm text-gray-600 mb-3">
-            You are about to cancel this class. Students will see it as cancelled on their calendar.
+            You are about to cancel this class. Students will see it as
+            cancelled on their calendar.
           </p>
 
           <div className="mb-4">
@@ -1191,7 +1354,8 @@ const StudentCalendarView = () => {
         </Modal.Header>
         <Modal.Body className="pt-2">
           <p className="text-sm text-gray-600 mb-3">
-            Are you sure you want to permanently delete this class? This action cannot be undone.
+            Are you sure you want to permanently delete this class? This action
+            cannot be undone.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -1226,8 +1390,8 @@ const StudentCalendarView = () => {
       {/* Edit Class Modal with Reschedule Reason */}
       <EditClassModal
         show={showEditModal}
-        onHide={() => { 
-          setShowEditModal(false); 
+        onHide={() => {
+          setShowEditModal(false);
           setEditingClassId(null);
           setRescheduleReason("");
         }}
@@ -1252,8 +1416,77 @@ const StudentCalendarView = () => {
         //   </div>
         // }
       />
+
+      {/* Cancel Class Modal - New Component */}
+      <CancelClassModal
+        show={showCancelModal}
+        onHide={() => setShowCancelModal(false)}
+        onCancel={async (reason) => {
+          setCancellationReason(reason);
+          await handleCancelClass();
+        }}
+        disabled={
+          selectedClass &&
+          (getClassAttendanceStatus(selectedClass) === "cancelled" ||
+            getClassAttendanceStatus(selectedClass) === "canceled")
+        }
+      />
     </div>
   );
 };
+
+const CancelClassModal = React.memo(({ show, onHide, onCancel, disabled }) => {
+  const [reason, setReason] = useState("");
+  useEffect(() => {
+    if (!show) setReason("");
+  }, [show]);
+  return (
+    <Modal show={show} onHide={onHide} centered dialogClassName="max-w-md">
+      <Modal.Header closeButton className="border-0 pb-0">
+        <div className="flex items-center gap-2">
+          <AlertCircle className="w-5 h-5 text-orange-500" />
+          <h5 className="mb-0 text-lg font-semibold">Cancel Class</h5>
+        </div>
+      </Modal.Header>
+      <Modal.Body className="pt-2">
+        <p className="text-sm text-gray-600 mb-3">
+          You are about to cancel this class. Students will see it as cancelled
+          on their calendar.
+        </p>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Reason for Cancellation <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="Please provide a reason..."
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+            rows={3}
+            maxLength={500}
+          />
+          <div className="text-xs text-gray-400 mt-1">{reason.length}/500</div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button
+            variant="secondary"
+            className="flex-1 !py-2 !rounded-md !text-sm"
+            onClick={onHide}
+          >
+            Keep Class
+          </Button>
+          <Button
+            variant="warning"
+            className="flex-1 !py-2 !rounded-md !text-sm"
+            onClick={() => onCancel(reason)}
+            disabled={!reason.trim() || disabled}
+          >
+            Cancel Class
+          </Button>
+        </div>
+      </Modal.Body>
+    </Modal>
+  );
+});
 
 export default StudentCalendarView;

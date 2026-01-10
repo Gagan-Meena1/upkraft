@@ -33,6 +33,45 @@ interface UserData {
   category: string;
 }
 
+const STATUS_COLORS = {
+  present: {
+    bg: "bg-green-50",
+    border: "border-green-400",
+    text: "text-green-700",
+    dot: "bg-green-500",
+    label: "Present",
+  },
+  absent: {
+    bg: "bg-red-50",
+    border: "border-red-400",
+    text: "text-red-700",
+    dot: "bg-red-500",
+    label: "Absent",
+  },
+  cancelled: {
+    bg: "bg-gray-100",
+    border: "border-gray-400",
+    text: "text-gray-500",
+    dot: "bg-gray-400",
+    strikethrough: "line-through",
+    label: "Cancelled",
+  },
+  rescheduled: {
+    bg: "bg-blue-50",
+    border: "border-blue-400",
+    text: "text-blue-700",
+    dot: "bg-blue-500",
+    label: "Rescheduled",
+  },
+  pending: {
+    bg: "bg-purple-50",
+    border: "border-purple-400",
+    text: "text-purple-700",
+    dot: "bg-purple-500",
+    label: "Pending",
+  },
+};
+
 const StudentCalendarView = () => {
   const router = useRouter();
   // remove tutor/students list focus; add own schedule + assignments
@@ -315,20 +354,21 @@ const StudentCalendarView = () => {
     gridTemplateColumns: "200px repeat(7, minmax(0, 1fr))",
   };
 
-  // Add helper (copy of tutor calendar's getStatusColor)
+  // Replace your getStatusColor function with:
   const getStatusColor = (status: string) => {
     switch (status) {
       case "present":
-        return { bg: "bg-green-50", border: "border-green-400", text: "text-green-700", dot: "bg-green-500" };
+        return STATUS_COLORS.present;
       case "absent":
-        return { bg: "bg-red-50", border: "border-red-400", text: "text-red-700", dot: "bg-red-500" };
+        return STATUS_COLORS.absent;
       case "cancelled":
-        return { bg: "bg-gray-50", border: "border-gray-400", text: "text-gray-700", dot: "bg-gray-500", strikethrough: true };
+      case "canceled":
+        return STATUS_COLORS.cancelled;
       case "rescheduled":
-        return { bg: "bg-gray-100", border: "border-gray-300", text: "text-gray-600", dot: "bg-gray-400" };
+        return STATUS_COLORS.rescheduled;
       case "pending":
       default:
-        return { bg: "bg-purple-50", border: "border-purple-400", text: "text-purple-700", dot: "bg-purple-500" };
+        return STATUS_COLORS.pending;
     }
   };
   
@@ -641,6 +681,15 @@ const StudentCalendarView = () => {
                   </div>
                 </>
               )}
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-4 items-center justify-center">
+              {Object.entries(STATUS_COLORS).map(([key, val]) => (
+                <div key={key} className="flex items-center gap-2">
+                  <span className={`inline-block w-4 h-4 rounded-full border ${val.dot} ${val.border}`}></span>
+                  <span className={`text-xs text-gray-700 ${val.strikethrough || ""}`}>{val.label}</span>
+                </div>
+              ))}
             </div>
           </div>
         </main>
