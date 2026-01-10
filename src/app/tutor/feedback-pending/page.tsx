@@ -274,7 +274,7 @@ const handleConfirmVideo = async () => {
     reader.onloadend = async () => {
       const base64data = reader.result;
 
-      const uploadResponse = await axios.post('/Api/upload/cloudinary', {
+      const uploadResponse = await axios.post('/Api/upload/s3', {
         videoData: base64data,
         classId: classData._id,
         studentId: student._id,
