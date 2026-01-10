@@ -1,12 +1,23 @@
 import User from "@/models/userModel";
 import bcryptjs from "bcryptjs";
 import nodemailer from "nodemailer";
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+// Add S3 client configuration
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
 
 console.log("[Mailer] Module initialized");
 
 interface EmailParams {
   email: string;
-  emailType: "VERIFY" | "RESET" | "RESET_PASSWORD" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION" | "REQUEST_APPROVED" | "STUDENT_INVITATION" | "CLASS_RESCHEDULED" | "CLASS_CANCELLED" | "FEEDBACK_RECEIVED";
+  emailType: "VERIFY" | "RESET" | "RESET_PASSWORD" | "MAGIC_LINK" | "ADMIN_APPROVAL" | "USER_CONFIRMATION" | "REQUEST_APPROVED" | "STUDENT_INVITATION" | "CLASS_RESCHEDULED" | "CLASS_CANCELLED" | "FEEDBACK_RECEIVED" | "VIDEO_SHARE";
   userId?: string;
   username?: string;
   category?: string;
@@ -26,6 +37,8 @@ interface EmailParams {
   feedbackCategory?:string;
   classDate?: string;
   feedbackDetails?: any;
+    videoUrl?: string; // Add this
+  message?: string; // Add this
 }
 
 export const sendEmail = async ({ email, emailType, userId, username, category, resetToken, tutorName, courseName,
@@ -41,7 +54,9 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
   averageScore,
   feedbackCategory,
   classDate,
-  feedbackDetails
+  feedbackDetails,
+  videoUrl,
+  message
   
  }: EmailParams) => {
   console.log(`[Mailer] Sending ${emailType} email to: ${email}`);
@@ -480,6 +495,69 @@ else if (emailType === "FEEDBACK_RECEIVED") {
 </html>
   `
 };
+}
+else if (emailType === "VIDEO_SHARE") {
+  // Generate pre-signed URLs (valid for 7 days)
+  const url = new URL(videoUrl!);
+  const key = url.pathname.substring(1);
+
+  const viewCommand = new GetObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET_NAME!,
+    Key: key,
+  });
+  const viewUrl = await getSignedUrl(s3Client, viewCommand, { 
+    expiresIn: 604800 // 7 days
+  });
+
+  const downloadCommand = new GetObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET_NAME!,
+    Key: key,
+    ResponseContentDisposition: 'attachment',
+  });
+  const downloadUrl = await getSignedUrl(s3Client, downloadCommand, { 
+    expiresIn: 604800 
+  });
+
+  mailOptions = {
+    from: fromAddress,
+    to: email,
+    subject: `Class Recording - ${ username} - ${className || courseName}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f8f6; min-height: 100vh;">
+        <h1 style="color: #ff8c00; text-align: center;">Class Recording</h1>
+        <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <p style="font-size: 16px; color: #333;"><strong>Student:</strong> ${username}</p>
+          <p style="font-size: 16px; color: #333;"><strong>Class:</strong> ${className || courseName}</p>
+          ${classDate ? `<p style="font-size: 16px; color: #333;"><strong>Date:</strong> ${classDate}</p>` : ''}
+          
+          ${message ? `<p style="font-size: 16px; color: #666; margin: 20px 0;">${message}</p>` : ''}
+          
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${viewUrl}" 
+               style="display: inline-block; padding: 12px 24px; background-color: #9333ea; color: white; text-decoration: none; border-radius: 5px; margin: 5px; font-weight: bold;">
+              ▶️ Watch Video
+            </a>
+            
+            <a href="${downloadUrl}" 
+               style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 5px; margin: 5px; font-weight: bold;">
+              ⬇️ Download Video
+            </a>
+          </div>
+          
+          <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p style="font-size: 14px; color: #856404; margin: 0;">
+              ⏰ <strong>Note:</strong> These links will expire in 7 days for security reasons.
+            </p>
+          </div>
+        </div>
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
+          <p style="color: #888; font-size: 12px;">
+            © 2024 UpKraft. All rights reserved.
+          </p>
+        </div>
+      </div>
+    `,
+  };
 }
     else {
       // Regular verification email
