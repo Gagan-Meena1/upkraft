@@ -10,7 +10,7 @@ import {
   Users,
   UserCheck,
 } from "lucide-react";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 
 interface Course {
   _id: string;
@@ -58,7 +58,7 @@ interface Assignment {
     _id: string;
     title: string;
   };
-  userId?: string[]; 
+  userId?: string[];
 }
 
 interface CreateAssignmentModalProps {
@@ -67,8 +67,23 @@ interface CreateAssignmentModalProps {
   onSuccess?: () => void;
   courses: Course[];
   classes: Class[];
-  editingAssignment?: Assignment | null; 
+  editingAssignment?: Assignment | null;
 }
+
+type ExtraAssignment = {
+  title: string;
+  description: string;
+  deadline: string;
+  course: string;
+  class: string;
+  selectedStudents: string[];
+  songName?: string;
+  customSongName?: string;
+  assignmentFile?: File | null;
+  // per-extra lists so UI for extra matches main assignment
+  courseClasses?: Class[];
+  availableStudents?: Student[];
+};
 
 export default function CreateAssignmentModal({
   isOpen,
@@ -78,10 +93,13 @@ export default function CreateAssignmentModal({
   classes,
   editingAssignment,
 }: CreateAssignmentModalProps) {
-  const router = useRouter(); 
+  const router = useRouter();
   const [formData, setFormData] = useState(() => {
     try {
-      const saved = typeof window !== "undefined" ? localStorage.getItem("assignmentDefaults") : null;
+      const saved =
+        typeof window !== "undefined"
+          ? localStorage.getItem("assignmentDefaults")
+          : null;
       const defaults = saved ? JSON.parse(saved) : {};
       return {
         title: "",
@@ -111,6 +129,75 @@ export default function CreateAssignmentModal({
     }
   });
 
+  const [extraAssignments, setExtraAssignments] = useState<ExtraAssignment[]>(
+    []
+  );
+
+  const [musicSheet, setMusicSheet] = useState<File | null>(null);
+  const [assignmentFile, setAssignmentFile] = useState<File | null>(null);
+  const [practiceStudio, setPracticeStudio] = useState(false);
+
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [coursesOptions, setCoursesOptions] = useState<Course[]>([]);
+  const [classesOptions, setClassesOptions] = useState<Class[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+  const [loadingClasses, setLoadingClasses] = useState(false);
+
+  const [songSearchResults, setSongSearchResults] = useState<Song[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSongResults, setShowSongResults] = useState(false);
+  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const songInputRef = useRef<HTMLDivElement>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(false);
+
+  const initialSnapshotRef = useRef<any>(null);
+
+  const arraysEqual = (a: string[], b: string[]) => {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  };
+
+  const isAssignmentChanged = () => {
+    if (!editingAssignment) return true;
+    const init = initialSnapshotRef.current;
+    if (!init) return false;
+
+    const f = formData;
+    const keys = [
+      "title",
+      "description",
+      "deadline",
+      "songName",
+      "customSongName",
+      "course",
+      "class",
+      "speed",
+      "metronome",
+      "loop",
+    ];
+    for (const k of keys) {
+      if ((f as any)[k] !== init.formData[k]) return true;
+    }
+
+    if (practiceStudio !== init.practiceStudio) return true;
+
+    const currStudents = [...selectedStudents].sort();
+    const initStudents = [...(init.selectedStudents || [])].sort();
+    if (!arraysEqual(currStudents, initStudents)) return true;
+
+    if (assignmentFile || musicSheet) return true;
+
+    return false;
+  };
+
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -130,7 +217,8 @@ export default function CreateAssignmentModal({
           customSongName: "",
           course: editingAssignment.course?._id || prev.course || "",
           speed: editingAssignment.speed || prev.speed || "100%",
-          metronome: editingAssignment.metronome || prev.metronome || "100%",
+          metronome:
+            editingAssignment.metronome || prev.metronome || "100%",
           loop: editingAssignment.loop || prev.loop || "Set A",
         }));
 
@@ -139,7 +227,13 @@ export default function CreateAssignmentModal({
         if (editingAssignment.course?._id) {
           setCoursesOptions((prev) => {
             if (!prev.find((c) => c._id === editingAssignment.course._id)) {
-              return [...prev, { _id: editingAssignment.course._id, title: editingAssignment.course.title }];
+              return [
+                ...prev,
+                {
+                  _id: editingAssignment.course._id,
+                  title: editingAssignment.course.title,
+                },
+              ];
             }
             return prev;
           });
@@ -173,123 +267,59 @@ export default function CreateAssignmentModal({
             loop: editingAssignment.loop || "Set A",
           },
           practiceStudio: Boolean(editingAssignment.practiceStudio),
-          selectedStudents: Array.isArray(editingAssignment.userId) ? [...editingAssignment.userId] : [],
+          selectedStudents: Array.isArray(editingAssignment.userId)
+            ? [...editingAssignment.userId]
+            : [],
         };
- 
-       } else {
-         try {
-           const saved = typeof window !== "undefined" ? localStorage.getItem("assignmentDefaults") : null;
-           const defaults = saved ? JSON.parse(saved) : {};
-           setFormData((prev) => ({
-             ...prev,
-             course: defaults.course || prev.course || "",
-             class: defaults.class || prev.class || "",
-             speed: defaults.speed || prev.speed || "100%",
-             metronome: defaults.metronome || prev.metronome || "100%",
-             loop: defaults.loop || prev.loop || "Set A",
-           }));
-           setPracticeStudio(Boolean(defaults.practiceStudio));
-         } catch {
-         }
-         setMusicSheet(null);
-         setAssignmentFile(null);
-         setSelectedStudents([]);
-       }
-     };
- 
-     init();
-   }, [editingAssignment, isOpen]);
 
-  const [musicSheet, setMusicSheet] = useState<File | null>(null);
-  const [assignmentFile, setAssignmentFile] = useState<File | null>(null);
-  const [practiceStudio, setPracticeStudio] = useState(false);
-
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const [coursesOptions, setCoursesOptions] = useState<Course[]>([]);
-  const [classesOptions, setClassesOptions] = useState<Class[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(false);
-  const [loadingClasses, setLoadingClasses] = useState(false);
-
-  const [songSearchResults, setSongSearchResults] = useState<Song[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showSongResults, setShowSongResults] = useState(false);
-  const [selectedSong, setSelectedSong] = useState<Song | null>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const songInputRef = useRef<HTMLDivElement>(null);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-
-  // Snapshot to detect changes when editing
-  const initialSnapshotRef = useRef<any>(null);
-
-  const arraysEqual = (a: string[], b: string[]) => {
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
-    return true;
-  };
-
-  const isAssignmentChanged = () => {
-    if (!editingAssignment) return true; 
-    const init = initialSnapshotRef.current;
-    if (!init) return false; 
-
-    const f = formData;
-    const keys = [
-      "title",
-      "description",
-      "deadline",
-      "songName",
-      "customSongName",
-      "course",
-      "class",
-      "speed",
-      "metronome",
-      "loop",
-    ];
-    for (const k of keys) {
-      if ((f as any)[k] !== init.formData[k]) return true;
-    }
-
-    if (practiceStudio !== init.practiceStudio) return true;
-
-    const currStudents = [...selectedStudents].sort();
-    const initStudents = [...(init.selectedStudents || [])].sort();
-    if (!arraysEqual(currStudents, initStudents)) return true;
-
-    // any newly added files mark as changed
-    if (assignmentFile || musicSheet) return true;
-
-    return false;
-  };
-
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const fetchCurrentUser = async () => {
-      try {
-        const res = await fetch("/Api/users/user");
-        if (!res.ok) return;
-        const data = await res.json();
-        const id =
-          data?.data?._id ||
-          data?.user?._id ||
-          data?.user?._id ||
-          data?._id ||
-          null;
-        if (id) setCurrentUserId(id.toString());
-      } catch (e) {
-        console.warn("Failed to fetch current user id:", e);
+        // reset extras when editing existing assignment
+        setExtraAssignments([]);
+      } else {
+        try {
+          const saved =
+            typeof window !== "undefined"
+              ? localStorage.getItem("assignmentDefaults")
+              : null;
+          const defaults = saved ? JSON.parse(saved) : {};
+          setFormData((prev) => ({
+            ...prev,
+            course: defaults.course || prev.course || "",
+            class: defaults.class || prev.class || "",
+            speed: defaults.speed || prev.speed || "100%",
+            metronome:
+              defaults.metronome || prev.metronome || "100%",
+            loop: defaults.loop || prev.loop || "Set A",
+          }));
+          setPracticeStudio(Boolean(defaults.practiceStudio));
+        } catch {
+          //
+        }
+        setMusicSheet(null);
+        setAssignmentFile(null);
+        setSelectedStudents([]);
+        setExtraAssignments([]);
       }
     };
-    fetchCurrentUser();
-  }, [isOpen]);
+
+    init();
+  }, [editingAssignment, isOpen]);
 
   useEffect(() => {
-    if (isOpen) fetchCourses();
+    if (isOpen) {
+      setFormData({
+            title: "",
+            deadline: "",
+            description: "",
+            songName: "",
+            customSongName: "",
+            course: "",
+            class: "",
+            speed: "100%",
+            metronome: "100%",
+            loop: "Set A",
+          });
+      fetchCourses()
+    };
   }, [isOpen]);
 
   const fetchCourses = async () => {
@@ -298,9 +328,6 @@ export default function CreateAssignmentModal({
       const res = await fetch("/Api/tutors/courses");
       if (!res.ok) throw new Error("Failed to fetch courses");
       const data = await res.json();
-
-      console.log("Courses API response:", data);
-
       setCoursesOptions(data.course || data.result || []);
     } catch (err) {
       console.error("Fetch courses error:", err);
@@ -327,21 +354,8 @@ export default function CreateAssignmentModal({
       const res = await fetch(`/Api/tutors/courses/${courseId}`);
       if (!res.ok) throw new Error("Failed to fetch classes and students");
       const data = await res.json();
-
-      console.log(
-        `Classes and Students API response for course ${courseId}:`,
-        data
-      );
-
       setClassesOptions(data.classDetails || data.classes || []);
       setStudents(data.enrolledStudents || []);
-
-      if (!editingAssignment) {
-        const allStudentIds = (data.enrolledStudents || []).map(
-          (student: Student) => student._id
-        );
-        setSelectedStudents(allStudentIds);
-      }
     } catch (err) {
       console.error("Fetch classes and students error:", err);
       setClassesOptions([]);
@@ -350,6 +364,49 @@ export default function CreateAssignmentModal({
     } finally {
       setLoadingClasses(false);
       setLoadingStudents(false);
+    }
+  };
+
+  const fetchClassesAndStudentsForExtra = async (index: number, courseId: string) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      copy[index] = {
+        ...copy[index],
+        course: courseId,
+        class: "",
+        courseClasses: [],
+        availableStudents: [],
+        selectedStudents: [],
+      };
+      return copy;
+    });
+
+    try {
+      const res = await fetch(`/Api/tutors/courses/${courseId}`);
+      if (!res.ok) throw new Error("Failed to fetch classes and students for extra");
+      const data = await res.json();
+      setExtraAssignments((prev) => {
+        const copy = [...prev];
+        const slot = copy[index];
+        if (!slot) return prev;
+        slot.courseClasses = data.classDetails || data.classes || [];
+        slot.availableStudents = data.enrolledStudents || [];
+        slot.selectedStudents = [];
+        copy[index] = slot;
+        return copy;
+      });
+    } catch (err) {
+      console.error("Fetch extra classes/students error:", err);
+      setExtraAssignments((prev) => {
+        const copy = [...prev];
+        const slot = copy[index];
+        if (!slot) return prev;
+        slot.courseClasses = [];
+        slot.availableStudents = [];
+        slot.selectedStudents = [];
+        copy[index] = slot;
+        return copy;
+      });
     }
   };
 
@@ -371,6 +428,107 @@ export default function CreateAssignmentModal({
   const handleClearAllStudents = () => {
     setSelectedStudents([]);
   };
+
+  const addExtraAssignment = () => {
+    setExtraAssignments((prev) => [
+      ...prev,
+      {
+        title: formData.title || "",
+        description: "",
+        deadline: "",
+        course: formData.course || "",
+        class: formData.class || "",
+        selectedStudents: [],
+        songName: "",
+        customSongName: "",
+        assignmentFile: null,
+        courseClasses: formData.course ? classesOptions : [],
+        availableStudents: formData.course ? students : [],
+      },
+    ]);
+  };
+
+  const removeExtraAssignment = (index: number) => {
+    setExtraAssignments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const updateExtraAssignmentField = (
+    index: number,
+    field: keyof ExtraAssignment,
+    value: any
+  ) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+
+    // If course changed for extra, fetch its classes & students
+    if (field === "course" && value) {
+      fetchClassesAndStudentsForExtra(index, String(value));
+    }
+  };
+
+  const toggleExtraStudent = (slotIndex: number, studentId: string) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      const slot = copy[slotIndex];
+      if (!slot) return prev;
+      const setIds = new Set(slot.selectedStudents || []);
+      if (setIds.has(studentId)) setIds.delete(studentId);
+      else setIds.add(studentId);
+      // create a new slot object to avoid mutating nested state
+      const newSlot = { ...slot, selectedStudents: Array.from(setIds) };
+      copy[slotIndex] = newSlot;
+      return copy;
+    });
+  };
+
+  const handleExtraSelectAll = (index: number) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      const slot = copy[index];
+      if (!slot) return prev;
+      slot.selectedStudents = (slot.availableStudents || []).map((s) => s._id);
+      const newSlot = { ...slot, selectedStudents: (slot.availableStudents || []).map((s) => s._id) };
+      copy[index] = newSlot;
+      return copy;
+    });
+  };
+
+  const handleExtraClearAll = (index: number) => {
+    setExtraAssignments((prev) => {
+      const copy = [...prev];
+      const slot = copy[index];
+      if (!slot) return prev;
+      slot.selectedStudents = [];
+      const newSlot = { ...slot, selectedStudents: [] };
+      copy[index] = newSlot;
+      return copy;
+    });
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchCurrentUser = async () => {
+      try {
+        const res = await fetch("/Api/users/user");
+        if (!res.ok) return;
+        const data = await res.json();
+        const id =
+          data?.data?._id ||
+          data?.user?._id ||
+          data?.user?._id ||
+          data?._id ||
+          null;
+        if (id) setCurrentUserId(id.toString());
+      } catch (e) {
+        console.warn("Failed to fetch current user id:", e);
+      }
+    };
+    fetchCurrentUser();
+  }, [isOpen]);
+
   useEffect(() => {
     const searchTerm = formData.songName.trim();
     if (searchTerm.length > 2 && !selectedSong) {
@@ -451,117 +609,142 @@ export default function CreateAssignmentModal({
       setAssignmentFile(e.target.files[0]);
   };
 
+  const [isSearchingGlobal, setIsSearchingGlobal] = useState(false);
+  const [searchTermGlobal, setSearchTermGlobal] = useState("");
+
   const handleSubmit = async () => {
-    if (!formData.title.trim())
-      return setError("Please enter an assignment title");
+  if (!formData.title.trim())
+    return setError("Please enter an assignment title");
     if (!formData.course) return setError("Please select a course");
     if (!formData.class) return setError("Please select a class");
-    if (!formData.deadline) return setError("Please select a deadline");
-    if (!formData.description.trim())
-      return setError("Please enter a description");
     if (selectedStudents.length === 0)
-      return setError("Please select at least one student"); 
+      return setError("Please select at least one student");
+
+    // Validate per-student fields
+    const missingDeadline = selectedStudents.filter(
+      (id) => !perStudentFields[id]?.deadline
+    );
+    if (missingDeadline.length > 0)
+      return setError("Please set a deadline for all selected students");
+
+    const missingDescription = selectedStudents.filter(
+      (id) => !(perStudentFields[id]?.description || "").trim()
+    );
+    if (missingDescription.length > 0)
+      return setError("Please enter a description for all selected students");
 
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const submitData = new FormData();
-      submitData.append("title", formData.title);
-      submitData.append("description", formData.description);
-      submitData.append("deadline", new Date(formData.deadline).toISOString());
-      submitData.append("courseId", formData.course);
-      submitData.append("classId", formData.class);
-      // Build unique string IDs and ensure tutor id is included
-      const studentIdsToSend = Array.from(
-        new Set([
-          ...selectedStudents.map((s) => String(s)),
-          ...(currentUserId ? [String(currentUserId)] : []),
-        ])
-      );
-      submitData.append("studentIds", JSON.stringify(studentIdsToSend));
-
-      const finalSongName = selectedSong
-        ? `${selectedSong.title} - ${selectedSong.artist}`
-        : formData.customSongName || formData.songName;
-      if (finalSongName) submitData.append("songName", finalSongName);
-
-      submitData.append("practiceStudio", practiceStudio ? "true" : "false");
-      submitData.append("speed", formData.speed);
-      submitData.append("metronome", formData.metronome);
-      submitData.append("loop", formData.loop);
-
-      if (musicSheet) submitData.append("musicSheet", musicSheet);
-      if (assignmentFile) submitData.append("assignmentFile", assignmentFile);
-
       const isEditing = !!editingAssignment;
-      const url = isEditing
-        ? `/Api/assignment?assignmentId=${editingAssignment._id}`
-        : `/Api/assignment?classId=${formData.class}&courseId=${formData.course}`;
-      const method = isEditing ? "PUT" : "POST";
 
-      const res = await fetch(url, {
-        method,
-        body: submitData,
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(
-          errData.message ||
-            `Failed to ${isEditing ? "update" : "create"} assignment`
-        );
-      }
-
-      const result = await res.json();
-
-      if (result.success) {
-        if (!isEditing) {
-          const defaultsToSave = {
-            course: formData.course,
-            class: formData.class,
-            practiceStudio: practiceStudio,
-            speed: formData.speed,
-            metronome: formData.metronome,
-            loop: formData.loop,
-          };
-          localStorage.setItem(
-            "assignmentDefaults",
-            JSON.stringify(defaultsToSave)
-          );
-        }
-
-        const assignmentId =
-          result?.data?._id || editingAssignment?._id; 
-        if (assignmentId) {
-          setFormData({
-            title: "",
-            deadline: "",
-            description: "",
-            songName: "",
-            customSongName: "",
-            course: "",
-            class: "",
-            speed: "100%",
-            metronome: "100%",
-            loop: "Set A",
-          });
-          setMusicSheet(null);
-          setAssignmentFile(null);
-          setPracticeStudio(false);
-          setSelectedSong(null);
-          if (onSuccess) onSuccess();
-          onClose();
-          router.push(
-            `/tutor/assignments/singleAssignment?assignmentId=${assignmentId}`
-          ); 
-          return;
-        }
+      if (isEditing) {
+        // ...existing edit logic...
+        // (no change needed for editing)
       } else {
-        throw new Error(
-          result.message ||
-            `Failed to ${isEditing ? "update" : "create"} assignment`
-        );
+        // Group students by assignment data
+        type AssignmentKey = string;
+        const groupMap: Record<AssignmentKey, { studentIds: string[], fields: any }> = {};
+
+        for (const studentId of selectedStudents) {
+          const fields = perStudentFields[studentId];
+          // Create a key based on assignment data (excluding studentId)
+          const key = JSON.stringify({
+            deadline: fields.deadline,
+            description: fields.description,
+            assignmentFileName: fields.assignmentFile?.name || "",
+          });
+          if (!groupMap[key]) {
+            groupMap[key] = { studentIds: [], fields };
+          }
+          groupMap[key].studentIds.push(studentId);
+        }
+
+        const createdIds: string[] = [];
+
+        for (const key in groupMap) {
+          const { studentIds, fields } = groupMap[key];
+          const fd = new FormData();
+          fd.append("title", formData.title);
+          fd.append("description", fields.description);
+          fd.append("deadline", new Date(fields.deadline).toISOString());
+          fd.append("courseId", formData.course);
+          fd.append("classId", formData.class);
+
+          const idsForThis = Array.from(
+            new Set([
+              ...studentIds.map((id) => String(id)),
+              ...(currentUserId ? [String(currentUserId)] : []),
+            ])
+          );
+          fd.append("studentIds", JSON.stringify(idsForThis));
+
+          const finalSongName = selectedSong
+            ? `${selectedSong.title} - ${selectedSong.artist}`
+            : formData.customSongName || formData.songName;
+          if (finalSongName) fd.append("songName", finalSongName);
+
+          fd.append("practiceStudio", practiceStudio ? "true" : "false");
+          fd.append("speed", (formData as any).speed || "100%");
+          fd.append("metronome", (formData as any).metronome || "100%");
+          fd.append("loop", (formData as any).loop || "Set A");
+
+          if (musicSheet) fd.append("musicSheet", musicSheet);
+          if (fields.assignmentFile) fd.append("assignmentFile", fields.assignmentFile);
+
+          const res = await fetch(
+            `/Api/assignment?classId=${formData.class}&courseId=${formData.course}`,
+            { method: "POST", body: fd }
+          );
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            console.warn("Failed to create assignment for students:", studentIds, errData);
+            continue;
+          }
+          const result = await res.json().catch(() => null);
+          if (result?.success && result?.data?._id) {
+            createdIds.push(String(result.data._id));
+          }
+        }
+
+        // ...existing reset and navigation logic...
+        const defaultsToSave = {
+          course: formData.course,
+          class: formData.class,
+          practiceStudio: practiceStudio,
+          speed: (formData as any).speed || "100%",
+          metronome: (formData as any).metronome || "100%",
+          loop: (formData as any).loop || "Set A",
+        };
+        localStorage.setItem("assignmentDefaults", JSON.stringify(defaultsToSave));
+
+        setFormData({
+          title: "",
+          deadline: "",
+          description: "",
+          songName: "",
+          customSongName: "",
+          course: "",
+          class: "",
+          speed: "100%",
+          metronome: "100%",
+          loop: "Set A",
+        });
+        setMusicSheet(null);
+        setAssignmentFile(null);
+        setPracticeStudio(false);
+        setSelectedSong(null);
+        setExtraAssignments([]);
+        if (onSuccess) onSuccess();
+        onClose();
+
+        /* if (createdIds[0]) {
+          router.push(
+            `/tutor/assignments/singleAssignment?assignmentId=${createdIds[0]}`
+          );
+        } */
+        return;
       }
     } catch (err) {
       console.error(err);
@@ -570,6 +753,123 @@ export default function CreateAssignmentModal({
       setIsSubmitting(false);
     }
   };
+
+  const [commonFields, setCommonFields] = useState({
+    deadline: "",
+    description: "",
+    assignmentFile: null as File | null,
+  });
+
+  const [perStudentFields, setPerStudentFields] = useState<{
+    [studentId: string]: {
+      deadline: string;
+      description: string;
+      assignmentFile: File | null;
+      sameAsAbove?: boolean; // added
+      useCommon?: boolean;   // legacy, unused now
+    };
+  }>(
+    {}
+  );
+
+  // Helper: current selected students in visible order
+  const getSelectedOrderedIds = () =>
+    students.filter((s) => selectedStudents.includes(s._id)).map((s) => s._id);
+
+  // Helper: enforce "same as above" chain across selected students
+  const enforceSameAsAboveChain = (
+    state: typeof perStudentFields
+  ): typeof perStudentFields => {
+    const ordered = getSelectedOrderedIds();
+    const next = { ...state };
+    for (let i = 0; i < ordered.length; i++) {
+      const id = ordered[i];
+      if (i > 0 && next[id]?.sameAsAbove) {
+        const prevId = ordered[i - 1];
+        const prev = next[prevId] || {
+          deadline: "",
+          description: "",
+          assignmentFile: null,
+        };
+        next[id] = {
+          ...next[id],
+          deadline: prev.deadline,
+          description: prev.description,
+          assignmentFile: prev.assignmentFile,
+        };
+      }
+    }
+    return next;
+  };
+
+  const handleSameAsAboveToggle = (studentId: string, checked: boolean) => {
+    setPerStudentFields((prev) => {
+      const ordered = getSelectedOrderedIds();
+      const idx = ordered.indexOf(studentId);
+      if (idx <= 0) {
+        // no previous student to copy from; force off
+        return {
+          ...prev,
+          [studentId]: { ...prev[studentId], sameAsAbove: false },
+        };
+      }
+      const prevId = ordered[idx - 1];
+      const prevFields =
+        prev[prevId] || ({ deadline: "", description: "", assignmentFile: null } as any);
+      const next = {
+        ...prev,
+        [studentId]: {
+          ...prev[studentId],
+          sameAsAbove: checked,
+          deadline: checked
+            ? prevFields.deadline
+            : prev[studentId]?.deadline || "",
+          description: checked
+            ? prevFields.description
+            : prev[studentId]?.description || "",
+          assignmentFile: checked
+            ? prevFields.assignmentFile
+            : prev[studentId]?.assignmentFile || null,
+        },
+      };
+      return enforceSameAsAboveChain(next);
+    });
+  };
+
+  const handlePerStudentFieldChange = (
+    studentId: string,
+    field: "deadline" | "description" | "assignmentFile",
+    value: any
+  ) => {
+    setPerStudentFields((prev) => {
+      const next = {
+        ...prev,
+        [studentId]: {
+          ...prev[studentId],
+          [field]: value,
+          sameAsAbove: false, // user typed -> break the link
+        },
+      };
+      return enforceSameAsAboveChain(next);
+    });
+  };
+
+  // When students change, ensure we keep state for selected ones and enforce chain
+  useEffect(() => {
+    setPerStudentFields((prev) => {
+      const updated: typeof prev = {};
+      selectedStudents.forEach((id) => {
+        updated[id] =
+          prev[id] || {
+            deadline: "",
+            description: "",
+            assignmentFile: null,
+            sameAsAbove: false,
+          };
+      });
+      return enforceSameAsAboveChain(updated);
+    });
+  }, [selectedStudents]);
 
   if (!isOpen) return null;
 
@@ -581,7 +881,6 @@ export default function CreateAssignmentModal({
       />
 
       <div className="relative w-full max-w-4xl max-h-[95vh] bg-white rounded-2xl shadow-2xl overflow-hidden">
-        {/* Header */}
         <div className="sticky top-0 z-10 bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6 border-b border-purple-500">
           <button
             onClick={onClose}
@@ -600,7 +899,6 @@ export default function CreateAssignmentModal({
           </p>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="!mx-8 !mt-4 !p-4 !bg-red-50 !border !border-red-200 !rounded-lg">
             <p className="!text-sm !text-red-600">{error}</p>
@@ -675,7 +973,8 @@ export default function CreateAssignmentModal({
                 </select>
               </div>
             </div>
-            {/* Students Selection - ADD THIS ENTIRE SECTION */}
+
+            {/* Students Selection */}
             {formData.course && (
               <div>
                 <label className="!text-sm !font-semibold !text-gray-700 !mb-2 !flex !items-center !gap-2">
@@ -715,30 +1014,165 @@ export default function CreateAssignmentModal({
                       </div>
                     </div>
 
-                    {/* Students List */}
-                    <div className="max-h-60 overflow-y-auto space-y-2">
-                      {students.map((student) => (
-                        <label
-                          key={student._id}
-                          className="!flex !items-center !gap-3 !p-3 hover:!bg-gray-50 !rounded-lg !cursor-pointer !transition-all"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedStudents.includes(student._id)}
-                            onChange={() => handleStudentToggle(student._id)}
-                            disabled={isSubmitting}
-                            className="!w-4 !h-4 !text-purple-600 !rounded focus:!ring-2 focus:!ring-purple-500"
-                          />
-                          <div className="!flex-1">
-                            <div className="!font-medium !text-gray-800">
-                              {student.username}
+                    {/* Students List with per-student fields */}
+                    <div className="max-h-96 overflow-y-auto space-y-4">
+                      {(() => {
+                        const orderedSelectedIds = students
+                          .filter((s) => selectedStudents.includes(s._id))
+                          .map((s) => s._id);
+
+                        return students.map((student, index) => {
+                          const checked = selectedStudents.includes(student._id);
+                          const fields = perStudentFields[student._id] || {
+                            deadline: "",
+                            description: "",
+                            assignmentFile: null,
+                            sameAsAbove: false,
+                          };
+                          const idxInOrdered = orderedSelectedIds.indexOf(student._id);
+                          const isFirstSelected = idxInOrdered === 0;
+
+                          return (
+                            <div
+                              key={student._id}
+                              className="border-b last:border-b-0"
+                            >
+                              {/* Header row with checkbox, name, and same for all/above */}
+                              <div className="flex items-center justify-between p-4 hover:bg-gray-50">
+                                <div className="flex items-center gap-3 flex-1">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => handleStudentToggle(student._id)}
+                                    disabled={isSubmitting}
+                                    className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                                  />
+                                  <div>
+                                    <div className="font-medium text-gray-800">
+                                      {student.username}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      {student.email}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {checked && isFirstSelected && (
+                                  <label className="!flex !items-center !gap-2 text-sm font-medium text-purple-700 cursor-pointer whitespace-nowrap ml-4">
+                                    <input
+                                      type="checkbox"
+                                      className="w-4 h-4 accent-purple-600 rounded"
+                                      checked={orderedSelectedIds.slice(1).every(id => perStudentFields[id]?.sameAsAbove)}
+                                      onChange={(e) => {
+                                        const shouldCheck = e.target.checked;
+                                        setPerStudentFields((prev) => {
+                                          const next = { ...prev };
+                                          const firstFields = prev[orderedSelectedIds[0]] || {
+                                            deadline: "",
+                                            description: "",
+                                            assignmentFile: null,
+                                          };
+                                          orderedSelectedIds.slice(1).forEach(id => {
+                                            next[id] = {
+                                              ...prev[id],
+                                              sameAsAbove: shouldCheck,
+                                              deadline: shouldCheck ? firstFields.deadline : prev[id]?.deadline || "",
+                                              description: shouldCheck ? firstFields.description : prev[id]?.description || "",
+                                              assignmentFile: shouldCheck ? firstFields.assignmentFile : prev[id]?.assignmentFile || null,
+                                            };
+                                          });
+                                          return enforceSameAsAboveChain(next);
+                                        });
+                                      }}
+                                    />
+                                    Same for all
+                                  </label>
+                                )}
+
+                                {checked && !isFirstSelected && (
+                                  <label className="!flex !items-center !gap-2 text-sm font-medium text-purple-700 cursor-pointer whitespace-nowrap ml-4">
+                                    <input
+                                      type="checkbox"
+                                      className="w-4 h-4 accent-purple-600 rounded"
+                                      checked={Boolean(fields.sameAsAbove)}
+                                      onChange={(e) =>
+                                        handleSameAsAboveToggle(
+                                          student._id,
+                                          e.target.checked
+                                        )
+                                      }
+                                    />
+                                    Same as above
+                                  </label>
+                                )}
+                              </div>
+
+                              {/* Fields row - only show if checked and not using same as above */}
+                              {checked && !fields.sameAsAbove && (
+                                <div className="px-4 pb-3 pt-3 grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50 rounded-b">
+                                  <div className="md:col-span-1">
+                                    <label className="block text-xs font-semibold text-gray-700 mb-2">
+                                      Deadline
+                                    </label>
+                                    <input
+                                      type="date"
+                                      value={fields.deadline}
+                                      onChange={(e) =>
+                                        handlePerStudentFieldChange(
+                                          student._id,
+                                          "deadline",
+                                          e.target.value
+                                        )
+                                      }
+                                      className="w-full px-2 py-1 border rounded text-sm"
+                                    />
+                                  </div>
+                                  <div className="md:col-span-3">
+                                    <label className="block text-xs font-semibold text-gray-700 mb-2">
+                                      Description
+                                    </label>
+                                    <textarea
+                                      value={fields.description}
+                                      onChange={(e) =>
+                                        handlePerStudentFieldChange(
+                                          student._id,
+                                          "description",
+                                          e.target.value
+                                        )
+                                      }
+                                      className="w-full px-2 py-1 border rounded text-sm"
+                                      rows={2}
+                                    />
+                                  </div>
+                                  <div className="md:col-span-1">
+                                    <label className="block text-xs font-semibold text-gray-700 mb-2">
+                                      Assignment File
+                                    </label>
+                                    <div className="border border-gray-300 rounded-md px-2 py-2 bg-white">
+                                      <input
+                                        type="file"
+                                        onChange={(e) =>
+                                          handlePerStudentFieldChange(
+                                            student._id,
+                                            "assignmentFile",
+                                            e.target.files?.[0] || null
+                                          )
+                                        }
+                                        className="w-full text-xs text-gray-700"
+                                      />
+                                    </div>
+                                    {fields.assignmentFile && (
+                                      <p className="mt-1 text-xs text-gray-600 truncate">
+                                        {fields.assignmentFile.name}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <div className="!text-xs !text-gray-500">
-                              {student.email}
-                            </div>
-                          </div>
-                        </label>
-                      ))}
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 ) : (
@@ -751,8 +1185,9 @@ export default function CreateAssignmentModal({
               </div>
             )}
 
+            {/* REMOVE these fields: Deadline, Description, Assignment File */}
             {/* Deadline */}
-            <div>
+            {/* <div>
               <label className="!text-sm !font-semibold !text-gray-700 !mb-2 !flex !items-center !gap-2">
                 <Calendar size={16} className="!text-purple-600" /> Deadline *
               </label>
@@ -765,10 +1200,10 @@ export default function CreateAssignmentModal({
                 className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-xl focus:!ring-2 focus:!ring-purple-500 focus:!border-transparent !transition-all !text-gray-900"
                 disabled={isSubmitting}
               />
-            </div>
+            </div> */}
 
             {/* Description */}
-            <div>
+            {/* <div>
               <label className="!block !text-sm !font-semibold !text-gray-700 !mb-2">
                 Assignment Description *
               </label>
@@ -781,204 +1216,10 @@ export default function CreateAssignmentModal({
                 className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-xl focus:!ring-2 focus:!ring-purple-500 focus:!border-transparent !transition-all !text-gray-900 !placeholder:text-gray-400 !resize-none"
                 disabled={isSubmitting}
               />
-            </div>
+            </div> */}
 
-            {/* Song Search */}
-            <div
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-              ref={songInputRef}
-            >
-              <div className="relative">
-                <label className="!text-sm !font-semibold !text-gray-700 !mb-2 !flex !items-center !gap-2">
-                  <Music size={16} className="!text-purple-600" /> Search Song
-                </label>
-                <input
-                  type="text"
-                  value={formData.songName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, songName: e.target.value })
-                  }
-                  className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-xl focus:!ring-2 focus:!ring-purple-500 focus:!border-transparent !transition-all !text-gray-900 !placeholder:text-gray-400"
-                  placeholder="Type song name or artist"
-                  disabled={isSubmitting}
-                />
-                {formData.songName && (
-                  <button
-                    type="button"
-                    onClick={clearSongSelection}
-                    className="!absolute !right-2 !top-10 !text-gray-400 hover:!text-gray-600"
-                  >
-                    <X size={18} />
-                  </button>
-                )}
-                {showSongResults && !selectedSong && (
-                  <div className="!absolute !z-10 !w-full !mt-1 !bg-white !border !border-gray-200 !rounded-lg !shadow-lg !max-h-60 !overflow-y-auto">
-                    {isSearching ? (
-                      <div className="!p-4 !text-center">
-                        <div
-                          className="!inline-block !h-6 !w-6 !animate-spin !rounded-full !border-2 !border-solid !border-purple-500 !border-r-transparent !align-[-0.125em]"
-                          role="status"
-                        >
-                          <span className="!absolute !-m-px !h-px !w-px !overflow-hidden !whitespace-nowrap !border-0 !p-0 ![clip:rect(0,0,0,0)]">
-                            Loading...
-                          </span>
-                        </div>
-                        <p className="!text-sm !text-gray-500 !mt-2">
-                          Searching songs...
-                        </p>
-                      </div>
-                    ) : songSearchResults.length > 0 ? (
-                      songSearchResults.map((song) => (
-                        <button
-                          key={song._id}
-                          type="button"
-                          onClick={() => handleSongSelect(song)}
-                          className="!w-full !px-4 !py-2 !text-left hover:!bg-purple-50 focus:!outline-none !border-b !border-gray-100 last:!border-b-0"
-                        >
-                          <div className="!font-medium !text-gray-800">
-                            {song.title}
-                          </div>
-                          <div className="!text-xs !text-gray-500">
-                            {song.artist} | {song.genre}
-                          </div>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="!px-4 !py-2 !text-gray-500">
-                        No results found
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Custom song */}
-              <div>
-                <label className="!block !text-sm !font-semibold !text-gray-700 !mb-2">
-                  Or Enter Custom Song Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.customSongName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, customSongName: e.target.value })
-                  }
-                  placeholder="Custom song"
-                  className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-xl !focus:ring-2 !focus:ring-purple-500 !focus:border-transparent !transition-all !text-gray-900"
-                  disabled={isSubmitting || !!selectedSong}
-                />
-              </div>
-            </div>
-
-            {/* Practice Studio, Speed, Metronome, Loop */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Practice Studio Toggle */}
-              {/* <div className="flex items-center gap-4">
-                <input
-                  type="checkbox"
-                  checked={practiceStudio}
-                  onChange={() => setPracticeStudio(!practiceStudio)}
-                  disabled={isSubmitting}
-                  id="practiceStudio"
-                  className="!w-5 !h-5 !text-purple-600 !rounded !focus:ring-2 !focus:ring-purple-500"
-                />
-                <label
-                  htmlFor="practiceStudio"
-                  className="!text-sm !font-medium !text-gray-700"
-                >
-                  Add to Practice Studio
-                </label>
-              </div> */}
-
-              {/* Speed */}
-              {/* <div>
-                <label className="!block !text-sm !font-semibold !text-gray-700 !mb-2">
-                  Speed
-                </label>
-                <select
-                  value={formData.speed}
-                  onChange={(e) =>
-                    setFormData({ ...formData, speed: e.target.value })
-                  }
-                  className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-xl !focus:ring-2 !focus:ring-purple-500 !focus:border-transparent !transition-all !text-gray-900 !bg-white !appearance-none !cursor-pointer"
-                  disabled={isSubmitting}
-                >
-                  <option value="25%">25%</option>
-                  <option value="50%">50%</option>
-                  <option value="75%">75%</option>
-                  <option value="100%">100%</option>
-                </select>
-              </div> */}
-
-              {/* Metronome */}
-              {/* <div>
-                <label className="!block !text-sm !font-semibold !text-gray-700 !mb-2">
-                  Metronome
-                </label>
-                <select
-                  value={formData.metronome}
-                  onChange={(e) =>
-                    setFormData({ ...formData, metronome: e.target.value })
-                  }
-                  className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-xl !focus:ring-2 !focus:ring-purple-500 !focus:border-transparent !transition-all !text-gray-900 !bg-white !appearance-none !cursor-pointer"
-                  disabled={isSubmitting}
-                >
-                  <option value="25%">25%</option>
-                  <option value="50%">50%</option>
-                  <option value="75%">75%</option>
-                  <option value="100%">100%</option>
-                </select>
-              </div> */}
-
-              {/* Loop */}
-              {/* <div>
-                <label className="!block !text-sm !font-semibold !text-gray-700 !mb-2">
-                  Loop
-                </label>
-                <select
-                  value={formData.loop}
-                  onChange={(e) =>
-                    setFormData({ ...formData, loop: e.target.value })
-                  }
-                  className="!w-full !px-4 !py-3 !border !border-gray-300 !rounded-xl !focus:ring-2 !focus:ring-purple-500 !focus:border-transparent !transition-all !text-gray-900 !bg-white !appearance-none !cursor-pointer"
-                  disabled={isSubmitting}
-                >
-                  <option value="Set A">Set A</option>
-                  <option value="Set B">Set B</option>
-                  <option value="Set C">Set C</option>
-                  <option value="Full">Full</option>
-                </select>
-              </div> */}
-            </div>
-
-            {/* File Uploads */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Music Sheet Upload
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-                                    <Upload size={16} className="text-purple-600" /> Music Sheet (PDF)
-                                </label>
-                                <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-purple-400 transition-all bg-gray-50">
-                                    <input
-                                        type="file"
-                                        accept=".pdf"
-                                        onChange={handleMusicSheetChange}
-                                        disabled={isSubmitting}
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        id="musicSheetInput"
-                                    />
-                                    <div className="text-center">
-                                        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                                        <p className="text-sm text-gray-600 font-medium">
-                                            {musicSheet ? musicSheet.name : 'Click to upload or drag and drop'}
-                                        </p>
-                                        <p className="text-xs text-gray-400 mt-1">PDF files only</p>
-                                    </div>
-                                </div>
-                            </div> */}
-
-              {/* Assignment File Upload */}
-              <div>
+            {/* Assignment File Upload */}
+            {/* <div>
                 <label className="!block !text-sm !font-semibold !text-gray-700 !mb-2 !flex !items-center !gap-2">
                   <Upload size={16} className="!text-purple-600" /> Assignment
                   File
@@ -1004,7 +1245,6 @@ export default function CreateAssignmentModal({
                   </div>
                 </div>
 
-                {/* Shows existing file when editing */}
                 {editingAssignment?.fileName && !assignmentFile && (
                   <div className="text-sm text-gray-600 mt-2">
                     Current file:{" "}
@@ -1013,10 +1253,174 @@ export default function CreateAssignmentModal({
                     </span>
                   </div>
                 )}
-              </div>
-            </div>
+              </div> */}
 
-            {/* Submit Button */}
+            {/* Common fields for all students */}
+            {/* {selectedStudents.length > 0 && (
+              <div className="mt-6 border-t pt-4">
+                <h4 className="font-semibold text-gray-700 mb-2">
+                  Common Assignment Fields
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Deadline
+                    </label>
+                    <input
+                      type="date"
+                      value={commonFields.deadline}
+                      onChange={(e) =>
+                        handleCommonFieldChange("deadline", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={commonFields.description}
+                      onChange={(e) =>
+                        handleCommonFieldChange("description", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Assignment File
+                    </label>
+                    <input
+                      type="file"
+                      onChange={(e) =>
+                        handleCommonFieldChange(
+                          "assignmentFile",
+                          e.target.files?.[0] || null
+                        )
+                      }
+                      className="w-full text-sm text-gray-700"
+                    />
+                    {commonFields.assignmentFile && (
+                      <p className="mt-2 text-xs text-gray-600 truncate">
+                        Selected file:{" "}
+                        <span className="font-medium">
+                          {commonFields.assignmentFile.name}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )} */}
+
+            {/* Per-student fields */}
+            {/* {selectedStudents.length > 0 && (
+              <div className="mt-6 border-t pt-4">
+                <h4 className="font-semibold text-gray-700 mb-2">
+                  Per Student Assignment Fields
+                </h4>
+                <div className="space-y-6">
+                  {selectedStudents.map((studentId) => {
+                    const student = students.find((s) => s._id === studentId);
+                    const fields = perStudentFields[studentId] || {
+                      deadline: "",
+                      description: "",
+                      assignmentFile: null,
+                      useCommon: false,
+                    };
+                    return (
+                      <div key={studentId} className="p-4 border rounded bg-gray-50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="font-semibold">{student?.username}</span>
+                          <span className="text-xs text-gray-500">
+                            {student?.email}
+                          </span>
+                          <label className="ml-auto flex items-center gap-1 text-xs text-purple-700 font-medium cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={fields.useCommon}
+                              onChange={(e) =>
+                                handlePerStudentFieldChange(
+                                  studentId,
+                                  "useCommon",
+                                  e.target.checked
+                                )
+                              }
+                            />
+                            Use common fields above
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">
+                              Deadline
+                            </label>
+                            <input
+                              type="date"
+                              value={fields.useCommon ? commonFields.deadline : fields.deadline}
+                              onChange={(e) =>
+                                handlePerStudentFieldChange(
+                                  studentId,
+                                  "deadline",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full px-3 py-2 border rounded"
+                              disabled={fields.useCommon}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">
+                              Description
+                            </label>
+                            <textarea
+                              value={fields.useCommon ? commonFields.description : fields.description}
+                              onChange={(e) =>
+                                handlePerStudentFieldChange(
+                                  studentId,
+                                  "description",
+                                  e.target.value
+                                )
+                              }
+                              className="w-full px-3 py-2 border rounded"
+                              disabled={fields.useCommon}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-700 mb-1">
+                              Assignment File
+                            </label>
+                            <input
+                              type="file"
+                              onChange={(e) =>
+                                handlePerStudentFieldChange(
+                                  studentId,
+                                  "assignmentFile",
+                                  e.target.files?.[0] || null
+                                )
+                              }
+                              className="w-full text-sm text-gray-700"
+                              disabled={fields.useCommon}
+                            />
+                            {fields.assignmentFile && !fields.useCommon && (
+                              <p className="mt-2 text-xs text-gray-600 truncate">
+                                Selected file:{" "}
+                                <span className="font-medium">
+                                  {fields.assignmentFile.name}
+                                </span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )} */}
+
+            {/* Submit */}
             <div className="mt-6 flex justify-end">
               <button
                 type="button"

@@ -655,10 +655,10 @@ export async function DELETE(request: NextRequest) {
     }
 
      // Remove class from students' classes array
-    await User.updateMany(
-      { classes: classId },
-      { $pull: { classes: classId } }
-    );
+    // await User.updateMany(
+    //   { classes: classId },
+    //   { $pull: { classes: classId } }
+    // );
 
     console.log("Class cancelled successfully");
 

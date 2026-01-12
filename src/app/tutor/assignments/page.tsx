@@ -530,7 +530,7 @@ export default function TutorAssignments() {
                                 : ""
                             } // Changed title
                           />
-                        <span class="checkmark"></span>
+                        <span className="checkmark"></span>
                       </div>
 
                       <h3
