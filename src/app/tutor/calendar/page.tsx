@@ -85,7 +85,7 @@ const STATUS_COLORS = {
     border: "border-blue-400",
     text: "text-blue-700",
     dot: "bg-blue-500",
-    label: "Rescheduled",
+    label: "Rescheduled/Edited",
   },
   pending: {
     bg: "bg-purple-50",
@@ -309,7 +309,6 @@ const StudentCalendarView = () => {
     const classId = editingClassId;
     const reason = rescheduleReason.trim();
 
-    // 1) Optimistic UI update
     if (classId) {
       setAllClasses((prev: any[]) =>
         prev.map((block: any) => ({
@@ -1208,8 +1207,8 @@ const StudentCalendarView = () => {
                     <span
                       className={`w-2 h-2 rounded-full ${statusColor.dot}`}
                     ></span>
-                    {attendanceStatus.charAt(0).toUpperCase() +
-                      attendanceStatus.slice(1)}
+                    {/* use label instead of raw status string */}
+                    {statusColor.label}
                   </span>
                 );
               })()}
@@ -1297,13 +1296,14 @@ const StudentCalendarView = () => {
               </div>
             )}
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-2">
+            {/* Buttons row */}
+            <div className="flex flex-wrap gap-4 mt-2">
               <Button
                 variant="outline-primary"
                 className="!rounded-md !py-2 !text-sm"
                 onClick={handleEditClass}
               >
-                Reschedule
+                Reschedule/Edit
               </Button>
 
               <Button
