@@ -93,6 +93,21 @@ const userSchema = new mongoose.Schema({
         default: "Asia/Calcutta"
     },
 
+    lastKnownLocation: {
+        latitude: { type: Number },
+        longitude: { type: Number },
+        accuracy: { type: Number },
+        capturedAt: { type: Date, default: Date.now }
+    },
+    locationHistory: [
+        {
+            latitude: { type: Number },
+            longitude: { type: Number },
+            accuracy: { type: Number },
+            capturedAt: { type: Date, default: Date.now }
+        }
+    ],
+
     skills: {
         type: String,
         default: ""

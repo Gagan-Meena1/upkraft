@@ -49,8 +49,8 @@ export default function LoginPage() {
       const response = await axios.post<ApiResponse>("/Api/users/login", user);
       console.log("Login response", response.data);
 
-      if ('error' in response.data) {
-        toast.error(response.data.error || 'Login failed');
+      if ("error" in response.data) {
+        toast.error(response.data.error || "Login failed");
         return;
       }
 
@@ -64,23 +64,72 @@ export default function LoginPage() {
 
       console.log("User category and verification:", userCategory, isVerified);
 
-      if ((userCategory === "Tutor" || userCategory === "Admin" || userCategory === "Student" || userCategory === "Academic") && !isVerified) {
+      if (
+        (userCategory === "Tutor" ||
+          userCategory === "Admin" ||
+          userCategory === "Student" ||
+          userCategory === "Academic") &&
+        !isVerified
+      ) {
         setNotApproved(true);
         toast.error("Admin has not approved your request yet");
         return;
       }
 
-      toast.success("Login successful");
-      if (userCategory === "Student") {
-        router.push("/student");
-      } else if (userCategory === "Tutor") {
-        router.push("/tutor");
-      } else if (userCategory === "Admin") {
-        router.push("/admin");
-      } else if (userCategory === "Academic") {
-        router.push("/academy");
-      }
+      const navigateByCategory = () => {
+        if (userCategory === "Student") {
+          router.push("/student");
+        } else if (userCategory === "Tutor") {
+          router.push("/tutor");
+        } else if (userCategory === "Admin") {
+          router.push("/admin");
+        } else if (userCategory === "Academic") {
+          router.push("/academy");
+        }
+      };
 
+      toast.success("Login successful");
+
+      if (userCategory === "Tutor") {
+        if (typeof window === "undefined" || !("geolocation" in navigator)) {
+          toast.error(
+            "Location permission is required to use the tutor dashboard. Please enable location in your browser."
+          );
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            try {
+              await axios.post(
+                "/Api/tutor/location",
+                {
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude,
+                  accuracy: position.coords.accuracy,
+                },
+                { withCredentials: true }
+              );
+              // ✅ Only now allow tutor dashboard
+              navigateByCategory();
+            } catch (err) {
+              console.error("Failed to send tutor location:", err);
+              toast.error(
+                "Could not save your location. Please enable location and try again."
+              );
+            }
+          },
+          (error) => {
+            console.warn("Geolocation error:", error);
+            toast.error(
+              "Location permission is required to use the tutor dashboard. Please enable location and login again."
+            );
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        navigateByCategory();
+      }
     } catch (error: any) {
       console.log("Login failed", error.response?.data?.error || error.message);
       if (error.response?.data?.error) {
