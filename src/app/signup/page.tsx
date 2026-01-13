@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import Image from "next/image";
 import LogoHeader from '@/assets/LogoHeader copy.png';
 import SignupImg from "@/assets/signup-img.jpg"
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 // Define interface for user data
 interface UserData {
@@ -27,6 +28,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [emailError, setEmailError] = useState<string>("");
   const [serverError, setServerError] = useState<string>("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSignup = async (): Promise<void> => {
     // Clear any previous server errors
@@ -186,13 +188,28 @@ export default function SignupPage() {
             {/* Password Input */}
             <div className="!mb-6">
               <label className="!block !mb-2 !text-gray-700 !text-sm !font-medium">Password</label>
-              <input
-                className="!w-full !px-4 !py-3 !rounded-lg !bg-white !border !border-gray-300 !text-gray-900 !placeholder-gray-400 !focus:outline-none !focus:ring-2 !focus:ring-purple-500 !focus:border-transparent !transition-all"
-                type="password"
-                value={user.password}
-                onChange={(e) => handleInputChange(e, "password")}
-                placeholder="••••••••"
-              />
+              <div className="!relative">
+                <input
+                  className="!w-full !px-4 !py-3 !rounded-lg !bg-white !border !border-gray-300 !text-gray-900 !placeholder-gray-400 !focus:outline-none !focus:ring-2 !focus:ring-purple-500 !focus:border-transparent !transition-all"
+                  type={showPassword ? "text" : "password"}
+                  value={user.password}
+                  onChange={(e) => handleInputChange(e, "password")}
+                  placeholder="••••••••"
+                />
+                <span className="!absolute !inset-y-0 !right-0 !flex !items-center !pr-3">
+                  {showPassword ? (
+                    <AiOutlineEye
+                      className="!w-5 !h-5 !text-gray-400 cursor-pointer"
+                      onClick={() => setShowPassword(false)}
+                    />
+                  ) : (
+                    <AiOutlineEyeInvisible
+                      className="!w-5 !h-5 !text-gray-400 cursor-pointer"
+                      onClick={() => setShowPassword(true)}
+                    />
+                  )}
+                </span>
+              </div>
             </div>
 
             {/* Signup Button */}
