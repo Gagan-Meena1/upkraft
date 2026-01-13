@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { MdError } from "react-icons/md";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import LogoHeader from '@/assets/LogoHeader copy.png';
 import LoginImg from "@/assets/login_img.jpg"
 
@@ -36,6 +37,7 @@ export default function LoginPage() {
   });
   const [loading, setLoading] = React.useState<boolean>(false);
   const [notApproved, setNotApproved] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState(false);
 
 
   const onLogin = async () => {
@@ -148,14 +150,31 @@ export default function LoginPage() {
 
             {/* Password Input */}
             <div className="!mb-3">
-              <label className="!block !mb-2 !text-gray-700 !text-sm !font-medium">Password</label>
-              <input
-                className="!w-full !px-4 !py-3 !rounded-lg !bg-white !border !border-gray-300 !text-gray-900 !placeholder-gray-400 !focus:outline-none !focus:ring-2 !focus:ring-purple-500 !focus:border-transparent !transition-all"
-                type="password"
-                value={user.password}
-                onChange={(e) => setUser({ ...user, password: e.target.value })}
-                placeholder="••••••••"
-              />
+              <label className="!block !mb-2 !text-gray-700 !text-sm !font-medium">
+                Password
+              </label>
+              <div className="!relative">
+                <input
+                  className="!w-full !px-4 !py-3 !rounded-lg !bg-white !border !border-gray-300 !text-gray-900 !placeholder-gray-400 !focus:outline-none !focus:ring-2 !focus:ring-purple-500 !focus:border-transparent !transition-all"
+                  type={showPassword ? "text" : "password"}
+                  value={user.password}
+                  onChange={(e) => setUser({ ...user, password: e.target.value })}
+                  placeholder="••••••••"
+                />
+                <span className="!absolute !inset-y-0 !right-0 !flex !items-center !pr-3">
+                  {showPassword ? (
+                    <AiOutlineEye
+                      className="!w-5 !h-5 !text-gray-400 cursor-pointer"
+                      onClick={() => setShowPassword(false)}
+                    />
+                  ) : (
+                    <AiOutlineEyeInvisible
+                      className="!w-5 !h-5 !text-gray-400 cursor-pointer"
+                      onClick={() => setShowPassword(true)}
+                    />
+                  )}
+                </span>
+              </div>
             </div>
 
             {/* Remember & Forgot Password */}
