@@ -37,12 +37,12 @@ const UserProfilePage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  // const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
 
   
-  // const toggleSidebar = () => {
-  //   setIsSidebarOpen(!isSidebarOpen);
-  // };
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
