@@ -1109,8 +1109,8 @@ export default function CreateAssignmentModal({
 
                               {/* Fields row - only show if checked and not using same as above */}
                               {checked && !fields.sameAsAbove && (
-                                <div className="px-4 pb-3 pt-3 grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50 rounded-b">
-                                  <div className="md:col-span-1">
+                                <div className="px-4 pb-3 pt-3 grid grid-cols-1 md:grid-cols-9 gap-4 bg-gray-50 rounded-b">
+                                  <div className="md:col-span-2">
                                     <label className="block text-xs font-semibold text-gray-700 mb-2">
                                       Deadline
                                     </label>
@@ -1127,7 +1127,7 @@ export default function CreateAssignmentModal({
                                       className="w-full px-2 py-1 border rounded text-sm"
                                     />
                                   </div>
-                                  <div className="md:col-span-3">
+                                  <div className="md:col-span-5">
                                     <label className="block text-xs font-semibold text-gray-700 mb-2">
                                       Description
                                     </label>
@@ -1144,11 +1144,18 @@ export default function CreateAssignmentModal({
                                       rows={2}
                                     />
                                   </div>
-                                  <div className="md:col-span-1">
+                                  <div className="md:col-span-2">
                                     <label className="block text-xs font-semibold text-gray-700 mb-2">
                                       Assignment File
                                     </label>
-                                    <div className="border border-gray-300 rounded-md px-2 py-2 bg-white">
+                                    {/* Custom file input: hides native "No file chosen" text */}
+                                    <label className="relative flex items-start justify-between border border-gray-300 rounded-md px-3 py-2 bg-white cursor-pointer">
+                                      <span className="text-xs text-gray-600 break-words line-clamp-1 flex-1 text-left">
+                                        {fields.assignmentFile
+                                          ? fields.assignmentFile.name
+                                          : "Choose file"}
+                                      </span>
+                                      <div className="w-4 text-gray-400 ml-2" />
                                       <input
                                         type="file"
                                         onChange={(e) =>
@@ -1158,14 +1165,9 @@ export default function CreateAssignmentModal({
                                             e.target.files?.[0] || null
                                           )
                                         }
-                                        className="w-full text-xs text-gray-700"
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                       />
-                                    </div>
-                                    {fields.assignmentFile && (
-                                      <p className="mt-1 text-xs text-gray-600 truncate">
-                                        {fields.assignmentFile.name}
-                                      </p>
-                                    )}
+                                    </label>
                                   </div>
                                 </div>
                               )}
