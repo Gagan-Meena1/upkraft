@@ -595,6 +595,24 @@ const SideMenuHeader = ({ role }) => {
                 </>
               )}
               
+              {role == "teamlead" && (
+                <>
+                  <li>
+                    <Link
+                      href="/teamlead/tutors"
+                      className={`d-flex align-items-center gap-2 ${
+                        isActive("/teamlead/tutors") ? "active" : ""
+                      }`}
+                    >
+                      <span className="svg-icons">
+                        <ShieldUser />
+                      </span>
+                      <span>Tutors</span>
+                    </Link>
+                  </li>
+                </>
+              )}
+
               {role == "academy" && (
                 <>
                   <li>

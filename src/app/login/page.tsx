@@ -79,6 +79,8 @@ export default function LoginPage() {
         router.push("/admin");
       } else if (userCategory === "Academic") {
         router.push("/academy");
+      } else if (userCategory === "TeamLead") {
+        router.push("/teamlead/tutors");
       }
 
     } catch (error: any) {
