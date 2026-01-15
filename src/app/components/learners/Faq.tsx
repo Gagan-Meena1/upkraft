@@ -16,7 +16,7 @@ const Faq = () => {
                     </div>
                     <div className='col-md-12 '>
                         <Accordion>
-                            <Accordion.Item eventKey="0">
+                            {/* <Accordion.Item eventKey="0">
                                 <Accordion.Header>
                                     <div className='header-btn d-flex align-items-center justify-content-between gap-3'>
                                         <span className='text'>How do I join as a tutor on UpKraft?</span>
@@ -30,8 +30,8 @@ const Faq = () => {
                                         Register on our platform, complete your KYC verification, and set up your teaching profile.
                                     </div>
                                 </Accordion.Body>
-                            </Accordion.Item>
-                            <Accordion.Item eventKey="1">
+                            </Accordion.Item> */}
+                            {/* <Accordion.Item eventKey="1">
                                 <Accordion.Header>
                                     <div className='header-btn d-flex align-items-center justify-content-between gap-3'>
                                         <span className='text'>How do I earn from teaching?</span>
@@ -180,7 +180,7 @@ const Faq = () => {
                                         Yes. Parents receive regular updates and notifications about their child’s practice and performance.
                                     </div>
                                 </Accordion.Body>
-                            </Accordion.Item>
+                            </Accordion.Item> */}
                             <Accordion.Item eventKey="11">
                                 <Accordion.Header>
                                     <div className='header-btn d-flex align-items-center justify-content-between gap-3'>
