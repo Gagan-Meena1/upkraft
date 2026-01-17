@@ -131,7 +131,6 @@ const AddStudentPage = () => {
           emailType: existingStudent.exists ? 'STUDENT_INVITATION_EXISTING' : 'STUDENT_INVITATION'
         }),
       });
-
       const data = await response.json();
       console.log("[CreateStudent] API Response:", { endpoint, data });
 
