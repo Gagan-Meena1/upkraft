@@ -289,20 +289,22 @@ const UpcomingLessons = ({ classDetails, userData }: UpcomingLessonsProps) => {
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [classDetails]);
 
-  // --- Fetch all students in one API call ---
-  useEffect(() => {
-    if (!classes.length) return;
+  // --- Fetch students for only the top 10 classes ---
+useEffect(() => {
+  if (!classes.length) return;
 
-    const ids = classes.map(c => c._id).join(",");
-    setLoadingStudents(true);
+  // Only fetch students for the top 10 classes to avoid URI_TOO_LONG
+  const top10Classes = classes.slice(0, 10);
+  const ids = top10Classes.map(c => c._id).join(",");
+  
+  setLoadingStudents(true);
 
-    fetch(`/Api/classes/students?ids=${ids}`)
-      .then(res => res.json())
-      .then(data => setStudentsMap(data.studentsMap || {}))
-      .catch(err => console.error("Students fetch error:", err))
-      .finally(() => setLoadingStudents(false));
-  }, [classes]);
-
+  fetch(`/Api/classes/students?ids=${ids}`)
+    .then(res => res.json())
+    .then(data => setStudentsMap(data.studentsMap || {}))
+    .catch(err => console.error("Students fetch error:", err))
+    .finally(() => setLoadingStudents(false));
+}, [classes]);
   const handleJoinMeeting = async (classId: string) => {
     if (!userData) {
       toast.error("User data not available. Please refresh the page.");
