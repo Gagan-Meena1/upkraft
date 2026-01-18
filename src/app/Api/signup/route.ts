@@ -13,7 +13,7 @@ export async function POST(request : NextRequest ){
         await connect();
 
         const reqBody = await request.json();
-        const {username, email, password, category, contact, emailType,addedBy} = reqBody;
+        const {username, email, password, category, contact, emailType,addedBy,mode} = reqBody;
         console.log("[API/signup] Request body:", { username, email, category, contact, emailType });
 
         const normalizedEmail = email.toLowerCase();
@@ -35,6 +35,7 @@ export async function POST(request : NextRequest ){
             });
         }
 
+const teachingMode = mode ? mode.charAt(0).toUpperCase() + mode.slice(1).toLowerCase() : "";
 
         const salt = await bcryptjs.genSalt(10);
         const hashedPassword = await bcryptjs.hash(password, salt);
@@ -48,6 +49,7 @@ export async function POST(request : NextRequest ){
             age,
             address,
             contact,
+            teachingMode: teachingMode
         });
               
         const instructor= instructorId ? await User.findById(instructorId) : null;

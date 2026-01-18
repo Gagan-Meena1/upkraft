@@ -271,7 +271,7 @@ const handleSubmit = async (e) => {
                     <th>Student</th>
                     <th>Tutor</th>
                     <th>Course</th>
-                    <th>Progress</th>
+                    <th>Credits</th>
                     <th>Attendance</th>
                     <th>Last Class</th>
                     <th>Status</th>
@@ -287,7 +287,7 @@ const handleSubmit = async (e) => {
                     </tr>
                   ) : (
                     students.map((student) => {
-                      const progressColors = getProgressColor(student.progress);
+                      const progressColors = getProgressColor(student.credits);
                       return (
                         <tr key={student._id}>
                           <td>
@@ -308,21 +308,13 @@ const handleSubmit = async (e) => {
                           </td>
                           <td>{student.tutor}</td>
                           <td>{student.course}</td>
-                          <td>
-                            <div className="text-box-progress d-flex align-items-center gap-2">
-                              <span className={progressColors.text}>
-                                {student.progress}%
-                              </span>
-                              <div className="left-box">
-                                <span className="d-block">0/0 lessons</span>
-                                <ProgressBar 
-                                  variant="" 
-                                  className={progressColors.bar} 
-                                  now={student.progress} 
-                                />
-                              </div>
-                            </div>
-                          </td>
+                        <td>
+              <div className="text-box-progress d-flex align-items-center gap-2">
+                <span className="text-purple-700 font-semibold">
+                  {student.credits || 0}
+                </span>
+              </div>
+            </td>
 {/* // Update the Attendance link in StudentTable component: */}
 <td>
   <Link 
