@@ -356,7 +356,7 @@ useEffect(() => {
             <tr>
               <th>Date</th>
               <th>Time</th>
-              <th>Course</th>
+              <th>Class Name</th>
               <th>Student Name</th>
               <th>Action</th>
             </tr>
