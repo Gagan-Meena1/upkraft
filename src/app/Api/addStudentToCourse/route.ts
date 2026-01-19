@@ -68,50 +68,81 @@ export async function POST(req: NextRequest) {
     // Update student: Add course to their courses array and reference to instructor
     // Also add all class IDs to their classes array
     const updatedStudent = await User.findByIdAndUpdate(
-      studentId,
-      {
-        $addToSet: {
-          courses: courseId,
-          instructors: instructorId, // Keep track of instructors (optional)
-          classes: { $each: classIds } // Add all classes from the course
-        }
-      },
-      { new: true }
-    );
+  studentId,
+  {
+    $addToSet: {
+      courses: courseId,
+      instructors: instructorId
+    }
+  },
+  { new: true }
+);
+// Add classes separately to prevent duplicates
+if (classIds.length > 0) {
+  await User.findByIdAndUpdate(
+    studentId,
+    {
+      $addToSet: {
+        classes: { $each: classIds }
+      }
+    }
+  );
+}
     
     // Update instructor: Add course to their courses array
     // Also add all class IDs to their classes array
-    const updatedInstructor = await User.findByIdAndUpdate(
-      instructorId,
-      {
-        $addToSet: {
-          courses: courseId,
-          students: studentId, // Keep track of students (optional)
-          classes: { $each: classIds } // Add all classes from the course
-        }
-      },
-      { new: true }
-    );
-    
-    // Prepare response data
-    const responseData = {
-      success: true,
-      message: "Course added successfully ",
-      student: {
-        id: updatedStudent._id,
-        name: updatedStudent.name,
-        email: updatedStudent.email,
-        courses: updatedStudent.courses
-      },
-      instructor: {
-        id: updatedInstructor._id,
-        name: updatedInstructor.name,
-        courses: updatedInstructor.courses
-      },
-      courseId
-    };
-    
-    return NextResponse.json(responseData);
+ const updatedInstructor = await User.findByIdAndUpdate(
+  instructorId,
+  {
+    $addToSet: {
+      courses: courseId,
+      students: studentId
+    }
+  },
+  { new: true }
+);
+
+// Add classes separately to prevent duplicates
+if (classIds.length > 0) {
+  await User.findByIdAndUpdate(
+    instructorId,
+    {
+      $addToSet: {
+        classes: { $each: classIds }
+      }
+    }
+  );
+}
+
+   // After both updates, fetch the updated documents for the response
+const finalStudent = await User.findById(studentId);
+const finalInstructor = await User.findById(instructorId);
+
+console.log("Student classes after update:", finalStudent.classes);
+console.log("Instructor classes after update:", finalInstructor.classes);
+
+// Prepare response data (use finalStudent and finalInstructor)
+const responseData = {
+  success: true,
+  message: "Course added successfully",
+  student: {
+    id: finalStudent._id,
+    name: finalStudent.name,
+    email: finalStudent.email,
+    courses: finalStudent.courses,
+    classCount: finalStudent.classes?.length || 0
+  },
+  instructor: {
+    id: finalInstructor._id,
+    name: finalInstructor.name,
+    courses: finalInstructor.courses,
+    classCount: finalInstructor.classes?.length || 0
+  },
+  courseId,
+  classesAdded: classIds.length
+};
+
+return NextResponse.json(responseData);
   
   } catch (error: any) {
     console.error("Error adding course:", error);
