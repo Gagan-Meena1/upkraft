@@ -140,7 +140,7 @@ export default function SignupPage() {
             {/* Role Selection */}
             <div className="!mb-6">
               <div className="!flex !gap-3">
-                {["Student", "Admin", "Tutor", "Academic", "TeamLead"].map((role) => (
+                {["Student", "Admin", "Tutor", "Academic", "TeamLead", "RelationshipManager"].map((role) => (
                   <button
                     key={role}
                     onClick={() => handleRoleClick(role)}
@@ -154,6 +154,8 @@ export default function SignupPage() {
                       ? "Academy"
                       : role === "TeamLead"
                       ? "Team Lead"
+                      : role === "RelationshipManager"
+                      ? "Relationship Manager"
                       : role}
                   </button>
                 ))}

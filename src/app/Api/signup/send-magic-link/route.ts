@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if the category requires admin approval
-    if (category.toLowerCase() === "tutor" || category.toLowerCase() === "teamlead"|| category.toLowerCase() === "admin"  || category.toLowerCase() === "academic") {
+    if (category.toLowerCase() === "tutor" || category.toLowerCase() === "teamlead"|| category.toLowerCase() === "admin"  || category.toLowerCase() === "academic" || category.toLowerCase() === "relationshipmanager") {
       // Send notification email to admin
       await sendEmail({
         email,

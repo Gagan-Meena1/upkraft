@@ -81,8 +81,9 @@ export default function LoginPage() {
         router.push("/academy");
       } else if (userCategory === "TeamLead") {
         router.push("/teamlead/tutors");
+      }else if (userCategory === "RelationshipManager") {
+        router.push("/relationshipmanager");
       }
-
     } catch (error: any) {
       console.log("Login failed", error.response?.data?.error || error.message);
       if (error.response?.data?.error) {
