@@ -140,26 +140,36 @@ export default function SignupPage() {
             {/* Role Selection */}
             <div className="!mb-6">
               <div className="!flex !gap-3">
-                {["Student", "Admin", "Tutor", "Academic", "TeamLead", "RelationshipManager"].map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => handleRoleClick(role)}
-                    className={`!flex-1 !px-4 !py-2.5 !rounded-lg !font-medium !text-sm !transition-all ${
-                      category === role
-                        ? "!bg-[#5204d6] !text-white !shadow-sm"
-                        : "!bg-gray-100 !text-gray-700 !border !border-gray-200 hover:!bg-gray-200"
-                    }`}
-                  >
-                    {role === "Academic"
-                      ? "Academy"
-                      : role === "TeamLead"
-                      ? "Team Lead"
-                      : role === "RelationshipManager"
-                      ? "Relationship Manager"
-                      : role}
-                  </button>
-                ))}
-              </div>
+  {["Student", "Tutor", "Academic"].map((role) => (
+    <button
+      key={role}
+      onClick={() => handleRoleClick(role)}
+      className={`!flex-1 !px-4 !py-2.5 !rounded-lg !font-medium !text-sm !transition-all ${
+        category === role
+          ? "!bg-[#5204d6] !text-white !shadow-sm"
+          : "!bg-gray-100 !text-gray-700 !border !border-gray-200 hover:!bg-gray-200"
+      }`}
+    >
+      {role === "Academic" ? "Academy" : role}
+    </button>
+  ))}
+  
+  {/* Management Dropdown */}
+  <select
+    value={["Admin", "TeamLead", "RelationshipManager"].includes(category) ? category : ""}
+    onChange={(e) => handleRoleClick(e.target.value)}
+    className={`!flex-1 !px-4 !py-2.5 !rounded-lg !font-medium !text-sm !transition-all ${
+      ["Admin", "TeamLead", "RelationshipManager"].includes(category)
+        ? "!bg-[#5204d6] !text-white !shadow-sm"
+        : "!bg-gray-100 !text-gray-700 !border !border-gray-200 hover:!bg-gray-200"
+    }`}
+  >
+    <option value="" disabled>Management</option>
+    <option value="Admin">Admin</option>
+    <option value="TeamLead">Team Lead</option>
+    <option value="RelationshipManager">Relationship Manager</option>
+  </select>
+</div>
             </div>
 
             {/* Username Input */}

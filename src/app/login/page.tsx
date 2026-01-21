@@ -62,26 +62,41 @@ export default function LoginPage() {
       const userCategory = response.data.user.category;
       const isVerified = response.data.user.isVerified;
 
+      // normalize category 
+      const normalizedCategory = userCategory.replace(/\s+/g, "").toLowerCase();
+
       console.log("User category and verification:", userCategory, isVerified);
 
-      if ((userCategory === "Tutor" || userCategory === "Admin" || userCategory === "Student" || userCategory === "Academic") && !isVerified) {
+      // approval check
+      const needsApproval = [
+        "tutor",
+        "admin",
+        "student",
+        "academic",
+        "teamlead",
+        "relationshipmanager",
+      ].includes(normalizedCategory);
+
+      if (needsApproval && !isVerified) {
         setNotApproved(true);
         toast.error("Admin has not approved your request yet");
         return;
       }
 
       toast.success("Login successful");
-      if (userCategory === "Student") {
+
+      // routing based on normalized category
+      if (normalizedCategory === "student") {
         router.push("/student");
-      } else if (userCategory === "Tutor") {
+      } else if (normalizedCategory === "tutor") {
         router.push("/tutor");
-      } else if (userCategory === "Admin") {
+      } else if (normalizedCategory === "admin") {
         router.push("/admin");
-      } else if (userCategory === "Academic") {
+      } else if (normalizedCategory === "academic") {
         router.push("/academy");
-      } else if (userCategory === "TeamLead") {
+      } else if (normalizedCategory === "teamlead") {
         router.push("/teamlead/tutors");
-      }else if (userCategory === "RelationshipManager") {
+      } else if (normalizedCategory === "relationshipmanager") {
         router.push("/relationshipmanager");
       }
     } catch (error: any) {
