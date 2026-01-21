@@ -1,12 +1,12 @@
 "use client"
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { IndianRupee,ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, ExternalLink, HomeIcon, LogOut, BookCheck, Menu, X, Trash2 } from "lucide-react";
+import { IndianRupee, ChevronLeft, ChevronRight, Calendar, BookOpen, Users, PlusCircle, User, ExternalLink, HomeIcon, LogOut, BookCheck, Menu, X, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { BiBulb } from "react-icons/bi";
 import { toast } from 'react-hot-toast';
 import StudentProfileDetails from "@/app/components/StudentProfileDetails";
-import {ArrowLeft} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 interface CourseData {
   _id: string;
@@ -74,7 +74,7 @@ export default function StudentDetails() {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, []);
 
@@ -116,7 +116,6 @@ export default function StudentDetails() {
 
       if (response.ok && result.success) {
         toast.success('Course removed successfully!');
-        
         // Update the local state to remove the course from the list
         setStudentData(prevData => {
           if (!prevData) return null;
@@ -146,47 +145,47 @@ export default function StudentDetails() {
 
   const NavigationLinks = ({ mobile = false }) => (
     <>
-      <Link 
-        href="/tutor/profile" 
+      <Link
+        href="/tutor/profile"
         className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
         onClick={() => mobile && setMobileMenuOpen(false)}
       >
         <User size={20} />
         {(sidebarOpen || mobile) && <span className="ml-3">Profile</span>}
       </Link>
-      <Link 
-        href="/tutor/courses" 
+      <Link
+        href="/tutor/courses"
         className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
         onClick={() => mobile && setMobileMenuOpen(false)}
       >
         <BookOpen size={20} />
         {(sidebarOpen || mobile) && <span className="ml-3">My Courses</span>}
       </Link>
-      <Link 
-        href="/tutor/create-course" 
+      <Link
+        href="/tutor/create-course"
         className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
         onClick={() => mobile && setMobileMenuOpen(false)}
       >
         <PlusCircle size={20} />
         {(sidebarOpen || mobile) && <span className="ml-3">Create Course</span>}
       </Link>
-      <Link 
-        href="/tutor/myStudents" 
+      <Link
+        href="/tutor/myStudents"
         className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
         onClick={() => mobile && setMobileMenuOpen(false)}
       >
         <User size={20} />
         {(sidebarOpen || mobile) && <span className="ml-3">My Students</span>}
       </Link>
-      <Link 
-        href="/tutor/assignments" 
+      <Link
+        href="/tutor/assignments"
         className={`flex items-center p-2 rounded-lg text-gray-700 hover:bg-gray-100 mb-1 transition-all ${mobile ? 'justify-start' : ''}`}
         onClick={() => mobile && setMobileMenuOpen(false)}
       >
         <BookCheck size={20} />
         {(sidebarOpen || mobile) && <span className="ml-3">Assignments</span>}
       </Link>
-      <button 
+      <button
         onClick={async () => {
           try {
             const response = await fetch('/Api/users/logout');
@@ -212,12 +211,12 @@ export default function StudentDetails() {
   return (
     <div className="student-profile-details-sec">
       <Link
-                        className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
-                        href="/tutor/myStudents"
-                      >
-                        <ArrowLeft size={20} />
-                        Back
-                      </Link>
+        className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+        href="/tutor/myStudents"
+      >
+        <ArrowLeft size={20} />
+        Back
+      </Link>
       {/* pass assignmentCount down */}
       <StudentProfileDetails data={studentData} assignmentCount={assignmentCount} />
     </div>

@@ -3,10 +3,12 @@ import { persistReducer, persistStore } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 import userReducer from "../store/slices/userSlice";
 import dashboardReducer from "../store/slices/dashboardDataSlice";
+import studentReducer from "../store/slices/studentDataSlice";
 
 const rootReducer = combineReducers({
   user: userReducer,
-  dashboard: dashboardReducer
+  dashboard: dashboardReducer,
+  student: studentReducer
 });
 
 const persistConfig = {

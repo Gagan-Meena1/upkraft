@@ -210,8 +210,8 @@ export default function LoginPage() {
             <button
               onClick={onLogin}
               className={`!w-full !py-3 !rounded-lg !font-semibold !text-white !transition-all !shadow-sm ${loading
-                  ? "!bg-gray-400 !cursor-not-allowed"
-                  : "!bg-[#5204d6] !hover:bg-[#6b3fe0] !hover:shadow-md"
+                ? "!bg-gray-400 !cursor-not-allowed"
+                : "!bg-[#5204d6] !hover:bg-[#6b3fe0] !hover:shadow-md"
                 }`}
               disabled={loading}
             >

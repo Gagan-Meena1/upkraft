@@ -137,6 +137,36 @@ const TutorManagement = () => {
     }
   };
 
+  const suspendTutor = async (userId: string) => {
+  if (!confirm("Are you sure you want to suspend this user?")) return;
+
+  try {
+    setActionLoading(userId);
+
+    const response = await fetch(
+      `/Api/suspendUser?userId=${userId}`,
+      {
+        method: "PUT",
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      alert("User suspended successfully!");
+      fetchTutors(); // refresh list
+    } else {
+      alert(result.error || "Failed to suspend user");
+    }
+  } catch (error) {
+    console.error("Suspend error:", error);
+    alert("Something went wrong");
+  } finally {
+    setActionLoading(null);
+  }
+};
+
+
   useEffect(() => {
     fetchTutors();
   }, []);
@@ -324,6 +354,25 @@ const TutorManagement = () => {
                     </>
                   )}
                 </button>
+
+                <button
+  onClick={() => suspendTutor(tutor._id)}
+  disabled={actionLoading === tutor._id}
+  className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md
+             text-white bg-yellow-600 hover:bg-yellow-700
+             focus:outline-none focus:ring-2 focus:ring-offset-2
+             focus:ring-yellow-500 disabled:opacity-50"
+>
+  {actionLoading === tutor._id ? (
+    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+  ) : (
+    <>
+      <XCircle className="h-4 w-4 mr-2" />
+      Suspend
+    </>
+  )}
+</button>
+
               </div>
             </div>
           </div>

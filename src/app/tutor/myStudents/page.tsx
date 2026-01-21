@@ -7,6 +7,10 @@ import { ChevronLeft, ArrowLeft } from "lucide-react";
 import AddNewStudentModal from "../../components/AddNewStudentModal";
 import { Button, Dropdown, Form } from "react-bootstrap";
 import CommonTable from "@/components/tutor/CommonTable";
+import { AppDispatch, RootState } from "@/store/store";
+import { useDispatch } from "react-redux";
+import { setStudent } from "@/store/slices/studentDataSlice";
+import { useSelector } from "react-redux";
 
 interface Course {
   _id: string;
@@ -68,6 +72,10 @@ interface Column<T> {
 }
 
 export default function MyStudents() {
+  const dispatch = useDispatch<AppDispatch>();
+  const { student } = useSelector(
+    (state: RootState) => state.student
+  );
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -167,12 +175,12 @@ export default function MyStudents() {
       filterable: false,
       render: (value: any, row: Student) => (
         <div className="flex items-center gap-2">
-          <a
+          <Link
             href={`/tutor/studentDetails?studentId=${row._id}`}
             className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
           >
             Details
-          </a>
+          </Link>
         </div>
       ),
     },
@@ -259,12 +267,25 @@ export default function MyStudents() {
     try {
       setLoading(true);
       const response = await fetch("/Api/myStudents");
+      // const token = localStorage.getItem('token'); // or wherever you store it
+
+      // const responsed = await fetch(
+      //   'http://localhost:5000/api/v1/tutor/students',
+      //   {
+      //     method: 'GET',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //   }
+      // );
 
       if (!response.ok) {
         throw new Error("Failed to fetch students");
       }
 
       const data = await response.json();
+      dispatch(setStudent(data))
       console.log("API Response:", data);
       // Store academyId
       if (data.academyId) {
@@ -345,7 +366,11 @@ export default function MyStudents() {
   };
 
   useEffect(() => {
-    fetchStudents();
+    if (student?.length === 0 || student === null) {
+      fetchStudents();
+    } else {
+      setLoading(false)
+    }
   }, []);
 
   return (
@@ -424,7 +449,7 @@ export default function MyStudents() {
             </div>
           ) : (
             <div className="assignments-list-com table-responsive">
-              {students.length === 0 ? (
+              {students.length === 0 && student === null ? (
                 <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
                   <div className="text-center">
                     <svg
@@ -595,7 +620,7 @@ export default function MyStudents() {
                           </div>
                         }
                         columns={columns}
-                        data={students}
+                        data={student?.length > 0 ? student : students}
                         rowKey="_id" />
                     </div>
                   </div>
