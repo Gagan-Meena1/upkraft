@@ -14,6 +14,12 @@ const RelationshipManagerDashboard: React.FC = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleSearch = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setSearchTerm((t) => t); // no-op to preserve existing filter behaviour while providing button UX
+  };
 
   useEffect(() => {
     const fetchTutors = async () => {
@@ -42,6 +48,13 @@ const RelationshipManagerDashboard: React.FC = () => {
     fetchTutors();
   }, []);
 
+  const filteredTutors = tutors.filter((t) =>
+    [t.username || "", t.email || "", t.contact || ""]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -62,20 +75,33 @@ const RelationshipManagerDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Your Assigned Tutors
-        </h1>
-        <Link
-          href="/login"
-          className="text-sm text-gray-600 hover:text-gray-900"
-        >
-          Logout
-        </Link>
+      <header className="bg-white border-b border-gray-200 px-20 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-semibold text-gray-900">Your Assigned Tutors</h1>
+          <form className="relative" onSubmit={(e) => e.preventDefault()}>
+            <input
+              type="text"
+              placeholder="Search tutors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-24 py-2 border rounded-md text-sm w-64"
+            />
+            <button
+              onClick={handleSearch}
+              className="absolute right-1 top-1/2 -translate-y-1/2 px-3 py-1 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700"
+            >
+              Search
+            </button>
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </form>
+        </div>
+        <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Logout</Link>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
-        {tutors.length === 0 ? (
+        {filteredTutors.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-dashed border-gray-300 p-10 text-center">
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
               No tutors assigned yet
@@ -86,7 +112,7 @@ const RelationshipManagerDashboard: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tutors.map((tutor) => (
+            {filteredTutors.map((tutor) => (
               <div
                 key={tutor._id}
                 className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
