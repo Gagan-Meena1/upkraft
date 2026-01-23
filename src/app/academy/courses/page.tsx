@@ -36,7 +36,7 @@ export default function TutorCoursesPage() {
     return 1;
   });
 
-  const [pageLength] = useState(2);
+  const [pageLength] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
