@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast";
 
 interface Tutor {
   _id: string;
@@ -11,14 +13,46 @@ interface Tutor {
 }
 
 const RelationshipManagerDashboard: React.FC = () => {
+  const router = useRouter();
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [impersonatingTutorId, setImpersonatingTutorId] = useState<string | null>(null);
 
   const handleSearch = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     setSearchTerm((t) => t); // no-op to preserve existing filter behaviour while providing button UX
+  };
+
+  const handleImpersonateTutor = async (tutorId: string) => {
+    try {
+      setImpersonatingTutorId(tutorId);
+      
+      const response = await fetch("/Api/relationship-manager/impersonate-tutor", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ tutorId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to login as tutor");
+      }
+
+      // Successfully impersonated - redirect to tutor dashboard
+      toast.success("Successfully logged in as tutor");
+      router.push("/tutor");
+    } catch (err: any) {
+      console.error("Error impersonating tutor:", err);
+      toast.error(err.message || "Failed to login as tutor. Please try again.");
+    } finally {
+      setImpersonatingTutorId(null);
+    }
   };
 
   useEffect(() => {
@@ -142,12 +176,23 @@ const RelationshipManagerDashboard: React.FC = () => {
 
                 {/* Login button for this tutor */}
                 <div className="mt-4">
-                  <Link
-                    href="/login"
-                    className="w-full inline-flex justify-center items-center px-4 py-2 !bg-purple-500 !text-white !text-sm font-medium rounded-lg !hover:bg-purple-700 transition"
+                  <button
+                    onClick={() => handleImpersonateTutor(tutor._id)}
+                    disabled={impersonatingTutorId === tutor._id}
+                    className="w-full inline-flex justify-center items-center px-4 py-2 !bg-purple-500 !text-white !text-sm font-medium rounded-lg !hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Login
-                  </Link>
+                    {impersonatingTutorId === tutor._id ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Logging in...
+                      </>
+                    ) : (
+                      "Login"
+                    )}
+                  </button>
                 </div>
               </div>
             ))}
