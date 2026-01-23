@@ -38,6 +38,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    credits: {
+        type: Number,
+        default: 0
+    },
     email: {
         type: String,
         required: [true, "Please provide an email"],
@@ -111,7 +115,7 @@ const userSchema = new mongoose.Schema({
     },
     teachingMode: {
         type: String,
-        enum: ["Online", "In-person", "Both", "", "Hybrid"],
+        enum: ["Online", "In-person", "Both", "", "Hybrid","Offline"],
         default: ""
     },
     instagramLink: {
