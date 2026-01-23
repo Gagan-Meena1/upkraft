@@ -28,28 +28,53 @@ export default function TutorCoursesPage() {
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(() => {
+    if (typeof window !== "undefined") {
+      const savedPage = sessionStorage.getItem("tutorCoursesPage");
+      return savedPage ? Number(savedPage) : 1;
+    }
+    return 1;
+  });
+
+  const [pageLength] = useState(10);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    const savedPage = sessionStorage.getItem("tutorCoursesPage");
+    if (savedPage) {
+      setCurrentPage(Number(savedPage));
+    }
+  }, []);
+  useEffect(() => {
+    sessionStorage.setItem("tutorCoursesPage", currentPage.toString());
+  }, [currentPage]);
 
   useEffect(() => {
     const fetchCourses = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/Api/tutors/courses');
-        
+        const response = await fetch(`/Api/tutors/courses?page=${currentPage}&pageLength=${pageLength}`
+        );
+
         if (!response.ok) {
           const errorText = await response.text();
           throw new Error(`Failed to fetch courses: ${errorText}`);
         }
-  
+
         const data = await response.json();
         console.log('Courses data:', data);
-        
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+        } else {
+          setTotalPages(1);
+        }
         // Store everything in one state object
         setApiData({
           course: data.course,
           academyId: data.academyId || null,
           category: data.category || null
         });
-        
+
         console.log("Setting category:", data.category);
 
       } catch (err) {
@@ -60,9 +85,9 @@ export default function TutorCoursesPage() {
         setIsLoading(false);
       }
     };
-  
+
     fetchCourses();
-  }, []);
+  }, [currentPage]);
 
   if (isLoading) {
     return (
@@ -87,16 +112,19 @@ export default function TutorCoursesPage() {
     return null; // Don't render if no data
   }
 
-  console.log("Rendering with apiData:", apiData);
+  console.log("Rendering with apiData:", apiData, totalPages);
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
       <Toaster />
       <div>
-        <MyCourse 
-          data={apiData.course} 
-          academyId={apiData.academyId} 
+        <MyCourse
+          data={apiData.course}
+          academyId={apiData.academyId}
           category={apiData.category}
+          setCurrentPage={setCurrentPage}
+          currentPage={currentPage}
+          totalPages={totalPages}
         />
       </div>
     </div>
