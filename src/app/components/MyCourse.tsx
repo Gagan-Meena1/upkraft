@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Form from "react-bootstrap/Form";
 import { Button } from "react-bootstrap";
 import {
@@ -28,7 +28,7 @@ import EditCourseModal from "./EditCourseModal";
 import Image from "next/image";
 import { toast, Toaster } from "react-hot-toast";
 
-const ITEMS_PER_PAGE = 10;
+// const ITEMS_PER_PAGE = 10;
 
 interface Course {
   _id: string;
@@ -46,7 +46,7 @@ interface Course {
   class?: any[];
   students?: any[];
   tutors?: any[];
-   subCategory?: string; // ADD THIS
+  subCategory?: string; // ADD THIS
   maxStudentCount?: number; // ADD THIS
 }
 
@@ -64,44 +64,56 @@ interface CourseUser {
   profileImage: string;
 }
 
-const MyCourse = ({ data, academyId, category }: MyCourseProps) => {
+const MyCourse = ({ data, academyId, category, currentPage, setCurrentPage, totalPages }: MyCourseProps) => {
   console.log("MyCourse received props:", { data, academyId, category }); // ADD THIS
 
   const [courses, setCourses] = useState<Course[]>(data || []);
-  const [currentPage, setCurrentPage] = useState(1);
+  // const [currentPage, setCurrentPage] = useState(1);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const [copyingCourseId, setCopyingCourseId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [updatingCourseId, setUpdatingCourseId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const prevSearchRef = useRef(searchQuery);
+
+
+  useEffect(() => {
+    if (prevSearchRef.current !== searchQuery) {
+      setCurrentPage(1);
+      prevSearchRef.current = searchQuery;
+    }
+  }, [searchQuery]);
 
 
   console.log("category in MyCourse:", category);
   // Sort courses by createdAt date (newest first) and filter by search query
-const sortedAndFilteredCourses = courses
-  .sort((a, b) => {
-    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return dateB - dateA; // Descending order (newest first)
-  })
-  .filter((course) =>
-    course.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Pagination logic
-const totalCourses = searchQuery ? sortedAndFilteredCourses.length : courses.length;
-const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
-
-  const displayCourses = searchQuery
-  ? sortedAndFilteredCourses
-  : sortedAndFilteredCourses.slice(
-      (currentPage - 1) * ITEMS_PER_PAGE,
-      currentPage * ITEMS_PER_PAGE
+  const sortedAndFilteredCourses = data
+    .sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA; // Descending order (newest first)
+    })
+    .filter((course) =>
+      course.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+  // Pagination logic
+  // const totalCourses = searchQuery ? sortedAndFilteredCourses.length : courses.length;
+  // const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
+
+  // const displayCourses = searchQuery
+  //   ? sortedAndFilteredCourses
+  //   : sortedAndFilteredCourses.slice(
+  //     (currentPage - 1) * ITEMS_PER_PAGE,
+  //     currentPage * ITEMS_PER_PAGE
+  //   );
+  const displayCourses = sortedAndFilteredCourses;
+
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (page !== currentPage) {
+      setCurrentPage(page);
+    }
   };
 
   const handleEditCourse = (course: Course) => {
@@ -129,6 +141,20 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedCourse),
       });
+      // const token = localStorage.getItem('token');
+
+      // const response = await fetch(
+      //   `http://localhost:5000/api/v1/tutor/courses/${updatedCourse._id}`,
+      //   {
+      //     method: 'PUT',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //     body: JSON.stringify(updatedCourse),
+
+      //   }
+      // );
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to update course");
@@ -181,6 +207,20 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
         },
         body: JSON.stringify(courseDataToCopy),
       });
+      // const token = localStorage.getItem('token');
+
+      // const response = await fetch(
+      //   'http://localhost:5000/api/v1/tutor/duplicate-course',
+      //   {
+      //     method: 'POST',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //     body: JSON.stringify(courseDataToCopy),
+
+      //   }
+      // );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -192,7 +232,7 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
       if (data.course) {
         toast.success("Course copied successfully!");
         // Add the new course to the local state
-        setCourses((prevCourses) => [...prevCourses, ...data.course]);
+        setCourses((prevCourses) => [...prevCourses, data.course]);
       } else {
         toast.success("Course copied successfully!");
         // If the API doesn't return the new course, refresh the courses list
@@ -224,6 +264,19 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
         method: "DELETE",
       });
 
+      // const token = localStorage.getItem('token');
+
+      // const response = await fetch(
+      //   `http://localhost:5000/api/v1/tutor/courses?courseId=${courseId}`,
+      //   {
+      //     method: 'DELETE',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //       Authorization: `Bearer ${token}`,
+      //     }
+      //   }
+      // );
+
       if (!response.ok) {
         throw new Error("Failed to delete course");
       }
@@ -250,14 +303,14 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
   };
   return (
     <div className="card-box">
-     {category == "Tutor" && <Link
+      {category == "Tutor" && <Link
         className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
         href="/tutor"
       >
         <ArrowLeft size={20} />
         Back to Dashboard
       </Link>
-}
+      }
       <Toaster />
       <div className="assignments-list-sec">
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
@@ -271,40 +324,40 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
             <Form>
               <div className="right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap">
                 <div className="search-box">
-              <Form.Group className="position-relative mb-0">
-  <Form.Label className="d-none">search</Form.Label>
-  <Form.Control
-    type="text"
-    placeholder="Search here"
-    value={searchQuery}
-    onChange={(e) => setSearchQuery(e.target.value)}
-  />
-  <Button
-    type="button"
-    className="  border-0 bg-transparent p-0 m-0 position-absolute "
-  >
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 20 20"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M17.4995 17.5L13.8828 13.8833"
-        stroke="#505050"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
-        stroke="#505050"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  </Button>
-</Form.Group>
+                  <Form.Group className="position-relative mb-0">
+                    <Form.Label className="d-none">search</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="Search here"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Button
+                      type="button"
+                      className="  border-0 bg-transparent p-0 m-0 position-absolute "
+                    >
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          d="M17.4995 17.5L13.8828 13.8833"
+                          stroke="#505050"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                        <path
+                          d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
+                          stroke="#505050"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </Button>
+                  </Form.Group>
                 </div>
                 <div className="select-box">
                   <Form.Select aria-label="Default select example">
@@ -314,7 +367,7 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
                     <option value="3">Yearly</option>
                   </Form.Select>
                 </div>
-                {!academyId  && category !== "Academic" && (
+                {!academyId && category !== "Academic" && (
                   <Link
                     href="/tutor/create-course"
                     role="button"
@@ -335,7 +388,7 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
                     </svg>
                   </Link>
                 )}
-                {category==="Academic" && (
+                {category === "Academic" && (
                   <Link
                     href="/academy/create-course"
                     role="button"
@@ -363,8 +416,8 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
         <hr className="hr-light" />
 
         {/* Course List */}
-{displayCourses.map((course) => (
-  <div key={course._id} className="assignments-list-box">
+        {displayCourses.map((course) => (
+          <div key={course._id} className="assignments-list-box">
             <div className="w-100">
               <div className="d-flex align-items-center justify-content-left mb-3 flex-wrap gap-3">
                 <h3 className="mb-0">{course.title}</h3>
@@ -407,13 +460,13 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
                       <strong>{course.duration}</strong>
                     </span>
                   </li>
-                 {!academyId && <li className="d-flex align-items-center gap-2">
+                  {!academyId && <li className="d-flex align-items-center gap-2">
                     <span className="student-text">Fees :</span>
                     <span className="student-txt">
                       <strong>Rs {course.price}</strong>
                     </span>
                   </li>
-}
+                  }
                   <li className="d-flex align-items-center gap-2">
                     <span className="student-text">Lessons :</span>
                     <span className="student-txt">
@@ -602,32 +655,37 @@ const totalPages = Math.max(1, Math.ceil(totalCourses / ITEMS_PER_PAGE));
           </div>
         ))}
 
-    {/* Pagination */}
-{!searchQuery && (
-  <div className="pagination-sec d-flex align-items-center justify-content-center mt-4">
-    <Pagination>
-      <Pagination.Prev
-        onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-        disabled={currentPage === 1}
-      />
-      {[...Array(totalPages)].map((_, idx) => (
-        <Pagination.Item
-          key={idx + 1}
-          active={currentPage === idx + 1}
-          onClick={() => handlePageChange(idx + 1)}
-        >
-          {idx + 1}
-        </Pagination.Item>
-      ))}
-      <Pagination.Next
-        onClick={() =>
-          handlePageChange(Math.min(currentPage + 1, totalPages))
-        }
-        disabled={currentPage === totalPages}
-      />
-    </Pagination>
-  </div>
-)}
+        {/* Pagination */}
+        {!searchQuery && (
+          <div className="pagination-sec d-flex align-items-center justify-content-center mt-4">
+            {!searchQuery && (
+              <Pagination>
+                <Pagination.Prev
+                  onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
+                  disabled={currentPage === 1}
+                />
+
+                {[...Array(totalPages)].map((_, idx) => (
+                  <Pagination.Item
+                    key={idx + 1}
+                    active={currentPage === idx + 1}
+                    onClick={() => handlePageChange(idx + 1)}
+                  >
+                    {idx + 1}
+                  </Pagination.Item>
+                ))}
+
+                <Pagination.Next
+                  onClick={() =>
+                    handlePageChange(Math.min(currentPage + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                />
+              </Pagination>
+            )}
+
+          </div>
+        )}
       </div>
       <EditCourseModal
         show={showEditModal}
