@@ -31,7 +31,10 @@ const userSchema = new mongoose.Schema({
             type:String,
             default:""
         },
-        
+        creditDeducted:{
+            type:Number,
+            default:0   
+        }
     }]
     },
     contact: {
@@ -41,6 +44,19 @@ const userSchema = new mongoose.Schema({
     credits: {
         type: Number,
         default: 0
+    },
+    creditsPerCourse: {
+        type: [{
+            courseId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "courseName"
+            },
+            credits: {
+                type: Number,
+                default: 0
+            }   
+        }],
+        default: {}
     },
     email: {
         type: String,
