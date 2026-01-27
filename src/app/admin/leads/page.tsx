@@ -176,19 +176,27 @@ export default function LeadsDashboard() {
     a.click();
   };
 
-  const handleDownloadResume = (lead: StudentTutorLead) => {
+  const handleDownloadResume = async (lead: StudentTutorLead) => {
     const url = lead.resumeUrl || lead.resumeFileUrl;
     if (!url) {
       alert("No resume available for this tutor.");
       return;
     }
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = lead.resumeFileName || "resume";
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    try {
+      // Use the download API endpoint which handles S3 file retrieval
+      // Using registration ID is more reliable than parsing the URL
+      const downloadUrl = `/Api/resume/download?id=${lead._id}`;
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = lead.resumeFileName || "resume";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error downloading resume:", error);
+      alert("Failed to download resume. Please try again.");
+    }
   };
 
   return (
