@@ -10,7 +10,7 @@ import tutors04 from "@/assets/tutors-04.png";
 import tutors05 from "@/assets/tutors-05.png";
 import tutors06 from "@/assets/tutors-06.png";
 import tutors07 from "@/assets/tutors-07.png";
-import ModalStudent from './ModalStudent';
+import ModalTutor from './ModalTutor';
 
 const ExclusiveBenefitsTutors = () => {
     const [showModal, setShowModal] = useState(false);
@@ -102,11 +102,11 @@ const ExclusiveBenefitsTutors = () => {
                 {/* ✅ Centered Button */}
                 <div className="text-center mt-4">
                     <Link href="" className="btn btn-orange" onClick={handleShow}>
-                       Book a Demo
+                       Connect with us
                     </Link>
                 </div>
             </div>
-            <ModalStudent show={showModal} handleClose={handleClose} />
+            <ModalTutor show={showModal} handleClose={handleClose} />
         </div>
     );
 };
