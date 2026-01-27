@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
         category: courseData.category,
         subCategory: courseData?.subCategory || '',
         maxStudentCount: courseData?.maxStudentCount ,
+        credits: courseData?.credits || 0,
     });
         console.log(newCourse);
         const savednewCourse=await newCourse.save();
@@ -67,55 +68,143 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+// export async function GET(request: NextRequest) {
+//   try {
+//     connect();
+//     const url = new URL(request.url);
+//     const tutorId = url.searchParams.get('tutorId');
+    
+//     // Get instructorId from token if tutorId is not provided
+//     let instructorId;
+//     if (tutorId) {
+//       instructorId = tutorId;
+//     } else {
+//       const token = request.cookies.get("token")?.value;
+//       const decodedToken = token ? jwt.decode(token) : null;
+//       instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+//     }
+
+//     // Ensure we have a valid instructorId
+//     if (!instructorId) {
+//       return NextResponse.json(
+//         { error: 'Instructor ID is required' }, 
+//         { status: 400 }
+//       );
+//     }
+
+//     // Get courses where user is the main instructor OR courses in user's courses array
+// const instructor = await User.findById(instructorId).select('academyId category courses');
+
+// const courses = await courseName.find({
+//   $or: [
+//     { instructorId: instructorId },
+//     { _id: { $in: instructor?.courses || [] } }
+//   ]
+// });
+
+//     return NextResponse.json({
+//       message: 'Courses retrieved successfully',
+//       course: courses,
+//       academyId: instructor?.academyId || null,
+//       category: instructor?.category || null
+//     }, { status: 200 });
+
+//   } catch (error) {
+//     console.error('Course retrieval error:', error);
+//     return NextResponse.json(
+//       { error: 'Failed to retrieve courses' }, 
+//       { status: 500 }
+//     );
+//   }
+// }
 export async function GET(request: NextRequest) {
   try {
-    connect();
+    await connect();
+
     const url = new URL(request.url);
-    const tutorId = url.searchParams.get('tutorId');
-    
-    // Get instructorId from token if tutorId is not provided
+    const tutorId = url.searchParams.get("tutorId");
+
+    const page = Number(url.searchParams.get("page"));
+    const pageLength = Number(url.searchParams.get("pageLength"));
+
+    // Get instructorId
     let instructorId;
     if (tutorId) {
       instructorId = tutorId;
     } else {
       const token = request.cookies.get("token")?.value;
       const decodedToken = token ? jwt.decode(token) : null;
-      instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+      instructorId =
+        decodedToken &&
+        typeof decodedToken === "object" &&
+        "id" in decodedToken
+          ? decodedToken.id
+          : null;
     }
 
-    // Ensure we have a valid instructorId
     if (!instructorId) {
       return NextResponse.json(
-        { error: 'Instructor ID is required' }, 
+        { error: "Instructor ID is required" },
         { status: 400 }
       );
     }
 
-    // Get courses where user is the main instructor OR courses in user's courses array
-const instructor = await User.findById(instructorId).select('academyId category courses');
+    // Instructor info
+    const instructor = await User.findById(instructorId).select(
+      "academyId category courses"
+    );
 
-const courses = await courseName.find({
-  $or: [
-    { instructorId: instructorId },
-    { _id: { $in: instructor?.courses || [] } }
-  ]
-});
+    const query = {
+      $or: [
+        { instructorId: instructorId },
+        { _id: { $in: instructor?.courses || [] } },
+      ],
+    };
 
-    return NextResponse.json({
-      message: 'Courses retrieved successfully',
-      course: courses,
-      academyId: instructor?.academyId || null,
-      category: instructor?.category || null
-    }, { status: 200 });
+    let coursesQuery = courseName.find(query);
 
-  } catch (error) {
-    console.error('Course retrieval error:', error);
+    let paginationMeta = null;
+    if (
+      Number.isInteger(page) &&
+      Number.isInteger(pageLength) &&
+      page > 0 &&
+      pageLength > 0
+    ) {
+      const skip = (page - 1) * pageLength;
+
+      coursesQuery = coursesQuery.skip(skip).limit(pageLength);
+
+      const totalCount = await courseName.countDocuments(query);
+
+      paginationMeta = {
+        page,
+        pageLength,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageLength),
+      };
+    }
+
+    const courses = await coursesQuery;
+
     return NextResponse.json(
-      { error: 'Failed to retrieve courses' }, 
+      {
+        message: "Courses retrieved successfully",
+        course: courses,
+        academyId: instructor?.academyId || null,
+        category: instructor?.category || null,
+        ...(paginationMeta && { pagination: paginationMeta }),
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Course retrieval error:", error);
+    return NextResponse.json(
+      { error: "Failed to retrieve courses" },
       { status: 500 }
     );
   }
 }
+
 export async function DELETE(request: NextRequest) {
   try {
     await connect();

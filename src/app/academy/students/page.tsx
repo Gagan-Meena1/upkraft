@@ -17,6 +17,7 @@ interface Student {
   progress: number;
   attendance: Array<any>;
   status: string;
+  credits: number;
 }
 
 interface PaginationInfo {
