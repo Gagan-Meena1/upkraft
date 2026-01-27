@@ -87,7 +87,7 @@ const TopHeaderTutor = ({ role, setRole }) => {
                 <Form.Group className="position-relative mb-0">
                     <Form.Label className='d-none'>search</Form.Label>
                     <Form.Control type="text" placeholder="Search here" />
-                    <Button variant='link' className="btn border-0 bg-transparent p-0 m-0 !top-[10px] position-absolute">
+                    <Button variant='link' className="btn border-0 bg-transparent p-0 m-0 !top-[22px] position-absolute">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.4995 17.5L13.8828 13.8833" stroke="#505050" strokeLinecap="round" strokeLinejoin="round"/><path d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z" stroke="#505050" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     </Button>
                 </Form.Group>
