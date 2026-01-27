@@ -685,11 +685,11 @@ h3,
     gap: 20px;
   }
 
-  h1,
+  /* h1,
   .h1 {
     font-size: 40px;
     line-height: 1.2;
-  }
+  } */
 
   h3,
   .h3 {
@@ -959,11 +959,11 @@ h3,
     top: auto;
   }
 
-  h1,
+  /* h1,
   .h1 {
     font-size: 25px;
     line-height: 29px;
-  }
+  } */
 
   h3,
   .h3 {
@@ -1230,6 +1230,11 @@ h3,
   letter-spacing: 0px;
 }
 
+.word-brk {
+    white-space: break-spaces;
+    word-break: break-word;
+}
+
 @media only screen and (max-width: 1200px) {
 
   
@@ -1270,6 +1275,12 @@ h3,
 
 .landing-page h2 {
   font-size: 22px !important;
+}
+
+
+
+.full-width-mobile {
+    width: 100%;
 }
 
 }
