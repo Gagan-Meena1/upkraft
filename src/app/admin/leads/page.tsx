@@ -17,6 +17,11 @@ interface StudentTutorLead {
   tutorName?: string | null;
   demoDate?: string | null;
   demoTime?: string | null;
+
+  // API fields for resume
+  resumeUrl?: string;        // <-- add this
+  resumeFileUrl?: string;    // existing
+  resumeFileName?: string;
 }
 
 interface InstitutionLead {
@@ -62,7 +67,21 @@ export default function LeadsDashboard() {
       const data = await response.json();
 
       if (data.success) {
-        setIndividualLeads(data.data);
+        // Normalize possible resume field names so UI can show the arrow
+        const normalized: StudentTutorLead[] = (data.data || []).map((lead: any) => ({
+          ...lead,
+          resumeUrl:
+            lead.resumeUrl ||
+            lead.resumeFileUrl ||
+            lead.resume ||
+            lead.publicUrl ||
+            lead.s3Url ||
+            lead.fileUrl ||
+            null,
+          resumeFileName: lead.resumeFileName || lead.resumeName || lead.fileName || null,
+        }));
+
+        setIndividualLeads(normalized);
         setStats(prev => ({
           ...prev,
           individual: {
@@ -155,6 +174,21 @@ export default function LeadsDashboard() {
     a.href = url;
     a.download = `${type}-leads-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
+  };
+
+  const handleDownloadResume = (lead: StudentTutorLead) => {
+    const url = lead.resumeUrl || lead.resumeFileUrl;
+    if (!url) {
+      alert("No resume available for this tutor.");
+      return;
+    }
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = lead.resumeFileName || "resume";
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -345,18 +379,34 @@ export default function LeadsDashboard() {
                       {filteredIndividualLeads.map((lead) => (
                         <tr key={lead._id} className="hover:bg-purple-50/50 transition-colors">
                           <td className="px-4 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full ${
-                              lead.userType === "Student"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-purple-100 text-purple-700"
-                            }`}>
-                              {lead.userType === "Student" ? (
-                                <GraduationCap className="w-3.5 h-3.5" />
-                              ) : (
-                                <User className="w-3.5 h-3.5" />
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full ${
+                                  lead.userType === "Student"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-purple-100 text-purple-700"
+                                }`}
+                              >
+                                {lead.userType === "Student" ? (
+                                  <GraduationCap className="w-3.5 h-3.5" />
+                                ) : (
+                                  <User className="w-3.5 h-3.5" />
+                                )}
+                                {lead.userType}
+                              </span>
+
+                              {/* Always show arrow for Tutors; disable if no resume */}
+                              {lead.userType === "Tutor" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownloadResume(lead)}
+                                  className="p-1 rounded-full hover:bg-green-100 text-green-700"
+                                  title="Download Resume"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
                               )}
-                              {lead.userType}
-                            </span>
+                            </div>
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">
                             <div className="text-sm font-semibold text-gray-900">{lead.name}</div>
@@ -432,6 +482,7 @@ export default function LeadsDashboard() {
                               >
                                 <Mail className="w-4 h-4" />
                               </a>
+                              {/* removed old resume button from here */}
                             </div>
                           </td>
                         </tr>
