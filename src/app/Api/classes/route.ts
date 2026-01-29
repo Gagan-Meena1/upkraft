@@ -2,6 +2,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import Class from "@/models/Class";
+import EventClass from "@/models/EventClass";
 import { writeFile, mkdir } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
@@ -61,6 +62,11 @@ export async function POST(request: NextRequest) {
     const startTime = formData.get("startTime") as string;
     const endTime = formData.get("endTime") as string;
     const timezone = formData.get("timezone") as string; // Get timezone from frontend
+    const recurrenceId = (formData.get("recurrenceId") as string) || null;
+    const recurrenceTypeRaw = formData.get("recurrenceType") as string | null;
+    const recurrenceType = recurrenceTypeRaw && ["daily", "weekly", "weekdays"].includes(recurrenceTypeRaw) ? recurrenceTypeRaw : null;
+    const recurrenceUntilStr = (formData.get("recurrenceUntil") as string) || null;
+    const recurrenceUntil = recurrenceUntilStr ? new Date(recurrenceUntilStr) : null;
 
     // Accept courseId from referer OR formData OR query param (covers client copy flows)
     if (!courseId) {
@@ -246,9 +252,34 @@ export async function POST(request: NextRequest) {
       instructor: instructorId,
       recording: videoPath,
       recordingProcessed: videoPath ? 0 : null,
+      ...(recurrenceId && { recurrenceId }),
+      ...(recurrenceType && { recurrenceType }),
+      ...(recurrenceUntil && { recurrenceUntil }),
     });
 
     const savednewClass = await newClass.save();
+
+    // If this is a repeat/event class, upsert EventClass collection
+    if (recurrenceId && recurrenceType) {
+      const existingEvent = await EventClass.findOne({ eventId: recurrenceId }).lean();
+      if (existingEvent) {
+        await EventClass.findOneAndUpdate(
+          { eventId: recurrenceId },
+          { $push: { classIds: savednewClass._id } }
+        );
+      } else {
+        await EventClass.create({
+          eventId: recurrenceId,
+          classIds: [savednewClass._id],
+          course: courseId,
+          instructor: instructorId,
+          title,
+          description: description || "",
+          recurrenceType,
+          recurrenceUntil,
+        });
+      }
+    }
     console.log("333333333333333333333333333333333333333333333333333333333333");
     console.log("Saved class:", savednewClass);
 
