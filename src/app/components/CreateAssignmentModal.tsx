@@ -11,6 +11,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
 
 interface Course {
   _id: string;
@@ -28,6 +29,8 @@ interface Class {
   _id: string;
   title: string;
   description?: string;
+  startTime: string;
+  endTime: string;
 }
 
 interface Song {
@@ -94,40 +97,20 @@ export default function CreateAssignmentModal({
   editingAssignment,
 }: CreateAssignmentModalProps) {
   const router = useRouter();
-  const [formData, setFormData] = useState(() => {
-    try {
-      const saved =
-        typeof window !== "undefined"
-          ? localStorage.getItem("assignmentDefaults")
-          : null;
-      const defaults = saved ? JSON.parse(saved) : {};
-      return {
-        title: "",
-        deadline: "",
-        description: "",
-        songName: "",
-        customSongName: "",
-        course: defaults.course || "",
-        class: defaults.class || "",
-        speed: defaults.speed || "100%",
-        metronome: defaults.metronome || "100%",
-        loop: defaults.loop || "Set A",
-      };
-    } catch {
-      return {
-        title: "",
-        deadline: "",
-        description: "",
-        songName: "",
-        customSongName: "",
-        course: "",
-        class: "",
-        speed: "100%",
-        metronome: "100%",
-        loop: "Set A",
-      };
-    }
-  });
+
+  // 🔧 1. Start with an empty form – no localStorage defaults
+  const [formData, setFormData] = useState(() => ({
+    title: "",
+    deadline: "",
+    description: "",
+    songName: "",
+    customSongName: "",
+    course: "",
+    class: "",
+    speed: "100%",
+    metronome: "100%",
+    loop: "Set A",
+  }));
 
   const [extraAssignments, setExtraAssignments] = useState<ExtraAssignment[]>(
     []
@@ -203,6 +186,7 @@ export default function CreateAssignmentModal({
 
     const init = async () => {
       if (editingAssignment) {
+        // ✅ EDIT FLOW: keep existing logic (prefill from assignment)
         const deadlineDate = new Date(editingAssignment.deadline);
         const formattedDeadline = isNaN(deadlineDate.getTime())
           ? ""
@@ -217,8 +201,7 @@ export default function CreateAssignmentModal({
           customSongName: "",
           course: editingAssignment.course?._id || prev.course || "",
           speed: editingAssignment.speed || prev.speed || "100%",
-          metronome:
-            editingAssignment.metronome || prev.metronome || "100%",
+          metronome: editingAssignment.metronome || prev.metronome || "100%",
           loop: editingAssignment.loop || prev.loop || "Set A",
         }));
 
@@ -275,25 +258,20 @@ export default function CreateAssignmentModal({
         // reset extras when editing existing assignment
         setExtraAssignments([]);
       } else {
-        try {
-          const saved =
-            typeof window !== "undefined"
-              ? localStorage.getItem("assignmentDefaults")
-              : null;
-          const defaults = saved ? JSON.parse(saved) : {};
-          setFormData((prev) => ({
-            ...prev,
-            course: defaults.course || prev.course || "",
-            class: defaults.class || prev.class || "",
-            speed: defaults.speed || prev.speed || "100%",
-            metronome:
-              defaults.metronome || prev.metronome || "100%",
-            loop: defaults.loop || prev.loop || "Set A",
-          }));
-          setPracticeStudio(Boolean(defaults.practiceStudio));
-        } catch {
-          //
-        }
+        // ✅ CREATE FLOW: everything empty every time
+        setFormData({
+          title: "",
+          deadline: "",
+          description: "",
+          songName: "",
+          customSongName: "",
+          course: "",
+          class: "",
+          speed: "100%",
+          metronome: "100%",
+          loop: "Set A",
+        });
+        setPracticeStudio(false);
         setMusicSheet(null);
         setAssignmentFile(null);
         setSelectedStudents([]);
@@ -304,22 +282,10 @@ export default function CreateAssignmentModal({
     init();
   }, [editingAssignment, isOpen]);
 
+  // 🔧 FIX: do NOT reset formData here, just load courses
   useEffect(() => {
-    if (isOpen) {
-      setFormData({
-            title: "",
-            deadline: "",
-            description: "",
-            songName: "",
-            customSongName: "",
-            course: "",
-            class: "",
-            speed: "100%",
-            metronome: "100%",
-            loop: "Set A",
-          });
-      fetchCourses()
-    };
+    if (!isOpen) return;
+    fetchCourses();
   }, [isOpen]);
 
   const fetchCourses = async () => {
@@ -613,8 +579,8 @@ export default function CreateAssignmentModal({
   const [searchTermGlobal, setSearchTermGlobal] = useState("");
 
   const handleSubmit = async () => {
-  if (!formData.title.trim())
-    return setError("Please enter an assignment title");
+    if (!formData.title.trim())
+      return setError("Please enter an assignment title");
     if (!formData.course) return setError("Please select a course");
     if (!formData.class) return setError("Please select a class");
     if (selectedStudents.length === 0)
@@ -643,7 +609,7 @@ export default function CreateAssignmentModal({
         // ...existing edit logic...
         // (no change needed for editing)
       } else {
-        // Group students by assignment data
+        // create logic
         type AssignmentKey = string;
         const groupMap: Record<AssignmentKey, { studentIds: string[], fields: any }> = {};
 
@@ -708,7 +674,6 @@ export default function CreateAssignmentModal({
           }
         }
 
-        // ...existing reset and navigation logic...
         const defaultsToSave = {
           course: formData.course,
           class: formData.class,
@@ -771,6 +736,11 @@ export default function CreateAssignmentModal({
   }>(
     {}
   );
+
+  const userTz = getUserTimeZone();
+  const selectedClass = classesOptions.find(
+    (c) => c._id === formData.class
+  ) || null;
 
   // Helper: current selected students in visible order
   const getSelectedOrderedIds = () =>
@@ -965,12 +935,40 @@ export default function CreateAssignmentModal({
                   <option value="">
                     {loadingClasses ? "Loading classes..." : "Choose a class"}
                   </option>
-                  {classesOptions.map((cls) => (
+                  {classesOptions.map((cls: any) => (
                     <option key={cls._id} value={cls._id}>
-                      {cls.title}
+                      {/* Title — Date, Time */}
+                      {cls.title} — {formatInTz(cls.startTime, userTz, {
+                        weekday: "short",
+                        month: "short",
+                        day: "2-digit",
+                        year: "numeric",
+                      })} {formatInTz(cls.startTime, userTz, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </option>
                   ))}
                 </select>
+
+                {/* Selected class info */}
+                {selectedClass && (
+                  <div className="!mt-2 !text-xs !text-gray-600">
+                    <span className="!font-medium">Class date:</span>{" "}
+                    {formatInTz(selectedClass.startTime, userTz, {
+                      weekday: "long",
+                      month: "long",
+                      day: "2-digit",
+                      year: "numeric",
+                    })}
+                    {" • "}
+                    {formatTimeRangeInTz(
+                      selectedClass.startTime,
+                      selectedClass.endTime,
+                      userTz
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
