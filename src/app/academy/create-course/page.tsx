@@ -316,12 +316,12 @@ const handleSubmit = async (e: FormEvent) => {
   </div>
 
    {/* Credits - ADD THIS ENTIRE BLOCK */}
-  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
-    <div className="flex items-center gap-2 sm:gap-3 mb-3">
+  {/* <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200"> */}
+    {/* <div className="flex items-center gap-2 sm:gap-3 mb-3">
       <Tag className="text-purple-700" size={20} />
       <label className="text-purple-700 font-semibold text-sm sm:text-base">Credits (Optional)</label>
-    </div>
-    <input 
+    </div> */}
+    {/* <input 
       type="number"
       value={credits}
       onChange={(e) => setCredits(e.target.value)}
@@ -329,8 +329,8 @@ const handleSubmit = async (e: FormEvent) => {
       className="w-full bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
       min="0"
       step="1"
-    />
-  </div>
+    /> */}
+  {/* </div> */}
             
           </div>
           

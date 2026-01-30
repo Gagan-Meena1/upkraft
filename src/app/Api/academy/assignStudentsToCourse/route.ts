@@ -142,7 +142,6 @@ export async function POST(request: NextRequest) {
             courses: courseId,
             instructorId: { $each: tutorIds }
           },
-          $inc: { credits: course.credits }
         },
         { new: true }
       )
@@ -294,7 +293,6 @@ export async function DELETE(request: NextRequest) {
         {
           $pull: { courses: courseId },
           instructorId: updatedInstructorIds,
-          $inc: { credits: -course.credits }
         },
         { new: true }
       );

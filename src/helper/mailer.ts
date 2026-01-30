@@ -3,6 +3,7 @@ import bcryptjs from "bcryptjs";
 import nodemailer from "nodemailer";
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { sendWhatsAppTextMessage, sendWhatsAppVideoMessage, formatPhoneNumber,sendWhatsAppTemplateMessage } from './whatsappService';
 
 // Add S3 client configuration
 const s3Client = new S3Client({
@@ -39,6 +40,7 @@ interface EmailParams {
   feedbackDetails?: any;
     videoUrl?: string; // Add this
   message?: string; // Add this
+  phone?: string; // Add this
 }
 
 export const sendEmail = async ({ email, emailType, userId, username, category, resetToken, tutorName, courseName,
@@ -56,7 +58,8 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
   classDate,
   feedbackDetails,
   videoUrl,
-  message
+  message,
+  phone
   
  }: EmailParams) => {
   console.log(`[Mailer] Sending ${emailType} email to: ${email}`);
@@ -495,6 +498,52 @@ else if (emailType === "FEEDBACK_RECEIVED") {
 </html>
   `
 };
+
+// Send WhatsApp message for feedback
+  if (phone) {
+    try {
+
+      // Test code
+const testPhone = '9166156249'; // Your number
+await sendWhatsAppTextMessage({
+  phone: testPhone,
+  message: 'Test message from UpKraft'
+});
+
+
+      const formattedPhone = formatPhoneNumber(phone);
+      const feedbackDetailsText = feedbackDetails 
+        ? Object.entries(feedbackDetails)
+            .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${value}/10`)
+            .join('\n')
+        : '';
+      
+      const whatsappMessage = `
+🎓 *New Feedback Received - UpKraft*
+
+Hi ${username},
+
+You've received feedback for "${className}"${classDate ? ` on ${classDate}` : ''} in ${courseName} course.
+
+📊 *Average Score:* ${averageScore}/10
+
+${feedbackDetailsText ? `*Detailed Scores:*\n${feedbackDetailsText}\n\n` : ''}💬 *Tutor's Feedback:*
+"${personalFeedback}"
+
+View your detailed report: ${process.env.DOMAIN}/student/singleFeedback/${feedbackCategory}?classId=${classId}&studentId=${userId}
+
+Keep up the great work! 🌟
+      `.trim();
+
+      await sendWhatsAppTextMessage({
+        phone: formattedPhone,
+        message: whatsappMessage
+      });
+      console.log('[Mailer] WhatsApp feedback notification sent successfully');
+    } catch (whatsappError) {
+      console.error('[Mailer] Failed to send WhatsApp notification:', whatsappError);
+    }
+  }
 }
 else if (emailType === "VIDEO_SHARE") {
   // Generate pre-signed URLs (valid for 7 days)
@@ -518,7 +567,35 @@ else if (emailType === "VIDEO_SHARE") {
     expiresIn: 604800 
   });
 
+  // Send WhatsApp video message
+  if (phone) {
+    try {
+      const formattedPhone = formatPhoneNumber(phone);
+      const caption = `
+🎥 *Class Recording - UpKraft*
+
+Student: ${username}
+Class: ${className || courseName}
+${classDate ? `Date: ${classDate}` : ''}
+
+${message || 'Your class recording is ready!'}
+
+⏰ Video link expires in 7 days.
+      `.trim();
+
+      await sendWhatsAppVideoMessage({
+        phone: formattedPhone,
+        videoUrl: viewUrl,
+        caption: caption
+      });
+      console.log('[Mailer] WhatsApp video sent successfully');
+    } catch (whatsappError) {
+      console.error('[Mailer] Failed to send WhatsApp video:', whatsappError);
+    }
+  }
+
   mailOptions = {
+
     from: fromAddress,
     to: email,
     subject: `Class Recording - ${ username} - ${className || courseName}`,

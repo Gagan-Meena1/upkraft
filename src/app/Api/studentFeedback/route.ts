@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken'
 import courseName from '@/models/courseName';
 import User  from '@/models/userModel';
 import {sendEmail} from '@/helper/mailer';
+import { formatPhoneNumber } from '@/helper/whatsappService';
 
 await connect();
 
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     if (attendanceIndex !== -1) {
       // Update existing attendance record
-      user.attendance[attendanceIndex].status = status;
+      user.attendance[attendanceIndex].status = attendanceStatus;
     } else {
       // Create new attendance record
       user.attendance.push({
@@ -149,6 +150,7 @@ export async function POST(request: NextRequest) {
             email: studentUser.email,
             emailType: "FEEDBACK_RECEIVED",
             username: studentUser.username,
+            phone: user.contact ? formatPhoneNumber(user.contact) : undefined,
             courseName: (await courseName.findById(courseId).select('title'))?.title || undefined,
             className: updatedClass.title,
             personalFeedback: personalFeedback,

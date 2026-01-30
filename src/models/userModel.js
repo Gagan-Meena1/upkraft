@@ -34,6 +34,10 @@ const userSchema = new mongoose.Schema({
         creditDeducted:{
             type:Number,
             default:0   
+        },
+        reasonForCreditDeduction:{
+            type:String,
+            default:""      
         }
     }]
     },

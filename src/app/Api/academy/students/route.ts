@@ -130,6 +130,7 @@ statusCounts.forEach(item => {
       createdAt: student.createdAt || null,
       timezone: student.timezone || 'UTC',
       credits: student.credits || 0,
+      teachingMode: student.teachingMode || '',
       // Hardcoded values as per requirement
       progress: 0,
       attendance: student.attendance || [],

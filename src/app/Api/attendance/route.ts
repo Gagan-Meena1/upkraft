@@ -3,6 +3,8 @@
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
 import { NextRequest, NextResponse } from "next/server";
+import Class from "@/models/Class";
+import Course from "@/models/courseName"; // Import Course model
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +14,7 @@ export async function POST(request: NextRequest) {
     const classId = searchParams.get("classId");
     
     const body = await request.json();
-    const { status, attendanceRecords } = body;
+    const { status, attendanceRecords, credits , creditReason} = body;
 
     // Check if this is a bulk operation
     if (attendanceRecords && Array.isArray(attendanceRecords)) {
@@ -84,13 +86,14 @@ export async function POST(request: NextRequest) {
 
           await user.save();
 
-          results.push({
+          const result: any = {
             studentId: record.studentId,
             classId,
             status: record.status,
             success: true
-          });
+          };
 
+          results.push(result);
         } catch (error: any) {
           errors.push({
             studentId: record.studentId,
@@ -111,11 +114,11 @@ export async function POST(request: NextRequest) {
             failureCount: errors.length
           }
         },
-        { status: errors.length === 0 ? 200 : 207 } // 207 = Multi-Status
+        { status: errors.length === 0 ? 200 : 207 }
       );
 
     } else {
-      // SINGLE ATTENDANCE MARKING (Original logic)
+      // SINGLE ATTENDANCE MARKING
       if (!studentId || !classId) {
         return NextResponse.json(
           { 
@@ -136,10 +139,13 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Find the user
-      const user = await User.findById(studentId);
+      // ✅ OPTIMIZED: Single query with populate to get all needed data
+      const [student, classData] = await Promise.all([
+        User.findById(studentId),
+        Class.findById(classId).populate('course').lean()
+      ]);
 
-      if (!user) {
+      if (!student) {
         return NextResponse.json(
           { 
             success: false, 
@@ -149,34 +155,102 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      if (!classData) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: "Class not found" 
+          },
+          { status: 404 }
+        );
+      }
+
       // Check if attendance record exists for this class
-      const attendanceIndex = user.attendance.findIndex(
+      const attendanceIndex = student.attendance.findIndex(
         (att) => att.classId.toString() === classId
       );
 
-      if (attendanceIndex !== -1) {
-        // Update existing attendance record
-        user.attendance[attendanceIndex].status = status;
+      // ✅ Handle credits for present status
+      let instructorId = null;
+      let creditsProcessed = false;
+
+      if (status === 'present' && credits && credits > 0) {
+        // Deduct credits from student
+        student.credits -= credits;
+      
+
+        // Update attendance record with creditDeducted
+        if (attendanceIndex !== -1) {
+          student.attendance[attendanceIndex].status = status;
+          student.attendance[attendanceIndex].creditDeducted = credits;
+          student.attendance[attendanceIndex].reasonForCreditDeduction = creditReason || "";
+        } else {
+          student.attendance.push({
+            classId: classId,
+            status: status,
+            creditDeducted: credits,
+            reasonForCreditDeduction: creditReason || ""
+          });
+        }
+
+        // ✅ Find instructor to add credits
+        const course = classData.course;
+        
+        if (course && course.academyInstructorId && course.academyInstructorId.length > 0) {
+          // Use first academyInstructorId
+          instructorId = course.academyInstructorId[0];
+        } else {
+          // Find tutor who has this classId in their classes array
+          const tutor = await User.findOne({
+            category: 'Tutor',
+            classes: classId
+          }).lean();
+          
+          if (tutor) {
+            instructorId = tutor._id;
+          }
+        }
+
+        // ✅ Add credits to instructor (parallel operation)
+        if (instructorId) {
+          await User.findByIdAndUpdate(
+            instructorId,
+            { $inc: { credits: credits } },
+            { new: true }
+          );
+          creditsProcessed = true;
+        }
+
       } else {
-        // Create new attendance record
-        user.attendance.push({
-          classId: classId,
-          status: status
-        });
+        // Regular attendance update without credits
+        if (attendanceIndex !== -1) {
+          student.attendance[attendanceIndex].status = status;
+        } else {
+          student.attendance.push({
+            classId: classId,
+            status: status
+          });
+        }
       }
 
-      // Save the updated user
-      await user.save();
+      // Save student
+      await student.save();
+
+      const responseData: any = {
+        studentId,
+        classId,
+        status,
+        ...(creditsProcessed && {
+          creditsDeducted: credits,
+          creditsAddedToInstructor: instructorId?.toString()
+        })
+      };
 
       return NextResponse.json(
         {
           success: true,
-          message: `Attendance marked as ${status} successfully`,
-          data: {
-            studentId,
-            classId,
-            status
-          }
+          message: `Attendance marked as ${status} successfully${creditsProcessed ? ' and credits processed' : ''}`,
+          data: responseData
         },
         { status: 200 }
       );

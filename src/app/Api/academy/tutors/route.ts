@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     const academy = await User.findById(academyId)
       .populate({
         path: 'tutors',
-        select: '-password'
+        select: '_id username email profileImage skills isVerified createdAt credits teachingMode'
       })
       .lean();
 
@@ -342,6 +342,8 @@ export async function GET(req: NextRequest) {
         email: tutor.email,
         profileImage: tutor.profileImage || "",
         skills: tutor.skills || "",
+        credits: tutor.credits || 0,
+        teachingMode: tutor.teachingMode || "Hybrid",
         studentCount,
         classCount,
         csatScore: averageCSAT,

@@ -297,122 +297,120 @@ const handleSubmit = async (e) => {
                       <th>Subject</th>
                       <th>Students</th>
                       <th>Classes</th>
+                      <th>Credits</th> 
                       <th>CSAT Score</th>
                       <th>Class Quality Score</th>
                       <th>Overall Performance Score</th>
                       <th>Feedback Pending</th>
-                      <th>Revenue</th>
+                      {/* <th>Revenue</th> */}
                       <th>Status</th>
                       <th className="text-center">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {filteredTutors.map((tutor) => (
-                      <tr key={tutor._id}>
-                        <td>
-                          <div className="student-img-name d-flex align-items-center gap-2">
-                            <div className="img-box">
-                              {tutor.profileImage ? (
-                                <Image 
-                                  src={tutor.profileImage} 
-                                  alt={tutor.username} 
-                                  width={40}
-                                  height={40}
-                                  className="rounded-circle"
-                                  style={{ objectFit: 'cover' }}
-                                />
-                              ) : (
-                                <div 
-                                  className="rounded-circle d-flex align-items-center justify-content-center bg-primary text-white"
-                                  style={{ width: '40px', height: '40px', fontSize: '16px', fontWeight: 'bold' }}
-                                >
-                                  {tutor.username?.charAt(0)?.toUpperCase() || 'T'}
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-box">
-                              <h6>{tutor.username || "Unknown"}</h6>
-                              <span>{tutor.email || "No email"}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          {tutor.tutorCourses && tutor.tutorCourses.length > 0 ? (
-                            <div className="d-flex flex-column gap-1">
-                              {tutor.tutorCourses.slice(0, 2).map((course, index) => (
-                                <span key={course._id || index} className="text-dark">
-                                  {course.title}
-                                </span>
-                              ))}
-                              {tutor.tutorCourses.length > 2 && (
-                                <span className="text-muted small">
-                                  +{tutor.tutorCourses.length - 2} more
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted">No courses</span>
-                          )}
-                        </td>
-                        <td>{tutor.studentCount || 0}</td>
-                        <td>{tutor.classCount || 0}</td>
-                        <td>
-                          <span className="lighter-blue">
-                            {tutor.csatScore ? `${tutor.csatScore}%` : "N/A"}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="lighter-blue">
-                            {tutor.classQualityScore ? `${tutor.classQualityScore}/10` : "0/10"}
-                          </span>
-                        </td>
-                        <td>
-                          <span className="lighter-blue">
-                            {tutor.overallPerformanceScore ? `${tutor.overallPerformanceScore}/10` : "0/10"}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={tutor.pendingFeedbackCount > 0 ? "text-warning" : "text-muted"}>
-                            {tutor.pendingFeedbackCount || 0}
-                          </span>
-                        </td>
-                        <td>{formatCurrency(tutor.revenue || 0)}</td>
-                        <td>
-                          <span className={getStatusClass(tutor.isVerified)}>
-                            {getStatusText(tutor.isVerified)}
-                          </span>
-                        </td>
-                        <td className="text-center">
-                          <ul className="d-flex align-items-center justify-content-center gap-2 list-unstyled m-0 p-0">
-                            <li>
-                             <button 
-  className="link-btn border-0 bg-transparent p-0"
-  onClick={() => handleEditClick(tutor)}
->
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3.50195 21H21.502" stroke="#1E88E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M5.50391 13.36V17H9.16241L19.5039 6.654L15.8514 3L5.50391 13.36Z" stroke="#1E88E5" strokeWidth="2" strokeLinejoin="round"></path>
-  </svg>
-</button>
-                            </li>
-                            <li>
-                              {/* <Link className="link-btn" href="#" onClick={(e) => {
-                                e.preventDefault();
-                                if (confirm(`Are you sure you want to delete ${tutor.username}?`)) {
-                                  // Handle delete action here
-                                  console.log("Delete tutor:", tutor._id);
-                                }
-                              }}>
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M8.625 6.375C8.625 5.47989 8.98058 4.62145 9.61351 3.98851C10.2464 3.35558 11.1049 3 12 3C12.8951 3 13.7536 3.35558 14.3865 3.98851C15.0194 4.62145 15.375 5.47989 15.375 6.375M8.625 6.375H15.375M8.625 6.375H5.25M15.375 6.375H18.75M5.25 6.375H3M5.25 6.375V18.75C5.25 19.3467 5.48705 19.919 5.90901 20.341C6.33097 20.7629 6.90326 21 7.5 21H16.5C17.0967 21 17.669 20.7629 18.091 20.341C18.5129 19.919 18.75 19.3467 18.75 18.75V6.375M18.75 6.375H21" stroke="#E53935" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"></path>
-                                </svg>
-                              </Link> */}
-                            </li>
-                          </ul>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                <tbody>
+  {filteredTutors.map((tutor) => (
+    <tr key={tutor._id}>
+      <td>
+        <div className="student-img-name d-flex align-items-center gap-2">
+          <div className="img-box">
+            {tutor.profileImage ? (
+              <Image 
+                src={tutor.profileImage} 
+                alt={tutor.username} 
+                width={40}
+                height={40}
+                className="rounded-circle"
+                style={{ objectFit: 'cover' }}
+              />
+            ) : (
+              <div 
+                className="rounded-circle d-flex align-items-center justify-content-center bg-primary text-white"
+                style={{ width: '40px', height: '40px', fontSize: '16px', fontWeight: 'bold' }}
+              >
+                {tutor.username?.charAt(0)?.toUpperCase() || 'T'}
+              </div>
+            )}
+          </div>
+          <div className="text-box">
+            <h6>{tutor.username || "Unknown"}</h6>
+            <span>{tutor.email || "No email"}</span>
+          </div>
+        </div>
+      </td>
+      <td>
+        {tutor.tutorCourses && tutor.tutorCourses.length > 0 ? (
+          <div className="d-flex flex-column gap-1">
+            {tutor.tutorCourses.slice(0, 2).map((course, index) => (
+              <span key={course._id || index} className="text-dark">
+                {course.title}
+              </span>
+            ))}
+            {tutor.tutorCourses.length > 2 && (
+              <span className="text-muted small">
+                +{tutor.tutorCourses.length - 2} more
+              </span>
+            )}
+          </div>
+        ) : (
+          <span className="text-muted">No courses</span>
+        )}
+      </td>
+      <td>{tutor.studentCount || 0}</td>
+      <td>{tutor.classCount || 0}</td>
+      {/* ✅ CREDITS COLUMN */}
+      <td>
+        <span className={(tutor.credits >= 0 || tutor.teachingMode === 'Online') ? 'text-primary fw-bold' : 'text-muted'}>
+          {(tutor.credits >= 0 || tutor.teachingMode === 'Online' )
+            ? (tutor.credits || 0) 
+            : 'N/A'
+          }
+        </span>
+      </td>
+      <td>
+        <span className="lighter-blue">
+          {tutor.csatScore ? `${tutor.csatScore}%` : "N/A"}
+        </span>
+      </td>
+      <td>
+        <span className="lighter-blue">
+          {tutor.classQualityScore ? `${tutor.classQualityScore}/10` : "0/10"}
+        </span>
+      </td>
+      <td>
+        <span className="lighter-blue">
+          {tutor.overallPerformanceScore ? `${tutor.overallPerformanceScore}/10` : "0/10"}
+        </span>
+      </td>
+      <td>
+        <span className={tutor.pendingFeedbackCount > 0 ? "text-warning" : "text-muted"}>
+          {tutor.pendingFeedbackCount || 0}
+        </span>
+      </td>
+      {/* <td>{formatCurrency(tutor.revenue || 0)}</td> */}
+      <td>
+        <span className={getStatusClass(tutor.isVerified)}>
+          {getStatusText(tutor.isVerified)}
+        </span>
+      </td>
+      <td className="text-center">
+        <ul className="d-flex align-items-center justify-content-center gap-2 list-unstyled m-0 p-0">
+          <li>
+            <button 
+              className="link-btn border-0 bg-transparent p-0"
+              onClick={() => handleEditClick(tutor)}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3.50195 21H21.502" stroke="#1E88E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+                <path d="M5.50391 13.36V17H9.16241L19.5039 6.654L15.8514 3L5.50391 13.36Z" stroke="#1E88E5" strokeWidth="2" strokeLinejoin="round"></path>
+              </svg>
+            </button>
+          </li>
+          <li></li>
+        </ul>
+      </td>
+    </tr>
+  ))}
+</tbody>
                 </table>
               )}
             </div>

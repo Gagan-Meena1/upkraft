@@ -17,6 +17,7 @@ interface Student {
   username: string;
   email: string;
   profileImage?: string;
+  teachingMode?: string;
 }
 
 interface Class {
@@ -140,6 +141,7 @@ const FeedbackPendingDetails = () => {
   const currentFields = CATEGORY_FIELDS[currentCategory] || CATEGORY_FIELDS["Music"];
   const splitIndex = Math.ceil(currentFields.length / 2);
 
+  const [creditReason, setCreditReason] = useState<string>('Standard'); 
 
 // Add these new state variables after your existing state declarations:
 const [isRecording, setIsRecording] = useState(false);
@@ -155,6 +157,8 @@ const recordingTimerRef = useRef<NodeJS.Timeout | null>(null);
 // Add this with your other state variables:
 const [showLivePreview, setShowLivePreview] = useState(false);
 const livePreviewRef = useRef<HTMLVideoElement | null>(null);
+const [credits, setCredits] = useState<number>(1);
+const [showCustomCredits, setShowCustomCredits] = useState<boolean>(false);
 
 
 const startRecording = async () => {
@@ -341,6 +345,7 @@ useEffect(() => {
                 username: item.studentName,
                 email: '',
                 profileImage: item.profileImage || undefined,
+                teachingMode: item.teachingMode || undefined,
               },
               classes: []
             });
@@ -389,13 +394,16 @@ useEffect(() => {
   }, []);
   
   // Re-init sliders when selection changes (student or class)
-  useEffect(() => {
-    if (!selectedFeedback) return;
-    const currentClass = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
-    const category = currentClass?.courseCategory || "Music";
-    setFeedbackData(buildDefaults(category));
-    setAttendanceStatus('present');
-  }, [selectedFeedback]);
+useEffect(() => {
+  if (!selectedFeedback) return;
+  const currentClass = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
+  const category = currentClass?.courseCategory || "Music";
+  setFeedbackData(buildDefaults(category));
+  setAttendanceStatus('present');
+  setCredits(1); 
+  setShowCustomCredits(false); 
+    setCreditReason('Standard'); 
+}, [selectedFeedback]);
 
   const handleSelectStudent = (feedback: PendingFeedback) => {
     setSelectedFeedback(feedback);
@@ -436,6 +444,36 @@ useEffect(() => {
       const studentId = student._id;
       const category = classData.courseCategory || "Music";
       const endpoint = getSubmitEndpoint(category, classData.feedbackModelRequired);
+    if (student.teachingMode === 'Online') {
+
+        // ✅ STEP 1: Submit attendance with credits FIRST
+    const attendancePayload: any = {
+      status: 'present',
+      studentId,
+      classId,
+      creditReason: creditReason 
+    };
+    
+    // Only add credits for Online students
+      attendancePayload.credits = credits;
+    
+
+    const attendanceResponse = await fetch(
+      `/Api/attendance?studentId=${studentId}&classId=${classId}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(attendancePayload)
+      }
+    );
+
+    const attendanceResult = await attendanceResponse.json();
+    
+    if (!attendanceResult.success) {
+      throw new Error(attendanceResult.message || 'Failed to update attendance');
+    }
+  }
+
 
       // Build payload from current category fields
       const fields = CATEGORY_FIELDS[category] || CATEGORY_FIELDS["Music"];
@@ -445,6 +483,7 @@ useEffect(() => {
         courseId,
         classId,
         personalFeedback: String(feedbackData.personalFeedback || ""),
+         credits: credits,
       };
       fields.forEach(f => {
         const v = feedbackData[f.key];
@@ -498,6 +537,9 @@ useEffect(() => {
         }
 
         setAttendanceStatus('present');
+         setCredits(1); // ← ADD THIS LINE HERE
+  setShowCustomCredits(false); 
+  setCreditReason('Standard');
         // Reset form to defaults for next selected item (use effect will also reset)
         const nextCat =
           updatedFeedbacks.length && updatedFeedbacks[0].classes.length
@@ -574,6 +616,8 @@ useEffect(() => {
         }
 
         setAttendanceStatus('present');
+         setCredits(1); // ← ADD THIS LINE HERE
+  setShowCustomCredits(false); 
         setShowAbsentConfirm(false);
         const nextCat =
           updatedFeedbacks.length && updatedFeedbacks[0].classes.length
@@ -1001,19 +1045,80 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                   </div>
                 </div>
 
-                <div className='bottom-recording-box'>
-                  <p><strong>Personal Feedback & Area for Improvement</strong></p>
-                  <Form>
-                    <Form.Group className="mb-3" controlId="feedbackTextarea">
-                      <Form.Control
-                        as="textarea"
-                        rows={5}
-                        placeholder='Provide detailed feedback and suggestions for improvement...'
-                        value={String(feedbackData.personalFeedback || "")}
-                        onChange={(e) => handleTextChange(e.target.value)}
-                      />
-                    </Form.Group>
-                  </Form>
+               <div className='bottom-recording-box'>
+  <p><strong>Personal Feedback & Area for Improvement</strong></p>
+  <Form>
+    <Form.Group className="mb-3" controlId="feedbackTextarea">
+      <Form.Control
+        as="textarea"
+        rows={5}
+        placeholder='Provide detailed feedback and suggestions for improvement...'
+        value={String(feedbackData.personalFeedback || "")}
+        onChange={(e) => handleTextChange(e.target.value)}
+      />
+    </Form.Group>
+
+  {/* ✅ Credits Section - Only show for Online students */}
+{selectedFeedback?.student.teachingMode === 'Online' && (
+  <Form.Group className="mb-3">
+    <p><strong>Credits for this Session</strong></p>
+    <div className="d-flex gap-2 align-items-center flex-wrap mb-3">
+      <button
+        type="button"
+        className={`btn ${credits === 1 && !showCustomCredits ? 'btn-primary' : 'btn-outline-primary'}`}
+        onClick={() => {
+          setCredits(1);
+          setShowCustomCredits(false);
+          setCreditReason('Standard');
+        }}
+        style={{ minWidth: '80px' }}
+      >
+        1 Credit
+      </button>
+      <button
+        type="button"
+        className={`btn ${showCustomCredits ? 'btn-primary' : 'btn-outline-primary'}`}
+        onClick={() => setShowCustomCredits(true)}
+        style={{ minWidth: '80px' }}
+      >
+        Custom
+      </button>
+    </div>
+
+    {showCustomCredits && (
+      <div className="mt-2">
+        <Form.Control
+          type="number"
+          min="0"
+          step="0.5"
+          value={credits}
+          onChange={(e) => setCredits(parseFloat(e.target.value) || 0)}
+          placeholder="Enter custom credits"
+          style={{ maxWidth: '200px' }}
+          className="mb-2"
+        />
+        <Form.Text className="text-muted d-block mb-2">
+          Enter any positive number (e.g., 1.5, 2, 2.5)
+        </Form.Text>
+      </div>
+    )}
+
+    {/* ✅ Credit Reason Field */}
+    <div className="mt-3">
+      <Form.Label>Credit Reason</Form.Label>
+      <Form.Control
+        type="text"
+        value={creditReason}
+        onChange={(e) => setCreditReason(e.target.value)}
+        placeholder="Enter reason for credit allocation"
+      />
+      <Form.Text className="text-muted">
+        Explain why this credit amount is being assigned
+      </Form.Text>
+    </div>
+  </Form.Group>
+)}
+  </Form>
                   <div className='d-flex align-items-end justify-content-end mt-4 gap-2'>
   {attendanceStatus === 'present' ? (
     <Button 

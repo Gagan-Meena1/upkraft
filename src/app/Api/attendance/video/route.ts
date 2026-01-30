@@ -4,6 +4,7 @@ import User from '@/models/userModel';
 import Class from '@/models/Class'; // Import Class model to get class details
 import courseName from '@/models/courseName'; // Import Course model to get course name
 import { sendEmail } from '@/helper/mailer';
+import { formatPhoneNumber } from '@/helper/whatsappService';
 
 export async function POST(req: NextRequest) {
   try {
@@ -62,6 +63,7 @@ export async function POST(req: NextRequest) {
         // Send email with video links
         await sendEmail({
           email: student.email,
+          phone: student.contact ? formatPhoneNumber(student.contact) : undefined,
           emailType: 'VIDEO_SHARE',
           username: student.username,
           className: className,
