@@ -97,6 +97,11 @@ const ClassSchema = new mongoose.Schema({
     enum: ['scheduled', 'rescheduled', 'completed', 'canceled'],
     default: 'scheduled'
   },
+  eventId: {
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"EventClass",
+    default:null
+  },
 
   // Class Quality Evaluation Data
   evaluation: {
