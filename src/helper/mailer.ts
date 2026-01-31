@@ -500,50 +500,46 @@ else if (emailType === "FEEDBACK_RECEIVED") {
 };
 
 // Send WhatsApp message for feedback
-  if (phone) {
-    try {
-
-      // Test code
-const testPhone = '9166156249'; // Your number
-await sendWhatsAppTextMessage({
-  phone: testPhone,
-  message: 'Test message from UpKraft'
-});
-
-
-      const formattedPhone = formatPhoneNumber(phone);
-      const feedbackDetailsText = feedbackDetails 
-        ? Object.entries(feedbackDetails)
-            .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${value}/10`)
-            .join('\n')
-        : '';
-      
-      const whatsappMessage = `
-🎓 *New Feedback Received - UpKraft*
-
-Hi ${username},
-
-You've received feedback for "${className}"${classDate ? ` on ${classDate}` : ''} in ${courseName} course.
-
-📊 *Average Score:* ${averageScore}/10
-
-${feedbackDetailsText ? `*Detailed Scores:*\n${feedbackDetailsText}\n\n` : ''}💬 *Tutor's Feedback:*
-"${personalFeedback}"
-
-View your detailed report: ${process.env.DOMAIN}/student/singleFeedback/${feedbackCategory}?classId=${classId}&studentId=${userId}
-
-Keep up the great work! 🌟
-      `.trim();
-
-      await sendWhatsAppTextMessage({
-        phone: formattedPhone,
-        message: whatsappMessage
-      });
-      console.log('[Mailer] WhatsApp feedback notification sent successfully');
-    } catch (whatsappError) {
-      console.error('[Mailer] Failed to send WhatsApp notification:', whatsappError);
-    }
+if (phone) {
+  try {
+    const formattedPhone = formatPhoneNumber(phone);
+    
+    // Build detailed scores text for optional parameter
+    const feedbackDetailsText = feedbackDetails 
+      ? Object.entries(feedbackDetails)
+          .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${value}/10`)
+          .join(',')
+      : '';
+    
+    const reportUrl = `${process.env.DOMAIN}/student/singleFeedback/${feedbackCategory}?classId=${classId}&studentId=${userId}`;
+    
+    await sendWhatsAppTemplateMessage({
+      phone: formattedPhone,
+      templateName: 'feedback_notification', // Your approved template name
+      languageCode: 'en',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: username || 'Student' },
+            { type: 'text', text: className || 'Class' },
+            { type: 'text', text: classDate || new Date().toLocaleDateString() },
+            { type: 'text', text: courseName || 'Course' },
+            { type: 'text', text: averageScore || '0' },
+            { type: 'text', text: feedbackDetailsText },
+            { type: 'text', text: (personalFeedback || '').replace(/\n/g, ' ') },
+            { type: 'text', text: reportUrl }
+          ]
+        },
+        
+      ]
+    });
+    
+    console.log('[Mailer] WhatsApp feedback template sent successfully');
+  } catch (whatsappError) {
+    console.error('[Mailer] Failed to send WhatsApp template:', whatsappError);
   }
+}
 }
 else if (emailType === "VIDEO_SHARE") {
   // Generate pre-signed URLs (valid for 7 days)
@@ -567,33 +563,57 @@ else if (emailType === "VIDEO_SHARE") {
     expiresIn: 604800 
   });
 
-  // Send WhatsApp video message
-  if (phone) {
-    try {
-      const formattedPhone = formatPhoneNumber(phone);
-      const caption = `
-🎥 *Class Recording - UpKraft*
-
-Student: ${username}
-Class: ${className || courseName}
-${classDate ? `Date: ${classDate}` : ''}
-
-${message || 'Your class recording is ready!'}
-
-⏰ Video link expires in 7 days.
-      `.trim();
-
-      await sendWhatsAppVideoMessage({
-        phone: formattedPhone,
-        videoUrl: viewUrl,
-        caption: caption
-      });
-      console.log('[Mailer] WhatsApp video sent successfully');
-    } catch (whatsappError) {
-      console.error('[Mailer] Failed to send WhatsApp video:', whatsappError);
-    }
+// Send WhatsApp message for feedback
+if (phone) {
+  try {
+    const formattedPhone = formatPhoneNumber(phone);
+    
+    // Build detailed scores text WITHOUT newlines - use commas instead
+    const feedbackDetailsText = feedbackDetails 
+      ? Object.entries(feedbackDetails)
+          .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${value}/10`)
+          .join(', ')  // ✅ CHANGE THIS - NO NEWLINES
+      : '';
+    
+    const reportUrl = `${process.env.DOMAIN}/student/singleFeedback/${feedbackCategory}?classId=${classId}&studentId=${userId}`;
+    
+    await sendWhatsAppTemplateMessage({
+      phone: formattedPhone,
+      templateName: 'feedback_notification',
+      languageCode: 'en',
+      components: [
+        {
+          type: 'body',
+          parameters: [
+            { type: 'text', text: username || 'Student' },
+            { type: 'text', text: className || 'Class' },
+            { type: 'text', text: classDate || new Date().toLocaleDateString() },
+            { type: 'text', text: courseName || 'Course' },
+            { type: 'text', text: averageScore || '0' },
+            { type: 'text', text: feedbackDetailsText },
+            { type: 'text', text: (personalFeedback || '').replace(/\n/g, ' ') }, 
+            { type: 'text', text: reportUrl }
+          ]
+        },
+        {
+          type: 'button',
+          sub_type: 'url',
+          index: 0,
+          parameters: [
+            { 
+              type: 'text', 
+              text: reportUrl.replace(process.env.DOMAIN || '', '')
+            }
+          ]
+        }
+      ]
+    });
+    
+    console.log('[Mailer] WhatsApp feedback template sent successfully');
+  } catch (whatsappError) {
+    console.error('[Mailer] Failed to send WhatsApp template:', whatsappError);
   }
-
+}
   mailOptions = {
 
     from: fromAddress,

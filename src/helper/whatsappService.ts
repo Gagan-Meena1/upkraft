@@ -3,6 +3,18 @@ import axios from 'axios';
 const WHATSAPP_API_URL = 'https://partnersv1.pinbot.ai/v3/810108682184519/messages';
 const WHATSAPP_API_KEY = process.env.WABA_API_KEY!;
 
+interface WhatsAppTemplateComponent {
+  type: 'header' | 'body' | 'button';
+  parameters?: Array<{
+    type: 'text' | 'video' | 'image';
+    text?: string;
+    video?: { link: string };
+    image?: { link: string };
+  }>;
+  sub_type?: 'url';
+  index?: number;
+}
+
 interface WhatsAppTextMessage {
   phone: string;
   message: string;
@@ -17,12 +29,12 @@ export const sendWhatsAppTemplateMessage = async ({
   phone, 
   templateName,
   languageCode = 'en',
-  parameters = []
+  components = []
 }: {
   phone: string;
   templateName: string;
   languageCode?: string;
-  parameters?: string[];
+  components?: WhatsAppTemplateComponent[];
 }) => {
   try {
     console.log(`[WhatsApp] Sending template message to: ${phone}`);
@@ -39,17 +51,11 @@ export const sendWhatsAppTemplateMessage = async ({
       }
     };
 
-    if (parameters.length > 0) {
-      payload.template.components = [
-        {
-          type: "body",
-          parameters: parameters.map(param => ({
-            type: "text",
-            text: param
-          }))
-        }
-      ];
+    if (components.length > 0) {
+      payload.template.components = components;
     }
+
+    console.log('[WhatsApp] Template payload:', JSON.stringify(payload, null, 2));
 
     const response = await axios.post(WHATSAPP_API_URL, payload, {
       headers: {
