@@ -168,14 +168,14 @@ const tutorContent=(
               </div>
               
               <div className="space-y-2 mb-4">
-                <div className="flex">
+                {/* <div className="flex">
                   <span className="text-sm text-gray-500 w-20">Email:</span>
                   <span className="text-sm text-gray-500 word-brk">{tutor.email}</span>
-                </div>
-                <div className="flex">
+                </div> */}
+                {/* <div className="flex">
                   <span className="text-sm text-gray-500 w-20">Contact:</span>
                   <span className="text-sm text-gray-500">{tutor.contact || 'Not available'}</span>
-                </div>
+                </div> */}
               </div>
               
               <Link href={`/student/tutorProfile?tutorId=${tutor._id}`}>
