@@ -293,52 +293,89 @@ export async function GET(request: NextRequest) {
     const token = request.cookies.get("token")?.value;
     const decodedToken = token ? jwt.decode(token) : null;
     let instructorId =
-      decodedToken && typeof decodedToken === "object" && "id" in decodedToken
+      decodedToken &&
+      typeof decodedToken === "object" &&
+      "id" in decodedToken
         ? decodedToken.id
         : null;
 
-    // Check for userid query parameter
     const { searchParams } = new URL(request.url);
     const userIdFromQuery = searchParams.get("userid");
 
-    // If userid query param exists, use it as the student ID
-    if (userIdFromQuery) {
-      instructorId = userIdFromQuery;
-      console.log("Using userid from query param:", userIdFromQuery);
-    }
-
     console.log("decodedToken : ", decodedToken);
-    console.log("Final instructorId : ", instructorId);
+    console.log("instructorId : ", instructorId);
+    console.log("userIdFromQuery : ", userIdFromQuery);
 
     if (!instructorId) {
       return NextResponse.json(
-        {
-          message: "User ID not found",
-          error: "No user ID provided",
-        },
+        { message: "User ID not found", error: "No user ID provided" },
         { status: 400 }
       );
     }
 
-    // Find the user and populate the classes array with actual class details
+    // NEW LOGIC: Find common classes between instructor and queried user
+    if (userIdFromQuery) {
+      // Fetch both users
+      const [instructor, queriedUser] = await Promise.all([
+        User.findById(instructorId).populate({
+          path: "classes",
+          model: "Class",
+        }),
+        User.findById(userIdFromQuery).populate({
+          path: "classes",
+          model: "Class",
+        }),
+      ]);
+
+      if (!instructor) {
+        return NextResponse.json(
+          { message: "Instructor not found" },
+          { status: 404 }
+        );
+      }
+
+      if (!queriedUser) {
+        return NextResponse.json(
+          { message: "Queried user not found" },
+          { status: 404 }
+        );
+      }
+
+      // Find common class IDs
+      const instructorClassIds = new Set(
+        instructor.classes.map((c: any) => c._id.toString())
+      );
+      
+      const commonClasses = queriedUser.classes.filter((c: any) =>
+        instructorClassIds.has(c._id.toString())
+      );
+
+      console.log("Found common classes:", commonClasses.length);
+
+      return NextResponse.json(
+        {
+          message: "Common classes fetched successfully",
+          classData: commonClasses,
+          totalClasses: commonClasses.length,
+        },
+        { status: 200 }
+      );
+    }
+
+    // EXISTING LOGIC: If no userIdFromQuery, return all instructor's classes
     const user = await User.findById(instructorId).populate({
       path: "classes",
-      model: "Class", // Make sure this matches your Class model name
+      model: "Class",
     });
 
     if (!user) {
       return NextResponse.json(
-        {
-          message: "User not found",
-          error: "No user found with the provided ID",
-        },
+        { message: "User not found" },
         { status: 404 }
       );
     }
 
-    // Get the populated class data
     const classData = user.classes || [];
-
     console.log("Found classes:", classData.length);
 
     return NextResponse.json(
