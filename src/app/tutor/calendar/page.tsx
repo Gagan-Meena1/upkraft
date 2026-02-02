@@ -184,43 +184,54 @@ const StudentCalendarView = () => {
     setRescheduleReason(""); // Reset reason
   };
 
-  const handleCancelClass = async (reasonFromModal: string) => {
+  const handleCancelClass = async (
+    reasonOrEvent: any,
+    cancelType: "single" | "all" = "single"
+  ) => {
     if (!selectedClass || isCancelling) return;
 
-    const finalReason = reasonFromModal.trim();
+    // Support both new modal (passes string) and old onClick (event)
+    const finalReason =
+      typeof reasonOrEvent === "string"
+        ? reasonOrEvent.trim()
+        : rescheduleReason.trim();
+
     if (!finalReason) {
       toast.error("Please provide a reason for cancellation");
       return;
     }
 
     const classId = selectedClass._id;
-    const prevAllClasses = allClasses;
+    let prevAllClasses: any[] | null = null;
 
-    // 1) Optimistic UI: update state + close modals immediately
-    setAllClasses((prev: any[]) =>
-      prev.map((block: any) => ({
-        ...block,
-        classes: (block.classes || []).map((cls: any) =>
-          cls._id === classId
-            ? {
-                ...cls,
-                status: "cancelled",
-                cancellationReason: finalReason,
-              }
-            : cls
-        ),
-      }))
-    );
+    // Optimistic UI only for single-event cancel
+    if (cancelType === "single") {
+      prevAllClasses = allClasses;
 
-    setSelectedClass((prev: any) =>
-      prev && prev._id === classId
-        ? { ...prev, status: "cancelled", cancellationReason: finalReason }
-        : prev
-    );
+      setAllClasses((prev: any[]) =>
+        prev.map((block: any) => ({
+          ...block,
+          classes: (block.classes || []).map((cls: any) =>
+            cls._id === classId
+              ? {
+                  ...cls,
+                  status: "cancelled",
+                  cancellationReason: finalReason,
+                }
+              : cls
+          ),
+        }))
+      );
+
+      setSelectedClass((prev: any) =>
+        prev && prev._id === classId
+          ? { ...prev, status: "cancelled", cancellationReason: finalReason }
+          : prev
+      );
+    }
 
     setShowCancelModal(false);
     setShowClassModal(false);
-
     setIsCancelling(true);
 
     try {
@@ -230,7 +241,9 @@ const StudentCalendarView = () => {
         Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       const res = await fetch(
-        `/Api/classes?classId=${encodeURIComponent(classId)}`,
+        `/Api/classes?classId=${encodeURIComponent(
+          classId
+        )}&deleteType=${encodeURIComponent(cancelType)}`,
         {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -243,12 +256,18 @@ const StudentCalendarView = () => {
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || data.message || "Failed to cancel class");
+        throw new Error(
+          data.error || data.message || "Failed to cancel class"
+        );
       }
 
-      toast.success("Class cancelled");
+      toast.success(
+        cancelType === "all"
+          ? "All events in this series have been cancelled"
+          : "Class cancelled"
+      );
 
-      // 2) Background refresh to sync with server
+      // Background refresh to sync with server
       (async () => {
         const studentList = await fetchStudents();
         if (studentList.length > 0) {
@@ -259,8 +278,10 @@ const StudentCalendarView = () => {
       console.error("Cancel error:", err);
       toast.error(err.message || "Failed to cancel class");
 
-      // Roll back optimistic change if API failed
-      setAllClasses(prevAllClasses);
+      // Roll back optimistic change if API failed (only for single)
+      if (cancelType === "single" && prevAllClasses) {
+        setAllClasses(prevAllClasses);
+      }
     } finally {
       setIsCancelling(false);
     }
@@ -736,6 +757,18 @@ const StudentCalendarView = () => {
 
   return (
     <div className="min-h-screen w-full bg-gray-50 flex text-gray-900">
+      {/* Global cancelling overlay */}
+      {isCancelling && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-lg px-6 py-4 flex items-center gap-3">
+            <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+            <div className="text-sm text-gray-700">
+              Cancelling classes in this series…
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <div
@@ -1399,9 +1432,9 @@ const StudentCalendarView = () => {
               variant="warning"
               className="flex-1 !py-2 !rounded-md !text-sm"
               onClick={handleCancelClass}
-              disabled={!rescheduleReason.trim()}
+              disabled={!rescheduleReason.trim() || isCancelling}
             >
-              Cancel Class
+              {isCancelling ? "Cancelling..." : "Cancel Class"}
             </Button>
           </div>
         </Modal.Body>
@@ -1491,8 +1524,8 @@ const StudentCalendarView = () => {
         onHide={() => {
           setShowCancelModal(false);
         }}
-        onCancel={async (reason) => {
-          await handleCancelClass(reason);
+        onCancel={async (reason: string, type: "single" | "all") => {
+          await handleCancelClass(reason, type);
         }}
         disabled={
           selectedClass &&
@@ -1550,10 +1583,18 @@ const CancelClassModal = React.memo(
             <Button
               variant="warning"
               className="flex-1 !py-2 !rounded-md !text-sm"
-              onClick={() => onCancel(reason)}
+              onClick={() => onCancel(reason, "single")}
               disabled={!reason.trim() || disabled || loading}
             >
-              {loading ? "Cancelling..." : "Cancel Class"}
+              {loading ? "Cancelling..." : "Cancel This Event"}
+            </Button>
+            <Button
+              variant="danger"
+              className="flex-1 !py-2 !rounded-md !text-sm"
+              onClick={() => onCancel(reason, "all")}
+              disabled={!reason.trim() || disabled || loading}
+            >
+              {loading ? "Cancelling..." : "Cancel All Events"}
             </Button>
           </div>
         </Modal.Body>
