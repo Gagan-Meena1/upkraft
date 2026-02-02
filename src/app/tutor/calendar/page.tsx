@@ -186,7 +186,7 @@ const StudentCalendarView = () => {
 
   const handleCancelClass = async (
     reasonOrEvent: any,
-    cancelType: "single" | "all" = "single"
+    cancelType: "single" | "all" | "following" = "single"
   ) => {
     if (!selectedClass || isCancelling) return;
 
@@ -202,9 +202,13 @@ const StudentCalendarView = () => {
     }
 
     const classId = selectedClass._id;
+    const selectedStart = selectedClass.startTime
+      ? new Date(selectedClass.startTime).getTime()
+      : 0;
+    const recurrenceId = selectedClass.recurrenceId ?? null;
     let prevAllClasses: any[] | null = null;
 
-    // Optimistic UI only for single-event cancel
+    // Optimistic UI for single-event cancel
     if (cancelType === "single") {
       prevAllClasses = allClasses;
 
@@ -223,6 +227,33 @@ const StudentCalendarView = () => {
         }))
       );
 
+      setSelectedClass((prev: any) =>
+        prev && prev._id === classId
+          ? { ...prev, status: "cancelled", cancellationReason: finalReason }
+          : prev
+      );
+    }
+
+    // Optimistic UI for "following": mark all in series from selected date through end
+    if (cancelType === "following" && recurrenceId) {
+      prevAllClasses = allClasses;
+      setAllClasses((prev: any[]) =>
+        prev.map((block: any) => ({
+          ...block,
+          classes: (block.classes || []).map((cls: any) => {
+            if (cls.recurrenceId !== recurrenceId) return cls;
+            const clsStart = cls.startTime
+              ? new Date(cls.startTime).getTime()
+              : 0;
+            if (clsStart < selectedStart) return cls;
+            return {
+              ...cls,
+              status: "cancelled",
+              cancellationReason: finalReason,
+            };
+          }),
+        }))
+      );
       setSelectedClass((prev: any) =>
         prev && prev._id === classId
           ? { ...prev, status: "cancelled", cancellationReason: finalReason }
@@ -264,7 +295,9 @@ const StudentCalendarView = () => {
       toast.success(
         cancelType === "all"
           ? "All events in this series have been cancelled"
-          : "Class cancelled"
+          : cancelType === "following"
+            ? "Events from this date onward have been cancelled"
+            : "Class cancelled"
       );
 
       // Background refresh to sync with server
@@ -278,8 +311,8 @@ const StudentCalendarView = () => {
       console.error("Cancel error:", err);
       toast.error(err.message || "Failed to cancel class");
 
-      // Roll back optimistic change if API failed (only for single)
-      if (cancelType === "single" && prevAllClasses) {
+      // Roll back optimistic change if API failed (single or following)
+      if ((cancelType === "single" || cancelType === "following") && prevAllClasses) {
         setAllClasses(prevAllClasses);
       }
     } finally {
@@ -1524,7 +1557,7 @@ const StudentCalendarView = () => {
         onHide={() => {
           setShowCancelModal(false);
         }}
-        onCancel={async (reason: string, type: "single" | "all") => {
+        onCancel={async (reason: string, type: "single" | "all" | "following") => {
           await handleCancelClass(reason, type);
         }}
         disabled={
@@ -1575,10 +1608,10 @@ const CancelClassModal = React.memo(
             <Button
               variant="secondary"
               className="flex-1 !py-2 !rounded-md !text-sm"
-              onClick={onHide}
-              disabled={loading}
+              onClick={() => onCancel(reason, "following")}
+              disabled={!reason.trim() || disabled || loading}
             >
-              Keep Class
+              {loading ? "Cancelling..." : "Cancel Following"}
             </Button>
             <Button
               variant="warning"

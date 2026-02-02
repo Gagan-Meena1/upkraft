@@ -665,7 +665,7 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
-    const deleteType = (searchParams.get("deleteType") || "single").toLowerCase(); // "single" | "all"
+    const deleteType = (searchParams.get("deleteType") || "single").toLowerCase(); // "single" | "all" | "following"
 
     if (!classId) {
       return NextResponse.json(
@@ -823,6 +823,131 @@ export async function DELETE(request: NextRequest) {
         );
       }
       // If we get here (no recurrenceId) we fall through to single-cancel logic.
+    }
+
+    // --- Cancel following events (from selected date through end of series) ---
+    if (deleteType === "following") {
+      const fromClass = await Class.findById(classId);
+      if (!fromClass) {
+        return NextResponse.json(
+          { error: "Class not found" },
+          { status: 404 }
+        );
+      }
+      const recurrenceId = fromClass.recurrenceId;
+      const fromStartTime = fromClass.startTime;
+
+      if (!recurrenceId) {
+        // No series: cancel only this occurrence (same as single)
+        await Class.findByIdAndUpdate(classId, {
+          status: "canceled",
+          reasonForCancelation: reasonForCancellation,
+        });
+        // Send email for this single class (reuse same logic as single below via fall-through or inline)
+        try {
+          const enrolledStudents = await User.find({ classes: classId });
+          if (enrolledStudents.length > 0) {
+            const course = await courseName.findById(fromClass.course);
+            const courseTitle = course ? course.title : "Your Course";
+            const { date: originalDate, time: originalTimeStart } =
+              formatDateTimeForEmail(fromClass.startTime, tz);
+            const { time: originalTimeEnd } =
+              formatDateTimeForEmail(fromClass.endTime, tz);
+            const originalTimeRange = `${originalTimeStart} - ${originalTimeEnd}`;
+            await Promise.all(
+              enrolledStudents.map((student: any) =>
+                sendEmail({
+                  email: student.email,
+                  emailType: "CLASS_CANCELLED",
+                  username: student.username,
+                  courseName: courseTitle,
+                  className: fromClass.title,
+                  originalDate,
+                  originalTime: originalTimeRange,
+                  reasonForCancellation,
+                })
+              )
+            );
+          }
+        } catch (emailError) {
+          console.error("Error sending cancellation email:", emailError);
+        }
+        return NextResponse.json(
+          { message: "Class cancelled and students notified" },
+          { status: 200 }
+        );
+      }
+
+      const classesToCancel = await Class.find({
+        recurrenceId,
+        startTime: { $gte: fromStartTime },
+      }).sort({ startTime: 1 });
+
+      if (classesToCancel.length === 0) {
+        return NextResponse.json(
+          { error: "No classes found to cancel" },
+          { status: 404 }
+        );
+      }
+
+      const idsToCancel = classesToCancel.map((c) => c._id);
+      await Class.updateMany(
+        { _id: { $in: idsToCancel } },
+        {
+          status: "canceled",
+          reasonForCancelation: reasonForCancellation,
+        }
+      );
+
+      try {
+        for (const cls of classesToCancel) {
+          const studentsForClass = await User.find({
+            classes: cls._id,
+          }).select("email username");
+          if (studentsForClass.length === 0) continue;
+          const course = await courseName.findById(cls.course);
+          const courseTitle = course ? course.title : "Your Course";
+          const { date: originalDate, time: originalTimeStart } =
+            formatDateTimeForEmail(cls.startTime, tz);
+          const { time: originalTimeEnd } = formatDateTimeForEmail(
+            cls.endTime,
+            tz
+          );
+          const originalTimeRange = `${originalTimeStart} - ${originalTimeEnd}`;
+          await Promise.all(
+            studentsForClass.map(async (student: any) => {
+              try {
+                await sendEmail({
+                  email: student.email,
+                  emailType: "CLASS_CANCELLED",
+                  username: student.username,
+                  courseName: courseTitle,
+                  className: cls.title,
+                  originalDate,
+                  originalTime: originalTimeRange,
+                  reasonForCancellation,
+                });
+              } catch (emailError) {
+                console.error(
+                  `Failed to send cancellation email to ${student.email}:`,
+                  emailError
+                );
+              }
+            })
+          );
+        }
+      } catch (emailError) {
+        console.error("Error in email sending for cancel following:", emailError);
+      }
+
+      return NextResponse.json(
+        {
+          message:
+            "Events from this date onward have been cancelled and students notified",
+          cancelledCount: classesToCancel.length,
+        },
+        { status: 200 }
+      );
     }
 
     // --- Single-class cancellation (existing behaviour) ---
