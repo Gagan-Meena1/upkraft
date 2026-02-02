@@ -36,16 +36,17 @@ export async function POST(request: NextRequest) {
 
     console.log(courseData);
 
-    const newCourse = new courseName({
-      title: courseData.title,
-      description: courseData.description,
-      instructorId: instructorId,
-      duration: courseData.duration,
-      price: courseData.price,
-      curriculum: courseData.curriculum,
-      category: courseData.category,
-      subCategory: courseData?.subCategory || '',
-      maxStudentCount: courseData?.maxStudentCount,
+       const newCourse = new courseName({
+        title: courseData.title,
+        description: courseData.description,
+        instructorId:instructorId,
+        duration: courseData.duration,
+        price: courseData.price,
+        curriculum: courseData.curriculum,
+        category: courseData.category,
+        subCategory: courseData?.subCategory || '',
+        maxStudentCount: courseData?.maxStudentCount ,
+        credits: courseData?.credits || 0,
     });
     console.log(newCourse);
     const savednewCourse = await newCourse.save();

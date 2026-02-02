@@ -356,7 +356,7 @@ const calculateEndTime = (startTime) => {
 
       <Modal.Body>
         <div className="modal-inner-body">
-          <div className="modal-text-heading">I am a :</div>
+          <div className="modal-text-heading">I am a:</div>
           <div className="tabs-start">
             <Tabs
               id="controlled-tab-example"
@@ -380,9 +380,9 @@ const calculateEndTime = (startTime) => {
                 {renderForm()}
               </Tab>
 
-              <Tab eventKey="Tutor" title="Tutor">
+              {/* <Tab eventKey="Tutor" title="Tutor">
                 {renderForm()}
-              </Tab>
+              </Tab> */}
             </Tabs>
           </div>
 

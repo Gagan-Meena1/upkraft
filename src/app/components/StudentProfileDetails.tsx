@@ -36,10 +36,10 @@ const StudentProfileDetails: React.FC<StudentProfileDetailsProps> = ({
   } = useStudentMetrics(data, pendingAssignmentCount);
 
   const personalDetailsItems = [
-    { label: 'Email', value: data.email },
-    { label: 'Contact', value: data.contact },
+    // { label: 'Email', value: data.email },
+    // { label: 'Contact', value: data.contact },
     { label: 'Age', value: data.age },
-    { label: 'City', value: data.city },
+    // { label: 'City', value: data.city },
     {
       label: 'Category',
       value: data.courses.length > 0 ? data.courses[0].category : 'N/A'

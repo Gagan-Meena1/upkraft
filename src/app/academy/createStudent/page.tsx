@@ -11,6 +11,7 @@ interface AddStudentFormData {
   contact: string;
   category: string;
     addedBy: string; 
+    mode?: string;
 
 }
 
@@ -22,6 +23,7 @@ const AddStudentPage = () => {
     contact: "",
     category: "Student",
       addedBy: "self", 
+      mode:""
 
   });
 
@@ -60,7 +62,8 @@ const AddStudentPage = () => {
             ...prev,
             username: data.user.username || "",
             contact: data.user.contact || "",
-            password: "" // Clear password as it's not needed for existing students
+            password: "", // Clear password as it's not needed for existing students
+            mode: ""
           }));
           
           if (data.user.isAlreadyAdded) {
@@ -99,6 +102,7 @@ const AddStudentPage = () => {
         contact: "",
         category: "Student",
        addedBy: "self", // Change from prev.addedBy to "self"
+       mode:""
 
       }));
       setExistingStudent({ exists: false });
@@ -160,6 +164,7 @@ const AddStudentPage = () => {
         contact: "",
         category: "Student",
      addedBy: "self", // Change from "" to "self"
+      mode:""
 
       });
       setExistingStudent({ exists: false });
@@ -302,6 +307,25 @@ const AddStudentPage = () => {
                   placeholder="Enter student's full name"
                 />
               </div>
+
+              {/* Mode Selection */}
+<div>
+  <label htmlFor="mode" className="block text-sm font-medium text-gray-700">
+    Mode
+  </label>
+  <select
+    id="mode"
+    name="mode"
+    required
+    value={formData.mode}
+    onChange={(e) => setFormData(prev => ({ ...prev, mode: e.target.value }))}
+    className="mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border"
+  >
+    <option value="">Select Mode</option>
+    <option value="online">Online</option>
+    <option value="offline">Offline</option>
+  </select>
+</div>
 
               {/* Contact Number Input - Disabled if student exists */}
               <div>

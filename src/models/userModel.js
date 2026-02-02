@@ -31,12 +31,32 @@ const userSchema = new mongoose.Schema({
             type:String,
             default:""
         },
-        
+        creditDeducted:{
+            type:Number,
+            default:0   
+        }
     }]
     },
     contact: {
         type: String,
         default: ""
+    },
+    credits: {
+        type: Number,
+        default: 0
+    },
+    creditsPerCourse: {
+        type: [{
+            courseId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "courseName"
+            },
+            credits: {
+                type: Number,
+                default: 0
+            }   
+        }],
+        default: {}
     },
     email: {
         type: String,
@@ -111,7 +131,7 @@ const userSchema = new mongoose.Schema({
     },
     teachingMode: {
         type: String,
-        enum: ["Online", "In-person", "Both", "", "Hybrid"],
+        enum: ["Online", "In-person", "Both", "", "Hybrid","Offline"],
         default: ""
     },
     instagramLink: {

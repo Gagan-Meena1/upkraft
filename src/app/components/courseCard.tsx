@@ -293,7 +293,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
         </div>
         <div className="assignments-list d-flex align-items-center gap-2 flex-wrap w-100 justify-content-between">
           <div className="left-assignment  d-flex align-items-center gap-xl-4 gap-2 flex-wrap">
-            <ul className="d-flex align-items-center gap-xl-4 gap-2 flex-wrap p-0 m-0">
+            <ul className="d-flex align-items-center gap-xl-4 gap-2 flex-wrap p-0 m-0 full-width-mobile">
               {/* <li className="d-flex align-items-center gap-2">
                 <span className="student-text">Started From :</span>
                 <span className="student-txt">
@@ -319,15 +319,17 @@ const CourseCard: React.FC<CourseCardProps> = ({
                 </span>
               </li>
             </ul>
-            <div className="student-img-name d-flex align-items-center gap-2">
+            <div className="student-img-name d-flex align-items-center justify-content-between full-width-mobile gap-2">
               <p>Tutor : </p>
-              <Image
-                width={24}
-                height={24}
-                src={tutorData?.profileImage || Student01}
-                alt=""
-              />
-              <span className="name">{tutorData?.username || "N/A"}</span>
+              <div className="d-flex align-items-center  gap-1">
+                  <Image
+                  width={24}
+                  height={24}
+                  src={tutorData?.profileImage || Student01}
+                  alt=""
+                />
+                <span className="name">{tutorData?.username || "N/A"}</span>
+              </div>
             </div>
           </div>
           <div className="right-assignment my-course-student-right mt-xxl-0 mt-3">
