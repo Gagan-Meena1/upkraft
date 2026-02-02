@@ -250,7 +250,6 @@ const MyCourse = ({
         "Are you sure you want to delete this course? This action cannot be undone."
       )
     ) {
-      // Restore focus if user cancels
       setTimeout(() => {
         if (searchInputRef.current) {
           searchInputRef.current.focus();
