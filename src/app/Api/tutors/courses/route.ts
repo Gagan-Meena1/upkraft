@@ -1,8 +1,8 @@
 // app/api/tutors/courses/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import jwt  from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import courseName from "@/models/courseName";
-import {connect} from '@/dbConnection/dbConfic'
+import { connect } from '@/dbConnection/dbConfic'
 import User from "@/models/userModel"
 import mongoose from 'mongoose';
 import { ca } from 'date-fns/locale';
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Validate input (you'd want more robust validation)
     if (!courseData.title || !courseData.description) {
       return NextResponse.json(
-        { error: 'Title and description are required' }, 
+        { error: 'Title and description are required' },
         { status: 400 }
       );
     }
@@ -31,10 +31,10 @@ export async function POST(request: NextRequest) {
       const decodedToken = token ? jwt.decode(token) : null;
       instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
     }
-       const user=await User.findById(instructorId);
-       console.log("111111111111111111111111");
+    const user = await User.findById(instructorId);
+    console.log("111111111111111111111111");
 
-       console.log(courseData);
+    console.log(courseData);
 
        const newCourse = new courseName({
         title: courseData.title,
@@ -48,11 +48,11 @@ export async function POST(request: NextRequest) {
         maxStudentCount: courseData?.maxStudentCount ,
         credits: courseData?.credits || 0,
     });
-        console.log(newCourse);
-        const savednewCourse=await newCourse.save();
-        const courses=await courseName.find({instructorId})
-        await User.findByIdAndUpdate(instructorId,{$addToSet:{courses:savednewCourse._id}},{new:true})
-    
+    console.log(newCourse);
+    const savednewCourse = await newCourse.save();
+    const courses = await courseName.find({ instructorId })
+    await User.findByIdAndUpdate(instructorId, { $addToSet: { courses: savednewCourse._id } }, { new: true })
+
     console.log("22222222222222222222222222");
 
     return NextResponse.json({
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Course creation error:', error);
     return NextResponse.json(
-      { error: 'Failed to create course' }, 
+      { error: 'Failed to create course' },
       { status: 500 }
     );
   }
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 //     connect();
 //     const url = new URL(request.url);
 //     const tutorId = url.searchParams.get('tutorId');
-    
+
 //     // Get instructorId from token if tutorId is not provided
 //     let instructorId;
 //     if (tutorId) {
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
 
     const url = new URL(request.url);
     const tutorId = url.searchParams.get("tutorId");
-
+    const searchQuery = url.searchParams.get("search") || "";
     const page = Number(url.searchParams.get("page"));
     const pageLength = Number(url.searchParams.get("pageLength"));
 
@@ -136,8 +136,8 @@ export async function GET(request: NextRequest) {
       const decodedToken = token ? jwt.decode(token) : null;
       instructorId =
         decodedToken &&
-        typeof decodedToken === "object" &&
-        "id" in decodedToken
+          typeof decodedToken === "object" &&
+          "id" in decodedToken
           ? decodedToken.id
           : null;
     }
@@ -154,12 +154,22 @@ export async function GET(request: NextRequest) {
       "academyId category courses"
     );
 
-    const query = {
+    // Base query
+    const query: any = {
       $or: [
         { instructorId: instructorId },
         { _id: { $in: instructor?.courses || [] } },
       ],
     };
+
+    // Add search filter if search query exists
+    if (searchQuery.trim()) {
+      query.$and = [
+        {
+          title: { $regex: searchQuery.trim(), $options: "i" }
+        }
+      ];
+    }
 
     let coursesQuery = courseName.find(query);
 
@@ -208,32 +218,32 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     await connect();
-    
+
     const { searchParams } = new URL(request.url);
     const courseId = searchParams.get('courseId');
-    
+
     if (!courseId) {
       return NextResponse.json(
         { success: false, message: 'Course ID is required' },
         { status: 400 }
       );
     }
-    
+
     // Find and delete the course
     const deletedCourse = await courseName.findByIdAndDelete(courseId);
-    
+
     if (!deletedCourse) {
       return NextResponse.json(
         { success: false, message: 'Course not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json({
       success: true,
       message: 'Course is deleted'
     });
-    
+
   } catch (error) {
     console.error('Error deleting course:', error);
     return NextResponse.json(
