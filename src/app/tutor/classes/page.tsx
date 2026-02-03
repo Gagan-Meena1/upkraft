@@ -754,7 +754,7 @@ const timeOptions = generateTimeOptions();
   {/* Start Time Picker */}
   <div className="relative">
     <label htmlFor="startTime" className="block text-gray-600 mb-2 text-sm font-medium">
-      Start Time
+      Start Time (24-hour format)
     </label>
     <div className="relative">
       <input
@@ -785,7 +785,7 @@ const timeOptions = generateTimeOptions();
         />
         <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           <div className="sticky top-0 bg-gray-50 px-3 py-2 border-b border-gray-200">
-            <p className="text-xs text-gray-600 font-medium">Select time</p>
+            <p className="text-xs text-gray-600 font-medium">Select time (24-hour format)</p>
           </div>
           {timeOptions.map((time) => (
             <button
@@ -819,7 +819,7 @@ const timeOptions = generateTimeOptions();
   {/* End Time Picker */}
   <div className="relative">
     <label htmlFor="endTime" className="block text-gray-600 mb-2 text-sm font-medium">
-      End Time
+      End Time (24-hour format)
     </label>
     <div className="relative">
       <input
