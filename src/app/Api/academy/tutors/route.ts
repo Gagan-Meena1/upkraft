@@ -124,9 +124,11 @@ export async function GET(req: NextRequest) {
     const studentCountMap = new Map(studentCounts.map(sc => [sc._id.toString(), sc.count]));
     const revenueMap = new Map(revenueByTutor.map(r => [r._id?.toString() || "", r.totalRevenue]));
 
-    // Group courses by tutor
+    // Group courses by tutor and build courseDetailsMap from same data (avoids duplicate fetch)
     const coursesByTutor = new Map<string, any[]>();
+    const courseDetailsMap = new Map<string, any>();
     tutorCourses.forEach(course => {
+      courseDetailsMap.set(course._id.toString(), course);
       if (course.academyInstructorId && Array.isArray(course.academyInstructorId)) {
         course.academyInstructorId.forEach((tutorId: any) => {
           const tutorIdStr = tutorId.toString();
@@ -138,12 +140,12 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Get all class IDs
+    // Get all class IDs (only for CSAT fetch - we do NOT load full class docs for pending feedback)
     const allClassIds = tutorCourses.reduce((acc: any[], course: any) => {
       return acc.concat(course.class || []);
     }, []);
 
-    // Get all classes (for CSAT)
+    // Get only CSAT data from classes (minimal fields)
     const allClasses = await Class.find({
       _id: { $in: allClassIds }
     }).select("csat").lean();
@@ -154,35 +156,13 @@ export async function GET(req: NextRequest) {
     // OPTIMIZED PENDING FEEDBACK CALCULATION
     // ========================================
 
-    // Create tutor courses map
+    // Create tutor courses map (from user's courses field)
     const tutorCoursesMap = new Map<string, string[]>();
     tutorsWithUserCourses.forEach(tutor => {
       const tutorIdStr = tutor._id.toString();
       const courseIds = (tutor.courses || []).map((id: any) => id.toString());
       tutorCoursesMap.set(tutorIdStr, courseIds);
     });
-
-    // Get all tutor course IDs
-    const allTutorCourseIds = Array.from(tutorCoursesMap.values()).flat();
-
-    // Fetch all necessary data in parallel
-    const [allTutorCoursesDetails, allTutorClassesFull] = await Promise.all([
-      courseName.find({
-        _id: { $in: allTutorCourseIds }
-      }).select("_id title category class").lean(),
-      
-      Class.find({
-        _id: { $in: allClassIds }
-      }).lean()
-    ]);
-
-    // Create maps
-    const courseDetailsMap = new Map<string, any>();
-    allTutorCoursesDetails.forEach(course => {
-      courseDetailsMap.set(course._id.toString(), course);
-    });
-
-    const classMapFull = new Map(allTutorClassesFull.map(cls => [cls._id.toString(), cls]));
 
     // Group students by tutor
     const studentsByTutor = new Map<string, any[]>();
@@ -201,7 +181,8 @@ export async function GET(req: NextRequest) {
 
     // **KEY OPTIMIZATION**: Batch fetch ALL feedback records at once
     const allStudentIds = allStudents.map(s => s._id);
-    const allClassIdsForFeedback = Array.from(classMapFull.keys()).map(id => new mongoose.Types.ObjectId(id));
+    const uniqueClassIds = [...new Set(allClassIds.map((id: any) => id.toString()))];
+    const allClassIdsForFeedback = uniqueClassIds.map(id => new mongoose.Types.ObjectId(id));
 
     const [musicFeedbacks, danceFeedbacks, drawingFeedbacks] = await Promise.all([
       feedback.find({
@@ -320,14 +301,11 @@ export async function GET(req: NextRequest) {
             if (classIds.length === 0) continue;
 
             for (const classId of classIds) {
-              const classItem = classMapFull.get(classId.toString());
-              if (!classItem) continue;
-
-              // Check appropriate feedback set based on category
+              // Check appropriate feedback set based on category (no need to load full class doc)
               const feedbackSet = feedbackSets[course.category as keyof typeof feedbackSets];
               if (!feedbackSet) continue;
 
-              const feedbackKey = `${student._id}_${classItem._id}`;
+              const feedbackKey = `${student._id}_${classId.toString()}`;
               if (!feedbackSet.has(feedbackKey)) {
                 pendingFeedbackCount++;
               }
@@ -335,6 +313,17 @@ export async function GET(req: NextRequest) {
           }
         }
       }
+
+      // Return slim tutorCourses (no class arrays) to reduce payload size dramatically
+      const tutorCoursesSlim = courses.map((c: any) => ({
+        _id: c._id,
+        title: c.title,
+        category: c.category,
+        academyInstructorId: c.academyInstructorId,
+        price: c.price,
+        performanceScores: c.performanceScores,
+        classCount: (c.class || []).length
+      }));
 
       return {
         _id: tutor._id,
@@ -348,7 +337,7 @@ export async function GET(req: NextRequest) {
         revenue: revenue,
         isVerified: tutor.isVerified || false,
         createdAt: tutor.createdAt,
-        tutorCourses: courses,
+        tutorCourses: tutorCoursesSlim,
         classQualityScore,
         overallPerformanceScore,
         pendingFeedbackCount
