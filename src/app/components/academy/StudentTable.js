@@ -21,6 +21,7 @@ const [selectedStudentForCredits, setSelectedStudentForCredits] = useState(null)
 const router = useRouter();
 const [creditsInput, setCreditsInput] = useState(''); // Add this new state
 const [isSubmittingCredits, setIsSubmittingCredits] = useState(false); 
+const [creditsMessage, setCreditsMessage] = useState(''); 
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -40,15 +41,15 @@ const [isSubmittingCredits, setIsSubmittingCredits] = useState(false);
   }
 };
 
-const handleAssignCredits = async () => {
+const handleAssignCredits = async (isDeduction = false) => {
   if (!selectedStudentForCredits || !creditsInput) {
     alert('Please enter credits amount');
     return;
   }
 
   const credits = parseInt(creditsInput);
-  if (isNaN(credits)) {
-    alert('Please enter a valid number');
+  if (isNaN(credits) || credits <= 0) {
+    alert('Please enter a valid positive number');
     return;
   }
 
@@ -62,7 +63,8 @@ const handleAssignCredits = async () => {
       },
       body: JSON.stringify({
         studentId: selectedStudentForCredits._id,
-        credits: credits
+        credits: isDeduction ? -credits : credits,
+        message: creditsMessage || '' // Include the message
       })
     });
 
@@ -72,11 +74,12 @@ const handleAssignCredits = async () => {
     }
 
     const result = await response.json();
-    alert('Credits assigned successfully!');
+    alert(`Credits ${isDeduction ? 'deducted' : 'added'} successfully!`);
     
     // Close modal and reset
     handleCloseCreditsModal();
     setCreditsInput('');
+    setCreditsMessage('');
     
     // Optionally reload to reflect changes
     window.location.reload();
@@ -92,6 +95,7 @@ const handleCloseCreditsModal = () => {
   setIsAssignCreditsModalOpen(false);
   setSelectedStudentForCredits(null);
    setCreditsInput(''); // Reset credits input
+     setCreditsMessage('');
   setIsSubmittingCredits(false); 
 };
 
@@ -633,7 +637,7 @@ const handleSubmit = async (e) => {
         width: '90%'
       }}
     >
-      <h3 style={{ marginBottom: '20px' }}>Assign Credits Per Class</h3>
+      <h3 style={{ marginBottom: '20px' }}>Manage Student Credits</h3>
       
       {/* Student Info */}
       <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -659,15 +663,21 @@ const handleSubmit = async (e) => {
       </div>
 
       {/* Credits Input */}
-      <div style={{ marginBottom: '20px' }}>
+      <div style={{ marginBottom: '16px' }}>
         <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-          Credits to Assign *
+          Credits Amount *
         </label>
         <input
           type="number"
           min="1"
+          step="1"
           value={creditsInput}
-          onChange={(e) => setCreditsInput(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === '' || parseInt(value) > 0) {
+              setCreditsInput(value);
+            }
+          }}
           placeholder="Enter number of credits"
           style={{
             width: '100%',
@@ -680,21 +690,53 @@ const handleSubmit = async (e) => {
         />
       </div>
 
+      {/* Message Input */}
+      <div style={{ marginBottom: '20px' }}>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+          Message (Optional)
+        </label>
+        <textarea
+          value={creditsMessage}
+          onChange={(e) => setCreditsMessage(e.target.value)}
+          placeholder="Add a note about this credit transaction..."
+          rows="3"
+          style={{
+            width: '100%',
+            padding: '10px',
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            fontSize: '16px',
+            resize: 'vertical'
+          }}
+          disabled={isSubmittingCredits}
+        />
+      </div>
+
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
         <Button 
           variant="secondary" 
           onClick={handleCloseCreditsModal}
           disabled={isSubmittingCredits}
+          style={{ padding: '8px 16px' }}
         >
           Cancel
         </Button>
         <Button 
-          variant="primary" 
-          onClick={handleAssignCredits}
+          variant="danger" 
+          onClick={() => handleAssignCredits(true)}
           disabled={isSubmittingCredits || !creditsInput}
+          style={{ padding: '8px 16px', backgroundColor: '#dc3545', border: 'none' }}
         >
-          {isSubmittingCredits ? 'Assigning...' : 'Assign Credits'}
+          {isSubmittingCredits ? 'Processing...' : 'Deduct Credits'}
+        </Button>
+        <Button 
+          variant="success" 
+          onClick={() => handleAssignCredits(false)}
+          disabled={isSubmittingCredits || !creditsInput}
+          style={{ padding: '8px 16px', backgroundColor: '#28a745', border: 'none' }}
+        >
+          {isSubmittingCredits ? 'Processing...' : 'Add Credits'}
         </Button>
       </div>
     </div>

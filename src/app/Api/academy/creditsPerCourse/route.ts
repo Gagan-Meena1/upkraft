@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     await connect();
     
-    const { studentId, credits } = await request.json();
+    const { studentId, credits, message } = await request.json();
 
     // Validate input
     if (!studentId) {
@@ -30,6 +30,13 @@ export async function POST(request: NextRequest) {
 
     // Update the credits field
     student.credits += credits;
+    if(!student.creditsInput){
+      student.creditsInput = [];
+    }
+    student.creditsInput.push({
+       message : message , 
+       credits : credits
+      });
     
     await student.save();
 
