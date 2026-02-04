@@ -177,12 +177,19 @@ export async function POST(request: NextRequest) {
       if (status === 'present' && credits && credits > 0) {
         // Deduct credits from student
         student.credits -= credits;
+        if(!student.creditsInput){
+          student.creditsInput = [];
+        }
+        student.creditsInput.push({
+          message : creditReason || "Credits deducted for attendance",
+          credits : -credits
+        })
       
 
         // Update attendance record with creditDeducted
         if (attendanceIndex !== -1) {
           student.attendance[attendanceIndex].status = status;
-          student.attendance[attendanceIndex].creditDeducted = credits;
+          student.attendance[attendanceIndex].creditDeducted = credits; 
           student.attendance[attendanceIndex].reasonForCreditDeduction = creditReason || "";
         } else {
           student.attendance.push({

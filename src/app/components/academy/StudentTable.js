@@ -388,15 +388,18 @@ const handleSubmit = async (e) => {
 </td>
                           <td>{student.tutor}</td>
                           <td>{student.course}</td>
-                     <td>
-  <div className="text-box-progress d-flex align-items-center gap-2">
-    <span className="text-purple-700 font-semibold">
-      {student.teachingMode?.toLowerCase() === 'online' 
-        ? (student.credits || 0) 
-        : 'N/A'}
-    </span>
-  </div>
-</td>
+                    <td>
+                      {student.teachingMode?.toLowerCase() === 'online' ? (
+                        <Link 
+                          href={`/academy/creditsInfo?userId=${student._id}`}
+                          className="btn btn-sm border-black d-inline-flex align-items-center gap-1 hover-btn hover-bg-black"
+                        >
+                          <span className="text-purple-700 font-semibold">{student.credits || 0}</span>
+                        </Link>
+                      ) : (
+                        <span className="text-gray-500">N/A</span>
+                      )}
+                    </td>
 {/* // Update the Attendance link in StudentTable component: */}
 <td>
   <Link 
