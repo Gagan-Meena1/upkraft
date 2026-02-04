@@ -7,6 +7,11 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
 
+  // Redirect /T&Cs to landing page FAQ section (same tab)
+  if (pathname === '/T&Cs' || pathname === '/T%26Cs') {
+    return NextResponse.redirect(new URL('/#faq', request.url));
+  }
+
   // Define which routes need authentication
   const protectedRoutes = [
     '/tutor',
