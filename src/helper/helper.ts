@@ -37,5 +37,6 @@ export const config = {
     '/student/:path*', // Protects all student routes including feedback
     '/tutor/:path*',   // Protects tutor routes
     '/admin/:path*',   // Protects admin routes
+    '/teamlead/:path*' // Protects team lead routes
   ]
 }
