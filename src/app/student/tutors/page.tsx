@@ -168,14 +168,14 @@ const tutorContent=(
               </div>
               
               <div className="space-y-2 mb-4">
-                <div className="flex">
+                {/* <div className="flex">
                   <span className="text-sm text-gray-500 w-20">Email:</span>
-                  <span className="text-sm text-gray-500">{tutor.email}</span>
-                </div>
-                <div className="flex">
+                  <span className="text-sm text-gray-500 word-brk">{tutor.email}</span>
+                </div> */}
+                {/* <div className="flex">
                   <span className="text-sm text-gray-500 w-20">Contact:</span>
                   <span className="text-sm text-gray-500">{tutor.contact || 'Not available'}</span>
-                </div>
+                </div> */}
               </div>
               
               <Link href={`/student/tutorProfile?tutorId=${tutor._id}`}>
@@ -196,7 +196,7 @@ const tutorContent=(
 )
 return (
   <DashboardLayout userData={userData} userType="student">
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-0 bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto">
         {tutorContent}
       </div>

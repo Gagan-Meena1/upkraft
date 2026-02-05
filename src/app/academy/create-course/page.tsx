@@ -29,6 +29,7 @@ export default function CreateCourse() {
   const [courseId, setCourseId] = useState<string | null>(null);
   const [subCategory, setSubCategory] = useState(''); 
   const [maxStudentCount, setMaxStudentCount] = useState(''); 
+  const [credits, setCredits] = useState('');
 
 
 
@@ -58,7 +59,8 @@ const fetchCourseDetails = async (id: string) => {
     setDescription(course.description);
     setDuration(course.duration);
     setPrice(course.price.toString());
-    setMaxStudentCount(course.maxStudentCount?.toString() || ''); // ADD THIS LINE
+    setMaxStudentCount(course.maxStudentCount?.toString() || '');
+    setCredits(course.credits?.toString() || ''); 
     setCurriculum(course.curriculum);
   } catch (error) {
     console.error('Error fetching course details:', error);
@@ -129,7 +131,8 @@ const handleSubmit = async (e: FormEvent) => {
       duration,
       price: parseFloat(price),
       curriculum,
-      maxStudentCount: parseInt(maxStudentCount), // ADD THIS LINE
+      maxStudentCount: parseInt(maxStudentCount), 
+      credits: credits ? parseInt(credits) : 0,
 
     };
     
@@ -308,6 +311,23 @@ const handleSubmit = async (e: FormEvent) => {
       placeholder="Maximum students (e.g., 30)"
       className="w-full bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
       required
+      step="1"
+    />
+  </div>
+
+   {/* Credits - ADD THIS ENTIRE BLOCK */}
+  <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
+    <div className="flex items-center gap-2 sm:gap-3 mb-3">
+      <Tag className="text-purple-700" size={20} />
+      <label className="text-purple-700 font-semibold text-sm sm:text-base">Credits (Optional)</label>
+    </div>
+    <input 
+      type="number"
+      value={credits}
+      onChange={(e) => setCredits(e.target.value)}
+      placeholder="Course credits (e.g., 3)"
+      className="w-full bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
+      min="0"
       step="1"
     />
   </div>

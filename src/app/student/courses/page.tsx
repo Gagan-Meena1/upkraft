@@ -146,7 +146,7 @@ export default function TutorCoursesPage() {
 
   return (
     <DashboardLayout userData={userData} userType="student">
-      <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="p-0 bg-gray-50 min-h-screen">
         <div className="max-w-6xl mx-auto">{coursesContent}</div>
       </div>
     </DashboardLayout>

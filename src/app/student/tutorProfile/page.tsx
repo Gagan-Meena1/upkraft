@@ -146,12 +146,12 @@ function TutorProfileContent() {
               <div className="text-center md:text-left">
                 <h1 className="text-4xl font-bold text-white mb-2 !text-[20px]">{tutor.username}</h1>
                 <div className="flex flex-col md:flex-row items-center md:items-start space-y-1 md:space-y-0 md:space-x-4">
-                  <p className="text-white bg-purple-600 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center">
-                    {tutor.email}
-                  </p>
-                  <p className="text-white bg-purple-600 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center">
-                    {tutor.contact}
-                  </p>
+                  {/* <p className="text-white bg-purple-600 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center"> */}
+                    {/* {tutor.email} */}
+                  {/* </p> */}
+                  {/* <p className="text-white bg-purple-600 bg-opacity-20 px-3 py-1 rounded-xl text-sm flex items-center"> */}
+                    {/* {tutor.contact} */}
+                  {/* </p> */}
                 </div>
               </div>
             </div>

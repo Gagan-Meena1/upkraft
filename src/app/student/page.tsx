@@ -628,11 +628,11 @@ useEffect(() => {
 
   return (
     <div className="container">
-      <div className="row !w-full">
-        <div className="col col-xxl-4 mb-4 order-md-1">
+      <div className="row">
+          <div className="col col-xxl-5 order-xxl-1 order-sm-1 col-md-6 order-md-1 mb-4">
           <div className="card-box profile-card">
-            <h2 className="mb-4 !text-[24px]">Profile</h2>
-            <div className="com-profile d-flex align-items-center gap-4">
+            <h2 className="mb-4">Profile</h2>
+              <div className="com-profile d-flex align-items-center flex-md-nowrap flex-wrap justify-content-center gap-2">
               <div className="col-img-profile">
                 <ProfileProgress user={userData as UserData} />
               </div>
@@ -707,7 +707,7 @@ useEffect(() => {
           </div>
         </div>
 
-        <div className="col-xxl-4 col-md-6 mb-4 order-xxl-2 order-md-3">
+        <div className="col-xxl-3 col-md-12 mb-4 order-xxl-2 order-md-3">
           <div className="profile-attended-box card-box">
             <ProfileAttended
               classesAttended={completedClasses}

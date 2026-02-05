@@ -785,7 +785,7 @@ function AssignmentDetailContent() {
                           {student.username}
                         </p>
                         <p className="!text-sm !text-gray-600">
-                          {student.email}
+                          {/* {student.email} */}
                         </p>
                       </div>
                     </div>

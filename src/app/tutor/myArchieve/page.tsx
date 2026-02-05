@@ -874,7 +874,7 @@ const updateResultWithAnalysis = async (resultId, analysisData, instrument) => {
                             )}
                             <div>
                               <p className="font-semibold text-sm text-blue-900">{selectedStudent.studentName}</p>
-                              <p className="text-xs text-blue-600">{selectedStudent.studentEmail}</p>
+                              {/* <p className="text-xs text-blue-600">{selectedStudent.studentEmail}</p> */}
                             </div>
                           </div>
                         )}

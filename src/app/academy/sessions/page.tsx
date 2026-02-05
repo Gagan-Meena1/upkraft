@@ -24,11 +24,18 @@ interface ClassData {
   status: string;
   recordingUrl?: string;
   evaluation?: any;
-  tutors: { name: string; email: string }[];  // Add this
-  students: { name: string; email: string }[]; // Add this
+  tutors: { name: string; email: string }[];
+  students: { name: string; email: string }[];
 }
 
-const Sessions =  () => {
+interface PaginationData {
+  currentPage: number;
+  totalPages: number;
+  totalSessions: number;
+  limit: number;
+}
+
+const Sessions = () => {
   const [stats, setStats] = useState<SessionStats>({
     totalSessions: 0,
     totalSessionsChange: 0,
@@ -42,35 +49,48 @@ const Sessions =  () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<ClassData[]>([]);
+  const [pagination, setPagination] = useState<PaginationData>({
+    currentPage: 1,
+    totalPages: 1,
+    totalSessions: 0,
+    limit: 15
+  });
 
   useEffect(() => {
-    fetchData();
+    fetchData(pagination.currentPage);
   }, []);
 
-  
-
-const fetchData = async () => {
-  try {
-    setLoading(true);
-    
-    // Fetch both stats and sessions from single API
-    const response = await fetch('/Api/academy/sessions');
-    const data = await response.json();
-    
-    if (data.success) {
-      setStats(data.stats);
-      if (data.classData) {
-        setSessions(data.classData);
+  const fetchData = async (page: number = 1) => {
+    try {
+      setLoading(true);
+      
+      const response = await fetch(`/Api/academy/sessions?page=${page}&limit=15`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setStats(data.stats);
+        if (data.classData) {
+          setSessions(data.classData);
+        }
+        if (data.pagination) {
+          setPagination(data.pagination);
+        }
       }
+      
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
     }
-    
-  } catch (err) {
-    console.error('Error fetching data:', err);
-    setError(err instanceof Error ? err.message : 'An error occurred');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= pagination.totalPages) {
+      fetchData(page);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   const formatNumber = (num: number): string => {
     return num.toLocaleString();
@@ -155,24 +175,16 @@ const fetchData = async () => {
                 <p className='m-0 p-0 pt-2'>Cancelled Sessions</p>
               </Link>
             </div>
-            {/* <div className='col-lg-3 col-6 mb-4'>
-              <Link href="/" className='card-box academy-card d-block h-100'>
-                <h2>{stats.attendanceRate}%</h2>
-                <p className='m-0 p-0 pt-2'>Attendance Rate</p>
-                {renderChangeIndicator(stats.attendanceRateChange)}
-              </Link>
-            </div>
-            <div className='col-lg-3 col-6 mb-4'>
-              <Link href="/" className='card-box academy-card d-block h-100'>
-                <h2>{stats.avgQualityScore}</h2>
-                <p className='m-0 p-0 pt-2'>Avg Quality Score</p>
-              </Link>
-            </div> */}
           </div>
         </div>
       </div>
       <div className="table-box container-fluid">
-<SessionList sessions={sessions} />      </div>
+        <SessionList 
+          sessions={sessions} 
+          pagination={pagination}
+          onPageChange={handlePageChange}
+        />
+      </div>
     </div>
   );
 };
