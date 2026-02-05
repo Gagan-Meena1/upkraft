@@ -149,50 +149,63 @@ const RelationshipManagerDashboard: React.FC = () => {
             {filteredTutors.map((tutor) => (
               <div
                 key={tutor._id}
-                className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
+                className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col hover:shadow-md transition-shadow overflow-hidden"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-semibold">
-                    {tutor.username?.charAt(0)?.toUpperCase() || "T"}
-                  </div>
-                  <div>
-                    <div className="text-base font-semibold text-gray-900">
-                      {tutor.username}
-                    </div>
-                    <div className="text-xs text-gray-500">Tutor</div>
-                  </div>
-                </div>
-
-                <div className="text-sm text-gray-700 space-y-1">
-                  <div>
-                    <span className="font-medium">Email: </span>
-                    <span className="break-all">{tutor.email}</span>
-                  </div>
-                  <div>
-                    <span className="font-medium">Contact: </span>
-                    <span>{tutor.contact || "Not available"}</span>
-                  </div>
-                </div>
-
-                {/* Login button for this tutor */}
-                <div className="mt-4">
+                <div className="bg-gray-900 h-3" />
+                <div className="p-5 flex-1 relative">
+                  {/* Info icon - top right */}
                   <button
-                    onClick={() => handleImpersonateTutor(tutor._id)}
-                    disabled={impersonatingTutorId === tutor._id}
-                    className="w-full inline-flex justify-center items-center px-4 py-2 !bg-purple-500 !text-white !text-sm font-medium rounded-lg !hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button"
+                    className="absolute top-4 right-4 w-7 h-7 rounded-md bg-gray-200 text-gray-700 flex items-center justify-center text-sm font-serif hover:bg-gray-300 transition-colors"
+                    title="More information"
+                    aria-label="Tutor information"
                   >
-                    {impersonatingTutorId === tutor._id ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Logging in...
-                      </>
-                    ) : (
-                      "Login"
-                    )}
+                    i
                   </button>
+
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold">
+                      {tutor.username?.charAt(0)?.toUpperCase() || "T"}
+                    </div>
+                    <div>
+                      <div className="text-base font-semibold text-gray-900">
+                        {tutor.username}
+                      </div>
+                      <div className="text-xs text-gray-500">Tutor</div>
+                    </div>
+                  </div>
+
+                  <div className="text-sm text-gray-700 space-y-1">
+                    <div>
+                      <span className="font-medium">Email: </span>
+                      <span className="break-all">{tutor.email}</span>
+                    </div>
+                    <div>
+                      <span className="font-medium">Contact: </span>
+                      <span>{tutor.contact || "Not available"}</span>
+                    </div>
+                  </div>
+
+                  {/* Login button for this tutor */}
+                  <div className="mt-4">
+                    <button
+                      onClick={() => handleImpersonateTutor(tutor._id)}
+                      disabled={impersonatingTutorId === tutor._id}
+                      className="w-full inline-flex justify-center items-center px-4 py-2 !bg-purple-500 !text-white !text-sm font-medium rounded-lg !hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {impersonatingTutorId === tutor._id ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Logging in...
+                        </>
+                      ) : (
+                        "Login"
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
