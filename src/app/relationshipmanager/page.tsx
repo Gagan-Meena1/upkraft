@@ -126,9 +126,9 @@ const RelationshipManagerDashboard: React.FC = () => {
             >
               Search
             </button>
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            {/* <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
+            </svg> */}
           </form>
         </div>
         <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Logout</Link>
@@ -153,15 +153,15 @@ const RelationshipManagerDashboard: React.FC = () => {
               >
                 <div className="bg-gray-900 h-3" />
                 <div className="p-5 flex-1 relative">
-                  {/* Info icon - top right */}
-                  <button
-                    type="button"
+                  {/* Info icon - opens tutor calendar (classes with students) */}
+                  <Link
+                    href={`/relationshipmanager/tutor/${tutor._id}`}
                     className="absolute top-4 right-4 w-7 h-7 rounded-md bg-gray-200 text-gray-700 flex items-center justify-center text-sm font-serif hover:bg-gray-300 transition-colors"
-                    title="More information"
-                    aria-label="Tutor information"
+                    title="View classes & students"
+                    aria-label="View tutor classes calendar"
                   >
                     i
-                  </button>
+                  </Link>
 
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold">
