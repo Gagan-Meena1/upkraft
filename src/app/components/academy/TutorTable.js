@@ -15,17 +15,17 @@ const TutorTable = ({ refreshKey, tutorsData, loading: externalLoading }) => {
   const [statusFilter, setStatusFilter] = useState("All Status");
   const [sortBy, setSortBy] = useState("Performance");
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-const [selectedTutor, setSelectedTutor] = useState(null);
-const [formData, setFormData] = useState({});
-const [isSubmitting, setIsSubmitting] = useState(false);
-const [updateSuccess, setUpdateSuccess] = useState(false);
-const [formErrors, setFormErrors] = useState({});
+  const [selectedTutor, setSelectedTutor] = useState(null);
+  const [formData, setFormData] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
+  const [formErrors, setFormErrors] = useState({});
   useEffect(() => {
-  if (tutorsData && tutorsData.length >= 0) {
-    setTutors(tutorsData);
-    setLoading(false);
-  }
-}, [tutorsData]);
+    if (tutorsData && tutorsData.length >= 0) {
+      setTutors(tutorsData);
+      setLoading(false);
+    }
+  }, [tutorsData]);
 
   // useEffect(() => {
   //   fetchTutors();
@@ -52,13 +52,13 @@ const [formErrors, setFormErrors] = useState({});
 
     // Subject filter (using skills field as subject)
     // Subject/Course filter
-if (subjectFilter !== "All Subjects") {
-  filtered = filtered.filter(tutor =>
-    tutor.tutorCourses?.some(course => 
-      course.title?.toLowerCase().includes(subjectFilter.toLowerCase())
-    )
-  );
-}
+    if (subjectFilter !== "All Subjects") {
+      filtered = filtered.filter(tutor =>
+        tutor.tutorCourses?.some(course =>
+          course.title?.toLowerCase().includes(subjectFilter.toLowerCase())
+        )
+      );
+    }
 
     // Status filter
     if (statusFilter !== "All Status") {
@@ -92,96 +92,116 @@ if (subjectFilter !== "All Subjects") {
     setFilteredTutors(filtered);
   };
 
-      const handleInputChange = (e) => {
-  const { name, value } = e.target;
-  setFormData((prev) => ({ ...prev, [name]: value }));
-  
-  if (formErrors[name]) {
-    setFormErrors((prev) => ({ ...prev, [name]: "" }));
-  }
-};
 
-const validateForm = () => {
-  const errors = {};
-  
-  if (!formData.username?.trim()) {
-    errors.username = "Name is required";
-  }
-  
-  if (!formData.email?.trim()) {
-    errors.email = "Email is required";
-  } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-    errors.email = "Please enter a valid email address";
-  }
-  
-  setFormErrors(errors);
-  return Object.keys(errors).length === 0;
-};
 
-const handleEditClick = (tutor) => {
-  setSelectedTutor(tutor);
-  setFormData({
-    username: tutor.username,
-    email: tutor.email,
-    contact: tutor.contact || '',
-    address: tutor.address || ''
-  });
-  setIsEditModalOpen(true);
-};
+  const validateForm = () => {
+    const errors = {};
 
-const handleModalClose = () => {
-  setIsEditModalOpen(false);
-  setFormErrors({});
-  setUpdateSuccess(false);
-  setSelectedTutor(null);
-  setFormData({});
-};
-
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  if (!selectedTutor?._id) return;
-  
-  if (!validateForm()) {
-    return;
-  }
-  
-  setIsSubmitting(true);
-  try {
-    const submitFormData = new FormData();
-    submitFormData.append('userData', JSON.stringify(formData));
-    
-    const response = await fetch(`/Api/userUpdate?userId=${selectedTutor._id}`, {
-      method: "PUT",
-      body: submitFormData,
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Update error:', errorData);
-      throw new Error(errorData.message || "Failed to update tutor");
+    if (!formData.username?.trim()) {
+      errors.username = "Name is required";
     }
-    
-    const result = await response.json();
-    console.log("Update success:", result);
-    
-    // Update the local tutor data
-    setTutors(prev => 
-      prev.map(t => t._id === selectedTutor._id ? { ...t, ...formData } : t)
-    );
-    
-    setUpdateSuccess(true);
-    
-    setTimeout(() => {
-      handleModalClose();
-    }, 1500);
-  } catch (err) {
-    console.error("Error updating tutor:", err);
-    alert(err.message || "Failed to update tutor. Please try again.");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+
+    if (!formData.email?.trim()) {
+      errors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = "Please enter a valid email address";
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleEditClick = (tutor) => {
+    setSelectedTutor(tutor);
+    setFormData({
+      username: tutor.username,
+      email: tutor.email,
+      contact: tutor.contact || '',
+      address: tutor.address || '',
+      tutorPayoutSettings: tutor.tutorPayoutSettings || {
+        commissionModel: 'Percentage of Course Fee',
+        commissionPercentage: 70,
+        payoutFrequency: 'Monthly',
+        minimumPayoutAmount: '₹1,000'
+      }
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name.startsWith('payout.')) {
+      const field = name.split('.')[1];
+      setFormData(prev => ({
+        ...prev,
+        tutorPayoutSettings: {
+          ...prev.tutorPayoutSettings,
+          [field]: value
+        }
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsEditModalOpen(false);
+    setFormErrors({});
+    setUpdateSuccess(false);
+    setSelectedTutor(null);
+    setFormData({});
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!selectedTutor?._id) return;
+
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const submitFormData = new FormData();
+      submitFormData.append('userData', JSON.stringify(formData));
+
+      const response = await fetch(`/Api/userUpdate?userId=${selectedTutor._id}`, {
+        method: "PUT",
+        body: submitFormData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Update error:', errorData);
+        throw new Error(errorData.message || "Failed to update tutor");
+      }
+
+      const result = await response.json();
+      console.log("Update success:", result);
+
+      // Update the local tutor data
+      setTutors(prev =>
+        prev.map(t => t._id === selectedTutor._id ? { ...t, ...formData } : t)
+      );
+
+      setUpdateSuccess(true);
+
+      setTimeout(() => {
+        handleModalClose();
+      }, 1500);
+    } catch (err) {
+      console.error("Error updating tutor:", err);
+      alert(err.message || "Failed to update tutor. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const formatCurrency = (amount) => {
     if (!amount) return "₹0";
@@ -226,22 +246,22 @@ const handleSubmit = async (e) => {
                 <div className='search-box'>
                   <Form.Group className="position-relative mb-0">
                     <Form.Label className='d-none'>search</Form.Label>
-                    <Form.Control 
-                      type="text" 
-                      placeholder="Search tutors by name, subject, or email..." 
+                    <Form.Control
+                      type="text"
+                      placeholder="Search tutors by name, subject, or email..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                     <Button type="button" className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute">
                       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M17.4995 17.5L13.8828 13.8833" stroke="#505050" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z" stroke="#505050" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M17.4995 17.5L13.8828 13.8833" stroke="#505050" strokeLinecap="round" strokeLinejoin="round" />
+                        <path d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z" stroke="#505050" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </Button>
                   </Form.Group>
                 </div>
                 <div className='select-box'>
-                  <Form.Select 
+                  <Form.Select
                     aria-label="Subject filter"
                     value={subjectFilter}
                     onChange={(e) => setSubjectFilter(e.target.value)}
@@ -255,7 +275,7 @@ const handleSubmit = async (e) => {
                   </Form.Select>
                 </div>
                 <div className='select-box'>
-                  <Form.Select 
+                  <Form.Select
                     aria-label="Status filter"
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
@@ -266,7 +286,7 @@ const handleSubmit = async (e) => {
                   </Form.Select>
                 </div>
                 <div className='select-box'>
-                  <Form.Select 
+                  <Form.Select
                     aria-label="Sort by"
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
@@ -313,16 +333,16 @@ const handleSubmit = async (e) => {
                           <div className="student-img-name d-flex align-items-center gap-2">
                             <div className="img-box">
                               {tutor.profileImage ? (
-                                <Image 
-                                  src={tutor.profileImage} 
-                                  alt={tutor.username} 
+                                <Image
+                                  src={tutor.profileImage}
+                                  alt={tutor.username}
                                   width={40}
                                   height={40}
                                   className="rounded-circle"
                                   style={{ objectFit: 'cover' }}
                                 />
                               ) : (
-                                <div 
+                                <div
                                   className="rounded-circle d-flex align-items-center justify-content-center bg-primary text-white"
                                   style={{ width: '40px', height: '40px', fontSize: '16px', fontWeight: 'bold' }}
                                 >
@@ -385,15 +405,15 @@ const handleSubmit = async (e) => {
                         <td className="text-center">
                           <ul className="d-flex align-items-center justify-content-center gap-2 list-unstyled m-0 p-0">
                             <li>
-                             <button 
-  className="link-btn border-0 bg-transparent p-0"
-  onClick={() => handleEditClick(tutor)}
->
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M3.50195 21H21.502" stroke="#1E88E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-    <path d="M5.50391 13.36V17H9.16241L19.5039 6.654L15.8514 3L5.50391 13.36Z" stroke="#1E88E5" strokeWidth="2" strokeLinejoin="round"></path>
-  </svg>
-</button>
+                              <button
+                                className="link-btn border-0 bg-transparent p-0"
+                                onClick={() => handleEditClick(tutor)}
+                              >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M3.50195 21H21.502" stroke="#1E88E5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+                                  <path d="M5.50391 13.36V17H9.16241L19.5039 6.654L15.8514 3L5.50391 13.36Z" stroke="#1E88E5" strokeWidth="2" strokeLinejoin="round"></path>
+                                </svg>
+                              </button>
                             </li>
                             <li>
                               {/* <Link className="link-btn" href="#" onClick={(e) => {
@@ -430,142 +450,199 @@ const handleSubmit = async (e) => {
         </div>
       </div>
       {/* Edit Tutor Modal */}
-{isEditModalOpen && selectedTutor && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
-    <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
-      <div className="p-6">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h3 className="text-2xl font-bold text-gray-900 m-0">
-            Edit Tutor
-          </h3>
-          <Button
-            onClick={handleModalClose}
-            className="text-gray-500 hover:text-gray-700 transition-colors bg-transparent p-0 border-0"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              width="24"
-              height="24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </Button>
-        </div>
-
-        <Form onSubmit={handleSubmit}>
-          <div className="d-flex flex-column gap-3">
-            {/* Name Field */}
-            <Form.Group>
-              <Form.Label className="fw-bold text-gray-900">
-                Name <span className="text-danger">*</span>
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="username"
-                value={formData.username || ""}
-                onChange={handleInputChange}
-                className={formErrors.username ? "border-danger" : ""}
-                placeholder="Enter tutor name"
-                required
-              />
-              {formErrors.username && (
-                <Form.Text className="text-danger fw-medium">
-                  {formErrors.username}
-                </Form.Text>
-              )}
-            </Form.Group>
-
-            {/* Email Field */}
-            <Form.Group>
-              <Form.Label className="fw-bold text-gray-900">
-                Email <span className="text-danger">*</span>
-              </Form.Label>
-              <Form.Control
-                type="email"
-                name="email"
-                value={formData.email || ""}
-                onChange={handleInputChange}
-                className={formErrors.email ? "border-danger" : ""}
-                placeholder="Enter email address"
-                required
-              />
-              {formErrors.email && (
-                <Form.Text className="text-danger fw-medium">
-                  {formErrors.email}
-                </Form.Text>
-              )}
-            </Form.Group>
-
-            {/* Phone Field */}
-            <Form.Group>
-              <Form.Label className="fw-bold text-gray-900">
-                Phone
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="contact"
-                value={formData.contact || ""}
-                onChange={handleInputChange}
-                placeholder="Enter phone number"
-              />
-            </Form.Group>
-
-            {/* Address Field */}
-            <Form.Group>
-              <Form.Label className="fw-bold text-gray-900">
-                Address
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="address"
-                value={formData.address || ""}
-                onChange={handleInputChange}
-                placeholder="Enter address"
-              />
-            </Form.Group>
-          </div>
-
-          {/* Submit Button */}
-          <div className="mt-4">
-            <Button
-              type="submit"
-              className="w-100 py-3 px-4 border-0 rounded text-base fw-bold text-white"
-              style={{ backgroundColor: '#7c3aed' }}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <div className="d-flex align-items-center justify-content-center">
-                  <div className="spinner-border spinner-border-sm text-white me-2" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                  Updating...
-                </div>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-
-            {/* Success Message */}
-            {updateSuccess && (
-              <div className="mt-3 p-3 text-center text-sm fw-medium text-success bg-success bg-opacity-10 rounded border border-success">
-                Tutor updated successfully!
+      {isEditModalOpen && selectedTutor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center p-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999 }}>
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h3 className="text-2xl font-bold text-gray-900 m-0">
+                  Edit Tutor
+                </h3>
+                <Button
+                  onClick={handleModalClose}
+                  className="text-gray-500 hover:text-gray-700 transition-colors bg-transparent p-0 border-0"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    width="24"
+                    height="24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </Button>
               </div>
-            )}
+
+              <Form onSubmit={handleSubmit}>
+                <div className="d-flex flex-column gap-3">
+                  {/* Name Field */}
+                  <Form.Group>
+                    <Form.Label className="fw-bold text-gray-900">
+                      Name <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="username"
+                      value={formData.username || ""}
+                      onChange={handleInputChange}
+                      className={formErrors.username ? "border-danger" : ""}
+                      placeholder="Enter tutor name"
+                      required
+                    />
+                    {formErrors.username && (
+                      <Form.Text className="text-danger fw-medium">
+                        {formErrors.username}
+                      </Form.Text>
+                    )}
+                  </Form.Group>
+
+                  {/* Email Field */}
+                  <Form.Group>
+                    <Form.Label className="fw-bold text-gray-900">
+                      Email <span className="text-danger">*</span>
+                    </Form.Label>
+                    <Form.Control
+                      type="email"
+                      name="email"
+                      value={formData.email || ""}
+                      onChange={handleInputChange}
+                      className={formErrors.email ? "border-danger" : ""}
+                      placeholder="Enter email address"
+                      required
+                    />
+                    {formErrors.email && (
+                      <Form.Text className="text-danger fw-medium">
+                        {formErrors.email}
+                      </Form.Text>
+                    )}
+                  </Form.Group>
+
+                  {/* Phone Field */}
+                  <Form.Group>
+                    <Form.Label className="fw-bold text-gray-900">
+                      Phone
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="contact"
+                      value={formData.contact || ""}
+                      onChange={handleInputChange}
+                      placeholder="Enter phone number"
+                    />
+                  </Form.Group>
+
+                  {/* Address Field */}
+                  <Form.Group>
+                    <Form.Label className="fw-bold text-gray-900">
+                      Address
+                    </Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="address"
+                      value={formData.address || ""}
+                      onChange={handleInputChange}
+                      placeholder="Enter address"
+                    />
+                  </Form.Group>
+
+                  {/* Payout Settings Section */}
+                  <div className="border-top pt-4 mt-2">
+                    <h5 className="fw-bold text-gray-900 mb-3">Payout Information</h5>
+
+                    <div className="d-flex flex-column gap-3">
+                      <Form.Group>
+                        <Form.Label className="fw-bold text-gray-900">Commission Model</Form.Label>
+                        <Form.Select
+                          name="payout.commissionModel"
+                          value={formData.tutorPayoutSettings?.commissionModel || 'Percentage of Course Fee'}
+                          onChange={handleInputChange}
+                        >
+                          <option value="Percentage of Course Fee">Percentage of Course Fee</option>
+                          <option value="Fixed Amount per Session">Fixed Amount per Session</option>
+                        </Form.Select>
+                      </Form.Group>
+
+                      <Form.Group>
+                        <Form.Label className="fw-bold text-gray-900">
+                          {formData.tutorPayoutSettings?.commissionModel === 'Fixed Amount per Session'
+                            ? 'Amount per Session (₹)'
+                            : 'Commission Percentage (%)'}
+                        </Form.Label>
+                        <Form.Control
+                          type="number"
+                          name="payout.commissionPercentage"
+                          value={formData.tutorPayoutSettings?.commissionPercentage || ''}
+                          onChange={handleInputChange}
+                          placeholder={formData.tutorPayoutSettings?.commissionModel === 'Fixed Amount per Session' ? "e.g. 500" : "e.g. 70"}
+                        />
+                      </Form.Group>
+
+                      <Form.Group>
+                        <Form.Label className="fw-bold text-gray-900">Payout Frequency</Form.Label>
+                        <Form.Select
+                          name="payout.payoutFrequency"
+                          value={formData.tutorPayoutSettings?.payoutFrequency || 'Monthly'}
+                          onChange={handleInputChange}
+                        >
+                          <option value="Weekly">Weekly</option>
+                          <option value="Monthly">Monthly</option>
+                        </Form.Select>
+                      </Form.Group>
+
+                      <Form.Group>
+                        <Form.Label className="fw-bold text-gray-900">Minimum Payout Amount</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="payout.minimumPayoutAmount"
+                          value={formData.tutorPayoutSettings?.minimumPayoutAmount || ''}
+                          onChange={handleInputChange}
+                          placeholder="e.g. ₹1,000"
+                        />
+                      </Form.Group>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <div className="mt-4">
+                  <Button
+                    type="submit"
+                    className="w-100 py-3 px-4 border-0 rounded text-base fw-bold text-white"
+                    style={{ backgroundColor: '#7c3aed' }}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <div className="d-flex align-items-center justify-content-center">
+                        <div className="spinner-border spinner-border-sm text-white me-2" role="status">
+                          <span className="visually-hidden">Loading...</span>
+                        </div>
+                        Updating...
+                      </div>
+                    ) : (
+                      "Save Changes"
+                    )}
+                  </Button>
+
+                  {/* Success Message */}
+                  {updateSuccess && (
+                    <div className="mt-3 p-3 text-center text-sm fw-medium text-success bg-success bg-opacity-10 rounded border border-success">
+                      Tutor updated successfully!
+                    </div>
+                  )}
+                </div>
+              </Form>
+            </div>
           </div>
-        </Form>
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
     </div>
   );
 };
