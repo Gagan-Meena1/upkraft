@@ -340,7 +340,8 @@ export async function GET(req: NextRequest) {
         tutorCourses: tutorCoursesSlim,
         classQualityScore,
         overallPerformanceScore,
-        pendingFeedbackCount
+        pendingFeedbackCount,
+        tutorPayoutSettings: tutor.tutorPayoutSettings || {}
       };
     });
 
