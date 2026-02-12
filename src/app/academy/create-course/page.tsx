@@ -30,6 +30,7 @@ export default function CreateCourse() {
   const [subCategory, setSubCategory] = useState(''); 
   const [maxStudentCount, setMaxStudentCount] = useState(''); 
   const [credits, setCredits] = useState('');
+  const [tag, setTag] = useState('');
 
 
 
@@ -62,6 +63,7 @@ const fetchCourseDetails = async (id: string) => {
     setMaxStudentCount(course.maxStudentCount?.toString() || '');
     setCredits(course.credits?.toString() || ''); 
     setCurriculum(course.curriculum);
+    setTag(course.tag || '');
   } catch (error) {
     console.error('Error fetching course details:', error);
     toast.error('Failed to load course details');
@@ -133,6 +135,7 @@ const handleSubmit = async (e: FormEvent) => {
       curriculum,
       maxStudentCount: parseInt(maxStudentCount), 
       credits: credits ? parseInt(credits) : 0,
+      tag,
 
     };
     
@@ -331,7 +334,19 @@ const handleSubmit = async (e: FormEvent) => {
       step="1"
     />
   </div>
-            
+            <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
+    <div className="flex items-center gap-2 sm:gap-3 mb-3">
+      <Tag className="text-purple-700" size={20} />
+      <label className="text-purple-700 font-semibold text-sm sm:text-base">Tag (Optional)</label>
+    </div>
+    <input 
+      type="text"
+      value={tag}
+      onChange={(e) => setTag(e.target.value)}
+      placeholder="Course tag"
+      className="w-full bg-gray-50 text-gray-800 placeholder-gray-500 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-700 text-sm sm:text-base"
+    />
+  </div>
           </div>
           
 

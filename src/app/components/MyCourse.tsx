@@ -18,6 +18,7 @@ import {
   UserPlus,
   User,
   ArrowLeft,
+  Users,
 } from "lucide-react";
 
 import Student01 from "../../assets/student-01.png";
@@ -46,6 +47,8 @@ interface Course {
   tutors?: any[];
   subCategory?: string;
   maxStudentCount?: number;
+  tag?: string;
+
 }
 
 interface MyCourseProps {
@@ -80,6 +83,9 @@ const MyCourse = ({
   console.log("MyCourse received props:", { data, academyId, category });
 
   const [courses, setCourses] = useState<Course[]>(data || []);
+  const [studentNameMap, setStudentNameMap] = useState<Record<string, string>>({});
+  // Map for resolving tutorId -> username
+  const [tutorNameMap, setTutorNameMap] = useState<Record<string, string>>({});
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const [copyingCourseId, setCopyingCourseId] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -91,6 +97,62 @@ const MyCourse = ({
   useEffect(() => {
     setCourses(data || []);
   }, [data]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const ids = new Set<string>();
+        courses.forEach((c) => {
+          const ai = (c as any).academyInstructorId || [];
+          if (Array.isArray(ai)) {
+            ai.forEach((a: any) => {
+              if (!a) return;
+              const id = typeof a === "string" ? a : String(a._id || a);
+              ids.add(id);
+            });
+          }
+          const inst = (c as any).instructorId;
+          if (inst) {
+            const idStr = typeof inst === "string" ? inst : String(inst._id || inst);
+            ids.add(idStr);
+          }
+        });
+
+        if (ids.size === 0) return;
+
+        const entries = await Promise.all(
+          Array.from(ids).map(async (id) => {
+            try {
+              const res = await fetch(`/Api/tutorInfoForStudent?tutorId=${id}`);
+              if (!res.ok) return null;
+              const data = await res.json();
+              const user = data?.tutor;
+              const category = (user?.category || "").toString().toLowerCase();
+              if (category !== "tutor") return null;
+              const name = user?.username || user?.name || user?.email || "Tutor";
+              return [id, name] as [string, string];
+            } catch {
+              return null;
+            }
+          })
+        );
+
+        if (cancelled) return;
+        const map: Record<string, string> = {};
+        entries.forEach((p) => {
+          if (p) map[p[0]] = p[1];
+        });
+        setTutorNameMap((prev) => ({ ...prev, ...map }));
+      } catch (err) {
+        console.error("Tutor resolver error:", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [courses]);
 
   // Reset to page 1 when search query changes
   useEffect(() => {
@@ -204,6 +266,7 @@ const MyCourse = ({
         price: course.price,
         curriculum: course.curriculum,
         category: course.category || "",
+        tag: course.tag || "",
       };
 
       const response = await fetch("/Api/dublicateCourse", {
@@ -421,26 +484,108 @@ const MyCourse = ({
           courses.map((course) => (
             <div key={course._id} className="assignments-list-box">
               <div className="w-100">
-                <div className="d-flex align-items-center justify-content-left mb-3 flex-wrap gap-3">
-                  <h3 className="mb-0">{course.title}</h3>
-                  {category === "Academic" && (
-                    <div className="d-flex align-items-center gap-2 flex-wrap">
-                      <Link
-                        href={`/academy/assignCourseToStudent?courseId=${course._id}`}
-                        className="btn btn-border !py-2 !px-3 d-flex align-items-center justify-content-center gap-2"
-                      >
-                        <UserPlus className="h-4 w-4" />
-                        <span>Assign Students</span>
-                      </Link>
-                      <Link
-                        href={`/academy/assignCourseToTutor?courseId=${course._id}`}
-                        className="btn btn-border !py-2 !px-3 d-flex align-items-center justify-content-center gap-2"
-                      >
-                        <User className="h-4 w-4" />
-                        <span>Assign Tutor</span>
-                      </Link>
-                    </div>
+                {/* <div className="d-flex align-items-center justify-content-between mb-1">
+                  <h5 className="mb-0">{course.title}</h5>
+                  {course.tag && (
+                    <span className="badge bg-light text-primary border border-primary ms-2">
+                      {course.tag}
+                    </span>
                   )}
+                </div> */}
+                <div className="d-flex align-items-center justify-content-left mb-3 flex-wrap gap-3">
+                  {/* Course title + students-on-hover */}
+                  <div className="relative d-inline-block">
+                    <h3 className="mb-0 cursor-pointer">{course.title}</h3>
+
+                    {/* Hover popup: tutors only */}
+                    <div className="d-none position-absolute bg-white border rounded shadow-sm p-2 mt-2"
+                         style={{ minWidth: 220 }}
+                    >
+                      <div className="d-flex flex-wrap gap-2">
+                        {(() => {
+                          // Tutor IDs from instructorId / academyInstructorId
+                          const tutorsList: string[] = [];
+                          const studentIdsSet = new Set<string>(
+                            ((course as any).students || []).map((s: any) =>
+                              typeof s === "string" ? s : String(s._id || s)
+                            )
+                          );
+
+                          const ai = (course as any).academyInstructorId || [];
+                          if (Array.isArray(ai) && ai.length > 0) {
+                            ai.forEach((a: any) => {
+                              if (!a) return;
+                              const id = typeof a === "string" ? a : String(a._id || a);
+                              if (!studentIdsSet.has(id) && !tutorsList.includes(id)) {
+                                tutorsList.push(id);
+                              }
+                            });
+                          }
+
+                          const inst = (course as any).instructorId;
+                          if (inst) {
+                            const idStr = typeof inst === "string" ? inst : String(inst._id || inst);
+                            if (!studentIdsSet.has(idStr) && !tutorsList.includes(idStr)) {
+                              tutorsList.unshift(idStr);
+                            }
+                          }
+
+                          if (tutorsList.length === 0) {
+                            return <div className="text-sm text-muted">No tutors assigned</div>;
+                          }
+
+                          // Render tutor names only
+                          return tutorsList.slice(0, 8).map((tId) => {
+                            const name = (tutorNameMap && tutorNameMap[tId]) || "Tutor";
+                            return (
+                              <div
+                                key={tId}
+                                className="bg-white border rounded px-2 py-1 text-sm text-gray-700"
+                              >
+                                {name}
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
+
+                    <style jsx>{`
+                      .relative:hover div[position] { display: none; }
+                      .relative:hover .position-absolute { display: block !important; }
+                    `}</style>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                    {category === "Academic" && (
+                      <>
+                        <Link
+                          href={`/academy/assignCourseToStudent?courseId=${course._id}`}
+                          className="btn btn-border !py-2 !px-3 d-flex align-items-center justify-content-center gap-2"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          <span>Assign Students</span>
+                        </Link>
+                        <Link
+                          href={`/academy/assignCourseToTutor?courseId=${course._id}`}
+                          className="btn btn-border !py-2 !px-3 d-flex align-items-center justify-content-center gap-2"
+                        >
+                          <User className="h-4 w-4" />
+                          <span>Assign Tutor</span>
+                        </Link>
+                      </>
+                    )}
+                    {course.tag && (
+                      <span className="badge bg-light text-primary border border-primary ms-2 d-inline-flex align-items-center gap-2">
+                        {/* tag icon (left) */}
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="inline-block">
+                          <path d="M20 10V6a2 2 0 0 0-2-2h-4" stroke="#6E09BD" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M4 14v4a2 2 0 0 0 2 2h4l8-8-6-6L4 14z" stroke="#6E09BD" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        <span className="text-sm">{course.tag}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="assignments-list d-flex align-items-center gap-2 flex-wrap w-100 justify-content-between">
@@ -480,11 +625,21 @@ const MyCourse = ({
                         </strong>
                       </span>
                     </li>
+                    
                   </ul>
                 </div>
                 <div className="right-assignment my-course-student-right mt-xxl-0 mt-3">
                   <div className="student-assignment my-course-student d-flex align-items-center flex-wrap gap-xl-4 gap-2">
                     <ul className="d-flex align-items-center gap-2 list-unstyled m-0 p-0 action-icons-container">
+                      <li className="d-flex align-items-center gap-2">
+                        <span className="student-text d-flex align-items-center gap-2">
+                          <Users className="h-5 w-5 text-gray-700" />
+                          <strong className="text-gray-700">
+                            {/* show assigned student count */}
+                            {(course.students && course.students.length) }
+                          </strong>
+                        </span>
+                      </li>
                       <li>
                         <Button
                           type="button"
@@ -583,6 +738,7 @@ const MyCourse = ({
                   </div>
                 </div>
               </div>
+              
             </div>
           ))
         )}
