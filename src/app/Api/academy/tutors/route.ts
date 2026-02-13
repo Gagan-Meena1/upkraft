@@ -7,6 +7,9 @@ import Class from "@/models/Class";
 import feedback from "@/models/feedback";
 import feedbackDance from "@/models/feedbackDance";
 import feedbackDrawing from "@/models/feedbackDrawing";
+import feedbackDrums from "@/models/feedbackDrums";
+import feedbackVocal from "@/models/feedbackVocal";
+import feedbackViolin from "@/models/feedbackViolin";
 import Payment from "@/models/payment";
 import mongoose from "mongoose";
 
@@ -110,9 +113,9 @@ export async function GET(req: NextRequest) {
 
       // 4. All students (for pending feedback)
       User.find({
-        category: "Student",
-        instructorId: { $in: tutorIds }
-      }).select("_id courses instructorId").lean(),
+  category: "Student",
+  instructorId: { $in: tutorIds }
+}).select("_id courses instructorId attendance").lean(),
 
       // 5. Tutors with their courses
       User.find({
@@ -145,10 +148,13 @@ export async function GET(req: NextRequest) {
       return acc.concat(course.class || []);
     }, []);
 
-    // Get only CSAT data from classes (minimal fields)
     const allClasses = await Class.find({
-      _id: { $in: allClassIds }
-    }).select("csat").lean();
+  _id: { $in: allClassIds },
+  endTime: { $lt: new Date() },  // ✅ Only past classes
+  status: { $ne: 'canceled' }     // ✅ Exclude canceled classes
+}).select("csat").lean();
+
+    
 
     const classMap = new Map(allClasses.map(cls => [cls._id.toString(), cls]));
 
@@ -180,37 +186,74 @@ export async function GET(req: NextRequest) {
     });
 
     // **KEY OPTIMIZATION**: Batch fetch ALL feedback records at once
-    const allStudentIds = allStudents.map(s => s._id);
-    const uniqueClassIds = [...new Set(allClassIds.map((id: any) => id.toString()))];
-    const allClassIdsForFeedback = uniqueClassIds.map(id => new mongoose.Types.ObjectId(id));
+const allStudentIds = allStudents.map(s => s._id);
+const uniqueClassIds = [...new Set(allClassIds.map((id: any) => id.toString()))];
+const allClassIdsForFeedback = uniqueClassIds.map(id => new mongoose.Types.ObjectId(id));
 
-    const [musicFeedbacks, danceFeedbacks, drawingFeedbacks] = await Promise.all([
-      feedback.find({
-        userId: { $in: allStudentIds },
-        classId: { $in: allClassIdsForFeedback }
-      }).select("userId classId").lean(),
-      
-      feedbackDance.find({
-        userId: { $in: allStudentIds },
-        classId: { $in: allClassIdsForFeedback }
-      }).select("userId classId").lean(),
-      
-      feedbackDrawing.find({
-        userId: { $in: allStudentIds },
-        classId: { $in: allClassIdsForFeedback }
-      }).select("userId classId").lean()
-    ]);
+const [
+  musicFeedbacks, 
+  danceFeedbacks, 
+  drawingFeedbacks,
+  vocalFeedbacks,
+  drumsFeedbacks,
+  violinFeedbacks
+] = await Promise.all([
+  feedback.find({
+    userId: { $in: allStudentIds },
+    classId: { $in: allClassIdsForFeedback }
+  }).select("userId classId").lean(),
+  
+  feedbackDance.find({
+    userId: { $in: allStudentIds },
+    classId: { $in: allClassIdsForFeedback }
+  }).select("userId classId").lean(),
+  
+  feedbackDrawing.find({
+    userId: { $in: allStudentIds },
+    classId: { $in: allClassIdsForFeedback }
+  }).select("userId classId").lean(),
 
-    // Create feedback lookup sets for O(1) checking
-    const feedbackSets = {
-      Music: new Set(musicFeedbacks.map(f => `${f.userId}_${f.classId}`)),
-      Dance: new Set(danceFeedbacks.map(f => `${f.userId}_${f.classId}`)),
-      Drawing: new Set(drawingFeedbacks.map(f => `${f.userId}_${f.classId}`))
-    };
+  feedbackVocal.find({
+    userId: { $in: allStudentIds },
+    classId: { $in: allClassIdsForFeedback }
+  }).select("userId classId").lean(),
+
+  feedbackDrums.find({
+    userId: { $in: allStudentIds },
+    classId: { $in: allClassIdsForFeedback }
+  }).select("userId classId").lean(),
+
+  feedbackViolin.find({
+    userId: { $in: allStudentIds },
+    classId: { $in: allClassIdsForFeedback }
+  }).select("userId classId").lean()
+]);
+
+// Create feedback lookup sets for O(1) checking
+const feedbackSets = {
+  Music: new Set(musicFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+  Dance: new Set(danceFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+  Drawing: new Set(drawingFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+  Vocal: new Set(vocalFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+  Drums: new Set(drumsFeedbacks.map(f => `${f.userId}_${f.classId}`)),
+  Violin: new Set(violinFeedbacks.map(f => `${f.userId}_${f.classId}`))
+};
 
     // ========================================
     // PROCESS TUTORS WITH CACHED DATA
     // ========================================
+
+    const getAttendanceStatus = (student, classId) => {
+  if (!student.attendance || student.attendance.length === 0) {
+    return "not_marked";
+  }
+  
+  const attendanceRecord = student.attendance.find(
+    att => att.classId.toString() === classId
+  );
+  
+  return attendanceRecord ? attendanceRecord.status : "not_marked";
+};
 
     const tutorsWithStats = tutors.map((tutor) => {
       const tutorIdStr = tutor._id.toString();
@@ -300,16 +343,25 @@ export async function GET(req: NextRequest) {
             const classIds = course.class || [];
             if (classIds.length === 0) continue;
 
-            for (const classId of classIds) {
-              // Check appropriate feedback set based on category (no need to load full class doc)
-              const feedbackSet = feedbackSets[course.category as keyof typeof feedbackSets];
-              if (!feedbackSet) continue;
+for (const classId of classIds) {
+  const classIdStr = classId.toString();
+  
+  // ✅ CRITICAL: Only process classes that passed our filters (past, non-canceled)
+  if (!classMap.has(classIdStr)) continue;
+  
+  // ✅ Check attendance status
+  const attendanceStatus = getAttendanceStatus(student, classIdStr);
+  if (attendanceStatus !== "not_marked") continue;
+  
+  // Check appropriate feedback set based on category
+  const feedbackSet = feedbackSets[course.category as keyof typeof feedbackSets];
+  if (!feedbackSet) continue;
 
-              const feedbackKey = `${student._id}_${classId.toString()}`;
-              if (!feedbackSet.has(feedbackKey)) {
-                pendingFeedbackCount++;
-              }
-            }
+  const feedbackKey = `${student._id}_${classIdStr}`;
+  if (!feedbackSet.has(feedbackKey)) {
+    pendingFeedbackCount++;
+  }
+}
           }
         }
       }
