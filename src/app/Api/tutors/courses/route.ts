@@ -47,6 +47,8 @@ export async function POST(request: NextRequest) {
         subCategory: courseData?.subCategory || '',
         maxStudentCount: courseData?.maxStudentCount ,
         credits: courseData?.credits || 0,
+        tag: courseData?.tag || '',
+
     });
     console.log(newCourse);
     const savednewCourse = await newCourse.save();
