@@ -5,7 +5,7 @@ import SignupForm from "@/app/components/SignupForm";
 const MANAGEMENT_ROLES = [
   { value: "Admin", label: "Admin" },
   { value: "TeamLead", label: "Team Lead" },
-  { value: "RelationshipManager", label: "Relationship Manager" },
+  { value: "Relationship Manager", label: "Relationship Manager" },
 ];
 
 export default function AdminSignupPage() {
