@@ -30,6 +30,8 @@ interface UserDataContextType {
   classDetails: any[];
   studentCount: number;
   loading: boolean;
+    error: string | null; // ✅ Add this
+  refetch: (options?: { silent?: boolean }) => Promise<void>; // ✅ Add this
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
