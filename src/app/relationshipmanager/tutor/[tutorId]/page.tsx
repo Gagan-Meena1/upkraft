@@ -10,6 +10,7 @@ interface Student {
   _id: string;
   username?: string;
   email?: string;
+  address?: string;
 }
 
 interface ClassItem {
@@ -241,15 +242,15 @@ export default function RMTutorCalendarPage() {
               <span className="font-medium text-gray-900 min-w-[200px] text-center">
                 {activeView === "month"
                   ? currentDate.toLocaleDateString("en-US", {
-                      month: "long",
-                      year: "numeric",
-                    })
+                    month: "long",
+                    year: "numeric",
+                  })
                   : currentDate.toLocaleDateString("en-US", {
-                      day: "2-digit",
-                      weekday: "long",
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    day: "2-digit",
+                    weekday: "long",
+                    month: "long",
+                    year: "numeric",
+                  })}
               </span>
               <button
                 onClick={handleNext}
@@ -269,11 +270,10 @@ export default function RMTutorCalendarPage() {
                 <button
                   key={view}
                   onClick={() => setActiveView(view)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${
-                    activeView === view
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${activeView === view
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
                 >
                   {view}
                 </button>
@@ -304,11 +304,10 @@ export default function RMTutorCalendarPage() {
                           setActiveView("day");
                         }
                       }}
-                      className={`min-h-[90px] p-2 border rounded-lg ${
-                        d
-                          ? "bg-white cursor-pointer hover:bg-gray-50 border-gray-200"
-                          : "bg-transparent border-transparent"
-                      }`}
+                      className={`min-h-[90px] p-2 border rounded-lg ${d
+                        ? "bg-white cursor-pointer hover:bg-gray-50 border-gray-200"
+                        : "bg-transparent border-transparent"
+                        }`}
                     >
                       {d && (
                         <>
@@ -387,9 +386,18 @@ export default function RMTutorCalendarPage() {
                                   )}
                                   <div className="mt-1.5 font-medium text-gray-700">
                                     {cls.students.length > 0 ? (
-                                      cls.students
-                                        .map((s) => s.username || s.email || "—")
-                                        .join(", ")
+                                      cls.students.map((s) => (
+                                        <div key={s._id} className="mb-0.5">
+                                          <div>
+                                            {s.username || s.email || "—"}
+                                          </div>
+                                          {s.address && (
+                                            <div className="text-[10px] text-gray-500 truncate">
+                                              {s.address}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ))
                                     ) : (
                                       <span className="italic">No students</span>
                                     )}
