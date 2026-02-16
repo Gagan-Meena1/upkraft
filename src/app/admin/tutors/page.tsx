@@ -12,6 +12,8 @@ const StudentFeedbackDashboardClient = dynamic(
   { ssr: false }
 );
 
+import ChangePasswordModal from "@/components/ChangePasswordModal";
+
 
 interface Tutor {
   _id: string;
@@ -37,6 +39,7 @@ interface RelationshipManager {
 function AllTutors() {
   const [Tutors, setTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [relationshipManagers, setRelationshipManagers] = useState<RelationshipManager[]>([]);
@@ -212,15 +215,28 @@ function AllTutors() {
               </Link>
             </>
           ) : (
-            <button
-              onClick={handleLogout}
-              className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition"
-            >
-              Logout
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setIsChangePasswordOpen(true)}
+                className="px-6 py-2 border border-gray-900 text-gray-900 font-medium rounded-lg hover:bg-gray-100 transition"
+              >
+                Change Password
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-6 py-2 border border-red-600 text-red-600 font-medium rounded-lg hover:bg-red-50 transition"
+              >
+                Logout
+              </button>
+            </div>
           )}
         </div>
       </nav>
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
 
       {/* Main Content */}
       <div className="flex-1 w-full max-w-6xl mx-auto px-8 py-12">
@@ -235,9 +251,9 @@ function AllTutors() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              
-                
-              
+
+
+
             </div>
           </div>
         </div>
