@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
+import ChangePasswordModal from "@/components/ChangePasswordModal";
 
 interface Tutor {
   _id: string;
@@ -19,6 +20,7 @@ const RelationshipManagerDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [impersonatingTutorId, setImpersonatingTutorId] = useState<string | null>(null);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const handleSearch = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -28,7 +30,7 @@ const RelationshipManagerDashboard: React.FC = () => {
   const handleImpersonateTutor = async (tutorId: string) => {
     try {
       setImpersonatingTutorId(tutorId);
-      
+
       const response = await fetch("/Api/relationship-manager/impersonate-tutor", {
         method: "POST",
         headers: {
@@ -109,6 +111,7 @@ const RelationshipManagerDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Header */}
       <header className="bg-white border-b border-gray-200 px-20 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-semibold text-gray-900">Your Assigned Tutors</h1>
@@ -126,13 +129,25 @@ const RelationshipManagerDashboard: React.FC = () => {
             >
               Search
             </button>
-            {/* <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg> */}
           </form>
         </div>
-        <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900">Logout</Link>
-      </header>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsChangePasswordOpen(true)}
+            className="text-sm text-gray-600 hover:text-gray-900 font-medium"
+          >
+            Change Password
+          </button>
+          <Link href="/login" className="text-sm text-gray-600 hover:text-gray-900 border-l pl-4 border-gray-300">
+            Logout
+          </Link>
+        </div>
+      </header >
+
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
 
       <main className="max-w-6xl mx-auto px-6 py-8">
         {filteredTutors.length === 0 ? (
@@ -212,7 +227,7 @@ const RelationshipManagerDashboard: React.FC = () => {
           </div>
         )}
       </main>
-    </div>
+    </div >
   );
 };
 
