@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     if (attendanceIndex !== -1) {
       // Update existing attendance record
-      user.attendance[attendanceIndex].status = status;
+      user.attendance[attendanceIndex].status = attendanceStatus;
     } else {
       // Create new attendance record
       user.attendance.push({

@@ -466,10 +466,11 @@ export async function GET(request) {
           return;
         }
         
-        // Skip if student was absent
-        if (studentData.attendanceMap.get(classIdStr) === "absent") {
-          return;
-        }
+         // Skip if attendance has been marked (any status)
+  const attendanceStatus = studentData.attendanceMap.get(classIdStr);
+  if (attendanceStatus && attendanceStatus !== "not_marked") {
+    return;
+  }
         
         // Check if feedback exists
         const feedbackKey = `${studentId}_${classIdStr}`;

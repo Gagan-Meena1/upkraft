@@ -21,8 +21,9 @@ interface Course {
     tangibleOutcome: string;
   }[];
   category?: string;
-    subCategory?: string; // ADD THIS
-  maxStudentCount?: number; // ADD THIS
+  subCategory?: string;
+  maxStudentCount?: number;
+  tag?: string;
 }
 
 interface EditCourseModalProps {
@@ -45,24 +46,26 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     duration: "",
     price: "",
     curriculum: [],
-      subCategory: "", // ADD THIS
-  maxStudentCount: "", // ADD THIS
+    subCategory: "",
+    maxStudentCount: "",
+    tag: "",
   });
 
   useEffect(() => {
-  if (course) {
-    setForm({
-      title: course.title || "",
-      category: course.category || "Music",
-      subCategory: course.subCategory || "", // ADD THIS
-      maxStudentCount: course.maxStudentCount ? String(course.maxStudentCount) : "", // ADD THIS
-      description: course.description || "",
-      duration: course.duration || "",
-      price: course.price ? String(course.price) : "",
-      curriculum: course.curriculum ? [...course.curriculum] : [],
-    });
-  }
-}, [course]);
+    if (course) {
+      setForm({
+        title: course.title || "",
+        category: course.category || "Music",
+        subCategory: course.subCategory || "",
+        maxStudentCount: course.maxStudentCount ? String(course.maxStudentCount) : "",
+        description: course.description || "",
+        duration: course.duration || "",
+        price: course.price ? String(course.price) : "",
+        curriculum: course.curriculum ? [...course.curriculum] : [],
+        tag: course.tag || "",
+      });
+    }
+  }, [course]);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -116,19 +119,19 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
     }));
   };
 
-const handleUpdate = () => {
-  if (course) {
-    const updatedCourseData = {
-      ...course,
-      ...form,
-      price: Number(form.price) || 0,
-      maxStudentCount: Number(form.maxStudentCount) || 0, // ADD THIS
-      subCategory: form.category === 'Music' ? form.subCategory : undefined, // ADD THIS
-    };
-    onUpdate(updatedCourseData);
-  }
-  onHide();
-};
+  const handleUpdate = () => {
+    if (course) {
+      const updatedCourseData = {
+        ...course,
+        ...form,
+        price: Number(form.price) || 0,
+        maxStudentCount: Number(form.maxStudentCount) || 0,
+        subCategory: form.category === 'Music' ? form.subCategory : undefined,
+      };
+      onUpdate(updatedCourseData);
+    }
+    onHide();
+  };
 
   return (
     <Modal
@@ -211,6 +214,7 @@ const handleUpdate = () => {
                     </Form.Select>
                   </Form.Group>
                 </div>
+                
               </div>
 
               {/* Add after Course Category */}
@@ -277,7 +281,20 @@ const handleUpdate = () => {
                   />
                 </Form.Group>
               </div>
-
+<div className="col-md-12">
+                <Form.Group className="mb-3">
+                  <Form.Label className="w-100 d-block">
+                    Tag
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="tag"
+                    value={form.tag}
+                    onChange={handleChange}
+                    placeholder="e.g., Beginner, Advanced"
+                  />
+                </Form.Group>
+              </div>
               <div className="col-md-12">
                 <Form.Group className="mb-3">
                   <Form.Label className="w-100 d-block">Course Fees</Form.Label>

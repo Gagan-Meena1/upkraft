@@ -15,26 +15,26 @@ cloudinary.config({
 export async function PUT(request: Request) {
   try {
     await connect();
-    
+
     // Get userId from searchParams
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
-    
+
     if (!userId) {
       return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
     }
 
     // Handle form data
     const formData = await request.formData();
-    
+
     // Get JSON data
     const userDataString = formData.get('userData');
     if (!userDataString || typeof userDataString !== 'string') {
       return NextResponse.json({ message: 'User data is required' }, { status: 400 });
     }
-    
+
     const userData = JSON.parse(userDataString);
-    
+
     // Prepare update data
     const updateData = {
       username: userData.username,
@@ -42,6 +42,7 @@ export async function PUT(request: Request) {
       contact: userData.contact,
       address: userData.address,
       timezone: userData.timezone,
+      profileImage: undefined, // Initialize to avoid TS error
       // Add custom fields that are not in the original schema
       ...(userData.city && { city: userData.city }),
       ...(userData.education && { education: userData.education }),
@@ -51,19 +52,20 @@ export async function PUT(request: Request) {
       ...(userData.teachingMode && { teachingMode: userData.teachingMode }),
       ...(userData.instagramLink && { instagramLink: userData.instagramLink }),
       ...(userData.aboutMyself && { aboutMyself: userData.aboutMyself }),
+      ...(userData.tutorPayoutSettings && { tutorPayoutSettings: userData.tutorPayoutSettings }),
     };
 
     // Handle profile image if provided
     const profileImage = formData.get('profileImage');
-    
+
     if (profileImage && profileImage instanceof Blob) {
       try {
         // Convert blob to buffer
         const buffer = Buffer.from(await profileImage.arrayBuffer());
-        
+
         // Generate unique public_id for Cloudinary
         const publicId = `profiles/${userId}_${uuidv4()}`;
-        
+
         // Upload to Cloudinary
         const uploadResult = await new Promise((resolve, reject) => {
           cloudinary.uploader.upload_stream(
@@ -88,7 +90,7 @@ export async function PUT(request: Request) {
 
         // Set the Cloudinary URL in update data
         updateData.profileImage = (uploadResult as any).secure_url;
-        
+
       } catch (uploadError) {
         console.error('Error uploading to Cloudinary:', uploadError);
         return NextResponse.json({
@@ -113,7 +115,7 @@ export async function PUT(request: Request) {
       message: 'Profile updated successfully',
       tutor: updatedUser
     }, { status: 200 });
-    
+
   } catch (error: any) {
     console.error('Error updating profile:', error);
     return NextResponse.json({

@@ -323,6 +323,12 @@ const userSchema = new mongoose.Schema({
             }
         }]
     },
+    // For tutors: which Relationship Manager they are assigned to
+    relationshipManager: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+    },
 },
     { timestamps: true }
 );

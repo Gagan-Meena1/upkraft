@@ -3,18 +3,19 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Modal } from "react-bootstrap";
-import { RateClassForm } from "../student/rateClass/page"; // <- fix path
+import { RateClassForm } from "../student/rateClass/page";
 
 interface SessionFeedback {
   _id: string;
-  classId?: string; // Add this to link feedback to class
+  classId?: string;
   classTitle: string;
   date: string;
   performanceScore: number;
   qualityScore: number;
-  tutorCSAT: number | null; // Change from string to number | null
+  tutorCSAT: number | null;
   assignmentCompletionRate: number;
   tutorFeedback: string;
+  tutorName?: string; // ✅ Add tutor name to identify which tutor
 }
 
 const calculateAverageCSAT = (
@@ -50,10 +51,10 @@ const StarRating = ({ rating }: { rating: number }) => {
 
 const SessionSummary = ({
   studentId,
-  tutorId,
+  tutorIds, // ✅ Changed from tutorId to tutorIds array
 }: {
   studentId: string;
-  tutorId: string;
+  tutorIds: string[]; // ✅ Now accepts array of tutor IDs
 }) => {
   const [sessions, setSessions] = useState<SessionFeedback[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,8 +62,9 @@ const SessionSummary = ({
     new Map()
   );
   const [showRateModal, setShowRateModal] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<string | undefined>();
 
-  // Helper: choose endpoint by category (Music default)
+  // Helper: choose endpoint by category
   const getFeedbackEndpoint = (category?: string) => {
     switch ((category || "").toLowerCase()) {
       case "dance":
@@ -79,108 +81,131 @@ const SessionSummary = ({
       try {
         setLoading(true);
 
-        // 1) Get tutor’s courses shared with this student (must include category)
-        const tutorRes = await fetch(
-          `/Api/tutorInfoForStudent?tutorId=${tutorId}`
-        );
-        const tutorJson = await tutorRes.json();
-        const courses = Array.isArray(tutorJson?.courses)
-          ? tutorJson.courses
-          : [];
-        if (!courses.length) {
+        // ✅ Return early if no tutors
+        if (!tutorIds || tutorIds.length === 0) {
           setSessions([]);
+          setLoading(false);
           return;
         }
 
-        // 2) Fetch class meta and CSAT once, build maps
-        const classesRes = await fetch(`/Api/getClasses?tutorId=${tutorId}`);
-        const classesJson = await classesRes.json();
+        const allSessions: SessionFeedback[] = [];
         const csatMap = new Map<string, number | null>();
-        const classMeta = new Map<
-          string,
-          { title?: string; startTime?: string }
-        >();
 
-        if (classesJson?.success && Array.isArray(classesJson.classes)) {
-          classesJson.classes.forEach((cls: any) => {
-            const avgCSAT = calculateAverageCSAT(cls.csat || []);
-            const id = String(cls._id);
-            csatMap.set(id, avgCSAT);
-            classMeta.set(id, { title: cls.title, startTime: cls.startTime });
-          });
-        }
-        setClassesCSAT(csatMap);
+        // ✅ Loop through each tutor ID
+        for (const tutorId of tutorIds) {
+          if (!tutorId) continue;
 
-        // 3) Fetch feedback per course using category-specific endpoint
-        const feedbackResults = await Promise.all(
-          courses.map(async (c: any) => {
-            const endpoint = getFeedbackEndpoint(c?.category);
-            try {
-              const res = await fetch(
-                `${endpoint}?courseId=${c._id}&studentId=${studentId}`
-              );
-              if (!res.ok) return null; // ignore 404s etc.
-              return await res.json();
-            } catch {
-              return null;
-            }
-          })
-        );
+          // 1) Get tutor's courses shared with this student
+          const tutorRes = await fetch(
+            `/Api/tutorInfoForStudent?tutorId=${tutorId}`
+          );
+         const tutorJson = await tutorRes.json();
 
-        // 4) Flatten and normalize to table rows
-        const rows: SessionFeedback[] = [];
-        feedbackResults.forEach((fj: any) => {
-          if (fj?.success && Array.isArray(fj.data)) {
-            fj.data.forEach((item: any, idx: number) => {
-              const classIdRaw =
-                item.class?._id ||
-                item.classId?._id ||
-                item.classId ||
-                item.class ||
-                null;
-              const classId = classIdRaw ? String(classIdRaw) : undefined;
+// Find the tutor's data in the map
+const tutorCourseData = tutorJson?.tutorCoursesMap?.find(
+  (item: any) => item.tutorId === tutorId
+);
 
-              const meta = classId ? classMeta.get(classId) : undefined;
-              const start =
-                meta?.startTime || item.class?.startTime || item.createdAt;
+const tutorName = tutorCourseData?.tutorName || 'Unknown Tutor';
+const courses = tutorCourseData?.courses || [];
+          
+          if (!courses.length) continue;
 
-              rows.push({
-                _id: String(item._id),
-                classId,
-                classTitle:
-                  item.class?.title ||
-                  item.classId?.title ||
-                  meta?.title ||
-                  `Session ${idx + 1}`,
-                date: start ? new Date(start).toLocaleDateString() : "",
-                // performance score exists across categories (music/dance/drawing)
-                performanceScore: Number(item.performance ?? 0),
-                // quality score not present in these APIs – default to 0 if missing
-                qualityScore: Number(item.qualityScore ?? 0),
-                tutorCSAT: classId ? csatMap.get(classId) ?? null : null,
-                // not available from these endpoints – default to 0 if missing
-                assignmentCompletionRate: Number(
-                  item.assignmentCompletionRate ?? 0
-                ),
-                tutorFeedback: item.personalFeedback ?? item.feedback ?? "",
-              });
+          // 2) Fetch class meta and CSAT for this tutor
+          const classesRes = await fetch(`/Api/getClasses?tutorId=${tutorId}`);
+          const classesJson = await classesRes.json();
+          const classMeta = new Map<
+            string,
+            { title: string; startTime: string }
+          >();
+
+          if (classesJson?.success && Array.isArray(classesJson.classes)) {
+            classesJson.classes.forEach((cls: any) => {
+              const avgCSAT = calculateAverageCSAT(cls.csat || []);
+              const id = String(cls._id);
+              csatMap.set(id, avgCSAT);
+              classMeta.set(id, { title: cls.title, startTime: cls.startTime });
             });
           }
-        });
+
+          // 3) Fetch feedback per course using category-specific endpoint
+          const feedbackResults = await Promise.all(
+            courses.map(async (c: any) => {
+              const endpoint = getFeedbackEndpoint(c?.category);
+              try {
+                const res = await fetch(
+                  `${endpoint}?courseId=${c._id}&studentId=${studentId}`
+                );
+                if (!res.ok) return null;
+                return await res.json();
+              } catch {
+                return null;
+              }
+            })
+          );
+
+          // 4) Flatten and normalize to table rows
+          feedbackResults.forEach((fj: any) => {
+            if (fj?.success && Array.isArray(fj.data)) {
+              fj.data.forEach((item: any, idx: number) => {
+                const classIdRaw =
+                  item.class?._id ||
+                  item.classId?._id ||
+                  item.classId ||
+                  item.class ||
+                  null;
+                const classId = classIdRaw ? String(classIdRaw) : undefined;
+
+                const meta = classId ? classMeta.get(classId) : undefined;
+                const start =
+                  meta?.startTime || item.class?.startTime || item.createdAt;
+
+                allSessions.push({
+                  _id: String(item._id),
+                  classId,
+                  classTitle:
+                    item.class?.title ||
+                    item.classId?.title ||
+                    meta?.title ||
+                    `Session ${idx + 1}`,
+                  date: start ? new Date(start).toLocaleDateString() : "",
+                  performanceScore: Number(item.performance ?? 0),
+                  qualityScore: Number(item.qualityScore ?? 0),
+                  tutorCSAT: classId ? csatMap.get(classId) ?? null : null,
+                  assignmentCompletionRate: Number(
+                    item.assignmentCompletionRate ?? 0
+                  ),
+                  tutorFeedback: item.personalFeedback ?? item.feedback ?? "",
+                  tutorName, // ✅ Add tutor name
+                });
+              });
+            }
+          });
+        }
+
+        // ✅ Update the CSAT map with all collected data
+        setClassesCSAT(csatMap);
 
         // Sort by date desc
-        rows.sort(
+        allSessions.sort(
           (a, b) =>
             (new Date(b.date).getTime() || 0) -
             (new Date(a.date).getTime() || 0)
         );
-        setSessions(rows);
+        
+        setSessions(allSessions);
+      } catch (error) {
+        console.error("Error fetching session summary:", error);
+        setSessions([]);
       } finally {
         setLoading(false);
       }
     }
-    if (studentId && tutorId) fetchSummary();
-  }, [studentId, tutorId]);
+    
+    if (studentId && tutorIds.length > 0) {
+      fetchSummary();
+    }
+  }, [studentId, tutorIds]);
 
   return (
     <div className="card-box">
@@ -188,6 +213,12 @@ const SessionSummary = ({
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap overflow-x-auto">
           <div className="left-head w-100">
             <h2 className="m-0">Session Summary</h2>
+            {/* ✅ Show count of tutors */}
+            {tutorIds.length > 0 && (
+              <p className="text-muted small mb-0">
+                Showing sessions from {tutorIds.length} tutor{tutorIds.length > 1 ? 's' : ''}
+              </p>
+            )}
           </div>
         </div>
         <div className="table-sec w-100 assignments-list-box">
@@ -196,6 +227,7 @@ const SessionSummary = ({
               <thead>
                 <tr>
                   <th>Session Title</th>
+                  <th>Tutor</th> {/* ✅ Add tutor column */}
                   <th>Date</th>
                   <th className="text-center">Performance Score</th>
                   <th className="text-center">Session Quality Score</th>
@@ -208,17 +240,18 @@ const SessionSummary = ({
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8}>Loading...</td>
+                    <td colSpan={9}>Loading...</td>
                   </tr>
                 ) : sessions.length === 0 ? (
                   <tr>
-                    <td colSpan={8}>No sessions found.</td>
+                    <td colSpan={9}>No sessions found.</td>
                   </tr>
                 ) : (
                   sessions.map((session) => (
-                    <>
-                      <tr key={session._id}>
+                    <React.Fragment key={session._id}>
+                      <tr>
                         <td>{session.classTitle}</td>
+                        <td>{session.tutorName}</td> {/* ✅ Display tutor name */}
                         <td>{session.date}</td>
                         <td className="text-center">
                           {session.performanceScore}/<span>10</span>
@@ -231,9 +264,9 @@ const SessionSummary = ({
                             <StarRating rating={session.tutorCSAT} />
                           ) : (
                             <button
-                              className="btn btn-primary mt-3"
+                              className="btn btn-primary btn-sm"
                               onClick={() => {
-                                // setSelectedClassId(feedback.classId._id);
+                                setSelectedClassId(session.classId);
                                 setShowRateModal(true);
                               }}
                             >
@@ -254,28 +287,7 @@ const SessionSummary = ({
                           </Link>
                         </td>
                       </tr>
-                      <Modal
-                        show={showRateModal}
-                        onHide={() => setShowRateModal(false)}
-                        centered
-                        backdrop
-                      >
-                        <style jsx global>{`
-                          .modal-backdrop.show {
-                            background-color: rgba(0, 0, 0, 0.15);
-                          }
-                        `}</style>
-
-                        <Modal.Header closeButton />
-                        <Modal.Body>
-                          <RateClassForm
-                            classId={session.classId}
-                            isModal
-                            onSuccess={() => setShowRateModal(false)}
-                          />
-                        </Modal.Body>
-                      </Modal>
-                    </>
+                    </React.Fragment>
                   ))
                 )}
               </tbody>
@@ -283,6 +295,29 @@ const SessionSummary = ({
           </div>
         </div>
       </div>
+
+      {/* ✅ Move modal outside the map */}
+      <Modal
+        show={showRateModal}
+        onHide={() => setShowRateModal(false)}
+        centered
+        backdrop
+      >
+        <style jsx global>{`
+          .modal-backdrop.show {
+            background-color: rgba(0, 0, 0, 0.15);
+          }
+        `}</style>
+
+        <Modal.Header closeButton />
+        <Modal.Body>
+          <RateClassForm
+            classId={selectedClassId}
+            isModal
+            onSuccess={() => setShowRateModal(false)}
+          />
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
