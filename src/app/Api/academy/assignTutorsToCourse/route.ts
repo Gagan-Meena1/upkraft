@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     if (!tutorIds || !Array.isArray(tutorIds) || tutorIds.length === 0) {
       return NextResponse.json(
-        { error: 'Student IDs array is required and must not be empty' },
+        { error: 'tutor IDs array is required and must not be empty' },
         { status: 400 }
       );
     }

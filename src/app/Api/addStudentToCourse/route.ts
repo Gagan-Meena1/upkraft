@@ -66,7 +66,8 @@ export async function POST(req: NextRequest) {
     console.log("Classes to add:", classIds);
     
     // Update student: Add course to their courses array and reference to instructor
-    // Also add all class IDs to their classes array
+// Add only the selected classIds passed from the frontend, not all course classes
+const selectedClassIds = requestData.classIds || [];
     const updatedStudent = await User.findByIdAndUpdate(
   studentId,
   {
@@ -83,7 +84,7 @@ if (classIds.length > 0) {
     studentId,
     {
       $addToSet: {
-        classes: { $each: classIds }
+        classes: { $each: selectedClassIds } // Add only selected classIds
       }
     }
   );

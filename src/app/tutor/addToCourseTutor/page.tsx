@@ -27,6 +27,11 @@ export default function TutorCoursesPage() {
   const [studentId, setStudentId] = useState<string>("");
   const [tutorId, setTutorId] = useState<string>("");
   const [expandedCourses, setExpandedCourses] = useState<{ [key: string]: boolean }>({});
+  const [showClassModal, setShowClassModal] = useState<boolean>(false);
+const [classes, setClasses] = useState<any[]>([]);
+const [classesLoading, setClassesLoading] = useState<boolean>(false);
+const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
+const [pendingCourseId, setPendingCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -98,50 +103,104 @@ export default function TutorCoursesPage() {
       return 'Invalid date';
     }
   };
-  const handleAddStudentToCourse = async (courseId: string) => {
-    try {
-      // You might want to add loading state for this specific course
-      
-      const response = await axios.post('/Api/addStudentToCourse', {
-        courseId: courseId,
-        studentId:studentId,
-        // tutorId:tutorId
-        // Add any other required data for your API, such as studentId
-      });
-      
-      console.log("Added student to course:", response.data);
-      // You can add success notification or state update here
-      
-      // Optionally refresh the course list or update UI
-      // Show success message
-    setAddStudentMessage({
-      text: response.data.message || 'Course added to student successfully!',
-      type: 'success'
-    });
-    
-    // Hide message after 3 seconds
-    setTimeout(() => {
-      setAddStudentMessage(null);
-    }, 3000);
-      
-    } catch (error: any) {
-      console.error("Error adding student to course:", error);
-      // Handle error - show notification or update error state
-      // Show error message
-    setAddStudentMessage({
-      text: error.response?.data?.message || 'Failed to add course to student',
-      type: 'error'
-    });
-    
-    // Hide message after 3 seconds
-    setTimeout(() => {
-      setAddStudentMessage(null);
-    }, 3000);
+
+  const fetchClasses = async (courseId: string) => {
+  try {
+    setClassesLoading(true);
+    const response = await axios.get(`/Api/tutors/courses/${courseId}`);
+    const allClasses: any[] = response.data.classDetails || [];
+    // Only future classes
+    setClasses(allClasses.filter((cls) => new Date(cls.startTime) > new Date()));
+  } catch (error) {
+    console.error("Error fetching classes:", error);
+    setClasses([]);
   } finally {
-    setIsAddingStudent(false); // Add this line to hide loading overlay
+    setClassesLoading(false);
   }
-    
-  };
+};
+
+const groupClasses = (classList: any[]) => {
+  const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dayMap: Record<string, Record<string, any[]>> = {};
+
+  classList.forEach((cls) => {
+    const start = new Date(cls.startTime);
+    const end = new Date(cls.endTime);
+    const day = DAY_ORDER[start.getDay()];
+    const timeSlot = `${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+
+    if (!dayMap[day]) dayMap[day] = {};
+    if (!dayMap[day][timeSlot]) dayMap[day][timeSlot] = [];
+    dayMap[day][timeSlot].push(cls);
+  });
+
+  return DAY_ORDER
+    .filter((day) => dayMap[day])
+    .map((day) => ({
+      day,
+      timeSlots: Object.entries(dayMap[day]).map(([timeSlot, classes]) => ({
+        timeSlot,
+        classes,
+        groupKey: `${day}__${timeSlot}`,
+      })),
+    }));
+};
+
+const handleGroupToggle = (groupKey: string) => {
+  setSelectedGroups((prev) =>
+    prev.includes(groupKey)
+      ? prev.filter((k) => k !== groupKey)
+      : [...prev, groupKey]
+  );
+};
+ const handleAddStudentToCourse = async (courseId: string) => {
+  setPendingCourseId(courseId);
+  setSelectedGroups([]);
+  await fetchClasses(courseId);
+  setShowClassModal(true);
+};
+
+const handleFinalAssign = async () => {
+  if (!pendingCourseId) return;
+  if (selectedGroups.length === 0) {
+    setAddStudentMessage({ text: "Please select at least one class group", type: "error" });
+    setTimeout(() => setAddStudentMessage(null), 3000);
+    return;
+  }
+
+  // Collect all class IDs from selected groups
+  const grouped = groupClasses(classes);
+  const selectedClassIds = grouped
+    .flatMap((dayGroup) => dayGroup.timeSlots)
+    .filter((slot) => selectedGroups.includes(slot.groupKey))
+    .flatMap((slot) => slot.classes.map((cls: any) => cls._id));
+
+  try {
+    setIsAddingStudent(true);
+    setShowClassModal(false);
+
+    const response = await axios.post("/Api/addStudentToCourse", {
+      courseId: pendingCourseId,
+      studentId,
+      classIds: selectedClassIds,
+    });
+
+    setAddStudentMessage({
+      text: response.data.message || "Course added to student successfully!",
+      type: "success",
+    });
+  } catch (error: any) {
+    setAddStudentMessage({
+      text: error.response?.data?.message || "Failed to add course to student",
+      type: "error",
+    });
+  } finally {
+    setIsAddingStudent(false);
+    setPendingCourseId(null);
+    setSelectedGroups([]);
+    setTimeout(() => setAddStudentMessage(null), 3000);
+  }
+};
 
   // Handler to toggle expanded state for a course
 const toggleExpanded = (courseId: string) => {
@@ -317,6 +376,128 @@ const toggleExpanded = (courseId: string) => {
         </div>
       </div>
     )}
+    {/* Class Selection Modal */}
+{showClassModal && (
+  <div
+    className="fixed inset-0 flex items-center justify-center z-50"
+    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
+    onClick={(e) => { if (e.target === e.currentTarget) setShowClassModal(false); }}
+  >
+    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 flex flex-col max-h-[80vh]">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900">Select Class Groups</h2>
+        <button
+          onClick={() => setShowClassModal(false)}
+          className="text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="overflow-y-auto flex-1 px-6 py-4">
+        {classesLoading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-purple-600 mb-3" />
+            <p className="text-gray-500 text-sm">Loading classes...</p>
+          </div>
+        ) : classes.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-sm">No upcoming classes found for this course.</p>
+          </div>
+        ) : (
+          groupClasses(classes).map((dayGroup) => (
+            <div key={dayGroup.day} className="mb-5">
+              {/* Day Header */}
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-500 bg-gray-100 rounded px-2 py-1 mb-2">
+                {dayGroup.day}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {dayGroup.timeSlots.map((slot) => {
+                  const isSelected = selectedGroups.includes(slot.groupKey);
+                  return (
+                    <div
+                      key={slot.groupKey}
+                      onClick={() => handleGroupToggle(slot.groupKey)}
+                      className={`flex items-center justify-between px-4 py-3 rounded-lg border cursor-pointer transition-all duration-150 ${
+                        isSelected
+                          ? "bg-purple-50 border-purple-500"
+                          : "bg-white border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Checkbox */}
+                        <div
+                          className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-colors ${
+                            isSelected ? "bg-purple-600 border-purple-600" : "border-gray-300"
+                          }`}
+                        >
+                          {isSelected && (
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                              <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </div>
+
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{slot.timeSlot}</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {slot.classes.map((cls: any) => (
+                              <span
+                                key={cls._id}
+                                className={`text-xs px-2 py-0.5 rounded-full text-white ${
+                                  cls.status === "completed" ? "bg-green-500" :
+                                  cls.status === "canceled" ? "bg-red-500" :
+                                  cls.status === "rescheduled" ? "bg-orange-500" : "bg-blue-500"
+                                }`}
+                              >
+                                {cls.status}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span className="text-xs text-gray-400 ml-3 flex-shrink-0">
+                        {slot.classes.length} session{slot.classes.length !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+        <span className="text-sm text-gray-500">
+          {selectedGroups.length} group{selectedGroups.length !== 1 ? "s" : ""} selected
+        </span>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowClassModal(false)}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleFinalAssign}
+            disabled={selectedGroups.length === 0}
+            className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Confirm & Add ({selectedGroups.length})
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }

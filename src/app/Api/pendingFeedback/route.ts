@@ -40,7 +40,7 @@ export async function GET(request) {
       User.find({
         instructorId: tutorId,
         category: "Student"
-      }).select("_id username profileImage courses attendance").lean() // ✅ Added attendance
+      }).select("_id username profileImage courses attendance classes").lean() // ✅ Added attendance
     ]);
 
     if (!tutor) {
@@ -201,10 +201,17 @@ export async function GET(request) {
         const category = course.category;
         if (!category) continue;
 
-        for (const classId of course.class) {
-          const classIdStr = classId.toString();
-          const classItem = classMap.get(classIdStr);
-          if (!classItem) continue;
+        // Build a Set of this student's class IDs for O(1) lookup
+const studentClassIdSet = new Set((student.classes || []).map(id => id.toString()));
+
+for (const classId of course.class) {
+  const classIdStr = classId.toString();
+
+  // Only process classes that are also assigned to this student
+  if (!studentClassIdSet.has(classIdStr)) continue;
+
+  const classItem = classMap.get(classIdStr);
+  if (!classItem) continue;
 
           const attendanceStatus = getAttendanceStatus(student, classIdStr);
           if (attendanceStatus !== "not_marked") continue;
