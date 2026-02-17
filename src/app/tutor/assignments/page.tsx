@@ -168,8 +168,7 @@ export default function TutorAssignments() {
           )
         );
         alert(
-          `Assignment marked as ${
-            !currentStatus ? "complete" : "incomplete"
+          `Assignment marked as ${!currentStatus ? "complete" : "incomplete"
           } successfully!`
         );
       } else {
@@ -297,8 +296,8 @@ export default function TutorAssignments() {
       statusFilter === "all"
         ? true
         : statusFilter === "pending"
-        ? !assignment.status
-        : assignment.status; // completed
+          ? !assignment.status
+          : assignment.status; // completed
 
     return matchesSearch && matchesStatus;
   });
@@ -354,62 +353,62 @@ export default function TutorAssignments() {
       <div className="assignments-list-sec">
         <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
           {/* Header */}
-            <div className="left-head d-flex align-items-center gap-2">
-              <Link href="/tutor" className='link-text back-btn'>
-                <ChevronLeft />
-              </Link>
-              <div className="heading-text-top-box">
-                 <h2 className="m-0 mb-1">Assignments</h2>
-                  
-                  {tutorInfo && (
-                    <p className="m-0 p-0">
-                      Total: {tutorInfo.totalAssignments} assignment
-                      {tutorInfo.totalAssignments !== 1 ? "s" : ""}
-                    </p>
-                  )}
-              </div>
-                {/* Status Toggle Buttons */}
-                
-              </div>
+          <div className="left-head d-flex align-items-center gap-2">
+            <Link href="/tutor" className='link-text back-btn'>
+              <ChevronLeft />
+            </Link>
+            <div className="heading-text-top-box">
+              <h2 className="m-0 mb-1">Assignments</h2>
 
-              <div className="right-form">
-                {/* Search Bar */}
-              <div className="right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap">
-                <div className="search-box position-relative"> 
-                  <Button
-                      type="button"
-                      className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute btn btn-primary"
-                    >
-                   <svg
-                      width="20"
-                      height="20"
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M17.4995 17.5L13.8828 13.8833"
-                        stroke="#505050"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <path
-                        d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
-                        stroke="#505050"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </Button>
-                  <input
-                    type="text"
-                    placeholder="assignment or student "
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-100 form-control"
-                  />
-                </div>
-                <div className="select-box">
+              {tutorInfo && (
+                <p className="m-0 p-0">
+                  Total: {tutorInfo.totalAssignments} assignment
+                  {tutorInfo.totalAssignments !== 1 ? "s" : ""}
+                </p>
+              )}
+            </div>
+            {/* Status Toggle Buttons */}
+
+          </div>
+
+          <div className="right-form">
+            {/* Search Bar */}
+            <div className="right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap">
+              <div className="search-box position-relative">
+                <Button
+                  type="button"
+                  className="btn btn-trans border-0 bg-transparent p-0 m-0 position-absolute btn btn-primary"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M17.4995 17.5L13.8828 13.8833"
+                      stroke="#505050"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
+                      stroke="#505050"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </Button>
+                <input
+                  type="text"
+                  placeholder="assignment or student "
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-100 form-control"
+                />
+              </div>
+              <div className="select-box">
                 <button
                   onClick={handleCreateAssignment}
                   className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
@@ -418,330 +417,322 @@ export default function TutorAssignments() {
                   <span>Create Assignment</span>
                 </button>
               </div>
-              </div>
-              </div>
             </div>
           </div>
-          
-        <hr className="hr-light" />
+        </div>
+      </div>
+
+      <hr className="hr-light" />
 
       <div className='h-100 position-relative practice-studio-sec p-0'>
-          <div className='tab-sec-music payment-summary-sec'>
+        <div className='tab-sec-music payment-summary-sec'>
           <div className="btn-tabs tab-sec-music">
             <ul className="mb-3 nav nav-tabs">
               <li className="nav-item">
                 <button
                   onClick={() => setStatusFilter("all")}
-                  className={`nav-link d-flex align-items-center gap-2  ${
-                    statusFilter === "all"
+                  className={`nav-link d-flex align-items-center gap-2  ${statusFilter === "all"
                       ? "active"
                       : ""
-                  }`}
+                    }`}
                 >
                   All ({assignments.length})
                 </button>
-                </li>
+              </li>
               <li className="nav-item">
                 <button
                   onClick={() => setStatusFilter("pending")}
-                  className={`nav-link d-flex align-items-center gap-2  ${
-                    statusFilter === "pending"
+                  className={`nav-link d-flex align-items-center gap-2  ${statusFilter === "pending"
                       ? "active"
                       : ""
-                  }`}
+                    }`}
                 >
                   Pending ({assignments.filter((a) => !a.status).length})
                 </button>
-                </li>
+              </li>
               <li className="nav-item">
                 <button
                   onClick={() => setStatusFilter("completed")}
-                  className={`nav-link d-flex align-items-center gap-2  ${
-                    statusFilter === "completed"
+                  className={`nav-link d-flex align-items-center gap-2  ${statusFilter === "completed"
                       ? "active"
                       : ""
-                  }`}
+                    }`}
                 >
                   Completed ({assignments.filter((a) => a.status).length})
                 </button>
-                </li>
-              </ul>
+              </li>
+            </ul>
           </div>
 
-        {/* Assignments List */}
-        <div className="new-tabs-telwind-sec">
-          {filteredAssignments.length === 0 ? (
-            <div className=" col-md-12 mb-4 p-4">
-              <FileText size={64} className="text-gray-300 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                {searchTerm ? "No Matching Assignments" : "No Assignments Yet"}
-              </h2>
-              <p className="text-gray-600 mb-6">
-                {searchTerm
-                  ? "Try adjusting your search terms"
-                  : "Create your first assignment to get started"}
-              </p>
-              {!searchTerm && (
-                <button
-                  onClick={handleCreateAssignment}
-                  className="!px-6 !py-3 !bg-purple-600 !text-white !font-medium !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2 !mx-auto"
-                >
-                  <Plus size={20} />
-                  <span>Create Your First Assignment</span>
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="row mt-4">
-              {filteredAssignments.map((assignment) => (
-                <div
-                  key={assignment._id}
-                  className=" col-md-12 mb-4"
-                > 
-                <div className="my-archieve-card">
-                  {/* Assignment Title */}
-                  <div className="top-archieve-card d-flex align-items-center gap-2 justify-content-between mb-4">
-                    <div className="left-box d-flex align-items-center gap-2 justify-content-between">
-                      {/* Checkbox for completion */}
-                      <div className="left-right-text-btn d-flex align-items-center gap-2 position-relative">
-                      <div className="checkbx">
-                          <input
-                            type="checkbox"
-                            checked={assignment.status || false}
-                            onChange={() =>
-                              handleToggleComplete(
-                                assignment._id,
-                                assignment.status || false
-                              )
-                            }
-                            disabled={updatingCompletion === assignment._id} // REMOVED: || assignment.status
-                            className={`checkbox-box ${
-                              assignment.status
-                                ? "whien-checked" // REMOVED: cursor-not-allowed
-                                : ""
-                            } ${
-                              updatingCompletion === assignment._id
-                                ? "cursor-wait"
-                                : ""
-                            }`}
-                            title={
-                              assignment.status
-                                ? "complate-check"
-                                : ""
-                            } // Changed title
-                          />
-                        <span className="checkmark"></span>
-                      </div>
-
-                      <h3
-                        className={`m-0 p-0 ${
-                          assignment.status ? " " : ""
-                        }`}
-                      >
-                        {assignment.title}
-                      </h3>
-                      </div>
-                      <div className="sub-both-box d-flex align-items-center gap-3">
-                        <span>
-                          Submitted:{" "}
-                          {
-                            assignment.assignedStudents?.filter(
-                              (s) => s.submissionStatus === "SUBMITTED"
-                            ).length
-                          }{" "}
-                          / {assignment.assignedStudents?.length}
-                        </span>
-                        <span className="text-box-sub">
-                          Completed:{" "}
-                          {
-                            assignment.assignedStudents?.filter(
-                              (s) => s.submissionStatus === "APPROVED"
-                            ).length
-                          }{" "}
-                          / {assignment.assignedStudents?.length}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="right-box d-flex align-items-center gap-2">
-                      <button
-                        onClick={() => handleEdit(assignment._id)}
-                        className="Dropdown-btn"
-                        title="Edit"
-                      >
-                        <Edit size={18} />
-                      </button>
-
-                      <button
-                        onClick={() => handleDelete(assignment._id)}
-                        className="video-btn-play"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-
-                      <Link
-                        href={`/tutor/assignments/singleAssignment?assignmentId=${assignment._id}`}
-                      >
-                        <button
-                          className="btn-evaluated d-flex align-items-center gap-2"
-                        >
-                          <Eye size={16} />
-                          <span>View Details</span>
-                        </button>
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Assignment Details Grid */}
-                  <div className="d-flex justify-content-between flex-wrap gap-2 mb-4">
-                    {/* Students */}
-                    <div className="item-card-box d-flex align-items-center gap-2">
-                      <div className="icons-text-box d-flex align-items-center gap-2">
-                        <User size={16} className="text-gray-400 flex-shrink-0" />
-                        <span className="text-sm text-gray-600 whitespace-nowrap">
-                          Student:
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        {assignment?.assignedStudents?.length > 0 ? (
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                              <span className="text-xs font-semibold text-purple-700">
-                                {assignment.assignedStudents[0].username
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </span>
+          {/* Assignments List */}
+          <div className="new-tabs-telwind-sec">
+            {filteredAssignments.length === 0 ? (
+              <div className=" col-md-12 mb-4 p-4">
+                <FileText size={64} className="text-gray-300 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">
+                  {searchTerm ? "No Matching Assignments" : "No Assignments Yet"}
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  {searchTerm
+                    ? "Try adjusting your search terms"
+                    : "Create your first assignment to get started"}
+                </p>
+                {!searchTerm && (
+                  <button
+                    onClick={handleCreateAssignment}
+                    className="!px-6 !py-3 !bg-purple-600 !text-white !font-medium !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2 !mx-auto"
+                  >
+                    <Plus size={20} />
+                    <span>Create Your First Assignment</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="row mt-4">
+                {filteredAssignments.map((assignment) => (
+                  <div
+                    key={assignment._id}
+                    className=" col-md-12 mb-4"
+                  >
+                    <div className="my-archieve-card">
+                      {/* Assignment Title */}
+                      <div className="top-archieve-card d-flex align-items-center gap-2 justify-content-between mb-4">
+                        <div className="left-box d-flex align-items-center gap-2 justify-content-between">
+                          {/* Checkbox for completion */}
+                          <div className="left-right-text-btn d-flex align-items-center gap-2 position-relative">
+                            <div className="checkbx">
+                              <input
+                                type="checkbox"
+                                checked={assignment.status || false}
+                                onChange={() =>
+                                  handleToggleComplete(
+                                    assignment._id,
+                                    assignment.status || false
+                                  )
+                                }
+                                disabled={updatingCompletion === assignment._id} // REMOVED: || assignment.status
+                                className={`checkbox-box ${assignment.status
+                                    ? "whien-checked" // REMOVED: cursor-not-allowed
+                                    : ""
+                                  } ${updatingCompletion === assignment._id
+                                    ? "cursor-wait"
+                                    : ""
+                                  }`}
+                                title={
+                                  assignment.status
+                                    ? "complate-check"
+                                    : ""
+                                } // Changed title
+                              />
+                              <span className="checkmark"></span>
                             </div>
-                            <span className="text-sm font-medium text-gray-900 truncate">
-                              {assignment.assignedStudents[0].username}
+
+                            <h3
+                              className={`m-0 p-0 ${assignment.status ? " " : ""
+                                }`}
+                            >
+                              {assignment.title}
+                            </h3>
+                          </div>
+                          <div className="sub-both-box d-flex align-items-center gap-3">
+                            <span>
+                              Submitted:{" "}
+                              {
+                                assignment.assignedStudents?.filter(
+                                  (s) => s.submissionStatus === "SUBMITTED"
+                                ).length
+                              }{" "}
+                              / {assignment.assignedStudents?.length}
                             </span>
-                            {assignment.totalAssignedStudents > 1 && (
-                              <span className="text-xs text-gray-500 whitespace-nowrap">
-                                +{assignment.totalAssignedStudents - 1}
+                            <span className="text-box-sub">
+                              Completed:{" "}
+                              {
+                                assignment.assignedStudents?.filter(
+                                  (s) => s.submissionStatus === "APPROVED"
+                                ).length
+                              }{" "}
+                              / {assignment.assignedStudents?.length}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="right-box d-flex align-items-center gap-2">
+                          <button
+                            onClick={() => handleEdit(assignment._id)}
+                            className="Dropdown-btn"
+                            title="Edit"
+                          >
+                            <Edit size={18} />
+                          </button>
+
+                          <button
+                            onClick={() => handleDelete(assignment._id)}
+                            className="video-btn-play"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+
+                          <Link
+                            href={`/tutor/assignments/singleAssignment?assignmentId=${assignment._id}`}
+                          >
+                            <button
+                              className="btn-evaluated d-flex align-items-center gap-2"
+                            >
+                              <Eye size={16} />
+                              <span>View Details</span>
+                            </button>
+                          </Link>
+                        </div>
+                      </div>
+
+                      {/* Assignment Details Grid */}
+                      <div className="d-flex justify-content-between flex-wrap gap-2 mb-4">
+                        {/* Students */}
+                        <div className="item-card-box d-flex align-items-center gap-2">
+                          <div className="icons-text-box d-flex align-items-center gap-2">
+                            <User size={16} className="text-gray-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                              Student:
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {assignment?.assignedStudents?.length > 0 ? (
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-xs font-semibold text-purple-700">
+                                    {assignment.assignedStudents[0].username
+                                      .charAt(0)
+                                      .toUpperCase()}
+                                  </span>
+                                </div>
+                                <span className="text-sm font-medium text-gray-900 truncate">
+                                  {assignment.assignedStudents[0].username}
+                                </span>
+                                {assignment.totalAssignedStudents > 1 && (
+                                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                                    +{assignment.totalAssignedStudents - 1}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="!text-sm !text-gray-400">
+                                No students
                               </span>
                             )}
                           </div>
-                        ) : (
-                          <span className="!text-sm !text-gray-400">
-                            No students
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Created Date */}
-                    <div className="item-card-box d-flex align-items-center gap-2">
-                      <div className="icons-text-box d-flex align-items-center gap-2">
-                      <Calendar
-                        size={16}
-                        className="text-gray-400 flex-shrink-0"
-                      />
-                        <span className="text-sm text-gray-600 whitespace-nowrap">
-                          Created:
-                        </span>
                         </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatDate(assignment.createdAt)}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Deadline */}
-                    <div className="item-card-box d-flex align-items-center gap-2">
-                      <div className="icons-text-box d-flex align-items-center gap-2">
-                      <Clock
-                        size={16}
-                        className="text-gray-400 flex-shrink-0"
-                      />
-                        <span className="text-sm text-gray-600 whitespace-nowrap">
-                          Deadline:
-                        </span>
+                        {/* Created Date */}
+                        <div className="item-card-box d-flex align-items-center gap-2">
+                          <div className="icons-text-box d-flex align-items-center gap-2">
+                            <Calendar
+                              size={16}
+                              className="text-gray-400 flex-shrink-0"
+                            />
+                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                              Created:
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-gray-900">
+                              {formatDate(assignment.createdAt)}
+                            </span>
+                          </div>
                         </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-sm font-semibold px-2 py-0.5 rounded-full ${getDeadlineColor(
-                            assignment.deadline
-                          )}`}
-                        >
-                          {formatDeadline(assignment.deadline)}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Course */}
-                    <div className="item-card-box d-flex align-items-center gap-2">
-                      <div className="icons-text-box d-flex align-items-center gap-2">
-                      <Music
-                        size={16}
-                        className="text-gray-400 flex-shrink-0"
-                      />
-                        <span className="text-sm text-gray-600 whitespace-nowrap">
-                          Course:
-                        </span>
+                        {/* Deadline */}
+                        <div className="item-card-box d-flex align-items-center gap-2">
+                          <div className="icons-text-box d-flex align-items-center gap-2">
+                            <Clock
+                              size={16}
+                              className="text-gray-400 flex-shrink-0"
+                            />
+                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                              Deadline:
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-sm font-semibold px-2 py-0.5 rounded-full ${getDeadlineColor(
+                                assignment.deadline
+                              )}`}
+                            >
+                              {formatDeadline(assignment.deadline)}
+                            </span>
+                          </div>
                         </div>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-sm font-medium text-gray-900 truncate">
-                          {assignment.course?.title || "No course assigned"}
-                        </span>
-                      </div>
-                    </div>
 
-                    {/* Status */}
-                    <div className="item-card-box d-flex align-items-center gap-2">
-                      <div className="icons-text-box d-flex align-items-center gap-2">
-                      <div
-                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          assignment.status ? "bg-green-500" : "bg-amber-500"
-                        }`}
-                      ></div>
-                        <span className="text-sm text-gray-600 whitespace-nowrap">
-                          Status:
-                        </span>
+                        {/* Course */}
+                        <div className="item-card-box d-flex align-items-center gap-2">
+                          <div className="icons-text-box d-flex align-items-center gap-2">
+                            <Music
+                              size={16}
+                              className="text-gray-400 flex-shrink-0"
+                            />
+                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                              Course:
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm font-medium text-gray-900 truncate">
+                              {assignment.course?.title || "No course assigned"}
+                            </span>
+                          </div>
                         </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-sm font-semibold ${
-                            assignment.status
-                              ? "text-green-600"
-                              : "text-amber-600"
-                          }`}
-                        >
-                          {assignment.status ? "Completed" : "Pending"}
-                        </span>
+
+                        {/* Status */}
+                        <div className="item-card-box d-flex align-items-center gap-2">
+                          <div className="icons-text-box d-flex align-items-center gap-2">
+                            <div
+                              className={`w-2 h-2 rounded-full flex-shrink-0 ${assignment.status ? "bg-green-500" : "bg-amber-500"
+                                }`}
+                            ></div>
+                            <span className="text-sm text-gray-600 whitespace-nowrap">
+                              Status:
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`text-sm font-semibold ${assignment.status
+                                  ? "text-green-600"
+                                  : "text-amber-600"
+                                }`}
+                            >
+                              {assignment.status ? "Completed" : "Pending"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
+
+                      {/* Description Preview */}
+                      {assignment.description && (
+                        <div className="bottom-text-desc">
+                          <p className="text-details">
+                            {assignment.description}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-                  {/* Description Preview */}
-                  {assignment.description && (
-                    <div className="bottom-text-desc">
-                      <p className="text-details">
-                        {assignment.description}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                </div>
-              ))}
-            </div>
+          {isModalOpen && (
+            <CreateAssignmentModal
+              isOpen={isModalOpen}
+              onClose={handleCloseModal}
+              onSuccess={handleAssignmentSuccess}
+              courses={coursesData}
+              classes={classesData}
+              editingAssignment={editingAssignment} // Pass the assignment to edit
+            />
           )}
         </div>
-
-      {isModalOpen && (
-        <CreateAssignmentModal
-          isOpen={isModalOpen}
-          onClose={handleCloseModal}
-          onSuccess={handleAssignmentSuccess}
-          courses={coursesData}
-          classes={classesData}
-          editingAssignment={editingAssignment} // Pass the assignment to edit
-        />
-      )}
       </div>
-</div>
     </div>
   );
 }

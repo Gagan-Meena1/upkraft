@@ -268,6 +268,7 @@ button:focus:not(:focus-visible) {
 .btn.btn-primary:focus {
   background: transparent;
   border: 1px solid var(--dark-blue) !important;
+      color: initial !important;
 }
 
 .admin-shome-box .top-text {
@@ -980,6 +981,7 @@ button:focus:not(:focus-visible) {
     border-radius: 7px;
     color: var(--dark-blue);
     height: 38px;
+    white-space: pre;
 }
 
 button[disabled] {
@@ -1225,13 +1227,13 @@ button[disabled] {
 }
 
 .checkbx .checkmark:before {
-    content: "";
+    content: "" !important;
     position: absolute;
-    display: none;
+    display: none !important;
 }
 
 .checkbx input.checkbox-box:checked ~ .checkmark:before {
-    display: block;
+    display: block !important;
 }
 
 span.checkmark:before {

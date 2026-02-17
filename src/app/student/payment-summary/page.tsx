@@ -78,11 +78,11 @@ export default function PaymentSummaryPage() {
   };
 
   return (
-    <div style={{ padding: "30px", background: "#f5f5f7", minHeight: "100vh" }}>
+    <div className="card-box">
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px" }}>
         <div>
-          <h1 style={{ fontSize: "32px", color: "#1a1a1a", margin: 0 }}>Payment Summary</h1>
+          <h3>Payment Summary</h3>
           <p style={{ color: "#666", marginTop: "5px", margin: 0 }}>View your payment transactions</p>
         </div>
       </div>
@@ -152,29 +152,16 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
   return (
     <div>
       {/* Filter Section */}
-      <div
-        style={{
-          background: "white",
-          padding: "20px",
-          borderRadius: "12px",
-          marginBottom: "25px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-        }}
-      >
-        <div style={{ display: "flex", gap: "15px", alignItems: "center", flexWrap: "wrap" }}>
+      <div className="mb-3" >
+        <div className="d-flex flex-lg-nowrap flex-wrap gap-2">
           <div style={{ flex: "1", minWidth: "300px", position: "relative" }}>
             <input
               type="text"
               placeholder="Search transactions by tutor, course, or transaction ID..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "12px 40px 12px 16px",
-                border: "2px solid #e0e0e0",
-                borderRadius: "8px",
-                fontSize: "14px",
-              }}
+             
+             className="form-control w-100 pe-5"
             />
             <span style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", color: "#999" }}>
               🔍
@@ -184,15 +171,8 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              padding: "12px 16px",
-              border: "2px solid #e0e0e0",
-              borderRadius: "8px",
-              fontSize: "14px",
-              background: "white",
-              cursor: "pointer",
-              minWidth: "150px",
-            }}
+            
+             className="form-control w-100"
           >
             <option value="all">All Status</option>
             <option value="paid">Paid</option>
@@ -203,15 +183,8 @@ const RevenueTable: React.FC<RevenueTableProps> = ({
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            style={{
-              padding: "12px 16px",
-              border: "2px solid #e0e0e0",
-              borderRadius: "8px",
-              fontSize: "14px",
-              background: "white",
-              cursor: "pointer",
-              minWidth: "150px",
-            }}
+            
+             className="form-control w-100"
           >
             <option value="recent">Sort by: Recent</option>
             <option value="amount">Sort by: Amount</option>

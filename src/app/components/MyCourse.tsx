@@ -301,6 +301,7 @@ const MyCourse = ({ data, academyId, category, currentPage, setCurrentPage, tota
       setDeletingCourseId(null);
     }
   };
+  
   return (
     <div className="card-box">
       {category == "Tutor" && <Link

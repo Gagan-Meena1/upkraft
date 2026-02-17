@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Book, Clock, IndianRupee, List, ArrowLeft } from "lucide-react";
+import { Book, Clock, IndianRupee, List, ArrowLeft, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 import CourseCard from "@/app/components/courseCard";
@@ -111,8 +111,15 @@ export default function TutorCoursesPage() {
   }
 
   const coursesContent = (
-    <>
-    <Link
+    <> <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
+              <div className="left-head d-flex align-items-center gap-2">
+                <Link  href="/student" className='link-text back-btn'>
+                  <ChevronLeft />
+                </Link>
+                <h2 className="m-0">My Courses</h2>
+              </div>
+            </div>
+    {/* <Link
             className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
             href="/student"
           >
@@ -121,7 +128,7 @@ export default function TutorCoursesPage() {
           </Link>
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-purple-600 !text-[20px]">My Courses</h1>
-      </div>
+      </div> */}
 
       <Toaster />
 
@@ -146,8 +153,8 @@ export default function TutorCoursesPage() {
 
   return (
     <DashboardLayout userData={userData} userType="student">
-      <div className="p-0 bg-gray-50 min-h-screen">
-        <div className="max-w-6xl mx-auto">{coursesContent}</div>
+      <div className="card-box">
+        <div className="">{coursesContent}</div>
       </div>
     </DashboardLayout>
   );

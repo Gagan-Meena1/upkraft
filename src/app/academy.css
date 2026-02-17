@@ -273,6 +273,7 @@ button:focus:not(:focus-visible) {
 .btn.btn-primary:focus {
     background: transparent;
     border: 1px solid var(--dark-blue) !important;
+        color: initial !important;
 }
 
 .admin-shome-box .top-text {

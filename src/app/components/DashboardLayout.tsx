@@ -142,7 +142,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div>
       </header> */}
       
-      <div className="flex min-h-[calc(100vh-64px)]">
+      <div className="">
         {/* Sidebar */}
         {userType=="admin" && (
            <div 
@@ -200,7 +200,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div> */}
         
         {/* Main Content */}
-        <main className="flex-1 p-3 md:p-4 lg:p-6 overflow-x-hidden">
+        <main className="">
           <div className="max-w-full">
             {children}
           </div>

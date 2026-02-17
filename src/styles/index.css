@@ -169,6 +169,7 @@ form textarea,
 .btn.btn-primary:focus {
   background: transparent;
   border: 1px solid var(--dark-blue) !important;
+      color: initial !important;
 }
 
 .btn.btn-primary span {

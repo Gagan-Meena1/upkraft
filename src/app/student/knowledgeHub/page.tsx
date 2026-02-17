@@ -281,20 +281,20 @@ const YouTubeVideoGallery: React.FC = () => {
                         <ArrowLeft size={20} />
                         Back to Dashboard
                       </Link>
-        <header className="bg-white border-b border-gray-200 p-4 sm:p-6 sticky top-0 z-10 flex items-center justify-between">
+        <header className="bg-white border-b border-gray-200 p-md-3 p-2 sticky flex-wrap top-0 z-10 flex items-center justify-between">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 !text-[20px]">Video Gallery</h1>
 
 
           {isMobile && (
             <button 
               onClick={toggleSidebar}
-              className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
+              className="p-2 rounded-lg hover:bg-gray-100 hidden"
             >
               <Menu size={24} />
             </button>
           )}
           
-            <Link href="/student/performanceVideo" className="inline-flex items-center px-4 py-2 !bg-purple-700 !hover:bg-purple-700 text-white text-sm sm:text-lg rounded-md shadow-sm !text-[20px]"
+            <Link href="/student/performanceVideo" className="btn-primary btn"
           >
               Class Snapshots
             </Link>
@@ -303,8 +303,8 @@ const YouTubeVideoGallery: React.FC = () => {
 
         </header>
 
-        <main className="p-4 sm:p-6">
-          <div className="bg-white rounded-xl shadow-sm p-6">
+        <main className="">
+          <div className="bg-white shadow-sm p-3">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <Video size={24} className="text-red-600" />

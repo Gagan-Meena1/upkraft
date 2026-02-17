@@ -392,7 +392,7 @@ const UserProfilePage: React.FC = () => {
 
   return (
     <DashboardLayout userData={user || undefined} userType="student">
-      <div className="w-full bg-gray-50">
+      <div className="card-box">
          <Link
             className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
             href="/student"

@@ -666,12 +666,12 @@ const MusicLibraryPage = () => {
        {/* Main Content */}
        <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
          {/* Header */}
-         <header className="bg-white border-b border-gray-200 p-4 sm:p-6 flex items-center justify-between flex-shrink-0">
+         <header className="bg-white border-b border-gray-200 p-md-4 mb-4 p-3 d-flex items-center flex-wrap justify-between flex-shrink-0">
            <div className="flex items-center space-x-4">
              {isMobile && (
                <button
                  onClick={toggleSidebar}
-                 className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
+                 className="p-2 rounded-lg hover:bg-gray-100 hidden"
                >
                  <Menu size={24} />
                </button>
@@ -682,7 +682,7 @@ const MusicLibraryPage = () => {
              >
                <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
              </Link>
-             <div>
+             <div >
                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
                  Music Library
                </h1>
@@ -691,7 +691,7 @@ const MusicLibraryPage = () => {
                </p>
              </div>
            </div>
-           <div className="flex gap-3 items-center">
+           <div className="flex gap-3 items-center mt-md-0 mt-2">
             {/* View buttons: Songs / Trinity */}
             <div className="inline-flex rounded-lg bg-gray-100 p-1">
               <button
@@ -728,7 +728,7 @@ const MusicLibraryPage = () => {
          </header>
 
          {/* Page Content */}
-         <main className="flex-1 p-4 sm:p-6 overflow-auto bg-gray-50">
+         <main className="flex-1 ">
           {activeView === "songs" && <MusicLibraryTable isTrinity={false}/>}
 
           {activeView === "trinity" && <MusicLibraryTable isTrinity={true} />}
