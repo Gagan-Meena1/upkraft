@@ -91,7 +91,7 @@ const CATEGORY_FIELDS: Record<string, Array<{ key: string; label: string }>> = {
 const buildDefaults = (category?: string) => {
   const fields = CATEGORY_FIELDS[category || "Music"] || CATEGORY_FIELDS["Music"];
   const values: Record<string, number | string> = { personalFeedback: "" };
-  fields.forEach(f => (values[f.key] = 5));
+  fields.forEach(f => (values[f.key] = 0));
   return values;
 };
 
@@ -133,6 +133,7 @@ const FeedbackPendingDetails = () => {
 
   // Replace fixed shape with dynamic map per category
   const [feedbackData, setFeedbackData] = useState<Record<string, number | string>>(buildDefaults("Music"));
+  const [naFields, setNaFields] = useState<Record<string, boolean>>({}); // <-- NEW
 
   // Derived category helpers for header badge and dynamic fields
   const currentCategory =
@@ -395,6 +396,7 @@ useEffect(() => {
     const category = currentClass?.courseCategory || "Music";
     setFeedbackData(buildDefaults(category));
     setAttendanceStatus('present');
+    setNaFields({}); // <-- NEW: reset NA on class change
   }, [selectedFeedback]);
 
   const handleSelectStudent = (feedback: PendingFeedback) => {
@@ -409,6 +411,7 @@ useEffect(() => {
   };
 
   const handleSliderChange = (key: string, value: number) => {
+    setNaFields(prev => ({ ...prev, [key]: false }));   // <-- NEW: moving slider clears NA
     setFeedbackData(prev => ({ ...prev, [key]: value }));
   };
 
@@ -416,6 +419,10 @@ useEffect(() => {
     setFeedbackData(prev => ({ ...prev, personalFeedback: value }));
   };
 
+  const handleNaToggle = (key: string, checked: boolean) => {
+    setNaFields(prev => ({ ...prev, [key]: checked }));
+  };
+  
   const formatClassDate = (dateStr?: string) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -445,11 +452,15 @@ useEffect(() => {
         courseId,
         classId,
         personalFeedback: String(feedbackData.personalFeedback || ""),
+        naFields: fields.filter(f => naFields[f.key]).map(f => f.key), // <-- NEW
       };
       fields.forEach(f => {
         const v = feedbackData[f.key];
-        // Coerce number fields to string/number (API can accept either as models use String)
-        payload[f.key] = typeof v === "number" ? v : Number(v) || 5;
+        if (naFields[f.key]) {
+          payload[f.key] = null; // mark as NA
+        } else {
+          payload[f.key] = typeof v === "number" ? v : Number(v) || 0;
+        }
       });
 
       const response = await fetch(
@@ -955,9 +966,11 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                       <div className="card-box mb-3" key={field.key}>
                         <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
                           <h6 className="mb-0">{field.label}</h6>
-                          <div className="right-text-box red-text">
-                            <span className='main-text'>{Number(feedbackData[field.key] ?? 5)}</span>
-                            <span className="text-muted">/10</span>
+                          <div className="right-text-box red-text d-flex align-items-center gap-2">
+                            <span className='main-text'>
+                              {naFields[field.key] ? "NA" : Number(feedbackData[field.key] ?? 0)}
+                            </span>
+                            {!naFields[field.key] && <span className="text-muted">/10</span>}
                           </div>
                         </div>
                         <div className="progress-slider-container">
@@ -965,10 +978,23 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                             type="range"
                             min="1"
                             max="10"
-                            value={Number(feedbackData[field.key] ?? 5)}
+                            value={Number(feedbackData[field.key] ?? 0)}
+                            disabled={!!naFields[field.key]} // <-- NEW
                             onChange={(e) => handleSliderChange(field.key, parseInt(e.target.value))}
                             className="form-range mb-2"
                           />
+                          <div className="form-check form-check-inline mt-1">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id={`${field.key}-na-left`}
+                              checked={!!naFields[field.key]}
+                              onChange={(e) => handleNaToggle(field.key, e.target.checked)}
+                            />
+                            <label className="form-check-label small" htmlFor={`${field.key}-na-left`}>
+                              NA
+                            </label>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -981,9 +1007,11 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                       <div className="card-box mb-3" key={field.key}>
                         <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
                           <h6 className="mb-0">{field.label}</h6>
-                          <div className="right-text-box red-text">
-                            <span className='main-text'>{Number(feedbackData[field.key] ?? 5)}</span>
-                            <span className="text-muted">/10</span>
+                          <div className="right-text-box red-text d-flex align-items-center gap-2">
+                            <span className='main-text'>
+                              {naFields[field.key] ? "NA" : Number(feedbackData[field.key] ?? 0)}
+                            </span>
+                            {!naFields[field.key] && <span className="text-muted">/10</span>}
                           </div>
                         </div>
                         <div className="progress-slider-container">
@@ -991,10 +1019,23 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                             type="range"
                             min="1"
                             max="10"
-                            value={Number(feedbackData[field.key] ?? 5)}
+                            value={Number(feedbackData[field.key] ?? 0)}
+                            disabled={!!naFields[field.key]} // <-- NEW
                             onChange={(e) => handleSliderChange(field.key, parseInt(e.target.value))}
                             className="form-range mb-2"
                           />
+                          <div className="form-check form-check-inline mt-1">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id={`${field.key}-na-right`}
+                              checked={!!naFields[field.key]}
+                              onChange={(e) => handleNaToggle(field.key, e.target.checked)}
+                            />
+                            <label className="form-check-label small" htmlFor={`${field.key}-na-right`}>
+                              NA
+                            </label>
+                          </div>
                         </div>
                       </div>
                     ))}

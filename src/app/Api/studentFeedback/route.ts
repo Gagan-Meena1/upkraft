@@ -40,10 +40,10 @@ export async function POST(request: NextRequest) {
         earTraining,
         assignment,
         technique,
-        personalFeedback
+        personalFeedback,
+        naFields = [],
+        attendanceStatus,
       } = data;
-
-      const {attendanceStatus} = data;
 
       const user= await User.findById(studentId);
      // Check if attendance record exists for this class
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
     if (attendanceIndex !== -1) {
       // Update existing attendance record
-      user.attendance[attendanceIndex].status = status;
+      user.attendance[attendanceIndex].status = attendanceStatus;
     } else {
       // Create new attendance record
       user.attendance.push({
@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
         earTraining: Number(earTraining),
         assignment: Number(assignment),
         technique: Number(technique),
-        personalFeedback
+        personalFeedback,
+        naFields
       };
              
       const newFeedback = await feedback.create(feedbackData);
@@ -112,69 +113,81 @@ export async function POST(request: NextRequest) {
         classId: { $in: classIds }
       });
 
+      const MUSIC_METRIC_KEYS = [
+  "rhythm",
+  "theoreticalUnderstanding",
+  "performance",
+  "earTraining",
+  "assignment",
+  "technique",
+] as const;
     // Step 4: Calculate average score
       if (studentFeedbacks.length > 0) {
-        const totalScores = studentFeedbacks.reduce((acc, fb) => {
-          // Convert string values to numbers, defaulting to 0 if invalid
-          const rhythmScore = Number(fb.rhythm) || 0;
-          const theoreticalScore = Number(fb.theoreticalUnderstanding) || 0;
-          const performanceScore = Number(fb.performance) || 0;
-          const earTrainingScore = Number(fb.earTraining) || 0;
-          const assignmentScore = Number(fb.assignment) || 0;
-          const techniqueScore = Number(fb.technique) || 0;
-          
-          return acc + 
-            rhythmScore + 
-            theoreticalScore + 
-            performanceScore + 
-            earTrainingScore + 
-            assignmentScore + 
-            techniqueScore;
-        }, 0);
+        // Average for THIS submission, excluding NA fields
+        const usedKeys = MUSIC_METRIC_KEYS.filter(key => !naFields.includes(key));
+        let currentSum = 0;
+        let currentCount = 0;
+        usedKeys.forEach((key) => {
+          const v = Number((data as any)[key]);
+          if (!isNaN(v)) {
+            currentSum += v;
+            currentCount++;
+          }
+        });
+        const avgScore = currentCount > 0 ? currentSum / currentCount : 0;
 
-        const avgScore = (rhythm+
-        theoreticalUnderstanding+
-        performance+
-        earTraining+
-        assignment+
-        technique)/6;
-        // Average across all metrics and all feedbacks
-        const averageScore = totalScores / (studentFeedbacks.length * 6);
+        // Step 4: Calculate average score (course‑level), excluding NA fields
+        let totalScores = 0;
+        let totalMetricCount = 0;
 
-         // Send notification email to the student
-      try {
-        const studentUser = await User.findById(studentId).select('email username').lean();
-        if (studentUser && studentUser.email) {
-          await sendEmail({
-            email: studentUser.email,
-            emailType: "FEEDBACK_RECEIVED",
-            username: studentUser.username,
-            courseName: (await courseName.findById(courseId).select('title'))?.title || undefined,
-            className: updatedClass.title,
-            personalFeedback: personalFeedback,
-            averageScore: avgScore.toFixed(1),
-            classId:classId,
-            userId:studentId,
-            feedbackCategory: 'Music',
-            classDate: updatedClass.startTime ? new Date(updatedClass.startTime).toLocaleDateString('en-IN', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            }) : undefined,
-            feedbackDetails: {
-              rhythm: Number(rhythm),
-              theoreticalUnderstanding: Number(theoreticalUnderstanding),
-              performance: Number(performance),
-              earTraining: Number(earTraining),
-              assignment: Number(assignment),
-              technique: Number(technique)
+        studentFeedbacks.forEach((fb: any) => {
+          const fbNa = new Set<string>(fb.naFields || []);
+          MUSIC_METRIC_KEYS.forEach((key) => {
+            if (fbNa.has(key)) return;
+            const v = Number(fb[key]);
+            if (!isNaN(v)) {
+              totalScores += v;
+              totalMetricCount++;
             }
           });
+        });
+
+        const averageScore = totalMetricCount > 0 ? totalScores / totalMetricCount : 0;
+
+        // Send notification email to the student
+        try {
+          const studentUser = await User.findById(studentId).select('email username').lean();
+          if (studentUser && studentUser.email) {
+            await sendEmail({
+              email: studentUser.email,
+              emailType: "FEEDBACK_RECEIVED",
+              username: studentUser.username,
+              courseName: (await courseName.findById(courseId).select('title'))?.title || undefined,
+              className: updatedClass.title,
+              personalFeedback: personalFeedback,
+              averageScore: avgScore.toFixed(1),
+              classId:classId,
+              userId:studentId,
+              feedbackCategory: 'Music',
+              classDate: updatedClass.startTime ? new Date(updatedClass.startTime).toLocaleDateString('en-IN', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              }) : undefined,
+              feedbackDetails: {
+                rhythm: Number(rhythm),
+                theoreticalUnderstanding: Number(theoreticalUnderstanding),
+                performance: Number(performance),
+                earTraining: Number(earTraining),
+                assignment: Number(assignment),
+                technique: Number(technique)
+              }
+            });
+          }
+        } catch (mailErr) {
+          console.error('[studentFeedback] Error sending feedback email:', mailErr);
         }
-      } catch (mailErr) {
-        console.error('[studentFeedback] Error sending feedback email:', mailErr);
-      }
       
         // Step 5: Update or add the performance score in the course
         const existingScoreIndex = course.performanceScores.findIndex(
