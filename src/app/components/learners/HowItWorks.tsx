@@ -7,8 +7,8 @@ import Howitwork03 from '@/assets/how-it-work-03.png'
 import tutt from '@/assets/tutor.jpeg'
 import dash from '@/assets/dash.png'
 import fin from '@/assets/fin.jpeg'
-import vo from '@/assets/vo.jpeg'
-import dancee from '@/assets/dancee.jpeg'
+import don from '@/assets/don.jpeg'
+import dancc from '@/assets/dancc.jpeg'
 const HowItWorks = () => {
   return (
     <div className='how-it-work'>
@@ -21,7 +21,7 @@ const HowItWorks = () => {
                     <div className='row'>
                         <div className='col-md-4'>
                             <div className='img-box'>
-                                <img src={dancee.src} alt="" />
+                                <img src={dancc.src} alt="" />
                             </div>
                              <div className='text-how-h'>
                                 <h6>Right Instructor. Right at Home.
@@ -43,7 +43,7 @@ const HowItWorks = () => {
                         </div>
                         <div className='col-md-4'>
                             <div className='img-box'>
-                                <img src={fin.src} alt="" />
+                                <img src={don.src} alt="" />
                             </div>
                             <div className='text-how-h'>
                                 <h6>Learn. Track. Progress.
