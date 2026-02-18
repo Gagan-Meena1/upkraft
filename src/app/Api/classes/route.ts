@@ -381,7 +381,10 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching classes data...");
 
-    const token = request.cookies.get("token")?.value;
+    const cookieToken = request.cookies.get("token")?.value || "";
+    const authHeader = request.headers.get("Authorization") || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const token = cookieToken || bearerToken;
     const decodedToken = token ? jwt.decode(token) : null;
     let instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -469,11 +472,34 @@ export async function GET(request: NextRequest) {
     }
 
 
+    // Reverse-lookup: find students enrolled in any of these classes
+    const classIds = filteredClasses.map((c: any) => c._id);
+    const enrolledStudents = await User.find(
+      { classes: { $in: classIds }, category: "Student" },
+      "_id username email address city classes"
+    ).lean();
+
+    // Attach students array to each class (no schema change needed)
+    const classDataWithStudents = filteredClasses.map((c: any) => ({
+      ...c,
+      students: enrolledStudents
+        .filter((s: any) =>
+          s.classes.some((cId: any) => cId.toString() === c._id.toString())
+        )
+        .map((s: any) => ({
+          _id: s._id,
+          username: s.username,
+          email: s.email,
+          address: s.address ?? "",
+          city: s.city ?? "",
+        })),
+    }));
+
     return NextResponse.json(
       {
         message: "Classes fetched successfully",
-        classData: filteredClasses,
-        totalClasses: filteredClasses.length,
+        classData: classDataWithStudents,
+        totalClasses: classDataWithStudents.length,
       },
       { status: 200 }
     );

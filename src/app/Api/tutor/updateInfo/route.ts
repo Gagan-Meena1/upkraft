@@ -7,8 +7,11 @@ export async function PUT(request: NextRequest) {
   try {
     await connect();
 
-    // Get token from cookies
-    const token = request.cookies.get("token")?.value;
+    // Get token from cookies or Authorization header (Bearer)
+    const cookieToken = request.cookies.get("token")?.value || "";
+    const authHeader = request.headers.get("Authorization") || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const token = cookieToken || bearerToken;
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
     }

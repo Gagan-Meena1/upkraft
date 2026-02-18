@@ -296,7 +296,10 @@ export async function GET(request) {
     let tutorId = searchParams.get("tutorId");
 
     if (!tutorId) {
-      const token = request.cookies.get("token")?.value;
+      const cookieToken = request.cookies.get("token")?.value || "";
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+      const token = cookieToken || bearerToken;
       if (!token) return NextResponse.json({ error: "No token" }, { status: 401 });
 
       const decodedToken = jwt.decode(token);
