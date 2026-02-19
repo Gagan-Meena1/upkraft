@@ -106,7 +106,7 @@ export async function GET(
           classes: new mongoose.Types.ObjectId(classId),
           category: { $in: ["Student", "student"] },
         })
-          .select("_id username email")
+          .select("_id username email address")
           .lean();
 
         const course = cls.course as any;
@@ -126,6 +126,7 @@ export async function GET(
             _id: s._id,
             username: s.username,
             email: s.email,
+            address: s.address,
           })),
         };
       })
