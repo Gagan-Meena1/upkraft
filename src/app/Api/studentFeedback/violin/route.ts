@@ -12,194 +12,143 @@ import {sendEmail} from '@/helper/mailer';
 await connect();
 
 export async function POST(request: NextRequest) {
-    try {
-      const url = new URL(request.url);
-      const classId = url.searchParams.get("classId");
-      const courseId = url.searchParams.get("courseId");
-      const studentId = url.searchParams.get("studentId");
-             
-      // Validate IDs
-      if (!classId || !courseId || !studentId) {
-        return NextResponse.json({
-           success: false,
-           error: 'Missing required parameters'
-         }, { status: 400 });
-      }
-             
-      // Get token and instructor ID
-      const token = request.cookies.get("token")?.value;
-      const decodedToken = token ? jwt.decode(token) : null;
-      const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-             
-      // Parse JSON body instead of FormData
-      const data = await request.json();
-             
-      // Extract fields from JSON
-      const {
-        postureAndInstrumentHold,
-        bowingTechnique,
-        intonationAndPitchAccuracy,
-        toneQualityAndSoundProduction,
-        rhythmMusicalityAndExpression,
-        progressAndPracticeHabits,
-        personalFeedback
-      } = data;
+  try {
+    const url = new URL(request.url);
+    const classId = url.searchParams.get("classId");
+    const courseId = url.searchParams.get("courseId");
+    const studentId = url.searchParams.get("studentId");
 
-      const {attendanceStatus} = data;
+    if (!classId || !courseId || !studentId) {
+      return NextResponse.json({ success: false, error: "Missing required parameters" }, { status: 400 });
+    }
 
-      const user= await User.findById(studentId);
-     // Check if attendance record exists for this class
-    const attendanceIndex = user.attendance.findIndex(
-      (att) => att.classId.toString() === classId
-    );
+    const token = request.cookies.get("token")?.value;
+    const decodedToken = token ? jwt.decode(token) : null;
+    const instructorId = decodedToken && typeof decodedToken === "object" && "id" in decodedToken ? decodedToken.id : null;
 
+    const data = await request.json();
+
+    const {
+      postureAndInstrumentHold,
+      bowingTechnique,
+      intonationAndPitchAccuracy,
+      toneQualityAndSoundProduction,
+      rhythmMusicalityAndExpression,
+      progressAndPracticeHabits,
+      personalFeedback,
+      naFields = [],
+      attendanceStatus,
+    } = data;
+
+    const user = await User.findById(studentId);
+    if (!user) {
+      return NextResponse.json({ success: false, message: "Student not found" }, { status: 404 });
+    }
+
+    const attendanceIndex = user.attendance.findIndex((att) => att.classId.toString() === classId);
     if (attendanceIndex !== -1) {
-      // Update existing attendance record
-      user.attendance[attendanceIndex].status = status;
+      user.attendance[attendanceIndex].status = attendanceStatus;
     } else {
-      // Create new attendance record
-      user.attendance.push({
-        classId: classId,
-        status: attendanceStatus
-      });
+      user.attendance.push({ classId: classId, status: attendanceStatus });
     }
-
-    // Save the updated user
     await user.save();
-             
-      // Create feedback document
-      const feedbackData = {
-        userId: studentId,
-        classId: classId,
-        postureAndInstrumentHold: Number(postureAndInstrumentHold),
-        bowingTechnique: Number(bowingTechnique),
-        intonationAndPitchAccuracy: Number(intonationAndPitchAccuracy),
-        toneQualityAndSoundProduction: Number(toneQualityAndSoundProduction),
-        rhythmMusicalityAndExpression: Number(rhythmMusicalityAndExpression),
-        progressAndPracticeHabits: Number(progressAndPracticeHabits),
-        personalFeedback
-      };
-             
-      const newFeedback = await feedbackViolin.create(feedbackData);
-      
-      // Update the Class document with the feedback ID
-      const updatedClass = await Class.findByIdAndUpdate(
-        classId,
-        { feedbackId: newFeedback._id },
-        { new: true } // Return the updated document
-      );
 
-      if (!updatedClass) {
-        return NextResponse.json({
-          success: false,
-          message: 'Class not found'
-        }, { status: 404 });
-      }
-              // Step 1: Get all classes for this course
-      const course = await courseName.findById(courseId).populate('class');
-      
-      if (!course) {
-        return NextResponse.json({
-          success: false,
-          message: 'Course not found'
-        }, { status: 404 });
-      }
+    const KEYS = [
+      "postureAndInstrumentHold",
+      "bowingTechnique",
+      "intonationAndPitchAccuracy",
+      "toneQualityAndSoundProduction",
+      "rhythmMusicalityAndExpression",
+      "progressAndPracticeHabits",
+    ];
 
-      // Step 2: Get all class IDs for this course
-      const classIds = course.class.map((cls: any) => cls._id);
+    const feedbackPayload: any = {
+      userId: studentId,
+      classId,
+      personalFeedback,
+      naFields
+    };
+    KEYS.forEach((k) => {
+      feedbackPayload[k] = naFields.includes(k) ? null : Number((data as any)[k]) || 0;
+    });
 
-      // Step 3: Get all feedbacks for this student across all classes in this course
-      const studentFeedbacks = await feedbackViolin.find({
-        userId: studentId,
-        classId: { $in: classIds }
-      });
+    const newFeedback = await feedbackViolin.create(feedbackPayload);
 
-    // Step 4: Calculate average score
-      if (studentFeedbacks.length > 0) {
-        const totalScores = studentFeedbacks.reduce((acc, fb) => {
-          // Convert string values to numbers, defaulting to 0 if invalid
-          const postureAndInstrumentHoldScore = Number(fb.postureAndInstrumentHold) || 0;
-          const bowingTechniqueScore = Number(fb.bowingTechnique) || 0;
-          const intonationAndPitchAccuracyScore = Number(fb.intonationAndPitchAccuracy) || 0;
-          const toneQualityAndSoundProductionScore = Number(fb.toneQualityAndSoundProduction) || 0;
-          const rhythmMusicalityAndExpressionScore = Number(fb.rhythmMusicalityAndExpression) || 0;
-          const progressAndPracticeHabitsScore = Number(fb.progressAndPracticeHabits) || 0;
-          
-          return acc + 
-            postureAndInstrumentHoldScore + 
-            bowingTechniqueScore + 
-            intonationAndPitchAccuracyScore + 
-            toneQualityAndSoundProductionScore + 
-            rhythmMusicalityAndExpressionScore + 
-            progressAndPracticeHabitsScore;
-        }, 0);
-
-        const avgScore = ( postureAndInstrumentHold+
-        bowingTechnique+
-        intonationAndPitchAccuracy+
-        toneQualityAndSoundProduction+
-        rhythmMusicalityAndExpression+
-        progressAndPracticeHabits
-        )/6;
-        // Average across all metrics and all feedbacks
-        const averageScore = totalScores / (studentFeedbacks.length * 6);
-
-        try {
-        const studentUser = await User.findById(studentId).select('email username').lean();
-        if (studentUser && studentUser.email) {
-          await sendEmail({
-            email: studentUser.email,
-            emailType: "FEEDBACK_RECEIVED",
-            username: studentUser.username,
-            courseName: (await courseName.findById(courseId).select('title'))?.title || undefined,
-            className: updatedClass.title,
-            personalFeedback: personalFeedback,
-            averageScore: avgScore.toFixed(1),
-            classId:classId,
-            userId:studentId,
-            feedbackCategory: 'Violin'
-          });
-        }
-      } catch (mailErr) {
-        console.error('[studentFeedback] Error sending feedback email:', mailErr);
-      }
-        // Step 5: Update or add the performance score in the course
-        const existingScoreIndex = course.performanceScores.findIndex(
-          (score: any) => score.userId.toString() === studentId.toString()
-        );
-
-        if (existingScoreIndex !== -1) {
-          // Update existing score
-          course.performanceScores[existingScoreIndex].score = averageScore;
-          course.performanceScores[existingScoreIndex].date = new Date();
-        } else {
-          // Add new score
-          course.performanceScores.push({
-            userId: studentId,
-            score: averageScore,
-            date: new Date()
-          });
-        }
-
-        await course.save();
-      }
-      return NextResponse.json({
-        success: true,
-        message: 'Violin Feedback submitted successfully and class updated',
-        data: {
-          feedback: newFeedback,
-          updatedClass: updatedClass
-        }
-      }, { status: 201 });
-           
-    } catch (error: any) {
-      console.error('Error submitting Violin feedback:', error);
-      return NextResponse.json({
-        success: false,
-        message: error.message || 'Failed to submit Violin feedback',
-        error: error.stack
-      }, { status: 500 });
+    const updatedClass = await Class.findByIdAndUpdate(classId, { feedbackId: newFeedback._id }, { new: true });
+    if (!updatedClass) {
+      return NextResponse.json({ success: false, message: "Class not found" }, { status: 404 });
     }
+
+    const course = await courseName.findById(courseId).populate("class");
+    if (!course) {
+      return NextResponse.json({ success: false, message: "Course not found" }, { status: 404 });
+    }
+    const classIds = course.class.map((cls: any) => cls._id);
+
+    const studentFeedbacks = await feedbackViolin.find({ userId: studentId, classId: { $in: classIds } });
+
+    const usedKeys = KEYS.filter(k => !naFields.includes(k));
+    let currentSum = 0, currentCount = 0;
+    usedKeys.forEach(k => {
+      const v = Number((data as any)[k]);
+      if (!isNaN(v)) { currentSum += v; currentCount++; }
+    });
+    const avgScore = currentCount > 0 ? currentSum / currentCount : 0;
+
+    let totalScores = 0, totalMetricCount = 0;
+    studentFeedbacks.forEach((fb: any) => {
+      const fbNa = new Set<string>(fb.naFields || []);
+      KEYS.forEach((k) => {
+        if (fbNa.has(k)) return;
+        const v = Number(fb[k]);
+        if (!isNaN(v)) { totalScores += v; totalMetricCount++; }
+      });
+    });
+    const averageScore = totalMetricCount > 0 ? totalScores / totalMetricCount : 0;
+
+    try {
+      const studentUser = await User.findById(studentId).select("email username").lean();
+      if (studentUser && studentUser.email) {
+        const feedbackDetails: Record<string, number | null> = {};
+        KEYS.forEach(k => {
+          feedbackDetails[k] = naFields.includes(k) ? null : (Number((data as any)[k]) || 0);
+        });
+
+        await sendEmail({
+          email: studentUser.email,
+          emailType: "FEEDBACK_RECEIVED",
+          username: studentUser.username,
+          courseName: (await courseName.findById(courseId).select("title"))?.title || undefined,
+          className: updatedClass.title,
+          personalFeedback,
+          averageScore: avgScore.toFixed(1),
+          classId,
+          userId: studentId,
+          feedbackCategory: 'Violin',
+          classDate: updatedClass.startTime ? new Date(updatedClass.startTime).toLocaleDateString('en-IN') : undefined,
+          feedbackDetails
+        });
+      }
+    } catch (mailErr) {
+      console.error('[studentFeedback/violin] Error sending feedback email:', mailErr);
+    }
+
+    if (course.performanceScores && Array.isArray(course.performanceScores)) {
+      const idx = course.performanceScores.findIndex((s: any) => s.userId.toString() === studentId.toString());
+      if (idx !== -1) {
+        course.performanceScores[idx].score = averageScore;
+        course.performanceScores[idx].date = new Date();
+      } else {
+        course.performanceScores.push({ userId: studentId, score: averageScore, date: new Date() });
+      }
+      await course.save();
+    }
+
+    return NextResponse.json({ success: true, message: "Violin feedback submitted", data: { feedback: newFeedback, updatedClass } }, { status: 201 });
+  } catch (error: any) {
+    console.error("Error submitting Violin feedback:", error);
+    return NextResponse.json({ success: false, message: error.message || "Failed to submit Violin feedback" }, { status: 500 });
+  }
 }
 export async function GET(request: NextRequest) {
     try {

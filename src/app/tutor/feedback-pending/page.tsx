@@ -10,7 +10,7 @@ import { useRef } from 'react';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
 import { Upload,Video, StopCircle, Play, X, Check } from 'lucide-react';
-
+import { buildDefaults } from '../../../lib/feedbackDefaults'; 
 
 interface Student {
   _id: string;
@@ -89,9 +89,9 @@ const CATEGORY_FIELDS: Record<string, Array<{ key: string; label: string }>> = {
 
 // Default values (1-10 scale) for a category
 const buildDefaults = (category?: string) => {
-  const fields = CATEGORY_FIELDS[category || "Music"] || CATEGORY_FIELDS["Music"];
+  const fields = CATEGORY_FIELDS[category || "Music" || "Vocal" || "Drawing" || "Drums" || "Violin"] || CATEGORY_FIELDS["Music" || "Vocal" || "Drawing" || "Drums" || "Violin"];
   const values: Record<string, number | string> = { personalFeedback: "" };
-  fields.forEach(f => (values[f.key] = 0));
+  fields.forEach(f => (values[f.key] = 5));
   return values;
 };
 

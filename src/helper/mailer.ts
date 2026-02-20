@@ -412,7 +412,7 @@ else if (emailType === "CLASS_CANCELLED") {
 else if (emailType === "FEEDBACK_RECEIVED") {
   mailOptions = {
     from: fromAddress,
-    to: "tan.yeole3@gmail.com",
+    to: email,
     subject: `Feedback Received - ${courseName || "UpKraft"}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f8f6; min-height: 100vh;">
