@@ -22,7 +22,7 @@ export async function GET(request: NextResponse) {
     if (userIdParam) {
       userId = userIdParam;
     } else {
-      const token = request.cookies.get("token")?.value;
+      const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
       const decodedToken = token ? jwt.decode(token) : null;
       userId = decodedToken && typeof decodedToken === "object" ? decodedToken.id : null;
     }

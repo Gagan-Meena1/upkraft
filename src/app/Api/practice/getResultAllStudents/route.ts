@@ -18,7 +18,7 @@ export async function GET(request) {
     // Check if tutorId is null, undefined, or the string "null"
     if (!tutorId || tutorId === 'null' || tutorId === 'undefined') {
       // Get token from cookies
-      const token = request.cookies.get("token")?.value;
+      const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
       if (!token) {
         return NextResponse.json({ error: "No token found" }, { status: 401 });
       }

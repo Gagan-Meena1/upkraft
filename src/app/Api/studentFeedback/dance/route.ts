@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       }
              
       // Get token and instructor ID
-      const token = request.cookies.get("token")?.value;
+      const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
       const decodedToken = token ? jwt.decode(token) : null;
       const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
              
@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
         // const studentId = url.searchParams.get("studentId");
         
         // Get token and verify instructor
-        const token = request.cookies.get("token")?.value;
+        const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
         if (!token) {
             return NextResponse.json({
                 success: false,

@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       let instructorId;
       if (!studentId) {
      
-        const token = request.cookies.get("token")?.value;
+        const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
         const decodedToken = token ? jwt.decode(token) : null;
         instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
         studentId=instructorId;

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     await connect();
 
     // Extract academy ID from token
-    const token = request.cookies.get("token")?.value;
+    const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
     if (!token) {
       return NextResponse.json(
         { error: 'Unauthorized - No token provided' },

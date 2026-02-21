@@ -9,7 +9,7 @@ await connect();
 export async function POST(request: NextRequest) {
   try {
     // Verify user is authenticated
-    const token = request.cookies.get("token")?.value;
+    const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
     if (!token) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Verify user is authenticated
-    const token = request.cookies.get("token")?.value;
+    const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
     if (!token) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },

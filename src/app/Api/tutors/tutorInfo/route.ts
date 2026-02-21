@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log("1111111111111111111111111111111111111111111111111111111111111111111");
 
-    const token = request.cookies.get("token")?.value;
+    const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
     console.log("decodedToken : ",decodedToken);

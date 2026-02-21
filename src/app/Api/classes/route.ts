@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
       verifyStart: format(dateFnsTz.toZonedTime(startDateTime, timezone || "UTC"), 'HH:mm'),
       verifyEnd: format(dateFnsTz.toZonedTime(endDateTime, timezone || "UTC"), 'HH:mm')
     });
-    const token = request.cookies.get("token")?.value;
+    const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
 //   try {
 //     console.log("Fetching classes data...");
 
-//     const token = request.cookies.get("token")?.value;
+//     const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
 //     const decodedToken = token ? jwt.decode(token) : null;
 //     let instructorId =
 //       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -381,7 +381,7 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching classes data...");
 
-    const token = request.cookies.get("token")?.value;
+    const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
     const decodedToken = token ? jwt.decode(token) : null;
     let instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -502,7 +502,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const token = request.cookies.get("token")?.value;
+    const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -674,7 +674,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const token = request.cookies.get("token")?.value;
+    const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
