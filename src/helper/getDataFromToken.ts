@@ -4,13 +4,20 @@ import jwt from "jsonwebtoken";
 
 export const getDataFromToken = (request: NextRequest) => {
     try {
-        // Prioritize x-active-token header (set by middleware) or impersonate_token cookie
-        const token = (request.headers.get("referer")?.includes("/tutor") && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value || "";
+        const referer = request.headers.get("referer") || "";
+        let refererPath = "";
+        try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
+
+        const isTutorContext = refererPath.startsWith("/tutor") || request.nextUrl?.pathname?.startsWith("/Api/tutor");
+        const impersonateToken = request.cookies.get("impersonate_token")?.value;
+        const mainToken = request.cookies.get("token")?.value;
+
+        const token = (isTutorContext && impersonateToken) ? impersonateToken : (mainToken || "");
 
         if (!token) return null;
 
-        const decodedToken: any = jwt.verify(token, process.env.TOKEN_SECRET!)
-        return decodedToken.id
+        const decodedToken: any = jwt.verify(token, process.env.TOKEN_SECRET!);
+        return decodedToken.id;
     }
     catch (error: any) {
         throw new Error(error.message)

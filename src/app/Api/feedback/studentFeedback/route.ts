@@ -50,7 +50,13 @@
       const startDateTime = new Date(`${date}T${startTime}`);
       const endDateTime = new Date(`${date}T${endTime}`);
   
-      const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
+      const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
       const decodedToken = token ? jwt.decode(token) : null;
       const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
       
@@ -91,7 +97,13 @@
 //     try {
 //       console.log("1111111111111111111111111111111111111111111111111111111111111111111");
   
-//       const token = ((request.headers.get("referer")?.includes("/tutor") || request.headers.get("referer")?.includes("/Api/tutor")) && request.cookies.get("impersonate_token")?.value ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value);
+//       const token = (() => {
+//       const referer = request.headers.get("referer") || "";
+//       let refererPath = "";
+//       try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+//       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+//       return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+//     })();
 //       const decodedToken = token ? jwt.decode(token) : null;
 //       const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
       

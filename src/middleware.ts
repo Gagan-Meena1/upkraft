@@ -8,6 +8,7 @@ export function middleware(request: NextRequest) {
   const impersonateToken = request.cookies.get('impersonate_token')?.value;
   const { pathname } = request.nextUrl;
   const referer = request.headers.get("referer") || "";
+  console.log(`[Middleware] Path: ${pathname} | Referer: ${referer}`);
 
   // Define which routes need authentication
   const protectedRoutes = [
@@ -15,12 +16,24 @@ export function middleware(request: NextRequest) {
     '/student',
   ];
 
+  let refererPath = "";
+  try {
+    if (referer) {
+      refererPath = new URL(referer).pathname;
+    }
+  } catch (e) { }
+
   // Determine which token to prioritize
   // If we are in the tutor section or an API called from the tutor section,
   // we prefer the impersonated token if it exists.
   const isTutorContext = pathname.startsWith('/tutor') ||
     pathname.startsWith('/Api/tutor') ||
-    referer.includes('/tutor');
+    refererPath.startsWith('/tutor');
+
+  try {
+    const fs = require('fs');
+    fs.appendFileSync('/tmp/debug_middleware.txt', `[MID] path=${pathname} refPath=${refererPath} isTutorCtxt=${isTutorContext} HasImpersonate=${!!impersonateToken}\n`);
+  } catch (e) { }
 
   let activeToken = token;
   if (isTutorContext && impersonateToken) {
