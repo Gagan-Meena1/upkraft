@@ -4,7 +4,11 @@ import React from 'react'
 import Howitwork01 from '@/assets/how-it-work-01.png'
 import Howitwork02 from '@/assets/how-it-work-02.png'
 import Howitwork03 from '@/assets/how-it-work-03.png'
-
+import tutt from '@/assets/tutor.jpeg'
+import dash from '@/assets/dash.png'
+import fin from '@/assets/fin.jpeg'
+import don from '@/assets/don.jpeg'
+import dancc from '@/assets/dancc.jpeg'
 const HowItWorks = () => {
   return (
     <div className='how-it-work'>
@@ -17,11 +21,13 @@ const HowItWorks = () => {
                     <div className='row'>
                         <div className='col-md-4'>
                             <div className='img-box'>
-                                <img src={Howitwork01.src} alt="" />
+                                <img src={dancc.src} alt="" />
                             </div>
                              <div className='text-how-h'>
-                                <h6>Find the Right Tutor</h6>
-                                <p>Browse profiles, book a consultation.</p>
+                                <h6>Right Instructor. Right at Home.
+</h6>
+                                <p>Verified instructors. Book a free demo to get started.
+</p>
                             </div>
                         </div>
                         <div className='col-md-4'>
@@ -29,17 +35,21 @@ const HowItWorks = () => {
                                 <img src={Howitwork02.src} alt="" />
                             </div>
                              <div className='text-how-h'>
-                                <h6>Build a Personalized Plan</h6>
-                                <p>Tutors use smart templates for structured goals</p>
+                                <h6>Structured Learning Plan
+</h6>
+                                <p>Level-based programs aligned to goals and pace.
+</p>
                             </div>
                         </div>
                         <div className='col-md-4'>
                             <div className='img-box'>
-                                <img src={Howitwork03.src} alt="" />
+                                <img src={don.src} alt="" />
                             </div>
                             <div className='text-how-h'>
-                                <h6>Practice Smart, Progress Fast</h6>
-                                <p>AI guides students; tutors track progress</p>
+                                <h6>Learn. Track. Progress.
+</h6>
+                                <p>Consistent classes with clear progress visibility.
+</p>
                             </div>
                         </div>
                     </div>

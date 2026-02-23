@@ -22,6 +22,8 @@ interface UserData {
   courses: any[];
   classDetails: any[]; // ✅ Add this
   createdAt: string;
+  academyId?: string;
+  profileImage?: string;
 }
 
 interface UserDataContextType {
@@ -30,8 +32,9 @@ interface UserDataContextType {
   classDetails: any[];
   studentCount: number;
   loading: boolean;
-    error: string | null; // ✅ Add this
-  refetch: (options?: { silent?: boolean }) => Promise<void>; // ✅ Add this
+  error: string | null; // ✅ Add this
+  refetch: (options?: { silent?: boolean }) => Promise<void>;
+  clearData: () => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -58,7 +61,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
           cache: "no-store",
         });
         const data = await response.json();
-        
+
         if (data.success) { // ADD THIS CHECK
           setUserData(data.user);
           setCourseDetails(data.courseDetails || []);
@@ -100,16 +103,23 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     prevPathRef.current = pathname;
   }, [pathname, fetchData]);
 
-    return (
+  return (
     <UserDataContext.Provider
-      value={{ 
-        userData, 
-        courseDetails, 
-        studentCount, 
-        loading, 
+      value={{
+        userData,
+        courseDetails,
+        studentCount,
+        loading,
         classDetails,
-        error, // ADD THIS
-        refetch: fetchData // ADD THIS
+        error,
+        refetch: fetchData,
+        clearData: () => {
+          setUserData(null);
+          setCourseDetails([]);
+          setStudentCount(0);
+          setClassDetails([]);
+          setError(null);
+        }
       }}
     >
       {children}
