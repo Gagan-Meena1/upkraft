@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
   //       { instructorId: tutorId }
   //     ]
   //   })
-  //   .select('username email contact city profileImage assignment courses _id')
+  //   .select('username email contact city profileImage assignment courses attendance _id')
   //   .populate({
   //     path: 'courses',
   //     select: 'title category duration price courseQuality performanceScores instructorId',
@@ -135,7 +135,7 @@ const users = await User.find({
     { instructorId: tutorId }
   ]
 })
-.select('username email contact city profileImage assignment courses _id')
+.select('username email contact city profileImage assignment courses attendance _id')
 .populate({
   path: 'courses',
   select: 'title category duration price courseQuality performanceScores instructorId',
@@ -181,6 +181,7 @@ const filteredUsers = users.map(user => ({
   city: user.city,
   assignment: user.assignment,
   courses: user.courses,
+  attendance: user.attendance,
   pendingAssignments: pendingAssignmentsMap.get(user._id.toString()) || 0
 }));
 
