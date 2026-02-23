@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
      const recurrenceId = formData.get('recurrenceId') as string | null;
      const recurrenceType = formData.get('recurrenceType') as string | null;
      const recurrenceUntil = formData.get("recurrenceUntil") as string | null;
+     const joinLink = formData.get("joinLink") as string | null;
 
     if (!courseId) {
       const url = new URL(request.url);
@@ -241,7 +242,8 @@ console.log("Timezone conversion:", {
       recordingProcessed: videoPath ? 0 : null,
       recurrenceId,
       recurrenceType,
-      recurrenceUntil
+      recurrenceUntil,
+      joinLink: joinLink || null,
     });
 
     const savednewClass = await newClass.save();
@@ -433,7 +435,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, date, startTime, endTime, timezone } = body;
+    const { title, description, date, startTime, endTime, timezone, joinLink } = body;
 
     console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone });
 
@@ -479,6 +481,7 @@ export async function PUT(request: NextRequest) {
           description,
           startTime: startDateTime,
           endTime: endDateTime,
+          ...(joinLink !== undefined && { joinLink: joinLink || null }),
         },
         { new: true, runValidators: true }
       );
@@ -517,6 +520,7 @@ export async function PUT(request: NextRequest) {
               description,
               startTime: newStart,
               endTime: newEnd,
+              ...(joinLink !== undefined && { joinLink: joinLink || null }),
             },
           },
         },

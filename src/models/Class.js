@@ -98,6 +98,11 @@ const ClassSchema = new mongoose.Schema({
     default: 'scheduled'
   },
 
+  joinLink: {
+    type: String,
+    default: null,
+  },
+
   // Class Quality Evaluation Data
   evaluation: {
     session_focus_clarity_score: Number,

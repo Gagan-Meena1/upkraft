@@ -409,12 +409,26 @@ export async function GET(request: NextRequest) {
           student._id.toString() !== userId.toString()
         );
         
+        // Derive top-level status from all student submissions
+        const studentStatuses = studentsOnly.map(student => {
+          const sub = assignment.submissions?.find(
+            (s: any) => s.studentId?.toString() === student._id.toString()
+          );
+          return sub?.status || 'PENDING';
+        });
+        const currentAssignmentStatus =
+          studentStatuses.includes('SUBMITTED') ? 'SUBMITTED' :
+          studentStatuses.includes('CORRECTION') ? 'CORRECTION' :
+          studentStatuses.length > 0 && studentStatuses.every((s: string) => s === 'APPROVED') ? 'APPROVED' :
+          'PENDING';
+
         return {
           _id: assignment._id,
           title: assignment.title,
           description: assignment.description,
           deadline: assignment.deadline,
           status: assignment.status,
+          currentAssignmentStatus,
           fileUrl: assignment.fileUrl,
           fileName: assignment.fileName,
           songName: assignment.songName,
@@ -424,6 +438,17 @@ export async function GET(request: NextRequest) {
           createdAt: assignment.createdAt,
           class: assignment.classId,
           course: assignment.courseId,
+          submissions: (assignment.submissions ?? []).map((sub: any) => ({
+            studentId: sub.studentId?.toString(),
+            status: sub.status,
+            submittedAt: sub.submittedAt,
+            studentMessage: sub.message || sub.studentMessage || '',
+            tutorRemarks: sub.tutorRemarks || '',
+            fileUrl: sub.fileUrl || '',
+            fileName: sub.fileName || '',
+            rating: sub.rating,
+            ratingMessage: sub.ratingMessage || '',
+          })),
           assignedStudents: studentsOnly.map(student => {
   const studentSubmission = assignment.submissions?.find(
     sub => sub.studentId?.toString() === student._id.toString()

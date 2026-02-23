@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     const endTime = formData.get("endTime") as string;
     const timezone = formData.get("timezone") as string; // Get timezone from frontend
 
+    const joinLink = formData.get("joinLink") as string | null;
     const rawRecurrenceId = formData.get("recurrenceId") as string | null;
     const rawRecurrenceType = formData.get("recurrenceType") as string | null;
     const rawRecurrenceUntil = formData.get("recurrenceUntil") as string | null;
@@ -264,6 +265,7 @@ export async function POST(request: NextRequest) {
       recurrenceId,
       recurrenceType,
       recurrenceUntil,
+      joinLink: joinLink || null,
     });
 
     const savednewClass = await newClass.save();
@@ -548,7 +550,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, date, startTime, endTime, timezone, reasonForReschedule } = body;
+    const { title, description, date, startTime, endTime, timezone, reasonForReschedule, joinLink } = body;
 
     console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone, reasonForReschedule });
 
@@ -588,7 +590,8 @@ export async function PUT(request: NextRequest) {
         startTime: startDateTime, // Store in UTC
         endTime: endDateTime, // Store in UTC
         reasonForReschedule: reasonForReschedule,
-        status: 'rescheduled'
+        status: 'rescheduled',
+        ...(joinLink !== undefined && { joinLink: joinLink || null }),
       },
       { new: true, runValidators: true }
     );
