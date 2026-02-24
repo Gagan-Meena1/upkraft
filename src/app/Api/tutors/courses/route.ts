@@ -27,7 +27,13 @@ export async function POST(request: NextRequest) {
     if (tutorId) {
       instructorId = tutorId;
     } else {
-      const token = request.cookies.get("token")?.value;
+      const token = (() => {
+        const referer = request.headers.get("referer") || "";
+        let refererPath = "";
+        try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
+        const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+        return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+      })();
       const decodedToken = token ? jwt.decode(token) : null;
       instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
     }
@@ -36,18 +42,18 @@ export async function POST(request: NextRequest) {
 
     console.log(courseData);
 
-       const newCourse = new courseName({
-        title: courseData.title,
-        description: courseData.description,
-        instructorId:instructorId,
-        duration: courseData.duration,
-        price: courseData.price,
-        curriculum: courseData.curriculum,
-        category: courseData.category,
-        subCategory: courseData?.subCategory || '',
-        maxStudentCount: courseData?.maxStudentCount ,
-        credits: courseData?.credits || 0,
-        tag: courseData?.tag || '',
+    const newCourse = new courseName({
+      title: courseData.title,
+      description: courseData.description,
+      instructorId: instructorId,
+      duration: courseData.duration,
+      price: courseData.price,
+      curriculum: courseData.curriculum,
+      category: courseData.category,
+      subCategory: courseData?.subCategory || '',
+      maxStudentCount: courseData?.maxStudentCount,
+      credits: courseData?.credits || 0,
+      tag: courseData?.tag || '',
 
     });
     console.log(newCourse);
@@ -70,55 +76,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-// export async function GET(request: NextRequest) {
-//   try {
-//     connect();
-//     const url = new URL(request.url);
-//     const tutorId = url.searchParams.get('tutorId');
 
-//     // Get instructorId from token if tutorId is not provided
-//     let instructorId;
-//     if (tutorId) {
-//       instructorId = tutorId;
-//     } else {
-//       const token = request.cookies.get("token")?.value;
-//       const decodedToken = token ? jwt.decode(token) : null;
-//       instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-//     }
-
-//     // Ensure we have a valid instructorId
-//     if (!instructorId) {
-//       return NextResponse.json(
-//         { error: 'Instructor ID is required' }, 
-//         { status: 400 }
-//       );
-//     }
-
-//     // Get courses where user is the main instructor OR courses in user's courses array
-// const instructor = await User.findById(instructorId).select('academyId category courses');
-
-// const courses = await courseName.find({
-//   $or: [
-//     { instructorId: instructorId },
-//     { _id: { $in: instructor?.courses || [] } }
-//   ]
-// });
-
-//     return NextResponse.json({
-//       message: 'Courses retrieved successfully',
-//       course: courses,
-//       academyId: instructor?.academyId || null,
-//       category: instructor?.category || null
-//     }, { status: 200 });
-
-//   } catch (error) {
-//     console.error('Course retrieval error:', error);
-//     return NextResponse.json(
-//       { error: 'Failed to retrieve courses' }, 
-//       { status: 500 }
-//     );
-//   }
-// }
 export async function GET(request: NextRequest) {
   try {
     await connect();
@@ -134,7 +92,13 @@ export async function GET(request: NextRequest) {
     if (tutorId) {
       instructorId = tutorId;
     } else {
-      const token = request.cookies.get("token")?.value;
+      const token = (() => {
+        const referer = request.headers.get("referer") || "";
+        let refererPath = "";
+        try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
+        const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+        return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+      })();
       const decodedToken = token ? jwt.decode(token) : null;
       instructorId =
         decodedToken &&
