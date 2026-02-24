@@ -227,6 +227,396 @@ export async function POST(request: NextRequest) {
 }
 
 // ==================== GET - FETCH ASSIGNMENTS WITH PAGINATION ====================
+// export async function GET(request: NextRequest) {
+//   try {
+//     await connect();
+
+//     const url = new URL(request.url);
+//     const userIdParam = url.searchParams.get('userId');
+
+//     // PAGINATION PARAMETERS
+//     const page = parseInt(url.searchParams.get('page') || '1');
+//     const limit = parseInt(url.searchParams.get('limit') || '100000');
+//     const statusFilter = url.searchParams.get('status'); // 'pending' | 'completed' | null
+//     const searchQuery = url.searchParams.get('search'); // search term
+
+//     let userId;
+//     if (userIdParam) {
+//       userId = userIdParam;
+//     } else {
+//       const token = request.cookies.get("token")?.value;
+//       const decodedToken = token ? jwt.decode(token) : null;
+//       userId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+//     }
+
+//     if (!userId) {
+//       return NextResponse.json({
+//         success: false,
+//         message: "User ID is required"
+//       }, { status: 400 });
+//     }
+
+//     if (!mongoose.Types.ObjectId.isValid(userId)) {
+//       return NextResponse.json({
+//         success: false,
+//         message: "Invalid user ID format"
+//       }, { status: 400 });
+//     }
+
+//     const user = await User.findById(userId).select('username email assignment category');
+
+//     if (!user) {
+//       return NextResponse.json({
+//         success: false,
+//         message: "User not found"
+//       }, { status: 404 });
+//     }
+
+//     if (!user.assignment || user.assignment.length === 0) {
+//       return NextResponse.json({
+//         success: true,
+//         message: "No assignments found",
+//         data: {
+//           userId: user._id,
+//           username: user.username,
+//           userCategory: user.category,
+//           totalAssignments: 0,
+//           pendingCount: 0,
+//           completedCount: 0,
+//           assignments: [],
+//           currentPage: 1,
+//           totalPages: 0,
+//           hasNextPage: false,
+//           hasPrevPage: false
+//         }
+//       });
+//     }
+
+//     // Build filter query
+//     const filterQuery: any = {
+//       _id: { $in: user.assignment }
+//     };
+
+//     // STATUS FILTER
+//     if (statusFilter === 'pending') {
+//       filterQuery.status = { $ne: true };
+//     } else if (statusFilter === 'completed') {
+//       filterQuery.status = true;
+//     }
+
+//     // SEARCH FILTER
+//     if (searchQuery && searchQuery.trim()) {
+//       filterQuery.$or = [
+//         { title: { $regex: searchQuery, $options: 'i' } },
+//         { description: { $regex: searchQuery, $options: 'i' } }
+//       ];
+//     }
+
+//     const skip = (page - 1) * limit;
+//     const totalAssignments = await Assignment.countDocuments(filterQuery);
+//     const totalPages = Math.ceil(totalAssignments / limit);
+
+//     // ==================== STUDENT CATEGORY ====================
+//     if (user.category.toLowerCase() === 'student') {
+//       // Get counts for pending and completed assignments
+//       const baseCountQuery = {
+//         _id: { $in: user.assignment }
+//       };
+
+//       const pendingCount = await Assignment.countDocuments({
+//         ...baseCountQuery,
+//         status: { $ne: true }
+//       });
+
+//       const completedCount = await Assignment.countDocuments({
+//         ...baseCountQuery,
+//         status: true
+//       });
+
+//       const assignments = await Assignment.find(filterQuery)
+//         .populate('classId', 'title description startTime endTime')
+//         .populate('courseId', 'title category')
+//         .sort({ deadline: 1 })
+//         .skip(skip)
+//         .limit(limit)
+//         .lean();
+
+//       return NextResponse.json({
+//         success: true,
+//         message: "Student assignments retrieved successfully",
+//         data: {
+//           userId: user._id,
+//           username: user.username,
+//           userCategory: user.category,
+//           totalAssignments: totalAssignments,
+//           pendingCount: pendingCount,
+//           completedCount: completedCount,
+//           assignments: assignments.map((assignment: any) => {
+//             const mySubmission = assignment.submissions?.find(
+//               (sub: any) => sub.studentId?.toString() === user._id.toString()
+//             );
+
+//             return {
+//               _id: assignment._id,
+//               title: assignment.title,
+//               description: assignment.description,
+//               deadline: assignment.deadline,
+//               status: assignment.status,
+//               currentAssignmentStatus: mySubmission?.status || 'PENDING',
+//               studentSubmissionMessage: mySubmission?.message || '',
+//               tutorRemarks: mySubmission?.tutorRemarks || '',
+//               submissionFileUrl: mySubmission?.fileUrl || '',
+//               submissionFileName: mySubmission?.fileName || '',
+//               correctionFileUrl: mySubmission?.correctionFileUrl || '',
+//               correctionFileName: mySubmission?.correctionFileName || '',
+//               fileUrl: assignment.fileUrl,
+//               fileName: assignment.fileName,
+//               songName: assignment.songName,
+//               practiceStudio: assignment.practiceStudio,
+//               speed: assignment.speed,
+//               metronome: assignment.metronome,
+//               createdAt: assignment.createdAt,
+//               class: assignment.classId,
+//               course: assignment.courseId
+//             };
+//           }),
+//           currentPage: page,
+//           totalPages: totalPages,
+//           hasNextPage: page < totalPages,
+//           hasPrevPage: page > 1
+//         }
+//       });
+
+//     }
+//     // ==================== TUTOR CATEGORY ====================
+//     else if (user.category.toLowerCase() === 'tutor') {
+//       // Get counts for pending and completed assignments (TOTAL, not filtered)
+//       const baseCountQuery = {
+//         _id: { $in: user.assignment }
+//       };
+
+//       const pendingCount = await Assignment.countDocuments({
+//         ...baseCountQuery,
+//         status: { $ne: true }
+//       });
+
+//       const completedCount = await Assignment.countDocuments({
+//         ...baseCountQuery,
+//         status: true
+//       });
+
+//       let assignments = await Assignment.find(filterQuery)
+//         .populate('classId', 'title description startTime endTime')
+//         .populate('courseId', 'title category')
+//         .populate('userId', 'username email')
+//         .sort({ deadline: 1 })
+//         .skip(skip)
+//         .limit(limit)
+//         .lean();
+
+//       // POST-FILTER for student search
+//       let filteredAssignments = assignments;
+//       if (searchQuery && searchQuery.trim()) {
+//         const searchLower = searchQuery.toLowerCase();
+//         filteredAssignments = assignments.filter((assignment: any) => {
+//           const studentMatch = assignment.userId?.some((student: any) =>
+//             student.username?.toLowerCase().includes(searchLower) ||
+//             student.email?.toLowerCase().includes(searchLower)
+//           );
+
+//           const titleMatch = assignment.title?.toLowerCase().includes(searchLower);
+//           const descMatch = assignment.description?.toLowerCase().includes(searchLower);
+
+//           return titleMatch || descMatch || studentMatch;
+//         });
+//       }
+
+//       const assignmentsWithStudents = filteredAssignments.map((assignment: any) => {
+//         const studentsOnly = assignment.userId.filter((student: any) =>
+//           student._id.toString() !== userId.toString()
+//         );
+
+//         return {
+//           _id: assignment._id,
+//           title: assignment.title,
+//           description: assignment.description,
+//           deadline: assignment.deadline,
+//           status: assignment.status,
+//           fileUrl: assignment.fileUrl,
+//           fileName: assignment.fileName,
+//           songName: assignment.songName,
+//           practiceStudio: assignment.practiceStudio,
+//           speed: assignment.speed,
+//           metronome: assignment.metronome,
+//           createdAt: assignment.createdAt,
+//           class: assignment.classId,
+//           course: assignment.courseId,
+//           assignedStudents: studentsOnly.map((student: any) => {
+//             const studentSubmission = assignment.submissions?.find(
+//               (sub: any) => sub.studentId?.toString() === student._id.toString()
+//             );
+
+//             return {
+//               userId: student._id,
+//               username: student.username,
+//               email: student.email,
+//               submissionStatus: studentSubmission?.status || 'PENDING',
+//               submissionMessage: studentSubmission?.message || '',
+//               submissionFileUrl: studentSubmission?.fileUrl || '',
+//               submissionFileName: studentSubmission?.fileName || '',
+//               correctionFileUrl: studentSubmission?.correctionFileUrl || '',
+//               correctionFileName: studentSubmission?.correctionFileName || '',
+//               tutorRemarks: studentSubmission?.tutorRemarks || '',
+//               submittedAt: studentSubmission?.submittedAt || null
+//             };
+//           }),
+//           totalAssignedStudents: studentsOnly.length
+//         };
+//       });
+
+//       return NextResponse.json({
+//         success: true,
+//         message: "Tutor assignments retrieved successfully",
+//         data: {
+//           userId: user._id,
+//           username: user.username,
+//           userCategory: user.category,
+//           totalAssignments: user.assignment.length, // Total across all filters
+//           pendingCount: pendingCount,
+//           completedCount: completedCount,
+//           assignments: assignmentsWithStudents,
+//           currentPage: page,
+//           totalPages: totalPages,
+//           hasNextPage: page < totalPages,
+//           hasPrevPage: page > 1
+//         }
+//       });
+
+//     }
+//     // ==================== ACADEMIC CATEGORY ====================
+//     else if (user.category.toLowerCase() === 'academic') {
+//       const tutors = await User.find({
+//         category: "Tutor",
+//         academyId: userId
+//       }).select('_id username email');
+
+//       const tutorIds = tutors.map(tutor => tutor._id.toString());
+
+//       if (tutorIds.length === 0) {
+//         return NextResponse.json({
+//           success: true,
+//           message: "No tutors found",
+//           data: {
+//             userId: user._id,
+//             username: user.username,
+//             userCategory: user.category,
+//             totalAssignments: 0,
+//             pendingCount: 0,
+//             completedCount: 0,
+//             assignments: [],
+//             currentPage: 1,
+//             totalPages: 0,
+//             hasNextPage: false,
+//             hasPrevPage: false
+//           }
+//         });
+//       }
+
+//       // Get counts for pending and completed assignments
+//       const baseCountQuery = {
+//         _id: { $in: user.assignment }
+//       };
+
+//       const pendingCount = await Assignment.countDocuments({
+//         ...baseCountQuery,
+//         status: { $ne: true }
+//       });
+
+//       const completedCount = await Assignment.countDocuments({
+//         ...baseCountQuery,
+//         status: true
+//       });
+
+//       const assignments = await Assignment.find(filterQuery)
+//         .populate('classId', 'title description startTime endTime')
+//         .populate('courseId', 'title category')
+//         .populate('userId', 'username email')
+//         .sort({ deadline: 1 })
+//         .skip(skip)
+//         .limit(limit)
+//         .lean();
+
+//       const assignmentsWithDetails = assignments.map((assignment: any) => {
+//         const tutorInAssignment = assignment.userId.find((u: any) =>
+//           tutorIds.includes(u._id.toString())
+//         );
+
+//         const studentsOnly = assignment.userId.filter((u: any) =>
+//           !tutorIds.includes(u._id.toString())
+//         );
+
+//         return {
+//           _id: assignment._id,
+//           title: assignment.title,
+//           description: assignment.description,
+//           deadline: assignment.deadline,
+//           status: assignment.status,
+//           fileUrl: assignment.fileUrl,
+//           fileName: assignment.fileName,
+//           songName: assignment.songName,
+//           practiceStudio: assignment.practiceStudio,
+//           speed: assignment.speed,
+//           metronome: assignment.metronome,
+//           createdAt: assignment.createdAt,
+//           class: assignment.classId,
+//           course: assignment.courseId,
+//           tutor: tutorInAssignment ? {
+//             userId: tutorInAssignment._id,
+//             username: tutorInAssignment.username,
+//             email: tutorInAssignment.email
+//           } : null,
+//           assignedStudents: studentsOnly.map((student: any) => ({
+//             userId: student._id,
+//             username: student.username,
+//             email: student.email
+//           })),
+//           totalAssignedStudents: studentsOnly.length
+//         };
+//       });
+
+//       return NextResponse.json({
+//         success: true,
+//         message: "Academy assignments retrieved successfully",
+//         data: {
+//           userId: user._id,
+//           username: user.username,
+//           userCategory: user.category,
+//           totalAssignments: user.assignment.length,
+//           pendingCount: pendingCount,
+//           completedCount: completedCount,
+//           assignments: assignmentsWithDetails,
+//           currentPage: page,
+//           totalPages: totalPages,
+//           hasNextPage: page < totalPages,
+//           hasPrevPage: page > 1
+//         }
+//       });
+
+//     } else {
+//       return NextResponse.json({
+//         success: false,
+//         message: "Invalid user category"
+//       }, { status: 400 });
+//     }
+
+//   } catch (error: any) {
+//     console.error("Error fetching assignments:", error);
+//     return NextResponse.json({
+//       success: false,
+//       message: error.message || "Internal server error"
+//     }, { status: 500 });
+//   }
+// }
 export async function GET(request: NextRequest) {
   try {
     await connect();
@@ -236,7 +626,7 @@ export async function GET(request: NextRequest) {
 
     // PAGINATION PARAMETERS
     const page = parseInt(url.searchParams.get('page') || '1');
-    const limit = parseInt(url.searchParams.get('limit') || '100000');
+    const limit = parseInt(url.searchParams.get('limit') || '10');
     const statusFilter = url.searchParams.get('status'); // 'pending' | 'completed' | null
     const searchQuery = url.searchParams.get('search'); // search term
 
@@ -289,6 +679,9 @@ export async function GET(request: NextRequest) {
           totalAssignments: 0,
           pendingCount: 0,
           completedCount: 0,
+          submittedCount: 0,
+          approvedCount: 0,
+          correctionCount: 0,
           assignments: [],
           currentPage: 1,
           totalPages: 0,
@@ -303,14 +696,7 @@ export async function GET(request: NextRequest) {
       _id: { $in: user.assignment }
     };
 
-    // STATUS FILTER
-    if (statusFilter === 'pending') {
-      filterQuery.status = { $ne: true };
-    } else if (statusFilter === 'completed') {
-      filterQuery.status = true;
-    }
-
-    // SEARCH FILTER
+    // SEARCH FILTER (applies to all user types)
     if (searchQuery && searchQuery.trim()) {
       filterQuery.$or = [
         { title: { $regex: searchQuery, $options: 'i' } },
@@ -318,34 +704,102 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const skip = (page - 1) * limit;
-    const totalAssignments = await Assignment.countDocuments(filterQuery);
-    const totalPages = Math.ceil(totalAssignments / limit);
-
     // ==================== STUDENT CATEGORY ====================
     if (user.category.toLowerCase() === 'student') {
-      // Get counts for pending and completed assignments
-      const baseCountQuery = {
-        _id: { $in: user.assignment }
-      };
+      console.log('=== STUDENT ASSIGNMENT FETCH ===');
+      console.log('Status Filter:', statusFilter);
+      console.log('User ID:', userId);
 
-      const pendingCount = await Assignment.countDocuments({
-        ...baseCountQuery,
-        status: { $ne: true }
-      });
-
-      const completedCount = await Assignment.countDocuments({
-        ...baseCountQuery,
-        status: true
-      });
-
-      const assignments = await Assignment.find(filterQuery)
+      // For students, we need to filter by submission status, not assignment.status
+      // Fetch all assignments to count by submission status
+      const allStudentAssignments = await Assignment.find(filterQuery)
         .populate('classId', 'title description startTime endTime')
         .populate('courseId', 'title category')
         .sort({ deadline: 1 })
-        .skip(skip)
-        .limit(limit)
         .lean();
+
+      console.log('Total assignments found:', allStudentAssignments.length);
+
+      // Map assignments with submission status from submissions array
+      const assignmentsWithStatus = allStudentAssignments.map((assignment: any) => {
+        // Find this student's submission in the submissions array
+        const mySubmission = assignment.submissions?.find(
+          (sub: any) => sub.studentId?.toString() === userId.toString()
+        );
+
+        // IMPORTANT: If no submission exists, status is PENDING (not submitted yet)
+        const submissionStatus = mySubmission?.status || 'PENDING';
+
+        console.log(`Assignment ${assignment._id}: Status = ${submissionStatus}, Has Submission: ${!!mySubmission}`);
+
+        return {
+          _id: assignment._id,
+          title: assignment.title,
+          description: assignment.description,
+          deadline: assignment.deadline,
+          status: assignment.status,
+          currentAssignmentStatus: submissionStatus, // Use submission status
+          studentSubmissionMessage: mySubmission?.studentMessage || '',
+          tutorRemarks: mySubmission?.tutorRemarks || '',
+          submissionFileUrl: mySubmission?.fileUrl || '',
+          submissionFileName: mySubmission?.fileName || '',
+          correctionFileUrl: mySubmission?.correctionFileUrl || '',
+          correctionFileName: mySubmission?.correctionFileName || '',
+          fileUrl: assignment.fileUrl,
+          fileName: assignment.fileName,
+          songName: assignment.songName,
+          practiceStudio: assignment.practiceStudio,
+          speed: assignment.speed,
+          metronome: assignment.metronome,
+          createdAt: assignment.createdAt,
+          class: assignment.classId,
+          course: assignment.courseId
+        };
+      });
+
+      // Count by submission status
+      const pendingCount = assignmentsWithStatus.filter(
+        (a: any) => a.currentAssignmentStatus === 'PENDING'
+      ).length;
+
+      const submittedCount = assignmentsWithStatus.filter(
+        (a: any) => a.currentAssignmentStatus === 'SUBMITTED'
+      ).length;
+
+      const approvedCount = assignmentsWithStatus.filter(
+        (a: any) => a.currentAssignmentStatus === 'APPROVED'
+      ).length;
+
+      const correctionCount = assignmentsWithStatus.filter(
+        (a: any) => a.currentAssignmentStatus === 'CORRECTION'
+      ).length;
+
+      console.log('Counts:', { pendingCount, submittedCount, approvedCount, correctionCount });
+
+      // Filter by status if provided
+      let filteredAssignments = assignmentsWithStatus;
+      if (statusFilter === 'pending') {
+        filteredAssignments = assignmentsWithStatus.filter(
+          (a: any) => a.currentAssignmentStatus === 'PENDING'
+        );
+        console.log('Filtered to PENDING:', filteredAssignments.length);
+      } else if (statusFilter === 'completed') {
+        // Completed includes SUBMITTED, APPROVED, and CORRECTION
+        filteredAssignments = assignmentsWithStatus.filter(
+          (a: any) => a.currentAssignmentStatus === 'SUBMITTED' ||
+            a.currentAssignmentStatus === 'APPROVED' ||
+            a.currentAssignmentStatus === 'CORRECTION'
+        );
+        console.log('Filtered to COMPLETED:', filteredAssignments.length);
+      }
+
+      // Apply pagination to filtered results
+      const skip = (page - 1) * limit;
+      const paginatedAssignments = filteredAssignments.slice(skip, skip + limit);
+      const totalFiltered = filteredAssignments.length;
+      const totalPages = Math.ceil(totalFiltered / limit);
+
+      console.log('Pagination:', { skip, limit, totalFiltered, totalPages, returning: paginatedAssignments.length });
 
       return NextResponse.json({
         success: true,
@@ -354,40 +808,15 @@ export async function GET(request: NextRequest) {
           userId: user._id,
           username: user.username,
           userCategory: user.category,
-          totalAssignments: totalAssignments,
+          totalAssignments: allStudentAssignments.length,
           pendingCount: pendingCount,
-          completedCount: completedCount,
-          assignments: assignments.map((assignment: any) => {
-            const mySubmission = assignment.submissions?.find(
-              (sub: any) => sub.studentId?.toString() === user._id.toString()
-            );
-
-            return {
-              _id: assignment._id,
-              title: assignment.title,
-              description: assignment.description,
-              deadline: assignment.deadline,
-              status: assignment.status,
-              currentAssignmentStatus: mySubmission?.status || 'PENDING',
-              studentSubmissionMessage: mySubmission?.message || '',
-              tutorRemarks: mySubmission?.tutorRemarks || '',
-              submissionFileUrl: mySubmission?.fileUrl || '',
-              submissionFileName: mySubmission?.fileName || '',
-              correctionFileUrl: mySubmission?.correctionFileUrl || '',
-              correctionFileName: mySubmission?.correctionFileName || '',
-              fileUrl: assignment.fileUrl,
-              fileName: assignment.fileName,
-              songName: assignment.songName,
-              practiceStudio: assignment.practiceStudio,
-              speed: assignment.speed,
-              metronome: assignment.metronome,
-              createdAt: assignment.createdAt,
-              class: assignment.classId,
-              course: assignment.courseId
-            };
-          }),
+          completedCount: submittedCount + approvedCount + correctionCount, // Total non-pending
+          submittedCount: submittedCount,
+          approvedCount: approvedCount,
+          correctionCount: correctionCount,
+          assignments: paginatedAssignments,
           currentPage: page,
-          totalPages: totalPages,
+          totalPages: totalPages > 0 ? totalPages : 1,
           hasNextPage: page < totalPages,
           hasPrevPage: page > 1
         }
@@ -396,6 +825,17 @@ export async function GET(request: NextRequest) {
     }
     // ==================== TUTOR CATEGORY ====================
     else if (user.category.toLowerCase() === 'tutor') {
+      // For tutors, status filter applies to assignment.status field
+      if (statusFilter === 'pending') {
+        filterQuery.status = { $ne: true };
+      } else if (statusFilter === 'completed') {
+        filterQuery.status = true;
+      }
+
+      const skip = (page - 1) * limit;
+      const totalAssignments = await Assignment.countDocuments(filterQuery);
+      const totalPages = Math.ceil(totalAssignments / limit);
+
       // Get counts for pending and completed assignments (TOTAL, not filtered)
       const baseCountQuery = {
         _id: { $in: user.assignment }
@@ -467,7 +907,7 @@ export async function GET(request: NextRequest) {
               username: student.username,
               email: student.email,
               submissionStatus: studentSubmission?.status || 'PENDING',
-              submissionMessage: studentSubmission?.message || '',
+              submissionMessage: studentSubmission?.studentMessage || '',
               submissionFileUrl: studentSubmission?.fileUrl || '',
               submissionFileName: studentSubmission?.fileName || '',
               correctionFileUrl: studentSubmission?.correctionFileUrl || '',
@@ -487,7 +927,7 @@ export async function GET(request: NextRequest) {
           userId: user._id,
           username: user.username,
           userCategory: user.category,
-          totalAssignments: user.assignment.length, // Total across all filters
+          totalAssignments: user.assignment.length,
           pendingCount: pendingCount,
           completedCount: completedCount,
           assignments: assignmentsWithStudents,
@@ -501,6 +941,17 @@ export async function GET(request: NextRequest) {
     }
     // ==================== ACADEMIC CATEGORY ====================
     else if (user.category.toLowerCase() === 'academic') {
+      // For academics, status filter applies to assignment.status field (same as tutors)
+      if (statusFilter === 'pending') {
+        filterQuery.status = { $ne: true };
+      } else if (statusFilter === 'completed') {
+        filterQuery.status = true;
+      }
+
+      const skip = (page - 1) * limit;
+      const totalAssignments = await Assignment.countDocuments(filterQuery);
+      const totalPages = Math.ceil(totalAssignments / limit);
+
       const tutors = await User.find({
         category: "Tutor",
         academyId: userId
