@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
 
     // Instructor info
     const instructor = await User.findById(instructorId).select(
-      "academyId category courses"
+      "academyId category courses creditsPerCourse"
     );
 
     // Base query
@@ -204,7 +204,9 @@ export async function GET(request: NextRequest) {
         course: courses,
         academyId: instructor?.academyId || null,
         category: instructor?.category || null,
+        creditsPerCourse: instructor?.creditsPerCourse || [],
         ...(paginationMeta && { pagination: paginationMeta }),
+        
       },
       { status: 200 }
     );

@@ -54,10 +54,37 @@ const userSchema = new mongoose.Schema({
             credits: {
                 type: Number,
                 default: 0
-            }   
+            }   ,
+            startTime: {
+                type:[{
+                    date: Date,
+                    message:String
+                }]
+            },
         }],
-        default: {}
+        default: []
     },
+    // upkCredits: {
+    //     type:[{
+    //         courseId: {
+    //             type: mongoose.Schema.Types.ObjectId,
+    //             ref: "courseName"
+    //         },
+    //         credits: {
+    //             type: Number,
+    //             default: 0
+    //         }  ,
+    //         startTime: {
+    //             type:[{
+    //                 type: Date,
+    //                 message:String
+    //             }]
+    //         },
+            
+    //     }],
+    //     default: {}
+        
+    // },
     email: {
         type: String,
         required: [true, "Please provide an email"],

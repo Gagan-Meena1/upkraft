@@ -1,7 +1,17 @@
-import React from 'react';
+'use client';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import axios from 'axios';
 import { Course } from '../types/student.types';
 import { ExpandableText } from './ExpandableText';
+import ClassSelectionModal, { AssignPayload } from '@/app/components/addClass'; // adjust import path
+
+interface ClassItem {
+  _id: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+}
 
 interface CourseEnrolledItemProps {
   course: Course;
@@ -9,15 +19,57 @@ interface CourseEnrolledItemProps {
   tutorId?: string;
 }
 
-export const CourseEnrolledItem: React.FC<CourseEnrolledItemProps> = ({ 
-  course, 
+export const CourseEnrolledItem: React.FC<CourseEnrolledItemProps> = ({
+  course,
   studentId,
-  tutorId 
+  tutorId,
 }) => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
   const studentPerformanceScore = course.performanceScores?.find(
     (score) =>
       (typeof score.userId === 'string' ? score.userId : score.userId._id) === studentId
   );
+
+  const handleOpenModal = async () => {
+    setModalOpen(true);
+    setLoadingClasses(true);
+    setStatusMessage(null);
+    try {
+      console.log("Fetching classes for course:", course);
+      const res = await axios.get(`/Api/tutors/courses/${course._id}`);
+      setClasses(res.data?.classDetails ?? res.data ?? []);
+    } catch (e) {
+      setClasses([]);
+    } finally {
+      setLoadingClasses(false);
+    }
+  };
+
+  const handleConfirm = async (payload: AssignPayload) => {
+    try {
+      const response = await axios.post('/Api/addStudentToCourse', {
+        courseId: course._id,
+        studentId,
+        classIds: payload.classIds,
+        // simpleMode doesn't send startDate/message/credits,
+        // but they'll be empty strings/0 — safe to omit or send as-is
+      });
+      setStatusMessage({
+        text: response.data.message || 'Classes assigned successfully!',
+        type: 'success',
+      });
+      setModalOpen(false);
+    } catch (err: any) {
+      setStatusMessage({
+        text: err.response?.data?.message || 'Failed to assign classes',
+        type: 'error',
+      });
+    }
+  };
 
   return (
     <div className="enrolled-box">
@@ -26,33 +78,31 @@ export const CourseEnrolledItem: React.FC<CourseEnrolledItemProps> = ({
         <ExpandableText text={course.description} maxChars={100} />
       </p>
 
+      {statusMessage && (
+        <p className={`text-sm mt-1 ${statusMessage.type === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+          {statusMessage.text}
+        </p>
+      )}
+
       <div className="assignments-list d-flex align-items-center gap-2 flex-wrap w-100 justify-content-between">
         <ul className="d-flex align-items-center gap-xl-4 gap-2 flex-wrap p-0 m-0 w-100">
           <li className="d-flex align-items-center gap-2">
             <span className="student-text">Sessions :</span>
-            <span className="student-txt">
-              <strong>{course.curriculum.length}</strong>
-            </span>
+            <span className="student-txt"><strong>{course.curriculum.length}</strong></span>
           </li>
           <li className="d-flex align-items-center gap-2">
             <span className="student-text">Duration :</span>
-            <span className="student-txt">
-              <strong>{course.duration}</strong>
-            </span>
+            <span className="student-txt"><strong>{course.duration}</strong></span>
           </li>
           <li className="d-flex align-items-center gap-2">
             <span className="student-text">Fee :</span>
-            <span className="student-txt">
-              <strong>Rs {course.price}</strong>
-            </span>
+            <span className="student-txt"><strong>Rs {course.price}</strong></span>
           </li>
           {studentPerformanceScore && (
             <li className="d-flex align-items-center gap-2">
               <span className="student-text">Performance :</span>
               <span className="student-txt">
-                <strong>
-                  {Number(studentPerformanceScore.score).toFixed(1)}/10
-                </strong>
+                <strong>{Number(studentPerformanceScore.score).toFixed(1)}/10</strong>
               </span>
             </li>
           )}
@@ -84,9 +134,34 @@ export const CourseEnrolledItem: React.FC<CourseEnrolledItemProps> = ({
                 </svg>
               </Link>
             </li>
+
+            {/* ── NEW: Manage Classes button ── */}
+            <li>
+              <button
+                onClick={handleOpenModal}
+                className="btn btn-border padding-fixed d-flex align-items-center justify-content-center gap-2"
+              >
+                <span>Manage Classes</span>
+                <svg width="23" height="24" viewBox="0 0 23 24" fill="none">
+                  <path d="M4 6h16M4 12h16M4 18h16" stroke="#6E09BD" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </li>
           </ul>
         </div>
       </div>
+
+      {/* ── Class Selection Modal ── */}
+      <ClassSelectionModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirm}
+        classes={classes}
+        loading={loadingClasses}
+        courseId={course._id}
+        creditsPerCourse={[]}
+        simpleMode={true}        // ← hides start date / message / credits
+      />
     </div>
   );
 };
