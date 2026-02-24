@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: ""
     },
+    expoPushToken: {
+        type: String,
+        default: null,
+    },
     credits: {
         type: Number,
         default: 0

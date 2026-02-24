@@ -15,6 +15,22 @@ import { format, parseISO } from 'date-fns';
 import { sendEmail } from "@/helper/mailer";
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
 
+async function sendExpoPushNotifications(
+  tokens: (string | null | undefined)[],
+  title: string,
+  body: string,
+  data: object = {}
+) {
+  const messages = (tokens.filter(t => t?.startsWith('ExponentPushToken[')) as string[])
+    .map(to => ({ to, title, body, data, sound: 'default' }));
+  if (!messages.length) return;
+  fetch('https://exp.host/--/expo-server/push/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(messages),
+  }).catch(() => {});
+}
+
 await connect();
 
 export async function POST(request: NextRequest) {
@@ -603,7 +619,7 @@ export async function PUT(request: NextRequest) {
       // Find all users (students) who have this classId in their classes array
       const enrolledStudents = await User.find({
         classes: classId,
-      }).select("email username timezone").lean();
+      }).select("email username timezone expoPushToken").lean();
 
       console.log(`Found ${enrolledStudents.length} students enrolled in this class`);
 
@@ -662,6 +678,16 @@ export async function PUT(request: NextRequest) {
 
         await Promise.all(emailPromises);
         console.log("All reschedule notification emails processed");
+
+        // Send push notifications to students + tutor
+        const tutorUser = await User.findById(instructorId).select('expoPushToken').lean() as any;
+        const studentTokens = (enrolledStudents as any[]).map((s: any) => s.expoPushToken);
+        sendExpoPushNotifications(
+          [...studentTokens, tutorUser?.expoPushToken],
+          'Class Rescheduled',
+          `${title} rescheduled to ${newDateFormatted} at ${newTimeStart}`,
+          { classId }
+        );
       }
     } catch (emailError) {
       console.error("Error in email sending process:", emailError);
@@ -1046,6 +1072,16 @@ export async function DELETE(request: NextRequest) {
 
         await Promise.all(emailPromises);
         console.log("All cancellation notification emails processed");
+
+        // Send push notifications to students + tutor
+        const tutorUser = await User.findById(instructorId).select('expoPushToken').lean() as any;
+        const studentTokens = (enrolledStudents as any[]).map((s: any) => s.expoPushToken);
+        sendExpoPushNotifications(
+          [...studentTokens, tutorUser?.expoPushToken],
+          'Class Cancelled',
+          `${classToCancel.title} has been cancelled`,
+          { classId }
+        );
       }
     } catch (emailError) {
       console.error("Error in email sending process:", emailError);
