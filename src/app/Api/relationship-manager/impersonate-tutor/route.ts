@@ -8,7 +8,13 @@ export async function POST(request: NextRequest) {
     await connect();
 
     // Get the current user's token
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
     if (!token) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
@@ -113,11 +119,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Set the tutor's token in the cookie (this will replace the RM's token)
-    response.cookies.set("token", tutorToken, {
+    // Set the tutor's token in a separate impersonate_token cookie
+    // This allows the RM to keep their original session cookie ('token')
+    response.cookies.set("impersonate_token", tutorToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      path: "/",
       maxAge: 60 * 60 * 24, // 1 day
     });
 

@@ -46,9 +46,9 @@ const RelationshipManagerDashboard: React.FC = () => {
         throw new Error(data.error || "Failed to login as tutor");
       }
 
-      // Successfully impersonated - redirect to tutor dashboard
+      // Successfully impersonated - open tutor dashboard in a new tab
       toast.success("Successfully logged in as tutor");
-      router.push("/tutor");
+      window.open("/tutor", "_blank");
     } catch (err: any) {
       console.error("Error impersonating tutor:", err);
       toast.error(err.message || "Failed to login as tutor. Please try again.");
