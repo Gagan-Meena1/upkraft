@@ -65,6 +65,15 @@ export async function POST(request: NextRequest) {
     // Save the updated user
     await user.save();
              
+      // Prevent duplicate feedback for the same student + class
+      const existing = await feedback.findOne({ userId: studentId, classId });
+      if (existing) {
+        return NextResponse.json(
+          { success: false, error: 'Feedback already submitted for this student and class' },
+          { status: 409 }
+        );
+      }
+
       // Create feedback document
       const feedbackData = {
         userId: studentId,
@@ -77,7 +86,7 @@ export async function POST(request: NextRequest) {
         technique: Number(technique),
         personalFeedback
       };
-             
+
       const newFeedback = await feedback.create(feedbackData);
       
       // Update the Class document with the feedback ID
@@ -218,9 +227,11 @@ export async function GET(request: NextRequest) {
     try {
         const url = new URL(request.url);
         const courseId = url.searchParams.get("courseId");
-        // const studentId = url.searchParams.get("studentId");
-        
-        // Get token and verify instructor
+        const classId = url.searchParams.get("classId");
+        const forClass = url.searchParams.get("forClass");
+        const queryStudentId = url.searchParams.get("studentId");
+
+        // Get token and verify user
         const token = request.cookies.get("token")?.value;
         if (!token) {
             return NextResponse.json({
@@ -228,60 +239,62 @@ export async function GET(request: NextRequest) {
                 error: 'Authentication required'
             }, { status: 401 });
         }
-        
+
         const decodedToken = token ? jwt.decode(token) : null;
-        const studentId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-        
-        if (!studentId) {
+        const authUserId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
+
+        if (!authUserId) {
             return NextResponse.json({
                 success: false,
                 error: 'Invalid authentication token'
             }, { status: 401 });
         }
-        
-        // Validate required parameters
-        if (!courseId) {
-            return NextResponse.json({
-                success: false,
-                error: 'Course ID is required'
-            }, { status: 400 });
+
+        // Mode 2: ?classId={id}&forClass=true → all feedback for a class (tutor Students tab)
+        if (forClass && classId) {
+            const feedbackRecords = await feedback.find({ classId }).lean();
+            return NextResponse.json({ success: true, data: feedbackRecords }, { status: 200 });
         }
-        
-        // First, find all classes that belong to the specified course
+
+        // Mode 3: ?studentId={id} → all feedback records for a given student (tutor profile modal)
+        if (queryStudentId) {
+            const feedbackRecords = await feedback.find({ userId: queryStudentId })
+                .populate('classId', 'title startTime')
+                .lean();
+            return NextResponse.json({ success: true, data: feedbackRecords }, { status: 200 });
+        }
+
+        // Mode 4: no params → all feedback for the authenticated student (student profile)
+        if (!courseId) {
+            const myFeedbacks = await feedback.find({ userId: authUserId })
+                .populate('classId', 'title startTime course')
+                .lean();
+            return NextResponse.json({ success: true, data: myFeedbacks }, { status: 200 });
+        }
+
+        // Mode 1 (existing): ?courseId={id} → student's own feedback for a course
         const classes = await Class.find({ course: courseId });
-        
+
         if (!classes || classes.length === 0) {
             return NextResponse.json({
                 success: false,
                 error: 'No classes found for the specified course'
             }, { status: 404 });
         }
-        
-        // Extract class IDs
+
         const classIds = classes.map(cls => cls._id);
-        
-        // Construct query for finding feedback
-        const query: any = { classId: { $in: classIds } };
-        
-        // Add studentId to query if provided
-        if (studentId) {
-            query.userId = studentId;
-        }
-        
-        // Find feedback for all classes in the course
-        const feedbackData = await feedback.find(query)
-            // .populate('userId', 'username email') // Populate student details
-            // .populate('classId', 'title startTime') // Populate class details
-            // .lean();
-            const feedbackAllStudent=await feedback.find({ classId: { $in: classIds } })
-        
+        const query: any = { classId: { $in: classIds }, userId: authUserId };
+
+        const feedbackData = await feedback.find(query);
+        const feedbackAllStudent = await feedback.find({ classId: { $in: classIds } });
+
         return NextResponse.json({
             success: true,
             count: feedbackData.length,
             data: feedbackData,
-            feedbackAllStudent:feedbackAllStudent
+            feedbackAllStudent: feedbackAllStudent
         }, { status: 200 });
-        
+
     } catch (error: any) {
         console.error('Error fetching feedback:', error);
         return NextResponse.json({
