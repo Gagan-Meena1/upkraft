@@ -6,6 +6,7 @@ import { MdAssignment, MdAssignmentReturn } from 'react-icons/md';
 import { BiBulb } from 'react-icons/bi';
 import { PiNutBold } from 'react-icons/pi';
 import { toast } from 'react-hot-toast';
+import { useUserData } from "@/app/providers/UserData/page";
 
 interface SidebarItemProps {
   title: string;
@@ -92,8 +93,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
+  const { clearData } = useUserData();
+
   const handleLogout = async () => {
     try {
+      clearData(); // Clear user data
       const response = await fetch('/Api/users/logout');
       if (response.ok) {
         toast.success('Logged out successfully');
