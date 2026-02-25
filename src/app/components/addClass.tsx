@@ -10,10 +10,15 @@ interface ClassItem {
   status: string;
 }
 
+interface AssignmentHistory {
+  date: Date;
+  message: string;
+}
+
 interface CreditEntry {
   courseId: string;
   credits: number;
-  startTime?: { type: string; message: string }[];
+  startTime?: AssignmentHistory[]; // ← Updated type
 }
 
 interface GroupedSlot {
@@ -140,6 +145,8 @@ function CountInput({
     }
   };
 
+
+
   return (
     <input
       type="number"
@@ -179,11 +186,15 @@ export default function ClassSelectionModal({
   const [startDate, setStartDate] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [credits, setCredits] = useState<string>("");  // ← add this
+  
 
   // Per-slot selection: groupKey → SlotSelection
   const [slotSelections, setSlotSelections] = useState<
     Record<string, SlotSelection>
   >({});
+
+  // ✅ ADD THIS: Toggle between form and history
+  const [activeTab, setActiveTab] = useState<"form" | "history">("form");
 
   // Which slots are "active" (the outer group checkbox)
   const [activeSlots, setActiveSlots] = useState<Set<string>>(new Set());
@@ -202,15 +213,42 @@ const grouped = useMemo(() => groupClasses(filteredByStartDate), [filteredByStar
     return entry ? entry.credits : null;
   }, [courseId, creditsPerCourse]);
 
+// ✅ ADD THIS: Extract assignment history for current course
+const assignmentHistory = useMemo(() => {
+  if (!courseId) return [];
+  const entry = creditsPerCourse.find((c) => c.courseId === courseId);
+  return entry?.startTime || [];
+}, [courseId, creditsPerCourse]);
+
+// ✅ ADD THIS: Helper function to calculate end date
+const getEndDateForAssignment = (startDate: string | Date): string => {
+  const relevantClasses = classes.filter(
+    (cls) => new Date(cls.startTime) >= new Date(startDate)
+  );
+  
+  if (relevantClasses.length === 0) return "N/A";
+  
+  const lastClass = relevantClasses.reduce((latest, cls) => {
+    return new Date(cls.startTime) > new Date(latest.startTime) ? cls : latest;
+  });
+  
+  return new Date(lastClass.startTime).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
   // ── Reset when modal opens/closes ──────────────────────────────────────────
+// ── Reset when modal opens/closes ──────────────────────────────────────────
   React.useEffect(() => {
     if (!open) {
       setSlotSelections({});
       setActiveSlots(new Set());
       setStartDate("");
       setMessage("");
-          setCredits("");  // ← add this
-
+      setCredits("");
+      setActiveTab("form"); // ✅ ADD THIS: Reset to form tab
     }
   }, [open]);
 
@@ -245,6 +283,40 @@ const allSelectedClassIds = useMemo(() => {
   return grouped.flatMap((dg) => dg.timeSlots).flatMap(effectiveIdsForSlot);
 }, [grouped, activeSlots, slotSelections]);
 
+// ✅ ADD THIS: Calculate total available credits
+const totalAvailableCredits = useMemo(() => {
+  const existing = creditsRemaining || 0;
+  const newCredits = parseInt(credits, 10) || 0;
+  return existing + newCredits;
+}, [creditsRemaining, credits]);
+
+// ✅ ADD THIS: Check if credit limit exceeded
+const isCreditsMatched = useMemo(() => {
+  return allSelectedClassIds.length === totalAvailableCredits;
+}, [allSelectedClassIds.length, totalAvailableCredits]);
+
+// ✅ UPDATED: Full flexibility in simpleMode
+const isValidSelection = useMemo(() => {
+  if (simpleMode) {
+    // Simple mode: FULL FLEXIBILITY - always valid
+    return true;
+  } else {
+    // Normal mode: strict - must match exactly
+    return allSelectedClassIds.length === totalAvailableCredits;
+  }
+}, [simpleMode, allSelectedClassIds.length, totalAvailableCredits]);
+
+const creditsDifference = useMemo(() => {
+  if (simpleMode) {
+    // Simple mode: no validation needed
+    return 0;
+  } else {
+    // Normal mode: check difference from exact match
+    return totalAvailableCredits - allSelectedClassIds.length;
+  }
+}, [simpleMode, totalAvailableCredits, allSelectedClassIds.length]);
+
+
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   const toggleSlotActive = (groupKey: string) => {
@@ -257,66 +329,62 @@ const allSelectedClassIds = useMemo(() => {
   };
 
 const updateSlotMode = (groupKey: string, mode: "all" | "count") => {
-  setSlotSelections((prev) => ({
-    ...prev,
-    [groupKey]: {
-      ...(prev[groupKey] ?? { mode: "all", count: 1, manualOverrides: {} }),
-      mode,
-      count: mode === "count" ? 1 : (prev[groupKey]?.count ?? 1), // reset to 1 on switch
-      manualOverrides: {},
-    },
-  }));
+  setSlotSelections((prev) => {
+    const existing = prev[groupKey] ?? { mode: "all", count: 1, manualOverrides: {} };
+    return {
+      ...prev,
+      [groupKey]: {
+        ...existing,
+        mode,
+        count: mode === "count" ? 1 : existing.count,
+        // DON'T clear manualOverrides - keep user's selections
+        manualOverrides: existing.manualOverrides,
+      },
+    };
+  });
 };
 
 // AFTER
 const updateSlotCount = (groupKey: string, count: number) => {
-  setSlotSelections((prev) => ({
-    ...prev,
-    [groupKey]: {
-      ...(prev[groupKey] ?? { mode: "count", count: 1, manualOverrides: {} }),
-      mode: "count",   // ← explicitly enforce mode
-      count,
-      manualOverrides: {},
-    },
-  }));
+  setSlotSelections((prev) => {
+    const existing = prev[groupKey] ?? { mode: "count", count: 1, manualOverrides: {} };
+    return {
+      ...prev,
+      [groupKey]: {
+        ...existing,
+        mode: "count",
+        count,
+        // DON'T clear manualOverrides - keep user's selections
+        manualOverrides: existing.manualOverrides,
+      },
+    };
+  });
 };
 
-  const toggleClassOverride = (
-    groupKey: string,
-    classId: string,
-    currentlySelected: boolean
-  ) => {
-    setSlotSelections((prev) => {
-      const existing = getSlotSelection(groupKey);
-      const overrides = { ...existing.manualOverrides };
-      // If toggling back to the "natural" state, remove the override
-      const sel = prev[groupKey] ?? existing;
-      const naturalSet = new Set<string>(
-        sel.mode === "all"
-          ? grouped
-              .flatMap((dg) => dg.timeSlots)
-              .find((s) => s.groupKey === groupKey)
-              ?.classes.map((c) => c._id) ?? []
-          : grouped
-              .flatMap((dg) => dg.timeSlots)
-              .find((s) => s.groupKey === groupKey)
-              ?.classes.slice(0, sel.count)
-              .map((c) => c._id) ?? []
-      );
-      const naturalState = naturalSet.has(classId);
-      if (currentlySelected === naturalState) {
-        // toggling back to natural → remove override
-        delete overrides[classId];
-      } else {
-        overrides[classId] = !currentlySelected;
-      }
-      return {
-        ...prev,
-        [groupKey]: { ...existing, manualOverrides: overrides },
-      };
-    });
-  };
-
+const toggleClassOverride = (
+  groupKey: string,
+  classId: string,
+  currentlySelected: boolean
+) => {
+  setSlotSelections((prev) => {
+    const existing = getSlotSelection(groupKey);
+    const overrides = { ...existing.manualOverrides };
+    
+    // Simply toggle the override - if currently selected, deselect it; if not, select it
+    if (currentlySelected) {
+      // Class is selected, so we want to deselect it
+      overrides[classId] = false;
+    } else {
+      // Class is not selected, so we want to select it
+      overrides[classId] = true;
+    }
+    
+    return {
+      ...prev,
+      [groupKey]: { ...existing, manualOverrides: overrides },
+    };
+  });
+};
   const handleConfirm = () => {
     onConfirm({
       classIds: allSelectedClassIds,
@@ -327,6 +395,7 @@ const updateSlotCount = (groupKey: string, count: number) => {
   };
 
   if (!open) return null;
+
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -367,6 +436,98 @@ const updateSlotCount = (groupKey: string, count: number) => {
           </button>
         </div>
 
+        {/* ✅ ADD THIS: Tab Toggle Buttons */}
+        {assignmentHistory.length > 0 && (
+          <div className="px-6 pt-4 pb-0 border-b border-gray-200">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab("form")}
+                className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all ${
+                  activeTab === "form"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                📝 Assign Classes
+              </button>
+              <button
+                onClick={() => setActiveTab("history")}
+                className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-t-lg transition-all ${
+                  activeTab === "history"
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                📚 History ({assignmentHistory.length})
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ✅ MODIFIED: History Section - Only show when activeTab === "history" */}
+        {assignmentHistory.length > 0 && activeTab === "history" && (
+          <div className="px-6 py-4 flex-1 overflow-y-auto bg-gradient-to-r from-purple-50 to-indigo-50">
+            <div className="space-y-3">
+              {assignmentHistory.map((entry, idx) => {
+                const startDate = new Date(entry.date);
+                const endDate = getEndDateForAssignment(entry.date);
+                
+                return (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-lg p-4 border border-purple-200 shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        {/* Assignment number badge - moved to top */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-purple-600 bg-purple-100 rounded-full">
+                            Entry #{assignmentHistory.length - idx}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {startDate.toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        
+                        {/* Message */}
+                        {entry.message && (
+                          <p className="text-sm text-gray-700 mb-3 bg-gray-50 p-2 rounded border-l-2 border-purple-400">
+                            💬 {entry.message}
+                          </p>
+                        )}
+                        
+                        {/* Dates */}
+                        <div className="flex items-center gap-4 text-xs bg-white p-2 rounded border border-gray-200">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-purple-600">Start:</span>
+                            <span className="text-gray-700">
+                              {startDate.toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                          <span className="text-gray-300">→</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-indigo-600">End:</span>
+                            <span className="text-gray-700">{endDate}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {(assignmentHistory.length === 0 || activeTab === "form") && (
+          <>
         {/* ── Extra Fields ── */}
         {!simpleMode && (<div className="px-6 pt-4 pb-2 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Start Date */}
@@ -381,20 +542,35 @@ const updateSlotCount = (groupKey: string, count: number) => {
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
             />
           </div>
-           {/* Credits */}
-  <div>
-    <label className="block text-xs font-semibold text-gray-600 mb-1">
-      Credits 
-    </label>
-    <input
-      type="number"
-      min={1}
-      placeholder="Enter credits..."
-      value={credits}
-      onChange={(e) => setCredits(e.target.value)}
-      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
-    />
-  </div>
+
+          {/* Credits */}
+{/* Credits */}
+<div>
+  <label className="block text-xs font-semibold text-gray-600 mb-1">
+    Credits
+  </label>
+  <input
+    type="number"
+    min={1}
+    placeholder="Enter credits..."
+    value={credits}
+    onChange={(e) => setCredits(e.target.value)}
+    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
+      !isValidSelection && allSelectedClassIds.length > 0 // ✅ UPDATED
+        ? "border-red-300 focus:ring-red-400"
+        : "border-gray-200 focus:ring-purple-400"
+    }`}
+  />
+  {/* Show total credits preview */}
+  {credits && (
+    <p className="text-xs text-gray-500 mt-1">
+      Total: {creditsRemaining || 0} + {parseInt(credits, 10) || 0} ={" "}
+      <span className="font-semibold text-purple-600">
+        {totalAvailableCredits} credits
+      </span>
+    </p>
+  )}
+</div>
 
           {/* Message */}
           <div>
@@ -554,6 +730,31 @@ const effectiveIds = (() => {
                               
                             </div>
 
+                            {/* After the mode selector div, add this: */}
+{Object.keys(sel.manualOverrides).length > 0 && (
+  <div className="flex items-center justify-between mb-2 px-2 py-1.5 bg-purple-50 rounded-lg border border-purple-200">
+    <span className="text-xs text-purple-700">
+      You have {Object.keys(sel.manualOverrides).length} manual override(s)
+    </span>
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        setSlotSelections((prev) => ({
+          ...prev,
+          [slot.groupKey]: {
+            ...sel,
+            manualOverrides: {},
+          },
+        }));
+      }}
+      className="text-xs text-purple-600 hover:text-purple-800 underline"
+    >
+      Clear all overrides
+    </button>
+  </div>
+)}
+
                             {/* Individual class pills — allow manual override */}
                             <div className="flex flex-wrap gap-2">
                               {slot.classes.map((cls, idx) => {
@@ -616,27 +817,134 @@ const effectiveIds = (() => {
           )}
         </div>
 
-        {/* ── Footer ── */}
+{/* ✅ UPDATED: Only show warnings in normal mode */}
+        {!simpleMode && !isValidSelection && allSelectedClassIds.length > 0 && (
+          <div className={`px-6 py-3 border-t ${
+            creditsDifference > 0 ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200'
+          }`}>
+            <div className="flex items-start gap-3">
+              <svg
+                className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
+                  creditsDifference > 0 ? 'text-orange-500' : 'text-red-500'
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <div className="flex-1">
+                {creditsDifference > 0 ? (
+                  <>
+                    <h4 className="text-sm font-semibold text-orange-800 mb-1">
+                      ⚠️ Need More Classes
+                    </h4>
+                 
+                  </>
+                ) : (
+                  <>
+                    <h4 className="text-sm font-semibold text-red-800 mb-1">
+                      ⚠️ Too Many Classes Selected
+                    </h4>
+                   
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+   
+
+
+        {/* ✅ NEW: Success Banner when matched */}
+        {isCreditsMatched && allSelectedClassIds.length > 0 && (
+          <div className="px-6 py-3 bg-green-50 border-t border-green-200">
+            <div className="flex items-center gap-3">
+              <svg
+                className="w-5 h-5 text-green-500 flex-shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-green-800">
+                  ✅ Perfect Match! {allSelectedClassIds.length} classes selected for {totalAvailableCredits} credits.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        </>
+        )}
+
+        
+
+{/* ── Footer ── */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
           <div className="text-sm text-gray-500">
-            <span className="font-semibold text-purple-700">
-              {allSelectedClassIds.length}
-            </span>{" "}
-            class
-            {allSelectedClassIds.length !== 1 ? "es" : ""} selected
-            {creditsRemaining !== null && (
-              <span className="ml-3 text-xs">
-                · Credits remaining:{" "}
-                <span
-                  className={
-                    creditsRemaining < allSelectedClassIds.length
-                      ? "text-red-500 font-bold"
-                      : "text-green-600 font-bold"
-                  }
-                >
-                  {creditsRemaining}
+            {/* ✅ UPDATED: Different display based on simpleMode */}
+            {simpleMode ? (
+              /* Simple Mode: Just show count - no validation */
+              <>
+                <span className="font-semibold text-purple-700">
+                  {allSelectedClassIds.length}
+                </span>{" "}
+                class
+                {allSelectedClassIds.length !== 1 ? "es" : ""} selected
+              </>
+            ) : (
+              /* Normal Mode: Show exact match status */
+              <>
+                <span className={`font-semibold ${
+                  isValidSelection && allSelectedClassIds.length > 0
+                    ? 'text-green-600'
+                    : allSelectedClassIds.length > 0
+                    ? 'text-orange-600'
+                    : 'text-purple-700'
+                }`}>
+                  {allSelectedClassIds.length}
                 </span>
-              </span>
+                <span className="text-gray-600">
+                  /{totalAvailableCredits}
+                </span>{" "}
+                class
+                {allSelectedClassIds.length !== 1 ? "es" : ""} selected
+                
+                {allSelectedClassIds.length > 0 && totalAvailableCredits > 0 && (
+                  <span className="ml-3 text-xs">
+                    {isValidSelection ? (
+                      <span className="text-green-600 font-semibold">✓ Perfect Match</span>
+                    ) : creditsDifference > 0 ? (
+                      <span className="text-orange-600 font-semibold">
+                        Need {creditsDifference} more
+                      </span>
+                    ) : (
+                      <span className="text-red-600 font-semibold">
+                        {Math.abs(creditsDifference)} too many
+                      </span>
+                    )}
+                  </span>
+                )}
+                
+                {creditsRemaining !== null && (
+                  <span className="ml-3 text-xs text-gray-400">
+                    ({creditsRemaining} existing + {parseInt(credits, 10) || 0} new)
+                  </span>
+                )}
+              </>
             )}
           </div>
 
@@ -649,7 +957,11 @@ const effectiveIds = (() => {
             </button>
             <button
               onClick={handleConfirm}
-              disabled={allSelectedClassIds.length === 0 || (!simpleMode && !startDate)}
+              disabled={
+                allSelectedClassIds.length === 0 || 
+                (!simpleMode && !startDate) || 
+                !isValidSelection // ✅ In simpleMode this is always true
+              }
               className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Confirm & Add ({allSelectedClassIds.length})
@@ -660,3 +972,4 @@ const effectiveIds = (() => {
     </div>
   );
 }
+    

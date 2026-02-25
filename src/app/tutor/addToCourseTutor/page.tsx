@@ -22,7 +22,7 @@ interface Course {
 interface CreditEntry {
   courseId: string;
   credits: number;
-  startTime?: { type: string; message: string }[];
+  startTime?: { date: string; message: string }[]; // ✅ Changed from 'type' to 'date'
 }
 
 export default function TutorCoursesPage() {
@@ -104,18 +104,30 @@ export default function TutorCoursesPage() {
     }
   };
 
-  const fetchClasses = async (courseId: string) => {
-    try {
-      setClassesLoading(true);
-      const response = await axios.get(`/Api/tutors/courses/${courseId}`);
-      const allClasses: any[] = response.data.classDetails || [];
-     setClasses(allClasses); // store all classes unfiltered
-    } catch (err: any) {
-      setClasses([]);
-    } finally {
-      setClassesLoading(false);
+const fetchClasses = async (courseId: string) => {
+  try {
+    setClassesLoading(true);
+    const response = await axios.get(`/Api/tutors/courses/${courseId}`);
+    const allClasses: any[] = response.data.classDetails || [];
+    setClasses(allClasses);
+    
+    // ✅ ADD THIS: Extract the specific student's creditsPerCourse
+    const enrolledStudents = response.data.enrolledStudents || [];
+    const currentStudent = enrolledStudents.find((student: any) => student._id === studentId);
+    
+    if (currentStudent && currentStudent.creditsPerCourse) {
+      setCreditsPerCourse(currentStudent.creditsPerCourse);
+    } else {
+      setCreditsPerCourse([]);
     }
-  };
+    
+  } catch (err: any) {
+    setClasses([]);
+    setCreditsPerCourse([]); // ✅ Clear on error
+  } finally {
+    setClassesLoading(false);
+  }
+};
 
   const handleAddStudentToCourse = async (courseId: string) => {
     setPendingCourseId(courseId);
