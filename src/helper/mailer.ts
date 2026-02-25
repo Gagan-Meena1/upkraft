@@ -422,28 +422,21 @@ else if (emailType === "CLASS_CANCELLED") {
 }
 
 else if (emailType === "FEEDBACK_RECEIVED") {
- mailOptions = {
-  from: fromAddress,
-  to: email,
-  subject: `New feedback received${courseName ? ` — ${courseName}` : ''}`,
-  html: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Student Feedback Summary</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #f8f8f6; font-family: Arial, sans-serif;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 20px; min-height: 100vh;">
-    <h1 style="color: #ff8c00; text-align: center; margin-bottom: 20px;">Feedback Received</h1>
-    <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); text-align: center;">
-      <p style="font-size: 16px; color: #333; margin: 10px 0; line-height: 1.5;">
-        Hi <strong>${username}</strong>,
-      </p>
-      <p style="font-size: 16px; color: #333; margin: 10px 0; line-height: 1.5;">
-        Here is a summary of your recent feedback for the class <strong>"${className}"</strong>${classDate ? ` on <strong>${classDate}</strong>` : ''} in <strong>${courseName}</strong> course.
-      </p>
-      <div
+  mailOptions = {
+    from: fromAddress,
+    to: email,
+    subject: `Feedback Received - ${courseName || "UpKraft"}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8f8f6; min-height: 100vh;">
+        <h1 style="color: #ff8c00; text-align: center;">Feedback Received</h1>
+        <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); text-align: center;">
+          <p style="font-size: 16px; color: #333; margin: 10px 0; line-height: 1.5;">
+            Hi <strong>${username}</strong>,
+          </p>
+          <p style="font-size: 16px; color: #333; margin: 10px 0; line-height: 1.5;">
+            Here is a summary of your recent feedback for the class <strong>"${className}"</strong>${classDate ? ` on <strong>${classDate}</strong>` : ''} in <strong>${courseName}</strong> course.
+          </p>
+          <div
   style="
     width: 100px;
     height: 100px;
@@ -460,53 +453,45 @@ else if (emailType === "FEEDBACK_RECEIVED") {
 >
   ${averageScore}/10
 </div>
-      <span style="font-size: 14px; color: #666; margin-top: -15px; margin-bottom: 20px; display: block;">Average Score</span>
-      
-      ${feedbackDetails ? `
-      <div style="margin: 20px 0;">
-        <table style="width: 100%; border-collapse: collapse; font-size: 14px; text-align: left;">
-          <thead>
-            <tr style="background-color: #f8f9fa;">
-              <th style="padding: 10px; border-bottom: 2px solid #dee2e6; color: #495057;">Skill</th>
-              <th style="padding: 10px; border-bottom: 2px solid #dee2e6; color: #495057; text-align: right;">Score</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${Object.entries(feedbackDetails).map(([key, value]) => `
-              <tr>
-                <td style="padding: 10px; border-bottom: 1px solid #dee2e6; color: #212529; text-transform: capitalize;">
-                  ${key.replace(/([A-Z])/g, ' $1').trim()}
-                </td>
-                <td style="padding: 10px; border-bottom: 1px solid #dee2e6; color: #212529; text-align: right; font-weight: bold;">
-                  ${value}/10
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+          <span style="font-size: 14px; color: #666; margin-top: -15px; margin-bottom: 20px; display: block;">Average Score</span>
+          
+          ${feedbackDetails ? `
+          <div style="margin: 20px 0;">
+            <h3 style="margin-bottom: 10px; color: #333;">Detailed Scores</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tbody>
+                ${Object.entries(feedbackDetails).map(([key, value]) => `
+                  <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; color: #212529; text-transform: capitalize;">
+                      ${key.replace(/([A-Z])/g, ' $1').trim()}
+                    </td>
+                    <td style="padding: 10px; border-bottom: 1px solid #dee2e6; color: #212529; text-align: right; font-weight: bold;">
+                      ${formatFeedbackScore(value)}
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          ` : ''}
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: left;">
+            <h3 style="margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; color: #333; font-size: 18px;">Tutor's Feedback</h3>
+            <p style="font-size: 15px; color: #555; font-style: italic;">
+              "${personalFeedback}"
+            </p>
+          </div>
+          
+          <div style="margin-top: 30px;">
+            <a href="${process.env.DOMAIN}/student/singleFeedback/${feedbackCategory}?classId=${classId}&studentId=${userId}" style="background-color: #333; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Detailed Report</a>
+          </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #888;">
+          © 2024 UpKraft. All rights reserved.
+        </div>
       </div>
-      ` : ''}
-
-      <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: left;">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #ddd; padding-bottom: 10px; color: #333; font-size: 18px;">Tutor's Feedback</h3>
-        <p style="font-size: 15px; color: #555; font-style: italic;">
-          "${personalFeedback}"
-        </p>
-      </div>
-      
-      <div style="margin-top: 30px;">
-        <a href="${process.env.DOMAIN}/student/singleFeedback/${feedbackCategory}?classId=${classId}&studentId=${userId}" style="background-color: #333; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">View Detailed Report</a>
-      </div>
-    </div>
-    
-    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #888;">
-      © 2024 UpKraft. All rights reserved.
-    </div>
-  </div>
-</body>
-</html>
-  `
-};
+    `
+  };
 }
 else if (emailType === "VIDEO_SHARE") {
   // Generate pre-signed URLs (valid for 7 days)
@@ -626,4 +611,11 @@ else if (emailType === "VIDEO_SHARE") {
     console.error("[Mailer] Error sending email:", error.message);
     throw new Error(error.message);
   }
+}
+
+function formatFeedbackScore(value: any): string {
+  if (value === null || value === undefined) return 'NA';
+  if (typeof value === 'string' && value.trim().toUpperCase() === 'NA') return 'NA';
+  if (typeof value === 'number' && value <= 0) return 'NA';
+  return `${value}/10`;
 }

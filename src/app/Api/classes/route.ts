@@ -239,7 +239,13 @@ export async function POST(request: NextRequest) {
       verifyStart: format(dateFnsTz.toZonedTime(startDateTime, timezone || "UTC"), 'HH:mm'),
       verifyEnd: format(dateFnsTz.toZonedTime(endDateTime, timezone || "UTC"), 'HH:mm')
     });
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -323,7 +329,13 @@ export async function POST(request: NextRequest) {
 //   try {
 //     console.log("Fetching classes data...");
 
-//     const token = request.cookies.get("token")?.value;
+//     const token = (() => {
+//       const referer = request.headers.get("referer") || "";
+//       let refererPath = "";
+//       try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+//       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+//       return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+//     })();
 //     const decodedToken = token ? jwt.decode(token) : null;
 //     let instructorId =
 //       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -399,10 +411,19 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching classes data...");
 
-    const cookieToken = request.cookies.get("token")?.value || "";
+    // Priority 1: impersonation token (RSM acting as tutor — web only)
+    // Priority 2: session cookie (web browser)
+    // Priority 3: Bearer token in Authorization header (React Native mobile app)
+    const referer = request.headers.get("referer") || "";
+    let refererPath = "";
+    try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+    const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+    const impersonateToken = request.cookies.get("impersonate_token")?.value;
     const authHeader = request.headers.get("Authorization") || "";
     const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    const token = cookieToken || bearerToken;
+    const token = (isTutorContext && impersonateToken)
+      ? impersonateToken
+      : (request.cookies.get("token")?.value || bearerToken || "");
     const decodedToken = token ? jwt.decode(token) : null;
     let instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -546,7 +567,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -729,7 +756,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken

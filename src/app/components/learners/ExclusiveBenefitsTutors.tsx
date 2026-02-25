@@ -11,6 +11,7 @@ import tutors05 from "@/assets/tutors-05.png";
 import tutors06 from "@/assets/tutors-06.png";
 import tutors07 from "@/assets/tutors-07.png";
 import ModalTutor from './ModalTutor';
+import tutor from '@/assets/tutor.jpeg'
 
 const ExclusiveBenefitsTutors = () => {
     const [showModal, setShowModal] = useState(false);
@@ -67,7 +68,7 @@ const ExclusiveBenefitsTutors = () => {
                         </div>
 
                         <div className="tutor-full-img-box flex justify-center items-center p-md-4 rounded">
-                            <img src={FullImg.src} alt="Tutor Teaching" className="max-w-full" />
+                            <img src={tutor.src} alt="Tutor Teaching" className="max-w-full" />
                         </div>
                     </div>
 
