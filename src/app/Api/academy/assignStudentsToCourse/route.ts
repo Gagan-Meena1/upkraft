@@ -305,7 +305,7 @@ export async function DELETE(request: NextRequest) {
       await User.findByIdAndUpdate(
         studentId,
         {
-          $pull: { courses: courseId },
+          $pull: { courses: courseId ,classes: { $in: course.class || []}},
           instructorId: updatedInstructorIds,
           $inc: { credits: -course.credits }
         },
