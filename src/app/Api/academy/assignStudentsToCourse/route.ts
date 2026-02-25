@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Get studentIds from request body
     const body = await request.json();
-    const { studentIds } = body;
+    const { studentIds , classIds} = body;
 
     if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
       return NextResponse.json(
@@ -146,7 +146,8 @@ export async function POST(request: NextRequest) {
         {
           $push: { 
             courses: courseId,
-            instructorId: { $each: tutorIds }
+            instructorId: { $each: tutorIds },
+            classes: { $each: classIds || [] } // Add classIds if provided
           },
           $inc: { credits: course.credits }
         },
@@ -304,7 +305,7 @@ export async function DELETE(request: NextRequest) {
       await User.findByIdAndUpdate(
         studentId,
         {
-          $pull: { courses: courseId },
+          $pull: { courses: courseId ,classes: { $in: course.class || []}},
           instructorId: updatedInstructorIds,
           $inc: { credits: -course.credits }
         },
