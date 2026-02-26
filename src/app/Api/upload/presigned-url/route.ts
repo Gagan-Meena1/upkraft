@@ -14,8 +14,8 @@ const s3Client = new S3Client({
 export async function POST(req: NextRequest) {
   console.log("INFO: Presigned URL request received (AWS SDK v3).");
   try {
-    const { fileName, fileType, classId } = await req.json();
-    console.log("INFO: Request body:", { fileName, fileType, classId });
+    const { fileName, fileType, classId, uploadType } = await req.json();
+    console.log("INFO: Request body:", { fileName, fileType, classId, uploadType });
 
     if (!fileName || !fileType || !classId) {
       console.error("ERROR: Missing required parameters in presigned URL request.");
@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
     }
 
     const fileExtension = fileName.split('.').pop();
-    const key = `uploads/class-videos/${classId}.${fileExtension}`;
+    const folder = uploadType === 'photo' ? 'class-photos' : 'class-videos';
+    const key = `uploads/${folder}/${classId}_${Date.now()}.${fileExtension}`;
     console.log(`INFO: Generated S3 key: ${key}`);
 
     const putObjectCommand = new PutObjectCommand({

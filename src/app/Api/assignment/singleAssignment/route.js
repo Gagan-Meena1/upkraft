@@ -297,14 +297,17 @@ export async function PUT(request) {
           );
 
           if (submissionIndex === -1) {
-            return NextResponse.json(
-              { success: false, message: "Submission not found for this student" },
-              { status: 404 }
-            );
+            // No submission exists — create one for pending approval without submission
+            assignment.submissions.push({
+              studentId,
+              status: "APPROVED",
+              tutorRemarks: tutorRemarks || "",
+              submittedAt: new Date(),
+            });
+          } else {
+            assignment.submissions[submissionIndex].status = "APPROVED";
+            if (tutorRemarks) assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
           }
-
-          assignment.submissions[submissionIndex].status = "APPROVED";
-          if (tutorRemarks) assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
 
           await assignment.save();
 
@@ -377,35 +380,50 @@ export async function PUT(request) {
       );
 
       if (submissionIndex === -1) {
-        return NextResponse.json(
-          { success: false, message: "Submission not found for this student" },
-          { status: 404 }
-        );
+        // No submission exists — only APPROVED is allowed (pending approval without submission)
+        if (action !== "APPROVED") {
+          return NextResponse.json(
+            { success: false, message: "Submission not found for this student" },
+            { status: 404 }
+          );
+        }
+        // Create a new submission entry for a pending student approved without submission
+        assignment.submissions.push({
+          studentId,
+          status: "APPROVED",
+          tutorRemarks: tutorRemarks || "",
+          ...(typeof rating === "number" && { rating }),
+          ...(typeof ratingMessage === "string" && { ratingMessage }),
+          submittedAt: new Date(),
+        });
+      } else {
+        assignment.submissions[submissionIndex].status = action;
+        if (tutorRemarks) {
+          assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
+        }
+
+        // Only allow rating/ratingMessage when APPROVED
+        if (action === "APPROVED") {
+          if (typeof rating === "number") {
+            assignment.submissions[submissionIndex].rating = rating;
+          }
+          if (typeof ratingMessage === "string") {
+            assignment.submissions[submissionIndex].ratingMessage = ratingMessage;
+          }
+        }
       }
 
-      assignment.submissions[submissionIndex].status = action;
-      if (tutorRemarks) {
-        assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
-      }
-
-      // Only allow rating/ratingMessage when APPROVED
+      // Clean up pendingAssignments when APPROVED (both new and existing submissions)
       if (action === "APPROVED") {
-        if (typeof rating === "number") {
-          assignment.submissions[submissionIndex].rating = rating;
-        }
-        if (typeof ratingMessage === "string") {
-          assignment.submissions[submissionIndex].ratingMessage = ratingMessage;
-        }
-
             const user = await User.findById(userId);
-            
+
             if (user && user.pendingAssignments) {
               const studentPendingIndex = user.pendingAssignments.findIndex(
                 (pending) => pending.studentId.toString() === studentId
               );
 
               if (studentPendingIndex !== -1) {
-                user.pendingAssignments[studentPendingIndex].assignmentIds = 
+                user.pendingAssignments[studentPendingIndex].assignmentIds =
                   user.pendingAssignments[studentPendingIndex].assignmentIds.filter(
                     (id) => id.toString() !== assignmentId
                   );
@@ -415,8 +433,8 @@ export async function PUT(request) {
                 }
 
                 await user.save();
-         }
-        }
+              }
+            }
       }
 
       
