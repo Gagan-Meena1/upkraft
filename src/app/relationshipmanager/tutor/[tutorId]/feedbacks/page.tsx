@@ -43,6 +43,7 @@ interface FeedbackItem {
     course: CourseInfo;
     ratings: RatingsInfo;
     personalFeedback: string;
+    isEditable?: boolean;
 }
 
 interface StudentSummary {
@@ -61,6 +62,7 @@ export default function RMStudentFeedbacksPage() {
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+    const [enablingFeedbackId, setEnablingFeedbackId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!tutorId) {
@@ -144,6 +146,34 @@ export default function RMStudentFeedbacksPage() {
             fb.class.title.toLowerCase().includes(lowerSearch)
         );
     }, [feedbacks, selectedStudentId, searchTerm]);
+
+    const handleEnableEdit = async (feedbackId: string) => {
+        if (!tutorId) return;
+        try {
+            setEnablingFeedbackId(feedbackId);
+            const res = await fetch(`/Api/relationship-manager/tutor/${tutorId}/feedbacks/${feedbackId}/enable-edit`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                alert(data.error || "Failed to enable edit.");
+                return;
+            }
+
+            // Update local state
+            setFeedbacks(prev => prev.map(fb =>
+                fb._id === feedbackId ? { ...fb, isEditable: true } : fb
+            ));
+
+        } catch (err: any) {
+            alert(err.message || "An error occurred while enabling edit.");
+        } finally {
+            setEnablingFeedbackId(null);
+        }
+    };
 
     if (loading) {
         return (
@@ -326,6 +356,18 @@ export default function RMStudentFeedbacksPage() {
                                                 {new Date(fb.createdAt).toLocaleDateString("en-US", {
                                                     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                                                 })}
+                                            </div>
+                                            <div className="mt-2 text-right">
+                                                <button
+                                                    onClick={() => handleEnableEdit(fb._id)}
+                                                    disabled={fb.isEditable || enablingFeedbackId === fb._id}
+                                                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors border ${fb.isEditable
+                                                            ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
+                                                            : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-300'
+                                                        }`}
+                                                >
+                                                    {enablingFeedbackId === fb._id ? 'Enabling...' : fb.isEditable ? 'Edit Enabled for Tutor' : 'Enable Tutor Edit'}
+                                                </button>
                                             </div>
                                         </div>
                                     </div>

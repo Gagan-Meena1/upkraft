@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
-import Class from "@/models/Class";
 import feedback from "@/models/feedback";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 
-export async function GET(
+export async function PATCH(
     request: NextRequest,
-    { params }: { params: Promise<{ tutorId: string }> }
+    { params }: { params: Promise<{ tutorId: string; feedbackId: string }> }
 ) {
     try {
         await connect();
@@ -57,16 +55,16 @@ export async function GET(
             );
         }
 
-        const { tutorId } = await params;
-        if (!tutorId) {
+        const { tutorId, feedbackId } = await params;
+        if (!tutorId || !feedbackId) {
             return NextResponse.json(
-                { success: false, error: "Tutor ID required" },
+                { success: false, error: "Tutor ID and Feedback ID are required" },
                 { status: 400 }
             );
         }
 
         const tutor = (await User.findById(tutorId)
-            .select("_id username email relationshipManager classes")
+            .select("_id relationshipManager")
             .lean()) as any;
 
         if (!tutor) {
@@ -90,82 +88,30 @@ export async function GET(
             );
         }
 
-        const classIds = (tutor.classes || []).map((id: any) =>
-            typeof id === "object" ? id._id : id
+        const updatedFeedback = await feedback.findByIdAndUpdate(
+            feedbackId,
+            { $set: { isEditable: true } },
+            { new: true, strict: false }
         );
 
-        if (classIds.length === 0) {
-            return NextResponse.json({
-                success: true,
-                tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
-                feedbacks: [],
-            });
+        if (!updatedFeedback) {
+            return NextResponse.json(
+                { success: false, error: "Feedback not found" },
+                { status: 404 }
+            );
         }
-
-        const feedbacks = (await feedback
-            .find({ classId: { $in: classIds } })
-            .populate("userId", "username email")
-            .populate({
-                path: "classId",
-                select: "title startTime endTime course",
-                populate: {
-                    path: "course",
-                    select: "courseName title name"
-                }
-            })
-            .sort({ createdAt: -1 })
-            .lean()) as any[];
-
-        const formattedFeedbacks = feedbacks.map((fb: any) => {
-            const student = fb.userId || {};
-            const classObj = fb.classId || {};
-            const courseObj = classObj.course || {};
-
-            return {
-                _id: fb._id,
-                createdAt: fb.createdAt,
-                student: {
-                    _id: student._id,
-                    username: student.username || "Unknown",
-                    email: student.email || "Unknown",
-                },
-                class: {
-                    _id: classObj._id,
-                    title: classObj.title || "Unknown",
-                    startTime: classObj.startTime,
-                    endTime: classObj.endTime,
-                },
-                course: {
-                    _id: courseObj._id,
-                    title: courseObj.courseName || courseObj.title || courseObj.name || "Unknown Course",
-                },
-                ratings: {
-                    rhythm: fb.rhythm,
-                    theoreticalUnderstanding: fb.theoreticalUnderstanding,
-                    performance: fb.performance,
-                    earTraining: fb.earTraining,
-                    assignment: fb.assignment,
-                    technique: fb.technique,
-                    attendance: fb.attendance,
-                    overallRating: fb.feedbackRating,
-                    naFields: fb.naFields || []
-                },
-                personalFeedback: fb.personalFeedback || "",
-                isEditable: fb.isEditable || false
-            };
-        });
 
         return NextResponse.json({
             success: true,
-            tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
-            feedbacks: formattedFeedbacks,
+            message: "Edit enabled successfully",
+            feedback: updatedFeedback
         });
     } catch (error: any) {
-        console.error("Error fetching RM tutor feedbacks:", error);
+        console.error("Error enabling feedback edit:", error);
         return NextResponse.json(
             {
                 success: false,
-                error: error.message || "Failed to fetch tutor feedbacks",
+                error: error.message || "Failed to enable feedback edit",
             },
             { status: 500 }
         );
