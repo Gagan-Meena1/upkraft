@@ -189,10 +189,10 @@ export default function RMStudentFeedbacksPage() {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 max-w-md text-center">
                     <p className="text-red-600 mb-4">{error}</p>
                     <Link
-                        href={`/relationshipmanager/tutor/${tutorId}`}
+                        href={`/relationshipmanager`}
                         className="inline-flex items-center gap-2 text-purple-600 hover:underline"
                     >
-                        <ChevronLeft className="w-4 h-4" /> Back to tutor calendar
+                        <ChevronLeft className="w-4 h-4" /> Back to dashboard
                     </Link>
                 </div>
             </div>
@@ -221,9 +221,9 @@ export default function RMStudentFeedbacksPage() {
                             </button>
                         ) : (
                             <Link
-                                href={`/relationshipmanager/tutor/${tutorId}`}
+                                href={`/relationshipmanager`}
                                 className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex-shrink-0"
-                                title="Back to tutor calendar"
+                                title="Back to dashboard"
                             >
                                 <ChevronLeft className="w-5 h-5 text-gray-700" />
                             </Link>
@@ -362,8 +362,8 @@ export default function RMStudentFeedbacksPage() {
                                                     onClick={() => handleEnableEdit(fb._id)}
                                                     disabled={fb.isEditable || enablingFeedbackId === fb._id}
                                                     className={`px-3 py-1 text-xs rounded-full font-medium transition-colors border ${fb.isEditable
-                                                            ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
-                                                            : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-300'
+                                                        ? 'bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed'
+                                                        : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50 hover:border-purple-300'
                                                         }`}
                                                 >
                                                     {enablingFeedbackId === fb._id ? 'Enabling...' : fb.isEditable ? 'Edit Enabled for Tutor' : 'Enable Tutor Edit'}
