@@ -32,6 +32,7 @@ interface RatingsInfo {
     technique?: string | number;
     attendance?: string | number;
     overallRating?: number;
+    naFields?: string[];
 }
 
 interface FeedbackItem {
@@ -335,23 +336,34 @@ export default function RMStudentFeedbacksPage() {
                                             <h4 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Ratings</h4>
                                             <div className="space-y-2">
                                                 {[
-                                                    { label: "Rhythm", value: fb.ratings.rhythm },
-                                                    { label: "Theory", value: fb.ratings.theoreticalUnderstanding },
-                                                    { label: "Performance", value: fb.ratings.performance },
-                                                    { label: "Ear Training", value: fb.ratings.earTraining },
-                                                    { label: "Technique", value: fb.ratings.technique },
-                                                    { label: "Assignment", value: fb.ratings.assignment },
-                                                ].map((stat, idx) => (
-                                                    stat.value !== undefined && stat.value !== null && stat.value !== "" && (
+                                                    { label: "Rhythm", key: "rhythm", value: fb.ratings.rhythm },
+                                                    { label: "Theory", key: "theoreticalUnderstanding", value: fb.ratings.theoreticalUnderstanding },
+                                                    { label: "Performance", key: "performance", value: fb.ratings.performance },
+                                                    { label: "Ear Training", key: "earTraining", value: fb.ratings.earTraining },
+                                                    { label: "Technique", key: "technique", value: fb.ratings.technique },
+                                                    { label: "Assignment", key: "assignment", value: fb.ratings.assignment },
+                                                ].map((stat, idx) => {
+                                                    const isNa = fb.ratings.naFields?.includes(stat.key);
+                                                    const hasValue = stat.value !== undefined && stat.value !== null && stat.value !== "";
+
+                                                    if (!hasValue && !isNa) return null;
+
+                                                    return (
                                                         <div key={idx} className="flex justify-between items-center text-sm">
                                                             <span className="text-gray-600">{stat.label}</span>
                                                             <span className="font-medium flex items-center gap-1">
-                                                                {stat.value}
-                                                                <Star className="w-3 h-3 text-orange-400 fill-orange-400" />
+                                                                {isNa ? (
+                                                                    <span className="text-gray-500 italic">NA</span>
+                                                                ) : (
+                                                                    <>
+                                                                        {stat.value}
+                                                                        <Star className="w-3 h-3 text-orange-400 fill-orange-400" />
+                                                                    </>
+                                                                )}
                                                             </span>
                                                         </div>
-                                                    )
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                         </div>
 

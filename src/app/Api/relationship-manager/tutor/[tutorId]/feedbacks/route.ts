@@ -147,7 +147,8 @@ export async function GET(
                     assignment: fb.assignment,
                     technique: fb.technique,
                     attendance: fb.attendance,
-                    overallRating: fb.feedbackRating
+                    overallRating: fb.feedbackRating,
+                    naFields: fb.naFields || []
                 },
                 personalFeedback: fb.personalFeedback || ""
             };
