@@ -15,6 +15,22 @@ import { format, parseISO } from 'date-fns';
 import { sendEmail } from "@/helper/mailer";
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
 
+async function sendExpoPushNotifications(
+  tokens: (string | null | undefined)[],
+  title: string,
+  body: string,
+  data: object = {}
+) {
+  const messages = (tokens.filter(t => t?.startsWith('ExponentPushToken[')) as string[])
+    .map(to => ({ to, title, body, data, sound: 'default' }));
+  if (!messages.length) return;
+  fetch('https://exp.host/--/expo-server/push/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(messages),
+  }).catch(() => {});
+}
+
 await connect();
 
 export async function POST(request: NextRequest) {
@@ -62,6 +78,7 @@ export async function POST(request: NextRequest) {
     const endTime = formData.get("endTime") as string;
     const timezone = formData.get("timezone") as string; // Get timezone from frontend
 
+    const joinLink = formData.get("joinLink") as string | null;
     const rawRecurrenceId = formData.get("recurrenceId") as string | null;
     const rawRecurrenceType = formData.get("recurrenceType") as string | null;
     const rawRecurrenceUntil = formData.get("recurrenceUntil") as string | null;
@@ -270,6 +287,7 @@ export async function POST(request: NextRequest) {
       recurrenceId,
       recurrenceType,
       recurrenceUntil,
+      joinLink: joinLink || null,
     });
 
     const savednewClass = await newClass.save();
@@ -393,13 +411,19 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching classes data...");
 
-    const token = (() => {
-      const referer = request.headers.get("referer") || "";
-      let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
-      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
-    })();
+    // Priority 1: impersonation token (RSM acting as tutor — web only)
+    // Priority 2: session cookie (web browser)
+    // Priority 3: Bearer token in Authorization header (React Native mobile app)
+    const referer = request.headers.get("referer") || "";
+    let refererPath = "";
+    try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+    const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+    const impersonateToken = request.cookies.get("impersonate_token")?.value;
+    const authHeader = request.headers.get("Authorization") || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const token = (isTutorContext && impersonateToken)
+      ? impersonateToken
+      : (request.cookies.get("token")?.value || bearerToken || "");
     const decodedToken = token ? jwt.decode(token) : null;
     let instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -487,11 +511,34 @@ export async function GET(request: NextRequest) {
     }
 
 
+    // Reverse-lookup: find students enrolled in any of these classes
+    const classIds = filteredClasses.map((c: any) => c._id);
+    const enrolledStudents = await User.find(
+      { classes: { $in: classIds }, category: "Student" },
+      "_id username email address city classes"
+    ).lean();
+
+    // Attach students array to each class (no schema change needed)
+    const classDataWithStudents = filteredClasses.map((c: any) => ({
+      ...c,
+      students: enrolledStudents
+        .filter((s: any) =>
+          s.classes.some((cId: any) => cId.toString() === c._id.toString())
+        )
+        .map((s: any) => ({
+          _id: s._id,
+          username: s.username,
+          email: s.email,
+          address: s.address ?? "",
+          city: s.city ?? "",
+        })),
+    }));
+
     return NextResponse.json(
       {
         message: "Classes fetched successfully",
-        classData: filteredClasses,
-        totalClasses: filteredClasses.length,
+        classData: classDataWithStudents,
+        totalClasses: classDataWithStudents.length,
       },
       { status: 200 }
     );
@@ -546,7 +593,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, date, startTime, endTime, timezone, reasonForReschedule } = body;
+    const { title, description, date, startTime, endTime, timezone, reasonForReschedule, joinLink } = body;
 
     console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone, reasonForReschedule });
 
@@ -586,7 +633,8 @@ export async function PUT(request: NextRequest) {
         startTime: startDateTime, // Store in UTC
         endTime: endDateTime, // Store in UTC
         reasonForReschedule: reasonForReschedule,
-        status: 'rescheduled'
+        status: 'rescheduled',
+        ...(joinLink !== undefined && { joinLink: joinLink || null }),
       },
       { new: true, runValidators: true }
     );
@@ -598,7 +646,7 @@ export async function PUT(request: NextRequest) {
       // Find all users (students) who have this classId in their classes array
       const enrolledStudents = await User.find({
         classes: classId,
-      }).select("email username timezone").lean();
+      }).select("email username timezone expoPushToken").lean();
 
       console.log(`Found ${enrolledStudents.length} students enrolled in this class`);
 
@@ -657,6 +705,16 @@ export async function PUT(request: NextRequest) {
 
         await Promise.all(emailPromises);
         console.log("All reschedule notification emails processed");
+
+        // Send push notifications to students + tutor
+        const tutorUser = await User.findById(instructorId).select('expoPushToken').lean() as any;
+        const studentTokens = (enrolledStudents as any[]).map((s: any) => s.expoPushToken);
+        sendExpoPushNotifications(
+          [...studentTokens, tutorUser?.expoPushToken],
+          'Class Rescheduled',
+          `${title} rescheduled to ${newDateFormatted} at ${newTimeStart}`,
+          { classId }
+        );
       }
     } catch (emailError) {
       console.error("Error in email sending process:", emailError);
@@ -1047,6 +1105,16 @@ export async function DELETE(request: NextRequest) {
 
         await Promise.all(emailPromises);
         console.log("All cancellation notification emails processed");
+
+        // Send push notifications to students + tutor
+        const tutorUser = await User.findById(instructorId).select('expoPushToken').lean() as any;
+        const studentTokens = (enrolledStudents as any[]).map((s: any) => s.expoPushToken);
+        sendExpoPushNotifications(
+          [...studentTokens, tutorUser?.expoPushToken],
+          'Class Cancelled',
+          `${classToCancel.title} has been cancelled`,
+          { classId }
+        );
       }
     } catch (emailError) {
       console.error("Error in email sending process:", emailError);

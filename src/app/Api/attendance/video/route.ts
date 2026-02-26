@@ -4,13 +4,14 @@ import User from '@/models/userModel';
 import Class from '@/models/Class'; // Import Class model to get class details
 import courseName from '@/models/courseName'; // Import Course model to get course name
 import { sendEmail } from '@/helper/mailer';
+import { RekognitionClient, StartContentModerationCommand } from '@aws-sdk/client-rekognition';
 
 export async function POST(req: NextRequest) {
   try {
     await connect();
 
     const body = await req.json();
-    const { studentId, classId, videoUrl } = body;
+    const { studentId, classId, videoUrl, s3Key } = body;
 
     if (!studentId || !classId || !videoUrl) {
       return NextResponse.json(
@@ -76,6 +77,25 @@ export async function POST(req: NextRequest) {
     } catch (emailError) {
       // Log error but don't fail the main operation
       console.error('❌ Failed to send video email:', emailError);
+    }
+
+    // Start Rekognition content moderation (async, fire-and-forget — does not block response)
+    if (s3Key && process.env.AWS_S3_BUCKET_NAME) {
+      const rekognition = new RekognitionClient({
+        region: process.env.AWS_REGION,
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+        },
+      });
+      rekognition.send(new StartContentModerationCommand({
+        Video: { S3Object: { Bucket: process.env.AWS_S3_BUCKET_NAME, Name: s3Key } },
+        MinConfidence: 60,
+      })).then(res => {
+        console.log(`✅ Rekognition moderation job started for ${s3Key}: ${res.JobId}`);
+      }).catch(err => {
+        console.error('❌ Rekognition moderation failed to start:', err);
+      });
     }
 
     return NextResponse.json({
