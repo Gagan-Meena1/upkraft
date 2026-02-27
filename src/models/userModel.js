@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
             },
             status: {
                 type: String,
-                enum: ["present", "absent", "canceled", "not_marked"],
+                enum: ["present", "absent", "canceled", "not_marked","marked"],
                 default: "not_marked"
 
         },
