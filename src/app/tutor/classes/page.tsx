@@ -17,12 +17,11 @@ import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 
-import TimePicker from 'react-time-picker';
+import TimePicker from "react-time-picker";
 // ADD these
-import * as dateFnsTz from 'date-fns-tz';
-import { format } from 'date-fns';
-import { parseISO, addDays } from 'date-fns';
-
+import * as dateFnsTz from "date-fns-tz";
+import { format } from "date-fns";
+import { parseISO, addDays } from "date-fns";
 
 // Create a non-SSR version of the components
 const StudentFeedbackDashboardClient = dynamic(
@@ -60,11 +59,42 @@ function AddSessionPage() {
     video: null,
   });
   // NEW: recurrence state
-  const [repeatType, setRepeatType] = useState<"none" | "daily" | "weekly" | "weekdays">("none");
+  const [repeatType, setRepeatType] = useState<
+    "none" | "daily" | "weekly" | "weekdays" | "custom"
+  >("none");
   const [repeatUntil, setRepeatUntil] = useState<string>(""); // yyyy-mm-dd
-  // Add these state variables after your existing useState declarations
-const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [previousRepeatType, setPreviousRepeatType] = useState<
+    "none" | "daily" | "weekly" | "weekdays" | "custom"
+  >("none");
+
+  // Legacy weekly helper state (kept for backward compatibility and used by Custom)
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [repeatCount, setRepeatCount] = useState(1);
+
+  // Time picker dropdowns
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+
+  // Weekday selection (used by Custom)
+  const [weeklyDays, setWeeklyDays] = useState<number[]>([]);
+  const toggleWeeklyDay = (day: number) => {
+    setWeeklyDays((prev) =>
+      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    );
+  };
+
+  // Custom recurrence modal state
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customRepeatEvery, setCustomRepeatEvery] = useState<number>(1);
+  const [customRepeatUnit, setCustomRepeatUnit] = useState<"day" | "week">(
+    "week"
+  );
+  const [customEnds, setCustomEnds] = useState<"never" | "on" | "after">(
+    "never"
+  );
+  const [customEndDate, setCustomEndDate] = useState<string>("");
+  const [customEndOccurrences, setCustomEndOccurrences] =
+    useState<number>(10);
 
   // helper: is weekday (Mon-Fri)
   const isWeekday = (date: Date) => {
@@ -118,25 +148,25 @@ const [showEndTimePicker, setShowEndTimePicker] = useState(false);
   };
 
   // Add this helper function in your component
-const handleTimeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-  let value = e.target.value;
-  
-  // Remove everything except digits and colon
-  value = value.replace(/[^\d:]/g, '');
-  
-  // Auto-add colon after 2 digits
-  if (value.length === 2 && !value.includes(':')) {
-    value = value + ':';
-  }
-  
-  // Limit to 5 characters (HH:MM)
-  if (value.length > 5) {
-    value = value.slice(0, 5);
-  }
-  
-  e.target.value = value;
-  handleFormChange(e);
-};
+  const handleTimeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+
+    // Remove everything except digits and colon
+    value = value.replace(/[^\d:]/g, "");
+
+    // Auto-add colon after 2 digits
+    if (value.length === 2 && !value.includes(":")) {
+      value = value + ":";
+    }
+
+    // Limit to 5 characters (HH:MM)
+    if (value.length > 5) {
+      value = value.slice(0, 5);
+    }
+
+    e.target.value = value;
+    handleFormChange(e);
+  };
 
   // Generate calendar days for current month view
   const generateCalendarDays = () => {
@@ -188,13 +218,7 @@ const handleTimeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
 
-    // Check if date is in the past
-    // if (isDateInPast(year, month, day)) {
-    //   alert("Cannot create sessions for past dates");
-    //   return;
-    // }
-
-const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
+    const dateString = format(new Date(year, month, day), "yyyy-MM-dd");
     setSelectedDate(dateString);
     setSessionForm({ ...sessionForm, date: dateString });
     setShowForm(true);
@@ -213,53 +237,31 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
       date: "",
       video: null,
     });
+    setRepeatType("none");
+    setRepeatUntil("");
+    setWeeklyDays([]);
   };
 
-  // Fixed validateDateTime function to avoid timezone issues
-  // const validateDateTime = (
-  //   date: string,
-  //   startTime: string,
-  //   endTime: string
-  // ) => {
-  //   if (!date || !startTime || !endTime) return "";
+  const validateDateTime = (
+    date: string,
+    startTime: string,
+    endTime: string
+  ) => {
+    if (!date || !startTime || !endTime) return "";
 
-  //   const { year, month, day } = parseDateString(date);
-  //   const [startHour, startMinute] = startTime.split(":").map(Number);
-  //   const [endHour, endMinute] = endTime.split(":").map(Number);
+    // Simple check: end time must be after start time
+    const [startHour, startMin] = startTime.split(":").map(Number);
+    const [endHour, endMin] = endTime.split(":").map(Number);
 
-  //   // Create date objects using local timezone
-  //   const startDateTime = new Date(year, month, day, startHour, startMinute);
-  //   const endDateTime = new Date(year, month, day, endHour, endMinute);
-  //   const currentDateTime = new Date();
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
 
-  //   // Check if start time is in the past
-  //   // if (startDateTime <= currentDateTime) {
-  //   //   return "Start time cannot be in the past";
-  //   // }
+    if (endMinutes <= startMinutes) {
+      return "End time must be after start time";
+    }
 
-  //   // Check if end time is after start time
-  //   // if (endDateTime <= startDateTime) {
-  //   //   return "End time must be after start time";
-  //   // }
-
-  //   return "";
-  // };
-  const validateDateTime = (date: string, startTime: string, endTime: string) => {
-  if (!date || !startTime || !endTime) return "";
-  
-  // Simple check: end time must be after start time
-  const [startHour, startMin] = startTime.split(':').map(Number);
-  const [endHour, endMin] = endTime.split(':').map(Number);
-  
-  const startMinutes = startHour * 60 + startMin;
-  const endMinutes = endHour * 60 + endMin;
-  
-  if (endMinutes <= startMinutes) {
-    return "End time must be after start time";
-  }
-  
-  return "";
-};
+    return "";
+  };
 
   const handleFormChange = (
     e: React.ChangeEvent<
@@ -281,6 +283,44 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
     }
   };
 
+  // Open Custom modal helper
+  const openCustomModal = () => {
+    if (!sessionForm.date) {
+      alert("Please select a date first.");
+      return;
+    }
+
+    // Initialize weekday selection with the session date's weekday if none selected
+    if (weeklyDays.length === 0) {
+      const d = parseISO(sessionForm.date);
+      if (!isNaN(d.getTime())) {
+        setWeeklyDays([d.getDay()]);
+      }
+    }
+
+    setShowCustomModal(true);
+    setRepeatType("custom");
+  };
+
+  // Handle change of repeat type (including Custom)
+  const handleRepeatTypeChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const value = e.target.value as
+      | "none"
+      | "daily"
+      | "weekly"
+      | "weekdays"
+      | "custom";
+
+    if (value === "custom") {
+      setPreviousRepeatType(repeatType);
+      openCustomModal();
+    } else {
+      setRepeatType(value);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -288,7 +328,11 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
 
     try {
       // Build occurrences array based on recurrence type
-      const occurrences: { date: string; startTime: string; endTime: string }[] = [];
+      const occurrences: {
+        date: string;
+        startTime: string;
+        endTime: string;
+      }[] = [];
 
       if (repeatType === "none") {
         occurrences.push({
@@ -359,6 +403,93 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
 
           currentDate = addDays(currentDate, 7); // Add 7 days
         }
+      } else if (repeatType === "custom") {
+        // Custom recurrence using settings from the Custom modal
+        const startDate = parseISO(sessionForm.date);
+        if (isNaN(startDate.getTime())) {
+          throw new Error("Please select a valid start date for recurrence.");
+        }
+
+        const maxOccurrences = 365; // global safety cap
+
+        if (customRepeatUnit === "day") {
+          let currentDate = startDate;
+          let count = 0;
+          const untilDate =
+            customEnds === "on" && customEndDate
+              ? parseISO(customEndDate)
+              : null;
+
+          while (count < maxOccurrences) {
+            if (untilDate && currentDate > untilDate) break;
+
+            occurrences.push({
+              date: format(currentDate, "yyyy-MM-dd"),
+              startTime: sessionForm.startTime,
+              endTime: sessionForm.endTime,
+            });
+            count++;
+
+            if (
+              customEnds === "after" &&
+              count >= Math.max(1, customEndOccurrences)
+            ) {
+              break;
+            }
+
+            currentDate = addDays(currentDate, Math.max(1, customRepeatEvery));
+          }
+        } else if (customRepeatUnit === "week") {
+          const selectedDays =
+            weeklyDays.length > 0 ? [...weeklyDays].sort() : [startDate.getDay()];
+          const baseWeekStart = addDays(startDate, -startDate.getDay()); // Sunday of starting week
+          const untilDate =
+            customEnds === "on" && customEndDate
+              ? parseISO(customEndDate)
+              : null;
+
+          let cycle = 0;
+          let generated = 0;
+          const maxCycles = 520; // ~10 years
+
+          while (generated < maxOccurrences && cycle < maxCycles) {
+            const weekStart = addDays(
+              baseWeekStart,
+              cycle * Math.max(1, customRepeatEvery) * 7
+            );
+
+            for (const dow of selectedDays) {
+              const occDate = addDays(weekStart, dow);
+
+              if (occDate < startDate) continue;
+              if (untilDate && occDate > untilDate) {
+                generated = maxOccurrences;
+                break;
+              }
+
+              occurrences.push({
+                date: format(occDate, "yyyy-MM-dd"),
+                startTime: sessionForm.startTime,
+                endTime: sessionForm.endTime,
+              });
+              generated++;
+
+              if (
+                customEnds === "after" &&
+                generated >= Math.max(1, customEndOccurrences)
+              ) {
+                break;
+              }
+              if (generated >= maxOccurrences) break;
+            }
+
+            cycle++;
+          }
+        }
+
+        if (occurrences.length === 0) {
+          throw new Error("No sessions generated for the selected pattern.");
+        }
       }
 
       // Get user's timezone
@@ -369,19 +500,39 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
 
       console.log(`Creating ${occurrences.length} session(s)...`);
 
-      // ONLY generate a recurrenceId for explicit recurring batches (daily, weekly, weekdays)
-      const isRecurringBatch = ["daily", "weekly", "weekdays"].includes(repeatType);
+      // ONLY generate a recurrenceId for explicit recurring batches
+      const isRecurringBatch = [
+        "daily",
+        "weekly",
+        "weekdays",
+        "custom",
+      ].includes(repeatType);
       const recurrenceId = isRecurringBatch
-        ? (typeof crypto !== "undefined" && (crypto as any).randomUUID
-            ? (crypto as any).randomUUID()
-            : `rec-${Date.now()}`)
+        ? typeof crypto !== "undefined" && (crypto as any).randomUUID
+          ? (crypto as any).randomUUID()
+          : `rec-${Date.now()}`
         : null;
-   
+
+      // Decide what to send as recurrenceUntil
+      let recurrenceUntilToSend: string | null = repeatUntil || null;
+      if (repeatType === "custom") {
+        if (customEnds === "on" && customEndDate) {
+          recurrenceUntilToSend = customEndDate;
+        } else if (
+          customEnds === "after" &&
+          occurrences.length > 0 &&
+          !recurrenceUntilToSend
+        ) {
+          recurrenceUntilToSend =
+            occurrences[occurrences.length - 1].date;
+        }
+      }
+
       // Create each occurrence
       let created = 0;
       for (let idx = 0; idx < occurrences.length; idx++) {
         const occ = occurrences[idx];
-   
+
         const formData = new FormData();
         formData.append("title", sessionForm.title || "");
         formData.append("description", sessionForm.description || "");
@@ -389,64 +540,66 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
         formData.append("startTime", occ.startTime); // HH:MM
         formData.append("endTime", occ.endTime); // HH:MM
         formData.append("timezone", timezoneToSend);
-   
+
         // Attach recurrence metadata only for recurring batches
         if (isRecurringBatch && recurrenceId) {
           formData.append("recurrenceId", recurrenceId);
           formData.append("recurrenceType", repeatType);
-          if (repeatUntil) formData.append("recurrenceUntil", repeatUntil);
+          if (recurrenceUntilToSend) {
+            formData.append("recurrenceUntil", recurrenceUntilToSend);
+          }
         } else {
           formData.append("recurrenceType", "none");
         }
-   
-       // Include course ID
-       if (courseId) {
-         formData.append("course", courseId);
-         formData.append("courseId", courseId);
-       }
-   
-       // Attach video only for the first occurrence
-       if (sessionForm.video && idx === 0) {
-         formData.append("video", sessionForm.video);
-       }
 
-       const response = await fetch("/Api/classes", {
-         method: "POST",
-         body: formData,
-       });
-   
-       const result = await response
-         .json()
-         .catch(() => ({ message: "Invalid response" }));
-   
-     if (!response.ok) {
-       throw new Error(
-         result?.message || `Failed creating session on ${occ.date}`
-       );
-     }
-   
-     created++;
-     console.log(`Created session ${created}/${occurrences.length}`);
-   }
-   
-   alert(`Successfully created ${created} session(s)!`);
-   handleCloseForm();
-    
-    // Navigate back to course page
-    if (courseId) {
-      router.push(`/tutor/courses/${courseId}`);
-    } else {
-      router.push("/tutor/calendar");
+        // Include course ID
+        if (courseId) {
+          formData.append("course", courseId);
+          formData.append("courseId", courseId);
+        }
+
+        // Attach video only for the first occurrence
+        if (sessionForm.video && idx === 0) {
+          formData.append("video", sessionForm.video);
+        }
+
+        const response = await fetch("/Api/classes", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response
+          .json()
+          .catch(() => ({ message: "Invalid response" }));
+
+        if (!response.ok) {
+          throw new Error(
+            result?.message || `Failed creating session on ${occ.date}`
+          );
+        }
+
+        created++;
+        console.log(`Created session ${created}/${occurrences.length}`);
+      }
+
+      alert(`Successfully created ${created} session(s)!`);
+      handleCloseForm();
+
+      // Navigate back to course page
+      if (courseId) {
+        router.push(`/tutor/courses/${courseId}`);
+      } else {
+        router.push("/tutor/calendar");
+      }
+    } catch (err: any) {
+      console.error("Error creating session(s):", err);
+      setErrorMessage(err?.message || "Failed to create session(s)");
+    } finally {
+      setIsSubmitting(false);
     }
-  } catch (err: any) {
-    console.error("Error creating session(s):", err);
-    setErrorMessage(err?.message || "Failed to create session(s)");
-  } finally {
-    setIsSubmitting(false);
-  }
-};
+  };
 
-  // Modify your create/submit handler to create multiple weekly copies
+  // Legacy helper (kept for compatibility; not used in UI)
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -459,7 +612,7 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
         // include other required fields...
       };
 
-      const createdItems = [];
+      const createdItems: any[] = [];
       if (repeatWeekly && (repeatCount > 1 || repeatUntil)) {
         for (let i = 0; i < Math.max(1, repeatCount); i++) {
           const start = new Date(basePayload.startTime);
@@ -507,20 +660,22 @@ const dateString = format(new Date(year, month, day), 'yyyy-MM-dd');
       alert("Failed to create class");
     }
   };
-// Add this helper function before the return statement
-const generateTimeOptions = () => {
-  const times = [];
-  for (let hour = 0; hour < 24; hour++) {
-    for (let minute = 0; minute < 60; minute += 15) { // 15-minute intervals
-      const hourStr = String(hour).padStart(2, '0');
-      const minuteStr = String(minute).padStart(2, '0');
-      times.push(`${hourStr}:${minuteStr}`);
-    }
-  }
-  return times;
-};
 
-const timeOptions = generateTimeOptions();
+  // Add this helper function before the return statement
+  const generateTimeOptions = () => {
+    const times = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        // 15-minute intervals
+        const hourStr = String(hour).padStart(2, "0");
+        const minuteStr = String(minute).padStart(2, "0");
+        times.push(`${hourStr}:${minuteStr}`);
+      }
+    }
+    return times;
+  };
+
+  const timeOptions = generateTimeOptions();
   const calendarDays = generateCalendarDays();
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const weekdaysMobile = ["S", "M", "T", "W", "T", "F", "S"];
@@ -620,11 +775,11 @@ const timeOptions = generateTimeOptions();
                   className={`relative p-2 sm:p-4 rounded-lg min-h-[3rem] sm:min-h-[4rem] ${
                     day
                       ? isPastDate
-                        ?  "bg-white border border-gray-200 hover:bg-orange-50 cursor-pointer transition-colors"
+                        ? "bg-white border border-gray-200 hover:bg-orange-50 cursor-pointer transition-colors"
                         : "bg-white border border-gray-200 hover:bg-orange-50 cursor-pointer transition-colors"
                       : "opacity-0"
                   }`}
-                  onClick={() => day  && handleDateClick(day)}
+                  onClick={() => day && handleDateClick(day)}
                 >
                   {day && (
                     <>
@@ -635,11 +790,11 @@ const timeOptions = generateTimeOptions();
                       >
                         {day}
                       </span>
-                      {(
+                      {
                         <button className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 w-5 h-5 sm:w-6 sm:h-6 bg-purple-600 hover:bg-purple-400 text-white rounded-full flex items-center justify-center">
                           <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
-                      )}
+                      }
                     </>
                   )}
                 </div>
@@ -707,204 +862,194 @@ const timeOptions = generateTimeOptions();
                   />
                 </div>
 
-                {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
+                {/* Time pickers */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {/* Start Time Picker */}
+                  <div className="relative">
                     <label
                       htmlFor="startTime"
                       className="block text-gray-600 mb-2 text-sm font-medium"
                     >
-                      Start Time
-                    </label> */}
-                    {/* <div className="relative">
+                      Start Time (24-hour format)
+                    </label>
+                    <div className="relative">
                       <input
-                        type="time"
+                        type="text"
                         id="startTime"
                         name="startTime"
                         value={sessionForm.startTime}
-                        onChange={handleFormChange}
-                        className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                        onChange={handleTimeInput}
+                        onFocus={() => setShowStartTimePicker(true)}
+                        onKeyPress={(e) => {
+                          if (!/[\d:]/.test(e.key)) e.preventDefault();
+                        }}
+                        pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+                        placeholder="09:00"
+                        maxLength={5}
+                        className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
-                      /> */}
-                      {/* <Clock className="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 w-5 h-5 pointer-events-none" /> */}
-                    {/* </div>
-                  </div> */}
+                      />
+                      <Clock className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400 w-5 h-5 pointer-events-none" />
+                    </div>
 
-                  {/* <div>
+                    {/* Start Time Dropdown */}
+                    {showStartTimePicker && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setShowStartTimePicker(false)}
+                        />
+                        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          <div className="sticky top-0 bg-gray-50 px-3 py-2 border-b border-gray-200">
+                            <p className="text-xs text-gray-600 font-medium">
+                              Select time (24-hour format)
+                            </p>
+                          </div>
+                          {timeOptions.map((time) => (
+                            <button
+                              key={time}
+                              type="button"
+                              onClick={() => {
+                                setSessionForm({
+                                  ...sessionForm,
+                                  startTime: time,
+                                });
+                                setShowStartTimePicker(false);
+                                const validationError = validateDateTime(
+                                  sessionForm.date,
+                                  time,
+                                  sessionForm.endTime
+                                );
+                                setErrorMessage(validationError);
+                              }}
+                              className={`w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors ${
+                                sessionForm.startTime === time
+                                  ? "bg-blue-100 text-blue-700 font-medium"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              {time}
+                              {sessionForm.startTime === time && (
+                                <span className="float-right text-blue-600">
+                                  ✓
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* End Time Picker */}
+                  <div className="relative">
                     <label
                       htmlFor="endTime"
                       className="block text-gray-600 mb-2 text-sm font-medium"
                     >
-                      End Time
+                      End Time (24-hour format)
                     </label>
                     <div className="relative">
                       <input
-                        type="time"
+                        type="text"
                         id="endTime"
                         name="endTime"
                         value={sessionForm.endTime}
-                        onChange={handleFormChange}
-                        className="w-full pl-4 pr-12 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                        onChange={handleTimeInput}
+                        onFocus={() => setShowEndTimePicker(true)}
+                        onKeyPress={(e) => {
+                          if (!/[\d:]/.test(e.key)) e.preventDefault();
+                        }}
+                        pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
+                        placeholder="10:30"
+                        maxLength={5}
+                        className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
-                      /> */}
-                      {/* <Clock className="absolute top-1/2 -translate-y-1/2 right-4 text-gray-400 w-5 h-5 pointer-events-none" /> */}
-                    {/* </div> */}
-                  {/* </div> */}
-                {/* </div> */}
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-  {/* Start Time Picker */}
-  <div className="relative">
-    <label htmlFor="startTime" className="block text-gray-600 mb-2 text-sm font-medium">
-      Start Time (24-hour format)
-    </label>
-    <div className="relative">
-      <input
-        type="text"
-        id="startTime"
-        name="startTime"
-        value={sessionForm.startTime}
-        onChange={handleTimeInput}
-        onFocus={() => setShowStartTimePicker(true)}
-        onKeyPress={(e) => {
-          if (!/[\d:]/.test(e.key)) e.preventDefault();
-        }}
-        pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
-        placeholder="09:00"
-        maxLength={5}
-        className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        required
-      />
-      <Clock className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400 w-5 h-5 pointer-events-none" />
-    </div>
-    
-    {/* Start Time Dropdown */}
-    {showStartTimePicker && (
-      <>
-        <div 
-          className="fixed inset-0 z-10" 
-          onClick={() => setShowStartTimePicker(false)}
-        />
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          <div className="sticky top-0 bg-gray-50 px-3 py-2 border-b border-gray-200">
-            <p className="text-xs text-gray-600 font-medium">Select time (24-hour format)</p>
-          </div>
-          {timeOptions.map((time) => (
-            <button
-              key={time}
-              type="button"
-              onClick={() => {
-                setSessionForm({ ...sessionForm, startTime: time });
-                setShowStartTimePicker(false);
-                const validationError = validateDateTime(
-                  sessionForm.date,
-                  time,
-                  sessionForm.endTime
-                );
-                setErrorMessage(validationError);
-              }}
-              className={`w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors ${
-                sessionForm.startTime === time ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-700'
-              }`}
-            >
-              {time}
-              {sessionForm.startTime === time && (
-                <span className="float-right text-blue-600">✓</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </>
-    )}
-  </div>
+                      />
+                      <Clock className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400 w-5 h-5 pointer-events-none" />
+                    </div>
 
-  {/* End Time Picker */}
-  <div className="relative">
-    <label htmlFor="endTime" className="block text-gray-600 mb-2 text-sm font-medium">
-      End Time (24-hour format)
-    </label>
-    <div className="relative">
-      <input
-        type="text"
-        id="endTime"
-        name="endTime"
-        value={sessionForm.endTime}
-        onChange={handleTimeInput}
-        onFocus={() => setShowEndTimePicker(true)}
-        onKeyPress={(e) => {
-          if (!/[\d:]/.test(e.key)) e.preventDefault();
-        }}
-        pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
-        placeholder="10:30"
-        maxLength={5}
-        className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        required
-      />
-      <Clock className="absolute top-1/2 -translate-y-1/2 right-3 text-gray-400 w-5 h-5 pointer-events-none" />
-    </div>
-    
-    {/* End Time Dropdown */}
-    {showEndTimePicker && (
-      <>
-        <div 
-          className="fixed inset-0 z-10" 
-          onClick={() => setShowEndTimePicker(false)}
-        />
-        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          <div className="sticky top-0 bg-gray-50 px-3 py-2 border-b border-gray-200">
-            <p className="text-xs text-gray-600 font-medium">Select time</p>
-          </div>
-          {timeOptions.map((time) => (
-            <button
-              key={time}
-              type="button"
-              onClick={() => {
-                setSessionForm({ ...sessionForm, endTime: time });
-                setShowEndTimePicker(false);
-                const validationError = validateDateTime(
-                  sessionForm.date,
-                  sessionForm.startTime,
-                  time
-                );
-                setErrorMessage(validationError);
-              }}
-              className={`w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors ${
-                sessionForm.endTime === time ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-700'
-              }`}
-            >
-              {time}
-              {sessionForm.endTime === time && (
-                <span className="float-right text-blue-600">✓</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </>
-    )}
-  </div>
-</div>
+                    {/* End Time Dropdown */}
+                    {showEndTimePicker && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setShowEndTimePicker(false)}
+                        />
+                        <div className="absolute z-20 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          <div className="sticky top-0 bg-gray-50 px-3 py-2 border-b border-gray-200">
+                            <p className="text-xs text-gray-600 font-medium">
+                              Select time
+                            </p>
+                          </div>
+                          {timeOptions.map((time) => (
+                            <button
+                              key={time}
+                              type="button"
+                              onClick={() => {
+                                setSessionForm({
+                                  ...sessionForm,
+                                  endTime: time,
+                                });
+                                setShowEndTimePicker(false);
+                                const validationError = validateDateTime(
+                                  sessionForm.date,
+                                  sessionForm.startTime,
+                                  time
+                                );
+                                setErrorMessage(validationError);
+                              }}
+                              className={`w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors ${
+                                sessionForm.endTime === time
+                                  ? "bg-blue-100 text-blue-700 font-medium"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              {time}
+                              {sessionForm.endTime === time && (
+                                <span className="float-right text-blue-600">
+                                  ✓
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 {/* Recurrence Controls */}
                 <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Repeat</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      Repeat
+                    </label>
                     <select
                       value={repeatType}
-                      onChange={(e) => setRepeatType(e.target.value as any)}
+                      onChange={handleRepeatTypeChange}
                       className="w-full px-3 py-2 border rounded"
                     >
                       <option value="none">Does not repeat</option>
                       <option value="daily">Daily</option>
                       <option value="weekdays">Weekdays (Mon–Fri)</option>
                       <option value="weekly">Weekly</option>
+                      <option value="custom">Custom…</option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Repeat until</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      Repeat until
+                    </label>
                     <input
                       type="date"
                       value={repeatUntil}
                       onChange={(e) => setRepeatUntil(e.target.value)}
-                      disabled={repeatType === "none"}
-                      className="w-full px-3 py-2 border rounded"
+                      disabled={
+                        repeatType === "none" || repeatType === "custom"
+                      }
+                      className="w-full px-3 py-2 border rounded disabled:bg-gray-100 disabled:text-gray-400"
                     />
                   </div>
                 </div>
@@ -923,6 +1068,204 @@ const timeOptions = generateTimeOptions();
                   {isSubmitting ? "Creating..." : "Create Session"}
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Custom recurrence modal (for "Custom" option) */}
+        {showCustomModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Custom recurrence
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowCustomModal(false);
+                    setRepeatType(previousRepeatType);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Repeat every */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Repeat every
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    value={customRepeatEvery}
+                    onChange={(e) =>
+                      setCustomRepeatEvery(
+                        Math.max(1, Number(e.target.value) || 1)
+                      )
+                    }
+                    className="w-20 px-3 py-2 border rounded"
+                  />
+                  <select
+                    value={customRepeatUnit}
+                    onChange={(e) =>
+                      setCustomRepeatUnit(
+                        e.target.value === "day" ? "day" : "week"
+                      )
+                    }
+                    className="flex-1 px-3 py-2 border rounded"
+                  >
+                    <option value="day">day</option>
+                    <option value="week">week</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Repeat on (only for weeks) */}
+              {customRepeatUnit === "week" && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Repeat on
+                  </label>
+                  <div className="flex gap-2">
+                    {["S", "M", "T", "W", "T", "F", "S"].map(
+                      (label, index) => (
+                        <button
+                          key={index}
+                          type="button"
+                          onClick={() => toggleWeeklyDay(index)}
+                          className={`w-8 h-8 rounded-full text-sm flex items-center justify-center border ${
+                            weeklyDays.includes(index)
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "bg-white text-gray-700 border-gray-300"
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Ends */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ends
+                </label>
+                <div className="space-y-3 text-sm text-gray-700">
+                  {/* Never */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="customEnds"
+                      value="never"
+                      checked={customEnds === "never"}
+                      onChange={() => setCustomEnds("never")}
+                      className="h-4 w-4 text-blue-600"
+                    />
+                    <span>Never</span>
+                  </div>
+
+                  {/* On */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="customEnds"
+                        value="on"
+                        checked={customEnds === "on"}
+                        onChange={() => setCustomEnds("on")}
+                        className="h-4 w-4 text-blue-600"
+                      />
+                      <span>On</span>
+                    </div>
+                    <input
+                      type="date"
+                      value={customEndDate}
+                      onChange={(e) => setCustomEndDate(e.target.value)}
+                      disabled={customEnds !== "on"}
+                      className="px-3 py-1.5 border rounded disabled:bg-gray-100 disabled:text-gray-400 mt-2 sm:mt-0"
+                    />
+                  </div>
+
+                  {/* After */}
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="customEnds"
+                        value="after"
+                        checked={customEnds === "after"}
+                        onChange={() => setCustomEnds("after")}
+                        className="h-4 w-4 text-blue-600"
+                      />
+                      <span>After</span>
+                    </div>
+                    <input
+                      type="number"
+                      min={1}
+                      value={customEndOccurrences}
+                      onChange={(e) =>
+                        setCustomEndOccurrences(
+                          Math.max(1, Number(e.target.value) || 1)
+                        )
+                      }
+                      disabled={customEnds !== "after"}
+                      className="w-20 px-3 py-1.5 border rounded disabled:bg-gray-100 disabled:text-gray-400 mt-2 sm:mt-0"
+                    />
+                    <span>occurrences</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCustomModal(false);
+                    setRepeatType(previousRepeatType);
+                  }}
+                  className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (customEnds === "on" && !customEndDate) {
+                      alert("Please select an end date.");
+                      return;
+                    }
+                    if (
+                      customEnds === "after" &&
+                      (!customEndOccurrences || customEndOccurrences < 1)
+                    ) {
+                      alert("Please enter number of occurrences.");
+                      return;
+                    }
+                    if (
+                      customRepeatUnit === "week" &&
+                      weeklyDays.length === 0
+                    ) {
+                      alert("Please select at least one weekday.");
+                      return;
+                    }
+                    if (customEnds === "on") {
+                      setRepeatUntil(customEndDate);
+                    } else {
+                      setRepeatUntil("");
+                    }
+                    setRepeatType("custom");
+                    setShowCustomModal(false);
+                  }}
+                  className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-500"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           </div>
         )}
