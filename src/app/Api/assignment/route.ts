@@ -7,6 +7,7 @@ import { connect } from '@/dbConnection/dbConfic';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
+import { sendExpoPushNotifications } from '@/lib/pushNotifications';
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -208,6 +209,20 @@ export async function POST(request: NextRequest) {
         instructor.academyId,
         { $push: { assignment: assignmentId } },
         { new: true }
+      );
+    }
+
+    // Push: notify assigned students about new assignment
+    const studentIds = UserIds.filter((id: string) => id !== instructorId);
+    if (studentIds.length) {
+      const studentUsers = await User.find({ _id: { $in: studentIds } }, 'expoPushToken').lean();
+      const tokens = (studentUsers as any[]).map((u: any) => u.expoPushToken);
+      const dueDate = new Date(deadline as string).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+      sendExpoPushNotifications(
+        tokens,
+        'New Assignment',
+        `${title} – due ${dueDate}`,
+        { assignmentId: assignmentId.toString(), classId: classId?.toString() ?? '' }
       );
     }
 

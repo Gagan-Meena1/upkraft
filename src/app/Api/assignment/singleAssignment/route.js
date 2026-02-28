@@ -276,6 +276,18 @@ export async function PUT(request) {
 
           await assignment.save();
 
+          // Push: notify student that correction was sent
+          try {
+            const { sendExpoPushNotifications } = await import('@/lib/pushNotifications');
+            const studentUser = await User.findById(studentId).select('expoPushToken').lean();
+            sendExpoPushNotifications(
+              [studentUser?.expoPushToken],
+              'Correction Sent',
+              `Your tutor left feedback on ${assignment.title}`,
+              { assignmentId, screen: 'student-assignment' }
+            );
+          } catch {}
+
           return NextResponse.json({
             success: true,
             message: "Correction sent successfully",
@@ -335,6 +347,18 @@ export async function PUT(request) {
       await user.save();
     }
   }
+
+          // Push: notify student that assignment was approved
+          try {
+            const { sendExpoPushNotifications } = await import('@/lib/pushNotifications');
+            const studentUser = await User.findById(studentId).select('expoPushToken').lean();
+            sendExpoPushNotifications(
+              [studentUser?.expoPushToken],
+              'Assignment Approved',
+              `Great work! ${assignment.title} has been approved`,
+              { assignmentId, screen: 'student-assignment' }
+            );
+          } catch {}
 
           return NextResponse.json({
             success: true,
@@ -534,6 +558,21 @@ export async function PUT(request) {
     }
 
     await assignment.save();
+
+    // Push: notify tutor that student submitted
+    try {
+      const { sendExpoPushNotifications } = await import('@/lib/pushNotifications');
+      const submitter = await User.findById(userId).select('username').lean();
+      const tutorUser = await User.findOne(
+        { _id: { $in: assignment.userId }, category: 'Tutor' }
+      ).select('expoPushToken').lean();
+      sendExpoPushNotifications(
+        [tutorUser?.expoPushToken],
+        'Assignment Submitted',
+        `${submitter?.username ?? 'A student'} submitted ${assignment.title}`,
+        { assignmentId, screen: 'tutor-assignment' }
+      );
+    } catch {}
 
     return NextResponse.json({
       success: true,

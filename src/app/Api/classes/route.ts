@@ -14,22 +14,7 @@ import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO } from 'date-fns';
 import { sendEmail } from "@/helper/mailer";
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
-
-async function sendExpoPushNotifications(
-  tokens: (string | null | undefined)[],
-  title: string,
-  body: string,
-  data: object = {}
-) {
-  const messages = (tokens.filter(t => t?.startsWith('ExponentPushToken[')) as string[])
-    .map(to => ({ to, title, body, data, sound: 'default' }));
-  if (!messages.length) return;
-  fetch('https://exp.host/--/expo-server/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(messages),
-  }).catch(() => {});
-}
+import { sendExpoPushNotifications } from '@/lib/pushNotifications';
 
 await connect();
 
