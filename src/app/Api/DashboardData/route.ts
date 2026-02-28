@@ -16,7 +16,7 @@ export async function GET(request) {
 
     // DEBUGGING DUMP
     const fs = require('fs');
-    fs.appendFileSync('/tmp/debug_dashboard.txt', `\n[${new Date().toISOString()}] Referer: ${referer} | HasImpersonate: ${!!activeCookie} | x-active-token: ${headers().get("x-active-token") || "None"}\n`);
+    fs.appendFileSync('/tmp/debug_dashboard.txt', `\n[${new Date().toISOString()}] Referer: ${referer} | HasImpersonate: ${!!activeCookie} | x-active-token: ${(await headers()).get("x-active-token") || "None"}\n`);
 
     let refererPath = "";
     try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }

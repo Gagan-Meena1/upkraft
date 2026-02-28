@@ -201,12 +201,12 @@ const RelationshipManagerDashboard: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Login button for this tutor */}
-                  <div className="mt-4">
+                  {/* Action buttons for this tutor */}
+                  <div className="mt-4 flex gap-3">
                     <button
                       onClick={() => handleImpersonateTutor(tutor._id)}
                       disabled={impersonatingTutorId === tutor._id}
-                      className="w-full inline-flex justify-center items-center px-4 py-2 !bg-purple-500 !text-white !text-sm font-medium rounded-lg !hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 inline-flex justify-center items-center px-4 py-2 !bg-purple-500 !text-white !text-sm font-medium rounded-lg hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {impersonatingTutorId === tutor._id ? (
                         <>
@@ -220,6 +220,12 @@ const RelationshipManagerDashboard: React.FC = () => {
                         "Login"
                       )}
                     </button>
+                    <Link
+                      href={`/relationshipmanager/tutor/${tutor._id}/feedbacks`}
+                      className="flex-1 inline-flex justify-center items-center px-4 py-2 bg-white text-purple-600 border border-purple-200 text-sm font-medium rounded-lg hover:bg-purple-50 hover:border-purple-300 transition text-center"
+                    >
+                      Student Feedback
+                    </Link>
                   </div>
                 </div>
               </div>
