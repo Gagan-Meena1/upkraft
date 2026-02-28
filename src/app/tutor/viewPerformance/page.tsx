@@ -93,6 +93,7 @@ const StudentFeedbackDashboard = () => {
     assignment: "",
     technique: "",
     personalFeedback: "",
+    attendanceStatus: "Present",
     naFields: [] as string[]
   });
 
@@ -391,6 +392,7 @@ const StudentFeedbackDashboard = () => {
         assignment: editForm.assignment,
         technique: editForm.technique,
         personalFeedback: editForm.personalFeedback,
+        attendanceStatus: editForm.attendanceStatus,
         naFields: editForm.naFields
       };
 
@@ -437,6 +439,7 @@ const StudentFeedbackDashboard = () => {
       assignment: session.assignment?.toString() || "",
       technique: session.technique?.toString() || "",
       personalFeedback: session.personalFeedback || "",
+      attendanceStatus: session.attendance === 0 ? "Absent" : "Present",
       naFields: session.naFields || []
     });
   };
@@ -994,6 +997,7 @@ const StudentFeedbackDashboard = () => {
                   <thead>
                     <tr>
                       <th className="col-3">Session Number</th>
+                      <th className="col-2">Attendance</th>
                       <th className="col-2">Score</th>
                       <th className="col-2">Performance</th>
                       <th className="col-4">Recommended Improvement</th>
@@ -1004,17 +1008,26 @@ const StudentFeedbackDashboard = () => {
                     {feedbackData.map((session, idx) => (
                       <tr key={idx}>
                         <td>Session - {session.sessionNo}</td>
-                        <td>{session.averageScore}</td>
                         <td>
-                          <span className={
-                            session.performanceLevel === "good"
-                              ? "green-text"
-                              : session.performanceLevel === "medium"
-                                ? "yellow-text"
-                                : "red-text"
-                          }>
-                            {session.performanceLevel.charAt(0).toUpperCase() + session.performanceLevel.slice(1)}
+                          <span className={session.attendance === 0 ? "red-text" : "green-text"}>
+                            {session.attendance === 0 ? "Absent" : "Present"}
                           </span>
+                        </td>
+                        <td>{session.attendance === 0 ? "NA" : session.averageScore}</td>
+                        <td>
+                          {session.attendance === 0 ? (
+                            <span className="text-gray-500 italic">NA</span>
+                          ) : (
+                            <span className={
+                              session.performanceLevel === "good"
+                                ? "green-text"
+                                : session.performanceLevel === "medium"
+                                  ? "yellow-text"
+                                  : "red-text"
+                            }>
+                              {session.performanceLevel.charAt(0).toUpperCase() + session.performanceLevel.slice(1)}
+                            </span>
+                          )}
                         </td>
                         <td>{session.personalFeedback}</td>
                         <td>
@@ -1075,6 +1088,25 @@ const StudentFeedbackDashboard = () => {
                     <p className="text-sm text-blue-700">
                       <strong>Note:</strong> Editing is enabled for one-time only. Saving changes will lock the feedback again.
                     </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Attendance Dropdown */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Attendance</label>
+                <div className="relative">
+                  <select
+                    value={editForm.attendanceStatus}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, attendanceStatus: e.target.value }))}
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-shadow appearance-none cursor-pointer"
+                    required
+                  >
+                    <option value="Present">Present</option>
+                    <option value="Absent">Absent</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                   </div>
                 </div>
               </div>
