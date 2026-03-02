@@ -210,20 +210,30 @@ export default function RMTutorCalendarPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-4 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto flex items-center gap-4">
-          <Link
-            href="/relationshipmanager"
-            className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex-shrink-0"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700" />
-          </Link>
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/relationshipmanager"
+              className="p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition-colors flex-shrink-0"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-700" />
+            </Link>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                {tutor?.username ? `${tutor.username}'s` : "Tutor"} Classes
+              </h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Calendar view with students
+              </p>
+            </div>
+          </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-              {tutor?.username ? `${tutor.username}'s` : "Tutor"} Classes
-            </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              Calendar view with students
-            </p>
+            <Link
+              href={`/relationshipmanager/tutor/${tutorId}/feedbacks`}
+              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-medium rounded-lg hover:from-orange-600 hover:to-orange-500 transition-colors inline-block text-sm"
+            >
+              View Student Feedbacks
+            </Link>
           </div>
         </div>
       </header>

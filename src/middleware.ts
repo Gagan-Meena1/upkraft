@@ -30,11 +30,6 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/Api/tutor') ||
     refererPath.startsWith('/tutor');
 
-  try {
-    const fs = require('fs');
-    fs.appendFileSync('/tmp/debug_middleware.txt', `[MID] path=${pathname} refPath=${refererPath} isTutorCtxt=${isTutorContext} HasImpersonate=${!!impersonateToken}\n`);
-  } catch (e) { }
-
   let activeToken = token;
   if (isTutorContext && impersonateToken) {
     activeToken = impersonateToken;

@@ -28,8 +28,9 @@ export async function GET(request: NextRequest) {
             );
         }
 
+        const studentId = request.nextUrl.searchParams.get("studentId") || (jwt.decode(token) as any)?.id;
+
         const decoded = jwt.decode(token) as any;
-        const studentId = decoded?.id;
 
         if (!studentId) {
             return NextResponse.json({ message: 'Invalid token' }, { status: 401 });
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
         if (!attendanceRecords) {
             return NextResponse.json({ message: 'Attendance records not found' }, { status: 404 });
         }
+        console.log('Fetched attendance records:', attendanceRecords);
 
         return NextResponse.json({ success: true, data: { attendance: attendanceRecords.attendance } }, { status: 200 });
     } catch (error) {

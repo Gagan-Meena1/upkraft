@@ -2,47 +2,51 @@ import mongoose from 'mongoose';
 import { type } from 'os';
 
 const feedbackSchema = new mongoose.Schema({
-  attendance: { 
-    type: Number, 
+  attendance: {
+    type: Number,
   },
-  userId:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"users",
-    required:true
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "users",
+    required: true
   },
-  classId:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"Class",
-    required:true
+  classId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Class",
+    required: true
   },
-  
-  rhythm: { 
-    type: String, 
+
+  rhythm: {
+    type: String,
   },
-  theoreticalUnderstanding: { 
-    type: String, 
+  theoreticalUnderstanding: {
+    type: String,
   },
-  performance:{
-    type:String
+  performance: {
+    type: String
   },
-  earTraining:{
-    type:String
+  earTraining: {
+    type: String
   },
-  assignment:{
-    type:String
+  assignment: {
+    type: String
   },
-  technique:{
-    type:String
+  technique: {
+    type: String
   },
-  personalFeedback:{
-    type:String
+  personalFeedback: {
+    type: String
   },
-  feedbackRating:{
-    type:Number
+  feedbackRating: {
+    type: Number
   },
   naFields: {
     type: [String],
     default: []
+  },
+  isEditable: {
+    type: Boolean,
+    default: false
   },
 
 }, {

@@ -495,7 +495,7 @@ const StudentCalendarView = () => {
             `/Api/student/attendanceData?studentId=${student._id}`
           );
           const data = await response.json();
-          return { studentId: student._id, attendance: data.attendance || [] };
+          return { studentId: student._id, attendance: data.data.attendance || [] };
         } catch (err) {
           console.error(
             `Failed to fetch attendance for student ${student._id}`,
