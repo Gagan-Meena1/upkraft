@@ -725,6 +725,34 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// PATCH - Update class title only (mobile app — no reschedule emails, no status change)
+export async function PATCH(request: NextRequest) {
+  try {
+    await connect();
+    const { searchParams } = new URL(request.url);
+    const classId = searchParams.get('classId');
+    if (!classId) return NextResponse.json({ error: 'Class ID is required' }, { status: 400 });
+
+    const userId = await getDataFromToken(request);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { title } = await request.json();
+    if (!title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+
+    const updatedClass = await Class.findByIdAndUpdate(
+      classId,
+      { title: title.trim() },
+      { new: true }
+    );
+    if (!updatedClass) return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+
+    return NextResponse.json({ success: true, data: updatedClass });
+  } catch (error: any) {
+    console.error('Error updating class title:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 // DELETE - Cancel existing class (single or entire series)
 export async function DELETE(request: NextRequest) {
   try {
