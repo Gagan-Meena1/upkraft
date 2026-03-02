@@ -164,11 +164,19 @@ export async function PUT(request) {
     }
 
     const token = (() => {
+      // Priority 1: impersonation token (tutor web context)
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
       try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+      const impersonateToken = request.cookies.get("impersonate_token")?.value;
+      if (isTutorContext && impersonateToken) return impersonateToken;
+      // Priority 2: session cookie (web browser)
+      const cookieToken = request.cookies.get("token")?.value;
+      if (cookieToken) return cookieToken;
+      // Priority 3: Bearer token (React Native mobile app)
+      const authHeader = request.headers.get("Authorization") || "";
+      return authHeader.replace("Bearer ", "") || null;
     })();
     const decodedToken = token ? jwt.decode(token) : null;
     const userId =
