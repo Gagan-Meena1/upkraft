@@ -43,6 +43,8 @@ interface FeedbackItem {
   technique: number;
   personalFeedback: string;
   createdAt: string;
+  isEditable?: boolean;
+  naFields?: string[];
 }
 
 interface ClassInfo {
@@ -59,6 +61,9 @@ interface ClassInfo {
   averageScore: number;
   performanceLevel: "good" | "medium" | "poor";
   recommendedImprovement: string;
+  isEditable?: boolean;
+  _id?: string;
+  naFields?: string[];
 }
 
 const StudentFeedbackDashboard = () => {
@@ -76,284 +81,368 @@ const StudentFeedbackDashboard = () => {
   const [averageSkillScores, setAverageSkillScores] = useState<
     Record<string, number>
   >({});
+  const [editingSession, setEditingSession] = useState<ClassInfo | null>(null);
+  const [submittingEdit, setSubmittingEdit] = useState(false);
 
-  useEffect(() => {
-    const fetchFeedbackData = async () => {
-      if (!courseId) {
-        setError("Course ID is required");
-        setIsLoading(false);
-        return;
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    rhythm: "",
+    theoreticalUnderstanding: "",
+    performance: "",
+    earTraining: "",
+    assignment: "",
+    technique: "",
+    personalFeedback: "",
+    attendanceStatus: "Present",
+    naFields: [] as string[]
+  });
+
+  const fetchFeedbackData = async () => {
+    if (!courseId) {
+      setError("Course ID is required");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(
+        `/Api/studentFeedbackForTutor?courseId=${courseId}&studentId=${studentId}`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch feedback data");
       }
 
-      try {
-        setIsLoading(true);
-        const response = await fetch(
-          `/Api/studentFeedbackForTutor?courseId=${courseId}&studentId=${studentId}`
-        );
+      const result = await response.json();
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch feedback data");
-        }
+      console.log("result : ", result);
 
-        const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || "Failed to fetch feedback data");
+      }
+      // Process the data - group by classId, keeping only the latest feedback for each
+      const groupedByClassId: Record<string, FeedbackItem> =
+        result.data.reduce(
+          (acc: Record<string, FeedbackItem>, item: FeedbackItem) => {
+            // If this is the first entry for this classId, add it
+            if (!acc[item.classId]) {
+              acc[item.classId] = item;
+            }
+            // If we already have an entry for this classId, compare dates and keep the newest one
+            else {
+              const existingDate = new Date(acc[item.classId].createdAt);
+              const newDate = new Date(item.createdAt);
 
-        console.log("result : ", result);
-
-        if (!result.success) {
-          throw new Error(result.message || "Failed to fetch feedback data");
-        }
-        // Process the data - group by classId, keeping only the latest feedback for each
-        const groupedByClassId: Record<string, FeedbackItem> =
-          result.data.reduce(
-            (acc: Record<string, FeedbackItem>, item: FeedbackItem) => {
-              // If this is the first entry for this classId, add it
-              if (!acc[item.classId]) {
+              if (newDate > existingDate) {
                 acc[item.classId] = item;
               }
-              // If we already have an entry for this classId, compare dates and keep the newest one
-              else {
-                const existingDate = new Date(acc[item.classId].createdAt);
-                const newDate = new Date(item.createdAt);
+            }
+            return acc;
+          },
+          {}
+        );
+      // Process the data
+      const processedData: ClassInfo[] = Object.values(groupedByClassId).map(
+        (item: FeedbackItem, index: number) => {
+          // Parse string values to numbers if necessary
+          const rhythm =
+            typeof item.rhythm === "string"
+              ? parseFloat(item.rhythm)
+              : item.rhythm;
+          const theoreticalUnderstanding =
+            typeof item.theoreticalUnderstanding === "string"
+              ? parseFloat(item.theoreticalUnderstanding)
+              : item.theoreticalUnderstanding;
+          const performance =
+            typeof item.performance === "string"
+              ? parseFloat(item.performance)
+              : item.performance;
+          const earTraining =
+            typeof item.earTraining === "string"
+              ? parseFloat(item.earTraining)
+              : item.earTraining;
+          const assignment =
+            typeof item.assignment === "string"
+              ? parseFloat(item.assignment)
+              : item.assignment;
+          const technique =
+            typeof item.technique === "string"
+              ? parseFloat(item.technique)
+              : item.technique;
 
-                if (newDate > existingDate) {
-                  acc[item.classId] = item;
-                }
+          // Calculate average score (excluding attendance)
+          // Define weights for each category (in decimal form)
+          const rhythmWeight = 1 / 6; // 20%
+          const theoreticalWeight = 1 / 6; // 15%
+          const performanceWeight = 1 / 6; // 30%
+          const earTrainingWeight = 1 / 6; // 10%
+          const assignmentWeight = 1 / 6; // 15%
+          const techniqueWeight = 1 / 6; // 10%
+
+          // Calculate weighted score by multiplying each score by its weight
+          const weightedScore =
+            rhythm * rhythmWeight +
+            theoreticalUnderstanding * theoreticalWeight +
+            performance * performanceWeight +
+            earTraining * earTrainingWeight +
+            assignment * assignmentWeight +
+            technique * techniqueWeight;
+
+          // Store the weighted average score with 2 decimal places
+          const averageScore = +weightedScore.toFixed(2);
+          // Determine performance level
+          let performanceLevel: "good" | "medium" | "poor";
+          let recommendedImprovement = "";
+
+          if (averageScore >= 7) {
+            performanceLevel = "good";
+            recommendedImprovement =
+              "Continue with current progress. Focus on advanced techniques.";
+          } else if (averageScore >= 5) {
+            performanceLevel = "medium";
+
+            // Find the lowest scoring area
+            const scores = {
+              rhythm: rhythm,
+              "theoretical understanding": theoreticalUnderstanding,
+              performance: performance,
+              "ear training": earTraining,
+              "assignment completion": assignment,
+              technique: technique,
+            };
+
+            const lowestArea = Object.entries(scores).reduce((a, b) =>
+              a[1] < b[1] ? a : b
+            )[0];
+            recommendedImprovement = `Work on improving your ${lowestArea}.`;
+          } else {
+            performanceLevel = "poor";
+            recommendedImprovement =
+              "Schedule additional practice sessions. Focus on fundamentals.";
+          }
+
+          return {
+            sessionNo: index + 1, // Assuming sessions are ordered in the API response
+            attendance:
+              typeof item.attendance === "string"
+                ? parseFloat(item.attendance)
+                : item.attendance,
+            rhythm: rhythm,
+            theoretical: theoreticalUnderstanding,
+            understanding: theoreticalUnderstanding,
+            performance: performance,
+            earTraining: earTraining,
+            assignment: assignment,
+            technique: technique,
+            personalFeedback: item.personalFeedback,
+            averageScore,
+            performanceLevel,
+            recommendedImprovement,
+            isEditable: item.isEditable,
+            _id: item._id,
+            naFields: item.naFields || []
+          };
+        }
+      );
+
+      // Sort by session number
+      processedData.sort((a, b) => a.sessionNo - b.sessionNo);
+
+      setFeedbackData(processedData);
+
+      // Calculate average skills scores
+      if (processedData.length > 0) {
+        const skillTotals = {
+          rhythm: 0,
+          theoretical: 0,
+          performance: 0,
+          earTraining: 0,
+          assignment: 0,
+          technique: 0,
+        };
+
+        processedData.forEach((session) => {
+          skillTotals.rhythm += session.rhythm;
+          skillTotals.theoretical += session.theoretical;
+          skillTotals.performance += session.performance;
+          skillTotals.earTraining += session.earTraining;
+          skillTotals.assignment += session.assignment;
+          skillTotals.technique += session.technique;
+        });
+
+        const sessionCount = processedData.length;
+
+        setAverageSkillScores({
+          rhythm: +(skillTotals.rhythm / sessionCount).toFixed(2),
+          theoretical: +(skillTotals.theoretical / sessionCount).toFixed(2),
+          performance: +(skillTotals.performance / sessionCount).toFixed(2),
+          earTraining: +(skillTotals.earTraining / sessionCount).toFixed(2),
+          assignment: +(skillTotals.assignment / sessionCount).toFixed(2),
+          technique: +(skillTotals.technique / sessionCount).toFixed(2),
+        });
+      }
+      // Calculate overall performance score (average of all session averages)
+      if (processedData.length > 0) {
+        const overallScore =
+          processedData.reduce(
+            (total, session) => total + session.averageScore,
+            0
+          ) / processedData.length;
+        // Store with 2 decimal places
+        setAverageSkillScores((prev) => ({
+          ...prev,
+          overall: +overallScore.toFixed(2),
+        }));
+      }
+      // Process the all-student feedback data
+      // Process the all-student feedback data
+      if (
+        result.feedbackAllStudent &&
+        Array.isArray(result.feedbackAllStudent)
+      ) {
+        // Group by classId (which represents sessions)
+        const groupedByClass: Record<string, FeedbackItem[]> =
+          result.feedbackAllStudent.reduce(
+            (acc: Record<string, FeedbackItem[]>, item: FeedbackItem) => {
+              if (!acc[item.classId]) {
+                acc[item.classId] = [];
               }
+              acc[item.classId].push(item);
               return acc;
             },
             {}
           );
-        // Process the data
-        const processedData: ClassInfo[] = Object.values(groupedByClassId).map(
-          (item: FeedbackItem, index: number) => {
-            // Parse string values to numbers if necessary
-            const rhythm =
-              typeof item.rhythm === "string"
-                ? parseFloat(item.rhythm)
-                : item.rhythm;
-            const theoreticalUnderstanding =
-              typeof item.theoreticalUnderstanding === "string"
-                ? parseFloat(item.theoreticalUnderstanding)
-                : item.theoreticalUnderstanding;
-            const performance =
-              typeof item.performance === "string"
-                ? parseFloat(item.performance)
-                : item.performance;
-            const earTraining =
-              typeof item.earTraining === "string"
-                ? parseFloat(item.earTraining)
-                : item.earTraining;
-            const assignment =
-              typeof item.assignment === "string"
-                ? parseFloat(item.assignment)
-                : item.assignment;
-            const technique =
-              typeof item.technique === "string"
-                ? parseFloat(item.technique)
-                : item.technique;
 
-            // Calculate average score (excluding attendance)
-            // Define weights for each category (in decimal form)
-            const rhythmWeight = 1 / 6; // 20%
-            const theoreticalWeight = 1 / 6; // 15%
-            const performanceWeight = 1 / 6; // 30%
-            const earTrainingWeight = 1 / 6; // 10%
-            const assignmentWeight = 1 / 6; // 15%
-            const techniqueWeight = 1 / 6; // 10%
+        // For each class/session, find the top score for each metric
+        const topScoresBySession: any[] = [];
 
-            // Calculate weighted score by multiplying each score by its weight
-            const weightedScore =
-              rhythm * rhythmWeight +
-              theoreticalUnderstanding * theoreticalWeight +
-              performance * performanceWeight +
-              earTraining * earTrainingWeight +
-              assignment * assignmentWeight +
-              technique * techniqueWeight;
+        Object.entries(groupedByClass).forEach(
+          ([classId, feedbacks]: [string, FeedbackItem[]]) => {
+            // Find the matching session number from individual student data
+            const matchingSession = processedData.find((item) =>
+              result.data.some(
+                (dataItem: FeedbackItem) => dataItem.classId === classId
+              )
+            );
 
-            // Store the weighted average score with 2 decimal places
-            const averageScore = +weightedScore.toFixed(2);
-            // Determine performance level
-            let performanceLevel: "good" | "medium" | "poor";
-            let recommendedImprovement = "";
+            const sessionNo = matchingSession
+              ? matchingSession.sessionNo
+              : topScoresBySession.length + 1;
 
-            if (averageScore >= 7) {
-              performanceLevel = "good";
-              recommendedImprovement =
-                "Continue with current progress. Focus on advanced techniques.";
-            } else if (averageScore >= 5) {
-              performanceLevel = "medium";
-
-              // Find the lowest scoring area
-              const scores = {
-                rhythm: rhythm,
-                "theoretical understanding": theoreticalUnderstanding,
-                performance: performance,
-                "ear training": earTraining,
-                "assignment completion": assignment,
-                technique: technique,
-              };
-
-              const lowestArea = Object.entries(scores).reduce((a, b) =>
-                a[1] < b[1] ? a : b
-              )[0];
-              recommendedImprovement = `Work on improving your ${lowestArea}.`;
-            } else {
-              performanceLevel = "poor";
-              recommendedImprovement =
-                "Schedule additional practice sessions. Focus on fundamentals.";
-            }
-
-            return {
-              sessionNo: index + 1, // Assuming sessions are ordered in the API response
-              attendance:
-                typeof item.attendance === "string"
-                  ? parseFloat(item.attendance)
-                  : item.attendance,
-              rhythm: rhythm,
-              theoretical: theoreticalUnderstanding,
-              understanding: theoreticalUnderstanding,
-              performance: performance,
-              earTraining: earTraining,
-              assignment: assignment,
-              technique: technique,
-              personalFeedback: item.personalFeedback,
-              averageScore,
-              performanceLevel,
-              recommendedImprovement,
+            // Find top scores for each metric
+            const topScores = {
+              sessionNo,
+              classId,
+              rhythm: Math.max(
+                ...feedbacks.map((f: any) => parseFloat(f.rhythm) || 0)
+              ),
+              theoretical: Math.max(
+                ...feedbacks.map(
+                  (f: any) => parseFloat(f.theoreticalUnderstanding) || 0
+                )
+              ),
+              performance: Math.max(
+                ...feedbacks.map((f: any) => parseFloat(f.performance) || 0)
+              ),
+              earTraining: Math.max(
+                ...feedbacks.map((f: any) => parseFloat(f.earTraining) || 0)
+              ),
+              assignment: Math.max(
+                ...feedbacks.map((f: any) => parseFloat(f.assignment) || 0)
+              ),
+              technique: Math.max(
+                ...feedbacks.map((f: any) => parseFloat(f.technique) || 0)
+              ),
             };
+
+            topScoresBySession.push(topScores);
           }
         );
 
         // Sort by session number
-        processedData.sort((a, b) => a.sessionNo - b.sessionNo);
+        topScoresBySession.sort((a, b) => a.sessionNo - b.sessionNo);
 
-        setFeedbackData(processedData);
-
-        // Calculate average skills scores
-        if (processedData.length > 0) {
-          const skillTotals = {
-            rhythm: 0,
-            theoretical: 0,
-            performance: 0,
-            earTraining: 0,
-            assignment: 0,
-            technique: 0,
-          };
-
-          processedData.forEach((session) => {
-            skillTotals.rhythm += session.rhythm;
-            skillTotals.theoretical += session.theoretical;
-            skillTotals.performance += session.performance;
-            skillTotals.earTraining += session.earTraining;
-            skillTotals.assignment += session.assignment;
-            skillTotals.technique += session.technique;
-          });
-
-          const sessionCount = processedData.length;
-
-          setAverageSkillScores({
-            rhythm: +(skillTotals.rhythm / sessionCount).toFixed(2),
-            theoretical: +(skillTotals.theoretical / sessionCount).toFixed(2),
-            performance: +(skillTotals.performance / sessionCount).toFixed(2),
-            earTraining: +(skillTotals.earTraining / sessionCount).toFixed(2),
-            assignment: +(skillTotals.assignment / sessionCount).toFixed(2),
-            technique: +(skillTotals.technique / sessionCount).toFixed(2),
-          });
-        }
-        // Calculate overall performance score (average of all session averages)
-        if (processedData.length > 0) {
-          const overallScore =
-            processedData.reduce(
-              (total, session) => total + session.averageScore,
-              0
-            ) / processedData.length;
-          // Store with 2 decimal places
-          setAverageSkillScores((prev) => ({
-            ...prev,
-            overall: +overallScore.toFixed(2),
-          }));
-        }
-        // Process the all-student feedback data
-        // Process the all-student feedback data
-        if (
-          result.feedbackAllStudent &&
-          Array.isArray(result.feedbackAllStudent)
-        ) {
-          // Group by classId (which represents sessions)
-          const groupedByClass: Record<string, FeedbackItem[]> =
-            result.feedbackAllStudent.reduce(
-              (acc: Record<string, FeedbackItem[]>, item: FeedbackItem) => {
-                if (!acc[item.classId]) {
-                  acc[item.classId] = [];
-                }
-                acc[item.classId].push(item);
-                return acc;
-              },
-              {}
-            );
-
-          // For each class/session, find the top score for each metric
-          const topScoresBySession: any[] = [];
-
-          Object.entries(groupedByClass).forEach(
-            ([classId, feedbacks]: [string, FeedbackItem[]]) => {
-              // Find the matching session number from individual student data
-              const matchingSession = processedData.find((item) =>
-                result.data.some(
-                  (dataItem: FeedbackItem) => dataItem.classId === classId
-                )
-              );
-
-              const sessionNo = matchingSession
-                ? matchingSession.sessionNo
-                : topScoresBySession.length + 1;
-
-              // Find top scores for each metric
-              const topScores = {
-                sessionNo,
-                classId,
-                rhythm: Math.max(
-                  ...feedbacks.map((f: any) => parseFloat(f.rhythm) || 0)
-                ),
-                theoretical: Math.max(
-                  ...feedbacks.map(
-                    (f: any) => parseFloat(f.theoreticalUnderstanding) || 0
-                  )
-                ),
-                performance: Math.max(
-                  ...feedbacks.map((f: any) => parseFloat(f.performance) || 0)
-                ),
-                earTraining: Math.max(
-                  ...feedbacks.map((f: any) => parseFloat(f.earTraining) || 0)
-                ),
-                assignment: Math.max(
-                  ...feedbacks.map((f: any) => parseFloat(f.assignment) || 0)
-                ),
-                technique: Math.max(
-                  ...feedbacks.map((f: any) => parseFloat(f.technique) || 0)
-                ),
-              };
-
-              topScoresBySession.push(topScores);
-            }
-          );
-
-          // Sort by session number
-          topScoresBySession.sort((a, b) => a.sessionNo - b.sessionNo);
-
-          setAllStudentsFeedbackData(topScoresBySession);
-        }
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An unknown error occurred"
-        );
-      } finally {
-        setIsLoading(false);
+        setAllStudentsFeedbackData(topScoresBySession);
       }
-    };
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchFeedbackData();
   }, [courseId]);
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSession || !editingSession._id) return;
+
+    setSubmittingEdit(true);
+    try {
+      const payload = {
+        rhythm: editForm.rhythm,
+        theoreticalUnderstanding: editForm.theoreticalUnderstanding,
+        performance: editForm.performance,
+        earTraining: editForm.earTraining,
+        assignment: editForm.assignment,
+        technique: editForm.technique,
+        personalFeedback: editForm.personalFeedback,
+        attendanceStatus: editForm.attendanceStatus,
+        naFields: editForm.naFields
+      };
+
+      const res = await fetch(`/Api/studentFeedback/${editingSession._id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update feedback");
+      }
+
+      setEditingSession(null);
+      // Refetch data to show updated fields
+      fetchFeedbackData();
+
+    } catch (err: any) {
+      alert("Error: " + err.message);
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
+
+  const toggleNaField = (field: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      naFields: prev.naFields.includes(field)
+        ? prev.naFields.filter(f => f !== field)
+        : [...prev.naFields, field]
+    }));
+  };
+
+  const handleEditClick = (session: ClassInfo) => {
+    setEditingSession(session);
+    setEditForm({
+      rhythm: session.rhythm?.toString() || "",
+      theoreticalUnderstanding: session.theoretical?.toString() || "",
+      performance: session.performance?.toString() || "",
+      earTraining: session.earTraining?.toString() || "",
+      assignment: session.assignment?.toString() || "",
+      technique: session.technique?.toString() || "",
+      personalFeedback: session.personalFeedback || "",
+      attendanceStatus: session.attendance === 0 ? "Absent" : "Present",
+      naFields: session.naFields || []
+    });
+  };
 
   if (isLoading) {
     return (
@@ -518,12 +607,12 @@ const StudentFeedbackDashboard = () => {
           x2={
             cx +
             (outerRadius + 25) *
-              Math.cos((Math.PI * (180 - (180 * value) / 10)) / 180)
+            Math.cos((Math.PI * (180 - (180 * value) / 10)) / 180)
           }
           y2={
             cy -
             (outerRadius + 25) *
-              Math.sin((Math.PI * (180 - (180 * value) / 10)) / 180)
+            Math.sin((Math.PI * (180 - (180 * value) / 10)) / 180)
           }
           stroke={getScoreColor(value)}
           strokeWidth={3}
@@ -604,13 +693,12 @@ const StudentFeedbackDashboard = () => {
         </div>
         <div className="mt-2 text-center">
           <span
-            className={`font-medium ${
-              getScoreColor(score) === "text-green-500"
-                ? "text-green-600"
-                : getScoreColor(score) === "text-orange-500"
+            className={`font-medium ${getScoreColor(score) === "text-green-500"
+              ? "text-green-600"
+              : getScoreColor(score) === "text-orange-500"
                 ? "text-orange-500"
                 : "text-red-500"
-            }`}
+              }`}
           >
             Average: {score}/10
           </span>
@@ -909,28 +997,52 @@ const StudentFeedbackDashboard = () => {
                   <thead>
                     <tr>
                       <th className="col-3">Session Number</th>
+                      <th className="col-2">Attendance</th>
                       <th className="col-2">Score</th>
                       <th className="col-2">Performance</th>
-                      <th className="col-5">Recommended Improvement</th>
+                      <th className="col-4">Recommended Improvement</th>
+                      <th className="col-1">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {feedbackData.map((session, idx) => (
                       <tr key={idx}>
                         <td>Session - {session.sessionNo}</td>
-                        <td>{session.averageScore}</td>
                         <td>
-                          <span className={
-                            session.performanceLevel === "good"
-                              ? "green-text"
-                              : session.performanceLevel === "medium"
-                              ? "yellow-text"
-                              : "red-text"
-                          }>
-                            {session.performanceLevel.charAt(0).toUpperCase() + session.performanceLevel.slice(1)}
+                          <span className={session.attendance === 0 ? "red-text" : "green-text"}>
+                            {session.attendance === 0 ? "Absent" : "Present"}
                           </span>
                         </td>
+                        <td>{session.attendance === 0 ? "NA" : session.averageScore}</td>
+                        <td>
+                          {session.attendance === 0 ? (
+                            <span className="text-gray-500 italic">NA</span>
+                          ) : (
+                            <span className={
+                              session.performanceLevel === "good"
+                                ? "green-text"
+                                : session.performanceLevel === "medium"
+                                  ? "yellow-text"
+                                  : "red-text"
+                            }>
+                              {session.performanceLevel.charAt(0).toUpperCase() + session.performanceLevel.slice(1)}
+                            </span>
+                          )}
+                        </td>
                         <td>{session.personalFeedback}</td>
+                        <td>
+                          <button
+                            onClick={() => handleEditClick(session)}
+                            disabled={!session.isEditable}
+                            title={session.isEditable ? "Edit Feedback" : "Edit Disabled. Ask RM to enable."}
+                            className={`p-2 rounded-full transition-colors ${session.isEditable
+                              ? "text-purple-600 hover:bg-purple-100"
+                              : "text-gray-400 cursor-not-allowed"
+                              }`}
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -942,13 +1054,137 @@ const StudentFeedbackDashboard = () => {
 
         {/* Individual Progress Charts */}
         <div className="col-md-12 mb-4">
-          <IndividualProgress 
+          <IndividualProgress
             feedbackData={feedbackData}
             averageSkillScores={averageSkillScores}
             allStudentsFeedbackData={allStudentsFeedbackData}
           />
         </div>
       </div>
+
+      {/* Edit Feedback Modal */}
+      {editingSession && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 h-full">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="border-b border-gray-100 px-6 py-4 flex items-center justify-between bg-gray-50">
+              <h2 className="text-xl font-bold text-gray-800">Edit Feedback - Session {editingSession.sessionNo}</h2>
+              <button
+                onClick={() => setEditingSession(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-2"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6">
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 rounded-r-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      <strong>Note:</strong> Editing is enabled for one-time only. Saving changes will lock the feedback again.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Attendance Dropdown */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Attendance</label>
+                <div className="relative">
+                  <select
+                    value={editForm.attendanceStatus}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, attendanceStatus: e.target.value }))}
+                    className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-shadow appearance-none cursor-pointer"
+                    required
+                  >
+                    <option value="Present">Present</option>
+                    <option value="Absent">Absent</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                {[
+                  { label: "Rhythm", key: "rhythm" },
+                  { label: "Theoretical Understanding", key: "theoreticalUnderstanding" },
+                  { label: "Performance", key: "performance" },
+                  { label: "Ear Training", key: "earTraining" },
+                  { label: "Assignment Completion", key: "assignment" },
+                  { label: "Technique", key: "technique" }
+                ].map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-sm font-medium text-gray-700">{field.label}</label>
+                      <label className="inline-flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                          checked={editForm.naFields.includes(field.key)}
+                          onChange={() => toggleNaField(field.key)}
+                        />
+                        <span className="text-xs text-gray-500">N/A</span>
+                      </label>
+                    </div>
+                    {editForm.naFields.includes(field.key) ? (
+                      <div className="w-full px-4 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 italic text-sm text-center">
+                        Not Applicable
+                      </div>
+                    ) : (
+                      <select
+                        value={editForm[field.key as keyof typeof editForm] as string}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, [field.key]: e.target.value }))}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all"
+                        required
+                      >
+                        <option value="">Select Score</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                          <option key={num} value={num}>{num}/10</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-2 mb-6">
+                <label className="block text-sm font-medium text-gray-700">Personal Feedback</label>
+                <textarea
+                  value={editForm.personalFeedback}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, personalFeedback: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none min-h-[120px] transition-all"
+                  placeholder="Enter detailed feedback here..."
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingSession(null)}
+                  className="px-5 py-2.5 rounded-lg font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingEdit}
+                  className="px-5 py-2.5 rounded-lg font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed transition-colors shadow-sm"
+                >
+                  {submittingEdit ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

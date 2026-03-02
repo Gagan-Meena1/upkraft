@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
+import courseName from "@/models/courseName";
 import Class from "@/models/Class";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
@@ -15,7 +16,7 @@ export async function GET(
     const token = (() => {
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
       return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
     })();
@@ -105,38 +106,54 @@ export async function GET(
       .sort({ startTime: 1 })
       .lean();
 
-    const classesWithStudents = await Promise.all(
-      classes.map(async (cls: any) => {
-        const classId = cls._id.toString();
-        const studentsInClass = await User.find({
-          classes: new mongoose.Types.ObjectId(classId),
-          category: { $in: ["Student", "student"] },
-        })
-          .select("_id username email address")
-          .lean();
-
-        const course = cls.course as any;
-        const courseName =
-          course?.courseName || course?.title || course?.name || "—";
-
-        return {
-          _id: cls._id,
-          title: cls.title,
-          description: cls.description,
-          startTime: cls.startTime,
-          endTime: cls.endTime,
-          status: cls.status,
-          course: courseName,
-          courseId: course?._id,
-          students: studentsInClass.map((s: any) => ({
-            _id: s._id,
-            username: s.username,
-            email: s.email,
-            address: s.address,
-          })),
-        };
-      })
+    const classObjectIdList = classes.map(
+      (cls: any) => new mongoose.Types.ObjectId(cls._id)
     );
+
+    const allStudentsInClasses = await User.find({
+      classes: { $in: classObjectIdList },
+      category: { $in: ["Student", "student"] },
+    })
+      .select("_id username email address classes")
+      .lean();
+
+    const studentsByClassId = new Map();
+    allStudentsInClasses.forEach((student: any) => {
+      const studentClassIds = Array.isArray(student.classes) ? student.classes : [];
+      studentClassIds.forEach((studentClassId: any) => {
+        const classIdStr = studentClassId.toString();
+        if (!studentsByClassId.has(classIdStr)) {
+          studentsByClassId.set(classIdStr, []);
+        }
+        studentsByClassId.get(classIdStr).push({
+          _id: student._id,
+          username: student.username,
+          email: student.email,
+          address: student.address,
+        });
+      });
+    });
+
+    const classesWithStudents = classes.map((cls: any) => {
+      const classIdStr = cls._id.toString();
+      const studentsInClass = studentsByClassId.get(classIdStr) || [];
+
+      const course = cls.course as any;
+      const courseName =
+        course?.courseName || course?.title || course?.name || "—";
+
+      return {
+        _id: cls._id,
+        title: cls.title,
+        description: cls.description,
+        startTime: cls.startTime,
+        endTime: cls.endTime,
+        status: cls.status,
+        course: courseName,
+        courseId: course?._id,
+        students: studentsInClass,
+      };
+    });
 
     return NextResponse.json({
       success: true,

@@ -7,14 +7,19 @@ export async function PUT(request: NextRequest) {
   try {
     await connect();
 
-    // Get token from cookies
-    const token = (() => {
-      const referer = request.headers.get("referer") || "";
-      let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
-      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
-    })();
+    // Priority 1: impersonation token (RSM acting as tutor — web only)
+    // Priority 2: session cookie (web browser)
+    // Priority 3: Bearer token in Authorization header (React Native mobile app)
+    const referer = request.headers.get("referer") || "";
+    let refererPath = "";
+    try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+    const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+    const impersonateToken = request.cookies.get("impersonate_token")?.value;
+    const authHeader = request.headers.get("Authorization") || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const token = (isTutorContext && impersonateToken)
+      ? impersonateToken
+      : (request.cookies.get("token")?.value || bearerToken || "");
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
     }

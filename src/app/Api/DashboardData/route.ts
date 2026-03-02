@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
+
 import User from "@/models/userModel";
 import Class from "@/models/Class";
 import courseName from "@/models/courseName";
@@ -14,17 +14,11 @@ export async function GET(request) {
     const activeCookie = request.cookies.get("impersonate_token")?.value;
     const originalCookie = request.cookies.get("token")?.value;
 
-    // DEBUGGING DUMP
-    const fs = require('fs');
-    fs.appendFileSync('/tmp/debug_dashboard.txt', `\n[${new Date().toISOString()}] Referer: ${referer} | HasImpersonate: ${!!activeCookie} | x-active-token: ${headers().get("x-active-token") || "None"}\n`);
-
     let refererPath = "";
     try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
 
     const isTutorContext = refererPath.startsWith("/tutor") || request.nextUrl?.pathname?.startsWith("/Api/tutor");
     const token = (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
-
-    fs.appendFileSync('/tmp/debug_dashboard.txt', `x-active is: ${request.headers.get("x-active-token")}, isTutorContext: ${isTutorContext}, token extracted is: ${token}\n`);
 
     if (!token) return NextResponse.json({ error: "No token" }, { status: 401 });
 

@@ -25,8 +25,8 @@ export async function POST(request : NextRequest ){
         
         console.log("User found", user);
         if(!user){
-            return NextResponse.json({error:"User does not exists"})
-           
+            return NextResponse.json({error:"User does not exist"}, {status: 401})
+
         }
 
         console.log("User exists");
@@ -36,7 +36,7 @@ export async function POST(request : NextRequest ){
        if(!validPassword)
        {
           console.log("[Invalid Password]");
-          return NextResponse.json({error:"check your credentials"})
+          return NextResponse.json({error:"Incorrect password"}, {status: 401})
 
        }
 
@@ -74,8 +74,8 @@ export async function POST(request : NextRequest ){
     catch(error:any){
       console.log("[Error during login]");
       console.log(error.message);
-      
-        return NextResponse.json({error:error.message})
+
+        return NextResponse.json({error:error.message}, {status: 500})
     }
 
 

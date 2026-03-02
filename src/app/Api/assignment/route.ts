@@ -634,13 +634,19 @@ export async function GET(request: NextRequest) {
     if (userIdParam) {
       userId = userIdParam;
     } else {
-      const token = (() => {
+      // Priority 1: impersonation token (RSM acting as tutor — web only)
+      // Priority 2: session cookie (web browser)
+      // Priority 3: Bearer token in Authorization header (React Native mobile app)
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
       try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
-    })();
+      const impersonateToken = request.cookies.get("impersonate_token")?.value;
+      const authHeader = request.headers.get("Authorization") || "";
+      const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+      const token = (isTutorContext && impersonateToken)
+        ? impersonateToken
+        : (request.cookies.get("token")?.value || bearerToken || "");
       const decodedToken = token ? jwt.decode(token) : null;
       userId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
     }
@@ -882,12 +888,27 @@ export async function GET(request: NextRequest) {
           student._id.toString() !== userId.toString()
         );
 
+        // Derive a single top-level status from all student submissions
+        // (used by mobile app assignment list to show badge: SUBMITTED / CORRECTION / APPROVED / PENDING)
+        const studentStatuses = studentsOnly.map((student: any) => {
+          const sub = assignment.submissions?.find(
+            (s: any) => s.studentId?.toString() === student._id.toString()
+          );
+          return sub?.status || 'PENDING';
+        });
+        const currentAssignmentStatus =
+          studentStatuses.includes('SUBMITTED') ? 'SUBMITTED' :
+          studentStatuses.includes('CORRECTION') ? 'CORRECTION' :
+          studentStatuses.length > 0 && studentStatuses.every((s: string) => s === 'APPROVED') ? 'APPROVED' :
+          'PENDING';
+
         return {
           _id: assignment._id,
           title: assignment.title,
           description: assignment.description,
           deadline: assignment.deadline,
           status: assignment.status,
+          currentAssignmentStatus,
           fileUrl: assignment.fileUrl,
           fileName: assignment.fileName,
           songName: assignment.songName,
@@ -897,6 +918,18 @@ export async function GET(request: NextRequest) {
           createdAt: assignment.createdAt,
           class: assignment.classId,
           course: assignment.courseId,
+          // Full submissions array — used by mobile app to show per-student status in detail view
+          submissions: (assignment.submissions ?? []).map((sub: any) => ({
+            studentId: sub.studentId?.toString(),
+            status: sub.status,
+            submittedAt: sub.submittedAt,
+            studentMessage: sub.message || sub.studentMessage || '',
+            tutorRemarks: sub.tutorRemarks || '',
+            fileUrl: sub.fileUrl || '',
+            fileName: sub.fileName || '',
+            rating: sub.rating,
+            ratingMessage: sub.ratingMessage || '',
+          })),
           assignedStudents: studentsOnly.map((student: any) => {
             const studentSubmission = assignment.submissions?.find(
               (sub: any) => sub.studentId?.toString() === student._id.toString()
