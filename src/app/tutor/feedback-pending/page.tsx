@@ -132,6 +132,7 @@ const FeedbackPendingDetails = () => {
   const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const isFlippingRef = useRef(false);
+  const facingModeRef = useRef<'user' | 'environment'>('user');
 
   // Replace fixed shape with dynamic map per category
   const [feedbackData, setFeedbackData] = useState<Record<string, number | string>>(buildDefaults("Music"));
@@ -166,8 +167,7 @@ const startRecording = async () => {
       video: { 
         width: { ideal: 1280 },
         height: { ideal: 720 },
-        facingMode: facingMode 
-      }, 
+facingMode: facingModeRef.current      }, 
       audio: true 
     });
     
@@ -236,9 +236,12 @@ const startRecording = async () => {
 };
 
 const flipCamera = () => {
+  const newMode = facingModeRef.current === 'user' ? 'environment' : 'user';
+  facingModeRef.current = newMode;  // ✅ Update ref immediately (sync)
+  setFacingMode(newMode);           // ✅ Update state for UI
+
   isFlippingRef.current = true;
-  setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
-  
+
   if (mediaRecorderRef.current && isRecording) {
     mediaRecorderRef.current.stop();
     setIsRecording(false);
