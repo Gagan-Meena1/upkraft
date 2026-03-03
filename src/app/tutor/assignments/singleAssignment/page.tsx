@@ -98,14 +98,16 @@ function AssignmentDetailContent() {
   const [approveRatingValue, setApproveRatingValue] = useState<number>(5);
   const [approveRatingMessage, setApproveRatingMessage] = useState<string>("");
   const [approveError, setApproveError] = useState<string | null>(null);
+  const [isPendingApproval, setIsPendingApproval] = useState(false);
 
   // ADD: helper to detect editing mode
   const isEditingRating = approveForStudentId
     ? assignment?.assignedStudents.find(s => s.userId === approveForStudentId)?.submissionStatus === "APPROVED"
     : false;
 
-  // UPDATED: openApproveModal (accept edit flag)
-  const openApproveModal = (studentId: string, isEdit = false) => {
+  // UPDATED: openApproveModal (accept edit flag and isPending flag)
+  const openApproveModal = (studentId: string, isEdit = false, isPending = false) => {
+    setIsPendingApproval(isPending);
     setApproveForStudentId(studentId);
     const existing = assignment?.assignedStudents.find(s => s.userId === studentId);
     if (isEdit && existing) {
@@ -123,6 +125,10 @@ function AssignmentDetailContent() {
 
   const submitApprove = async () => {
     if (!approveForStudentId) return;
+    if (isPendingApproval && !approveRatingMessage.trim()) {
+      setApproveError("Remarks are required when approving without a submission.");
+      return;
+    }
     setApprovalLoading(true);
     setApproveError(null);
     try {
@@ -810,12 +816,18 @@ function AssignmentDetailContent() {
                   </div>
 
                   {/* Submission Details (shown when selected) */}
-                  {selectedStudentId === student.userId &&
-                    student.submissionStatus !== "PENDING" && (
+                  {selectedStudentId === student.userId && (
                       <div className="mt-4 p-4 bg-white border rounded-lg">
                         <h4 className="font-semibold text-gray-900 mb-3">
-                          Submission Details
+                          {student.submissionStatus === "PENDING" ? "Assignment Actions" : "Submission Details"}
                         </h4>
+
+                        {/* No submission banner for PENDING students */}
+                        {student.submissionStatus === "PENDING" && (
+                          <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-500 text-sm">
+                            No submission from student yet.
+                          </div>
+                        )}
 
                         {/* RATING AND FEEDBACK (NEW) */}
                         {student.submissionStatus === "APPROVED" &&
@@ -919,33 +931,37 @@ function AssignmentDetailContent() {
                           </div>
                         )}
 
-                        {/* Action Buttons (only for submitted assignments) */}
-                        {student.submissionStatus === "SUBMITTED" && (
+                        {/* Action Buttons (for submitted or pending assignments) */}
+                        {(student.submissionStatus === "SUBMITTED" || student.submissionStatus === "PENDING") && (
                           <div className="flex gap-3 pt-3 border-t">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openApproveModal(student.userId, false);
+                                openApproveModal(student.userId, false, student.submissionStatus === "PENDING");
                               }}
                               disabled={approvalLoading}
                               className="!px-4 !py-3 !bg-green-600 !text-white !rounded-lg hover:!bg-green-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
                             >
                               {approvalLoading && approveForStudentId === student.userId
                                 ? "Opening..."
-                                : "Approve"}
+                                : student.submissionStatus === "PENDING"
+                                  ? "Approve Without Submission"
+                                  : "Approve"}
                             </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openCorrectionModal(student.userId);
-                              }}
-                              disabled={approvalLoading}
-                              className="!px-4 !py-3 !bg-orange-600 !text-white !rounded-lg hover:!bg-orange-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
-                            >
-                              {approvalLoading && correctionForStudentId === student.userId
-                                ? "Processing..."
-                                : "Send for Correction"}
-                            </button>
+                            {student.submissionStatus === "SUBMITTED" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openCorrectionModal(student.userId);
+                                }}
+                                disabled={approvalLoading}
+                                className="!px-4 !py-3 !bg-orange-600 !text-white !rounded-lg hover:!bg-orange-700 !transition-colors disabled:!opacity-50 !flex !items-center !gap-2"
+                              >
+                                {approvalLoading && correctionForStudentId === student.userId
+                                  ? "Processing..."
+                                  : "Send for Correction"}
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1101,7 +1117,9 @@ function AssignmentDetailContent() {
                 className="w-full mb-4"
               />
               <label className="block font-medium mb-2 text-gray-700">
-                {isEditingRating ? "Update Feedback Message" : "Feedback Message (optional)"}
+                {isPendingApproval
+                  ? "Tutor Remarks (required)"
+                  : isEditingRating ? "Update Feedback Message" : "Feedback Message (optional)"}
               </label>
               <textarea
                 rows={4}
