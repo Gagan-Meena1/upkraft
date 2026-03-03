@@ -101,7 +101,7 @@ const StudentProfileDetails = () => {
                                                     <span className='student-txt'><strong>2 Month</strong></span>
                                                 </li>
                                                 <li className='d-flex align-items-center gap-2'>
-                                                    <span className='student-text'>Free :</span>
+                                                    <span className='student-text'>Fee :</span>
                                                     <span className='student-txt'><strong>Rs 40,000</strong></span>
                                                 </li>
                                             </ul>
@@ -140,7 +140,7 @@ const StudentProfileDetails = () => {
                                                     <span className='student-txt'><strong>2 Month</strong></span>
                                                 </li>
                                                 <li className='d-flex align-items-center gap-2'>
-                                                    <span className='student-text'>Free :</span>
+                                                    <span className='student-text'>Fee :</span>
                                                     <span className='student-txt'><strong>Rs 40,000</strong></span>
                                                 </li>
                                             </ul>
