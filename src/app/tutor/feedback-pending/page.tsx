@@ -131,6 +131,7 @@ const FeedbackPendingDetails = () => {
   const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'absent'>('present');
   const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const isFlippingRef = useRef(false);
 
   // Replace fixed shape with dynamic map per category
   const [feedbackData, setFeedbackData] = useState<Record<string, number | string>>(buildDefaults("Music"));
@@ -193,21 +194,30 @@ const startRecording = async () => {
       }
     };
 
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-      
-      const sizeMB = blob.size / (1024 * 1024);
-      if (sizeMB > 200) {
-        alert('Video size exceeds 200MB limit. Please record a shorter video.');
-        cleanupRecording();
-        return;
-      }
-      
-      setRecordedBlob(blob);
-      setShowPreviewModal(true);
-      setShowLivePreview(false);
-      cleanupRecording();
-    };
+   mediaRecorder.onstop = () => {
+  if (isFlippingRef.current) {
+    // Just cleanup and restart with new camera — don't show preview
+    isFlippingRef.current = false;
+    cleanupRecording();
+    // Auto-restart with new facingMode
+    setTimeout(() => startRecording(), 300);
+    return;
+  }
+
+  const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+  const sizeMB = blob.size / (1024 * 1024);
+  if (sizeMB > 200) {
+    alert('Video size exceeds 200MB limit. Please record a shorter video.');
+    cleanupRecording();
+    return;
+  }
+
+  setRecordedBlob(blob);
+  setShowPreviewModal(true);
+  setShowLivePreview(false);
+  cleanupRecording();
+};
+
 
     mediaRecorder.start(1000);
     mediaRecorderRef.current = mediaRecorder;
@@ -222,6 +232,20 @@ const startRecording = async () => {
     console.error('Error starting recording:', err);
     alert('Failed to access camera/microphone. Please grant permissions.');
     setShowLivePreview(false);
+  }
+};
+
+const flipCamera = () => {
+  isFlippingRef.current = true;
+  setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+  
+  if (mediaRecorderRef.current && isRecording) {
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
   }
 };
 
@@ -1178,16 +1202,13 @@ const getButtonText = (classId: string, isUploading: boolean) => {
           </div>
           <div className="d-flex justify-content-center mt-4">
              {/* Flip Camera Button */}
-  <button
-    onClick={() => {
-      stopRecording();
-      setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
-    }}
-    className="btn btn-outline-light btn-lg d-flex align-items-center gap-2"
-    style={{ padding: '15px 30px', fontSize: '16px' }}
-  >
-    🔄 Flip Camera
-  </button>
+<button
+  onClick={flipCamera}
+  className="btn btn-outline-light btn-lg d-flex align-items-center gap-2"
+  style={{ padding: '15px 30px', fontSize: '16px' }}
+>
+  🔄 Flip Camera
+</button>
             <button 
               onClick={stopRecording}
               className="btn btn-danger btn-lg d-flex align-items-center gap-2"
