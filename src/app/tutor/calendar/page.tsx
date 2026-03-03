@@ -341,16 +341,52 @@ const StudentCalendarView = () => {
   }, []);
 
   // ─── OPTIMIZED: single batch request instead of N parallel calls ────────
+  // const fetchAttendanceForStudents = useCallback(
+  //   async (studentList: Student[]) => {
+  //     if (studentList.length === 0) return;
+
+  //     try {
+  //       const studentIds = studentList.map((s) => s._id).join(",");
+
+  //       const res = await fetch(
+  //         `/Api/student/attendanceData?studentIds=${encodeURIComponent(studentIds)}`
+  //       );
+
+  //       if (!res.ok) {
+  //         console.error("Failed to fetch batch attendance:", res.status);
+  //         return;
+  //       }
+
+  //       const data = await res.json();
+
+  //       // API returns: { success: true, data: { [studentId]: attendance[] } }
+  //       if (data.success && data.data) {
+  //         setAttendanceMap(data.data);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching attendance data:", error);
+  //     }
+  //   },
+  //   [] // no deps — only uses setAttendanceMap (stable setter)
+  // );
+
   const fetchAttendanceForStudents = useCallback(
     async (studentList: Student[]) => {
-      if (studentList.length === 0) return;
+      if (!studentList.length) return;
 
       try {
-        const studentIds = studentList.map((s) => s._id).join(",");
+        const token = localStorage.getItem("token");
 
-        const res = await fetch(
-          `/Api/student/attendanceData?studentIds=${encodeURIComponent(studentIds)}`
-        );
+        const res = await fetch("/Api/student/attendanceData", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            studentIds: studentList.map((s) => s._id),
+          }),
+        });
 
         if (!res.ok) {
           console.error("Failed to fetch batch attendance:", res.status);
@@ -359,7 +395,6 @@ const StudentCalendarView = () => {
 
         const data = await res.json();
 
-        // API returns: { success: true, data: { [studentId]: attendance[] } }
         if (data.success && data.data) {
           setAttendanceMap(data.data);
         }
@@ -367,7 +402,7 @@ const StudentCalendarView = () => {
         console.error("Error fetching attendance data:", error);
       }
     },
-    [] // no deps — only uses setAttendanceMap (stable setter)
+    []
   );
 
   /** Fetch all classes via the bulk endpoint with date-range filtering. */
@@ -1004,8 +1039,8 @@ const StudentCalendarView = () => {
                     key={v}
                     onClick={() => handleSetView(v)}
                     className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeView === v
-                        ? "bg-purple-600 text-white shadow-sm"
-                        : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
                       }`}
                   >
                     {v.charAt(0).toUpperCase() + v.slice(1)}
@@ -1116,8 +1151,8 @@ const StudentCalendarView = () => {
                             setActiveView("day");
                           }}
                           className={`min-h-[88px] p-2 border rounded ${d
-                              ? "bg-white cursor-pointer hover:bg-gray-50"
-                              : "bg-transparent"
+                            ? "bg-white cursor-pointer hover:bg-gray-50"
+                            : "bg-transparent"
                             }`}
                         >
                           {d ? (
@@ -1250,8 +1285,8 @@ const StudentCalendarView = () => {
                                         <div className="flex items-center justify-between gap-2">
                                           <div
                                             className={`font-medium text-[13px] truncate ${statusColor.strikethrough
-                                                ? "line-through"
-                                                : ""
+                                              ? "line-through"
+                                              : ""
                                               } ${statusColor.text}`}
                                           >
                                             {classItem.title || "Class"}
@@ -1263,8 +1298,8 @@ const StudentCalendarView = () => {
                                         </div>
                                         <div
                                           className={`text-[11px] truncate ${statusColor.strikethrough
-                                              ? "line-through"
-                                              : "text-gray-600"
+                                            ? "line-through"
+                                            : "text-gray-600"
                                             }`}
                                         >
                                           {formatTime(
