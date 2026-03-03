@@ -10,6 +10,9 @@ const courseNameSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  tag: {
+    type: String,
+  },
   credits: {
     type: Number,
     default: 0

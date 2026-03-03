@@ -8,7 +8,11 @@ export interface IRegistration extends Document {
   countryCode: string;
   email: string;
   instrument: string;
-  tutorName?: string | null; // ✅ add this
+  tutorName?: string | null;
+  demoDate?: string | null;
+  demoTime?: string | null;
+  resumeUrl?: string | null;
+  resumeFileName?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,7 +61,8 @@ const RegistrationSchema: Schema = new Schema(
     },
     demoDate: { type: String, default: null },
     demoTime: { type: String, default: null },
-
+    resumeUrl: { type: String, default: null },
+    resumeFileName: { type: String, default: null },
   },
   {
     timestamps: true,

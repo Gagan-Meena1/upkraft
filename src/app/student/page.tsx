@@ -98,7 +98,10 @@ interface CourseData {
     topic: string;
     tangibleOutcome: string;
     _id: string;
+    
   }[];
+  academyInstructorId: string[];
+  instructorId: string;
 }
 // Components
 const LoadingSpinner = () => (
@@ -494,6 +497,7 @@ const StudentDashboard: React.FC = () => {
   const { 
     userData, 
     classDetails: classData, 
+    courseDetails,
     loading, 
     error 
   } = useUserData();
@@ -614,17 +618,47 @@ useEffect(() => {
     incompleteAssignments.length / itemsPerPage
   );
 
-  // --- ADDED: compute a tutorId to link session summary ---
-  const firstTutorId =
-    (classData && classData.length > 0 && classData[0].instructor) ||
-    (userData?.courses && userData.courses.length > 0
-      ? // if courses include instructorId, adapt here
-        // @ts-ignore
-        userData.courses[0].instructorId || ""
-      : "");
-  const sessionSummaryUrl = `/student/session-summary?studentId=${
-    userData?._id || ""
-  }&tutorId=${firstTutorId || ""}`;
+ // --- Collect ALL tutor IDs from already loaded courses ---
+// Extract tutor IDs from courseDetails (NOT from userData.courses)
+const getAllTutorIds = (): string[] => {
+  if (!courseDetails || courseDetails.length === 0) return [];
+  
+  console.log("Course Details:", courseDetails); // ✅ Debug
+  
+  const tutorIdSet = new Set<string>();
+  
+  courseDetails.forEach((course: any) => {
+    console.log("Processing course:", course._id, {
+      instructorId: course.instructorId,
+      academyInstructorId: course.academyInstructorId
+    }); // ✅ Debug each course
+    
+    // Add main instructor ID
+    if (course.instructorId) {
+      tutorIdSet.add(String(course.instructorId));
+    }
+    
+    // Add all academy instructor IDs
+    if (course.academyInstructorId && Array.isArray(course.academyInstructorId)) {
+      course.academyInstructorId.forEach((id: any) => {
+        if (id) tutorIdSet.add(String(id));
+      });
+    }
+  });
+  
+  const ids = Array.from(tutorIdSet);
+  console.log("Extracted Tutor IDs:", ids); // ✅ Final result
+  return ids;
+};
+
+const tutorIds = getAllTutorIds();
+console.log("Final tutorIds for URL:", tutorIds); // ✅ Check before creating URL
+
+const sessionSummaryUrl = `/student/session-summary?studentId=${
+  userData?._id || ""
+}&tutorIds=${tutorIds.join(',')}`;
+
+console.log("Session Summary URL:", sessionSummaryUrl);
 
   return (
     <div className="container">

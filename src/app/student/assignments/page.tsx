@@ -13,12 +13,14 @@ import {
   Plus,
   Filter,
   ChevronLeft,
+  ChevronRight,
   X,
-  CheckCircle, // Add this
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "react-bootstrap";
 import Modal from "react-bootstrap/Modal";
 import Link from "next/link";
+import assignment from "@/models/assignment";
 
 interface Student {
   userId: string;
@@ -33,6 +35,12 @@ interface Assignment {
   deadline: string;
   status?: boolean;
   currentAssignmentStatus: "PENDING" | "SUBMITTED" | "APPROVED" | "CORRECTION";
+  studentSubmissionMessage?: string;
+  tutorRemarks?: string;
+  submissionFileUrl?: string;
+  submissionFileName?: string;
+  correctionFileUrl?: string;
+  correctionFileName?: string;
   fileUrl?: string;
   fileName?: string;
   createdAt: string;
@@ -60,65 +68,104 @@ interface ApiResponse {
     username: string;
     userCategory: string;
     totalAssignments: number;
+    pendingCount?: number;
+    completedCount?: number;
     assignments: Assignment[];
+    currentPage?: number;
+    totalPages?: number;
+    hasNextPage?: boolean;
+    hasPrevPage?: boolean;
   };
 }
 
-export default function TutorAssignments() {
+export default function StudentAssignments() {
   const router = useRouter();
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMonth, setSelectedMonth] = useState("Monthly");
   const [tutorInfo, setTutorInfo] = useState<{
     username: string;
     totalAssignments: number;
   } | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "pending" | "completed" | "correction" | "approved" // Add 'approved'
+    "pending" | "completed" | "correction" | "approved"
   >("pending");
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [submitFile, setSubmitFile] = useState<File | null>(null);
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<
-    string | null
-  >(null);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmittingModal, setIsSubmittingModal] = useState(false);
 
-  useEffect(() => {
-    const fetchAssignments = async () => {
-      try {
-        // No need to get userId - API will extract from token
-        const response = await fetch("/Api/assignment");
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
+  const [submittedCount, setSubmittedCount] = useState(0);
+  const [approvedCount, setApprovedCount] = useState(0);
+  const [correctionCount, setCorrectionCount] = useState(0);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch assignments");
-        }
+  // Fetch assignments with pagination
+  const fetchAssignments = async (page: number = 1, tab: string = "pending") => {
+    try {
+      setIsLoading(true);
 
-        const data: ApiResponse = await response.json();
-
-        if (data.success) {
-          setAssignments(data.data.assignments);
-          setTutorInfo({
-            username: data.data.username,
-            totalAssignments: data.data.totalAssignments,
-          });
-        } else {
-          throw new Error(data.message || "Failed to fetch assignments");
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-      } finally {
-        setIsLoading(false);
+      // For students, don't send status filter for approved/correction
+      // Only send 'pending' or 'completed' to backend
+      let statusFilter = '';
+      if (tab === 'pending') {
+        statusFilter = 'pending';
+      } else if (tab === 'completed' || tab === 'approved' || tab === 'correction') {
+        statusFilter = 'completed'; // Backend will return all non-pending
       }
-    };
 
-    fetchAssignments();
-  }, []);
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: pageSize.toString(),
+        ...(statusFilter && { status: statusFilter }),
+      });
 
-  // Filter assignments based on status
+      const response = await fetch(`/Api/assignment?${queryParams}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch assignments");
+      }
+
+      const data: ApiResponse = await response.json();
+
+      if (data.success) {
+        setAssignments(data.data.assignments);
+        setTutorInfo({
+          username: data.data.username,
+          totalAssignments: data.data.totalAssignments,
+        });
+        setCurrentPage(data.data.currentPage || 1);
+        setTotalPages(data.data.totalPages || 1);
+        setTotalCount(data.data.totalAssignments);
+        setPendingCount(data.data.pendingCount || 0);
+        setCompletedCount(data.data.completedCount || 0);
+        setSubmittedCount(data.data.submittedCount || 0);
+        setApprovedCount(data.data.approvedCount || 0);
+        setCorrectionCount(data.data.correctionCount || 0);
+      } else {
+        throw new Error(data.message || "Failed to fetch assignments");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAssignments(currentPage, activeTab);
+  }, [currentPage, activeTab]);
+
+  // Filter assignments based on status (client-side for approved/correction)
   const pendingAssignments = assignments.filter(
     (assignment) => assignment.currentAssignmentStatus === "PENDING"
   );
@@ -131,57 +178,67 @@ export default function TutorAssignments() {
     (assignment) => assignment.currentAssignmentStatus === "CORRECTION"
   );
 
-  // NEW: Filter for approved assignments
   const approvedAssignments = assignments.filter(
     (assignment) => assignment.currentAssignmentStatus === "APPROVED"
   );
 
-  // Function to handle assignment status update
-  const handleStatusChange = async (
-    assignmentId: string,
-    currentStatus: boolean
-  ) => {
-    setUpdatingStatus(assignmentId);
-
-    try {
-      const response = await fetch(
-        `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            currentAssignmentStatus: "SUBMITTED",
-            studentSubmissionMessage: submitMessage,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to update assignment status");
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Update the local state
-        setAssignments((prevAssignments) =>
-          prevAssignments.map((assignment) =>
-            assignment._id === assignmentId
-              ? { ...assignment, status: !currentStatus }
-              : assignment
-          )
-        );
-      } else {
-        throw new Error(data.message || "Failed to update assignment status");
-      }
-    } catch (err) {
-      console.error("Error updating assignment status:", err);
-      alert("Failed to update assignment status. Please try again.");
-    } finally {
-      setUpdatingStatus(null);
+  // Get counts for all tabs
+  const getTabCount = (tab: string) => {
+    switch (tab) {
+      case 'pending': return pendingAssignments.length;
+      case 'completed': return submittedAssignments.length;
+      case 'approved': return approvedAssignments.length;
+      case 'correction': return correctionAssignments.length;
+      default: return 0;
     }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleTabChange = (tab: "pending" | "completed" | "correction" | "approved") => {
+    setActiveTab(tab);
+    setCurrentPage(1); // Reset to first page
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
   };
 
   const handleViewDetail = (assignmentId: string) => {
@@ -266,7 +323,7 @@ export default function TutorAssignments() {
         `/Api/assignment/singleAssignment?assignmentId=${selectedAssignmentId}`,
         {
           method: "PUT",
-          body: formData, // Use FormData instead of JSON
+          body: formData,
         }
       );
 
@@ -292,6 +349,8 @@ export default function TutorAssignments() {
             : assignment
         )
       );
+      // Refresh current page
+      await fetchAssignments(currentPage, activeTab);
       setShowSubmitModal(false);
     } catch (err: any) {
       setSubmitError(
@@ -302,7 +361,7 @@ export default function TutorAssignments() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && assignments.length === 0) {
     return (
       <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -323,7 +382,7 @@ export default function TutorAssignments() {
           </h2>
           <p className="!text-red-600">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => fetchAssignments(currentPage, activeTab)}
             className="!mt-4 !px-4 !py-2 !bg-red-600 !text-white !rounded !hover:bg-red-700 !transition-colors"
           >
             Retry
@@ -332,6 +391,12 @@ export default function TutorAssignments() {
       </div>
     );
   }
+
+  const currentAssignments =
+    activeTab === "pending" ? pendingAssignments :
+      activeTab === "completed" ? submittedAssignments :
+        activeTab === "approved" ? approvedAssignments :
+          correctionAssignments;
 
   return (
     <div className="card-box">
@@ -608,8 +673,7 @@ export default function TutorAssignments() {
                             Students:
                           </span>
                           <div className="!flex !items-center !gap-2">
-                            {/* Fixed: Add null check and default empty array */}
-                            {(assignment.assignedStudents || [])
+                                         {(assignment.assignedStudents || [])
                               .slice(0, 3)
                               .map((student, index) => (
                                 <div
@@ -775,12 +839,119 @@ export default function TutorAssignments() {
                   >
                     {isSubmittingModal ? "Submitting..." : "Submit Assignment"}
                   </button>
+                    </div>
+
+                    <div className="!flex !items-center !gap-2 !ml-4">
+                      <Button
+                        onClick={() => handleViewDetail(selectedAssignmentId)}
+                        className="!px-4 !py-2 !bg-purple-600 !text-white !text-sm !rounded-lg hover:!bg-purple-700 !transition-colors !flex !items-center !gap-2"
+                      >
+                        <Eye size={16} />
+                        View Detail
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
+
+            {/* PAGINATION CONTROLS */}
+            {totalPages > 1 && (
+              <div className="d-flex flex-column align-items-center gap-3 mt-4 mb-4 pb-4">
+                {/* Desktop Pagination */}
+                <div className="d-none d-md-flex justify-content-center align-items-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="btn btn-outline-primary d-flex align-items-center gap-2 px-3 py-2"
+                    style={{
+                      opacity: currentPage === 1 ? 0.5 : 1,
+                      cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <ChevronLeft size={18} />
+                    <span className="d-none d-lg-inline">Previous</span>
+                  </button>
+
+                  <div className="d-flex gap-1">
+                    {getPageNumbers().map((pageNum, index) => {
+                      if (pageNum === '...') {
+                        return (
+                          <span key={`ellipsis-${index}`} className="px-3 py-2 d-flex align-items-center">
+                            ...
+                          </span>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum as number)}
+                          className={`btn ${currentPage === pageNum
+                              ? "btn-primary"
+                              : "btn-outline-primary"
+                            } px-3 py-2`}
+                          style={{ minWidth: "45px" }}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="btn btn-outline-primary d-flex align-items-center gap-2 px-3 py-2"
+                    style={{
+                      opacity: currentPage === totalPages ? 0.5 : 1,
+                      cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <span className="d-none d-lg-inline">Next</span>
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+
+                {/* Mobile Pagination */}
+                <div className="d-flex d-md-none justify-content-between align-items-center w-100 px-3">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="btn btn-outline-primary d-flex align-items-center gap-1 px-2 py-2"
+                    style={{
+                      opacity: currentPage === 1 ? 0.5 : 1,
+                      cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <ChevronLeft size={16} />
+                    <span>Prev</span>
+                  </button>
+
+                  <span className="text-sm text-gray-600">
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="btn btn-outline-primary d-flex align-items-center gap-1 px-2 py-2"
+                    style={{
+                      opacity: currentPage === totalPages ? 0.5 : 1,
+                      cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    <span>Next</span>
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+
+                <p className="text-sm text-gray-500 m-0 text-center">
+                  Page {currentPage} of {totalPages}
+                </p>
+              </div>
           )}
         </div>
       </div>
-    </div>
   );
 }

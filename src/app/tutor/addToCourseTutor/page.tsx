@@ -257,7 +257,7 @@ const toggleExpanded = (courseId: string) => {
                             </button>
                           )}
                           <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>Fees: Rs {course.price ?? "N/A"}</span>
+                            {/* <span>Fees: Rs {course.price ?? "N/A"}</span> */}
                             <span>Lessons: {course.curriculum ? course.curriculum.length : "N/A"} Lessons</span>
                             <span>Category: {course.category ?? "N/A"}</span>
                           </div>

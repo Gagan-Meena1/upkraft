@@ -40,12 +40,12 @@ export const CourseEnrolledItem: React.FC<CourseEnrolledItemProps> = ({
               <strong>{course.duration}</strong>
             </span>
           </li>
-          <li className="d-flex align-items-center gap-2">
+          {/* <li className="d-flex align-items-center gap-2">
             <span className="student-text">Fee :</span>
             <span className="student-txt">
               <strong>Rs {course.price}</strong>
             </span>
-          </li>
+          </li> */}
           {studentPerformanceScore && (
             <li className="d-flex align-items-center gap-2">
               <span className="student-text">Performance :</span>

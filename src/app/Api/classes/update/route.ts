@@ -7,25 +7,28 @@ connect();
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Get the classId and recordingUrl from the request body
-    const { classId, recordingUrl } = await req.json();
-    console.log(`INFO: Request to update class [${classId}] with URL: ${recordingUrl}`);
+    // 1. Get the classId and optional fields from the request body
+    const { classId, recordingUrl, groupPhotoUrl } = await req.json();
+    console.log(`INFO: Request to update class [${classId}]`, { recordingUrl, groupPhotoUrl });
 
     // 2. Validate the input
-    if (!classId || !recordingUrl) {
-      console.error("ERROR: Missing classId or recordingUrl in update request.");
+    if (!classId || (!recordingUrl && !groupPhotoUrl)) {
+      console.error("ERROR: Missing classId or update fields in request.");
       return NextResponse.json(
-        { error: "Class ID and recording URL are required" },
+        { error: "Class ID and at least one update field are required" },
         { status: 400 }
       );
     }
 
-    // 3. Find the class by its ID and update the 'recordingUrl' field
+    // 3. Build update payload dynamically
+    const updateFields: Record<string, string> = {};
+    if (recordingUrl) updateFields.recordingUrl = recordingUrl;
+    if (groupPhotoUrl) updateFields.groupPhotoUrl = groupPhotoUrl;
+
+    // 4. Find the class by its ID and update the relevant fields
     const updatedClass = await Class.findByIdAndUpdate(
       classId,
-      {
-        recordingUrl: recordingUrl, // Storing the public S3 URL
-      },
+      updateFields,
       { new: true } // This option returns the document after the update
     );
 

@@ -163,7 +163,21 @@ export async function PUT(request) {
       );
     }
 
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      // Priority 1: impersonation token (tutor web context)
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      const impersonateToken = request.cookies.get("impersonate_token")?.value;
+      if (isTutorContext && impersonateToken) return impersonateToken;
+      // Priority 2: session cookie (web browser)
+      const cookieToken = request.cookies.get("token")?.value;
+      if (cookieToken) return cookieToken;
+      // Priority 3: Bearer token (React Native mobile app)
+      const authHeader = request.headers.get("Authorization") || "";
+      return authHeader.replace("Bearer ", "") || null;
+    })();
     const decodedToken = token ? jwt.decode(token) : null;
     const userId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -270,6 +284,18 @@ export async function PUT(request) {
 
           await assignment.save();
 
+          // Push: notify student that correction was sent
+          try {
+            const { sendExpoPushNotifications } = await import('@/lib/pushNotifications');
+            const studentUser = await User.findById(studentId).select('expoPushToken').lean();
+            sendExpoPushNotifications(
+              [studentUser?.expoPushToken],
+              'Correction Sent',
+              `Your tutor left feedback on ${assignment.title}`,
+              { assignmentId, screen: 'student-assignment' }
+            );
+          } catch {}
+
           return NextResponse.json({
             success: true,
             message: "Correction sent successfully",
@@ -291,14 +317,17 @@ export async function PUT(request) {
           );
 
           if (submissionIndex === -1) {
-            return NextResponse.json(
-              { success: false, message: "Submission not found for this student" },
-              { status: 404 }
-            );
+            // No submission exists — create one for pending approval without submission
+            assignment.submissions.push({
+              studentId,
+              status: "APPROVED",
+              tutorRemarks: tutorRemarks || "",
+              submittedAt: new Date(),
+            });
+          } else {
+            assignment.submissions[submissionIndex].status = "APPROVED";
+            if (tutorRemarks) assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
           }
-
-          assignment.submissions[submissionIndex].status = "APPROVED";
-          if (tutorRemarks) assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
 
           await assignment.save();
 
@@ -326,6 +355,18 @@ export async function PUT(request) {
       await user.save();
     }
   }
+
+          // Push: notify student that assignment was approved
+          try {
+            const { sendExpoPushNotifications } = await import('@/lib/pushNotifications');
+            const studentUser = await User.findById(studentId).select('expoPushToken').lean();
+            sendExpoPushNotifications(
+              [studentUser?.expoPushToken],
+              'Assignment Approved',
+              `Great work! ${assignment.title} has been approved`,
+              { assignmentId, screen: 'student-assignment' }
+            );
+          } catch {}
 
           return NextResponse.json({
             success: true,
@@ -371,35 +412,50 @@ export async function PUT(request) {
       );
 
       if (submissionIndex === -1) {
-        return NextResponse.json(
-          { success: false, message: "Submission not found for this student" },
-          { status: 404 }
-        );
+        // No submission exists — only APPROVED is allowed (pending approval without submission)
+        if (action !== "APPROVED") {
+          return NextResponse.json(
+            { success: false, message: "Submission not found for this student" },
+            { status: 404 }
+          );
+        }
+        // Create a new submission entry for a pending student approved without submission
+        assignment.submissions.push({
+          studentId,
+          status: "APPROVED",
+          tutorRemarks: tutorRemarks || "",
+          ...(typeof rating === "number" && { rating }),
+          ...(typeof ratingMessage === "string" && { ratingMessage }),
+          submittedAt: new Date(),
+        });
+      } else {
+        assignment.submissions[submissionIndex].status = action;
+        if (tutorRemarks) {
+          assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
+        }
+
+        // Only allow rating/ratingMessage when APPROVED
+        if (action === "APPROVED") {
+          if (typeof rating === "number") {
+            assignment.submissions[submissionIndex].rating = rating;
+          }
+          if (typeof ratingMessage === "string") {
+            assignment.submissions[submissionIndex].ratingMessage = ratingMessage;
+          }
+        }
       }
 
-      assignment.submissions[submissionIndex].status = action;
-      if (tutorRemarks) {
-        assignment.submissions[submissionIndex].tutorRemarks = tutorRemarks;
-      }
-
-      // Only allow rating/ratingMessage when APPROVED
+      // Clean up pendingAssignments when APPROVED (both new and existing submissions)
       if (action === "APPROVED") {
-        if (typeof rating === "number") {
-          assignment.submissions[submissionIndex].rating = rating;
-        }
-        if (typeof ratingMessage === "string") {
-          assignment.submissions[submissionIndex].ratingMessage = ratingMessage;
-        }
-
             const user = await User.findById(userId);
-            
+
             if (user && user.pendingAssignments) {
               const studentPendingIndex = user.pendingAssignments.findIndex(
                 (pending) => pending.studentId.toString() === studentId
               );
 
               if (studentPendingIndex !== -1) {
-                user.pendingAssignments[studentPendingIndex].assignmentIds = 
+                user.pendingAssignments[studentPendingIndex].assignmentIds =
                   user.pendingAssignments[studentPendingIndex].assignmentIds.filter(
                     (id) => id.toString() !== assignmentId
                   );
@@ -409,8 +465,8 @@ export async function PUT(request) {
                 }
 
                 await user.save();
-         }
-        }
+              }
+            }
       }
 
       
@@ -510,6 +566,21 @@ export async function PUT(request) {
     }
 
     await assignment.save();
+
+    // Push: notify tutor that student submitted
+    try {
+      const { sendExpoPushNotifications } = await import('@/lib/pushNotifications');
+      const submitter = await User.findById(userId).select('username').lean();
+      const tutorUser = await User.findOne(
+        { _id: { $in: assignment.userId }, category: 'Tutor' }
+      ).select('expoPushToken').lean();
+      sendExpoPushNotifications(
+        [tutorUser?.expoPushToken],
+        'Assignment Submitted',
+        `${submitter?.username ?? 'A student'} submitted ${assignment.title}`,
+        { assignmentId, screen: 'tutor-assignment' }
+      );
+    } catch {}
 
     return NextResponse.json({
       success: true,

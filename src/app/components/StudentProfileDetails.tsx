@@ -36,10 +36,10 @@ const StudentProfileDetails: React.FC<StudentProfileDetailsProps> = ({
   } = useStudentMetrics(data, pendingAssignmentCount);
 
   const personalDetailsItems = [
-    { label: 'Email', value: data.email },
-    { label: 'Contact', value: data.contact },
+    // { label: 'Email', value: data.email },
+    // { label: 'Contact', value: data.contact },
     { label: 'Age', value: data.age },
-    { label: 'City', value: data.city },
+    // { label: 'City', value: data.city },
     {
       label: 'Category',
       value: data.courses.length > 0 ? data.courses[0].category : 'N/A'
@@ -51,7 +51,7 @@ const StudentProfileDetails: React.FC<StudentProfileDetailsProps> = ({
       label: 'Course',
       value: <ExpandableCourseList courses={data.courses} maxItems={1} />
     },
-    { label: 'Course Fee', value: `Rs. ${totalCourseFee.toLocaleString()}` },
+    // { label: 'Course Fee', value: `Rs. ${totalCourseFee.toLocaleString()}` },
     { label: 'Amount Paid', value: 'NA' },
     { label: 'Status', value: 'Not Paid', className: 'red-text' },
     { label: 'Paid Via', value: 'NA' },

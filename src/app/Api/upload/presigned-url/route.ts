@@ -4,18 +4,18 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Configure AWS S3 Client (v3)
 const s3Client = new S3Client({
-    region: process.env.AWS_REGION_CUSTOM,
+    region: process.env.AWS_REGION,
     credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID_CUSTOM as string,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY_CUSTOM as string,
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
     },
 });
 
 export async function POST(req: NextRequest) {
   console.log("INFO: Presigned URL request received (AWS SDK v3).");
   try {
-    const { fileName, fileType, classId } = await req.json();
-    console.log("INFO: Request body:", { fileName, fileType, classId });
+    const { fileName, fileType, classId, uploadType } = await req.json();
+    console.log("INFO: Request body:", { fileName, fileType, classId, uploadType });
 
     if (!fileName || !fileType || !classId) {
       console.error("ERROR: Missing required parameters in presigned URL request.");
@@ -23,14 +23,14 @@ export async function POST(req: NextRequest) {
     }
 
     const fileExtension = fileName.split('.').pop();
-    const key = `uploads/class-videos/${classId}.${fileExtension}`;
+    const folder = uploadType === 'photo' ? 'class-photos' : 'class-videos';
+    const key = `uploads/${folder}/${classId}_${Date.now()}.${fileExtension}`;
     console.log(`INFO: Generated S3 key: ${key}`);
 
     const putObjectCommand = new PutObjectCommand({
-        Bucket: process.env.AWS_S3_BUCKET_NAME_CUSTOM,
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key: key,
         ContentType: fileType,
-        ACL: 'public-read',
     });
 
     const uploadUrl = await getSignedUrl(
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         { expiresIn: 300 } // 5 minutes
     );
 
-    const publicUrl = `https://${process.env.AWS_S3_BUCKET_NAME_CUSTOM}.s3.${process.env.AWS_REGION_CUSTOM}.amazonaws.com/${key}`;
+    const publicUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
     console.log("INFO: Successfully generated presigned URL and public URL (v3).");
 
     return NextResponse.json({ 

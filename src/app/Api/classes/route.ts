@@ -14,6 +14,8 @@ import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO } from 'date-fns';
 import { sendEmail } from "@/helper/mailer";
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
+import { sendExpoPushNotifications } from '@/lib/pushNotifications';
+import { getDataFromToken } from "@/helper/getDataFromToken";
 
 await connect();
 
@@ -61,6 +63,22 @@ export async function POST(request: NextRequest) {
     const startTime = formData.get("startTime") as string;
     const endTime = formData.get("endTime") as string;
     const timezone = formData.get("timezone") as string; // Get timezone from frontend
+
+    const joinLink = formData.get("joinLink") as string | null;
+    const rawRecurrenceId = formData.get("recurrenceId") as string | null;
+    const rawRecurrenceType = formData.get("recurrenceType") as string | null;
+    const rawRecurrenceUntil = formData.get("recurrenceUntil") as string | null;
+
+    const allowedTypes = ["daily", "weekly", "weekdays"];
+    const isRecurring =
+      !!rawRecurrenceId &&
+      !!rawRecurrenceType &&
+      allowedTypes.includes(rawRecurrenceType);
+
+    const recurrenceId = isRecurring ? rawRecurrenceId : null;
+    const recurrenceType = isRecurring ? rawRecurrenceType : null;
+    const recurrenceUntil =
+      isRecurring && rawRecurrenceUntil ? new Date(rawRecurrenceUntil) : null;
 
     // Accept courseId from referer OR formData OR query param (covers client copy flows)
     if (!courseId) {
@@ -207,7 +225,13 @@ export async function POST(request: NextRequest) {
       verifyStart: format(dateFnsTz.toZonedTime(startDateTime, timezone || "UTC"), 'HH:mm'),
       verifyEnd: format(dateFnsTz.toZonedTime(endDateTime, timezone || "UTC"), 'HH:mm')
     });
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -246,6 +270,10 @@ export async function POST(request: NextRequest) {
       instructor: instructorId,
       recording: videoPath,
       recordingProcessed: videoPath ? 0 : null,
+      recurrenceId,
+      recurrenceType,
+      recurrenceUntil,
+      joinLink: joinLink || null,
     });
 
     const savednewClass = await newClass.save();
@@ -287,7 +315,13 @@ export async function POST(request: NextRequest) {
 //   try {
 //     console.log("Fetching classes data...");
 
-//     const token = request.cookies.get("token")?.value;
+//     const token = (() => {
+//       const referer = request.headers.get("referer") || "";
+//       let refererPath = "";
+//       try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+//       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+//       return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+//     })();
 //     const decodedToken = token ? jwt.decode(token) : null;
 //     let instructorId =
 //       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -363,7 +397,19 @@ export async function GET(request: NextRequest) {
 
     console.log("Fetching classes data...");
 
-    const token = request.cookies.get("token")?.value;
+    // Priority 1: impersonation token (RSM acting as tutor — web only)
+    // Priority 2: session cookie (web browser)
+    // Priority 3: Bearer token in Authorization header (React Native mobile app)
+    const referer = request.headers.get("referer") || "";
+    let refererPath = "";
+    try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+    const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+    const impersonateToken = request.cookies.get("impersonate_token")?.value;
+    const authHeader = request.headers.get("Authorization") || "";
+    const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    const token = (isTutorContext && impersonateToken)
+      ? impersonateToken
+      : (request.cookies.get("token")?.value || bearerToken || "");
     const decodedToken = token ? jwt.decode(token) : null;
     let instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -451,11 +497,34 @@ export async function GET(request: NextRequest) {
     }
 
 
+    // Reverse-lookup: find students enrolled in any of these classes
+    const classIds = filteredClasses.map((c: any) => c._id);
+    const enrolledStudents = await User.find(
+      { classes: { $in: classIds }, category: "Student" },
+      "_id username email address city classes"
+    ).lean();
+
+    // Attach students array to each class (no schema change needed)
+    const classDataWithStudents = filteredClasses.map((c: any) => ({
+      ...c,
+      students: enrolledStudents
+        .filter((s: any) =>
+          s.classes.some((cId: any) => cId.toString() === c._id.toString())
+        )
+        .map((s: any) => ({
+          _id: s._id,
+          username: s.username,
+          email: s.email,
+          address: s.address ?? "",
+          city: s.city ?? "",
+        })),
+    }));
+
     return NextResponse.json(
       {
         message: "Classes fetched successfully",
-        classData: filteredClasses,
-        totalClasses: filteredClasses.length,
+        classData: classDataWithStudents,
+        totalClasses: classDataWithStudents.length,
       },
       { status: 200 }
     );
@@ -484,7 +553,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -504,7 +579,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, date, startTime, endTime, timezone, reasonForReschedule } = body;
+    const { title, description, date, startTime, endTime, timezone, reasonForReschedule, joinLink } = body;
 
     console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone, reasonForReschedule });
 
@@ -544,7 +619,8 @@ export async function PUT(request: NextRequest) {
         startTime: startDateTime, // Store in UTC
         endTime: endDateTime, // Store in UTC
         reasonForReschedule: reasonForReschedule,
-        status: 'rescheduled'
+        status: 'rescheduled',
+        ...(joinLink !== undefined && { joinLink: joinLink || null }),
       },
       { new: true, runValidators: true }
     );
@@ -556,7 +632,7 @@ export async function PUT(request: NextRequest) {
       // Find all users (students) who have this classId in their classes array
       const enrolledStudents = await User.find({
         classes: classId,
-      }).select("email username timezone").lean();
+      }).select("email username timezone expoPushToken").lean();
 
       console.log(`Found ${enrolledStudents.length} students enrolled in this class`);
 
@@ -615,6 +691,16 @@ export async function PUT(request: NextRequest) {
 
         await Promise.all(emailPromises);
         console.log("All reschedule notification emails processed");
+
+        // Send push notifications to students + tutor
+        const tutorUser = await User.findById(instructorId).select('expoPushToken').lean() as any;
+        const studentTokens = (enrolledStudents as any[]).map((s: any) => s.expoPushToken);
+        sendExpoPushNotifications(
+          [...studentTokens, tutorUser?.expoPushToken],
+          'Class Rescheduled',
+          `${title} rescheduled to ${newDateFormatted} at ${newTimeStart}`,
+          { classId }
+        );
       }
     } catch (emailError) {
       console.error("Error in email sending process:", emailError);
@@ -640,13 +726,42 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Delete existing class
+// PATCH - Update class title only (mobile app — no reschedule emails, no status change)
+export async function PATCH(request: NextRequest) {
+  try {
+    await connect();
+    const { searchParams } = new URL(request.url);
+    const classId = searchParams.get('classId');
+    if (!classId) return NextResponse.json({ error: 'Class ID is required' }, { status: 400 });
+
+    const userId = await getDataFromToken(request);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { title } = await request.json();
+    if (!title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+
+    const updatedClass = await Class.findByIdAndUpdate(
+      classId,
+      { title: title.trim() },
+      { new: true }
+    );
+    if (!updatedClass) return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+
+    return NextResponse.json({ success: true, data: updatedClass });
+  } catch (error: any) {
+    console.error('Error updating class title:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// DELETE - Cancel existing class (single or entire series)
 export async function DELETE(request: NextRequest) {
   try {
     console.log("Cancelling class...");
 
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
+    const deleteType = (searchParams.get("deleteType") || "single").toLowerCase(); // "single" | "all" | "following"
 
     if (!classId) {
       return NextResponse.json(
@@ -655,7 +770,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
     const decodedToken = token ? jwt.decode(token) : null;
     const instructorId =
       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
@@ -669,14 +790,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Get class details before cancellation
-    // const classToCancel = await Class.findById(classId);
-    // if (!classToCancel) {
-    //   return NextResponse.json({ error: "Class not found" }, { status: 404 });
-    // }
-
-    // Get request body for cancellation reason
-    const body = await request.json();
+    const body = await request.json().catch(() => ({} as any));
     const { reasonForCancellation, timezone } = body;
 
     if (!reasonForCancellation) {
@@ -686,17 +800,272 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    const tz = timezone || "UTC";
+
+    // Shared formatter for emails
+    const formatDateTimeForEmail = (dateTime: Date, tzLocal: string) => {
+      try {
+        const zonedDate = dateFnsTz.toZonedTime(dateTime, tzLocal);
+        const dateStr = format(zonedDate, "EEEE, MMMM d, yyyy");
+        const timeStr = format(zonedDate, "h:mm a");
+        return { date: dateStr, time: timeStr };
+      } catch (error) {
+        console.error("Error formatting date:", error);
+        return {
+          date: dateTime.toLocaleDateString(),
+          time: dateTime.toLocaleTimeString(),
+        };
+      }
+    };
+
+    // --- Cancel entire series (all events with same recurrenceId) ---
+    if (deleteType === "all") {
+      const templateClass = await Class.findById(classId);
+      if (!templateClass) {
+        return NextResponse.json(
+          { error: "Class not found" },
+          { status: 404 }
+        );
+      }
+
+      if (!templateClass.recurrenceId) {
+        console.log(
+          "No recurrenceId on class; falling back to single cancellation"
+        );
+      } else {
+        const recurrenceId = templateClass.recurrenceId;
+        console.log("Cancelling entire series with recurrenceId:", recurrenceId);
+
+        const classesToCancel = await Class.find({ recurrenceId });
+        if (classesToCancel.length === 0) {
+          return NextResponse.json(
+            { error: "No classes found for this series" },
+            { status: 404 }
+          );
+        }
+
+        const classIds = classesToCancel.map((c) => c._id);
+
+        // Mark all classes in the series as canceled
+        await Class.updateMany(
+          { _id: { $in: classIds } },
+          {
+            status: "canceled",
+            reasonForCancelation: reasonForCancellation,
+          }
+        );
+
+        // Send cancellation emails for each class in the series
+        try {
+          for (const cls of classesToCancel) {
+            const studentsForClass = await User.find({
+              classes: cls._id,
+            }).select("email username");
+
+            if (studentsForClass.length === 0) continue;
+
+            const course = await courseName.findById(cls.course);
+            const courseTitle = course ? course.title : "Your Course";
+
+            const { date: originalDate, time: originalTimeStart } =
+              formatDateTimeForEmail(cls.startTime, tz);
+            const { time: originalTimeEnd } = formatDateTimeForEmail(
+              cls.endTime,
+              tz
+            );
+            const originalTimeRange = `${originalTimeStart} - ${originalTimeEnd}`;
+
+            await Promise.all(
+              studentsForClass.map(async (student: any) => {
+                try {
+                  console.log(
+                    `Attempting to send series cancellation email to: ${student.email}`
+                  );
+                  await sendEmail({
+                    email: student.email,
+                    emailType: "CLASS_CANCELLED",
+                    username: student.username,
+                    courseName: courseTitle,
+                    className: cls.title,
+                    originalDate,
+                    originalTime: originalTimeRange,
+                    reasonForCancellation,
+                  });
+                  console.log(
+                    `✅ Series cancellation email sent to: ${student.email}`
+                  );
+                } catch (emailError) {
+                  console.error(
+                    `❌ Failed to send series cancellation email to ${student.email}:`,
+                    emailError
+                  );
+                }
+              })
+            );
+          }
+          console.log("All series cancellation notification emails processed");
+        } catch (emailError) {
+          console.error(
+            "Error in email sending process for series:",
+            emailError
+          );
+          // Continue even if email sending fails
+        }
+
+        console.log("Series cancelled successfully");
+
+        return NextResponse.json(
+          {
+            message:
+              "All events in this series cancelled and students notified",
+            recurrenceId,
+            cancelledCount: classesToCancel.length,
+          },
+          { status: 200 }
+        );
+      }
+      // If we get here (no recurrenceId) we fall through to single-cancel logic.
+    }
+
+    // --- Cancel following events (from selected date through end of series) ---
+    if (deleteType === "following") {
+      const fromClass = await Class.findById(classId);
+      if (!fromClass) {
+        return NextResponse.json(
+          { error: "Class not found" },
+          { status: 404 }
+        );
+      }
+      const recurrenceId = fromClass.recurrenceId;
+      const fromStartTime = fromClass.startTime;
+
+      if (!recurrenceId) {
+        // No series: cancel only this occurrence (same as single)
+        await Class.findByIdAndUpdate(classId, {
+          status: "canceled",
+          reasonForCancelation: reasonForCancellation,
+        });
+        // Send email for this single class (reuse same logic as single below via fall-through or inline)
+        try {
+          const enrolledStudents = await User.find({ classes: classId });
+          if (enrolledStudents.length > 0) {
+            const course = await courseName.findById(fromClass.course);
+            const courseTitle = course ? course.title : "Your Course";
+            const { date: originalDate, time: originalTimeStart } =
+              formatDateTimeForEmail(fromClass.startTime, tz);
+            const { time: originalTimeEnd } =
+              formatDateTimeForEmail(fromClass.endTime, tz);
+            const originalTimeRange = `${originalTimeStart} - ${originalTimeEnd}`;
+            await Promise.all(
+              enrolledStudents.map((student: any) =>
+                sendEmail({
+                  email: student.email,
+                  emailType: "CLASS_CANCELLED",
+                  username: student.username,
+                  courseName: courseTitle,
+                  className: fromClass.title,
+                  originalDate,
+                  originalTime: originalTimeRange,
+                  reasonForCancellation,
+                })
+              )
+            );
+          }
+        } catch (emailError) {
+          console.error("Error sending cancellation email:", emailError);
+        }
+        return NextResponse.json(
+          { message: "Class cancelled and students notified" },
+          { status: 200 }
+        );
+      }
+
+      const classesToCancel = await Class.find({
+        recurrenceId,
+        startTime: { $gte: fromStartTime },
+      }).sort({ startTime: 1 });
+
+      if (classesToCancel.length === 0) {
+        return NextResponse.json(
+          { error: "No classes found to cancel" },
+          { status: 404 }
+        );
+      }
+
+      const idsToCancel = classesToCancel.map((c) => c._id);
+      await Class.updateMany(
+        { _id: { $in: idsToCancel } },
+        {
+          status: "canceled",
+          reasonForCancelation: reasonForCancellation,
+        }
+      );
+
+      try {
+        for (const cls of classesToCancel) {
+          const studentsForClass = await User.find({
+            classes: cls._id,
+          }).select("email username");
+          if (studentsForClass.length === 0) continue;
+          const course = await courseName.findById(cls.course);
+          const courseTitle = course ? course.title : "Your Course";
+          const { date: originalDate, time: originalTimeStart } =
+            formatDateTimeForEmail(cls.startTime, tz);
+          const { time: originalTimeEnd } = formatDateTimeForEmail(
+            cls.endTime,
+            tz
+          );
+          const originalTimeRange = `${originalTimeStart} - ${originalTimeEnd}`;
+          await Promise.all(
+            studentsForClass.map(async (student: any) => {
+              try {
+                await sendEmail({
+                  email: student.email,
+                  emailType: "CLASS_CANCELLED",
+                  username: student.username,
+                  courseName: courseTitle,
+                  className: cls.title,
+                  originalDate,
+                  originalTime: originalTimeRange,
+                  reasonForCancellation,
+                });
+              } catch (emailError) {
+                console.error(
+                  `Failed to send cancellation email to ${student.email}:`,
+                  emailError
+                );
+              }
+            })
+          );
+        }
+      } catch (emailError) {
+        console.error("Error in email sending for cancel following:", emailError);
+      }
+
+      return NextResponse.json(
+        {
+          message:
+            "Events from this date onward have been cancelled and students notified",
+          cancelledCount: classesToCancel.length,
+        },
+        { status: 200 }
+      );
+    }
+
+    // --- Single-class cancellation (existing behaviour) ---
+
     // Mark class as cancelled (don't delete)
     const classToCancel = await Class.findByIdAndUpdate(classId, {
-      status: 'canceled',
-      reasonForCancelation: reasonForCancellation
+      status: "canceled",
+      reasonForCancelation: reasonForCancellation,
     });
 
-    // Remove class from students' classes array
-    // await User.updateMany(
-    //   { classes: classId },
-    //   { $pull: { classes: classId } }
-    // );
+    if (!classToCancel) {
+      return NextResponse.json(
+        { error: "Class not found" },
+        { status: 404 }
+      );
+    }
 
     // Send cancellation emails to all enrolled students
     try {
@@ -704,42 +1073,27 @@ export async function DELETE(request: NextRequest) {
         classes: classId,
       });
 
-      console.log(`Found ${enrolledStudents.length} students enrolled in this class`);
+      console.log(
+        `Found ${enrolledStudents.length} students enrolled in this class`
+      );
 
       if (enrolledStudents.length > 0) {
         const course = await courseName.findById(classToCancel.course);
         const courseTitle = course ? course.title : "Your Course";
 
-        // Format date and time for email
-        const formatDateTimeForEmail = (dateTime: Date, tz: string) => {
-          try {
-            const zonedDate = dateFnsTz.toZonedTime(dateTime, tz);
-            const dateStr = format(zonedDate, 'EEEE, MMMM d, yyyy');
-            const timeStr = format(zonedDate, 'h:mm a');
-            return { date: dateStr, time: timeStr };
-          } catch (error) {
-            console.error("Error formatting date:", error);
-            return {
-              date: dateTime.toLocaleDateString(),
-              time: dateTime.toLocaleTimeString()
-            };
-          }
-        };
-
-        const { date: originalDate, time: originalTimeStart } = formatDateTimeForEmail(
-          classToCancel.startTime,
-          timezone || 'UTC'
-        );
+        const { date: originalDate, time: originalTimeStart } =
+          formatDateTimeForEmail(classToCancel.startTime, tz);
         const { time: originalTimeEnd } = formatDateTimeForEmail(
           classToCancel.endTime,
-          timezone || 'UTC'
+          tz
         );
         const originalTimeRange = `${originalTimeStart} - ${originalTimeEnd}`;
 
-        // Send email to each enrolled student
-        const emailPromises = enrolledStudents.map(async (student) => {
+        const emailPromises = enrolledStudents.map(async (student: any) => {
           try {
-            console.log(`Attempting to send cancellation email to: ${student.email}`);
+            console.log(
+              `Attempting to send cancellation email to: ${student.email}`
+            );
 
             await sendEmail({
               email: student.email,
@@ -747,34 +1101,41 @@ export async function DELETE(request: NextRequest) {
               username: student.username,
               courseName: courseTitle,
               className: classToCancel.title,
-              originalDate: originalDate,
+              originalDate,
               originalTime: originalTimeRange,
-              reasonForCancellation: reasonForCancellation,
+              reasonForCancellation,
             });
 
-            console.log(`✅ Cancellation email sent successfully to: ${student.email}`);
+            console.log(
+              `✅ Cancellation email sent successfully to: ${student.email}`
+            );
           } catch (emailError) {
-            console.error(`❌ Failed to send email to ${student.email}:`, emailError);
+            console.error(
+              `❌ Failed to send email to ${student.email}:`,
+              emailError
+            );
           }
         });
 
         await Promise.all(emailPromises);
         console.log("All cancellation notification emails processed");
+
+        // Send push notifications to students + tutor
+        const tutorUser = await User.findById(instructorId).select('expoPushToken').lean() as any;
+        const studentTokens = (enrolledStudents as any[]).map((s: any) => s.expoPushToken);
+        sendExpoPushNotifications(
+          [...studentTokens, tutorUser?.expoPushToken],
+          'Class Cancelled',
+          `${classToCancel.title} has been cancelled`,
+          { classId }
+        );
       }
     } catch (emailError) {
       console.error("Error in email sending process:", emailError);
       // Continue with cancellation even if emails fail
     }
 
-    // Remove class from students' classes array
-    // await User.updateMany(
-    //   { classes: classId },
-    //   { $pull: { classes: classId } }
-    // );
-
     console.log("Class cancelled successfully");
-
-
 
     return NextResponse.json(
       {

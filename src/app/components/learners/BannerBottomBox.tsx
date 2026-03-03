@@ -16,36 +16,44 @@ const BannerBottomBox = () => {
                     <div className='banner-bottom-box text-center'>
                         <div className='icons-text d-flex align-items-center gap-2 justify-content-center'>
                             <img src={AiIcons.src} alt="" />
-                            <span>Fix Practice Gaps</span>
+                            <span>Expert Instructors
+</span>
                         </div>
-                        <p className='m-0 p-0'>With  our proprietary AI Practice Studio</p>
+                        <p className='m-0 p-0'>Certified, vetted instructors with structured teaching frameworks
+</p>
                     </div>
                 </div>
                 <div className='col-xl-3 col-md-6 mb-xl-0 mb-4'>
                     <div className='banner-bottom-box text-center'>
                         <div className='icons-text d-flex align-items-center gap-2 justify-content-center'>
                             <img src={AiIcons2.src} alt="" />
-                            <span>2K+ Multilingual Song Library</span>
+                            <span>Structured Programs
+</span>
                         </div>
-                        <p className='m-0 p-0'>Browse and Master Worldwide Hits</p>
+                        <p className='m-0 p-0'>Level-based learning paths designed for consistency and outcomes
+</p>
                     </div>
                 </div>
                 <div className='col-xl-3 col-md-6 mb-xl-0 mb-4'>
                     <div className='banner-bottom-box text-center'>
                         <div className='icons-text d-flex align-items-center gap-2 justify-content-center'>
                             <img src={AiIcons3.src} alt="" />
-                            <span>Smart Progress Tracking</span>
+                            <span>Progress Tracking
+</span>
                         </div>
-                        <p className='m-0 p-0'>All Your Metrics in One Dashboard</p>
+                        <p className='m-0 p-0'>Clear visibility into attendance, milestones, and improvement
+</p>
                     </div>
                 </div>
                 <div className='col-xl-3 col-md-6 mb-xl-0 mb-4'>
                     <div className='banner-bottom-box text-center'>
                         <div className='icons-text d-flex align-items-center gap-2 justify-content-center'>
                             <img src={AiIcons4.src} alt="" />
-                            <span>10K+ Tutors & Students</span>
+                            <span>AI Practice Studio
+</span>
                         </div>
-                        <p className='m-0 p-0'>Join thriving UpKraft community</p>
+                        <p className='m-0 p-0'>Learn faster with real-time AI feedback to fix practice gaps
+</p>
                     </div>
                 </div>
             </div>

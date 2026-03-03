@@ -8,7 +8,13 @@ await connect();
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
     const decodedToken = token ? jwt.decode(token) : null;
     let tutorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
     
@@ -80,7 +86,7 @@ export async function GET(request: NextRequest) {
   //       { instructorId: tutorId }
   //     ]
   //   })
-  //   .select('username email contact city profileImage assignment courses _id')
+  //   .select('username email contact city profileImage assignment courses attendance _id')
   //   .populate({
   //     path: 'courses',
   //     select: 'title category duration price courseQuality performanceScores instructorId',
@@ -135,7 +141,7 @@ const users = await User.find({
     { instructorId: tutorId }
   ]
 })
-.select('username email contact city profileImage assignment courses _id')
+.select('username email contact city profileImage assignment courses attendance _id')
 .populate({
   path: 'courses',
   select: 'title category duration price courseQuality performanceScores instructorId',
@@ -181,6 +187,7 @@ const filteredUsers = users.map(user => ({
   city: user.city,
   assignment: user.assignment,
   courses: user.courses,
+  attendance: user.attendance,
   pendingAssignments: pendingAssignmentsMap.get(user._id.toString()) || 0
 }));
 
@@ -261,7 +268,13 @@ export async function POST(request: NextRequest) {
     await connect();
 
     // Get tutor ID from token
-    const token = request.cookies.get("token")?.value;
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
     const decodedToken = token ? jwt.decode(token) : null;
     const tutorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
 

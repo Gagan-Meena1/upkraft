@@ -306,12 +306,12 @@ const CourseCard: React.FC<CourseCardProps> = ({
                   <strong>{course.duration}</strong>
                 </span>
               </li>
-              <li className="d-flex align-items-center gap-2">
-                <span className="student-text">Fees :</span>
-                <span className="student-txt">
+              {/* <li className="d-flex align-items-center gap-2"> */}
+                {/* <span className="student-text">Fees :</span> */}
+                {/* <span className="student-txt">
                   <strong>Rs {course.price}</strong>
-                </span>
-              </li>
+                </span> */}
+              {/* </li> */}
               <li className="d-flex align-items-center gap-2">
                 <span className="student-text">Sessions :</span>
                 <span className="student-txt ">

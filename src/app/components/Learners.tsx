@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Banner from "./learners/Banner";
 import BannerBottomBox from "./learners/BannerBottomBox";
 import WhyChoose from "./learners/WhyChoose";
@@ -20,6 +20,18 @@ const Learners = () => {
 
   const handleOpen = () => setShowModal(true);
   const handleClose = () => setShowModal(false);
+
+  // Scroll to FAQ when landing with hash #faq (e.g. from /T&Cs redirect).
+  // Delay so that after a redirect the full page has rendered and scroll position sticks.
+  useEffect(() => {
+    if (typeof window === "undefined" || window.location.hash !== "#faq") return;
+    const el = document.getElementById("faq");
+    if (!el) return;
+
+    const scrollToFaq = () => el.scrollIntoView({ behavior: "smooth" });
+    const t = setTimeout(scrollToFaq, 350);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
     <div className="main-learners relative">
@@ -82,7 +94,7 @@ const Learners = () => {
       <div className="knowledge-hub-sec">
         <KnowledgeHub />
       </div>
-      <div className="faq-sec">
+      <div className="faq-sec" id="faq">
         <Faq />
       </div>
     </div>

@@ -233,7 +233,7 @@ export default function CreateCourse() {
             </div>
 
             {/* Price */}
-            <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
+            {/* <div className="bg-white p-3 sm:p-4 rounded-lg border border-gray-200">
               <div className="flex items-center gap-2 sm:gap-3 mb-3">
                 <IndianRupee className="text-purple-700" size={20} />
                 <label className="text-purple-700 font-semibold text-sm sm:text-base">Price Per Month</label>
@@ -248,7 +248,7 @@ export default function CreateCourse() {
                 min="0"
                 step="0.01"
               />
-            </div>
+            </div> */}
           </div>
 
           {/* Curriculum - Mobile Optimized */}
