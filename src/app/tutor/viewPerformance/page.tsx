@@ -171,26 +171,42 @@ const StudentFeedbackDashboard = () => {
               ? parseFloat(item.technique)
               : item.technique;
 
-          // Calculate average score (excluding attendance)
-          // Define weights for each category (in decimal form)
-          const rhythmWeight = 1 / 6; // 20%
-          const theoreticalWeight = 1 / 6; // 15%
-          const performanceWeight = 1 / 6; // 30%
-          const earTrainingWeight = 1 / 6; // 10%
-          const assignmentWeight = 1 / 6; // 15%
-          const techniqueWeight = 1 / 6; // 10%
+          // === NA-aware average score calculation (same logic as API) ===
+          const naFields = item.naFields || [];
 
-          // Calculate weighted score by multiplying each score by its weight
-          const weightedScore =
-            rhythm * rhythmWeight +
-            theoreticalUnderstanding * theoreticalWeight +
-            performance * performanceWeight +
-            earTraining * earTrainingWeight +
-            assignment * assignmentWeight +
-            technique * techniqueWeight;
+          const metricEntries = [
+            { key: "rhythm", value: rhythm },
+            {
+              key: "theoreticalUnderstanding",
+              value: theoreticalUnderstanding,
+            },
+            { key: "performance", value: performance },
+            { key: "earTraining", value: earTraining },
+            { key: "assignment", value: assignment },
+            { key: "technique", value: technique },
+          ];
 
-          // Store the weighted average score with 2 decimal places
-          const averageScore = +weightedScore.toFixed(2);
+          const usedMetrics = metricEntries.filter(
+            (m) =>
+              !naFields.includes(m.key) &&
+              m.value !== null &&
+              m.value !== undefined
+          );
+
+          let averageScore = 0;
+
+          if (usedMetrics.length > 0) {
+            const sum = usedMetrics.reduce(
+              (total, m) =>
+                total +
+                (typeof m.value === "number"
+                  ? m.value
+                  : Number(m.value) || 0),
+              0
+            );
+            averageScore = +(sum / usedMetrics.length).toFixed(2);
+          }
+
           // Determine performance level
           let performanceLevel: "good" | "medium" | "poor";
           let recommendedImprovement = "";
@@ -202,19 +218,25 @@ const StudentFeedbackDashboard = () => {
           } else if (averageScore >= 5) {
             performanceLevel = "medium";
 
-            // Find the lowest scoring area
-            const scores = {
-              rhythm: rhythm,
-              "theoretical understanding": theoreticalUnderstanding,
-              performance: performance,
-              "ear training": earTraining,
-              "assignment completion": assignment,
-              technique: technique,
-            };
+            // Find the lowest scoring area (only among non-NA fields)
+            const scores: Record<string, number> = {};
+            if (!naFields.includes("rhythm")) scores["rhythm"] = rhythm;
+            if (!naFields.includes("theoreticalUnderstanding"))
+              scores["theoretical understanding"] =
+                theoreticalUnderstanding;
+            if (!naFields.includes("performance"))
+              scores["performance"] = performance;
+            if (!naFields.includes("earTraining"))
+              scores["ear training"] = earTraining;
+            if (!naFields.includes("assignment"))
+              scores["assignment completion"] = assignment;
+            if (!naFields.includes("technique"))
+              scores["technique"] = technique;
 
-            const lowestArea = Object.entries(scores).reduce((a, b) =>
-              a[1] < b[1] ? a : b
-            )[0];
+            const lowestArea =
+              Object.entries(scores).reduce((a, b) =>
+                a[1] < b[1] ? a : b
+              )[0];
             recommendedImprovement = `Work on improving your ${lowestArea}.`;
           } else {
             performanceLevel = "poor";
@@ -241,7 +263,7 @@ const StudentFeedbackDashboard = () => {
             recommendedImprovement,
             isEditable: item.isEditable,
             _id: item._id,
-            naFields: item.naFields || []
+            naFields: item.naFields || [],
           };
         }
       );
@@ -251,7 +273,7 @@ const StudentFeedbackDashboard = () => {
 
       setFeedbackData(processedData);
 
-      // Calculate average skills scores
+      // Calculate average skills scores (NA-aware)
       if (processedData.length > 0) {
         const skillTotals = {
           rhythm: 0,
@@ -262,34 +284,98 @@ const StudentFeedbackDashboard = () => {
           technique: 0,
         };
 
-        processedData.forEach((session) => {
-          skillTotals.rhythm += session.rhythm;
-          skillTotals.theoretical += session.theoretical;
-          skillTotals.performance += session.performance;
-          skillTotals.earTraining += session.earTraining;
-          skillTotals.assignment += session.assignment;
-          skillTotals.technique += session.technique;
-        });
+        const skillCounts = {
+          rhythm: 0,
+          theoretical: 0,
+          performance: 0,
+          earTraining: 0,
+          assignment: 0,
+          technique: 0,
+        };
 
-        const sessionCount = processedData.length;
+        processedData.forEach((session) => {
+          const naFields = new Set(session.naFields || []);
+
+          if (!naFields.has("rhythm")) {
+            skillTotals.rhythm += session.rhythm;
+            skillCounts.rhythm += 1;
+          }
+          if (!naFields.has("theoreticalUnderstanding")) {
+            skillTotals.theoretical += session.theoretical;
+            skillCounts.theoretical += 1;
+          }
+          if (!naFields.has("performance")) {
+            skillTotals.performance += session.performance;
+            skillCounts.performance += 1;
+          }
+          if (!naFields.has("earTraining")) {
+            skillTotals.earTraining += session.earTraining;
+            skillCounts.earTraining += 1;
+          }
+          if (!naFields.has("assignment")) {
+            skillTotals.assignment += session.assignment;
+            skillCounts.assignment += 1;
+          }
+          if (!naFields.has("technique")) {
+            skillTotals.technique += session.technique;
+            skillCounts.technique += 1;
+          }
+        });
 
         setAverageSkillScores({
-          rhythm: +(skillTotals.rhythm / sessionCount).toFixed(2),
-          theoretical: +(skillTotals.theoretical / sessionCount).toFixed(2),
-          performance: +(skillTotals.performance / sessionCount).toFixed(2),
-          earTraining: +(skillTotals.earTraining / sessionCount).toFixed(2),
-          assignment: +(skillTotals.assignment / sessionCount).toFixed(2),
-          technique: +(skillTotals.technique / sessionCount).toFixed(2),
+          rhythm:
+            skillCounts.rhythm > 0
+              ? +(skillTotals.rhythm / skillCounts.rhythm).toFixed(2)
+              : 0,
+          theoretical:
+            skillCounts.theoretical > 0
+              ? +(skillTotals.theoretical / skillCounts.theoretical).toFixed(2)
+              : 0,
+          performance:
+            skillCounts.performance > 0
+              ? +(skillTotals.performance / skillCounts.performance).toFixed(2)
+              : 0,
+          earTraining:
+            skillCounts.earTraining > 0
+              ? +(skillTotals.earTraining / skillCounts.earTraining).toFixed(2)
+              : 0,
+          assignment:
+            skillCounts.assignment > 0
+              ? +(skillTotals.assignment / skillCounts.assignment).toFixed(2)
+              : 0,
+          technique:
+            skillCounts.technique > 0
+              ? +(skillTotals.technique / skillCounts.technique).toFixed(2)
+              : 0,
         });
       }
-      // Calculate overall performance score (average of all session averages)
+
+      // Calculate overall performance score (average of all session averages, NA-aware)
       if (processedData.length > 0) {
+        const METRIC_KEYS = [
+          "rhythm",
+          "theoreticalUnderstanding",
+          "performance",
+          "earTraining",
+          "assignment",
+          "technique",
+        ];
+
+        const sessionsWithValidScore = processedData.filter((session) => {
+          if (session.attendance === 0) return false;
+          const naSet = new Set(session.naFields || []);
+          const allNa = METRIC_KEYS.every((k) => naSet.has(k));
+          return !allNa;
+        });
+
         const overallScore =
-          processedData.reduce(
-            (total, session) => total + session.averageScore,
-            0
-          ) / processedData.length;
-        // Store with 2 decimal places
+          sessionsWithValidScore.length > 0
+            ? sessionsWithValidScore.reduce(
+                (total, session) => total + session.averageScore,
+                0
+              ) / sessionsWithValidScore.length
+            : 0;
+
         setAverageSkillScores((prev) => ({
           ...prev,
           overall: +overallScore.toFixed(2),

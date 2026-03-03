@@ -51,7 +51,7 @@ const StudentProfileDetails: React.FC<StudentProfileDetailsProps> = ({
       label: 'Course',
       value: <ExpandableCourseList courses={data.courses} maxItems={1} />
     },
-    { label: 'Course Fee', value: `Rs. ${totalCourseFee.toLocaleString()}` },
+    // { label: 'Course Fee', value: `Rs. ${totalCourseFee.toLocaleString()}` },
     { label: 'Amount Paid', value: 'NA' },
     { label: 'Status', value: 'Not Paid', className: 'red-text' },
     { label: 'Paid Via', value: 'NA' },
