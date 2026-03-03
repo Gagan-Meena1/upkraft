@@ -3,6 +3,7 @@ import { connect } from "@/dbConnection/dbConfic";
 import feedback from "@/models/feedback";
 import jwt from "jsonwebtoken";
 import Class from "@/models/Class";
+import User from "@/models/userModel";
 
 export async function PATCH(
     request: NextRequest,
@@ -72,7 +73,7 @@ export async function PATCH(
         }
 
         const body = await request.json();
-        const { rhythm, theoreticalUnderstanding, performance, earTraining, assignment, technique, personalFeedback, naFields } = body;
+        const { rhythm, theoreticalUnderstanding, performance, earTraining, assignment, technique, personalFeedback, naFields, attendanceStatus } = body;
 
         // Calculate overall rating logic similar to POST
         const feedbackRating =
@@ -96,6 +97,30 @@ export async function PATCH(
         if (technique !== undefined) updateData.technique = String(technique);
         if (personalFeedback !== undefined) updateData.personalFeedback = personalFeedback;
         if (naFields !== undefined) updateData.naFields = naFields;
+        if (attendanceStatus !== undefined) {
+            updateData.attendance = attendanceStatus === "Absent" ? 0 : 1;
+
+            // Sync with User's attendance record
+            const user = await User.findById(existingFeedback.userId);
+            if (user) {
+                const classIdStr = existingFeedback.classId._id ? existingFeedback.classId._id.toString() : existingFeedback.classId.toString();
+                const attendanceIndex = user.attendance.findIndex(
+                    (att: any) => att.classId.toString() === classIdStr
+                );
+
+                const dbStatus = attendanceStatus === "Absent" ? "absent" : "present";
+
+                if (attendanceIndex !== -1) {
+                    user.attendance[attendanceIndex].status = dbStatus;
+                } else {
+                    user.attendance.push({
+                        classId: existingFeedback.classId._id || existingFeedback.classId,
+                        status: dbStatus
+                    });
+                }
+                await user.save();
+            }
+        }
 
         const updatedFeedback = await feedback.findByIdAndUpdate(
             feedbackId,

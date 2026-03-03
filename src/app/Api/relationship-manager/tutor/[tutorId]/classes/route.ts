@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
+import courseName from "@/models/courseName";
 import Class from "@/models/Class";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";

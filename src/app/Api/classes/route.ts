@@ -14,22 +14,7 @@ import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO } from 'date-fns';
 import { sendEmail } from "@/helper/mailer";
 // import { getServerSession } from 'next-auth/next'; // If using next-auth
-
-async function sendExpoPushNotifications(
-  tokens: (string | null | undefined)[],
-  title: string,
-  body: string,
-  data: object = {}
-) {
-  const messages = (tokens.filter(t => t?.startsWith('ExponentPushToken[')) as string[])
-    .map(to => ({ to, title, body, data, sound: 'default' }));
-  if (!messages.length) return;
-  fetch('https://exp.host/--/expo-server/push/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify(messages),
-  }).catch(() => {});
-}
+import { sendExpoPushNotifications } from '@/lib/pushNotifications';
 
 await connect();
 
@@ -737,6 +722,34 @@ export async function PUT(request: NextRequest) {
       },
       { status: 500 }
     );
+  }
+}
+
+// PATCH - Update class title only (mobile app — no reschedule emails, no status change)
+export async function PATCH(request: NextRequest) {
+  try {
+    await connect();
+    const { searchParams } = new URL(request.url);
+    const classId = searchParams.get('classId');
+    if (!classId) return NextResponse.json({ error: 'Class ID is required' }, { status: 400 });
+
+    const userId = await getDataFromToken(request);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { title } = await request.json();
+    if (!title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+
+    const updatedClass = await Class.findByIdAndUpdate(
+      classId,
+      { title: title.trim() },
+      { new: true }
+    );
+    if (!updatedClass) return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+
+    return NextResponse.json({ success: true, data: updatedClass });
+  } catch (error: any) {
+    console.error('Error updating class title:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 

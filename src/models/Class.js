@@ -80,6 +80,11 @@ const ClassSchema = new mongoose.Schema({
   },
   performanceVideoFileName: String, // Original filename
 
+  groupPhoto: {
+    type: String, // Public S3 URL for the group class photo
+    default: "",
+  },
+
   csat: {
     type: [{
       userId: {
