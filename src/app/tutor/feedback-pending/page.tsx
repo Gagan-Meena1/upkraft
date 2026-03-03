@@ -130,6 +130,7 @@ const FeedbackPendingDetails = () => {
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({}); 
   const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'absent'>('present');
   const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
 
   // Replace fixed shape with dynamic map per category
   const [feedbackData, setFeedbackData] = useState<Record<string, number | string>>(buildDefaults("Music"));
@@ -163,7 +164,8 @@ const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ 
       video: { 
         width: { ideal: 1280 },
-        height: { ideal: 720 }
+        height: { ideal: 720 },
+        facingMode: facingMode 
       }, 
       audio: true 
     });
@@ -1175,6 +1177,17 @@ const getButtonText = (classId: string, isUploading: boolean) => {
             />
           </div>
           <div className="d-flex justify-content-center mt-4">
+             {/* Flip Camera Button */}
+  <button
+    onClick={() => {
+      stopRecording();
+      setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+    }}
+    className="btn btn-outline-light btn-lg d-flex align-items-center gap-2"
+    style={{ padding: '15px 30px', fontSize: '16px' }}
+  >
+    🔄 Flip Camera
+  </button>
             <button 
               onClick={stopRecording}
               className="btn btn-danger btn-lg d-flex align-items-center gap-2"
