@@ -11,195 +11,181 @@ import {sendEmail} from '@/helper/mailer';
 await connect();
 
 export async function POST(request: NextRequest) {
-    try {
-      const url = new URL(request.url);
-      const classId = url.searchParams.get("classId");
-      const courseId = url.searchParams.get("courseId");
-      const studentId = url.searchParams.get("studentId");
-             
-      // Validate IDs
-      if (!classId || !courseId || !studentId) {
-        return NextResponse.json({
-           success: false,
-           error: 'Missing required parameters'
-         }, { status: 400 });
-      }
-             
-      // Get token and instructor ID
-      const token = request.cookies.get("token")?.value;
-      const decodedToken = token ? jwt.decode(token) : null;
-      const instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-             
-      // Parse JSON body instead of FormData
-      const data = await request.json();
-             
-      // Extract fields from JSON
-      const {
-        vocalTechniqueAndControl,
-        toneQualityAndRange,
-        rhythmTimingAndMusicality,
-        dictionAndArticulation,
-        expressionAndPerformance,
-        progressAndPracticeHabits,
-        personalFeedback
-      } = data;
+  try {
+    const url = new URL(request.url);
+    const classId = url.searchParams.get("classId");
+    const courseId = url.searchParams.get("courseId");
+    const studentId = url.searchParams.get("studentId");
 
-      const {attendanceStatus} = data;
-
-      const user= await User.findById(studentId);
-     // Check if attendance record exists for this class
-    const attendanceIndex = user.attendance.findIndex(
-      (att) => att.classId.toString() === classId
-    );
-
-    if (attendanceIndex !== -1) {
-      // Update existing attendance record
-      user.attendance[attendanceIndex].status = status;
-    } else {
-      // Create new attendance record
-      user.attendance.push({
-        classId: classId,
-        status: attendanceStatus
-      });
+    if (!classId || !courseId || !studentId) {
+      return NextResponse.json({ success: false, error: "Missing required parameters" }, { status: 400 });
     }
 
-    // Save the updated user
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
+    const decodedToken = token ? jwt.decode(token) : null;
+    const instructorId = decodedToken && typeof decodedToken === "object" && "id" in decodedToken ? decodedToken.id : null;
+
+    const data = await request.json();
+
+    // Extract fields (including naFields and attendanceStatus)
+    const {
+      vocalTechniqueAndControl,
+      toneQualityAndRange,
+      rhythmTimingAndMusicality,
+      dictionAndArticulation,
+      expressionAndPerformance,
+      progressAndPracticeHabits,
+      personalFeedback,
+      naFields = [],
+      attendanceStatus,
+    } = data;
+
+    // Update attendance safely using attendanceStatus
+    const user = await User.findById(studentId);
+    if (!user) {
+      return NextResponse.json({ success: false, message: "Student not found" }, { status: 404 });
+    }
+
+    const attendanceIndex = user.attendance.findIndex((att) => att.classId.toString() === classId);
+    if (attendanceIndex !== -1) {
+      user.attendance[attendanceIndex].status = attendanceStatus;
+    } else {
+      user.attendance.push({ classId: classId, status: attendanceStatus });
+    }
     await user.save();
-             
-      // Create feedback document
-      const feedbackData = {
-        userId: studentId,
-        classId: classId,
-        vocalTechniqueAndControl: Number(vocalTechniqueAndControl),
-        toneQualityAndRange: Number(toneQualityAndRange),
-        rhythmTimingAndMusicality: Number(rhythmTimingAndMusicality),
-        dictionAndArticulation: Number(dictionAndArticulation),
-        expressionAndPerformance: Number(expressionAndPerformance),
-        progressAndPracticeHabits: Number(progressAndPracticeHabits),
-        personalFeedback
-      };
-             
-      const newFeedback = await feedbackVocal.create(feedbackData);
-      
-      // Update the Class document with the feedback ID
-      const updatedClass = await Class.findByIdAndUpdate(
-        classId,
-        { feedbackId: newFeedback._id },
-        { new: true } // Return the updated document
+
+    // Metric keys and build feedback payload respecting NA
+    const KEYS = [
+      "vocalTechniqueAndControl",
+      "toneQualityAndRange",
+      "rhythmTimingAndMusicality",
+      "dictionAndArticulation",
+      "expressionAndPerformance",
+      "progressAndPracticeHabits",
+    ];
+
+    const feedbackPayload: any = {
+      userId: studentId,
+      classId,
+      personalFeedback,
+      naFields,
+    };
+    KEYS.forEach((k) => {
+      // when NA was sent, store null; otherwise store numeric value (or 0)
+      feedbackPayload[k] = naFields.includes(k) ? null : Number((data as any)[k]) || 0;
+    });
+
+    const newFeedback = await feedbackVocal.create(feedbackPayload);
+
+    // Link feedback to class
+    const updatedClass = await Class.findByIdAndUpdate(classId, { feedbackId: newFeedback._id }, { new: true });
+    if (!updatedClass) {
+      return NextResponse.json({ success: false, message: "Class not found" }, { status: 404 });
+    }
+
+    // Get course & classes
+    const course = await courseName.findById(courseId).populate("class");
+    if (!course) {
+      return NextResponse.json({ success: false, message: "Course not found" }, { status: 404 });
+    }
+    const classIds = course.class.map((cls: any) => cls._id);
+
+    // Get all feedbacks for this student in the course
+    const studentFeedbacks = await feedbackVocal.find({ userId: studentId, classId: { $in: classIds } });
+
+    // Average for THIS submission (exclude NA)
+    const usedKeys = KEYS.filter((k) => !naFields.includes(k));
+    let currentSum = 0;
+    let currentCount = 0;
+    usedKeys.forEach((k) => {
+      const v = Number((data as any)[k]);
+      if (!isNaN(v)) {
+        currentSum += v;
+        currentCount++;
+      }
+    });
+    const avgScore = currentCount > 0 ? currentSum / currentCount : 0;
+
+    // Average across ALL existing feedbacks (exclude their NA)
+    let totalScores = 0;
+    let totalMetricCount = 0;
+    studentFeedbacks.forEach((fb: any) => {
+      const fbNa = new Set<string>(fb.naFields || []);
+      KEYS.forEach((k) => {
+        if (fbNa.has(k)) return;
+        const v = Number(fb[k]);
+        if (!isNaN(v)) {
+          totalScores += v;
+          totalMetricCount++;
+        }
+      });
+    });
+    const averageScore = totalMetricCount > 0 ? totalScores / totalMetricCount : 0;
+
+    // Send notification email (include feedbackDetails)
+    try {
+      const studentUser = await User.findById(studentId).select("email username").lean();
+      if (studentUser && studentUser.email) {
+        const feedbackDetails: Record<string, number | null> = {};
+        KEYS.forEach((k) => {
+          feedbackDetails[k] = naFields.includes(k) ? null : (Number((data as any)[k]) || 0);
+        });
+
+        await sendEmail({
+          email: studentUser.email,
+          emailType: "FEEDBACK_RECEIVED",
+          username: studentUser.username,
+          courseName: (await courseName.findById(courseId).select("title"))?.title || undefined,
+          className: updatedClass.title,
+          personalFeedback,
+          averageScore: avgScore.toFixed(1),
+          classId,
+          userId: studentId,
+          feedbackCategory: "Vocal",
+          classDate: updatedClass.startTime
+            ? new Date(updatedClass.startTime).toLocaleDateString("en-IN")
+            : undefined,
+          feedbackDetails,
+        });
+      }
+    } catch (mailErr) {
+      console.error("[studentFeedback/vocal] Error sending feedback email:", mailErr);
+    }
+
+    // Update course performanceScores with course-level average (exclude NA)
+    if (course.performanceScores && Array.isArray(course.performanceScores)) {
+      const existingScoreIndex = course.performanceScores.findIndex(
+        (score: any) => score.userId.toString() === studentId.toString()
       );
 
-      if (!updatedClass) {
-        return NextResponse.json({
-          success: false,
-          message: 'Class not found'
-        }, { status: 404 });
-      }
-              // Step 1: Get all classes for this course
-      const course = await courseName.findById(courseId).populate('class');
-      
-      if (!course) {
-        return NextResponse.json({
-          success: false,
-          message: 'Course not found'
-        }, { status: 404 });
+      if (existingScoreIndex !== -1) {
+        course.performanceScores[existingScoreIndex].score = averageScore;
+        course.performanceScores[existingScoreIndex].date = new Date();
+      } else {
+        course.performanceScores.push({ userId: studentId, score: averageScore, date: new Date() });
       }
 
-      // Step 2: Get all class IDs for this course
-      const classIds = course.class.map((cls: any) => cls._id);
-
-      // Step 3: Get all feedbacks for this student across all classes in this course
-      const studentFeedbacks = await feedbackVocal.find({
-        userId: studentId,
-        classId: { $in: classIds }
-      });
-
-    // Step 4: Calculate average score
-      if (studentFeedbacks.length > 0) {
-        const totalScores = studentFeedbacks.reduce((acc, fb) => {
-          // Convert string values to numbers, defaulting to 0 if invalid
-          const vocalTechniqueAndControlScore = Number(fb.vocalTechniqueAndControl) || 0;
-          const toneQualityAndRangeScore = Number(fb.toneQualityAndRange) || 0;
-          const rhythmTimingAndMusicalityScore = Number(fb.rhythmTimingAndMusicality) || 0;
-          const dictionAndArticulationScore = Number(fb.dictionAndArticulation) || 0;
-          const expressionAndPerformanceScore = Number(fb.expressionAndPerformance) || 0;
-          const progressAndPracticeHabitsScore = Number(fb.progressAndPracticeHabits) || 0;
-          
-          return acc + 
-            vocalTechniqueAndControlScore + 
-            toneQualityAndRangeScore + 
-            rhythmTimingAndMusicalityScore + 
-            dictionAndArticulationScore + 
-            expressionAndPerformanceScore + 
-            progressAndPracticeHabitsScore;
-        }, 0);
-
-        const avgScore = ( vocalTechniqueAndControl+
-        toneQualityAndRange+
-        rhythmTimingAndMusicality+
-        dictionAndArticulation+
-        expressionAndPerformance+
-        progressAndPracticeHabits
-        )/6;
-        // Average across all metrics and all feedbacks
-        const averageScore = totalScores / (studentFeedbacks.length * 6);
-
-        try {
-                const studentUser = await User.findById(studentId).select('email username').lean();
-                if (studentUser && studentUser.email) {
-                  await sendEmail({
-                    email: studentUser.email,
-                    emailType: "FEEDBACK_RECEIVED",
-                    username: studentUser.username,
-                    courseName: (await courseName.findById(courseId).select('title'))?.title || undefined,
-                    className: updatedClass.title,
-                    personalFeedback: personalFeedback,
-                    averageScore: avgScore.toFixed(1),
-                    classId:classId,
-                    userId:studentId,
-                    feedbackCategory: 'Vocal'
-                  });
-                }
-              } catch (mailErr) {
-                console.error('[studentFeedback] Error sending feedback email:', mailErr);
-              }
-
-        // Step 5: Update or add the performance score in the course
-        const existingScoreIndex = course.performanceScores.findIndex(
-          (score: any) => score.userId.toString() === studentId.toString()
-        );
-
-        if (existingScoreIndex !== -1) {
-          // Update existing score
-          course.performanceScores[existingScoreIndex].score = averageScore;
-          course.performanceScores[existingScoreIndex].date = new Date();
-        } else {
-          // Add new score
-          course.performanceScores.push({
-            userId: studentId,
-            score: averageScore,
-            date: new Date()
-          });
-        }
-
-        await course.save();
-      }
-      return NextResponse.json({
-        success: true,
-        message: 'Vocal Feedback submitted successfully and class updated',
-        data: {
-          feedback: newFeedback,
-          updatedClass: updatedClass
-        }
-      }, { status: 201 });
-           
-    } catch (error: any) {
-      console.error('Error submitting Vocal feedback:', error);
-      return NextResponse.json({
-        success: false,
-        message: error.message || 'Failed to submit Vocal feedback',
-        error: error.stack
-      }, { status: 500 });
+      await course.save();
     }
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Vocal Feedback submitted successfully and class updated",
+        data: { feedback: newFeedback, updatedClass },
+      },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    console.error("Error submitting Vocal feedback:", error);
+    return NextResponse.json({ success: false, message: error.message || "Failed to submit Vocal feedback", error: error.stack }, { status: 500 });
+  }
 }
 export async function GET(request: NextRequest) {
     try {
@@ -208,7 +194,13 @@ export async function GET(request: NextRequest) {
         // const studentId = url.searchParams.get("studentId");
         
         // Get token and verify instructor
-        const token = request.cookies.get("token")?.value;
+        const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+    })();
         if (!token) {
             return NextResponse.json({
                 success: false,

@@ -130,7 +130,7 @@ export default function MyStudents() {
       sortable: true,
       filterable: false,
       render: (value: number) => {
-        return value && value > 0 ? value : 'N/A';
+        return value;
       },
       cellClassName: (value: number) => {
         if (!value || value <= 0) return 'text-gray-400';
@@ -145,7 +145,9 @@ export default function MyStudents() {
       sortable: true,
       filterable: false,
       render: (value: number) => {
-        return value && value > 0 ? value : 'N/A';
+        console.log({ value });
+
+        return value;
       },
       cellClassName: (value: number) => {
         if (!value || value <= 0) return 'text-gray-400';
@@ -194,8 +196,9 @@ export default function MyStudents() {
     student.courses.forEach((course) => {
       if (course.performanceScores && course.performanceScores.length > 0) {
         // Find the student's score in this course
+
         const studentScore = course.performanceScores.find(
-          (score) => score.userId._id === student._id
+          (score) => score.userId?._id === student._id
         );
 
         if (studentScore) {
@@ -620,7 +623,7 @@ export default function MyStudents() {
                           </div>
                         }
                         columns={columns}
-                        data={student?.length > 0 ? student : students}
+                        data={students?.length > 0 ? students : student}
                         rowKey="_id" />
                     </div>
                   </div>

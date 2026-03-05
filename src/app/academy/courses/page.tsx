@@ -16,6 +16,7 @@ interface Course {
     tangibleOutcome: string;
   }[];
   category?: string;
+  tag?: string;
 }
 
 interface ApiResponse {

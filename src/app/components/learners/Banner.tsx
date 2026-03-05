@@ -29,9 +29,10 @@ const Banner = () => {
       <div className='text-box-banner heading-box'>
         <div className='text-box'>
           {/* <h1 className='mb-2 '>Reimagining Extracurricular Learning With AI</h1> */}
-          <h2 className="mb-3 heading-text"><span>Reimagining Extracurricular Learning With AI</span></h2>
-          <h3 className='mb-2'>Built for Tutors & Students Worldwide</h3>
-          <p>UpKraft is one stop solution to make extracurricular learning smarter, faster, and trackable.</p>
+          <h2 className="mb-3 heading-text"><span>World-Class Extracurricular Programs. Delivered Locally. Powered by AI</span></h2>
+          <h3 className='mb-2'>Built for Homes, Communities & Campuses
+</h3>
+          <p>Structured extracurricular learning at home, in societies, and schools—led by expert tutors with clear progress tracking.</p>
           <Link href="" className='btn btn-orange' onClick={handleShow}>
             Book a Demo
           </Link>
@@ -40,10 +41,10 @@ const Banner = () => {
             <li>Guitar</li>
             <li>Piano</li>
             <li>Drums</li>
-            <li>Vocals</li>
             <li>Violin</li>
+            <li>Vocals</li>
             <li>Dance</li>
-            <li>Drawing</li>
+            <li>Fitness</li>
 
           </ul>
         </div>

@@ -24,7 +24,7 @@ const KnowledgeHub = () => {
                     <div className='col-lg-10'>
                         <div className='heading-box text-center'>
                             <h2 className='mb-3'><span>UpKraft</span> Knowledge Hub </h2>
-                            <p>Access 500+ video lessons from UpKraft tutors and begin your journey with free, easy-to-follow tutorials that make learning simple and fun. Build a strong foundation, then unlock advanced modules to keep growing and play like a pro.</p>
+                            <p>Start with free, easy video lessons from UpKraft tutors, then unlock advanced modules to grow your skills step by step.</p>
                         </div>
 
                         {/* ---------------- Video Banner ---------------- */}

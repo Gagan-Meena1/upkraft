@@ -10,7 +10,7 @@ import { useRef } from 'react';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'react-hot-toast';
 import { Upload,Video, StopCircle, Play, X, Check } from 'lucide-react';
-
+import { buildDefaults } from '../../../lib/feedbackDefaults'; 
 
 interface Student {
   _id: string;
@@ -90,7 +90,7 @@ const CATEGORY_FIELDS: Record<string, Array<{ key: string; label: string }>> = {
 
 // Default values (1-10 scale) for a category
 const buildDefaults = (category?: string) => {
-  const fields = CATEGORY_FIELDS[category || "Music"] || CATEGORY_FIELDS["Music"];
+  const fields = CATEGORY_FIELDS[category || "Music" || "Vocal" || "Drawing" || "Drums" || "Violin"] || CATEGORY_FIELDS["Music" || "Vocal" || "Drawing" || "Drums" || "Violin"];
   const values: Record<string, number | string> = { personalFeedback: "" };
   fields.forEach(f => (values[f.key] = 5));
   return values;
@@ -131,9 +131,13 @@ const FeedbackPendingDetails = () => {
   const fileInputRefs = useRef<{[key: string]: HTMLInputElement | null}>({}); 
   const [attendanceStatus, setAttendanceStatus] = useState<'present' | 'absent'>('present');
   const [showAbsentConfirm, setShowAbsentConfirm] = useState(false);
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const isFlippingRef = useRef(false);
+  const facingModeRef = useRef<'user' | 'environment'>('user');
 
   // Replace fixed shape with dynamic map per category
   const [feedbackData, setFeedbackData] = useState<Record<string, number | string>>(buildDefaults("Music"));
+  const [naFields, setNaFields] = useState<Record<string, boolean>>({}); // <-- NEW
 
   // Derived category helpers for header badge and dynamic fields
   const currentCategory =
@@ -166,8 +170,8 @@ const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ 
       video: { 
         width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }, 
+        height: { ideal: 720 },
+facingMode: facingModeRef.current      }, 
       audio: true 
     });
     
@@ -194,21 +198,30 @@ const startRecording = async () => {
       }
     };
 
-    mediaRecorder.onstop = () => {
-      const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
-      
-      const sizeMB = blob.size / (1024 * 1024);
-      if (sizeMB > 200) {
-        alert('Video size exceeds 200MB limit. Please record a shorter video.');
-        cleanupRecording();
-        return;
-      }
-      
-      setRecordedBlob(blob);
-      setShowPreviewModal(true);
-      setShowLivePreview(false);
-      cleanupRecording();
-    };
+   mediaRecorder.onstop = () => {
+  if (isFlippingRef.current) {
+    // Just cleanup and restart with new camera — don't show preview
+    isFlippingRef.current = false;
+    cleanupRecording();
+    // Auto-restart with new facingMode
+    setTimeout(() => startRecording(), 300);
+    return;
+  }
+
+  const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+  const sizeMB = blob.size / (1024 * 1024);
+  if (sizeMB > 200) {
+    alert('Video size exceeds 200MB limit. Please record a shorter video.');
+    cleanupRecording();
+    return;
+  }
+
+  setRecordedBlob(blob);
+  setShowPreviewModal(true);
+  setShowLivePreview(false);
+  cleanupRecording();
+};
+
 
     mediaRecorder.start(1000);
     mediaRecorderRef.current = mediaRecorder;
@@ -223,6 +236,23 @@ const startRecording = async () => {
     console.error('Error starting recording:', err);
     alert('Failed to access camera/microphone. Please grant permissions.');
     setShowLivePreview(false);
+  }
+};
+
+const flipCamera = () => {
+  const newMode = facingModeRef.current === 'user' ? 'environment' : 'user';
+  facingModeRef.current = newMode;  // ✅ Update ref immediately (sync)
+  setFacingMode(newMode);           // ✅ Update state for UI
+
+  isFlippingRef.current = true;
+
+  if (mediaRecorderRef.current && isRecording) {
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
   }
 };
 
@@ -394,16 +424,14 @@ useEffect(() => {
   }, []);
   
   // Re-init sliders when selection changes (student or class)
-useEffect(() => {
-  if (!selectedFeedback) return;
-  const currentClass = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
-  const category = currentClass?.courseCategory || "Music";
-  setFeedbackData(buildDefaults(category));
-  setAttendanceStatus('present');
-  setCredits(1); 
-  setShowCustomCredits(false); 
-    setCreditReason('Standard'); 
-}, [selectedFeedback]);
+  useEffect(() => {
+    if (!selectedFeedback) return;
+    const currentClass = selectedFeedback.classes[selectedFeedback.selectedClassIndex];
+    const category = currentClass?.courseCategory || "Music";
+    setFeedbackData(buildDefaults(category));
+    setAttendanceStatus('present');
+    setNaFields({}); // <-- NEW: reset NA on class change
+  }, [selectedFeedback]);
 
   const handleSelectStudent = (feedback: PendingFeedback) => {
     setSelectedFeedback(feedback);
@@ -417,6 +445,7 @@ useEffect(() => {
   };
 
   const handleSliderChange = (key: string, value: number) => {
+    setNaFields(prev => ({ ...prev, [key]: false }));   // <-- NEW: moving slider clears NA
     setFeedbackData(prev => ({ ...prev, [key]: value }));
   };
 
@@ -424,6 +453,10 @@ useEffect(() => {
     setFeedbackData(prev => ({ ...prev, personalFeedback: value }));
   };
 
+  const handleNaToggle = (key: string, checked: boolean) => {
+    setNaFields(prev => ({ ...prev, [key]: checked }));
+  };
+  
   const formatClassDate = (dateStr?: string) => {
     if (!dateStr) return "";
     const d = new Date(dateStr);
@@ -483,12 +516,15 @@ useEffect(() => {
         courseId,
         classId,
         personalFeedback: String(feedbackData.personalFeedback || ""),
-         credits: credits,
+        naFields: fields.filter(f => naFields[f.key]).map(f => f.key), // <-- NEW
       };
       fields.forEach(f => {
         const v = feedbackData[f.key];
-        // Coerce number fields to string/number (API can accept either as models use String)
-        payload[f.key] = typeof v === "number" ? v : Number(v) || 5;
+        if (naFields[f.key]) {
+          payload[f.key] = null; // mark as NA
+        } else {
+          payload[f.key] = typeof v === "number" ? v : Number(v) || 0;
+        }
       });
 
       const response = await fetch(
@@ -999,9 +1035,11 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                       <div className="card-box mb-3" key={field.key}>
                         <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
                           <h6 className="mb-0">{field.label}</h6>
-                          <div className="right-text-box red-text">
-                            <span className='main-text'>{Number(feedbackData[field.key] ?? 5)}</span>
-                            <span className="text-muted">/10</span>
+                          <div className="right-text-box red-text d-flex align-items-center gap-2">
+                            <span className='main-text'>
+                              {naFields[field.key] ? "NA" : Number(feedbackData[field.key] ?? 0)}
+                            </span>
+                            {!naFields[field.key] && <span className="text-muted">/10</span>}
                           </div>
                         </div>
                         <div className="progress-slider-container">
@@ -1009,10 +1047,23 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                             type="range"
                             min="1"
                             max="10"
-                            value={Number(feedbackData[field.key] ?? 5)}
+                            value={Number(feedbackData[field.key] ?? 0)}
+                            disabled={!!naFields[field.key]} // <-- NEW
                             onChange={(e) => handleSliderChange(field.key, parseInt(e.target.value))}
                             className="form-range mb-2"
                           />
+                          <div className="form-check form-check-inline mt-1">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id={`${field.key}-na-left`}
+                              checked={!!naFields[field.key]}
+                              onChange={(e) => handleNaToggle(field.key, e.target.checked)}
+                            />
+                            <label className="form-check-label small" htmlFor={`${field.key}-na-left`}>
+                              NA
+                            </label>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1025,9 +1076,11 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                       <div className="card-box mb-3" key={field.key}>
                         <div className="d-flex align-items-center gap-2 justify-content-between mb-2">
                           <h6 className="mb-0">{field.label}</h6>
-                          <div className="right-text-box red-text">
-                            <span className='main-text'>{Number(feedbackData[field.key] ?? 5)}</span>
-                            <span className="text-muted">/10</span>
+                          <div className="right-text-box red-text d-flex align-items-center gap-2">
+                            <span className='main-text'>
+                              {naFields[field.key] ? "NA" : Number(feedbackData[field.key] ?? 0)}
+                            </span>
+                            {!naFields[field.key] && <span className="text-muted">/10</span>}
                           </div>
                         </div>
                         <div className="progress-slider-container">
@@ -1035,10 +1088,23 @@ const getButtonText = (classId: string, isUploading: boolean) => {
                             type="range"
                             min="1"
                             max="10"
-                            value={Number(feedbackData[field.key] ?? 5)}
+                            value={Number(feedbackData[field.key] ?? 0)}
+                            disabled={!!naFields[field.key]} // <-- NEW
                             onChange={(e) => handleSliderChange(field.key, parseInt(e.target.value))}
                             className="form-range mb-2"
                           />
+                          <div className="form-check form-check-inline mt-1">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              id={`${field.key}-na-right`}
+                              checked={!!naFields[field.key]}
+                              onChange={(e) => handleNaToggle(field.key, e.target.checked)}
+                            />
+                            <label className="form-check-label small" htmlFor={`${field.key}-na-right`}>
+                              NA
+                            </label>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -1239,6 +1305,14 @@ const getButtonText = (classId: string, isUploading: boolean) => {
             />
           </div>
           <div className="d-flex justify-content-center mt-4">
+             {/* Flip Camera Button */}
+<button
+  onClick={flipCamera}
+  className="btn btn-outline-light btn-lg d-flex align-items-center gap-2"
+  style={{ padding: '15px 30px', fontSize: '16px' }}
+>
+  🔄 Flip Camera
+</button>
             <button 
               onClick={stopRecording}
               className="btn btn-danger btn-lg d-flex align-items-center gap-2"

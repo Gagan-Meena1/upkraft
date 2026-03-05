@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
             },
             status: {
                 type: String,
-                enum: ["present", "absent", "canceled", "not_marked"],
+                enum: ["present", "absent", "canceled", "not_marked","marked"],
                 default: "not_marked"
 
         },
@@ -44,6 +44,10 @@ const userSchema = new mongoose.Schema({
     contact: {
         type: String,
         default: ""
+    },
+    expoPushToken: {
+        type: String,
+        default: null,
     },
     credits: {
         type: Number,
@@ -326,6 +330,12 @@ const userSchema = new mongoose.Schema({
                 max: 100
             }
         }]
+    },
+    // For tutors: which Relationship Manager they are assigned to
+    relationshipManager: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
     },
 },
     { timestamps: true }
