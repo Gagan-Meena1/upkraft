@@ -359,19 +359,66 @@ const fetchClasses = async (courseId: string) => {
                 />
               </svg>
             ) : (
-              <svg
-                className="h-6 w-6 text-red-500 mr-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <>
+                <div className="mb-4 text-sm text-gray-500">
+                  Showing {filteredCourses.length} {filteredCourses.length === 1 ? 'course' : 'courses'}
+                </div>
+                
+                {/* Changed from grid to single column layout */}
+                <div className="space-y-4">
+                  {filteredCourses.map((course) => (
+                    <div key={course._id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
+                      <div className="flex items-center justify-between">
+                        {/* Left side - Course info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">{course.title || 'Untitled Course'}</h3>
+                            <div className="flex gap-2">
+                              <span className="px-2 py-1 bg-gray-100 rounded text-xs text-gray-600">
+                                Started: {formatDate(course.createdAt)}
+                              </span>
+                              <span className="px-2 py-1 bg-blue-100 rounded text-xs text-blue-600">
+                                Duration: {course.duration || 'Not specified'}
+                              </span>
+                            </div>
+                          </div>
+                          <p className={`!text-gray-600 !text-sm !leading-6 ${!expandedCourses[course._id] ? "line-clamp-1" : ""}`}>
+                            {course.description || 'No description available'}
+                          </p>
+                          {course.description && course.description.length > 60 && (
+                            <button
+                              className="!text-blue-800 !text-xs underline cursor-pointer mb-3"
+                              onClick={() => toggleExpanded(course._id)}
+                            >
+                              {!expandedCourses[course._id] ? "Show more..." : "Show less"}
+                            </button>
+                          )}
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            {/* <span>Fees: Rs {course.price ?? "N/A"}</span> */}
+                            <span>Lessons: {course.curriculum ? course.curriculum.length : "N/A"} Lessons</span>
+                            <span>Category: {course.category ?? "N/A"}</span>
+                          </div>
+                        </div>
+
+                        {/* Right side - Actions */}
+                        <div className="flex items-center gap-3 ml-6">
+                        
+                          <button 
+                            className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded hover:bg-purple-700 transition-colors flex items-center gap-2"
+                            onClick={() => handleAddStudentToCourse(course._id)}
+                            title="Add course to Student"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Course
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
             <p
               className={

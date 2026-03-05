@@ -166,14 +166,26 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
               <p style="font-size: 16px; color: #333;">You requested to reset your password. Click the link below to set a new password:</p>
               <div style="text-align: center; margin: 30px 0;">
                 <a href="${process.env.DOMAIN}/reset-password?token=${resetToken}"
-                   style="background-color: #ff8c00; 
-                          color: white; 
-                          padding: 12px 24px; 
-                          text-decoration: none; 
+                   style="background-color: #ff8c00;
+                          color: white;
+                          padding: 12px 24px;
+                          text-decoration: none;
+                          border-radius: 5px;
+                          font-weight: bold;
+                          display: inline-block;
+                          margin-bottom: 12px;">
+                  Reset Password (Web)
+                </a>
+                <br>
+                <a href="upkraft:///reset-password?token=${resetToken}"
+                   style="background-color: #5204d6;
+                          color: white;
+                          padding: 12px 24px;
+                          text-decoration: none;
                           border-radius: 5px;
                           font-weight: bold;
                           display: inline-block;">
-                  Reset Password
+                  Open in UpKraft App
                 </a>
               </div>
               <p style="color: #666; font-size: 14px;">

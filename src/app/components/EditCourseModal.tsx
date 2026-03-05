@@ -295,7 +295,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
                   />
                 </Form.Group>
               </div>
-              <div className="col-md-12">
+              {/* <div className="col-md-12">
                 <Form.Group className="mb-3">
                   <Form.Label className="w-100 d-block">Course Fees</Form.Label>
                   <Form.Control
@@ -306,7 +306,7 @@ const EditCourseModal: React.FC<EditCourseModalProps> = ({
                     placeholder="600"
                   />
                 </Form.Group>
-              </div>
+              </div> */}
 
               <div className="col-md-12">
                 <Form.Label className="w-100 d-block mb-2">
