@@ -1,5 +1,6 @@
 import {connect} from '@/dbConnection/dbConfic'
 import User from "@/models/userModel"
+import courseName from "@/models/courseName"
 import { log } from 'console';
 import jwt from 'jsonwebtoken'
 import { NextRequest,NextResponse } from 'next/server'
