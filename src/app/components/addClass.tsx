@@ -44,6 +44,8 @@ export interface AssignPayload {
   startDate: string;
   message: string;
   credits: number;
+    isEdit?: boolean; // ← new
+
 }
 
 interface Props {
@@ -186,6 +188,7 @@ export default function ClassSelectionModal({
   const [startDate, setStartDate] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [credits, setCredits] = useState<string>("");  // ← add this
+  const [editingEntry, setEditingEntry] = useState<AssignmentHistory | null>(null);
   
 
   // Per-slot selection: groupKey → SlotSelection
@@ -231,6 +234,8 @@ const getEndDateForAssignment = (startDate: string | Date): string => {
   const lastClass = relevantClasses.reduce((latest, cls) => {
     return new Date(cls.startTime) > new Date(latest.startTime) ? cls : latest;
   });
+
+  
   
   return new Date(lastClass.startTime).toLocaleDateString("en-US", {
     month: "short",
@@ -239,18 +244,18 @@ const getEndDateForAssignment = (startDate: string | Date): string => {
   });
 };
 
-  // ── Reset when modal opens/closes ──────────────────────────────────────────
 // ── Reset when modal opens/closes ──────────────────────────────────────────
-  React.useEffect(() => {
-    if (!open) {
-      setSlotSelections({});
-      setActiveSlots(new Set());
-      setStartDate("");
-      setMessage("");
-      setCredits("");
-      setActiveTab("form"); // ✅ ADD THIS: Reset to form tab
-    }
-  }, [open]);
+React.useEffect(() => {
+  if (!open) {
+    setSlotSelections({});
+    setActiveSlots(new Set());
+    setStartDate("");
+    setMessage("");
+    setCredits("");
+    setActiveTab("form");
+    setEditingEntry(null);
+  }
+}, [open]);
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -385,14 +390,15 @@ const toggleClassOverride = (
     };
   });
 };
-  const handleConfirm = () => {
-    onConfirm({
-      classIds: allSelectedClassIds,
-      startDate,
-      message,
-      credits: parseInt(credits, 10) || 0,
-    });
-  };
+ const handleConfirm = () => {
+  onConfirm({
+    classIds: allSelectedClassIds,
+    startDate,
+    message,
+    credits: parseInt(credits, 10) || 0,
+    isEdit: !!editingEntry,
+  });
+};
 
   if (!open) return null;
 
@@ -518,6 +524,20 @@ const toggleClassOverride = (
                             <span className="text-gray-700">{endDate}</span>
                           </div>
                         </div>
+
+                        {/* Check if last class end is after now */}
+{new Date(getEndDateForAssignment(entry.date)) > new Date() && (
+  <button
+    onClick={() => {
+      setEditingEntry(entry);
+      setStartDate(new Date(entry.date).toISOString().split("T")[0]);
+      setActiveTab("form");
+    }}
+    className="mt-2 text-xs text-purple-600 border border-purple-300 rounded-lg px-3 py-1.5 hover:bg-purple-50 transition-colors"
+  >
+    ✏️ Edit
+  </button>
+)}
                       </div>
                     </div>
                   </div>
@@ -528,19 +548,46 @@ const toggleClassOverride = (
         )}
         {(assignmentHistory.length === 0 || activeTab === "form") && (
           <>
+          {/* Add this right before the <div className="px-6 pt-4 pb-2 border-b ... grid ..."> */}
+{editingEntry && (
+  <div className="px-6 pt-3 pb-0">
+    <div className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-lg px-4 py-2.5 mb-3">
+      <div className="flex items-center gap-2 text-sm text-purple-700 font-medium">
+        ✏️ Editing Entry/Pacjage from{" "}
+        {new Date(editingEntry.date).toLocaleDateString("en-US", {
+          month: "short", day: "numeric", year: "numeric",
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => {
+          setEditingEntry(null);
+          setStartDate("");
+        }}
+        className="text-xs text-purple-500 hover:text-purple-700 underline"
+      >
+        Cancel edit
+      </button>
+    </div>
+  </div>
+)}
         {/* ── Extra Fields ── */}
-        {!simpleMode && (<div className="px-6 pt-4 pb-2 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {!simpleMode && 
+        
+         (<div className="px-6 pt-4 pb-2 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
           {/* Start Date */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">
               Start Date <span className="text-red-400">*</span>
             </label>
             <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
-            />
+  type="date"
+  value={startDate}
+  onChange={(e) => { if (!editingEntry) setStartDate(e.target.value); }}
+  readOnly={!!editingEntry}
+  className={`w-full px-3 py-2 text-sm border rounded-lg ... ${editingEntry ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""}`}
+/>
           </div>
 
           {/* Credits */}
