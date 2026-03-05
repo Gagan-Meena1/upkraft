@@ -2,6 +2,8 @@
 import React from "react";
 import Link from 'next/link';
 import Pagination from "react-bootstrap/Pagination";
+import OverlayTrigger from "react-bootstrap/OverlayTrigger";
+import Tooltip from "react-bootstrap/Tooltip";
 
 const SessionList = ({ sessions, pagination, onPageChange, hideActions = false }) => {
   const renderPaginationItems = () => {
@@ -130,7 +132,18 @@ const SessionList = ({ sessions, pagination, onPageChange, hideActions = false }
                               <div className="text-box">
                                 <h6>{session.students[0].name}</h6>
                                 {session.students.length > 1 && (
-                                  <span>+{session.students.length - 1} more</span>
+                                  <OverlayTrigger
+                                    placement="top"
+                                    overlay={
+                                      <Tooltip id={`tooltip-students-${session._id}`}>
+                                        {session.students.slice(1).map(s => s.name).join(', ')}
+                                      </Tooltip>
+                                    }
+                                  >
+                                    <span style={{ cursor: 'pointer', textDecoration: 'underline dotted' }}>
+                                      +{session.students.length - 1} more
+                                    </span>
+                                  </OverlayTrigger>
                                 )}
                               </div>
                             </div>
@@ -170,7 +183,7 @@ const SessionList = ({ sessions, pagination, onPageChange, hideActions = false }
                         </td>
                         <td>
                           <span className={`btn-light-${session.status === 'completed' ? 'green' :
-                              session.status === 'scheduled' ? 'blue' : 'red'
+                            session.status === 'scheduled' ? 'blue' : 'red'
                             }`}>
                             {session.status.charAt(0).toUpperCase() + session.status.slice(1)}
                           </span>
