@@ -28,7 +28,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false); // Changed default to false for mobile-first
   const [isMobile, setIsMobile] = useState<boolean>(false);
-  
+
   // Detect screen size
   useEffect(() => {
     const checkScreenSize = () => {
@@ -44,10 +44,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
     // Check on mount
     checkScreenSize();
-    
+
     // Add resize listener
     window.addEventListener('resize', checkScreenSize);
-    
+
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
@@ -57,10 +57,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       if (isMobile && sidebarOpen) {
         const sidebar = document.getElementById('mobile-sidebar');
         const menuButton = document.getElementById('menu-button');
-        
-        if (sidebar && menuButton && 
-            !sidebar.contains(event.target as Node) && 
-            !menuButton.contains(event.target as Node)) {
+
+        if (sidebar && menuButton &&
+          !sidebar.contains(event.target as Node) &&
+          !menuButton.contains(event.target as Node)) {
           setSidebarOpen(false);
         }
       }
@@ -69,14 +69,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobile, sidebarOpen]);
-  
-  const effectiveStudentId = studentId || userData?._id || '';  
+
+  const effectiveStudentId = studentId || userData?._id || '';
   const effectiveCourseId = courseId || '';
 
   const handleProfileClick = () => {
     router.push(`/${userType}/profile?studentId=${effectiveStudentId}`);
   };
-  
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
@@ -87,12 +87,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       setSidebarOpen(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile overlay */}
       {isMobile && sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -121,9 +121,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               />
             </Link>
           </div> */}
-          
-          {/* Profile Section */}
-          {/* <div
+
+      {/* Profile Section */}
+      {/* <div
             className="flex items-center cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition-colors"
             onClick={handleProfileClick}
           >
@@ -141,13 +141,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </div>
         </div>
       </header> */}
-      
+
       <div className="flex min-h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        {userType=="admin" && (
-           <div 
-          id="mobile-sidebar"
-          className={`
+        {(userType === "admin" || userType === "relationshipmanager") && (
+          <div
+            id="mobile-sidebar"
+            className={`
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
             md:translate-x-0
             fixed md:relative
@@ -162,15 +162,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             shadow-xl md:shadow-sm
             overflow-y-auto
           `}
-        >
-          <Sidebar 
-            userType={userType} 
-            studentId={effectiveStudentId} 
-            courseId={effectiveCourseId}
-            onItemClick={handleSidebarItemClick}
-            isMobile={isMobile}
-          />
-        </div>
+          >
+            <Sidebar
+              userType={userType}
+              studentId={effectiveStudentId}
+              courseId={effectiveCourseId}
+              onItemClick={handleSidebarItemClick}
+              isMobile={isMobile}
+            />
+          </div>
         )}
         {/* <div 
           id="mobile-sidebar"
@@ -198,7 +198,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             isMobile={isMobile}
           />
         </div> */}
-        
+
         {/* Main Content */}
         <main className="flex-1 p-3 md:p-4 lg:p-6 overflow-x-hidden">
           <div className="max-w-full">

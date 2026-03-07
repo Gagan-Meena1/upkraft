@@ -60,13 +60,13 @@ const SidebarItem: React.FC<SidebarItemProps> = ({
       `}
       onClick={handleClick}
     >
-      <div className={`flex items-center ${collapsed && !isMobile ? 'justify-center' : ''}`}>
-        <div className="text-gray-700 flex-shrink-0">
+      <div className={`flex items-center gap-3 ${collapsed && !isMobile ? 'justify-center' : ''}`}>
+        <div className="text-gray-700 flex-shrink-0 flex items-center">
           {icon}
         </div>
         {(!collapsed || isMobile) && (
           <h3 className={`
-            font-medium text-gray-700 ml-3 whitespace-nowrap
+            font-medium text-gray-700 whitespace-nowrap m-0
             ${isMobile ? 'text-base' : 'text-sm md:text-base'}
           `}>
             {title}
@@ -257,6 +257,34 @@ const Sidebar: React.FC<SidebarProps> = ({
             title="Leads Dashboard"
             icon={<TrendingUp size={20} className="text-gray-700" />}
             route="/admin/leads"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem
+            title="Logout"
+            icon={<LogOut size={20} className="text-gray-700" />}
+            collapsed={sidebarCollapsed}
+            onClick={handleLogout}
+            isMobile={isMobile}
+          />
+        </>
+      );
+    } else if (userType === 'relationshipmanager') {
+      return (
+        <>
+          <SidebarItem
+            title="Home"
+            icon={<Home size={20} className="text-gray-700" />}
+            route="/relationshipmanager"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem
+            title="Sessions"
+            icon={<Calendar size={20} className="text-gray-700" />}
+            route="/relationshipmanager/sessions"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}

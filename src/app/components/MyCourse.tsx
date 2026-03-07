@@ -127,7 +127,9 @@ const MyCourse = ({
               const res = await fetch(`/Api/tutorInfoForStudent?tutorId=${id}`);
               if (!res.ok) return null;
               const data = await res.json();
-              const user = data?.tutor;
+              const user = Array.isArray(data?.tutors)
+                ? data.tutors[0]
+                : null;   
               const category = (user?.category || "").toString().toLowerCase();
               if (category !== "tutor") return null;
               const name = user?.username || user?.name || user?.email || "Tutor";
@@ -497,6 +499,7 @@ const MyCourse = ({
                     <h3 className="mb-0 cursor-pointer">{course.title}</h3>
 
                     {/* Hover popup: tutors only */}
+                    {category === "Academic" && (
                     <div className="d-none position-absolute bg-white border rounded shadow-sm p-2 mt-2"
                          style={{ minWidth: 220 }}
                     >
@@ -548,6 +551,7 @@ const MyCourse = ({
                         })()}
                       </div>
                     </div>
+                    )}
 
                     <style jsx>{`
                       .relative:hover div[position] { display: none; }
@@ -630,6 +634,7 @@ const MyCourse = ({
                 <div className="right-assignment my-course-student-right mt-xxl-0 mt-3">
                   <div className="student-assignment my-course-student d-flex align-items-center flex-wrap gap-xl-4 gap-2">
                     <ul className="d-flex align-items-center gap-2 list-unstyled m-0 p-0 action-icons-container">
+                      {category === "Academic" && (
                       <li className="d-flex align-items-center gap-2">
                         <span className="student-text d-flex align-items-center gap-2">
                           <Users className="h-5 w-5 text-gray-700" />
@@ -639,6 +644,7 @@ const MyCourse = ({
                           </strong>
                         </span>
                       </li>
+                      )}
                       <li>
                         <Button
                           type="button"

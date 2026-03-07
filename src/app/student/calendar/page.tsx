@@ -95,16 +95,47 @@ const StudentCalendarView = () => {
   // fetch attendance for current student (used to display present/absent)
   useEffect(() => {
     if (!userId) return;
+
     const fetchAttendance = async () => {
       try {
-        const res = await fetch(`/Api/student/attendanceData?studentId=${userId}`);
+        const token =
+          typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+        if (!token) {
+          console.warn("No auth token found for attendance fetch");
+          setAttendanceRecords([]);
+          return;
+        }
+
+        const res = await fetch("/Api/student/attendanceData", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ studentIds: [userId] }),
+        });
+
+        if (!res.ok) {
+          console.error("Failed to fetch attendance:", res.status);
+          setAttendanceRecords([]);
+          return;
+        }
+
         const data = await res.json();
-        setAttendanceRecords(data.attendance || []);
+        const uid = String(userId);
+        const attendanceForUser =
+          (data && data.data && data.data[uid]) || [];
+
+        setAttendanceRecords(
+          Array.isArray(attendanceForUser) ? attendanceForUser : []
+        );
       } catch (err) {
         console.error("Failed to fetch attendance:", err);
         setAttendanceRecords([]);
       }
     };
+
     fetchAttendance();
   }, [userId]);
 
@@ -372,22 +403,22 @@ const StudentCalendarView = () => {
     }
   };
   
-  // Resolve attendance/status for a class (prefers explicit class.status, otherwise attendance records)
+  // Resolve attendance/status for a class (prefers explicit class.status for canceled/rescheduled, otherwise attendance records)
   const getClassAttendanceStatus = (classItem: any) => {
     const rawStatus = (classItem?.status || "").toString().toLowerCase();
-    if (rawStatus) {
-      if (rawStatus === "canceled") return "cancelled";
-      if (rawStatus === "cancelled") return "cancelled";
-      if (rawStatus === "reschedule") return "rescheduled";
-      if (rawStatus === "rescheduled") return "rescheduled";
-      return rawStatus;
-    }
 
+    // Explicit class status only for canceled / rescheduled
+    if (rawStatus === "canceled" || rawStatus === "cancelled") return "cancelled";
+    if (rawStatus === "reschedule" || rawStatus === "rescheduled") return "rescheduled";
+
+    // Otherwise, use attendance records (present / absent / pending)
     if (!attendanceRecords || attendanceRecords.length === 0) return "pending";
+
     const classRecord = attendanceRecords.find(
       (rec) => rec.classId === classItem._id || rec.sessionId === classItem._id
     );
     if (!classRecord) return "pending";
+
     return (classRecord.status || "pending").toString().toLowerCase();
   };
 
