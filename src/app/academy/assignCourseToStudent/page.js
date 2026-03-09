@@ -6,6 +6,7 @@ import Pagination from "react-bootstrap/Pagination";
 import { toast, Toaster } from "react-hot-toast";
 import Image from "next/image";
 import Profile from "../../../assets/Mask-profile.png";
+import ClassSelectionModal from "@/app/components/addClass"; // adjust path
 
 // Loading components
 const LoadingFallback = () => (
@@ -38,7 +39,7 @@ const AssignStudentsContent = () => {
 const [showClassModal, setShowClassModal] = useState(false);
 const [classes, setClasses] = useState([]);
 const [classesLoading, setClassesLoading] = useState(false);
-const [selectedGroups, setSelectedGroups] = useState([]);
+const [creditsPerCourse, setCreditsPerCourse] = useState([]);
   // Fetch students
   const fetchStudents = async (page = 1) => {
     try {
@@ -60,13 +61,29 @@ const [selectedGroups, setSelectedGroups] = useState([]);
     }
   };
 
-  const fetchClasses = async () => {
+const fetchClasses = async () => {
   try {
     setClassesLoading(true);
     const response = await fetch(`/Api/tutors/courses/${courseId}`);
     const data = await response.json();
+    
     if (data.classDetails) {
-      setClasses(data.classDetails.filter((cls) => new Date(cls.startTime) > new Date()));    } else {
+      setClasses(data.classDetails);
+      
+      const enrolledStudents = data.enrolledStudents || [];
+      
+      if (selectedStudents.length === 1) {
+        const currentStudent = enrolledStudents.find(
+          (student) => student._id === selectedStudents[0]
+        );
+
+        // creditsPerCourse is an array of { courseId, credits, startTime }
+        // pass the whole array — the modal will find the matching courseId itself
+        setCreditsPerCourse(currentStudent?.creditsPerCourse || []);
+      } else {
+        setCreditsPerCourse([]);
+      }
+    } else {
       toast.error("Failed to fetch classes");
     }
   } catch (error) {
@@ -147,7 +164,6 @@ const handleSubmit = async () => {
     return;
   }
   await fetchClasses();
-  setSelectedGroups([]);
   setShowClassModal(true);
 };
 
@@ -159,19 +175,7 @@ const handleGroupToggle = (groupKey) => {
   );
 };
 
-const handleFinalAssign = async () => {
-  if (selectedGroups.length === 0) {
-    toast.error("Please select at least one class group");
-    return;
-  }
-
-  // Collect all class IDs from selected groups
-  const grouped = groupClasses(classes);
-  const selectedClassIds = grouped
-    .flatMap((dayGroup) => dayGroup.timeSlots)
-    .filter((slot) => selectedGroups.includes(slot.groupKey))
-    .flatMap((slot) => slot.classes.map((cls) => cls._id));
-
+const handleFinalAssign = async (payload) => {
   try {
     setSubmitting(true);
     toast.loading("Assigning students...", { id: "assign-students" });
@@ -183,33 +187,29 @@ const handleFinalAssign = async () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           studentIds: selectedStudents,
-          classIds: selectedClassIds,
+          classIds: payload.classIds,
+          startDate: payload.startDate,
+          message: payload.message,
+          credits: payload.credits,
+          
         }),
       }
     );
 
     const data = await response.json();
-
     if (response.ok && data.success) {
-      toast.success(data.message || "Students assigned successfully!", {
-        id: "assign-students",
-      });
+      toast.success(data.message || "Students assigned successfully!", { id: "assign-students" });
       setSelectedStudents([]);
-      setSelectedGroups([]);
       setShowClassModal(false);
     } else {
       throw new Error(data.error || "Failed to assign students");
     }
   } catch (error) {
-    console.error("Error assigning students:", error);
-    toast.error(error.message || "Failed to assign students", {
-      id: "assign-students",
-    });
+    toast.error(error.message || "Failed to assign students", { id: "assign-students" });
   } finally {
     setSubmitting(false);
   }
 };
-
   const renderPaginationItems = () => {
     const items = [];
     const { currentPage, totalPages } = pagination;
@@ -428,151 +428,16 @@ const handleFinalAssign = async () => {
           )}
         </div>
       </div>
-      {/* Class Selection Modal */}
-{showClassModal && (
-  <div
-    className="modal fade show d-block"
-    tabIndex={-1}
-    style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
-    onClick={(e) => { if (e.target === e.currentTarget) setShowClassModal(false); }}
-  >
-    <div className="modal-dialog modal-lg modal-dialog-scrollable">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h5 className="modal-title">Select Class Groups to Assign</h5>
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setShowClassModal(false)}
-          />
-        </div>
-
-        <div className="modal-body">
-          {classesLoading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </div>
-              <p className="mt-2 mb-0">Loading classes...</p>
-            </div>
-          ) : classes.length === 0 ? (
-            <div className="text-center py-5">
-              <p className="mb-0">No classes found for this course.</p>
-            </div>
-          ) : (
-            groupClasses(classes).map((dayGroup) => (
-              <div key={dayGroup.day} className="mb-4">
-                {/* Day Header */}
-                <h6
-                  className="fw-bold text-uppercase mb-3 px-2 py-1 rounded"
-                  style={{ backgroundColor: "#f0f0f0", fontSize: "0.85rem", letterSpacing: "0.05em" }}
-                >
-                  {dayGroup.day}
-                </h6>
-
-                <div className="d-flex flex-column gap-2">
-                  {dayGroup.timeSlots.map((slot) => {
-                    const isSelected = selectedGroups.includes(slot.groupKey);
-                    return (
-                      <div
-                        key={slot.groupKey}
-                        onClick={() => handleGroupToggle(slot.groupKey)}
-                        className="d-flex align-items-center justify-content-between px-3 py-3 rounded border"
-                        style={{
-                          cursor: "pointer",
-                          backgroundColor: isSelected ? "#e8f0fe" : "#fff",
-                          borderColor: isSelected ? "#4285f4" : "#dee2e6",
-                          transition: "all 0.15s ease",
-                        }}
-                      >
-                        <div className="d-flex align-items-center gap-3">
-                          {/* Custom checkbox visual */}
-                          <div
-                            style={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: 4,
-                              border: `2px solid ${isSelected ? "#4285f4" : "#adb5bd"}`,
-                              backgroundColor: isSelected ? "#4285f4" : "transparent",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              flexShrink: 0,
-                            }}
-                          >
-                            {isSelected && (
-                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                <path d="M2 6L5 9L10 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            )}
-                          </div>
-
-                          <div>
-                            <div className="fw-semibold" style={{ fontSize: "0.95rem" }}>
-                              {slot.timeSlot}
-                            </div>
-                            <div className="text-muted" style={{ fontSize: "0.8rem" }}>
-                              {slot.classes.length} class{slot.classes.length !== 1 ? "es" : ""} · {" "}
-                              {slot.classes.map((c) => (
-                                <span
-                                  key={c._id}
-                                  className="badge me-1"
-                                  style={{
-                                    fontSize: "0.7rem",
-                                    backgroundColor:
-                                      c.status === "completed" ? "#198754" :
-                                      c.status === "canceled" ? "#dc3545" :
-                                      c.status === "rescheduled" ? "#fd7e14" : "#0d6efd",
-                                    color: "#fff",
-                                  }}
-                                >
-                                  {c.status}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="text-muted" style={{ fontSize: "0.8rem" }}>
-                          {slot.classes.length} session{slot.classes.length !== 1 ? "s" : ""}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="modal-footer d-flex align-items-center justify-content-between">
-          <span className="text-muted" style={{ fontSize: "0.85rem" }}>
-            {selectedGroups.length} group{selectedGroups.length !== 1 ? "s" : ""} selected
-          </span>
-          <div className="d-flex gap-2">
-            <Button variant="secondary" onClick={() => setShowClassModal(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="primary"
-              onClick={handleFinalAssign}
-              disabled={submitting || selectedGroups.length === 0}
-            >
-              {submitting ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
-                  Assigning...
-                </>
-              ) : (
-                `Confirm & Assign (${selectedGroups.length})`
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+  <ClassSelectionModal
+  open={showClassModal}
+  onClose={() => setShowClassModal(false)}
+  onConfirm={handleFinalAssign}
+  classes={classes}
+  loading={classesLoading}
+  courseId={courseId}
+  creditsPerCourse={creditsPerCourse}
+  hideWarnings={true}
+/>
     </div>
   );
 };

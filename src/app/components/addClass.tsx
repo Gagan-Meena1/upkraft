@@ -57,6 +57,7 @@ interface Props {
   courseId: string | null;
   creditsPerCourse: CreditEntry[];
   simpleMode?: boolean;
+   hideWarnings?: boolean;
 
 }
 
@@ -183,6 +184,7 @@ export default function ClassSelectionModal({
   courseId,
   creditsPerCourse,
   simpleMode = false,
+  hideWarnings = false,
 }: Props) {
   // Extra fields
   const [startDate, setStartDate] = useState<string>("");
@@ -865,7 +867,7 @@ const effectiveIds = (() => {
         </div>
 
 {/* ✅ UPDATED: Only show warnings in normal mode */}
-        {!simpleMode && !isValidSelection && allSelectedClassIds.length > 0 && (
+        {!hideWarnings && !simpleMode && !isValidSelection && allSelectedClassIds.length > 0 && (
           <div className={`px-6 py-3 border-t ${
             creditsDifference > 0 ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200'
           }`}>
@@ -1007,7 +1009,7 @@ const effectiveIds = (() => {
               disabled={
                 allSelectedClassIds.length === 0 || 
                 (!simpleMode && !startDate) || 
-                !isValidSelection // ✅ In simpleMode this is always true
+                (!hideWarnings && !isValidSelection) // ✅ In simpleMode this is always true
               }
               className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
