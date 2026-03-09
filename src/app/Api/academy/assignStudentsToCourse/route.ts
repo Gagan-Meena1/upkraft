@@ -49,7 +49,8 @@ export async function POST(request: NextRequest) {
 
     // Get studentIds from request body
     const body = await request.json();
-    const { studentIds } = body;
+    const { studentIds , classIds , message , startDate , credits} = body;
+    console.log("Request body",body)
 
     if (!studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
       return NextResponse.json(
@@ -92,12 +93,12 @@ export async function POST(request: NextRequest) {
       !course.students.some(existingId => existingId.toString() === id.toString())
     );
     
-    if (newStudentIds.length === 0) {
-      return NextResponse.json(
-        { error: 'All selected students are already enrolled in this course' },
-        { status: 400 }
-      );
-    }
+    // if (newStudentIds.length === 0) {
+    //   return NextResponse.json(
+    //     { error: 'All selected students are already enrolled in this course' },
+    //     { status: 400 }
+    //   );
+    // }
 
     const newEnrolledCount = currentEnrolledCount + newStudentIds.length;
 
@@ -139,19 +140,65 @@ export async function POST(request: NextRequest) {
       // 4. Get tutor IDs from the course
     const tutorIds = course.academyInstructorId || [];
 
-    // 5. Add course to each student's courses array AND add tutors to instructorId array
-    const updatePromises = studentIds.map(studentId =>
-      User.findByIdAndUpdate(
-        studentId,
-        {
-          $push: { 
-            courses: courseId,
-            instructorId: { $each: tutorIds }
-          },
+const updatePromises = studentIds.map(async (studentId) => {
+  const student = await User.findById(studentId);
+  
+  const existingEntry = student?.creditsPerCourse?.find(
+    (c: any) => c.courseId?.toString() === courseId.toString()
+  );
+
+  const startTimeEntry = startDate && startDate.trim() !== ""
+    ? { date: new Date(startDate), message: message || "" }
+    : null;
+
+  const creditsNum = Number(credits) || 0;
+
+  if (existingEntry) {
+    return User.findByIdAndUpdate(
+      studentId,
+      {
+        $inc: { 
+          credits: creditsNum,
+          "creditsPerCourse.$[elem].credits": creditsNum  // ← arrayFilters syntax
         },
-        { new: true }
-      )
+        $addToSet: {
+          courses: courseId,
+          instructorId: { $each: tutorIds },
+          classes: { $each: classIds || [] }
+        },
+        ...(startTimeEntry && {
+          $push: { "creditsPerCourse.$[elem].startTime": startTimeEntry }
+        })
+      },
+      { 
+        new: true,
+        arrayFilters: [{ "elem.courseId": new mongoose.Types.ObjectId(courseId) }] // ← this is the key
+      }
     );
+
+  } else {
+    return User.findByIdAndUpdate(
+      studentId,
+      {
+        $inc: { credits: creditsNum },
+        $addToSet: {
+          courses: courseId,
+          instructorId: { $each: tutorIds },
+          classes: { $each: classIds || [] }
+        },
+        $push: {
+          creditsPerCourse: {
+            courseId: new mongoose.Types.ObjectId(courseId),
+            credits: creditsNum,
+            startTime: startTimeEntry ? [startTimeEntry] : []
+          }
+        }
+      },
+      { new: true }
+    );
+  }
+});
+
 
     await Promise.all(updatePromises);
 
