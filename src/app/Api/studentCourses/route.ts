@@ -86,6 +86,7 @@ export async function GET(request:NextRequest) {
       contact: student.contact,
       city: student.city,
       age: student.age,
+      creditsPerCourse: student.creditsPerCourse,
       courses: commonCourses
     });
     

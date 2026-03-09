@@ -48,7 +48,7 @@ export async function GET(request) {
       User.find({
         instructorId: tutorId,
         category: "Student"
-      }).select("_id courses attendance").lean()
+      }).select("_id courses attendance classes").lean()
     ]);
 
     if (!tutor || !tutor.courses || tutor.courses.length === 0) {
@@ -177,11 +177,14 @@ export async function GET(request) {
 
       // Build student course set
       const studentCourseSet = new Set(student.courses.map(c => c.toString()));
+      
+      const studentClassSet = new Set((student.classes || []).map(c => c.toString()));
 
-      studentDataMap.set(studentId, {
-        attendanceMap,
-        studentCourseSet
-      });
+studentDataMap.set(studentId, {
+  attendanceMap,
+  studentCourseSet,
+  studentClassSet
+});
     });
 
     // Count pending feedbacks
@@ -202,12 +205,17 @@ export async function GET(request) {
           return;
         }
 
-        // Skip if attendance has been marked (any status)
-        const attendanceStatus = studentData.attendanceMap.get(classIdStr);
-        if (attendanceStatus && attendanceStatus !== "not_marked") {
-          return;
-        }
-
+        // Skip if this class is not in the student's own classes field
+  if (!studentData.studentClassSet.has(classIdStr)) {
+    return;
+  }
+        
+         // Skip if attendance has been marked (any status)
+  const attendanceStatus = studentData.attendanceMap.get(classIdStr);
+  if (attendanceStatus && attendanceStatus !== "not_marked") {
+    return;
+  }
+        
         // Check if feedback exists
         const feedbackKey = `${studentId}_${classIdStr}`;
         if (!feedbackSet.has(feedbackKey)) {

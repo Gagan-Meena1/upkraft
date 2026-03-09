@@ -16,6 +16,7 @@ const ClassSchema = new mongoose.Schema({
     ref: "courseName"
 
   },
+
   instructor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "users"
@@ -101,6 +102,11 @@ const ClassSchema = new mongoose.Schema({
     type: String,
     enum: ['scheduled', 'rescheduled', 'completed', 'canceled'],
     default: 'scheduled'
+  },
+  classType:{
+    type: String,
+    enum: ['regular', 'makeup', 'trial'],
+    default: 'regular'
   },
 
   joinLink: {
