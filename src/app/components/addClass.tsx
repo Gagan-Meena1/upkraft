@@ -207,6 +207,7 @@ export default function ClassSelectionModal({
 const filteredByStartDate = useMemo(() => {
   if (!startDate) return classes;
   const start = new Date(startDate);
+   start.setHours(0, 0, 0, 0); // ✅ ensure start of day
   return classes.filter((cls) => new Date(cls.startTime) >= start);
 }, [classes, startDate]);
 
