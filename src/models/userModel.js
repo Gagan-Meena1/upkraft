@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { type } from "os";
 import { start } from "repl";
+import Class from "./Class";
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -62,7 +63,9 @@ const userSchema = new mongoose.Schema({
             startTime: {
                 type:[{
                     date: Date,
-                    message:String
+                    message:String,
+                classIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Class" }]
+                    
                 }]
             },
         }],
