@@ -138,6 +138,8 @@ const ClassSchema = new mongoose.Schema({
 
 // db.classes.createIndex({ startTime: 1 });
 // db.classes.createIndex({ _id: 1, startTime: 1 });
+// In Class model — replace existing index with:
+ClassSchema.index({ course: 1, startTime: 1 });           // for this query
 ClassSchema.index({ _id: 1, endTime: 1, status: 1 });
 
 export default mongoose.models.Class || mongoose.model('Class', ClassSchema);
