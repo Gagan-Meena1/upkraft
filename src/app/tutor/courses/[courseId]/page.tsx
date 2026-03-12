@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -14,7 +14,12 @@ import {
   X,
   Clock,
   Copy,
-  AlertCircle
+  AlertCircle,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Filter,
+  Calendar,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios";
@@ -25,7 +30,8 @@ import {
   getUserTimeZone,
 } from "@/helper/time";
 
-// TypeScript interfaces for type safety
+// ─── Types ───────────────────────────────────────────────────────────────────
+
 interface Curriculum {
   sessionNo: string;
   topic: string;
@@ -40,8 +46,8 @@ interface Class {
   endTime: string;
   recordingUrl?: string;
   reasonForReschedule?: string;
-   reasonForCancelation?: string; 
-  status?: string; 
+  reasonForCancelation?: string;
+  status?: string;
 }
 
 interface CourseDetailsData {
@@ -55,6 +61,7 @@ interface CourseDetailsData {
     curriculum: Curriculum[];
   };
   classDetails: Class[];
+  academyId: string | null;
 }
 
 interface EditClassForm {
@@ -64,585 +71,349 @@ interface EditClassForm {
   endTime: string;
   date: string;
   reasonForReschedule?: string;
-  reasonForCancelation?: string;
 }
 
+type StatusFilter = "all" | "scheduled" | "rescheduled" | "canceled" | "completed";
+type SortDirection = "asc" | "desc";
+
+const PAGE_SIZE = 10;
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 const CourseDetailsPage = () => {
+  // ── Data State ──
   const [courseData, setCourseData] = useState<CourseDetailsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [uploadLoading, setUploadLoading] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const [activeTab, setActiveTab] = useState<"classes" | "curriculum">(
-    "classes"
-  );
+  const [academyId, setAcademyId] = useState<string | null>(null);
+  const [userTimezone, setUserTimezone] = useState<string | null>(null);
+
+  // ── UI State ──
+  const [activeTab, setActiveTab] = useState<"classes" | "curriculum">("classes");
+  const [uploadLoading, setUploadLoading] = useState<{ [key: string]: boolean }>({});
+  const [copyingClassId, setCopyingClassId] = useState<string | null>(null);
+
+  // ── Pagination & Filters ──
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [showFilters, setShowFilters] = useState(false);
+
+  // ── Edit Modal ──
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [editForm, setEditForm] = useState<EditClassForm>({
-    title: "",
-    description: "",
-    startTime: "",
-    endTime: "",
-    date: "",
-  reasonForReschedule: "",
+    title: "", description: "", startTime: "", endTime: "", date: "", reasonForReschedule: "",
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [editError, setEditError] = useState("");
-  const [userTimezone, setUserTimezone] = useState<string | null>(null);
-  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
-  const [academyId, setAcademyId] = useState<string | null>(null);
-  const [copyingClass, setCopyingClass] = useState<Class | null>(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-const [deletingClass, setDeletingClass] = useState<Class | null>(null);
-const [deleteReason, setDeleteReason] = useState("");
-const [deleteError, setDeleteError] = useState("");
-const [hasTimeChanged, setHasTimeChanged] = useState(false);
+  const [hasTimeChanged, setHasTimeChanged] = useState(false);
+  const [originalDateTime, setOriginalDateTime] = useState({ date: "", startTime: "", endTime: "" });
 
-// 2. Store original class time/date when opening edit modal
-const [originalDateTime, setOriginalDateTime] = useState({
-  date: "",
-  startTime: "",
-  endTime: ""
-});
+  // ── Delete Modal ──
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingClass, setDeletingClass] = useState<Class | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
   const params = useParams();
   const router = useRouter();
 
-  // Helper function to format date and time
-  /*
-const formatDateTime = (dateTimeString: string) => {
-  const date = new Date(dateTimeString);
-  
-  // Use UTC methods to get the EXACT stored time
-   const year = date.getUTCFullYear();
-  const month = date.getUTCMonth();
-  const day = date.getUTCDate();
-  const hours = date.getUTCHours();
-  const minutes = date.getUTCMinutes();
-  
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 
-                  'July', 'August', 'September', 'October', 'November', 'December'];
-  
-  // For weekday, create a date object in UTC
-  const utcDate = new Date(Date.UTC(year, month, day));
-  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const weekday = weekdays[utcDate.getUTCDay()];
-  const monthName = months[month];
-  
-  const timeStr = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-  
-  console.log('DISPLAYING FROM UTC:', {
-    originalString: dateTimeString,
-    displayTime: timeStr,
-    displayDate: `${weekday}, ${monthName} ${day}, ${year}`
-  });
-  
-  return {
-    date: `${weekday}, ${monthName} ${day}, ${year}`,
-    time: timeStr  // Exact stored time: "14:30"
-  };
-};
-*/
+  // ─── Fetch course + timezone in parallel (single load, no double call) ────
 
-  const formatDateTime = (startTime: string, endTime: string) => {
-    const tz = userTimezone || getUserTimeZone();
-
-    const date = formatInTz(startTime, tz, {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-
-    const timeRange = formatTimeRangeInTz(startTime, endTime, tz);
-
-    return {
-      date,
-      time: timeRange,
-    };
-  };
-
-  // Helper function to extract date and time for form inputs
-  const extractDateTimeForForm = (dateTimeString: string) => {
-    const date = new Date(dateTimeString);
-    const tz = userTimezone || getUserTimeZone();
-
-    // Extract date and time in user's timezone (not UTC)
-    // This ensures the time shown to the user is preserved when duplicating
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone: tz,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-
-    const parts = formatter.formatToParts(date);
-    const year = parts.find((p) => p.type === "year")?.value || "";
-    const month = parts.find((p) => p.type === "month")?.value || "";
-    const day = parts.find((p) => p.type === "day")?.value || "";
-    const hours = parts.find((p) => p.type === "hour")?.value || "";
-    const minutes = parts.find((p) => p.type === "minute")?.value || "";
-
-    console.log("EXTRACTING FROM USER TIMEZONE:", {
-      originalString: dateTimeString,
-      timezone: tz,
-      extractedTime: `${hours}:${minutes}`,
-      extractedDate: `${year}-${month}-${day}`,
-    });
-
-    return {
-      dateStr: `${year}-${month}-${day}`, // Date in user's timezone
-      timeStr: `${hours}:${minutes}`, // Time in user's timezone
-    };
-  };
-
-  // Fetch course details
   useEffect(() => {
-    const fetchCourseDetails = async () => {
+    if (!params.courseId) return;
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
       try {
-        const response = await fetch(`/Api/tutors/courses/${params.courseId}`);
+        const [courseRes, userRes] = await Promise.all([
+          fetch(`/Api/tutors/courses/${params.courseId}`),
+          fetch("/Api/users/user"),
+        ]);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch course details");
-        }
+        if (!courseRes.ok) throw new Error("Failed to fetch course details");
 
-        const data = await response.json();
-        setCourseData(data);
-        setAcademyId(data.academyId || null); // Add this line
-        setLoading(false);
+        const [courseJson, userJson] = await Promise.all([
+          courseRes.json(),
+          userRes.ok ? userRes.json() : Promise.resolve(null),
+        ]);
+
+        if (cancelled) return;
+        setCourseData(courseJson);
+        setAcademyId(courseJson.academyId || null);
+        if (userJson?.user?.timezone) setUserTimezone(userJson.user.timezone);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An unknown error occurred"
-        );
-        setLoading(false);
+        if (!cancelled) setError(err instanceof Error ? err.message : "An unknown error occurred");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
-    if (params.courseId) {
-      fetchCourseDetails();
-    }
+    load();
+    return () => { cancelled = true; };
   }, [params.courseId]);
 
-  // Fetch user's timezone
-  useEffect(() => {
-    const fetchUserTimezone = async () => {
-      try {
-        const response = await fetch("/Api/users/user");
-        const data = await response.json();
-        if (data.user?.timezone) {
-          setUserTimezone(data.user.timezone);
-        }
-      } catch (error) {
-        console.error("Error fetching user timezone:", error);
-      }
+  // ─── Refresh after mutations ──────────────────────────────────────────────
+
+  const refreshCourse = useCallback(async () => {
+    const res = await fetch(`/Api/tutors/courses/${params.courseId}`);
+    if (res.ok) setCourseData(await res.json());
+  }, [params.courseId]);
+
+  // ─── Timezone helpers ─────────────────────────────────────────────────────
+
+  const getTimezone = useCallback(() => userTimezone || getUserTimeZone(), [userTimezone]);
+
+  const formatDateTime = useCallback((startTime: string, endTime: string) => {
+    const tz = getTimezone();
+    return {
+      date: formatInTz(startTime, tz, { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+      time: formatTimeRangeInTz(startTime, endTime, tz),
     };
-    fetchUserTimezone();
+  }, [getTimezone]);
+
+  const extractDateTimeForForm = useCallback((dateTimeString: string) => {
+    const tz = getTimezone();
+    const date = new Date(dateTimeString);
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+    const parts = fmt.formatToParts(date);
+    const get = (t: string) => parts.find(p => p.type === t)?.value || "";
+    return {
+      dateStr: `${get("year")}-${get("month")}-${get("day")}`,
+      timeStr: `${get("hour")}:${get("minute")}`,
+    };
+  }, [getTimezone]);
+
+  // ─── Filtered & Paginated Classes ─────────────────────────────────────────
+
+  const filteredClasses = useMemo(() => {
+    if (!courseData) return [];
+    let list = [...courseData.classDetails];
+
+    if (statusFilter !== "all") list = list.filter(c => c.status === statusFilter);
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(c =>
+        c.title.toLowerCase().includes(q) ||
+        c.description.toLowerCase().includes(q)
+      );
+    }
+
+    list.sort((a, b) => {
+      const diff = new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      return sortDirection === "asc" ? diff : -diff;
+    });
+
+    return list;
+  }, [courseData, statusFilter, searchQuery, sortDirection]);
+
+  const totalPages = Math.ceil(filteredClasses.length / PAGE_SIZE);
+
+  const paginatedClasses = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredClasses.slice(start, start + PAGE_SIZE);
+  }, [filteredClasses, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => { setCurrentPage(1); }, [searchQuery, statusFilter, sortDirection]);
+
+  // ─── Status counts ────────────────────────────────────────────────────────
+
+  const statusCounts = useMemo(() => {
+    if (!courseData) return {} as Record<string, number>;
+    return courseData.classDetails.reduce((acc, c) => {
+      const s = c.status || "scheduled";
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [courseData]);
+
+  // ─── Edit handlers ────────────────────────────────────────────────────────
+
+  const handleEditClass = useCallback((cls: Class) => {
+    const start = extractDateTimeForForm(cls.startTime);
+    const end = extractDateTimeForForm(cls.endTime);
+    setOriginalDateTime({ date: start.dateStr, startTime: start.timeStr, endTime: end.timeStr });
+    setEditForm({
+      title: cls.title,
+      description: cls.description,
+      startTime: start.timeStr,
+      endTime: end.timeStr,
+      date: start.dateStr,
+      reasonForReschedule: cls.reasonForReschedule || "",
+    });
+    setEditingClass(cls);
+    setShowEditModal(true);
+    setEditError("");
+    setHasTimeChanged(false);
+  }, [extractDateTimeForForm]);
+
+  const validateDateTime = (date: string, startTime: string, endTime: string) => {
+    if (!date || !startTime || !endTime) return "";
+    const [y, mo, d] = date.split("-").map(Number);
+    const [sh, sm] = startTime.split(":").map(Number);
+    const [eh, em] = endTime.split(":").map(Number);
+    return new Date(y, mo - 1, d, eh, em) <= new Date(y, mo - 1, d, sh, sm)
+      ? "End time must be after start time"
+      : "";
+  };
+
+  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    const updated = { ...editForm, [name]: value };
+    setEditForm(updated);
+    if (["date", "startTime", "endTime"].includes(name)) {
+      setHasTimeChanged(
+        updated.date !== originalDateTime.date ||
+        updated.startTime !== originalDateTime.startTime ||
+        updated.endTime !== originalDateTime.endTime
+      );
+      setEditError(validateDateTime(updated.date, updated.startTime, updated.endTime));
+    }
+  };
+
+  const handleUpdateClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClass) return;
+    const validationErr = validateDateTime(editForm.date, editForm.startTime, editForm.endTime);
+    if (validationErr) { setEditError(validationErr); return; }
+    if (hasTimeChanged && !editForm.reasonForReschedule?.trim()) {
+      setEditError("Please provide a reason for rescheduling"); return;
+    }
+    setIsUpdating(true);
+    setEditError("");
+    try {
+      const res = await fetch(`/Api/classes?classId=${editingClass._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editForm.title,
+          description: editForm.description,
+          date: editForm.date,
+          startTime: editForm.startTime,
+          endTime: editForm.endTime,
+          reasonForReschedule: hasTimeChanged ? editForm.reasonForReschedule : "",
+          timezone: getTimezone(),
+        }),
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.message || "Failed to update class"); }
+      toast.success("Class updated successfully!");
+      setShowEditModal(false);
+      setEditingClass(null);
+      await refreshCourse();
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : "Failed to update class");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // ─── Delete handlers ──────────────────────────────────────────────────────
+
+  const handleDeleteClass = useCallback((cls: Class) => {
+    setDeletingClass(cls);
+    setDeleteReason("");
+    setDeleteError("");
+    setShowDeleteModal(true);
   }, []);
 
-  // Handle edit class
-const handleEditClass = (classSession: Class) => {
-  setEditingClass(classSession);
-
-  const startDateTime = extractDateTimeForForm(classSession.startTime);
-  const endDateTime = extractDateTimeForForm(classSession.endTime);
-
-  console.log("EDITING CLASS - EXTRACTED VALUES:", {
-    startTime: startDateTime.timeStr,
-    endTime: endDateTime.timeStr,
-    date: startDateTime.dateStr,
-  });
-
-  // Store original values
-  setOriginalDateTime({
-    date: startDateTime.dateStr,
-    startTime: startDateTime.timeStr,
-    endTime: endDateTime.timeStr
-  });
-
-  setEditForm({
-    title: classSession.title,
-    description: classSession.description,
-    startTime: startDateTime.timeStr,
-    endTime: endDateTime.timeStr,
-    date: startDateTime.dateStr,
-    reasonForReschedule: classSession.reasonForReschedule || "",
-  });
-  
-  setShowEditModal(true);
-  setEditError("");
-  setHasTimeChanged(false); // Reset on open
-};
-
-// Validate date and time
-const validateDateTime = (
-  date: string,
-  startTime: string,
-  endTime: string
-) => {
-  if (!date || !startTime || !endTime) return "";
-
-  const [year, month, day] = date.split("-").map(Number);
-  const [startHour, startMinute] = startTime.split(":").map(Number);
-  const [endHour, endMinute] = endTime.split(":").map(Number);
-
-  const startDateTime = new Date(
-    year,
-    month - 1,
-    day,
-    startHour,
-    startMinute
-  );
-  const endDateTime = new Date(year, month - 1, day, endHour, endMinute);
-
-  if (endDateTime <= startDateTime) {
-    return "End time must be after start time";
-  }
-
-  return "";
-};
-
-  // Handle form change for edit modal
- const handleEditFormChange = (
-  e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-) => {
-  const { name, value } = e.target;
-  const updatedForm = { ...editForm, [name]: value };
-  setEditForm(updatedForm);
-
-  // Check if date or time has changed
-  if (name === "date" || name === "startTime" || name === "endTime") {
-    const dateChanged = updatedForm.date !== originalDateTime.date;
-    const startTimeChanged = updatedForm.startTime !== originalDateTime.startTime;
-    const endTimeChanged = updatedForm.endTime !== originalDateTime.endTime;
-    
-    setHasTimeChanged(dateChanged || startTimeChanged || endTimeChanged);
-    
-    // Validate time
-    const validationError = validateDateTime(
-      updatedForm.date,
-      updatedForm.startTime,
-      updatedForm.endTime
-    );
-    setEditError(validationError);
-  }
-};
-
-
-  // Handle update class
-const handleUpdateClass = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!editingClass) return;
-
-  setIsUpdating(true);
-  setEditError("");
-
-  try {
-    if (editForm.endTime <= editForm.startTime) {
-      throw new Error("End time must be after start time");
-    }
-
-    // Only require reschedule reason if time/date changed
-    if (hasTimeChanged && !editForm.reasonForReschedule?.trim()) {
-      throw new Error("Please provide a reason for rescheduling");
-    }
-
-    console.log("UPDATING CLASS - SENDING VALUES:", {
-      date: editForm.date,
-      startTime: editForm.startTime,
-      endTime: editForm.endTime,
-      hasTimeChanged,
-    });
-
-    const response = await fetch(`/Api/classes?classId=${editingClass._id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: editForm.title,
-        description: editForm.description,
-        date: editForm.date,
-        startTime: editForm.startTime,
-        endTime: editForm.endTime,
-        // Only send reason if time changed
-        reasonForReschedule: hasTimeChanged ? editForm.reasonForReschedule : "",
-        timezone:
-          userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update class");
-    }
-
-    toast.success("Class updated successfully!");
-    setShowEditModal(false);
-    setEditingClass(null);
-
-    // Refresh data
-    const refreshResponse = await fetch(
-      `/Api/tutors/courses/${params.courseId}`
-    );
-    if (refreshResponse.ok) {
-      const refreshedData = await refreshResponse.json();
-      setCourseData(refreshedData);
-    }
-  } catch (error) {
-    console.error("Error updating class:", error);
-    setEditError(
-      error instanceof Error ? error.message : "Failed to update class"
-    );
-  } finally {
-    setIsUpdating(false);
-  }
-};
-  // Handle delete class
-const handleDeleteClass = async (classSession: Class) => {
-  setDeletingClass(classSession);
-  setDeleteReason("");
-  setDeleteError("");
-  setShowDeleteModal(true);
-};
-
-const confirmDeleteClass = async () => {
-  if (!deletingClass) return;
-  
-  if (!deleteReason.trim()) {
-    setDeleteError("Please provide a reason for cancellation");
-    return;
-  }
-
-  try {
-    const response = await fetch(`/Api/classes?classId=${deletingClass._id}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        reasonForCancellation: deleteReason,
-        timezone: userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to delete class");
-    }
-
-    toast.success("Class canceled and students notified!");
-    setShowDeleteModal(false);
-    setDeletingClass(null);
-    setDeleteReason("");
-
-    // Refresh the course data
-    const refreshResponse = await fetch(
-      `/Api/tutors/courses/${params.courseId}`
-    );
-    if (refreshResponse.ok) {
-      const refreshedData = await refreshResponse.json();
-      setCourseData(refreshedData);
-    }
-  } catch (error) {
-    console.error("Error deleting class:", error);
-    setDeleteError(
-      error instanceof Error ? error.message : "Failed to delete class"
-    );
-  }
-};
-
-  // Handle file upload
-  const handleFileChange = async (
-    classId: string,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    if (!event.target.files || event.target.files.length === 0) {
-      return;
-    }
-
-    const file = event.target.files[0];
-    console.log("File selected:", {
-      name: file.name,
-      size: file.size,
-      type: file.type,
-    });
-    const maxSize = 800 * 1024 * 1024; // 800MB
-    if (file.size > maxSize) {
-      toast.error("File size must be less than 800MB");
-      return;
-    }
-
-    setUploadLoading((prev) => ({ ...prev, [classId]: true }));
-    console.log(`[${classId}] Starting upload process...`);
-
+  const confirmDeleteClass = async () => {
+    if (!deletingClass) return;
+    if (!deleteReason.trim()) { setDeleteError("Please provide a reason for cancellation"); return; }
     try {
-      // 1. Get presigned URL
-      console.log(`[${classId}] Requesting presigned URL...`);
-      const presignedUrlResponse = await axios.post(
-        "/Api/upload/presigned-url",
-        {
-          fileName: file.name,
-          fileType: file.type,
-          classId: classId,
-        }
-      );
-
-      const { publicUrl } = presignedUrlResponse.data;
-      console.log(`[${classId}] Public URL: ${publicUrl}`);
-
-      // 2. Upload file directly to S3
-      console.log(`[${classId}] Starting direct upload to S3...`);
-      await axios.put(presignedUrlResponse.data.uploadUrl, file, {
-        headers: { "Content-Type": file.type },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const progress = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            console.log(`Upload progress: ${progress}%`);
-          }
-        },
+      const res = await fetch(`/Api/classes?classId=${deletingClass._id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reasonForCancellation: deleteReason, timezone: getTimezone() }),
       });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.message || "Failed to cancel class"); }
+      toast.success("Class canceled and students notified!");
+      setShowDeleteModal(false);
+      setDeletingClass(null);
+      setDeleteReason("");
+      await refreshCourse();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "Failed to cancel class");
+    }
+  };
 
+  // ─── Copy handler ─────────────────────────────────────────────────────────
+
+  const copyClass = useCallback(async (cls: Class) => {
+    if (copyingClassId) return;
+    setCopyingClassId(cls._id);
+    try {
+      const start = extractDateTimeForForm(cls.startTime);
+      const end = extractDateTimeForForm(cls.endTime);
+      const formData = new FormData();
+      formData.append("title", `${cls.title} - copied`);
+      formData.append("description", cls.description || "");
+      formData.append("date", start.dateStr);
+      formData.append("startTime", start.timeStr);
+      formData.append("endTime", end.timeStr);
+      formData.append("courseId", String(params.courseId || ""));
+      formData.append("timezone", getTimezone());
+      const res = await fetch("/Api/classes", { method: "POST", body: formData });
+      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || err.message || "Failed to copy class"); }
+      toast.success("Class duplicated!");
+      await refreshCourse();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to copy class");
+    } finally {
+      setCopyingClassId(null);
+    }
+  }, [copyingClassId, extractDateTimeForForm, params.courseId, getTimezone, refreshCourse]);
+
+  // ─── File upload ──────────────────────────────────────────────────────────
+
+  const handleFileChange = async (classId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) return;
+    const file = e.target.files[0];
+    if (file.size > 800 * 1024 * 1024) { toast.error("File size must be less than 800MB"); return; }
+    setUploadLoading(prev => ({ ...prev, [classId]: true }));
+    try {
+      const presignedRes = await axios.post("/Api/upload/presigned-url", { fileName: file.name, fileType: file.type, classId });
+      const { publicUrl, uploadUrl } = presignedRes.data;
+      await axios.put(uploadUrl, file, { headers: { "Content-Type": file.type } });
       toast.success("Recording uploaded successfully!");
-      console.log(`[${classId}] Direct upload to S3 completed.`);
-
-      // 3. save the public URL in mongoDB
-      console.log(
-        `[${classId}] Notifying mongoDB to update class with public URL: ${publicUrl}`
-      );
-      await axios.post("/Api/classes/update", {
-        classId,
-        recordingUrl: publicUrl,
-      });
-
-      console.log(`[${classId}] recordingUrl updated in mongoDB.`);
-
-      // 4. Trigger background processing
-      toast("Video evaluation and performance video generation have started.");
-
-      // Trigger evaluation process (fire-and-forget)
-      axios
-        .post(`/Api/proxy/evaluate-video?item_id=${classId}`)
-        .catch((evalError) => {
-          console.error(
-            `[${classId}] Failed to start evaluation:`,
-            evalError.message
-          );
-          // We don't show a toast here as the component might be unmounted.
-        });
-
-      // Trigger highlight generation process (fire-and-forget)
-      axios
-        .post(`/Api/proxy/generate-highlights?item_id=${classId}`)
-        .catch((highlightError) => {
-          console.error(
-            `[${classId}] Failed to start highlight generation:`,
-            highlightError.message
-          );
-        });
-
+      await axios.post("/Api/classes/update", { classId, recordingUrl: publicUrl });
+      axios.post(`/Api/proxy/evaluate-video?item_id=${classId}`).catch(() => {});
+      axios.post(`/Api/proxy/generate-highlights?item_id=${classId}`).catch(() => {});
       router.refresh();
     } catch (err) {
-      const error = err as AxiosError<{ error: string }>;
-      console.error(`[${classId}] Upload process failed:`, error.message);
-      toast.error(error.response?.data?.error || "Failed to upload recording.");
+      const axiosErr = err as AxiosError<{ error: string }>;
+      toast.error(axiosErr.response?.data?.error || "Failed to upload recording.");
     } finally {
-      setUploadLoading((prev) => ({ ...prev, [classId]: false }));
-      console.log(`[${classId}] Upload process finished.`);
-      const inputRef = fileInputRefs.current[classId];
-      if (inputRef) {
-        inputRef.value = "";
-      }
+      setUploadLoading(prev => ({ ...prev, [classId]: false }));
+      const ref = fileInputRefs.current[classId];
+      if (ref) ref.value = "";
     }
   };
 
-  const triggerFileInput = (classId: string) => {
-    const inputRef = fileInputRefs.current[classId];
-    if (inputRef) inputRef.click();
-  };
+  // ─── Delete course ────────────────────────────────────────────────────────
 
-  const getButtonText = (classSession: Class, isUploading: boolean) => {
-    if (isUploading) return "Uploading...";
-    return classSession.recordingUrl ? "Replace Recording" : "Upload Recording";
-  };
-
-  // Add delete course handler
   const handleDeleteCourse = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete this course? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
-
+    if (!window.confirm("Are you sure you want to delete this course? This action cannot be undone.")) return;
     try {
-      const response = await fetch(
-        `/Api/tutors/courses?courseId=${params.courseId}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete course");
-      }
-
+      const res = await fetch(`/Api/tutors/courses?courseId=${params.courseId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete course");
       toast.success("Course deleted successfully");
       router.push("/tutor/courses");
-    } catch (error) {
-      console.error("Error deleting course:", error);
+    } catch {
       toast.error("Failed to delete course");
     }
   };
 
-  const copyClass = async (classSession: Class) => {
-    try {
-      setCopyingClass(classSession);
-      console.log(classSession)
-      const startDateTime = extractDateTimeForForm(classSession.startTime);
-      const endDateTime = extractDateTimeForForm(classSession.endTime);
+  // ─── Loading ──────────────────────────────────────────────────────────────
 
-      const formData = new FormData();
-    formData.append("title", `${classSession.title} - copied`);
-    formData.append("description", classSession.description || "");
-    formData.append("date", startDateTime.dateStr);
-    formData.append("startTime", startDateTime.timeStr);
-    formData.append("endTime", endDateTime.timeStr);
-    formData.append("courseId", String(params.courseId || "")); // ADD THIS LINE
-    const timezoneToSend = userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-    formData.append("timezone", timezoneToSend);
-
-      // Create duplicate
-      const res = await fetch(`/Api/classes`, {
-        method: "POST",
-        body: formData,
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || err.message || "Failed to copy class");
-      }
-
-      toast.success("Class duplicated!");
-      const refreshed = await fetch(`/Api/tutors/courses/${params.courseId}`);
-      if (refreshed.ok) {
-        const refreshedData = await refreshed.json();
-        setCourseData(refreshedData);
-      } else {
-        router.refresh();
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to copy class");
-    } finally {
-      setCopyingClass(null);
-    }
-  };
-
-  // Loading state
   if (loading) {
     return (
       <div className="!min-h-screen !bg-gradient-to-br !from-gray-100 !via-gray-200 !to-gray-300 !flex !items-center !justify-center !p-4">
@@ -653,19 +424,15 @@ const confirmDeleteClass = async () => {
     );
   }
 
-  // Error state
+  // ─── Error ────────────────────────────────────────────────────────────────
+
   if (error || !courseData) {
     return (
       <div className="!min-h-screen !bg-gradient-to-br !from-gray-100 !via-gray-200 !to-gray-300 !flex !items-center !justify-center !p-4">
         <div className="!bg-white !p-6 !sm:p-8 !rounded-xl !shadow-lg !text-center !max-w-md !w-full">
-          <div className="!text-xl !sm:text-2xl !font-semibold !text-red-600 !mb-4">
-            Error Loading Course
-          </div>
+          <div className="!text-xl !sm:text-2xl !font-semibold !text-red-600 !mb-4">Error Loading Course</div>
           <p className="!text-gray-700 !mb-6 !text-sm !sm:text-base">{error}</p>
-          <Link
-            href="/tutor"
-            className="!inline-block !px-4 !sm:px-6 !py-2 !sm:py-3 !bg-gradient-to-r !from-blue-500 !to-purple-600 !text-white !rounded-lg !hover:from-blue-600 !hover:to-purple-700 !transition-colors !text-sm !sm:text-base"
-          >
+          <Link href="/tutor" className="!inline-block !px-4 !sm:px-6 !py-2 !sm:py-3 !bg-gradient-to-r !from-blue-500 !to-purple-600 !text-white !rounded-lg !hover:from-blue-600 !hover:to-purple-700 !transition-colors !text-sm !sm:text-base">
             Return to Home
           </Link>
         </div>
@@ -673,17 +440,17 @@ const confirmDeleteClass = async () => {
     );
   }
 
+  // ─── Main Render ──────────────────────────────────────────────────────────
+
   return (
     <div className="!min-h-screen !bg-gradient-to-br !from-gray-100 !via-gray-200 !to-gray-300 !p-3 !sm:p-6">
       <div className="!max-w-6xl !mx-auto">
-        {/* Header with Back Button */}
+
+        {/* Header */}
         <header className="!mb-6 !sm:mb-8">
           <div className="!flex !flex-col !sm:flex-row !sm:justify-between !sm:items-center !gap-4">
             <div className="!flex !items-center !space-x-3 !sm:space-x-4">
-              <Link
-                href={`/tutor/courses`}
-                className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0"
-              >
+              <Link href="/tutor/courses" className="!p-2 !rounded-full !bg-gray-200 !hover:bg-gray-300 !transition-colors !shadow-md !flex-shrink-0">
                 <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
               </Link>
               <h1 className="!text-xl !sm:text-2xl !lg:text-3xl !font-bold !text-gray-800 !break-words">
@@ -692,9 +459,7 @@ const confirmDeleteClass = async () => {
             </div>
             <div className="!flex !flex-col !sm:flex-row !items-stretch !sm:items-center !gap-2 !sm:gap-3">
               {!academyId && (
-                <Link
-                  href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}
-                >
+                <Link href={`/tutor/classes/?courseId=${courseData.courseDetails._id}`}>
                   <button className="!w-full !sm:w-auto !bg-gray-700 !hover:bg-gray-800 !text-white !px-3 !sm:px-4 !py-2 !rounded-md !font-medium !transition-colors !shadow-md !flex !items-center !justify-center !gap-2 !text-sm !sm:text-base">
                     <Upload size={16} className="!sm:w-[18px] !sm:h-[18px]" />
                     Create Class
@@ -716,20 +481,14 @@ const confirmDeleteClass = async () => {
 
         {/* Course Overview */}
         <section className="!bg-white !rounded-xl !shadow-lg !p-4 !sm:p-6 !mb-6 !sm:mb-8">
-          
           <div className="!flex !flex-col !sm:flex-row !sm:justify-between !sm:items-center !mb-4 !gap-3">
-            <div>
-              <h2 className="!text-lg !sm:text-xl !font-semibold !text-gray-800 !flex !items-center">
-                <BookOpen className="!mr-2 !text-gray-600 !w-5 !h-5 !sm:w-6 !sm:h-6" />
-                Course Overview
-              </h2>
-            </div>
+            <h2 className="!text-lg !sm:text-xl !font-semibold !text-gray-800 !flex !items-center">
+              <BookOpen className="!mr-2 !text-gray-600 !w-5 !h-5 !sm:w-6 !sm:h-6" />
+              Course Overview
+            </h2>
             <div className="!text-gray-600 !text-sm !sm:text-base">
               <div className="!flex !flex-col !sm:flex-row !gap-2 !sm:gap-4">
-                <span>
-                  <span className="!font-medium">Duration:</span>{" "}
-                  {courseData.courseDetails.duration}
-                </span>
+                <span><span className="!font-medium">Duration:</span> {courseData.courseDetails.duration}</span>
                 <span>
                   <span className="!font-medium">Price:</span>{" "}
                   <IndianRupee className="!text-xs !scale-70 !inline-block !transform" />
@@ -749,9 +508,7 @@ const confirmDeleteClass = async () => {
             <button
               onClick={() => setActiveTab("classes")}
               className={`!flex-1 !py-2 !px-4 !rounded-md !font-medium !transition-all !duration-200 !text-sm !sm:text-base ${
-                activeTab === "classes"
-                  ? "!bg-blue-500 !text-white !shadow-md"
-                  : "!text-gray-600 !hover:text-gray-800"
+                activeTab === "classes" ? "!bg-blue-500 !text-white !shadow-md" : "!text-gray-600 !hover:text-gray-800"
               }`}
             >
               Classes
@@ -759,9 +516,7 @@ const confirmDeleteClass = async () => {
             <button
               onClick={() => setActiveTab("curriculum")}
               className={`!flex-1 !py-2 !px-4 !rounded-md !font-medium !transition-all !duration-200 !text-sm !sm:text-base ${
-                activeTab === "curriculum"
-                  ? "!bg-blue-500 !text-white !shadow-md"
-                  : "!text-gray-600 !hover:text-gray-800"
+                activeTab === "curriculum" ? "!bg-blue-500 !text-white !shadow-md" : "!text-gray-600 !hover:text-gray-800"
               }`}
             >
               Curriculum
@@ -769,442 +524,190 @@ const confirmDeleteClass = async () => {
           </div>
         </div>
 
-        {/* Classes Section */}
+        {/* ── CLASSES TAB ── */}
         {activeTab === "classes" && (
           <section>
-            <h2 className="!text-xl !sm:text-2xl !font-bold !text-gray-800 !mb-4 !sm:mb-6">
-              Course Classes
-            </h2>
+            {/* Search & Filter Bar */}
+            <div className="!bg-white !rounded-xl !shadow-md !p-3 !sm:p-4 !mb-4">
+              <div className="!flex !flex-col !sm:flex-row !gap-3">
+                {/* Search */}
+                <div className="!relative !flex-1">
+                  <Search className="!absolute !left-3 !top-1/2 !-translate-y-1/2 !text-gray-400 !w-4 !h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search classes by title or description..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="!w-full !pl-9 !pr-8 !py-2 !border !border-gray-300 !rounded-md !text-sm !text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery("")} className="!absolute !right-2 !top-1/2 !-translate-y-1/2 !text-gray-400 !hover:text-gray-600">
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
 
-            <div className="!space-y-4 !sm:space-y-6">
-              {courseData.classDetails.map((classSession) => {
-                const { date, time } = formatDateTime(
-                  classSession.startTime,
-                  classSession.endTime
-                );
-                const isUploading = uploadLoading[classSession._id] || false;
-
-                return (
-                  <div
-                    key={classSession._id}
-                    className="!bg-white !rounded-xl !shadow-md !hover:shadow-xl !transition-shadow"
+                <div className="!flex !items-center !gap-2">
+                  {/* Filter toggle */}
+                  <button
+                    onClick={() => setShowFilters(f => !f)}
+                    className={`!flex !items-center !gap-2 !px-3 !py-2 !rounded-md !border !text-sm !font-medium !transition-all ${
+                      showFilters || statusFilter !== "all"
+                        ? "!bg-blue-50 !border-blue-300 !text-blue-700"
+                        : "!border-gray-300 !text-gray-600 !hover:bg-gray-50 !bg-white"
+                    }`}
                   >
-                    <div className="!p-4 !sm:p-6">
-                      {/* Mobile Layout */}
-                      {/* Mobile Layout */}
-<div className="block lg:hidden !text-gray-800">
-  {/* Wrapper with strikethrough overlay for canceled classes */}
-  <div className="relative">
-    {/* Diagonal strikethrough overlay - only show if canceled */}
-    {classSession.status === 'canceled' && (
-      <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
-        <div 
-          className="absolute inset-0" 
-          style={{
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(220, 53, 69, 0.15) 10px, rgba(220, 53, 69, 0.15) 20px)',
-          }}
-        />
-        <div 
-          className="absolute top-0 left-0 w-full h-1 transform -translate-y-1/2 rotate-45 origin-top-left"
-          style={{
-            background: 'rgba(220, 53, 69, 0.5)',
-            height: '3px',
-            width: '141%',
-            boxShadow: '0 0 5px rgba(220, 53, 69, 0.3)'
-          }}
-        />
-      </div>
-    )}
-    
-    {/* Main content with conditional gray filter */}
-    <div className={classSession.status === 'canceled' ? 'opacity-50 grayscale' : ''}>
-      <div className="!flex !gap-3">
-        {/* Edit/Delete Icons on extreme left */}
-        <div className="!flex !flex-col !gap-2">
-          {classSession.status !== 'canceled' && (
-            <button
-              onClick={() => handleEditClass(classSession)}
-              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
-              title="Edit class"
-            >
-              <Edit size={16} />
-            </button>
-          )}
-          <button
-            onClick={() => handleDeleteClass(classSession)}
-            disabled={classSession.status === 'canceled'}
-            className={`!p-1 !rounded-full !transition-colors group relative ${
-              classSession.status === 'canceled'
-                ? '!text-gray-400 !cursor-not-allowed'
-                : '!text-red-500 !hover:text-red-700 !hover:bg-red-50'
-            }`}
-            title={classSession.status === 'canceled' ? 'Already canceled' : 'Delete class'}
-          >
-            <Trash2 size={16} />
-          </button>
+                    <Filter size={14} />
+                    Filter
+                    {statusFilter !== "all" && <span className="!w-2 !h-2 !rounded-full !bg-blue-500" />}
+                  </button>
 
-          {/* Copy icon - disabled for canceled classes */}
-          {classSession.status !== 'canceled' && (
-            <button
-              onClick={() => copyClass(classSession)}
-              className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
-              title="Copy class"
-              disabled={!!copyingClass}
-            >
-              {copyingClass ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
-              ) : (
-                <Copy size={16} />
+                  {/* Sort toggle */}
+                  <button
+                    onClick={() => setSortDirection(d => d === "asc" ? "desc" : "asc")}
+                    className="!flex !items-center !gap-1 !px-3 !py-2 !rounded-md !border !border-gray-300 !bg-white !text-sm !font-medium !text-gray-600 !hover:bg-gray-50 !transition-all"
+                    title={sortDirection === "asc" ? "Oldest first" : "Newest first"}
+                  >
+                    <Calendar size={14} />
+                    {sortDirection === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Status filter chips */}
+              {showFilters && (
+                <div className="!flex !flex-wrap !gap-2 !mt-3 !pt-3 !border-t !border-gray-100">
+                  {(["all", "scheduled", "rescheduled", "canceled", "completed"] as StatusFilter[]).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setStatusFilter(s)}
+                      className={`!px-3 !py-1 !rounded-full !text-xs !font-semibold !transition-all !capitalize ${
+                        statusFilter === s ? "!bg-blue-500 !text-white" : "!bg-gray-100 !text-gray-600 !hover:bg-gray-200"
+                      }`}
+                    >
+                      {s === "all" ? `All (${courseData.classDetails.length})` : `${s} (${statusCounts[s] || 0})`}
+                    </button>
+                  ))}
+                </div>
               )}
-            </button>
-          )}
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 !space-y-4">
-          {/* Date and Time */}
-          <div className="!bg-gray-100 !rounded-lg !p-3 !text-center">
-            <div className="!text-sm !font-bold !text-gray-800">
-              {date}
             </div>
-            <div className="!text-xs !text-gray-600">
-              {time}
+
+            {/* Results summary */}
+            <div className="!flex !items-center !mb-3 !px-1">
+              <p className="!text-sm !text-gray-500">
+                Showing{" "}
+                <span className="!font-semibold !text-gray-700">
+                  {filteredClasses.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredClasses.length)}
+                </span>{" "}
+                of <span className="!font-semibold !text-gray-700">{filteredClasses.length}</span> classes
+                {statusFilter !== "all" && (
+                  <span className="!ml-1 !text-blue-600">· filtered by <em>{statusFilter}</em></span>
+                )}
+              </p>
             </div>
-          </div>
 
-          {/* Session Details */}
-          <div>
-            <h3 className="!text-lg !font-semibold !text-gray-800 !mb-2">
-              {classSession.title}
-            </h3>
-            <p className="!text-gray-600 !text-sm !leading-relaxed">
-              {classSession.description}
-            </p>
-          </div>
-
-          {/* Reschedule Reason */}
-          {classSession.reasonForReschedule && classSession.status === 'rescheduled' && (
-            <div className="!mt-3 !bg-yellow-50 !border-l-4 !border-yellow-400 !p-3 !rounded">
-              <div className="!flex !items-start !gap-2">
-                <AlertCircle className="!text-yellow-600 !flex-shrink-0 !mt-0.5" size={16} />
-                <div>
-                  <p className="!text-xs !font-semibold !text-yellow-800 !mb-1">
-                    Rescheduled
-                  </p>
-                  <p className="!text-xs !text-yellow-700">
-                    {classSession.reasonForReschedule}
-                  </p>
+            {/* Class Cards */}
+            <div className="!space-y-4 !sm:space-y-6">
+              {paginatedClasses.length === 0 ? (
+                <div className="!bg-white !rounded-xl !shadow-md !p-12 !text-center">
+                  <Search className="!w-10 !h-10 !text-gray-300 !mx-auto !mb-3" />
+                  <p className="!text-gray-500 !font-medium !text-lg">No classes found</p>
+                  <p className="!text-gray-400 !text-sm !mt-1">Try adjusting your search or filters</p>
+                  <button
+                    onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
+                    className="!mt-4 !text-blue-500 !text-sm !hover:underline"
+                  >
+                    Clear filters
+                  </button>
                 </div>
-              </div>
-            </div>
-          )}
-
-          {/* Cancellation Reason */}
-          {classSession.reasonForCancelation && classSession.status === 'canceled' && (
-            <div className="!mt-3 !bg-red-50 !border-l-4 !border-red-400 !p-3 !rounded">
-              <div className="!flex !items-start !gap-2">
-                <AlertCircle className="!text-red-600 !flex-shrink-0 !mt-0.5" size={16} />
-                <div>
-                  <p className="!text-xs !font-semibold !text-red-800 !mb-1">
-                    canceled
-                  </p>
-                  <p className="!text-xs !text-red-700">
-                    {classSession.reasonForCancelation}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Actions - hide for canceled classes */}
-      {classSession.status !== 'canceled' && (
-        <div className="!flex !flex-col !gap-2 !ml-10">
-          {/* Hidden file input */}
-          <input
-            type="file"
-            accept="video/*"
-            className="hidden"
-            ref={(el) => {
-              fileInputRefs.current[classSession._id] = el;
-            }}
-            onChange={(e) =>
-              handleFileChange(classSession._id, e)
-            }
-          />
-
-          <div className="!flex !gap-2">
-            {/* Class Quality button */}
-            {classSession.recordingUrl && (
-              <Link
-                href={`/tutor/classQuality/${classSession._id}`}
-                className="flex-1 px-3 py-2 bg-purple-600 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
-              >
-                <BarChart3 className="!mr-1" size={14} />
-                Quality
-              </Link>
-            )}
-
-            {/* Upload Recording button */}
-            <button
-              onClick={() => triggerFileInput(classSession._id)}
-              disabled={isUploading}
-              className={`flex-1 px-3 py-2 ${
-                isUploading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-purple-500 hover:bg-purple-600"
-              } text-white rounded-lg transition-colors flex items-center justify-center text-xs`}
-            >
-              <Upload className="!mr-1" size={14} />
-              {getButtonText(classSession, isUploading)}
-            </button>
-          </div>
-
-          {/* Assignment Button */}
-          <Link
-            href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-            style={{
-              backgroundColor: "#fb923c",
-              color: "#ffffff",
-            }}
-            className="w-full px-3 py-2 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-xs font-medium shadow-sm"
-          >
-            <FileText className="mr-1" size={14} />
-            Add Assignment
-          </Link>
-        </div>
-      )}
-    </div>
-  </div>
-</div>
-
-                      {/* Desktop Layout */}
-                     {/* Desktop Layout */}
-<div className="hidden lg:block">
-  {/* Wrapper with strikethrough overlay for canceled classes */}
-  <div className="relative">
-    {/* Diagonal strikethrough overlay - only show if canceled */}
-    {classSession.status === 'canceled' && (
-      <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
-        <div 
-          className="absolute inset-0" 
-          style={{
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(220, 53, 69, 0.15) 10px, rgba(220, 53, 69, 0.15) 20px)',
-          }}
-        />
-        <div 
-          className="absolute top-0 left-0 w-full h-1 transform -translate-y-1/2 rotate-45 origin-top-left"
-          style={{
-            background: 'rgba(220, 53, 69, 0.5)',
-            height: '3px',
-            width: '141%',
-            boxShadow: '0 0 5px rgba(220, 53, 69, 0.3)'
-          }}
-        />
-      </div>
-    )}
-    
-    {/* Main content with conditional gray filter */}
-    <div className={classSession.status === 'canceled' ? 'opacity-50 grayscale' : ''}>
-      <div className="!flex !gap-6 !items-center">
-        {/* Edit/Delete Icons on extreme left */}
-        <div className="!flex !flex-col !gap-2">
-          {classSession.status !== 'canceled' && (
-            <button
-              onClick={() => handleEditClass(classSession)}
-              className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors group relative"
-              title="Edit class"
-            >
-              <Edit size={18} />
-            </button>
-          )}
-          <button
-            onClick={() => handleDeleteClass(classSession)}
-            disabled={classSession.status === 'canceled'}
-            className={`!p-1 !rounded-full !transition-colors group relative ${
-              classSession.status === 'canceled'
-                ? '!text-gray-400 !cursor-not-allowed'
-                : '!text-red-500 !hover:text-red-700 !hover:bg-red-50'
-            }`}
-            title={classSession.status === 'canceled' ? 'Already canceled' : 'Delete class'}
-          >
-            <Trash2 size={18} />
-          </button>
-          
-          {/* Copy icon - disabled for canceled classes */}
-          {classSession.status !== 'canceled' && (
-            <button
-              onClick={() => copyClass(classSession)}
-              className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
-              title="Copy class"
-              disabled={!!copyingClass}
-            >
-              {copyingClass ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700"></div>
               ) : (
-                <Copy size={18} />
+                paginatedClasses.map(classSession => (
+                  <ClassCard
+                    key={classSession._id}
+                    classSession={classSession}
+                    formatDateTime={formatDateTime}
+                    isUploading={uploadLoading[classSession._id] || false}
+                    isCopying={copyingClassId === classSession._id}
+                    courseId={String(courseData.courseDetails._id)}
+                    fileInputRefs={fileInputRefs}
+                    onEdit={handleEditClass}
+                    onDelete={handleDeleteClass}
+                    onCopy={copyClass}
+                    onFileChange={handleFileChange}
+                  />
+                ))
               )}
-            </button>
-          )}
-        </div>
-
-        {/* Date and Time */}
-        <div className="!bg-gray-100 !rounded-lg !p-4 !text-center !min-w-[200px]">
-          <div className="!text-xl !font-bold !text-gray-800">
-            {date}
-          </div>
-          <div className="!text-gray-600">{time}</div>
-        </div>
-
-        {/* Session Details */}
-        <div className="flex-1">
-          <h3 className="!text-xl !font-semibold !text-gray-800 !mb-2">
-            {classSession.title}
-          </h3>
-          <p className="!text-gray-600">
-            {classSession.description}
-          </p>
-          
-          {/* Reschedule Reason */}
-          {classSession.reasonForReschedule && classSession.status === 'rescheduled' && (
-            <div className="!mt-3 !bg-yellow-50 !border-l-4 !border-yellow-400 !p-3 !rounded">
-              <div className="!flex !items-start !gap-2">
-                <AlertCircle className="!text-yellow-600 !flex-shrink-0 !mt-0.5" size={18} />
-                <div>
-                  <p className="!text-sm !font-semibold !text-yellow-800 !mb-1">
-                    Rescheduled
-                  </p>
-                  <p className="!text-sm !text-yellow-700">
-                    {classSession.reasonForReschedule}
-                  </p>
-                </div>
-              </div>
             </div>
-          )}
 
-          {/* Cancellation Reason */}
-          {classSession.reasonForCancelation && classSession.status === 'canceled' && (
-            <div className="!mt-3 !bg-red-50 !border-l-4 !border-red-400 !p-3 !rounded">
-              <div className="!flex !items-start !gap-2">
-                <AlertCircle className="!text-red-600 !flex-shrink-0 !mt-0.5" size={18} />
-                <div>
-                  <p className="!text-sm !font-semibold !text-red-800 !mb-1">
-                    canceled
-                  </p>
-                  <p className="!text-sm !text-red-700">
-                    {classSession.reasonForCancelation}
-                  </p>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="!flex !items-center !justify-center !gap-2 !mt-6">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="!px-4 !py-2 !bg-white !rounded-md !border !border-gray-300 !text-sm !font-medium !text-gray-600 !hover:bg-gray-50 disabled:!opacity-40 disabled:!cursor-not-allowed !transition-all"
+                >
+                  Previous
+                </button>
+
+                <div className="!flex !items-center !gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                    .reduce((acc: (number | "...")[], p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, i) =>
+                      p === "..." ? (
+                        <span key={`ellipsis-${i}`} className="!px-2 !text-gray-400">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setCurrentPage(p as number)}
+                          className={`!w-9 !h-9 !rounded-md !text-sm !font-medium !transition-all ${
+                            currentPage === p
+                              ? "!bg-blue-500 !text-white !shadow-sm"
+                              : "!bg-white !border !border-gray-300 !text-gray-600 !hover:bg-gray-50"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
                 </div>
+
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="!px-4 !py-2 !bg-white !rounded-md !border !border-gray-300 !text-sm !font-medium !text-gray-600 !hover:bg-gray-50 disabled:!opacity-40 disabled:!cursor-not-allowed !transition-all"
+                >
+                  Next
+                </button>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Actions - hide for canceled classes */}
-        {classSession.status !== 'canceled' && (
-          <div className="flex flex-col gap-3 min-w-[180px]">
-            {/* Hidden file input */}
-            <input
-              type="file"
-              accept="video/*"
-              className="hidden"
-              ref={(el) => {
-                fileInputRefs.current[classSession._id] = el;
-              }}
-              onChange={(e) =>
-                handleFileChange(classSession._id, e)
-              }
-            />
-
-            {/* Class Quality button */}
-            {classSession.recordingUrl && (
-              <Link
-                href={`/tutor/classQuality/${classSession._id}`}
-                style={{
-                  backgroundColor: "purple",
-                  color: "#ffffff",
-                }}
-                className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
-              >
-                <BarChart3 className="mr-2" size={16} />
-                Class Quality
-              </Link>
             )}
-
-            {/* Upload Recording button */}
-            <button
-              onClick={() => triggerFileInput(classSession._id)}
-              disabled={isUploading}
-              style={{
-                backgroundColor: isUploading
-                  ? "blueviolet"
-                  : "blue",
-                color: "#ffffff",
-              }}
-              className={`px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg ${
-                isUploading
-                  ? "cursor-not-allowed"
-                  : "hover:opacity-90"
-              }`}
-            >
-              <Upload className="mr-2" size={16} />
-              {getButtonText(classSession, isUploading)}
-            </button>
-
-            {/* Assignment Button */}
-            <Link
-              href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseData.courseDetails._id}`}
-              style={{
-                backgroundColor: "blueviolet",
-                color: "#ffffff",
-              }}
-              className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
-            >
-              <FileText className="mr-2" size={16} />
-              Add Assignment
-            </Link>
-          </div>
-        )}
-      </div>
-    </div>
-  </div>
-</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           </section>
         )}
 
-        {/* Curriculum Section */}
+        {/* ── CURRICULUM TAB ── */}
         {activeTab === "curriculum" && (
           <section>
             <h2 className="!text-xl !sm:text-2xl !font-bold !text-gray-800 !mb-4 !sm:mb-6">
               Course Curriculum
             </h2>
-
             <div className="!bg-white !rounded-xl !shadow-lg !p-4 !sm:p-6">
-              {courseData.courseDetails.curriculum &&
-              courseData.courseDetails.curriculum.length > 0 ? (
+              {courseData.courseDetails.curriculum?.length > 0 ? (
                 <div className="!space-y-4">
                   {courseData.courseDetails.curriculum.map((item, index) => (
-                    <div
-                      key={index}
-                      className="border-l-4 border-blue-500 pl-4 py-3"
-                    >
+                    <div key={index} className="border-l-4 border-blue-500 pl-4 py-3">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                         <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
                           Lesson {item.sessionNo}
                         </span>
-                        <h3 className="!text-lg !font-semibold !text-gray-800">
-                          {item.topic}
-                        </h3>
+                        <h3 className="!text-lg !font-semibold !text-gray-800">{item.topic}</h3>
                       </div>
                       <p className="!text-gray-600 !mt-2 !text-sm !sm:text-base">
-                        <span className="!font-medium">Outcome:</span>{" "}
-                        {item.tangibleOutcome}
+                        <span className="!font-medium">Outcome:</span> {item.tangibleOutcome}
                       </p>
                     </div>
                   ))}
@@ -1212,145 +715,100 @@ const confirmDeleteClass = async () => {
               ) : (
                 <div className="!text-center !py-8">
                   <BookOpen className="!mx-auto !h-12 !w-12 !text-gray-400 !mb-4" />
-                  <p className="!text-gray-500 !text-lg">
-                    No curriculum available
-                  </p>
-                  <p className="!text-gray-400 !text-sm">
-                    The curriculum for this course hasn't been set up yet.
-                  </p>
+                  <p className="!text-gray-500 !text-lg">No curriculum available</p>
+                  <p className="!text-gray-400 !text-sm">The curriculum for this course hasn't been set up yet.</p>
                 </div>
               )}
             </div>
           </section>
         )}
 
-        {/* Edit Class Modal */}
+        {/* ── Edit Modal ── */}
         {showEditModal && editingClass && (
-          <div className="fixed inset-0 bg-black text-gray-800 bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 text-gray-800 flex items-center justify-center p-4 z-50">
             <div className="!bg-white !rounded-xl !shadow-xl !max-w-md !w-full !max-h-[90vh] !overflow-y-auto">
               <div className="!p-6">
                 <div className="!flex !justify-between !items-center !mb-4">
-                  <h3 className="!text-lg !font-semibold !text-gray-800">
-                    Edit Class
-                  </h3>
-                  <button
-                    onClick={() => setShowEditModal(false)}
-                    className="!p-1 !hover:bg-gray-100 !rounded-full !transition-colors"
-                  >
+                  <h3 className="!text-lg !font-semibold !text-gray-800">Edit Class</h3>
+                  <button onClick={() => setShowEditModal(false)} className="!p-1 !hover:bg-gray-100 !rounded-full !transition-colors">
                     <X size={20} className="!text-gray-500" />
                   </button>
                 </div>
 
                 <form onSubmit={handleUpdateClass} className="!space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Title
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
                     <input
-                      type="text"
-                      name="title"
-                      value={editForm.title}
-                      onChange={handleEditFormChange}
+                      type="text" name="title" value={editForm.title} onChange={handleEditFormChange} required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea
-                      name="description"
-                      value={editForm.description}
-                      onChange={handleEditFormChange}
-                      rows={3}
+                      name="description" value={editForm.description} onChange={handleEditFormChange} rows={3} required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date
-                    </label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                     <input
-                      type="date"
-                      name="date"
-                      value={editForm.date}
-                      onChange={handleEditFormChange}
+                      type="date" name="date" value={editForm.date} onChange={handleEditFormChange} required
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Start Time
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
                       <input
-                        type="time"
-                        name="startTime"
-                        value={editForm.startTime}
-                        onChange={handleEditFormChange}
+                        type="time" name="startTime" value={editForm.startTime} onChange={handleEditFormChange} required
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
                       />
                     </div>
-
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        End Time
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
                       <input
-                        type="time"
-                        name="endTime"
-                        value={editForm.endTime}
-                        onChange={handleEditFormChange}
+                        type="time" name="endTime" value={editForm.endTime} onChange={handleEditFormChange} required
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        required
                       />
                     </div>
-
-{hasTimeChanged && (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">
-      Reason for Reschedule <span className="text-red-500">*</span>
-    </label>
-    <textarea
-      name="reasonForReschedule"
-      value={editForm.reasonForReschedule || ""}
-      onChange={handleEditFormChange}
-      rows={3}
-      placeholder="Please provide a reason for rescheduling this class..."
-      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-      required
-    />
-    <p className="text-xs text-gray-500 mt-1">
-      Students will be notified about this reschedule
-    </p>
-  </div>
-)}
                   </div>
 
-                  {editError && (
-                    <div className="!text-red-600 !text-sm !bg-red-50 !p-3 !rounded-md">
-                      {editError}
+                  {/* Reschedule reason — only shown when date/time changes */}
+                  {hasTimeChanged && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Reason for Reschedule <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        name="reasonForReschedule"
+                        value={editForm.reasonForReschedule || ""}
+                        onChange={handleEditFormChange}
+                        rows={3}
+                        placeholder="Please provide a reason for rescheduling this class..."
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Students will be notified about this reschedule</p>
                     </div>
+                  )}
+
+                  {editError && (
+                    <div className="!text-red-600 !text-sm !bg-red-50 !p-3 !rounded-md">{editError}</div>
                   )}
 
                   <div className="!flex !gap-3 !pt-4">
                     <button
-                      type="button"
-                      onClick={() => setShowEditModal(false)}
+                      type="button" onClick={() => setShowEditModal(false)}
                       className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
-                      type="submit"
-                      disabled={isUpdating || !!editError}
+                      type="submit" disabled={isUpdating || !!editError}
                       className={`flex-1 px-4 py-2 rounded-md transition-colors ${
                         isUpdating || editError
                           ? "!bg-gray-400 !cursor-not-allowed !text-white"
@@ -1362,9 +820,7 @@ const confirmDeleteClass = async () => {
                           <Clock className="animate-spin mr-2" size={16} />
                           Updating...
                         </div>
-                      ) : (
-                        "Update Class"
-                      )}
+                      ) : "Update Class"}
                     </button>
                   </div>
                 </form>
@@ -1372,84 +828,372 @@ const confirmDeleteClass = async () => {
             </div>
           </div>
         )}
-      </div>
-      {/* Delete Class Modal */}
-{showDeleteModal && deletingClass && (
-  <div className="fixed inset-0 bg-black text-gray-800 bg-opacity-50 flex items-center justify-center p-4 z-50">
-    <div className="!bg-white !rounded-xl !shadow-xl !max-w-md !w-full">
-      <div className="!p-6">
-        <div className="!flex !justify-between !items-center !mb-4">
-          <h3 className="!text-lg !font-semibold !text-gray-800">
-            Cancel Class
-          </h3>
-          <button
-            onClick={() => {
-              setShowDeleteModal(false);
-              setDeletingClass(null);
-              setDeleteReason("");
-              setDeleteError("");
-            }}
-            className="!p-1 !hover:bg-gray-100 !rounded-full !transition-colors"
-          >
-            <X size={20} className="!text-gray-500" />
-          </button>
-        </div>
 
-        <div className="!mb-4">
-          <p className="!text-gray-700 !mb-2">
-            You are about to cancel: <strong>{deletingClass.title}</strong>
-          </p>
-          <p className="!text-sm !text-gray-600">
-            All enrolled students will be notified via email about this cancellation.
-          </p>
-        </div>
+        {/* ── Delete Modal ── */}
+        {showDeleteModal && deletingClass && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 text-gray-800 flex items-center justify-center p-4 z-50">
+            <div className="!bg-white !rounded-xl !shadow-xl !max-w-md !w-full">
+              <div className="!p-6">
+                <div className="!flex !justify-between !items-center !mb-4">
+                  <h3 className="!text-lg !font-semibold !text-gray-800">Cancel Class</h3>
+                  <button
+                    onClick={() => { setShowDeleteModal(false); setDeletingClass(null); setDeleteReason(""); setDeleteError(""); }}
+                    className="!p-1 !hover:bg-gray-100 !rounded-full !transition-colors"
+                  >
+                    <X size={20} className="!text-gray-500" />
+                  </button>
+                </div>
 
-        <div className="!mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Reason for Cancellation <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            value={deleteReason}
-            onChange={(e) => setDeleteReason(e.target.value)}
-            rows={4}
-            placeholder="Please provide a reason for cancelling this class..."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-            required
-          />
-        </div>
+                <div className="!mb-4">
+                  <p className="!text-gray-700 !mb-2">
+                    You are about to cancel: <strong>{deletingClass.title}</strong>
+                  </p>
+                  <p className="!text-sm !text-gray-600">All enrolled students will be notified via email about this cancellation.</p>
+                </div>
 
-        {deleteError && (
-          <div className="!text-red-600 !text-sm !bg-red-50 !p-3 !rounded-md !mb-4">
-            {deleteError}
+                <div className="!mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Reason for Cancellation <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={deleteReason} onChange={e => setDeleteReason(e.target.value)}
+                    rows={4} placeholder="Please provide a reason for cancelling this class..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                    required
+                  />
+                </div>
+
+                {deleteError && (
+                  <div className="!text-red-600 !text-sm !bg-red-50 !p-3 !rounded-md !mb-4">{deleteError}</div>
+                )}
+
+                <div className="!flex !gap-3">
+                  <button
+                    onClick={() => { setShowDeleteModal(false); setDeletingClass(null); setDeleteReason(""); setDeleteError(""); }}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                  >
+                    Keep Class
+                  </button>
+                  <button
+                    onClick={confirmDeleteClass}
+                    className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+                  >
+                    Cancel Class
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="!flex !gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setShowDeleteModal(false);
-              setDeletingClass(null);
-              setDeleteReason("");
-              setDeleteError("");
-            }}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            Keep Class
-          </button>
-          <button
-            onClick={confirmDeleteClass}
-            className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
-          >
-            Cancel Class
-          </button>
-        </div>
       </div>
-    </div>
-  </div>
-)}
     </div>
   );
 };
+
+// ─── ClassCard — memoized to prevent re-renders on unrelated state changes ────
+
+interface ClassCardProps {
+  classSession: Class;
+  formatDateTime: (s: string, e: string) => { date: string; time: string };
+  isUploading: boolean;
+  isCopying: boolean;
+  courseId: string;
+  fileInputRefs: React.MutableRefObject<{ [key: string]: HTMLInputElement | null }>;
+  onEdit: (cls: Class) => void;
+  onDelete: (cls: Class) => void;
+  onCopy: (cls: Class) => void;
+  onFileChange: (classId: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+const ClassCard = React.memo(({
+  classSession, formatDateTime, isUploading, isCopying,
+  courseId, fileInputRefs, onEdit, onDelete, onCopy, onFileChange,
+}: ClassCardProps) => {
+  const { date, time } = formatDateTime(classSession.startTime, classSession.endTime);
+  const isCanceled = classSession.status === "canceled";
+
+  // Diagonal strikethrough overlay — exactly as original
+  const CanceledOverlay = () => (
+    <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(220, 53, 69, 0.15) 10px, rgba(220, 53, 69, 0.15) 20px)",
+        }}
+      />
+      <div
+        className="absolute top-0 left-0"
+        style={{
+          background: "rgba(220, 53, 69, 0.5)",
+          height: "3px",
+          width: "141%",
+          transform: "rotate(45deg)",
+          transformOrigin: "top left",
+          boxShadow: "0 0 5px rgba(220, 53, 69, 0.3)",
+        }}
+      />
+    </div>
+  );
+
+  return (
+    <div className="!bg-white !rounded-xl !shadow-md !hover:shadow-xl !transition-shadow">
+      <div className="!p-4 !sm:p-6">
+
+        {/* ── Mobile Layout ── */}
+        <div className="block lg:hidden !text-gray-800">
+          <div className="relative">
+            {isCanceled && <CanceledOverlay />}
+            <div className={isCanceled ? "opacity-50 grayscale" : ""}>
+              <div className="!flex !gap-3">
+                {/* Action icons — left column */}
+                <div className="!flex !flex-col !gap-2">
+                  {!isCanceled && (
+                    <button
+                      onClick={() => onEdit(classSession)}
+                      className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors"
+                      title="Edit class"
+                    >
+                      <Edit size={16} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onDelete(classSession)}
+                    disabled={isCanceled}
+                    className={`!p-1 !rounded-full !transition-colors ${
+                      isCanceled ? "!text-gray-400 !cursor-not-allowed" : "!text-red-500 !hover:text-red-700 !hover:bg-red-50"
+                    }`}
+                    title={isCanceled ? "Already canceled" : "Delete class"}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  {!isCanceled && (
+                    <button
+                      onClick={() => onCopy(classSession)}
+                      disabled={isCopying}
+                      className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
+                      title="Copy class"
+                    >
+                      {isCopying
+                        ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700" />
+                        : <Copy size={16} />}
+                    </button>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 !space-y-4">
+                  {/* Date block */}
+                  <div className="!bg-gray-100 !rounded-lg !p-3 !text-center">
+                    <div className="!text-sm !font-bold !text-gray-800">{date}</div>
+                    <div className="!text-xs !text-gray-600">{time}</div>
+                  </div>
+
+                  <div>
+                    <h3 className="!text-lg !font-semibold !text-gray-800 !mb-2">{classSession.title}</h3>
+                    <p className="!text-gray-600 !text-sm !leading-relaxed">{classSession.description}</p>
+                  </div>
+
+                  {/* Reschedule reason */}
+                  {classSession.reasonForReschedule && classSession.status === "rescheduled" && (
+                    <div className="!mt-3 !bg-yellow-50 !border-l-4 !border-yellow-400 !p-3 !rounded">
+                      <div className="!flex !items-start !gap-2">
+                        <AlertCircle className="!text-yellow-600 !flex-shrink-0 !mt-0.5" size={16} />
+                        <div>
+                          <p className="!text-xs !font-semibold !text-yellow-800 !mb-1">Rescheduled</p>
+                          <p className="!text-xs !text-yellow-700">{classSession.reasonForReschedule}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cancellation reason */}
+                  {classSession.reasonForCancelation && isCanceled && (
+                    <div className="!mt-3 !bg-red-50 !border-l-4 !border-red-400 !p-3 !rounded">
+                      <div className="!flex !items-start !gap-2">
+                        <AlertCircle className="!text-red-600 !flex-shrink-0 !mt-0.5" size={16} />
+                        <div>
+                          <p className="!text-xs !font-semibold !text-red-800 !mb-1">Canceled</p>
+                          <p className="!text-xs !text-red-700">{classSession.reasonForCancelation}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Mobile action buttons */}
+              {!isCanceled && (
+                <div className="!flex !flex-col !gap-2 !ml-10 !mt-3">
+                  <input
+                    type="file" accept="video/*" className="hidden"
+                    ref={el => { fileInputRefs.current[classSession._id] = el; }}
+                    onChange={e => onFileChange(classSession._id, e)}
+                  />
+                  <div className="!flex !gap-2">
+                    {classSession.recordingUrl && (
+                      <Link
+                        href={`/tutor/classQuality/${classSession._id}`}
+                        className="flex-1 px-3 py-2 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
+                        style={{ backgroundColor: "purple" }}
+                      >
+                        <BarChart3 className="!mr-1" size={14} />
+                        Quality
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => fileInputRefs.current[classSession._id]?.click()}
+                      disabled={isUploading}
+                      className="flex-1 px-3 py-2 text-white rounded-lg transition-colors flex items-center justify-center text-xs"
+                      style={{ backgroundColor: isUploading ? "blueviolet" : "blue" }}
+                    >
+                      <Upload className="!mr-1" size={14} />
+                      {isUploading ? "Uploading..." : classSession.recordingUrl ? "Replace Recording" : "Upload Recording"}
+                    </button>
+                  </div>
+                  <Link
+                    href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseId}`}
+                    className="w-full px-3 py-2 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-xs font-medium shadow-sm"
+                    style={{ backgroundColor: "#fb923c", color: "#ffffff" }}
+                  >
+                    <FileText className="mr-1" size={14} />
+                    Add Assignment
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Desktop Layout ── */}
+        <div className="hidden lg:block">
+          <div className="relative">
+            {isCanceled && <CanceledOverlay />}
+            <div className={isCanceled ? "opacity-50 grayscale" : ""}>
+              <div className="!flex !gap-6 !items-center">
+                {/* Action icons — left column */}
+                <div className="!flex !flex-col !gap-2">
+                  {!isCanceled && (
+                    <button
+                      onClick={() => onEdit(classSession)}
+                      className="!p-1 !text-blue-500 !hover:text-blue-700 !hover:bg-blue-50 !rounded-full !transition-colors"
+                      title="Edit class"
+                    >
+                      <Edit size={18} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onDelete(classSession)}
+                    disabled={isCanceled}
+                    className={`!p-1 !rounded-full !transition-colors ${
+                      isCanceled ? "!text-gray-400 !cursor-not-allowed" : "!text-red-500 !hover:text-red-700 !hover:bg-red-50"
+                    }`}
+                    title={isCanceled ? "Already canceled" : "Delete class"}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                  {!isCanceled && (
+                    <button
+                      onClick={() => onCopy(classSession)}
+                      disabled={isCopying}
+                      className="!p-1 !text-gray-600 !hover:text-gray-800 !hover:bg-gray-50 !rounded-full !transition-colors"
+                      title="Copy class"
+                    >
+                      {isCopying
+                        ? <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-gray-700" />
+                        : <Copy size={18} />}
+                    </button>
+                  )}
+                </div>
+
+                {/* Date block */}
+                <div className="!bg-gray-100 !rounded-lg !p-4 !text-center !min-w-[200px]">
+                  <div className="!text-xl !font-bold !text-gray-800">{date}</div>
+                  <div className="!text-gray-600">{time}</div>
+                </div>
+
+                {/* Session details */}
+                <div className="flex-1">
+                  <h3 className="!text-xl !font-semibold !text-gray-800 !mb-2">{classSession.title}</h3>
+                  <p className="!text-gray-600">{classSession.description}</p>
+
+                  {/* Reschedule reason */}
+                  {classSession.reasonForReschedule && classSession.status === "rescheduled" && (
+                    <div className="!mt-3 !bg-yellow-50 !border-l-4 !border-yellow-400 !p-3 !rounded">
+                      <div className="!flex !items-start !gap-2">
+                        <AlertCircle className="!text-yellow-600 !flex-shrink-0 !mt-0.5" size={18} />
+                        <div>
+                          <p className="!text-sm !font-semibold !text-yellow-800 !mb-1">Rescheduled</p>
+                          <p className="!text-sm !text-yellow-700">{classSession.reasonForReschedule}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cancellation reason */}
+                  {classSession.reasonForCancelation && isCanceled && (
+                    <div className="!mt-3 !bg-red-50 !border-l-4 !border-red-400 !p-3 !rounded">
+                      <div className="!flex !items-start !gap-2">
+                        <AlertCircle className="!text-red-600 !flex-shrink-0 !mt-0.5" size={18} />
+                        <div>
+                          <p className="!text-sm !font-semibold !text-red-800 !mb-1">Canceled</p>
+                          <p className="!text-sm !text-red-700">{classSession.reasonForCancelation}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Desktop action buttons */}
+                {!isCanceled && (
+                  <div className="flex flex-col gap-3 min-w-[180px]">
+                    <input
+                      type="file" accept="video/*" className="hidden"
+                      ref={el => { fileInputRefs.current[classSession._id] = el; }}
+                      onChange={e => onFileChange(classSession._id, e)}
+                    />
+                    {classSession.recordingUrl && (
+                      <Link
+                        href={`/tutor/classQuality/${classSession._id}`}
+                        className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+                        style={{ backgroundColor: "purple", color: "#ffffff" }}
+                      >
+                        <BarChart3 className="mr-2" size={16} />
+                        Class Quality
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => fileInputRefs.current[classSession._id]?.click()}
+                      disabled={isUploading}
+                      className="px-4 py-2.5 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+                      style={{
+                        backgroundColor: isUploading ? "blueviolet" : "blue",
+                        color: "#ffffff",
+                      }}
+                    >
+                      <Upload className="mr-2" size={16} />
+                      {isUploading ? "Uploading..." : classSession.recordingUrl ? "Replace Recording" : "Upload Recording"}
+                    </button>
+                    <Link
+                      href={`/tutor/createAssignment?classId=${classSession._id}&courseId=${courseId}`}
+                      className="px-4 py-2.5 hover:opacity-90 rounded-lg transition-all flex items-center justify-center text-sm font-medium shadow-lg"
+                      style={{ backgroundColor: "blueviolet", color: "#ffffff" }}
+                    >
+                      <FileText className="mr-2" size={16} />
+                      Add Assignment
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+});
+
+ClassCard.displayName = "ClassCard";
 
 export default CourseDetailsPage;
