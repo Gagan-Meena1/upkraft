@@ -159,6 +159,8 @@ const fetchClasses = async (courseId: string) => {
         credits: payload.credits,
       });
 
+      console.log("RESPONSE.    :     " , response);
+
       setAddStudentMessage({
         text: response.data.message || "Course added to student successfully!",
         type: "success",
