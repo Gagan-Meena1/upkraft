@@ -240,6 +240,20 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      console.log("[ Class Data ]" , classData)
+      const courseIndex = student.creditsPerCourse.findIndex(
+      (c) => c.courseId.toString() === classData.courseId.toString()
+    );
+
+    console.log("[creditsPerCourse] ",student.credtsPerCourse)
+
+    if (courseIndex !== -1) {
+      student.creditsPerCourse[courseIndex].credits = 
+        Math.max(0, student.creditsPerCourse[courseIndex].credits - 1); // 0 se neeche nahi jaayega
+    }
+    console.log("[creditsPerCourse AFTER ] ",student.credtsPerCourse)
+
+
       // Save student
       await student.save();
 

@@ -39,53 +39,113 @@ export async function POST(req: NextRequest) {
     const courseClassIds = course.class || [];
 
     const startTimeEntry = startDate
-      ? { date: new Date(startDate), message: message || "" }
+      ? { date: new Date(startDate), message: message || "" ,classIds : selectedClassIds}
       : null;
 
     const existingEntry = student.creditsPerCourse?.find(
       (e: any) => e.courseId?.toString() === courseId
     );
 
+    // ✅ Check if a startTime entry with the same date already exists
+    const existingStartTimeEntry = existingEntry?.startTime?.find(
+      (s: any) => new Date(s.date).toDateString() === new Date(startDate).toDateString()
+    );
+
     // ── Build a single clean student update ───────────────────────────────────
     let studentUpdate: any;
 
-    if (existingEntry) {
-      // Entry exists → $inc credits, $push startTime, $addToSet everything else
-      studentUpdate = {
-        $inc: { "creditsPerCourse.$.credits": credits || 0 },
-        $addToSet: {
-          courses: courseId,
-          instructors: instructorId,
-          classes: { $each: selectedClassIds },
+ if (existingEntry) {
+  if (existingStartTimeEntry) {
+    // ✅ Same date entry exists → add classes to it + replace message
+    studentUpdate = {
+      $inc: { "creditsPerCourse.$.credits": credits || 0 },
+      $addToSet: {
+        courses: courseId,
+        instructors: instructorId,
+        classes: { $each: selectedClassIds },
+      },
+      // ✅ Add classIds to existing startTime entry + update message
+      $push: {
+        "creditsPerCourse.$.startTime.$[entry].classIds": { $each: selectedClassIds },
+      },
+      ...(message && {
+        $set: {
+          "creditsPerCourse.$.startTime.$[entry].message": message,
         },
-        ...(startTimeEntry && {
-          $push: { "creditsPerCourse.$.startTime": startTimeEntry },
-        }),
-      };
+      }),
+    };
 
-      const [finalStudent, finalInstructor] = await Promise.all([
-        User.findOneAndUpdate(
-          { _id: studentId, "creditsPerCourse.courseId": courseId },
-          studentUpdate,
-          { new: true }
-        ),
-        User.findByIdAndUpdate(
-          instructorId,
-          { $addToSet: { courses: courseId, students: studentId, classes: { $each: courseClassIds } } },
-          { new: true }
-        ),
-      ]);
+    const [finalStudent, finalInstructor] = await Promise.all([
+      User.findOneAndUpdate(
+        { _id: studentId, "creditsPerCourse.courseId": courseId },
+        studentUpdate,
+        {
+          new: true,
+          arrayFilters: [
+            // ✅ Match the startTime entry by date
+            {
+              "entry.date": {
+                $gte: new Date(new Date(startDate).setHours(0, 0, 0, 0)),
+                $lte: new Date(new Date(startDate).setHours(23, 59, 59, 999)),
+              },
+            },
+          ],
+        }
+      ),
+      User.findByIdAndUpdate(
+        instructorId,
+        { $addToSet: { courses: courseId, students: studentId, classes: { $each: courseClassIds } } },
+        { new: true }
+      ),
+    ]);
 
-      return NextResponse.json({
-        success: true,
-        message: "Course added successfully",
-        student: { id: finalStudent._id, name: finalStudent.name, email: finalStudent.email, courses: finalStudent.courses, classCount: finalStudent.classes?.length || 0, creditsPerCourse: finalStudent.creditsPerCourse },
-        instructor: { id: finalInstructor._id, name: finalInstructor.name, courses: finalInstructor.courses, classCount: finalInstructor.classes?.length || 0 },
-        courseId,
-        classesAdded: selectedClassIds.length,
-      });
+    return NextResponse.json({
+      success: true,
+      message: "Classes added to existing entry",
+      student: { id: finalStudent._id, name: finalStudent.name, email: finalStudent.email, courses: finalStudent.courses, classCount: finalStudent.classes?.length || 0, creditsPerCourse: finalStudent.creditsPerCourse },
+      instructor: { id: finalInstructor._id, name: finalInstructor.name, courses: finalInstructor.courses, classCount: finalInstructor.classes?.length || 0 },
+      courseId,
+      classesAdded: selectedClassIds.length,
+    });
 
-    } else {
+  } else {
+    // existing course entry but different date → push new startTime entry
+    studentUpdate = {
+      $inc: { "creditsPerCourse.$.credits": credits || 0 },
+      $addToSet: {
+        courses: courseId,
+        instructors: instructorId,
+        classes: { $each: selectedClassIds },
+      },
+      ...(startTimeEntry && {
+        $push: { "creditsPerCourse.$.startTime": startTimeEntry },
+      }),
+    };
+
+    const [finalStudent, finalInstructor] = await Promise.all([
+      User.findOneAndUpdate(
+        { _id: studentId, "creditsPerCourse.courseId": courseId },
+        studentUpdate,
+        { new: true }
+      ),
+      User.findByIdAndUpdate(
+        instructorId,
+        { $addToSet: { courses: courseId, students: studentId, classes: { $each: courseClassIds } } },
+        { new: true }
+      ),
+    ]);
+
+    return NextResponse.json({
+      success: true,
+      message: "Course added successfully",
+      student: { id: finalStudent._id, name: finalStudent.name, email: finalStudent.email, courses: finalStudent.courses, classCount: finalStudent.classes?.length || 0, creditsPerCourse: finalStudent.creditsPerCourse },
+      instructor: { id: finalInstructor._id, name: finalInstructor.name, courses: finalInstructor.courses, classCount: finalInstructor.classes?.length || 0 },
+      courseId,
+      classesAdded: selectedClassIds.length,
+    });
+  }
+
+} else {
       // No entry → $push new creditsPerCourse entry, $addToSet everything else
       studentUpdate = {
         $addToSet: {

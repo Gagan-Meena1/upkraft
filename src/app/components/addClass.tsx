@@ -13,6 +13,7 @@ interface ClassItem {
 interface AssignmentHistory {
   date: Date;
   message: string;
+  classIds:string[];
 }
 
 interface CreditEntry {
@@ -207,6 +208,7 @@ export default function ClassSelectionModal({
 const filteredByStartDate = useMemo(() => {
   if (!startDate) return classes;
   const start = new Date(startDate);
+   start.setHours(0, 0, 0, 0); // ✅ ensure start of day
   return classes.filter((cls) => new Date(cls.startTime) >= start);
 }, [classes, startDate]);
 
@@ -225,20 +227,21 @@ const assignmentHistory = useMemo(() => {
   return entry?.startTime || [];
 }, [courseId, creditsPerCourse]);
 
-// ✅ ADD THIS: Helper function to calculate end date
-const getEndDateForAssignment = (startDate: string | Date): string => {
-  const relevantClasses = classes.filter(
-    (cls) => new Date(cls.startTime) >= new Date(startDate)
+const getEndDateForAssignment = (entry: AssignmentHistory): string => {
+  const entryClassIds = (entry.classIds || []).map((id: string) => id.toString());
+  
+  if (entryClassIds.length === 0) return "N/A";
+
+  const entryClasses = classes.filter((cls) =>
+    entryClassIds.includes(cls._id.toString())
   );
-  
-  if (relevantClasses.length === 0) return "N/A";
-  
-  const lastClass = relevantClasses.reduce((latest, cls) => {
+
+  if (entryClasses.length === 0) return "N/A";
+
+  const lastClass = entryClasses.reduce((latest, cls) => {
     return new Date(cls.startTime) > new Date(latest.startTime) ? cls : latest;
   });
 
-  
-  
   return new Date(lastClass.startTime).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
@@ -266,7 +269,19 @@ React.useEffect(() => {
 
 
 
-  /** Total selected class IDs across all slots */
+
+// Add this useMemo near the other useMemos
+// ✅ STEP 1: This must be ABOVE allSelectedClassIds
+const alreadyAssignedClassIds = useMemo(() => {
+  const usedIds = new Set<string>();
+  assignmentHistory.forEach((entry) => {
+    // ✅ No skip — block ALL already-assigned classes even in edit mode
+    (entry.classIds || []).forEach((id: string) => usedIds.add(id.toString()));
+  });
+  return usedIds;
+}, [assignmentHistory]);
+
+// ✅ STEP 2: Now allSelectedClassIds can use alreadyAssignedClassIds
 const allSelectedClassIds = useMemo(() => {
   const effectiveIdsForSlot = (slot: GroupedSlot): string[] => {
     if (!activeSlots.has(slot.groupKey)) return [];
@@ -284,18 +299,23 @@ const allSelectedClassIds = useMemo(() => {
       else baseSelected.delete(id);
     });
 
+    // ✅ Exclude already-assigned classes so they don't count
+    alreadyAssignedClassIds.forEach((id) => baseSelected.delete(id));
+
     return [...baseSelected];
   };
 
   return grouped.flatMap((dg) => dg.timeSlots).flatMap(effectiveIdsForSlot);
-}, [grouped, activeSlots, slotSelections]);
+}, [grouped, activeSlots, slotSelections, alreadyAssignedClassIds]);
 
-// ✅ ADD THIS: Calculate total available credits
+
 const totalAvailableCredits = useMemo(() => {
-  const existing = creditsRemaining || 0;
   const newCredits = parseInt(credits, 10) || 0;
-  return existing + newCredits;
-}, [creditsRemaining, credits]);
+  if (editingEntry) {
+    return newCredits; // ✅ edit mode: only new input credits
+  }
+  return (creditsRemaining || 0) + newCredits; // normal: existing + new
+}, [creditsRemaining, credits, editingEntry]);
 
 // ✅ ADD THIS: Check if credit limit exceeded
 const isCreditsMatched = useMemo(() => {
@@ -322,6 +342,7 @@ const creditsDifference = useMemo(() => {
     return totalAvailableCredits - allSelectedClassIds.length;
   }
 }, [simpleMode, totalAvailableCredits, allSelectedClassIds.length]);
+
 
 
   // ── Handlers ───────────────────────────────────────────────────────────────
@@ -478,8 +499,7 @@ const toggleClassOverride = (
             <div className="space-y-3">
               {assignmentHistory.map((entry, idx) => {
                 const startDate = new Date(entry.date);
-                const endDate = getEndDateForAssignment(entry.date);
-                
+const endDate = getEndDateForAssignment(entry);                
                 return (
                   <div
                     key={idx}
@@ -489,9 +509,11 @@ const toggleClassOverride = (
                       <div className="flex-1 min-w-0">
                         {/* Assignment number badge - moved to top */}
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-purple-600 bg-purple-100 rounded-full">
-                            Entry #{assignmentHistory.length - idx}
-                          </span>
+<span className="inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-purple-600 bg-purple-100 rounded-full">
+  Entry #{[...assignmentHistory]
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .findIndex((e) => e.date === entry.date) + 1}
+</span>
                           <span className="text-xs text-gray-400">
                             {startDate.toLocaleDateString("en-US", {
                               month: "short",
@@ -528,8 +550,7 @@ const toggleClassOverride = (
                         </div>
 
                         {/* Check if last class end is after now */}
-{new Date(getEndDateForAssignment(entry.date)) > new Date() && (
-  <button
+{new Date(getEndDateForAssignment(entry)) > new Date() && (  <button
     onClick={() => {
       setEditingEntry(entry);
       setStartDate(new Date(entry.date).toISOString().split("T")[0]);
@@ -573,68 +594,83 @@ const toggleClassOverride = (
     </div>
   </div>
 )}
-        {/* ── Extra Fields ── */}
-        {!simpleMode && 
-        
-         (<div className="px-6 pt-4 pb-2 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          
-          {/* Start Date */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
-              Start Date <span className="text-red-400">*</span>
-            </label>
-            <input
-  type="date"
-  value={startDate}
-  onChange={(e) => { if (!editingEntry) setStartDate(e.target.value); }}
-  readOnly={!!editingEntry}
-  className={`w-full px-3 py-2 text-sm border rounded-lg ... ${editingEntry ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""}`}
-/>
-          </div>
+     {/* ── Extra Fields ── */}
+{!simpleMode && (
+  <div className="px-6 py-2 border-b border-gray-100 flex flex-wrap items-end gap-3">
+    
+    {/* Start Date */}
+    <div className="flex flex-col gap-0.5">
+      <label className="text-xs font-semibold text-gray-500">
+        Start Date <span className="text-red-400">*</span>
+      </label>
+      <input
+        type="date"
+        value={startDate}
+        onChange={(e) => { if (!editingEntry) setStartDate(e.target.value); }}
+        readOnly={!!editingEntry}
+        className={`px-2 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 ${
+          editingEntry ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""
+        }`}
+      />
+    </div>
 
-          {/* Credits */}
-{/* Credits */}
-<div>
-  <label className="block text-xs font-semibold text-gray-600 mb-1">
-    Credits
-  </label>
-  <input
-    type="number"
-    min={1}
-    placeholder="Enter credits..."
-    value={credits}
-    onChange={(e) => setCredits(e.target.value)}
-    className={`w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent ${
-      !isValidSelection && allSelectedClassIds.length > 0 // ✅ UPDATED
-        ? "border-red-300 focus:ring-red-400"
-        : "border-gray-200 focus:ring-purple-400"
-    }`}
-  />
-  {/* Show total credits preview */}
-  {credits && (
-    <p className="text-xs text-gray-500 mt-1">
-      Total: {creditsRemaining || 0} + {parseInt(credits, 10) || 0} ={" "}
-      <span className="font-semibold text-purple-600">
-        {totalAvailableCredits} credits
-      </span>
-    </p>
-  )}
-</div>
+    {/* Credits */}
+    <div className="flex flex-col gap-0.5">
+      <label className="text-xs font-semibold text-gray-500">Credits</label>
+      <div className="flex items-center gap-1.5">
+        <input
+          type="number"
+          min={1}
+          placeholder="Credits..."
+          value={credits}
+          onChange={(e) => setCredits(e.target.value)}
+          className={`w-24 px-2 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-1 ${
+            !isValidSelection && allSelectedClassIds.length > 0
+              ? "border-red-300 focus:ring-red-400"
+              : "border-gray-200 focus:ring-purple-400"
+          }`}
+        />
+{credits && (
+  <p className="text-xs text-gray-500 mt-1">
+    {editingEntry ? (
+      <>
+        Validating against{" "}
+        <span className="font-semibold text-purple-600">
+          {parseInt(credits, 10) || 0} new credits
+        </span>
+        {creditsRemaining !== null && (
+          <span className="text-gray-400 ml-1">
+            ({creditsRemaining} existing for reference)
+          </span>
+        )}
+      </>
+    ) : (
+      <>
+        Total: {creditsRemaining || 0} + {parseInt(credits, 10) || 0} ={" "}
+        <span className="font-semibold text-purple-600">
+          {totalAvailableCredits} credits
+        </span>
+      </>
+    )}
+  </p>
+)}
+      </div>
+    </div>
 
-          {/* Message */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
-              Message (optional)
-            </label>
-            <input
-              type="text"
-              placeholder="Add a note for the student..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent"
-            />
-          </div>
-        </div>)}
+    {/* Message */}
+    <div className="flex flex-col gap-0.5 flex-1 min-w-[160px]">
+      <label className="text-xs font-semibold text-gray-500">Message (optional)</label>
+      <input
+        type="text"
+        placeholder="Add a note..."
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
+      />
+    </div>
+
+  </div>
+)}
 
         {/* ── Body ── */}
         <div className="overflow-y-auto flex-1 px-6 py-4">
@@ -806,50 +842,43 @@ const effectiveIds = (() => {
 
                             {/* Individual class pills — allow manual override */}
                             <div className="flex flex-wrap gap-2">
-                              {slot.classes.map((cls, idx) => {
-                                const isSelected = effectiveIds.has(cls._id);
-                                const date = new Date(cls.startTime);
-                                const label = date.toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                });
+{slot.classes.map((cls, idx) => {
+  const isSelected = effectiveIds.has(cls._id);
+  const isAlreadyAssigned = alreadyAssignedClassIds.has(cls._id); // ✅
+  const date = new Date(cls.startTime);
+  const label = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 
-                                return (
-                                  <button
-                                    key={cls._id}
-                                    type="button"
-                                    title={`${label} — ${cls.status}`}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleClassOverride(
-                                        slot.groupKey,
-                                        cls._id,
-                                        isSelected
-                                      );
-                                    }}
-                                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
-                                      isSelected
-                                        ? "bg-purple-600 text-white border-purple-600"
-                                        : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"
-                                    }`}
-                                  >
-                                    {/* Nearest indicator */}
-                                    {sel.mode === "count" && idx < sel.count && (
-                                      <span
-                                        className={`w-1.5 h-1.5 rounded-full ${
-                                          isSelected ? "bg-purple-200" : "bg-gray-300"
-                                        }`}
-                                      />
-                                    )}
-                                    {label}
-                                    <span
-                                      className={`w-1.5 h-1.5 rounded-full ml-0.5 ${getStatusColor(
-                                        cls.status
-                                      )}`}
-                                    />
-                                  </button>
-                                );
-                              })}
+  return (
+    <button
+      key={cls._id}
+      type="button"
+      title={isAlreadyAssigned ? "Already assigned in another entry" : `${label} — ${cls.status}`}
+      disabled={isAlreadyAssigned} // ✅ completely unclickable
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!isAlreadyAssigned) {
+          toggleClassOverride(slot.groupKey, cls._id, isSelected);
+        }
+      }}
+      className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
+        isAlreadyAssigned
+          ? "bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed opacity-50" // ✅ greyed out
+          : isSelected
+          ? "bg-purple-600 text-white border-purple-600"
+          : "bg-white text-gray-400 border-gray-200 hover:border-gray-400"
+      }`}
+    >
+      {sel.mode === "count" && idx < sel.count && (
+        <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-purple-200" : "bg-gray-300"}`} />
+      )}
+      {label}
+      <span className={`w-1.5 h-1.5 rounded-full ml-0.5 ${getStatusColor(cls.status)}`} />
+    </button>
+  );
+})}
                             </div>
 
                             <p className="text-xs text-gray-400 mt-2">
@@ -867,75 +896,26 @@ const effectiveIds = (() => {
         </div>
 
 {/* ✅ UPDATED: Only show warnings in normal mode */}
-        {!hideWarnings && !simpleMode && !isValidSelection && allSelectedClassIds.length > 0 && (
-          <div className={`px-6 py-3 border-t ${
-            creditsDifference > 0 ? 'bg-orange-50 border-orange-200' : 'bg-red-50 border-red-200'
-          }`}>
-            <div className="flex items-start gap-3">
-              <svg
-                className={`w-5 h-5 flex-shrink-0 mt-0.5 ${
-                  creditsDifference > 0 ? 'text-orange-500' : 'text-red-500'
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-              <div className="flex-1">
-                {creditsDifference > 0 ? (
-                  <>
-                    <h4 className="text-sm font-semibold text-orange-800 mb-1">
-                      ⚠️ Need More Classes
-                    </h4>
-                 
-                  </>
-                ) : (
-                  <>
-                    <h4 className="text-sm font-semibold text-red-800 mb-1">
-                      ⚠️ Too Many Classes Selected
-                    </h4>
-                   
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
+       {!hideWarnings && !simpleMode && !isValidSelection && allSelectedClassIds.length > 0 && (
+  <div className={`px-6 py-1.5 border-t text-xs font-medium flex items-center gap-2 ${
+    creditsDifference > 0
+      ? 'bg-orange-50 border-orange-200 text-orange-700'
+      : 'bg-red-50 border-red-200 text-red-700'
+  }`}>
+    ⚠️ {creditsDifference > 0
+      ? `Need ${creditsDifference} more class${creditsDifference !== 1 ? 'es' : ''}`
+      : `${Math.abs(creditsDifference)} too many selected`}
+  </div>
+)}
    
 
 
         {/* ✅ NEW: Success Banner when matched */}
-        {isCreditsMatched && allSelectedClassIds.length > 0 && (
-          <div className="px-6 py-3 bg-green-50 border-t border-green-200">
-            <div className="flex items-center gap-3">
-              <svg
-                className="w-5 h-5 text-green-500 flex-shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-green-800">
-                  ✅ Perfect Match! {allSelectedClassIds.length} classes selected for {totalAvailableCredits} credits.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+      {isCreditsMatched && allSelectedClassIds.length > 0 && (
+  <div className="px-6 py-1.5 bg-green-50 border-t border-green-200 text-xs font-medium text-green-700 flex items-center gap-2">
+    ✅ Perfect match — {allSelectedClassIds.length} classes for {totalAvailableCredits} credits
+  </div>
+)}
         </>
         )}
 
@@ -988,11 +968,14 @@ const effectiveIds = (() => {
                   </span>
                 )}
                 
-                {creditsRemaining !== null && (
-                  <span className="ml-3 text-xs text-gray-400">
-                    ({creditsRemaining} existing + {parseInt(credits, 10) || 0} new)
-                  </span>
-                )}
+               {creditsRemaining !== null && (
+  <span className="ml-3 text-xs text-gray-400">
+    {editingEntry
+      ? `(${creditsRemaining} existing — not counted)` // ✅ reference only
+      : `(${creditsRemaining} existing + ${parseInt(credits, 10) || 0} new)`
+    }
+  </span>
+)}
               </>
             )}
           </div>
