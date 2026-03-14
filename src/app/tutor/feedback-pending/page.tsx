@@ -412,6 +412,7 @@ useEffect(() => {
         if (pendingFeedbacks.length > 0) {
           setSelectedFeedback(pendingFeedbacks[0]);
         }
+        
       } catch (err) {
         console.error('Error fetching pending feedbacks:', err);
         setError(err instanceof Error ? err.message : 'An unknown error occurred');
