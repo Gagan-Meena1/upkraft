@@ -352,7 +352,6 @@ export async function DELETE(request: NextRequest) {
         {
           $pull: { courses: courseId , classes: { $in: course.class } },
           instructorId: updatedInstructorIds,
-          $inc: { credits: -course.credits }
         },
         { new: true }
       );

@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema({
         creditDeducted:{
             type:Number,
             default:0   
+        },
+        reasonForCreditDeduction:{
+            type:String,
+            default:""      
         }
     }]
     },
@@ -50,11 +54,11 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    creditsPerCourse: {
+    creditsInput: {
         type: [{
-            courseId: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "courseName"
+            message: {
+                type: String,
+                default: ""
             },
             credits: {
                 type: Number,

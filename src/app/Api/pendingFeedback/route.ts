@@ -46,7 +46,7 @@ export async function GET(request) {
       User.find({
         instructorId: tutorId,
         category: "Student"
-      }).select("_id username profileImage courses attendance classes").lean() // ✅ Added attendance
+      }).select("_id username profileImage courses attendance teachingMode").lean() // ✅ Added attendance and teachingMode
     ]);
 
     if (!tutor) {
@@ -230,6 +230,7 @@ for (const classId of course.class) {
               studentId: student._id,
               studentName: student.username,
               profileImage: student.profileImage || null,
+              teachingMode: student.teachingMode || "Not Specified",
               classId: classItem._id,
               className: classItem.title || (classItem as any).name,
               courseId: course._id,

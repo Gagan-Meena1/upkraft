@@ -4,8 +4,9 @@ import Class from '@/models/Class';
 import feedback from '@/models/feedback';
 import jwt from 'jsonwebtoken'
 import courseName from '@/models/courseName';
-import User from '@/models/userModel';
-import { sendEmail } from '@/helper/mailer';
+import User  from '@/models/userModel';
+import {sendEmail} from '@/helper/mailer';
+import { formatPhoneNumber } from '@/helper/whatsappService';
 
 await connect();
 
@@ -178,6 +179,7 @@ export async function POST(request: NextRequest) {
             email: studentUser.email,
             emailType: "FEEDBACK_RECEIVED",
             username: studentUser.username,
+            phone: user.contact ? formatPhoneNumber(user.contact) : undefined,
             courseName: (await courseName.findById(courseId).select('title'))?.title || undefined,
             className: updatedClass.title,
             personalFeedback: personalFeedback,
