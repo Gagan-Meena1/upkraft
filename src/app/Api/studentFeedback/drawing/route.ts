@@ -51,9 +51,9 @@ export async function POST(request: NextRequest) {
     if (attendanceIndex !== -1) user.attendance[attendanceIndex].status = attendanceStatus;
     else user.attendance.push({ classId: classId, status: attendanceStatus });
 
-    const courseIndex = user.creditsPerCourse.findIndex(
-        (c) => c.courseId.toString() === courseId.toString()
-      );
+    const courseIndex = (user.creditsPerCourse ?? []).findIndex(
+  (c) => c?.courseId?.toString() === courseId.toString()
+);
 
       console.log('[COURSEID : ',courseId)
       console.log("[CREDITDPERCOURSE : " , user.creditsPerCourse)
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       }
       console.log("[CREDITDPERCOURSE AFTER : " , user.creditsPerCourse)
 
-      
+
     await user.save();
 
     const KEYS = [
