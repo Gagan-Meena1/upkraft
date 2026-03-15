@@ -67,10 +67,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const courseIndex = user.creditsPerCourse.findIndex(
-        (c) => c.courseId.toString() === courseId.toString()
-      );
-
+     const courseIndex = (user.creditsPerCourse ?? []).findIndex(
+  (c) => c?.courseId?.toString() === courseId.toString()
+);
       console.log('[COURSEID : ',courseId)
       console.log("[CREDITDPERCOURSE : " , user.creditsPerCourse)
       if (courseIndex !== -1) {
