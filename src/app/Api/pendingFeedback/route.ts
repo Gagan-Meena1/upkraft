@@ -49,6 +49,8 @@ export async function GET(request) {
       }).select("_id username profileImage courses attendance classes").lean() // ✅ Added attendance
     ]);
 
+    console.log("[STUDENTS  : ",students)
+
     if (!tutor) {
       return NextResponse.json({ error: "Tutor not found" }, { status: 404 });
     }
@@ -88,6 +90,8 @@ export async function GET(request) {
       });
     });
 
+    // console.log("COMMON COURSES : ",allStudentCourseIds)
+
     if (allStudentCourseIds.size === 0) {
       return NextResponse.json({
         success: true,
@@ -103,6 +107,8 @@ export async function GET(request) {
     const courses = await courseName.find({
       _id: { $in: Array.from(allStudentCourseIds) }
     }).select("_id title category class").lean();
+
+    // console.log("[COURSES : ",courses)
 
     // Collect all class IDs
     const allClassIds = new Set();
@@ -122,6 +128,9 @@ export async function GET(request) {
         count: 0
       });
     }
+
+
+    // console.log("[CLASSES  : ", allClassIds )
 
     // Fetch all classes in one query
     const classes = await Class.find({
