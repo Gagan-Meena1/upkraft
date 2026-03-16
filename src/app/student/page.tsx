@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Calendar,
   ArrowRight,
@@ -11,12 +11,13 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useUserData } from "@/app/providers/UserData/page"; // ✅ Also works
+import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
 
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import DashboardLayout from "@/app/components/DashboardLayout";
-import ProfileProgress from "../components/tutor/ProfileProgress";
 import ProfileAttended from "../components/ProfileAttended";
 import ReferAndEarn from "../components/ReferAndEarn";
 import UpcomingLessons from "./UpcomingLessons";
@@ -25,10 +26,20 @@ import SemiCircleProgress from "../components/tutor/SemiCircleProgress";
 import VideoPoster from "@/assets/video-poster.png";
 import Image from "next/image";
 import "./Dashboard.css";
-import AssignmentPending from "../components/tutor/AssignmentPending";
 import { Button } from "react-bootstrap";
 import Link from "next/link";
 import StudentProfileDetails from "../components/StudentProfileDetails";
+
+// ── Dynamic imports with skeleton loaders (mirrors tutor dashboard) ───────────
+const ProfileProgress = dynamic(
+  () => import("../components/tutor/ProfileProgress"),
+  { loading: () => <div className="animate-pulse h-24 w-24 rounded-full bg-gray-200" /> }
+);
+
+const AssignmentPending = dynamic(
+  () => import("../components/tutor/AssignmentPending"),
+  { loading: () => <div className="animate-pulse h-24 bg-gray-200 rounded" /> }
+);
 
 // Types
 interface UserData {
@@ -491,9 +502,10 @@ const useResponsiveItemsPerPage = () => {
 // Main Component
 const StudentDashboard: React.FC = () => {
   const router = useRouter();
-  // const [loading, setLoading] = useState<boolean>(true);
-  // const [userData, setUserData] = useState<UserData | null>(null);
-  // const [classData, setClassData] = useState<ClassData[] | null>(null);
+  const pathname = usePathname();                             // ← tutor pattern
+  const prevPathRef = useRef<string | null>(null);            // ← tutor pattern
+  const pendingFetchRef = useRef<Promise<void> | null>(null); // ← tutor pattern
+
   const { 
     userData, 
     classDetails: classData, 
@@ -504,7 +516,6 @@ const StudentDashboard: React.FC = () => {
   
 
   const [assignmentData, setAssignmentData] = useState<AssignmentData[] | null>( null);
-  // const [error, setError] = useState<string | null>(null);
   const [currentClassSlide, setCurrentClassSlide] = useState(0);
   const [currentAssignmentSlide, setCurrentAssignmentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -514,8 +525,6 @@ const StudentDashboard: React.FC = () => {
   );
 
   const itemsPerPage = useResponsiveItemsPerPage();
-
-  
 
   const handleJoinMeeting = async (classId: string) => {
     try {
@@ -545,32 +554,56 @@ const StudentDashboard: React.FC = () => {
     }
   };
 
-useEffect(() => {
+  // ── useRef guard prevents duplicate fetches (mirrors tutor dashboard) ────────
+  useEffect(() => {
+    if (loading || !userData) return;
+    if (pendingFetchRef.current) return;
+
     const fetchAdditionalData = async () => {
       try {
-        const [assignmentResponse, perResponse] = await Promise.all([
+        const [assignmentResponse, perResponse] = await Promise.allSettled([
           fetch("/Api/assignment"),
           fetch("/Api/studentOverallPerformance")
         ]);
 
-        const assignmentData = await assignmentResponse.json();
-        const assignments = assignmentData?.data?.assignments || [];
-        setAssignmentData(assignments);
+        if (assignmentResponse.status === "fulfilled") {
+          const assignmentData = await assignmentResponse.value.json();
+          const assignments = assignmentData?.data?.assignments || [];
+          setAssignmentData(assignments);
+        }
 
-        const perData = await perResponse.json();
-        const perScore = perData?.averageScore;
-        if (perScore) {
-          setStudentPerformance(perScore);
+        if (perResponse.status === "fulfilled") {
+          const perData = await perResponse.value.json();
+          const perScore = perData?.averageScore;
+          if (perScore) {
+            setStudentPerformance(perScore);
+          }
         }
       } catch (error) {
         console.error("Error fetching additional data:", error);
       }
     };
 
-    if (!loading && userData) {
-      fetchAdditionalData();
-    }
+    pendingFetchRef.current = fetchAdditionalData();
+    pendingFetchRef.current.finally(() => {
+      pendingFetchRef.current = null;
+    });
   }, [loading, userData]);
+
+  // ── Re-fetch on return to /student (mirrors tutor pathname pattern) ───────────
+  useEffect(() => {
+    if (!pathname) return;
+
+    if (
+      prevPathRef.current !== null &&
+      pathname === "/student" &&
+      prevPathRef.current !== "/student"
+    ) {
+      pendingFetchRef.current = null; // reset guard so next effect run re-fetches
+    }
+
+    prevPathRef.current = pathname;
+  }, [pathname]);
   
   // Reset slides when items per page changes
   useEffect(() => {
@@ -593,22 +626,26 @@ useEffect(() => {
     fetchClassQuality();
   }, [userData]);
 
-  if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorDisplay message={error} />;
+  // ── useMemo for all derived values — MUST be above early returns (Rules of Hooks) ──
+  const upcomingClasses = useMemo(
+    () => (classData ? filterFutureClasses(classData) : []),
+    [classData]
+  );
 
-  // Filter upcoming classes (no recording)
-  const upcomingClasses = classData ? filterFutureClasses(classData) : [];
+  const incompleteAssignments = useMemo(
+    () =>
+      assignmentData?.filter(
+        (assignment) => assignment.currentAssignmentStatus === "PENDING"
+      ) ?? [],
+    [assignmentData]
+  );
 
-  // Filter incomplete assignments based on the correct status field
-  const incompleteAssignments =
-    assignmentData?.filter(
-      (assignment) => assignment.currentAssignmentStatus === "PENDING"
-    ) || [];
-
-  // Calculate progress
   const totalClasses = classData?.length || 0;
-  const completedClasses =
-    classData?.filter((classItem) => classItem.recording).length || 0;
+
+  const completedClasses = useMemo(
+    () => classData?.filter((classItem) => classItem.recording).length || 0,
+    [classData]
+  );
 
   const totalAssignments = assignmentData?.length || 0;
   const incompleteAssignmentCount = incompleteAssignments.length;
@@ -618,47 +655,27 @@ useEffect(() => {
     incompleteAssignments.length / itemsPerPage
   );
 
- // --- Collect ALL tutor IDs from already loaded courses ---
-// Extract tutor IDs from courseDetails (NOT from userData.courses)
-const getAllTutorIds = (): string[] => {
-  if (!courseDetails || courseDetails.length === 0) return [];
-  
-  console.log("Course Details:", courseDetails); // ✅ Debug
-  
-  const tutorIdSet = new Set<string>();
-  
-  courseDetails.forEach((course: any) => {
-    console.log("Processing course:", course._id, {
-      instructorId: course.instructorId,
-      academyInstructorId: course.academyInstructorId
-    }); // ✅ Debug each course
-    
-    // Add main instructor ID
-    if (course.instructorId) {
-      tutorIdSet.add(String(course.instructorId));
-    }
-    
-    // Add all academy instructor IDs
-    if (course.academyInstructorId && Array.isArray(course.academyInstructorId)) {
-      course.academyInstructorId.forEach((id: any) => {
-        if (id) tutorIdSet.add(String(id));
-      });
-    }
-  });
-  
-  const ids = Array.from(tutorIdSet);
-  console.log("Extracted Tutor IDs:", ids); // ✅ Final result
-  return ids;
-};
+  // ── sessionSummaryUrl memoised (mirrors tutor's derived URL pattern) ──────────
+  const sessionSummaryUrl = useMemo(() => {
+    if (!courseDetails || courseDetails.length === 0)
+      return `/student/session-summary?studentId=${userData?._id || ""}`;
 
-const tutorIds = getAllTutorIds();
-console.log("Final tutorIds for URL:", tutorIds); // ✅ Check before creating URL
+    const tutorIdSet = new Set<string>();
+    courseDetails.forEach((course: any) => {
+      if (course.instructorId) tutorIdSet.add(String(course.instructorId));
+      if (course.academyInstructorId && Array.isArray(course.academyInstructorId)) {
+        course.academyInstructorId.forEach((id: any) => {
+          if (id) tutorIdSet.add(String(id));
+        });
+      }
+    });
 
-const sessionSummaryUrl = `/student/session-summary?studentId=${
-  userData?._id || ""
-}&tutorIds=${tutorIds.join(',')}`;
+    const tutorIds = Array.from(tutorIdSet);
+    return `/student/session-summary?studentId=${userData?._id || ""}&tutorIds=${tutorIds.join(",")}`;
+  }, [courseDetails, userData?._id]);
 
-console.log("Session Summary URL:", sessionSummaryUrl);
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorDisplay message={error} />;
 
   return (
     <div className="container">
@@ -811,11 +828,9 @@ console.log("Session Summary URL:", sessionSummaryUrl);
                 label="Class Quality Score"
               />
               <div className="text-center">
-                
                   <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={sessionSummaryUrl}>
                     Session Summary
                   </Link>
-            
               </div>
               <div className="text-center ml-12">
                 <div className="student-profile-details-sec">
