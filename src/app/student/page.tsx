@@ -10,7 +10,7 @@ import {
   FileText,
   AlertCircle,
 } from "lucide-react";
-import { useUserData } from "@/app/providers/UserData/page"; // ✅ Also works
+import { useUserData } from "@/app/providers/UserData/page";
 import { usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
 
@@ -30,7 +30,6 @@ import { Button } from "react-bootstrap";
 import Link from "next/link";
 import StudentProfileDetails from "../components/StudentProfileDetails";
 
-// ── Dynamic imports with skeleton loaders (mirrors tutor dashboard) ───────────
 const ProfileProgress = dynamic(
   () => import("../components/tutor/ProfileProgress"),
   { loading: () => <div className="animate-pulse h-24 w-24 rounded-full bg-gray-200" /> }
@@ -86,6 +85,7 @@ interface AssignmentData {
   status?: boolean;
   createdAt: string;
   updatedAt: string;
+  currentAssignmentStatus?: string;
 }
 interface StudentData {
   message: string;
