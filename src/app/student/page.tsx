@@ -502,9 +502,9 @@ const useResponsiveItemsPerPage = () => {
 // Main Component
 const StudentDashboard: React.FC = () => {
   const router = useRouter();
-  const pathname = usePathname();                             // ← tutor pattern
-  const prevPathRef = useRef<string | null>(null);            // ← tutor pattern
-  const pendingFetchRef = useRef<Promise<void> | null>(null); // ← tutor pattern
+  const pathname = usePathname();                             
+  const prevPathRef = useRef<string | null>(null);            
+  const pendingFetchRef = useRef<Promise<void> | null>(null); 
 
   const { 
     userData, 
@@ -554,7 +554,6 @@ const StudentDashboard: React.FC = () => {
     }
   };
 
-  // ── useRef guard prevents duplicate fetches (mirrors tutor dashboard) ────────
   useEffect(() => {
     if (loading || !userData) return;
     if (pendingFetchRef.current) return;
@@ -590,7 +589,6 @@ const StudentDashboard: React.FC = () => {
     });
   }, [loading, userData]);
 
-  // ── Re-fetch on return to /student (mirrors tutor pathname pattern) ───────────
   useEffect(() => {
     if (!pathname) return;
 
@@ -599,23 +597,20 @@ const StudentDashboard: React.FC = () => {
       pathname === "/student" &&
       prevPathRef.current !== "/student"
     ) {
-      pendingFetchRef.current = null; // reset guard so next effect run re-fetches
+      pendingFetchRef.current = null; 
     }
 
     prevPathRef.current = pathname;
   }, [pathname]);
   
-  // Reset slides when items per page changes
   useEffect(() => {
     setCurrentClassSlide(0);
     setCurrentAssignmentSlide(0);
   }, [itemsPerPage]);
 
-  // Get class quality score for the first course (or loop for all)
   useEffect(() => {
     async function fetchClassQuality() {
       if (!userData?.courses || userData.courses.length === 0) return;
-      // Pick the first course or loop for all
       const courseId = userData.courses[0];
       const res = await fetch(`/Api/courseQuality?courseId=${courseId}`);
       const json = await res.json();
@@ -626,7 +621,7 @@ const StudentDashboard: React.FC = () => {
     fetchClassQuality();
   }, [userData]);
 
-  // ── useMemo for all derived values — MUST be above early returns (Rules of Hooks) ──
+
   const upcomingClasses = useMemo(
     () => (classData ? filterFutureClasses(classData) : []),
     [classData]
@@ -655,7 +650,6 @@ const StudentDashboard: React.FC = () => {
     incompleteAssignments.length / itemsPerPage
   );
 
-  // ── sessionSummaryUrl memoised (mirrors tutor's derived URL pattern) ──────────
   const sessionSummaryUrl = useMemo(() => {
     if (!courseDetails || courseDetails.length === 0)
       return `/student/session-summary?studentId=${userData?._id || ""}`;
