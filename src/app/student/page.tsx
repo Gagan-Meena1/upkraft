@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Calendar,
   ArrowRight,
@@ -266,7 +266,7 @@ const filterFutureClasses = (classes: ClassData[]) => {
 
 const ClassCard = ({
   classItem,
-onJoinMeeting
+  onJoinMeeting
 }: {
   classItem: ClassData;
   onJoinMeeting: (id: string) => void;
@@ -501,21 +501,15 @@ const StudentDashboard: React.FC = () => {
     loading, 
     error 
   } = useUserData();
-  
 
-  const [assignmentData, setAssignmentData] = useState<AssignmentData[] | null>( null);
-  // const [error, setError] = useState<string | null>(null);
+  const [assignmentData, setAssignmentData] = useState<AssignmentData[] | null>(null);
   const [currentClassSlide, setCurrentClassSlide] = useState(0);
   const [currentAssignmentSlide, setCurrentAssignmentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [studentPerformance, setStudentPerformance] = useState<number>(0);
-  const [classQualityScore, setClassQualityScore] = useState<number | null>(
-    null
-  );
+  const [classQualityScore, setClassQualityScore] = useState<number | null>(null);
 
   const itemsPerPage = useResponsiveItemsPerPage();
-
-  
 
   const handleJoinMeeting = async (classId: string) => {
     try {
@@ -545,16 +539,16 @@ const StudentDashboard: React.FC = () => {
     }
   };
 
-useEffect(() => {
+  useEffect(() => {
     const fetchAdditionalData = async () => {
       try {
         const [assignmentResponse, perResponse] = await Promise.all([
           fetch("/Api/assignment"),
-          fetch("/Api/studentOverallPerformance")
+          fetch("/Api/studentOverallPerformance"),
         ]);
 
-        const assignmentData = await assignmentResponse.json();
-        const assignments = assignmentData?.data?.assignments || [];
+        const assignmentJson = await assignmentResponse.json();
+        const assignments = assignmentJson?.data?.assignments || [];
         setAssignmentData(assignments);
 
         const perData = await perResponse.json();
@@ -571,7 +565,7 @@ useEffect(() => {
       fetchAdditionalData();
     }
   }, [loading, userData]);
-  
+
   // Reset slides when items per page changes
   useEffect(() => {
     setCurrentClassSlide(0);
@@ -596,77 +590,93 @@ useEffect(() => {
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorDisplay message={error} />;
 
-  // Filter upcoming classes (no recording)
-  const upcomingClasses = classData ? filterFutureClasses(classData) : [];
+  // Memoized derived data
 
-  // Filter incomplete assignments based on the correct status field
-  const incompleteAssignments =
-    assignmentData?.filter(
-      (assignment) => assignment.currentAssignmentStatus === "PENDING"
-    ) || [];
-
-  // Calculate progress
-  const totalClasses = classData?.length || 0;
-  const completedClasses =
-    classData?.filter((classItem) => classItem.recording).length || 0;
-
-  const totalAssignments = assignmentData?.length || 0;
-  const incompleteAssignmentCount = incompleteAssignments.length;
-
-  const totalClassSlides = Math.ceil(upcomingClasses.length / itemsPerPage);
-  const totalAssignmentSlides = Math.ceil(
-    incompleteAssignments.length / itemsPerPage
+  const upcomingClasses = useMemo(
+    () => (classData ? filterFutureClasses(classData) : []),
+    [classData]
   );
 
- // --- Collect ALL tutor IDs from already loaded courses ---
-// Extract tutor IDs from courseDetails (NOT from userData.courses)
-const getAllTutorIds = (): string[] => {
-  if (!courseDetails || courseDetails.length === 0) return [];
-  
-  console.log("Course Details:", courseDetails); // ✅ Debug
-  
-  const tutorIdSet = new Set<string>();
-  
-  courseDetails.forEach((course: any) => {
-    console.log("Processing course:", course._id, {
-      instructorId: course.instructorId,
-      academyInstructorId: course.academyInstructorId
-    }); // ✅ Debug each course
-    
-    // Add main instructor ID
-    if (course.instructorId) {
-      tutorIdSet.add(String(course.instructorId));
-    }
-    
-    // Add all academy instructor IDs
-    if (course.academyInstructorId && Array.isArray(course.academyInstructorId)) {
-      course.academyInstructorId.forEach((id: any) => {
-        if (id) tutorIdSet.add(String(id));
-      });
-    }
-  });
-  
-  const ids = Array.from(tutorIdSet);
-  console.log("Extracted Tutor IDs:", ids); // ✅ Final result
-  return ids;
-};
+  const incompleteAssignments = useMemo(
+    () =>
+      assignmentData?.filter(
+        (assignment: any) =>
+          assignment.currentAssignmentStatus === "PENDING"
+      ) || [],
+    [assignmentData]
+  );
 
-const tutorIds = getAllTutorIds();
-console.log("Final tutorIds for URL:", tutorIds); // ✅ Check before creating URL
+  const { totalClasses, completedClasses } = useMemo(() => {
+    const total = classData?.length || 0;
+    const completed =
+      classData?.filter((classItem: ClassData) => classItem.recording)
+        .length || 0;
+    return { totalClasses: total, completedClasses: completed };
+  }, [classData]);
 
-const sessionSummaryUrl = `/student/session-summary?studentId=${
-  userData?._id || ""
-}&tutorIds=${tutorIds.join(',')}`;
+  const { totalAssignments, incompleteAssignmentCount } = useMemo(() => {
+    const total = assignmentData?.length || 0;
+    const incomplete = incompleteAssignments.length;
+    return {
+      totalAssignments: total,
+      incompleteAssignmentCount: incomplete,
+    };
+  }, [assignmentData, incompleteAssignments.length]);
 
-console.log("Session Summary URL:", sessionSummaryUrl);
+  const { totalClassSlides, totalAssignmentSlides } = useMemo(() => {
+    const classSlides =
+      upcomingClasses.length === 0
+        ? 1
+        : Math.ceil(upcomingClasses.length / itemsPerPage);
+    const assignmentSlides =
+      incompleteAssignments.length === 0
+        ? 1
+        : Math.ceil(incompleteAssignments.length / itemsPerPage);
+    return {
+      totalClassSlides: classSlides,
+      totalAssignmentSlides: assignmentSlides,
+    };
+  }, [upcomingClasses.length, incompleteAssignments.length, itemsPerPage]);
+
+  // Collect ALL tutor IDs from already loaded courses
+  const tutorIds = useMemo(() => {
+    if (!courseDetails || courseDetails.length === 0) return [];
+
+    const tutorIdSet = new Set<string>();
+
+    courseDetails.forEach((course: any) => {
+      if (course.instructorId) {
+        tutorIdSet.add(String(course.instructorId));
+      }
+
+      if (
+        course.academyInstructorId &&
+        Array.isArray(course.academyInstructorId)
+      ) {
+        course.academyInstructorId.forEach((id: any) => {
+          if (id) tutorIdSet.add(String(id));
+        });
+      }
+    });
+
+    return Array.from(tutorIdSet);
+  }, [courseDetails]);
+
+  const sessionSummaryUrl = useMemo(
+    () =>
+      `/student/session-summary?studentId=${
+        userData?._id || ""
+      }&tutorIds=${tutorIds.join(",")}`,
+    [userData?._id, tutorIds]
+  );
 
   return (
     <div className="container">
       <div className="row">
-          <div className="col col-xxl-5 order-xxl-1 order-sm-1 col-md-6 order-md-1 mb-4">
+        <div className="col col-xxl-5 order-xxl-1 order-sm-1 col-md-6 order-md-1 mb-4">
           <div className="card-box profile-card">
             <h2 className="mb-4">Profile</h2>
-              <div className="com-profile d-flex align-items-center flex-md-nowrap flex-wrap justify-content-center gap-2">
+            <div className="com-profile d-flex align-items-center flex-md-nowrap flex-wrap justify-content-center gap-2">
               <div className="col-img-profile">
                 <ProfileProgress user={userData as UserData} />
               </div>
@@ -811,11 +821,12 @@ console.log("Session Summary URL:", sessionSummaryUrl);
                 label="Class Quality Score"
               />
               <div className="text-center">
-                
-                  <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={sessionSummaryUrl}>
-                    Session Summary
-                  </Link>
-            
+                <Link
+                  className="btn btn-primary d-flex align-items-center justify-content-center gap-2"
+                  href={sessionSummaryUrl}
+                >
+                  Session Summary
+                </Link>
               </div>
               <div className="text-center ml-12">
                 <div className="student-profile-details-sec">
@@ -848,8 +859,62 @@ console.log("Session Summary URL:", sessionSummaryUrl);
           </div>
         </div>
       </div>
+
+      {/* Classes and Assignments slider section using ClassList / AssignmentList / SliderNavigation */}
+      <div className="row">
+        <div className="col-xxl-6 col-md-12 mb-4">
+          <div className="card-box h-100 d-flex flex-column">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h3 className="mb-0">Upcoming Classes</h3>
+            </div>
+            <ClassList
+              classData={upcomingClasses}
+              currentSlide={currentClassSlide}
+              itemsPerPage={itemsPerPage}
+              onJoinMeeting={handleJoinMeeting}
+            />
+            <SliderNavigation
+              currentSlide={currentClassSlide}
+              totalSlides={totalClassSlides}
+              onPrevSlide={() =>
+                setCurrentClassSlide((prev) => Math.max(prev - 1, 0))
+              }
+              onNextSlide={() =>
+                setCurrentClassSlide((prev) =>
+                  Math.min(prev + 1, totalClassSlides - 1)
+                )
+              }
+            />
+          </div>
+        </div>
+
+        <div className="col-xxl-6 col-md-12 mb-4">
+          <div className="card-box h-100 d-flex flex-column">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h3 className="mb-0">Pending Assignments</h3>
+            </div>
+            <AssignmentList
+              assignmentData={incompleteAssignments}
+              currentSlide={currentAssignmentSlide}
+              itemsPerPage={itemsPerPage}
+            />
+            <SliderNavigation
+              currentSlide={currentAssignmentSlide}
+              totalSlides={totalAssignmentSlides}
+              onPrevSlide={() =>
+                setCurrentAssignmentSlide((prev) => Math.max(prev - 1, 0))
+              }
+              onNextSlide={() =>
+                setCurrentAssignmentSlide((prev) =>
+                  Math.min(prev + 1, totalAssignmentSlides - 1)
+                )
+              }
+            />
+          </div>
+        </div>
+      </div>
     </div>
-  )
-}
+  );
+};
 
 export default StudentDashboard;
