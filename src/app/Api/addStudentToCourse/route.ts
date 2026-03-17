@@ -141,6 +141,12 @@ if (!startDate && selectedClassIds.length > 0 && courseId) {
         console.log("[classType flow] regularClass — credits unchanged");
       }
 
+      selectedClassIds.forEach((id: string) => {
+        if (!student.classes.map((c: any) => c.toString()).includes(id.toString())) {
+          student.classes.push(id);
+        }
+      });
+
       await student.save();
       console.log("[classType flow] student.save() done ✅");
 
