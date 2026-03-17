@@ -53,9 +53,9 @@ export async function POST(request: NextRequest) {
 
     const user = await User.findById(studentId);
     // Check if attendance record exists for this class
-    const attendanceIndex = user.attendance.findIndex(
-      (att) => att.classId.toString() === classId
-    );
+   const attendanceIndex = (user.attendance ?? []).findIndex(
+  (att) => att?.classId?.toString() === classId
+);
 
     if (attendanceIndex !== -1) {
       // Update existing attendance record
@@ -67,6 +67,18 @@ export async function POST(request: NextRequest) {
         status: attendanceStatus === "Absent" ? "absent" : "present"
       });
     }
+
+    const courseIndex = (user.creditsPerCourse ?? []).findIndex(
+  (c) => c?.courseId?.toString() === courseId.toString()
+);
+
+      console.log('[COURSEID : ',courseId)
+      console.log("[CREDITDPERCOURSE : " , user.creditsPerCourse)
+      if (courseIndex !== -1) {
+        user.creditsPerCourse[courseIndex].credits = 
+          Math.max(0, user.creditsPerCourse[courseIndex].credits - 1);
+      }
+      console.log("[CREDITDPERCOURSE AFTER : " , user.creditsPerCourse)
 
     // Save the updated user
     await user.save();

@@ -54,6 +54,10 @@ export async function POST(req: NextRequest) {
     // ── Build a single clean student update ───────────────────────────────────
     let studentUpdate: any;
 
+    console.log("studentId : ", student._id, 
+      "studentName : ",student.username,
+    )
+
  if (existingEntry) {
   if (existingStartTimeEntry) {
     // ✅ Same date entry exists → add classes to it + replace message
