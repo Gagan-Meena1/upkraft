@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
 import courseName from "@/models/courseName";
+import Class from "@/models/Class";
+
 
 connect();
 
@@ -141,6 +143,14 @@ if (!startDate && selectedClassIds.length > 0 && courseId) {
 
       await student.save();
       console.log("[classType flow] student.save() done ✅");
+
+      if (classType === 'makeup' && toAdd.length > 0) {
+  await Class.updateMany(
+    { _id: { $in: toAdd } },
+    { $set: { classType: 'makeup' } }
+  );
+  console.log(`[classType flow] ${toAdd.length} classes marked as makeup ✅`);
+}
 
       return NextResponse.json({
         success: true,
