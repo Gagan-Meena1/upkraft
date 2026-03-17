@@ -46,6 +46,7 @@ export interface AssignPayload {
   message: string;
   credits: number;
     isEdit?: boolean; // ← new
+    classType?: 'makeup' | 'regularClass';
 
 }
 
@@ -59,6 +60,7 @@ interface Props {
   creditsPerCourse: CreditEntry[];
   simpleMode?: boolean;
    hideWarnings?: boolean;
+ showClassType?: boolean;
 
 }
 
@@ -186,12 +188,15 @@ export default function ClassSelectionModal({
   creditsPerCourse,
   simpleMode = false,
   hideWarnings = false,
+   showClassType = false,
 }: Props) {
   // Extra fields
   const [startDate, setStartDate] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [credits, setCredits] = useState<string>("");  // ← add this
   const [editingEntry, setEditingEntry] = useState<AssignmentHistory | null>(null);
+const [classType, setClassType] = useState<'makeup' | 'regularClass'>('regularClass');
+
   
 
   // Per-slot selection: groupKey → SlotSelection
@@ -259,6 +264,7 @@ React.useEffect(() => {
     setCredits("");
     setActiveTab("form");
     setEditingEntry(null);
+    setClassType('regularClass');
   }
 }, [open]);
 
@@ -420,6 +426,7 @@ const toggleClassOverride = (
     message,
     credits: parseInt(credits, 10) || 0,
     isEdit: !!editingEntry,
+    classType: showClassType ? classType : undefined,
   });
 };
 
@@ -669,6 +676,34 @@ const endDate = getEndDateForAssignment(entry);
       />
     </div>
 
+  </div>
+)}
+
+{showClassType && (
+  <div className="px-6 py-2 border-b border-gray-100 flex items-center gap-4">
+    <span className="text-xs font-semibold text-gray-500">Class Type:</span>
+    <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+      <input
+        type="radio"
+        name="classType"
+        value="regularClass"
+        checked={classType === 'regularClass'}
+        onChange={() => setClassType('regularClass')}
+        className="accent-purple-600"
+      />
+      <span className="text-gray-700">Regular Class</span>
+    </label>
+    <label className="flex items-center gap-1.5 cursor-pointer text-xs">
+      <input
+        type="radio"
+        name="classType"
+        value="makeup"
+        checked={classType === 'makeup'}
+        onChange={() => setClassType('makeup')}
+        className="accent-purple-600"
+      />
+      <span className="text-gray-700">Makeup Class</span>
+    </label>
   </div>
 )}
 
