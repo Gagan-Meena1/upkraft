@@ -9,7 +9,7 @@ connect();
 export async function POST(req: NextRequest) {
   try {
     const requestData = await req.json();
-    const { courseId, studentId, tutorId, credits, message, startDate, classIds: selectedClassIds = [] } = requestData;
+    const { courseId, studentId, tutorId, credits, message, startDate, classIds: selectedClassIds = [] ,classType} = requestData;
     console.log("requestData:", requestData);
 
     let instructorId;
@@ -57,6 +57,106 @@ export async function POST(req: NextRequest) {
     console.log("studentId : ", student._id, 
       "studentName : ",student.username,
     )
+
+    // ✅ Most recent PAST startTime entry 
+function getNearestPastEntryIndex(creditsPerCourse: any[], courseId: string): number {
+  const entry = creditsPerCourse?.find(
+    (e: any) => e.courseId?.toString() === courseId
+  );
+
+  console.log("[classType flow] Entry : ",entry);
+  if (!entry?.startTime?.length) return -1;
+
+  const now = new Date();
+
+const pastEntries = entry.startTime
+  .map((s: any, idx: number) => ({ date: s.date, idx }))  // sirf date aur idx rakho
+  .filter((s: any) => {
+    const entryDate = new Date(s.date);
+    console.log("[classType flow] checking date:", entryDate, "<=", now, "→", entryDate <= now);
+    return entryDate <= now;
+  });
+
+      console.log("[classType flow] PAST Entry : ",pastEntries);
+
+
+  if (pastEntries.length === 0) return -1;
+
+  // Sabse recent past entry
+  pastEntries.sort(
+    (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
+  return pastEntries[0].idx; // startTime array ka index
+}
+
+if (!startDate && selectedClassIds.length > 0 && courseId) {
+  
+  console.log("=== [classType flow] startDate nahi aaya, classType logic chalega ===");
+  console.log("[classType flow] courseId:", courseId);
+  console.log("[classType flow] selectedClassIds:", selectedClassIds);
+  console.log("[classType flow] classType:", classType);
+  console.log("[classType flow] student.creditsPerCourse:", JSON.stringify(student.creditsPerCourse, null, 2));
+
+  const nearestIdx = getNearestPastEntryIndex(
+    student.creditsPerCourse,
+    courseId
+  );
+
+  console.log("[classType flow] nearestIdx (startTime array index):", nearestIdx);
+
+  if (nearestIdx !== -1) {
+    const courseEntryIdx = student.creditsPerCourse.findIndex(
+      (e: any) => e.courseId?.toString() === courseId
+    );
+
+    console.log("[classType flow] courseEntryIdx:", courseEntryIdx);
+
+    if (courseEntryIdx !== -1) {
+      const targetEntry = student.creditsPerCourse[courseEntryIdx].startTime[nearestIdx];
+      console.log("[classType flow] target startTime entry:", JSON.stringify(targetEntry, null, 2));
+
+      const existingClassIds = targetEntry.classIds || [];
+      console.log("[classType flow] existingClassIds in entry:", existingClassIds);
+
+      const toAdd: string[] = [];
+      selectedClassIds.forEach((id: string) => {
+        if (!existingClassIds.map((c: any) => c.toString()).includes(id.toString())) {
+          student.creditsPerCourse[courseEntryIdx].startTime[nearestIdx].classIds.push(id);
+          toAdd.push(id);
+        } else {
+          console.log("[classType flow] classId already exists, skipping:", id);
+        }
+      });
+      console.log("[classType flow] classIds added to entry:", toAdd);
+
+      if (classType === 'makeup') {
+        const before = student.creditsPerCourse[courseEntryIdx].credits;
+        student.creditsPerCourse[courseEntryIdx].credits += toAdd.length;
+        const after = student.creditsPerCourse[courseEntryIdx].credits;
+        console.log(`[classType flow] makeup — credits: ${before} → ${after}`);
+      } else {
+        console.log("[classType flow] regularClass — credits unchanged");
+      }
+
+      await student.save();
+      console.log("[classType flow] student.save() done ✅");
+
+      return NextResponse.json({
+        success: true,
+        message: `Classes assigned as ${classType ?? 'regularClass'}`,
+        classesAdded: toAdd.length,
+        classType,
+        creditsPerCourse: student.creditsPerCourse,
+      });
+    } else {
+      console.log("[classType flow] ❌ courseEntryIdx not found — course entry missing in creditsPerCourse");
+    }
+  } else {
+    console.log("[classType flow] ❌ nearestIdx = -1 — no past startTime entry found for this course");
+  }
+}
+
 
  if (existingEntry) {
   if (existingStartTimeEntry) {
