@@ -78,7 +78,7 @@ export async function GET(request) {
     courses.forEach(course => {
       const courseIdStr = course._id.toString();
 (course.class ?? []).forEach(classId => {
-  if (classId == null) return;
+   if (classId == null) return;
         const classIdStr = classId.toString();
         classToCategoryMap.set(classIdStr, course.category);
         classToCourseMap.set(classIdStr, courseIdStr);

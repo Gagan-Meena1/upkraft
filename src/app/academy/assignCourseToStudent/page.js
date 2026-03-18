@@ -6,7 +6,7 @@ import Pagination from "react-bootstrap/Pagination";
 import { toast, Toaster } from "react-hot-toast";
 import Image from "next/image";
 import Profile from "../../../assets/Mask-profile.png";
-import ClassSelectionModal from "@/app/components/addClass"; // adjust path
+// import ClassSelectionModal from "@/app/components/addClass"; // adjust path
 
 // Loading components
 const LoadingFallback = () => (
@@ -36,10 +36,10 @@ const AssignStudentsContent = () => {
     hasNextPage: false,
     hasPrevPage: false
   });
-const [showClassModal, setShowClassModal] = useState(false);
-const [classes, setClasses] = useState([]);
-const [classesLoading, setClassesLoading] = useState(false);
-const [creditsPerCourse, setCreditsPerCourse] = useState([]);
+// const [showClassModal, setShowClassModal] = useState(false);
+// const [classes, setClasses] = useState([]);
+// const [classesLoading, setClassesLoading] = useState(false);
+// const [creditsPerCourse, setCreditsPerCourse] = useState([]);
   // Fetch students
   const fetchStudents = async (page = 1) => {
     try {
@@ -61,66 +61,66 @@ const [creditsPerCourse, setCreditsPerCourse] = useState([]);
     }
   };
 
-const fetchClasses = async () => {
-  try {
-    setClassesLoading(true);
-    const response = await fetch(`/Api/tutors/courses/${courseId}`);
-    const data = await response.json();
+// const fetchClasses = async () => {
+//   try {
+//     setClassesLoading(true);
+//     const response = await fetch(`/Api/tutors/courses/${courseId}`);
+//     const data = await response.json();
     
-    if (data.classDetails) {
-      setClasses(data.classDetails);
+//     if (data.classDetails) {
+//       setClasses(data.classDetails);
       
-      const enrolledStudents = data.enrolledStudents || [];
+//       const enrolledStudents = data.enrolledStudents || [];
       
-      if (selectedStudents.length === 1) {
-        const currentStudent = enrolledStudents.find(
-          (student) => student._id === selectedStudents[0]
-        );
+//       if (selectedStudents.length === 1) {
+//         const currentStudent = enrolledStudents.find(
+//           (student) => student._id === selectedStudents[0]
+//         );
 
-        // creditsPerCourse is an array of { courseId, credits, startTime }
-        // pass the whole array — the modal will find the matching courseId itself
-        setCreditsPerCourse(currentStudent?.creditsPerCourse || []);
-      } else {
-        setCreditsPerCourse([]);
-      }
-    } else {
-      toast.error("Failed to fetch classes");
-    }
-  } catch (error) {
-    console.error("Error fetching classes:", error);
-    toast.error("Error loading classes");
-  } finally {
-    setClassesLoading(false);
-  }
-};
+//         // creditsPerCourse is an array of { courseId, credits, startTime }
+//         // pass the whole array — the modal will find the matching courseId itself
+//         setCreditsPerCourse(currentStudent?.creditsPerCourse || []);
+//       } else {
+//         setCreditsPerCourse([]);
+//       }
+//     } else {
+//       toast.error("Failed to fetch classes");
+//     }
+//   } catch (error) {
+//     console.error("Error fetching classes:", error);
+//     toast.error("Error loading classes");
+//   } finally {
+//     setClassesLoading(false);
+//   }
+// };
 
-const groupClasses = (classList) => {
-  const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const dayMap = {};
+// const groupClasses = (classList) => {
+//   const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+//   const dayMap = {};
 
-  classList.forEach((cls) => {
-    const start = new Date(cls.startTime);
-    const end = new Date(cls.endTime);
-    const day = DAY_ORDER[start.getDay()];
-    const timeSlot = `${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+//   classList.forEach((cls) => {
+//     const start = new Date(cls.startTime);
+//     const end = new Date(cls.endTime);
+//     const day = DAY_ORDER[start.getDay()];
+//     const timeSlot = `${start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 
-    if (!dayMap[day]) dayMap[day] = {};
-    if (!dayMap[day][timeSlot]) dayMap[day][timeSlot] = [];
-    dayMap[day][timeSlot].push(cls);
-  });
+//     if (!dayMap[day]) dayMap[day] = {};
+//     if (!dayMap[day][timeSlot]) dayMap[day][timeSlot] = [];
+//     dayMap[day][timeSlot].push(cls);
+//   });
 
-  // Sort days by DAY_ORDER
-  return DAY_ORDER
-    .filter((day) => dayMap[day])
-    .map((day) => ({
-      day,
-      timeSlots: Object.entries(dayMap[day]).map(([timeSlot, classes]) => ({
-        timeSlot,
-        classes,
-        groupKey: `${day}__${timeSlot}`,
-      })),
-    }));
-};
+//   // Sort days by DAY_ORDER
+//   return DAY_ORDER
+//     .filter((day) => dayMap[day])
+//     .map((day) => ({
+//       day,
+//       timeSlots: Object.entries(dayMap[day]).map(([timeSlot, classes]) => ({
+//         timeSlot,
+//         classes,
+//         groupKey: `${day}__${timeSlot}`,
+//       })),
+//     }));
+// };
 
   useEffect(() => {
     if (!courseId) {
@@ -157,25 +157,12 @@ const groupClasses = (classList) => {
     setSelectedStudents([]); // Clear selections on page change
   };
 
-  // Handle submit
 const handleSubmit = async () => {
   if (selectedStudents.length === 0) {
     toast.error("Please select at least one student");
     return;
   }
-  await fetchClasses();
-  setShowClassModal(true);
-};
 
-const handleGroupToggle = (groupKey) => {
-  setSelectedGroups((prev) =>
-    prev.includes(groupKey)
-      ? prev.filter((k) => k !== groupKey)
-      : [...prev, groupKey]
-  );
-};
-
-const handleFinalAssign = async (payload) => {
   try {
     setSubmitting(true);
     toast.loading("Assigning students...", { id: "assign-students" });
@@ -187,11 +174,6 @@ const handleFinalAssign = async (payload) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           studentIds: selectedStudents,
-          classIds: payload.classIds,
-          startDate: payload.startDate,
-          message: payload.message,
-          credits: payload.credits,
-          
         }),
       }
     );
@@ -200,7 +182,6 @@ const handleFinalAssign = async (payload) => {
     if (response.ok && data.success) {
       toast.success(data.message || "Students assigned successfully!", { id: "assign-students" });
       setSelectedStudents([]);
-      setShowClassModal(false);
     } else {
       throw new Error(data.error || "Failed to assign students");
     }
@@ -210,6 +191,50 @@ const handleFinalAssign = async (payload) => {
     setSubmitting(false);
   }
 };
+
+// const handleGroupToggle = (groupKey) => {
+//   setSelectedGroups((prev) =>
+//     prev.includes(groupKey)
+//       ? prev.filter((k) => k !== groupKey)
+//       : [...prev, groupKey]
+//   );
+// };
+
+// const handleFinalAssign = async (payload) => {
+//   try {
+//     setSubmitting(true);
+//     toast.loading("Assigning students...", { id: "assign-students" });
+
+//     const response = await fetch(
+//       `/Api/academy/assignStudentsToCourse?courseId=${courseId}`,
+//       {
+//         method: "POST",
+//         headers: { "Content-Type": "application/json" },
+//         body: JSON.stringify({
+//           studentIds: selectedStudents,
+//           // classIds: payload.classIds,
+//           // startDate: payload.startDate,
+//           // message: payload.message,
+//           // credits: payload.credits,
+          
+//         }),
+//       }
+//     );
+
+//     const data = await response.json();
+//     if (response.ok && data.success) {
+//       toast.success(data.message || "Students assigned successfully!", { id: "assign-students" });
+//       setSelectedStudents([]);
+//       setShowClassModal(false);
+//     } else {
+//       throw new Error(data.error || "Failed to assign students");
+//     }
+//   } catch (error) {
+//     toast.error(error.message || "Failed to assign students", { id: "assign-students" });
+//   } finally {
+//     setSubmitting(false);
+//   }
+// };
   const renderPaginationItems = () => {
     const items = [];
     const { currentPage, totalPages } = pagination;
@@ -428,7 +453,7 @@ const handleFinalAssign = async (payload) => {
           )}
         </div>
       </div>
-  <ClassSelectionModal
+  {/* <ClassSelectionModal
   open={showClassModal}
   onClose={() => setShowClassModal(false)}
   onConfirm={handleFinalAssign}
@@ -437,7 +462,7 @@ const handleFinalAssign = async (payload) => {
   courseId={courseId}
   creditsPerCourse={creditsPerCourse}
   hideWarnings={true}
-/>
+/> */}
     </div>
   );
 };

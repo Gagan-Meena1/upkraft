@@ -143,60 +143,61 @@ export async function POST(request: NextRequest) {
 const updatePromises = studentIds.map(async (studentId) => {
   const student = await User.findById(studentId);
   
-  const existingEntry = student?.creditsPerCourse?.find(
-    (c: any) => c.courseId?.toString() === courseId.toString()
-  );
+  // const existingEntry = student?.creditsPerCourse?.find(
+  //   (c: any) => c.courseId?.toString() === courseId.toString()
+  // );
 
-  const startTimeEntry = startDate && startDate.trim() !== ""
-    ? { date: new Date(startDate), message: message || "" }
-    : null;
+  // const startTimeEntry = startDate && startDate.trim() !== ""
+  //   ? { date: new Date(startDate), message: message || "" }
+  //   : null;
 
   const creditsNum = Number(credits) || 0;
 
-  if (existingEntry) {
-    return User.findByIdAndUpdate(
+  // if (existingEntry) {
+  //   return 
+User.findByIdAndUpdate(
       studentId,
       {
-        $inc: { 
-          credits: creditsNum,
-          "creditsPerCourse.$[elem].credits": creditsNum  // ← arrayFilters syntax
-        },
+        // $inc: { 
+        //   credits: creditsNum,
+        //   "creditsPerCourse.$[elem].credits": creditsNum  // ← arrayFilters syntax
+        // },
         $addToSet: {
           courses: courseId,
           instructorId: { $each: tutorIds },
-          classes: { $each: classIds || [] }
+          // classes: { $each: classIds || [] }
         },
-        ...(startTimeEntry && {
-          $push: { "creditsPerCourse.$[elem].startTime": startTimeEntry }
-        })
+        // ...(startTimeEntry && {
+        //   $push: { "creditsPerCourse.$[elem].startTime": startTimeEntry }
+        // })
       },
       { 
         new: true,
-        arrayFilters: [{ "elem.courseId": new mongoose.Types.ObjectId(courseId) }] // ← this is the key
+        // arrayFilters: [{ "elem.courseId": new mongoose.Types.ObjectId(courseId) }] // ← this is the key
       }
     );
 
-  } else {
-    return User.findByIdAndUpdate(
-      studentId,
-      {
-        $inc: { credits: creditsNum },
-        $addToSet: {
-          courses: courseId,
-          instructorId: { $each: tutorIds },
-          classes: { $each: classIds || [] }
-        },
-        $push: {
-          creditsPerCourse: {
-            courseId: new mongoose.Types.ObjectId(courseId),
-            credits: creditsNum,
-            startTime: startTimeEntry ? [startTimeEntry] : []
-          }
-        }
-      },
-      { new: true }
-    );
-  }
+  // } else {
+  //   return User.findByIdAndUpdate(
+  //     studentId,
+  //     {
+  //       $inc: { credits: creditsNum },
+  //       $addToSet: {
+  //         courses: courseId,
+  //         instructorId: { $each: tutorIds },
+  //         classes: { $each: classIds || [] }
+  //       },
+  //       $push: {
+  //         creditsPerCourse: {
+  //           courseId: new mongoose.Types.ObjectId(courseId),
+  //           credits: creditsNum,
+  //           startTime: startTimeEntry ? [startTimeEntry] : []
+  //         }
+  //       }
+  //     },
+  //     { new: true }
+  //   );
+  // }
 });
 
 
