@@ -75,6 +75,27 @@ const userSchema = new mongoose.Schema({
         }],
         default: []
     },
+    creditsPerCourse: {
+        type: [{
+            courseId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "courseName",
+            },
+            credits: {
+                type: Number,
+                default: 0
+            }   ,
+            startTime: {
+                type:[{
+                    date: Date,
+                    message:String,
+                classIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Class" }]
+                    
+                }]
+            },
+        }],
+        default: []
+    },a
     // upkCredits: {
     //     type:[{
     //         courseId: {
