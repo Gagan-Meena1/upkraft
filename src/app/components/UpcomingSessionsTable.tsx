@@ -14,7 +14,11 @@ interface UpcomingSessionsTableProps {
   title?: string;
   timezone?: string;
   viewAllHref: string;
-  secondaryHeader: string;
+  /**
+   * Table headers in the exact order of columns rendered:
+   * [Date, Time, Class/Course, Secondary (e.g. Student/Tutor), Action]
+   */
+  headers: string[];
   rows: UpcomingSessionRow[];
   isLoading?: boolean;
   error?: string | null;
@@ -26,7 +30,7 @@ const UpcomingSessionsTable: React.FC<UpcomingSessionsTableProps> = ({
   title = "Upcoming Sessions",
   timezone,
   viewAllHref,
-  secondaryHeader,
+  headers,
   rows,
   isLoading = false,
   error = null,
@@ -56,11 +60,9 @@ const UpcomingSessionsTable: React.FC<UpcomingSessionsTableProps> = ({
           <table className="table align-middle m-0">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Course</th>
-                <th>{secondaryHeader}</th>
-                <th>Action</th>
+                {headers.map((header) => (
+                  <th key={header}>{header}</th>
+                ))}
               </tr>
             </thead>
             <tbody>

@@ -49,7 +49,7 @@
 //       // console.log("Received classDetails prop:", classDetails);
 //       const now = new Date();
 //       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      
+     
 //       const futureClasses = classDetails
 //         .filter((cls: ClassData) => new Date(cls.startTime) > twentyFourHoursAgo)
 //         .sort(
@@ -362,7 +362,7 @@ useEffect(() => {
       title="Upcoming Sessions"
       timezone={userTz}
       viewAllHref="/tutor/calendar"
-      secondaryHeader="Student Name"
+      headers={["Date", "Time", "Class Name", "Student Name", "Action"]}
       rows={rows}
       emptyMessage="No upcoming lessons"
       joinLabel="Join"
