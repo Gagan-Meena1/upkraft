@@ -75,11 +75,11 @@ const userSchema = new mongoose.Schema({
         }],
         default: []
     },
-    creditsPerCourse: {
+  creditsPerCourse: {
         type: [{
             courseId: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "courseName",
+                ref: "courseName"
             },
             credits: {
                 type: Number,
@@ -95,7 +95,7 @@ const userSchema = new mongoose.Schema({
             },
         }],
         default: []
-    },a
+    },
     // upkCredits: {
     //     type:[{
     //         courseId: {

@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     const user = await User.findOne({
       _id: userId,
     })
-      .select('username email profileImage timezone contact city attendance slotsAvailable credits creditsInput')
+      .select('username email profileImage timezone contact city attendance slotsAvailable credits creditsInput creditsPerCourse')
       .lean();
 
     if (!user) {
@@ -74,7 +74,8 @@ export async function GET(request: NextRequest) {
         attendance: user.attendance ,
         slotsAvailable: user.slotsAvailable ,
         credits: user.credits || 0,
-        creditsInput: user.creditsInput || []
+        creditsInput: user.creditsInput || [],
+        creditsPerCourse: user.creditsPerCourse || [],
       }
     });
 
