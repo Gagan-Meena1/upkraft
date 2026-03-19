@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { useUserData } from "../providers/UserData/page"; // ✅ Add this import
@@ -9,6 +8,7 @@ import {
   formatTimeRangeInTz,
   getUserTimeZone,
 } from "@/helper/time";
+import UpcomingSessionsTable, { type UpcomingSessionRow } from "../components/UpcomingSessionsTable";
 
 interface ClassData {
   _id: string;
@@ -24,10 +24,8 @@ interface ClassData {
 }
 
 const UpcomingLessons = () => {
-  // ✅ REPLACE the state and API call with context hook
   const { userData, classDetails, loading: contextLoading } = useUserData();
   
-  // ❌ REMOVE these lines:
   // const [userData, setUserData] = useState<UserData | null>(null);
   // const [loading, setLoading] = useState<boolean>(true);
   
@@ -39,7 +37,6 @@ const UpcomingLessons = () => {
   const [loadingTutors, setLoadingTutors] = useState(false);
 
 
-  // ✅ REPLACE the first useEffect with this simpler version
   useEffect(() => {
     if (!contextLoading && classDetails) {
       try {
@@ -52,7 +49,7 @@ const UpcomingLessons = () => {
             (a: ClassData, b: ClassData) =>
               new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
           )
-        .slice(0, 10); // ✅ ADD THIS LINE - Limit to 10 classes
+        .slice(0, 10); 
 
         setClasses(futureClasses);
       } catch (err) {
@@ -64,7 +61,6 @@ const UpcomingLessons = () => {
 
 
 
-// 3️⃣ REPLACE the entire tutor fetching useEffect with this:
 useEffect(() => {
   const fetchTutorNames = async () => {
     if (classes.length === 0) return;
@@ -155,100 +151,37 @@ useEffect(() => {
     }
   };
 
-  // ✅ Use contextLoading instead of loading
-  if (contextLoading) {
-    return (
-      <div className="card-box table-sec">
-        <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-          <h2>Upcoming Sessions</h2>
-        </div>
-        <div className="text-center py-4">Loading...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="card-box table-sec">
-        <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-          <h2>Upcoming Sessions</h2>
-        </div>
-        <div className="text-center py-4 text-danger">{error}</div>
-      </div>
-    );
-  }
+  const rows: UpcomingSessionRow[] = classes.slice(0, 8).map((classItem) => ({
+    id: classItem._id,
+    date: formatDate(classItem.startTime),
+    time: formatTimeRangeInTz(classItem.startTime, classItem.endTime, userTz),
+    course: classItem.title,
+    secondary: (
+      <span className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+        {loadingTutors ? (
+          <span className="text-gray-400">Loading...</span>
+        ) : tutorsMap[classItem._id] ? (
+          tutorsMap[classItem._id]
+        ) : (
+          <span className="text-gray-400">No tutor assigned</span>
+        )}
+      </span>
+    ),
+    onJoin: () => handleJoinMeeting(classItem._id),
+  }));
 
   return (
-    <div className="card-box table-sec">
-      <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-        <div className="flex gap-2 items-center flex-column">
-          <h2 className="!text-[20px] !mb-0">Upcoming Sessions</h2>
-          <span className="!text-sm text-gray-500">
-            (Timezone: {userData?.timezone || 'Loading...'})
-          </span>
-        </div>
-        <Link href="/student/calendar" className="btn-text">
-          View All
-        </Link>
-      </div>
-      <div className="table-responsive">
-        <table className="table align-middle m-0">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Course</th>
-              <th>Tutor Name</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {classes.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-3">
-                  No upcoming lessons
-                </td>
-              </tr>
-            ) : (
-              classes.slice(0, 8).map((classItem) => (
-                <tr key={classItem._id}>
-                  <th>{formatDate(classItem.startTime)}</th>
-                  <td>
-                    <div className="text-xs flex flex-col gap-2 text-gray-600">
-                      <span>
-                        {formatTimeRangeInTz(
-                          classItem.startTime,
-                          classItem.endTime,
-                          userTz
-                        )}
-                      </span>
-                    </div>
-                  </td>
-                  <th>{classItem.title}</th>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-  {loadingTutors ? (
-    <span className="text-gray-400">Loading...</span>
-  ) : tutorsMap[classItem._id] ? (
-    tutorsMap[classItem._id]
-  ) : (
-    <span className="text-gray-400">No tutor assigned</span>
-  )}
-</td>
-                  <td>
-                    <button
-                      onClick={() => handleJoinMeeting(classItem._id)}
-                      className="bg-purple-700 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Join
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <UpcomingSessionsTable
+      title="Upcoming Sessions"
+      timezone={userData?.timezone || "Loading..."}
+      viewAllHref="/student/calendar"
+      headers={["Date", "Time", "Course", "Tutor Name", "Action"]}
+      rows={rows}
+      isLoading={contextLoading}
+      error={error}
+      emptyMessage="No upcoming lessons"
+      joinLabel="Join"
+    />
   );
 };
 

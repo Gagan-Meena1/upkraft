@@ -49,7 +49,7 @@
 //       // console.log("Received classDetails prop:", classDetails);
 //       const now = new Date();
 //       const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      
+     
 //       const futureClasses = classDetails
 //         .filter((cls: ClassData) => new Date(cls.startTime) > twentyFourHoursAgo)
 //         .sort(
@@ -244,13 +244,13 @@
 
 "use client";
 import React, { useState, useEffect, useMemo } from "react";
-import Link from "next/link";
 import { toast } from "react-hot-toast";
 import {
   formatInTz,
   formatTimeRangeInTz,
   getUserTimeZone,
 } from "@/helper/time";
+import UpcomingSessionsTable, { type UpcomingSessionRow } from "../UpcomingSessionsTable";
 
 interface ClassData {
   _id: string;
@@ -278,7 +278,6 @@ const UpcomingLessons = ({ classDetails, userData }: UpcomingLessonsProps) => {
 
   const userTz = useMemo(() => userData?.timezone || getUserTimeZone(), [userData]);
 
-  // --- Memoized upcoming future classes ---
   const classes = useMemo(() => {
     if (!classDetails?.length) return [];
     const now = new Date();
@@ -289,11 +288,9 @@ const UpcomingLessons = ({ classDetails, userData }: UpcomingLessonsProps) => {
       .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
   }, [classDetails]);
 
-  // --- Fetch students for only the top 10 classes ---
 useEffect(() => {
   if (!classes.length) return;
 
-  // Only fetch students for the top 10 classes to avoid URI_TOO_LONG
   const top10Classes = classes.slice(0, 10);
   const ids = top10Classes.map(c => c._id).join(",");
   
@@ -336,78 +333,40 @@ useEffect(() => {
 
   const visibleClasses = classes.slice(0, 8);
 
-  return (
-    <div className="card-box table-sec">
-      <div className="head-com-sec d-flex align-items-center justify-content-between mb-4">
-        <div className="flex gap-2 items-center flex-column">
-          <h2 className="!text-[20px] !mb-0">Upcoming Sessions</h2>
-          <span className="!text-sm text-gray-500">
-            (Timezone: {userTz})
-          </span>
-        </div>
-        <Link href="/tutor/calendar" className="btn-text">
-          View All
-        </Link>
-      </div>
+  const rows: UpcomingSessionRow[] = visibleClasses.map((classItem) => {
+    const students = studentsMap[classItem._id] || [];
 
-      <div className="table-responsive">
-        <table className="table align-middle m-0">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Class Name</th>
-              <th>Student Name</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleClasses.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-center py-3">
-                  No upcoming lessons
-                </td>
-              </tr>
-            ) : (
-              visibleClasses.map(classItem => {
-                const students = studentsMap[classItem._id] || [];
-                return (
-                  <tr key={classItem._id}>
-                    <th>{formatInTz(classItem.startTime, userTz, { day: "numeric", month: "short" })}</th>
-                    <td>
-                      <span>
-                        {formatTimeRangeInTz(classItem.startTime, classItem.endTime, userTz)}
-                      </span>
-                    </td>
-                    <th>{classItem.title}</th>
-                    <td>
-                      {loadingStudents
-                        ? "Loading..."
-                        : students.length > 0
-                          ? (
-                            <span title={students.map(s => s.username).join(", ")}>
-                              {students.slice(0, 2).map(s => s.username).join(", ")}
-                              {students.length > 2 ? "..." : ""}
-                            </span>
-                          )
-                          : "No students assigned"}
-                    </td>
-                    <td>
-                      <button
-                        onClick={() => handleJoinMeeting(classItem._id)}
-                        className="bg-purple-700 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        Join
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    const secondaryContent = loadingStudents
+      ? "Loading..."
+      : students.length > 0
+      ? (
+          <span title={students.map((s: any) => s.username).join(", ")}>
+            {students.slice(0, 2).map((s: any) => s.username).join(", ")}
+            {students.length > 2 ? "..." : ""}
+          </span>
+        )
+      : "No students assigned";
+
+    return {
+      id: classItem._id,
+      date: formatInTz(classItem.startTime, userTz, { day: "numeric", month: "short" }),
+      time: formatTimeRangeInTz(classItem.startTime, classItem.endTime, userTz),
+      course: classItem.title,
+      secondary: secondaryContent,
+      onJoin: () => handleJoinMeeting(classItem._id),
+    };
+  });
+
+  return (
+    <UpcomingSessionsTable
+      title="Upcoming Sessions"
+      timezone={userTz}
+      viewAllHref="/tutor/calendar"
+      headers={["Date", "Time", "Class Name", "Student Name", "Action"]}
+      rows={rows}
+      emptyMessage="No upcoming lessons"
+      joinLabel="Join"
+    />
   );
 };
 
