@@ -287,7 +287,17 @@ function AllTutors() {
                     const currentRmId = currentRm?._id || "";
 
                     return (
-                      <div key={tutor._id} className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
+                      <div key={tutor._id} className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col relative hover:shadow-md transition-shadow">
+                        {isTeamLeadView && (
+                          <Link
+                            href={`/teamlead/tutor/${tutor._id}`}
+                            className="absolute top-4 right-4 w-7 h-7 rounded-md bg-gray-200 text-gray-700 flex items-center justify-center text-sm font-serif hover:bg-gray-300 transition-colors z-10"
+                            title="View classes & students"
+                            aria-label="View tutor classes calendar"
+                          >
+                            i
+                          </Link>
+                        )}
                         <div className="bg-gray-900 h-3"></div>
                         <div className="p-6 flex-1">
                           <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mb-4">
