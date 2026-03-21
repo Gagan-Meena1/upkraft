@@ -45,13 +45,18 @@ export async function PUT(
     }
 
     if (action === "approve") {
-      cls.deleteRequestStatus = "approved";
-      cls.status = "canceled"; // Optionally actually delete it: await Class.findByIdAndDelete(classId)
+      // Hard delete from Class collection
+      await Class.findByIdAndDelete(classId);
+
+      // Remove the class reference from any User documents (Tutor & Students)
+      await User.updateMany(
+        { classes: classId },
+        { $pull: { classes: classId } }
+      );
     } else {
       cls.deleteRequestStatus = "rejected";
+      await cls.save();
     }
-
-    await cls.save();
 
     return NextResponse.json({ success: true, message: `Request ${action}d successfully` });
 
