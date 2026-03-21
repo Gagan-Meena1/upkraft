@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import Class from "@/models/Class";
 import User from "@/models/userModel";
+import Feedback from "@/models/feedback";
 import jwt from "jsonwebtoken";
 
 export async function PUT(
@@ -52,6 +53,15 @@ export async function PUT(
       await User.updateMany(
         { classes: classId },
         { $pull: { classes: classId } }
+      );
+
+      // Delete any feedback associated with the class
+      await Feedback.deleteMany({ classId: classId });
+
+      // Remove the class from the attendance arrays of any users
+      await User.updateMany(
+        { "attendance.classId": classId },
+        { $pull: { attendance: { classId: classId } } }
       );
     } else {
       cls.deleteRequestStatus = "rejected";
