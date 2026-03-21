@@ -298,6 +298,34 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
         </>
       );
+    } else if (userType === 'teamlead' || userType === 'team_lead') {
+      return (
+        <>
+          <SidebarItem
+            title="Tutors"
+            icon={<Users size={20} className="text-gray-700" />}
+            route="/teamlead/tutors"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem
+            title="Delete Requests"
+            icon={<CheckCircle size={20} className="text-gray-700" />}
+            route="/teamlead/requests"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem
+            title="Logout"
+            icon={<LogOut size={20} className="text-gray-700" />}
+            collapsed={sidebarCollapsed}
+            onClick={handleLogout}
+            isMobile={isMobile}
+          />
+        </>
+      );
     }
     // Default menu items for tutor
     return (

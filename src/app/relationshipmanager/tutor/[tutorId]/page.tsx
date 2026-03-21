@@ -3,8 +3,9 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Trash2, X } from "lucide-react";
 import { formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
+import { toast } from "react-hot-toast";
 
 interface Student {
   _id: string;
@@ -23,6 +24,8 @@ interface ClassItem {
   course?: string;
   courseId?: string;
   students: Student[];
+  deleteRequest?: boolean;
+  deleteRequestStatus?: string;
 }
 
 interface TutorInfo {
@@ -49,6 +52,9 @@ export default function RMTutorCalendarPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeView, setActiveView] = useState<"day" | "week" | "month">("week");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<ClassItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const userTz = getUserTimeZone();
 
@@ -182,6 +188,45 @@ export default function RMTutorCalendarPage() {
   };
 
   const weekDays = activeView === "day" ? [currentDate] : getWeekDays();
+
+  const openDeleteModal = (cls: ClassItem) => {
+    setClassToDelete(cls);
+    setDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModalOpen(false);
+    setClassToDelete(null);
+  };
+
+  const handleDeleteRequest = async () => {
+    if (!classToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await fetch(
+        `/Api/relationship-manager/tutor/${tutorId}/classes/${classToDelete._id}/delete-request`,
+        { method: "POST", credentials: "include" }
+      );
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success("Delete request sent to team lead");
+        setClasses((prev) =>
+          prev.map((c) =>
+            c._id === classToDelete._id
+              ? { ...c, deleteRequest: true, deleteRequestStatus: "pending" }
+              : c
+          )
+        );
+        closeDeleteModal();
+      } else {
+        toast.error(data.error || "Failed to send delete request");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send delete request");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -381,10 +426,34 @@ export default function RMTutorCalendarPage() {
                               return (
                                 <div
                                   key={cls._id}
-                                  className={`p-2 rounded-lg border-l-4 ${style.bg} ${style.border} ${style.text} text-xs`}
+                                  className={`p-2 rounded-lg border-l-4 ${style.bg} ${style.border} ${style.text} text-xs relative`}
                                 >
-                                  <div className="font-semibold truncate">
-                                    {cls.title || "Class"}
+                                  <div className="flex justify-between items-start gap-1">
+                                    <div className="font-semibold truncate">
+                                      {cls.title || "Class"}
+                                    </div>
+                                    <div className="flex-shrink-0 ml-1">
+                                      {cls.deleteRequestStatus === "pending" ? (
+                                        <span className="text-[10px] bg-orange-100 text-orange-700 px-1 py-0.5 rounded whitespace-nowrap">
+                                          Delete Requested
+                                        </span>
+                                      ) : cls.deleteRequestStatus === "approved" ? (
+                                        <span className="text-[10px] bg-red-100 text-red-700 px-1 py-0.5 rounded whitespace-nowrap">
+                                          Deleted
+                                        </span>
+                                      ) : cls.status === "scheduled" || cls.status === "rescheduled" ? (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openDeleteModal(cls);
+                                          }}
+                                          title="Request Delete"
+                                          className="text-gray-400 hover:text-red-500 transition-colors p-0.5"
+                                        >
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      ) : null}
+                                    </div>
                                   </div>
                                   <div className="text-[11px] opacity-90 mt-0.5">
                                     {formatTime(cls.startTime, cls.endTime)}
@@ -426,6 +495,42 @@ export default function RMTutorCalendarPage() {
           </div>
         </div>
       </main>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && classToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 relative">
+            <button
+              onClick={closeDeleteModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Class</h3>
+            <p className="text-gray-600 text-sm mb-6">
+              Are you sure you want to request deletion for{" "}
+              <span className="font-semibold">{classToDelete.title}</span>? This
+              request will be sent to your team lead for approval.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={closeDeleteModal}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteRequest}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 flex items-center justify-center"
+              >
+                {isDeleting ? "Requesting..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

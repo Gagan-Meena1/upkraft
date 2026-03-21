@@ -149,6 +149,8 @@ export async function GET(
         startTime: cls.startTime,
         endTime: cls.endTime,
         status: cls.status,
+        deleteRequest: cls.deleteRequest,
+        deleteRequestStatus: cls.deleteRequestStatus,
         course: courseName,
         courseId: course?._id,
         students: studentsInClass,

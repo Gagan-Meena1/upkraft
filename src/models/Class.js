@@ -114,6 +114,16 @@ const ClassSchema = new mongoose.Schema({
     default: null,
   },
 
+  deleteRequest: {
+    type: Boolean,
+    default: false,
+  },
+  deleteRequestStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected', null],
+    default: null,
+  },
+
   // Class Quality Evaluation Data
   evaluation: {
     session_focus_clarity_score: Number,
