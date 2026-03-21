@@ -302,15 +302,15 @@ const Sidebar: React.FC<SidebarProps> = ({
       return (
         <>
           <SidebarItem
-            title="Tutors"
-            icon={<Users size={20} className="text-gray-700" />}
+            title="Home"
+            icon={<Home size={20} className="text-gray-700" />}
             route="/teamlead/tutors"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}
           />
           <SidebarItem
-            title="Delete Requests"
+            title="Requests"
             icon={<CheckCircle size={20} className="text-gray-700" />}
             route="/teamlead/requests"
             collapsed={sidebarCollapsed}
