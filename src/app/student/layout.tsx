@@ -5,6 +5,8 @@ import SideMenuHeader from "../components/SideMenuHeader";
 import TopHeaderStudent from "../components/TopHeaderStudent";
 import SuspensionModal from "../components/SuspensionModal";
 import { UserDataProvider } from "../providers/UserData/page"; 
+import { Provider } from "react-redux";
+import { store } from "@/store/store";
 
 export default function TutorLayout({
   children,
@@ -38,23 +40,25 @@ export default function TutorLayout({
   }, []);
 
   return (
-    <UserDataProvider> 
-      <div className="main-sec position-relative">
-        <div className="top-header">
-          <TopHeaderStudent role="student" setRole={() => {}} />
-        </div>
-        <div className="dashboard-sec position-relative d-flex flex-wrap">
-          <div className="side-menu-sec">
-            <SideMenuHeader role={"student"} />
+    <Provider store={store}>
+      <UserDataProvider> 
+        <div className="main-sec position-relative">
+          <div className="top-header">
+            <TopHeaderStudent role="student" setRole={() => {}} />
           </div>
-          <div className="side-details-sec">{children}</div>
+          <div className="dashboard-sec position-relative d-flex flex-wrap">
+            <div className="side-menu-sec">
+              <SideMenuHeader role={"student"} />
+            </div>
+            <div className="side-details-sec">{children}</div>
+          </div>
+          
+          {/* Show suspension modal if account is suspended */}
+          {/* {!isCheckingSuspension && isSuspended && (
+            <SuspensionModal message={suspensionMessage} />
+          )} */}
         </div>
-        
-        {/* Show suspension modal if account is suspended */}
-        {/* {!isCheckingSuspension && isSuspended && (
-          <SuspensionModal message={suspensionMessage} />
-        )} */}
-      </div>
-    </UserDataProvider> 
+      </UserDataProvider> 
+    </Provider>
   );
 }
