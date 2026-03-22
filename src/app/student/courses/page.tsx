@@ -7,6 +7,9 @@ import { toast, Toaster } from "react-hot-toast";
 import CourseCard from "@/app/components/courseCard";
 import DashboardLayout from "@/app/components/DashboardLayout";
 import "@/app/components/MyCourse.css";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/store/store";
+import { setStudentCourses } from "@/store/slices/studentCoursesSlice";
 
 // Define the Course interface based on your mongoose schema
 interface Course {
@@ -24,6 +27,10 @@ interface Course {
 }
 
 export default function TutorCoursesPage() {
+  const dispatch = useDispatch<AppDispatch>();
+  const coursesFromStore = useSelector(
+    (state: RootState) => state.studentCourses.courses
+  );
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +61,12 @@ export default function TutorCoursesPage() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
+        if (Array.isArray(coursesFromStore) && coursesFromStore.length > 0) {
+          setCourses(coursesFromStore as Course[]);
+          setIsLoading(false);
+          return;
+        }
+
         setIsLoading(true);
         const response = await fetch("/Api/users/user");
 
@@ -69,6 +82,7 @@ export default function TutorCoursesPage() {
         console.log("Courses data:", data);
 
         setCourses(data.courseDetails);
+  dispatch(setStudentCourses({ courseDetails: data.courseDetails }));
         console.log("data.courseDetails : ", data.courseDetails);
 
         setIsLoading(false);
@@ -81,7 +95,7 @@ export default function TutorCoursesPage() {
     };
 
     fetchCourses();
-  }, []);
+  }, [coursesFromStore, dispatch]);
 
   const viewPerformanceRoutes = {
     Music: "/student/performance/viewPerformance",
