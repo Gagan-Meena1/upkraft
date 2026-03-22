@@ -11,208 +11,177 @@ export async function GET(request: NextRequest) {
     const token = (() => {
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
-      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
+      const isTutorContext =
+        refererPath.startsWith("/tutor") ||
+        request.nextUrl?.pathname?.startsWith("/Api/tutor");
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value)
+        ? request.cookies.get("impersonate_token")?.value
+        : request.cookies.get("token")?.value;
     })();
+
     const decodedToken = token ? jwt.decode(token) : null;
-    let tutorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
-    
+    let tutorId =
+      decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken
+        ? decodedToken.id
+        : null;
+
     const url = new URL(request.url);
     const tutorIdParam = url.searchParams.get('tutorId');
-    if (tutorIdParam) {
-      tutorId = tutorIdParam;
-    }
-    
+    if (tutorIdParam) tutorId = tutorIdParam;
+
     const email = url.searchParams.get('email');
-    console.log("tutorId:", tutorId);
-    console.log("email:", email);
-    
+    const search = url.searchParams.get('search')?.trim() || '';
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10));
+    const pageLength = Math.max(1, parseInt(url.searchParams.get('pageLength') || '10', 10));
+    const skip = (page - 1) * pageLength;
+
     if (!tutorId) {
-      return NextResponse.json({ 
-        success: false, 
-        error: "Unauthorized - Please log in again"
-      }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: "Unauthorized - Please log in again" },
+        { status: 401 }
+      );
     }
-    
+
+    // ── Single-student email lookup ─────────────────────────────────────────
     if (email) {
       const user = await User.findOne({
         email: { $regex: `^${email}$`, $options: 'i' },
-        category: "Student"
+        category: "Student",
       })
-      .select('username email contact instructorId city profileImage assignment courses _id')
-      .populate({
-        path: 'courses',
-        select: 'title category duration price courseQuality performanceScores instructorId',
-        populate: [
-          {
-            path: 'instructorId',
-            select: 'username email'
-          },
-          {
-            path: 'performanceScores.userId',
-            select: 'username email'
-          }
-        ]
-      });
-      
-      // Check if student is already in tutor's list
+        .select('username email contact instructorId city profileImage assignment courses _id')
+        .populate({
+          path: 'courses',
+          select: 'title category duration price courseQuality performanceScores instructorId',
+          populate: [
+            { path: 'instructorId', select: 'username email' },
+            { path: 'performanceScores.userId', select: 'username email' },
+          ],
+        });
+
       const isAlreadyAdded = user?.instructorId?.includes(tutorId);
-      
       return NextResponse.json({
         success: true,
-        user: user ? {
-          username: user.username,
-          email: user.email,
-          contact: user.contact,
-          city: user.city,
-          profileImage: user.profileImage,
-          assignment: user.assignment,
-          _id: user._id,
-          courses: user.courses,
-          isAlreadyAdded
-        } : null
+        user: user
+          ? {
+            username: user.username, email: user.email, contact: user.contact,
+            city: user.city, profileImage: user.profileImage,
+            assignment: user.assignment, _id: user._id,
+            courses: user.courses, isAlreadyAdded,
+          }
+          : null,
       });
     }
-    
-  //   const tutor = await User.findById(tutorId);
-  //   const tutorCourses = await courseName.find({ instructorId: tutorId });
-  //   const courseIds = tutorCourses.map(course => course._id);
-    
-  //   const users = await User.find({
-  //     category: "Student",
-  //     $or: [
-  //       { courses: { $in: courseIds } },
-  //       { instructorId: tutorId }
-  //     ]
-  //   })
-  //   .select('username email contact city profileImage assignment courses attendance _id')
-  //   .populate({
-  //     path: 'courses',
-  //     select: 'title category duration price courseQuality performanceScores instructorId',
-  //     populate: [
-  //       {
-  //         path: 'instructorId',
-  //         select: 'username email'
-  //       },
-  //       {
-  //         path: 'performanceScores.userId',
-  //         select: 'username email'
-  //       }
-  //     ]
-  //   });
-    
-  //   if (!users || users.length === 0) {
-  //     return NextResponse.json({ 
-  //       success: true,
-  //       message: 'No students found',
-  //       filteredUsers: [],
-  //       userCount: 0,
-  //       academyId: tutor?.academyId || null
-  //     });
-  //   }
-    
-  //   const filteredUsers = users.map(user => ({
-  //     _id: user._id,
-  //     username: user.username,
-  //     email: user.email,
-  //     contact: user.contact,
-  //     profileImage: user.profileImage,
-  //     city: user.city,
-  //     assignment: user.assignment,
-  //     courses: user.courses,
-  //   }));
-    
-  //   return NextResponse.json({
-  //     success: true,
-  //     message: filteredUsers.length > 0 ? 'Students fetched successfully' : 'No students found',
-  //     filteredUsers,
-  //     userCount: filteredUsers.length,
-  //     academyId: tutor?.academyId || null,
-  //     assignmentPending: tutor?.assignmentPending || 0
-  const tutor = await User.findById(tutorId).select('academyId pendingAssignments');
-const tutorCourses = await courseName.find({ instructorId: tutorId });
-const courseIds = tutorCourses.map(course => course._id);
+    // ───────────────────────────────────────────────────────────────────────
 
-const users = await User.find({
-  category: "Student",
-  $or: [
-    { courses: { $in: courseIds } },
-    { instructorId: tutorId }
-  ]
-})
-.select('username email contact city profileImage assignment courses attendance _id')
-.populate({
-  path: 'courses',
-  select: 'title category duration price courseQuality performanceScores instructorId',
-  populate: [
-    {
-      path: 'instructorId',
-      select: 'username email'
-    },
-    {
-      path: 'performanceScores.userId',
-      select: 'username email'
+    // ── Tutor meta + course IDs in parallel ─────────────────────────────────
+    const [tutor, tutorCourses] = await Promise.all([
+      User.findById(tutorId).select('academyId pendingAssignments').lean(),
+      courseName.find({ instructorId: tutorId }).select('_id').lean(),
+    ]);
+
+    const courseIds = (tutorCourses as any[]).map((c) => c._id);
+
+    // ── Build query filter ───────────────────────────────────────────────────
+    const filter: Record<string, any> = {
+      category: "Student",
+      $or: [
+        { courses: { $in: courseIds } },
+        { instructorId: tutorId },
+      ],
+    };
+
+    if (search) {
+      const re = { $regex: search, $options: 'i' };
+      filter.$and = [{ $or: [{ username: re }, { email: re }] }];
     }
-  ]
-});
+    // ───────────────────────────────────────────────────────────────────────
 
-if (!users || users.length === 0) {
-  return NextResponse.json({ 
-    success: true,
-    message: 'No students found',
-    filteredUsers: [],
-    userCount: 0,
-    academyId: tutor?.academyId || null
-  });
-}
-  //   });
-  const pendingAssignmentsMap = new Map();
+    const populateConfig = {
+      path: 'courses',
+      select: 'title category duration price courseQuality performanceScores instructorId',
+      populate: [
+        { path: 'instructorId', select: 'username email' },
+        { path: 'performanceScores.userId', select: 'username email' },
+      ],
+    };
 
-if (tutor?.pendingAssignments && Array.isArray(tutor.pendingAssignments)) {
-  tutor.pendingAssignments.forEach((pending: any) => {
-    const studentId = pending.studentId.toString();
-    const pendingCount = pending.assignmentIds?.length || 0;
-    pendingAssignmentsMap.set(studentId, pendingCount);
-  });
-}
+    // Count + paginated fetch in parallel
+    const [totalCount, users] = await Promise.all([
+      User.countDocuments(filter),
+      User.find(filter)
+        .select('username email contact city profileImage assignment courses attendance _id')
+        .populate(populateConfig)
+        .skip(skip)
+        .limit(pageLength)
+        .lean(),
+    ]);
 
-// Map users and add pendingAssignments count
-const filteredUsers = users.map(user => ({
-  _id: user._id,
-  username: user.username,
-  email: user.email,
-  contact: user.contact,
-  profileImage: user.profileImage,
-  city: user.city,
-  assignment: user.assignment,
-  courses: user.courses,
-  attendance: user.attendance,
-  pendingAssignments: pendingAssignmentsMap.get(user._id.toString()) || 0
-}));
+    const totalPages = Math.max(1, Math.ceil(totalCount / pageLength));
 
-return NextResponse.json({
-  success: true,
-  message: filteredUsers.length > 0 ? 'Students fetched successfully' : 'No students found',
-  filteredUsers,
-  userCount: filteredUsers.length,
-  academyId: tutor?.academyId || null
-});
-    
+    if (!users?.length) {
+      return NextResponse.json({
+        success: true,
+        message: 'No students found',
+        filteredUsers: [],
+        userCount: 0,
+        totalCount,
+        totalPages,
+        currentPage: page,
+        academyId: (tutor as any)?.academyId || null,
+      });
+    }
+
+    // ── Pending-assignments map ──────────────────────────────────────────────
+    const pendingMap = new Map<string, number>();
+    const pending = (tutor as any)?.pendingAssignments;
+    if (Array.isArray(pending)) {
+      pending.forEach((p: any) =>
+        pendingMap.set(p.studentId.toString(), p.assignmentIds?.length || 0)
+      );
+    }
+
+    const filteredUsers = (users as any[]).map((user) => ({
+      _id: user._id,
+      username: user.username,
+      email: user.email,
+      contact: user.contact,
+      profileImage: user.profileImage,
+      city: user.city,
+      assignment: user.assignment,
+      courses: user.courses,
+      attendance: user.attendance,
+      pendingAssignments: pendingMap.get(user._id.toString()) || 0,
+    }));
+
+    return NextResponse.json({
+      success: true,
+      message: 'Students fetched successfully',
+      filteredUsers,
+      userCount: filteredUsers.length,
+      totalCount,
+      totalPages,
+      currentPage: page,
+      academyId: (tutor as any)?.academyId || null,
+    });
+
   } catch (error: any) {
     console.error('Server error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to fetch students. Please try again.'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch students. Please try again.',
+      },
+      { status: 500 }
+    );
   }
-  
 }
+
 
 export async function DELETE(request: NextRequest) {
   try {
     // Connect to database
-     await connect();
+    await connect();
 
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('studentId');
@@ -220,9 +189,9 @@ export async function DELETE(request: NextRequest) {
     // Validate studentId
     if (!studentId) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Student ID is required' 
+        {
+          success: false,
+          message: 'Student ID is required'
         },
         { status: 400 }
       );
@@ -233,9 +202,9 @@ export async function DELETE(request: NextRequest) {
 
     if (!deletedStudent) {
       return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Student not found' 
+        {
+          success: false,
+          message: 'Student not found'
         },
         { status: 404 }
       );
@@ -243,20 +212,20 @@ export async function DELETE(request: NextRequest) {
 
     // Return success response
     return NextResponse.json(
-      { 
-        success: true, 
-        message: 'Student removed successfully' 
+      {
+        success: true,
+        message: 'Student removed successfully'
       },
       { status: 200 }
     );
 
   } catch (error) {
     console.error('Error deleting student:', error);
-    
+
     return NextResponse.json(
-      { 
-        success: false, 
-        message: 'Internal server error. Failed to delete student.' 
+      {
+        success: false,
+        message: 'Internal server error. Failed to delete student.'
       },
       { status: 500 }
     );
@@ -271,7 +240,7 @@ export async function POST(request: NextRequest) {
     const token = (() => {
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
       return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
     })();
@@ -279,35 +248,32 @@ export async function POST(request: NextRequest) {
     const tutorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
 
     if (!tutorId) {
-      console.log("tutorId not found");
-      return NextResponse.json({ 
-        success: false, 
-        error: "Unauthorized - Tutor not found" 
+      return NextResponse.json({
+        success: false,
+        error: "Unauthorized - Tutor not found"
       }, { status: 401 });
     }
 
     // Get student email from request body
     const { email } = await request.json();
-    
+
     // Find the student
-    const student = await User.findOne({ 
-      email: { $regex: `^${email}$`, $options: 'i' } 
+    const student = await User.findOne({
+      email: { $regex: `^${email}$`, $options: 'i' }
     });
 
     const instructor = await User.findById(tutorId);
 
 
     if (!student) {
-      console.log("student not found");
-      return NextResponse.json({ 
-        success: false, 
-        error: "Student not found" 
+      return NextResponse.json({
+        success: false,
+        error: "Student not found"
       }, { status: 404 });
     }
 
     // Check if tutor is already in student's instructorId array
     if (student.instructorId?.includes(tutorId)) {
-      console.log("student is already in your list");
       return NextResponse.json({
         success: false,
         error: "Student is already in your list"
@@ -350,9 +316,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("Error adding student:", error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message || "Failed to add student" 
+    return NextResponse.json({
+      success: false,
+      error: error.message || "Failed to add student"
     }, { status: 500 });
   }
 }

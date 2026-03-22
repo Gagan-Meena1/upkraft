@@ -38,9 +38,6 @@ export async function POST(request: NextRequest) {
       instructorId = decodedToken && typeof decodedToken === 'object' && 'id' in decodedToken ? decodedToken.id : null;
     }
     const user = await User.findById(instructorId);
-    console.log("111111111111111111111111");
-
-    console.log(courseData);
 
     const newCourse = new courseName({
       title: courseData.title,
@@ -56,12 +53,10 @@ export async function POST(request: NextRequest) {
       tag: courseData?.tag || '',
 
     });
-    console.log(newCourse);
     const savednewCourse = await newCourse.save();
     const courses = await courseName.find({ instructorId })
     await User.findByIdAndUpdate(instructorId, { $addToSet: { courses: savednewCourse._id } }, { new: true })
 
-    console.log("22222222222222222222222222");
 
     return NextResponse.json({
       message: 'Course created successfully',
@@ -86,6 +81,7 @@ export async function GET(request: NextRequest) {
     const searchQuery = url.searchParams.get("search") || "";
     const page = Number(url.searchParams.get("page"));
     const pageLength = Number(url.searchParams.get("pageLength"));
+    const startedFrom = url.searchParams.get("startedFrom") || ""; // e.g. "26-02-2025"
 
     // Get instructorId
     let instructorId;
@@ -97,25 +93,21 @@ export async function GET(request: NextRequest) {
         let refererPath = "";
         try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
         const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-        return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+        return (isTutorContext && request.cookies.get("impersonate_token")?.value)
+          ? request.cookies.get("impersonate_token")?.value
+          : request.cookies.get("token")?.value;
       })();
       const decodedToken = token ? jwt.decode(token) : null;
       instructorId =
-        decodedToken &&
-          typeof decodedToken === "object" &&
-          "id" in decodedToken
+        decodedToken && typeof decodedToken === "object" && "id" in decodedToken
           ? decodedToken.id
           : null;
     }
 
     if (!instructorId) {
-      return NextResponse.json(
-        { error: "Instructor ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Instructor ID is required" }, { status: 400 });
     }
 
-    // Instructor info
     const instructor = await User.findById(instructorId).select(
       "academyId category courses creditsPerCourse"
     );
@@ -128,30 +120,44 @@ export async function GET(request: NextRequest) {
       ],
     };
 
-    // Add search filter if search query exists
+    // Search filter
     if (searchQuery.trim()) {
-      query.$and = [
-        {
-          title: { $regex: searchQuery.trim(), $options: "i" }
-        }
-      ];
+      query.$and = [{ title: { $regex: searchQuery.trim(), $options: "i" } }];
+    }
+
+    // startedFrom filter — format expected: "DD-MM-YYYY"
+    // startedFrom filter — handles both "YYYY-MM-DD" (native date input) and "DD-MM-YYYY"
+    if (startedFrom.trim()) {
+      let parsedDate: Date;
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(startedFrom.trim())) {
+        // YYYY-MM-DD format (native <input type="date">)
+        parsedDate = new Date(`${startedFrom.trim()}T00:00:00.000Z`);
+      } else if (/^\d{2}-\d{2}-\d{4}$/.test(startedFrom.trim())) {
+        // DD-MM-YYYY format
+        const [day, month, year] = startedFrom.trim().split("-");
+        parsedDate = new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+      } else {
+        parsedDate = new Date(NaN); // invalid, will be skipped
+      }
+
+      if (!isNaN(parsedDate.getTime())) {
+        if (!query.$and) query.$and = [];
+        query.$and.push({ createdAt: { $gte: parsedDate } });
+      }
     }
 
     let coursesQuery = courseName.find(query);
-
     let paginationMeta = null;
+
     if (
-      Number.isInteger(page) &&
-      Number.isInteger(pageLength) &&
-      page > 0 &&
-      pageLength > 0
+      Number.isInteger(page) && Number.isInteger(pageLength) &&
+      page > 0 && pageLength > 0
     ) {
       const skip = (page - 1) * pageLength;
-
       coursesQuery = coursesQuery.skip(skip).limit(pageLength);
 
       const totalCount = await courseName.countDocuments(query);
-
       paginationMeta = {
         page,
         pageLength,
@@ -170,16 +176,12 @@ export async function GET(request: NextRequest) {
         category: instructor?.category || null,
         creditsPerCourse: instructor?.creditsPerCourse || [],
         ...(paginationMeta && { pagination: paginationMeta }),
-        
       },
       { status: 200 }
     );
   } catch (error) {
     console.error("Course retrieval error:", error);
-    return NextResponse.json(
-      { error: "Failed to retrieve courses" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to retrieve courses" }, { status: 500 });
   }
 }
 
