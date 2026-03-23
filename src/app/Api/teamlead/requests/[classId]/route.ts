@@ -3,6 +3,11 @@ import { connect } from "@/dbConnection/dbConfic";
 import Class from "@/models/Class";
 import User from "@/models/userModel";
 import Feedback from "@/models/feedback";
+import FeedbackDance from "@/models/feedbackDance";
+import FeedbackDrawing from "@/models/feedbackDrawing";
+import FeedbackDrums from "@/models/feedbackDrums";
+import FeedbackVocal from "@/models/feedbackVocal";
+import FeedbackViolin from "@/models/feedbackViolin";
 import jwt from "jsonwebtoken";
 
 export async function PUT(
@@ -55,8 +60,15 @@ export async function PUT(
         { $pull: { classes: classId } }
       );
 
-      // Delete any feedback associated with the class
-      await Feedback.deleteMany({ classId: classId });
+      // Delete any feedback associated with the class across all course-specific feedback collections
+      await Promise.all([
+        Feedback.deleteMany({ classId: classId }),
+        FeedbackDance.deleteMany({ classId: classId }),
+        FeedbackDrawing.deleteMany({ classId: classId }),
+        FeedbackDrums.deleteMany({ classId: classId }),
+        FeedbackVocal.deleteMany({ classId: classId }),
+        FeedbackViolin.deleteMany({ classId: classId })
+      ]);
 
       // Remove the class from the attendance arrays of any users
       await User.updateMany(
