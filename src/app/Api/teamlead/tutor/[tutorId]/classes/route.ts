@@ -28,29 +28,29 @@ export async function GET(
     }
 
     const decoded = jwt.decode(token);
-    const rmId =
+    const userId =
       decoded && typeof decoded === "object" && "id" in decoded
         ? (decoded as { id: string }).id
         : null;
 
-    if (!rmId) {
+    if (!userId) {
       return NextResponse.json(
         { success: false, error: "Invalid token" },
         { status: 401 }
       );
     }
 
-    const rmUser = await User.findById(rmId).select("category");
+    const teamLeadUser = await User.findById(userId).select("category");
     if (
-      !rmUser ||
-      !["RelationshipManager", "Relationship Manager"].includes(
-        String(rmUser.category)
+      !teamLeadUser ||
+      !["TeamLead", "teamlead"].includes(
+        String(teamLeadUser.category)
       )
     ) {
       return NextResponse.json(
         {
           success: false,
-          error: "Only relationship managers can access this endpoint",
+          error: "Only team leads can access this endpoint",
         },
         { status: 403 }
       );
@@ -72,20 +72,6 @@ export async function GET(
       return NextResponse.json(
         { success: false, error: "Tutor not found" },
         { status: 404 }
-      );
-    }
-
-    const tutorRmId =
-      tutor.relationshipManager == null
-        ? ""
-        : typeof tutor.relationshipManager === "object" && tutor.relationshipManager !== null && "_id" in tutor.relationshipManager
-          ? String((tutor.relationshipManager as any)._id)
-          : String(tutor.relationshipManager);
-
-    if (tutorRmId !== rmId) {
-      return NextResponse.json(
-        { success: false, error: "This tutor is not assigned to you" },
-        { status: 403 }
       );
     }
 
@@ -149,8 +135,6 @@ export async function GET(
         startTime: cls.startTime,
         endTime: cls.endTime,
         status: cls.status,
-        deleteRequest: cls.deleteRequest,
-        deleteRequestStatus: cls.deleteRequestStatus,
         course: courseName,
         courseId: course?._id,
         students: studentsInClass,
@@ -163,7 +147,7 @@ export async function GET(
       classes: classesWithStudents,
     });
   } catch (error: any) {
-    console.error("Error fetching RM tutor classes:", error);
+    console.error("Error fetching Team Lead tutor classes:", error);
     return NextResponse.json(
       {
         success: false,

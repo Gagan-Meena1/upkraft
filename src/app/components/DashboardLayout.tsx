@@ -144,7 +144,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
       <div className="flex min-h-[calc(100vh-64px)]">
         {/* Sidebar */}
-        {(userType === "admin" || userType === "relationshipmanager") && (
+        {(userType === "admin" || userType === "relationshipmanager" || userType === "teamlead" || userType === "team_lead") && (
           <div
             id="mobile-sidebar"
             className={`

@@ -1,16 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { MdDelete } from "react-icons/md";
-import { ChevronLeft, ArrowLeft } from "lucide-react";
-import AddNewStudentModal from "../../components/AddNewStudentModal";
-import { Button, Dropdown, Form } from "react-bootstrap";
+import { ChevronLeft } from "lucide-react";
+import { Form } from "react-bootstrap";
 import CommonTable from "@/components/tutor/CommonTable";
 import { AppDispatch, RootState } from "@/store/store";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setStudent } from "@/store/slices/studentDataSlice";
-import { useSelector } from "react-redux";
 
 interface Course {
   _id: string;
@@ -22,19 +18,11 @@ interface Course {
   courseQuality: number;
   curriculum: any[];
   performanceScores: {
-    userId: {
-      _id: string;
-      username: string;
-      email: string;
-    };
+    userId: { _id: string; username: string; email: string };
     score: number;
     date: string;
   }[];
-  instructorId: {
-    _id: string;
-    username: string;
-    email: string;
-  };
+  instructorId: { _id: string; username: string; email: string };
 }
 
 interface Student {
@@ -50,18 +38,6 @@ interface Student {
   courseQualityAverage?: number;
 }
 
-interface ApiResponse {
-  message: string;
-  filteredUsers: Student[];
-}
-
-interface AssignmentDetail {
-  _id: string;
-  title: string;
-  status: boolean;
-}
-
-// Type definitions
 interface Column<T> {
   key: keyof T | string;
   label: string;
@@ -71,97 +47,97 @@ interface Column<T> {
   cellClassName?: (value: any, row: T) => string;
 }
 
+const PAGE_SIZE = 10;
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
+function calcPerformanceAverage(student: Student): number {
+  if (!student.courses?.length) return 0;
+  const scores: number[] = [];
+  student.courses.forEach((course) => {
+    const found = course.performanceScores?.find(
+      (s) => s.userId?._id === student._id
+    );
+    if (found) scores.push(found.score);
+  });
+  if (!scores.length) return 0;
+  return Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100;
+}
+
+function calcCourseQualityAverage(student: Student): number {
+  const valid = student.courses?.filter((c) => c.courseQuality > 0) || [];
+  if (!valid.length) return 0;
+  return (
+    Math.round(
+      (valid.reduce((a, c) => a + c.courseQuality, 0) / valid.length) * 100
+    ) / 100
+  );
+}
+
 export default function MyStudents() {
   const dispatch = useDispatch<AppDispatch>();
-  const { student } = useSelector(
-    (state: RootState) => state.student
-  );
+  const { student } = useSelector((state: RootState) => state.student);
+
   const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [deletingStudents, setDeletingStudents] = useState<Set<string>>(
-    new Set()
-  );
   const [academyId, setAcademyId] = useState<string | null>(null);
-  const [loadingAssignments, setLoadingAssignments] = useState<Set<string>>(
-    new Set()
-  );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const debouncedSearch = useDebounce(searchQuery, 400);
+
+  // Reset to page 1 whenever search changes
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearch]);
+
+  // ── Columns ───────────────────────────────────────────────────────────────
   const columns: Column<Student>[] = [
+    { key: "username", label: "Name", sortable: true, filterable: true },
     {
-      key: 'username',
-      label: 'Name',
+      key: "pendingAssignments",
+      label: "Pending",
       sortable: true,
-      filterable: true,
+      render: (v: number) => <span>{v || 0}</span>,
     },
-    // {
-    //   key: 'email',
-    //   label: 'Email',
-    //   sortable: true,
-    //   filterable: true,
-    // },
-    // {
-    //   key: 'contact',
-    //   label: 'Contact',
-    //   sortable: true,
-    //   filterable: true,
-    // },
-    // {
-    //   key: 'city',
-    //   label: 'Location',
-    //   sortable: true,
-    //   filterable: true,
-    //   render: (value: string | null) => value || 'N/A',
-    // },
     {
-      key: 'pendingAssignments',
-      label: 'Pending',
+      key: "performanceAverage",
+      label: "Perf Avg",
       sortable: true,
-      filterable: false,
-      render: (value: number, row: Student) => {
-        // If you have loadingAssignments state, you can pass it via context or props
-        // For now, just showing the value
-        return <span>{value || 0}</span>;
+      render: (v: number) => (v > 0 ? v : "N/A"),
+      cellClassName: (v: number) => {
+        if (!v || v <= 0) return "text-gray-400";
+        if (v >= 80) return "text-green-600 font-semibold";
+        if (v >= 60) return "text-yellow-600 font-semibold";
+        return "text-red-600 font-semibold";
       },
     },
     {
-      key: 'performanceAverage',
-      label: 'Perf Avg',
+      key: "courseQualityAverage",
+      label: "Quality Avg",
       sortable: true,
-      filterable: false,
-      render: (value: number) => {
-        return value;
-      },
-      cellClassName: (value: number) => {
-        if (!value || value <= 0) return 'text-gray-400';
-        if (value >= 80) return 'text-green-600 font-semibold';
-        if (value >= 60) return 'text-yellow-600 font-semibold';
-        return 'text-red-600 font-semibold';
+      render: (v: number) => (v > 0 ? v : "N/A"),
+      cellClassName: (v: number) => {
+        if (!v || v <= 0) return "text-gray-400";
+        if (v >= 80) return "text-green-600 font-semibold";
+        if (v >= 60) return "text-yellow-600 font-semibold";
+        return "text-red-600 font-semibold";
       },
     },
     {
-      key: 'courseQualityAverage',
-      label: 'Quality Avg',
-      sortable: true,
-      filterable: false,
-      render: (value: number) => {
-        console.log({ value });
-
-        return value;
-      },
-      cellClassName: (value: number) => {
-        if (!value || value <= 0) return 'text-gray-400';
-        if (value >= 80) return 'text-green-600 font-semibold';
-        if (value >= 60) return 'text-yellow-600 font-semibold';
-        return 'text-red-600 font-semibold';
-      },
-    },
-    {
-      key: 'assign',
-      label: 'Assign',
+      key: "assign",
+      label: "Assign",
       sortable: false,
-      filterable: false,
-      render: (value: any, row: Student) => (
+      render: (_: any, row: Student) => (
         <a
           href={`/tutor/addToCourseTutor?studentId=${row._id}`}
           className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
@@ -171,464 +147,160 @@ export default function MyStudents() {
       ),
     },
     {
-      key: 'actions',
-      label: 'Actions',
+      key: "actions",
+      label: "Actions",
       sortable: false,
-      filterable: false,
-      render: (value: any, row: Student) => (
-        <div className="flex items-center gap-2">
-          <Link
-            href={`/tutor/studentDetails?studentId=${row._id}`}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
-          >
-            Details
-          </Link>
-        </div>
+      render: (_: any, row: Student) => (
+        <Link
+          href={`/tutor/studentDetails?studentId=${row._id}`}
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
+        >
+          Details
+        </Link>
       ),
     },
   ];
 
-  const calculatePerformanceAverage = (student: Student): number => {
-    if (!student.courses || student.courses.length === 0) return 0;
+  // ── Fetch (page + search → API; API returns one page slice) ──────────────
+  const fetchStudents = useCallback(
+    async (page: number, search: string) => {
+      try {
+        setLoading(true);
+        setError(null);
 
-    const studentScores: number[] = [];
-
-    student.courses.forEach((course) => {
-      if (course.performanceScores && course.performanceScores.length > 0) {
-        // Find the student's score in this course
-
-        const studentScore = course.performanceScores.find(
-          (score) => score.userId?._id === student._id
-        );
-
-        if (studentScore) {
-          studentScores.push(studentScore.score);
-        }
-      }
-    });
-
-    if (studentScores.length === 0) return 0;
-
-    const average =
-      studentScores.reduce((sum, score) => sum + score, 0) /
-      studentScores.length;
-    return Math.round(average * 100) / 100; // Round to 2 decimal places
-  };
-
-  const calculateCourseQualityAverage = (student: Student): number => {
-    if (!student.courses || student.courses.length === 0) return 0;
-
-    const validCourses = student.courses.filter(
-      (course) => course.courseQuality && course.courseQuality > 0
-    );
-
-    if (validCourses.length === 0) return 0;
-
-    const average =
-      validCourses.reduce((sum, course) => sum + course.courseQuality, 0) /
-      validCourses.length;
-    return Math.round(average * 100) / 100; // Round to 2 decimal places
-  };
-
-  // const fetchAssignmentDetails = async (
-  //   assignmentIds: string[]
-  // ): Promise<{ pending: number }> => {
-  //   if (!assignmentIds || assignmentIds.length === 0) {
-  //     return { pending: 0 };
-  //   }
-
-  //   try {
-  //     const assignmentPromises = assignmentIds.map(async (assignmentId) => {
-  //       const response = await fetch(
-  //         `/Api/assignment/singleAssignment?assignmentId=${assignmentId}`
-  //       );
-  //       if (!response.ok) {
-  //         console.error(`Failed to fetch assignment ${assignmentId}`);
-  //         return null;
-  //       }
-  //       const data = await response.json();
-  //       return data.success ? data.data : null;
-  //     });
-
-  //     const assignments = await Promise.all(assignmentPromises);
-  //     const validAssignments = assignments.filter(
-  //       Boolean
-  //     ) as AssignmentDetail[];
-
-  //     const pending = validAssignments.filter(
-  //       (assignment) => !assignment.status
-  //     ).length;
-
-  //     return { pending };
-  //   } catch (error) {
-  //     console.error("Error fetching assignment details:", error);
-  //     return { pending: 0 };
-  //   }
-  // };
-
-  const fetchStudents = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/Api/myStudents");
-      // const token = localStorage.getItem('token'); // or wherever you store it
-
-      // const responsed = await fetch(
-      //   'http://localhost:5000/api/v1/tutor/students',
-      //   {
-      //     method: 'GET',
-      //     headers: {
-      //       'Content-Type': 'application/json',
-      //       Authorization: `Bearer ${token}`,
-      //     },
-      //   }
-      // );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch students");
-      }
-
-      const data = await response.json();
-      dispatch(setStudent(data))
-      console.log("API Response:", data);
-      // Store academyId
-      if (data.academyId) {
-        setAcademyId(data.academyId);
-        console.log("Academy ID:", data.academyId);
-      }
-
-      if (data && data.filteredUsers) {
-        const studentsWithDetails = data.filteredUsers.map((student: Student) => {
-          const performanceAverage = calculatePerformanceAverage(student);
-          const courseQualityAverage = calculateCourseQualityAverage(student);
-
-          return {
-            ...student,
-            // pendingAssignments is already coming from API
-            performanceAverage,
-            courseQualityAverage,
-          };
+        const params = new URLSearchParams({
+          page: String(page),
+          pageLength: String(PAGE_SIZE),
+          ...(search && { search }),
         });
 
-        setStudents(studentsWithDetails);
-      } else {
-        console.error("filteredUsers not found in API response:", data);
-        setError("Invalid response format from server");
-      }
+        const response = await fetch(`/Api/myStudents?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch students");
 
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching students:", err);
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
-      );
-      setLoading(false);
-    }
-  };
+        const data = await response.json();
+        if (!data.success) throw new Error(data.error || "Unknown server error");
 
-  const handleDeleteStudent = async (studentId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this student? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
+        if (data.academyId) setAcademyId(data.academyId);
 
-    try {
-      setDeletingStudents((prev) => new Set(prev).add(studentId));
+        // Store pagination meta from API
+        setTotalPages(data.totalPages ?? 1);
+        setTotalCount(data.totalCount ?? 0);
 
-      const response = await fetch(`/Api/myStudents?studentId=${studentId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete student");
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        // Remove the student from the local state
-        setStudents((prev) =>
-          prev.filter((student) => student._id !== studentId)
+        const enriched: Student[] = (data.filteredUsers ?? []).map(
+          (s: Student) => ({
+            ...s,
+            performanceAverage: calcPerformanceAverage(s),
+            courseQualityAverage: calcCourseQualityAverage(s),
+          })
         );
-        alert(data.message || "Student removed successfully");
-      } else {
-        throw new Error(data.message || "Failed to delete student");
+
+        setStudents(enriched);
+        dispatch(setStudent(data));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An unknown error occurred");
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      console.error("Error deleting student:", err);
-      alert(err instanceof Error ? err.message : "Failed to delete student");
-    } finally {
-      setDeletingStudents((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(studentId);
-        return newSet;
-      });
-    }
-  };
+    },
+    [dispatch]
+  );
 
+  // Fetch on mount and whenever page or debounced search changes
   useEffect(() => {
-    if (student?.length === 0 || student === null) {
-      fetchStudents();
-    } else {
-      setLoading(false)
-    }
-  }, []);
+    fetchStudents(currentPage, debouncedSearch);
+  }, [currentPage, debouncedSearch, fetchStudents]);
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className='right-form'>
-
+    <div className="right-form">
       <div className="card-box">
-
-        {/* <Link
-            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
-            href="/tutor"
-          >
-            <ArrowLeft size={20} />
-            Back to Dashboard
-          </Link> */}
-
-        {/* Main Content */}
         <div className="assignments-list-sec mobile-left-right">
-          {/* Header Section */}
-          {/* <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap">
-            <div className="left-head d-flex align-items-center gap-2">
-              <Link href="/tutor" className='link-text back-btn'>
-                <ChevronLeft />
-              </Link>
-              <h2 className="m-0">
-                My Students
-              </h2>
-            </div>
-            <div className="right-form">
-              {!academyId && (
-                <Link
-                  href="/tutor/createStudent"
-                  className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
-                >
-                  <span className="mr-2">+</span> Add Student
-                </Link>
-              )}
-            </div>
-          </div> */}
-          {/* <hr className="hr-light"></hr> */}
-
           {loading ? (
             <div className="w-full flex justify-center py-12 sm:py-20">
-              <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-gray-900"></div>
+              <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-gray-900" />
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 sm:p-6 max-w-md w-full text-center">
-                <svg
-                  className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-red-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
                 <h3 className="mt-4 text-base sm:text-lg font-medium text-red-800">
                   Failed to Load Students
                 </h3>
                 <p className="mt-2 text-sm text-red-600">{error}</p>
                 <button
-                  onClick={() => {
-                    setError(null);
-                    setLoading(true);
-                    fetchStudents();
-                  }}
-                  className="mt-4 px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors text-sm sm:text-base"
+                  onClick={() => fetchStudents(currentPage, debouncedSearch)}
+                  className="mt-4 px-4 py-2 bg-red-100 text-red-800 rounded-md hover:bg-red-200 transition-colors text-sm"
                 >
                   Try Again
                 </button>
               </div>
             </div>
+          ) : students.length === 0 && !debouncedSearch ? (
+            <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4 text-center">
+              <h3 className="mt-4 text-base sm:text-lg font-medium text-gray-900">
+                No Students Yet
+              </h3>
+              <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
+                You haven't added any students. Start by adding your first student.
+              </p>
+              {!academyId && (
+                <Link href="/tutor/createStudent">
+                  <button className="mt-5 px-4 sm:px-6 py-2 sm:py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors inline-flex items-center text-sm">
+                    + Add Your First Student
+                  </button>
+                </Link>
+              )}
+            </div>
           ) : (
             <div className="assignments-list-com table-responsive">
-              {students.length === 0 && student === null ? (
-                <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
-                  <div className="text-center">
-                    <svg
-                      className="mx-auto h-12 w-12 sm:h-16 sm:w-16 text-gray-400"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
-                      />
-                    </svg>
-                    <h3 className="mt-4 text-base sm:text-lg font-medium text-gray-900">
-                      No Students Yet
-                    </h3>
-                    <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-                      You haven't added any students to your list. Start by adding
-                      your first student to begin managing your classes.
-                    </p>
-                    {!academyId && (
-                      <Link href="/tutor/createStudent">
-                        <button className="mt-5 px-4 sm:px-6 py-2 sm:py-3 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors inline-flex items-center text-sm sm:text-base">
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                          </svg>
-                          Add Your First Student
-                        </button>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Desktop Table View - Hidden on mobile */}
-                  <div className="table-responsive w-1230">
-                    <div className=" table-sec">
-                      {/* <table className="table align-middle m-0">
-                        <thead >
-                          <tr>
-                            <th>
-                              Name
-                            </th>
-                            <th>
-                              Email
-                            </th>
-                            <th>
-                              Contact
-                            </th>
-                            <th>
-                              Location
-                            </th>
-                            <th>
-                              Pending
-                            </th>
-                            <th>
-                              Perf Avg
-                            </th>
-                            <th>
-                              Quality Avg
-                            </th>
-                            <th>
-                              Assign
-                            </th>
-                            <th>
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {students.map((student) => (
-                            <tr
-                              key={student._id}
+              <div className="table-responsive w-1230">
+                <div className="table-sec">
+                  <CommonTable
+                    pageSize={PAGE_SIZE}
+                    // ── Controlled pagination ────────────────────────────────
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    totalCount={totalCount}
+                    onPageChange={(page) => setCurrentPage(page)}
+                    // ────────────────────────────────────────────────────────
+                    headerContent={
+                      <div className="head-com-sec w-full d-flex align-items-center gap-2 justify-between mb-2">
+                        <div className="left-head d-flex align-items-center gap-2">
+                          <Link href="/tutor" className="link-text back-btn">
+                            <ChevronLeft />
+                          </Link>
+                          <h2 className="m-0">My Students</h2>
+                        </div>
+                        <div className="right-form d-flex align-items-center gap-2">
+                          <Form.Label className="d-none">search</Form.Label>
+                          <Form.Control
+                            ref={searchInputRef}
+                            type="text"
+                            placeholder="Search by name or email"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                          />
+                          {!academyId && (
+                            <Link
+                              href="/tutor/createStudent"
+                              className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2"
                             >
-                              <td
-                                title={student.username}
-                              >
-                                {student.username}
-                              </td>
-                              <td
-                                title={student.email}
-                              >
-                                {student.email}
-                              </td>
-                              <td >
-                                {student.contact}
-                              </td>
-                              <td
-                                title={student.city || "N/A"}
-                              >
-                                {student.city || "N/A"}
-                              </td>
-                              <td>
-                                {loadingAssignments.has(student._id) ? (
-                                  <div></div>
-                                ) : (
-                                  <span>
-                                    {student.pendingAssignments || 0}
-                                  </span>
-                                )}
-                              </td>
-                              <td >
-                                <span className={` ${student.performanceAverage
-                                  }`}>
-                                  {student.performanceAverage && student.performanceAverage > 0
-                                    ? `${student.performanceAverage}`
-                                    : 'N/A'}
-                                </span>
-                              </td>
-                              <td>
-                                <span
-                                  className={` ${student.courseQualityAverage
-                                    }`}
-                                >
-                                  {student.courseQualityAverage &&
-                                    student.courseQualityAverage > 0
-                                    ? `${student.courseQualityAverage}`
-                                    : "N/A"}
-                                </span>
-                              </td>
-                              <td>
-                                <Link
-                                  href={`/tutor/addToCourseTutor?studentId=${student._id}`}
-                                  className=""
-                                >
-                                  Course
-                                </Link>
-                              </td>
-                              <td>
-                                <div className="d-flex align-content-center justify-content-between gap-2">
-                                  <Link
-                                    href={`/tutor/studentDetails?studentId=${student._id}`}
-                                    className=""
-                                  >
-                                    Details
-                                  </Link>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table> */}
-                      <CommonTable
-                        headerContent={
-                          <div className="head-com-sec w-full d-flex align-items-center gap-2 justify-between mb-2">
-                            {/* <div className="head-com-sec d-flex align-items-center justify-content-between mb-4 gap-3 flex-xl-nowrap flex-wrap"> */}
-                            <div className="left-head d-flex align-items-center gap-2">
-                              <Link href="/tutor" className='link-text back-btn'>
-                                <ChevronLeft />
-                              </Link>
-                              <h2 className="m-0">
-                                My Students
-                              </h2>
-                            </div>
-                            <div className="right-form">
-                              {!academyId && (
-                                <Link
-                                  href="/tutor/createStudent"
-                                  className="btn btn-primary add-assignments d-flex align-items-center justify-content-center gap-2 btn btn-primary"
-                                >
-                                  <span className="mr-2">+</span> Add Student
-                                </Link>
-                              )}
-                            </div>
-                            {/* </div> */}
-                          </div>
-                        }
-                        columns={columns}
-                        data={students?.length > 0 ? students : student}
-                        rowKey="_id" />
-                    </div>
-                  </div>
-                </>
-              )}
+                              <span className="mr-2">+</span> Add
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    }
+                    columns={columns}
+                    data={students}
+                    rowKey="_id"
+                  />
+                  {students.length === 0 && debouncedSearch && (
+                    <p className="text-center text-gray-500 py-6">
+                      No students match &ldquo;<strong>{debouncedSearch}</strong>&rdquo;
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

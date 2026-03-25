@@ -103,7 +103,6 @@ export async function GET(
         ? decodedToken.id
         : null;
 
-    // ✅ All 4 queries run in parallel
     const [courseDetails, classDetails, enrolledStudents, instructor] = await Promise.all([
       courseName.findById(courseId).lean(),
       Class.find({ course: courseId }).sort({ startTime: 1 }).lean(),
@@ -122,7 +121,10 @@ export async function GET(
     return NextResponse.json({
       courseId,
       courseDetails,
-      classDetails,
+      classDetails: classDetails.map(cls => ({
+        ...cls,
+        status: cls.status ?? "scheduled",
+      })),
       enrolledStudents,
       totalStudents: enrolledStudents.length,
       academyId: instructor?.academyId || null,
