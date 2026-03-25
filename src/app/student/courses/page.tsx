@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Book, Clock, IndianRupee, List, ArrowLeft } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { toast, Toaster } from "react-hot-toast";
 import CourseCard from "@/app/components/courseCard";
@@ -10,6 +10,8 @@ import "@/app/components/MyCourse.css";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store/store";
 import { setStudentCourses } from "@/store/slices/studentCoursesSlice";
+import Form from "react-bootstrap/Form";
+import Pagination from "react-bootstrap/Pagination";
 
 // Define the Course interface based on your mongoose schema
 interface Course {
@@ -24,7 +26,10 @@ interface Course {
     topic: string;
     tangibleOutcome: string;
   }[];
+  createdAt?: string;
 }
+
+const PAGE_LENGTH = 10;
 
 export default function TutorCoursesPage() {
   const dispatch = useDispatch<AppDispatch>();
@@ -35,6 +40,9 @@ export default function TutorCoursesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [startedFromDate, setStartedFromDate] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -97,6 +105,33 @@ export default function TutorCoursesPage() {
     fetchCourses();
   }, [coursesFromStore, dispatch]);
 
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  const filteredCourses = useMemo(() => {
+    return courses.filter((course) => {
+      if (
+        searchQuery &&
+        !course.title.toLowerCase().includes(searchQuery.toLowerCase())
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [courses, searchQuery]);
+
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredCourses.length / PAGE_LENGTH));
+  }, [filteredCourses.length]);
+
+  const paginatedCourses = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_LENGTH;
+    return filteredCourses.slice(start, start + PAGE_LENGTH);
+  }, [filteredCourses, currentPage]);
+
   const viewPerformanceRoutes = {
     Music: "/student/performance/viewPerformance",
     Dance: "/student/performance/viewPerformance/dance",
@@ -126,34 +161,121 @@ export default function TutorCoursesPage() {
 
   const coursesContent = (
     <>
-    <Link
-            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
-            href="/student"
-          >
-            <ArrowLeft size={20} />
-            Back
-          </Link>
+      <Link
+        className="flex items-center gap-2 text-purple-600 hover:text-purple-700 mb-6"
+        href="/student"
+      >
+        <ArrowLeft size={20} />
+        Back
+      </Link>
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-purple-600 !text-[20px]">My Courses</h1>
+        <h1 className="text-3xl font-bold text-purple-600 !text-[20px]">
+          My Courses
+        </h1>
+      </div>
+
+      {/* Filter: search (styled similar to tutor My Courses) */}
+      <div className="mb-4">
+        <Form>
+          <div className="right-head d-flex align-items-center gap-2 flex-md-nowrap flex-wrap">
+            {/* Search box */}
+            <div className="search-box" style={{ maxWidth: 260, width: "100%" }}>
+              <Form.Group className="position-relative mb-0">
+                <Form.Label className="d-none">search</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Search here"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="border-0 bg-transparent p-0 m-0 position-absolute"
+                  style={{ right: 10, top: "50%", transform: "translateY(-50%)" }}
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M17.4995 17.5L13.8828 13.8833"
+                      stroke="#505050"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M9.16667 15.8333C12.8486 15.8333 15.8333 12.8486 15.8333 9.16667C15.8333 5.48477 12.8486 2.5 9.16667 2.5C5.48477 2.5 2.5 5.48477 2.5 9.16667C2.5 12.8486 5.48477 15.8333 9.16667 15.8333Z"
+                      stroke="#505050"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
+              </Form.Group>
+            </div>
+          </div>
+        </Form>
       </div>
 
       <Toaster />
 
-      {courses.length === 0 ? (
+      {courses.length === 0 && !searchQuery ? (
         <div className="bg-white rounded-xl p-8 text-center shadow-md border border-gray-100">
           <h2 className="text-2xl text-gray-800 mb-4">No Courses Available</h2>
         </div>
-      ) : (
-        <div className="flex flex-col">
-          {courses.map((course) => (
-            <CourseCard
-              key={course._id}
-              course={course}
-              userData={userData}
-              viewPerformanceRoutes={viewPerformanceRoutes}
-            />
-          ))}
+      ) : filteredCourses.length === 0 ? (
+        <div className="bg-white rounded-xl p-8 text-center shadow-md border border-gray-100">
+          <h2 className="text-2xl text-gray-800 mb-2">No matching courses</h2>
+          <p className="text-sm text-gray-600">
+            Try changing your search.
+          </p>
         </div>
+      ) : (
+        <>
+          <div className="flex flex-col">
+            {paginatedCourses.map((course) => (
+              <CourseCard
+                key={course._id}
+                course={course}
+                userData={userData}
+                viewPerformanceRoutes={viewPerformanceRoutes}
+              />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="pagination-sec d-flex align-items-center justify-content-center mt-4">
+              <Pagination>
+                <Pagination.Prev
+                  onClick={() =>
+                    setCurrentPage((page) => Math.max(page - 1, 1))
+                  }
+                  disabled={currentPage === 1}
+                />
+                {[...Array(totalPages)].map((_, idx) => (
+                  <Pagination.Item
+                    key={idx + 1}
+                    active={currentPage === idx + 1}
+                    onClick={() => setCurrentPage(idx + 1)}
+                  >
+                    {idx + 1}
+                  </Pagination.Item>
+                ))}
+                <Pagination.Next
+                  onClick={() =>
+                    setCurrentPage((page) =>
+                      Math.min(page + 1, totalPages)
+                    )
+                  }
+                  disabled={currentPage === totalPages}
+                />
+              </Pagination>
+            </div>
+          )}
+        </>
       )}
     </>
   );

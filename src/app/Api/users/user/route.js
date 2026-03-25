@@ -59,7 +59,7 @@ export async function GET(request) {
     // Fetch course details and student count in parallel
     const [courseDetails, studentCount] = await Promise.all([
       courseName.find({ _id: { $in: user.courses } })
-        .select("_id title category description duration price curriculum class")
+        .select("_id title category description duration price curriculum class createdAt")
         .lean(),
       User.countDocuments({
         instructorId: userId,

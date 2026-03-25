@@ -356,7 +356,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
                 {/* {shouldShowPayNow && (
                   <li>
                     <button
-                      className="w-full bg-white border border-green-200 text-green-700 hover:bg-green-50 !px-4 !py-3 !rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                      className="w-full bg-white border border-green-200 text-green-700 hover:bg-green-50 !px-4 !py-3 !rounded-lg font-medium transition-colors flex items-center justify-content-center gap-2"
                       onClick={handleOpenPaymentModal}
                     >
                       <IndianRupee size={18} />
@@ -364,21 +364,25 @@ const CourseCard: React.FC<CourseCardProps> = ({
                     </button>
                   </li>
                 )} */}
-                <li>
-                  <Link
-                    href={`${
-                      viewPerformanceRoutes[
-                        course.category as keyof typeof viewPerformanceRoutes
-                      ] || "/student/performance/viewPerformance"
-                    }?courseId=${course._id}&studentId=${userData._id}`}
-                    className="group/btn"
-                  >
-                    <button className="w-full flex items-center justify-between !px-4 !py-3 !bg-purple-700 !hover:bg-purple-600 text-white !rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer">
-                      <span className="font-medium">View Performance</span>
-                      <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                    </button>
-                  </Link>
-                </li>
+                {userData && (userData._id || userData.id) && (
+                  <li>
+                    <Link
+                      href={`$
+                        viewPerformanceRoutes[
+                          course.category as keyof typeof viewPerformanceRoutes
+                        ] || "/student/performance/viewPerformance"
+                      }?courseId=${course._id}&studentId=${
+                        userData._id || userData.id
+                      }`}
+                      className="group/btn"
+                    >
+                      <button className="w-full flex items-center justify-between !px-4 !py-3 !bg-purple-700 !hover:bg-purple-600 text-white !rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer">
+                        <span className="font-medium">View Performance</span>
+                        <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                      </button>
+                    </Link>
+                  </li>
+                )}
               </ul>
             </div>
           </div>
