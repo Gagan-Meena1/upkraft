@@ -30,6 +30,103 @@ interface CourseCardProps {
   viewPerformanceRoutes: Record<string, string>;
 }
 
+interface PaymentMethodsConfig {
+  selectedMethods: string[];
+  preferredMethod?: string;
+}
+
+interface TaxSettingsConfig {
+  defaultGSTRate: string;
+}
+
+interface PackagePricingSettings {
+  pricingModel?: string;
+  monthlySubscriptionPricing?: Array<{ months: number; discount: number }>;
+}
+
+interface PaymentConfig {
+  paymentMethods: PaymentMethodsConfig | null;
+  taxSettings: TaxSettingsConfig | null;
+  packagePricing: PackagePricingSettings | null;
+}
+
+let paymentConfigCache: PaymentConfig | null = null;
+let paymentConfigPromise: Promise<PaymentConfig> | null = null;
+
+const loadPaymentConfig = async (): Promise<PaymentConfig> => {
+  if (paymentConfigCache) return paymentConfigCache;
+  if (paymentConfigPromise) return paymentConfigPromise;
+
+  paymentConfigPromise = (async () => {
+    const config: PaymentConfig = {
+      paymentMethods: null,
+      taxSettings: null,
+      packagePricing: null,
+    };
+
+    try {
+      const [paymentMethodsResponse, taxSettingsResponse, packagePricingResponse] = await Promise.all([
+        fetch("/Api/student/paymentMethods").catch((error) => {
+          console.error("Error fetching payment methods:", error);
+          return null;
+        }),
+        fetch("/Api/student/taxSettings").catch((error) => {
+          console.error("Error fetching tax settings:", error);
+          return null;
+        }),
+        fetch("/Api/student/packagePricing").catch((error) => {
+          console.error("Error fetching package pricing:", error);
+          return null;
+        }),
+      ]);
+
+      if (paymentMethodsResponse && paymentMethodsResponse.ok) {
+        const data = await paymentMethodsResponse.json();
+        if (data.success && data.paymentMethods?.selectedMethods) {
+          config.paymentMethods = {
+            selectedMethods: data.paymentMethods.selectedMethods,
+            preferredMethod: data.paymentMethods.preferredMethod,
+          };
+        }
+      }
+
+      if (taxSettingsResponse && taxSettingsResponse.ok) {
+        const data = await taxSettingsResponse.json();
+        if (data.success && data.taxSettings?.defaultGSTRate) {
+          config.taxSettings = {
+            defaultGSTRate: data.taxSettings.defaultGSTRate,
+          };
+        }
+      }
+
+      if (packagePricingResponse && packagePricingResponse.ok) {
+        const data = await packagePricingResponse.json();
+        if (data.success && data.packagePricingSettings) {
+          config.packagePricing = {
+            pricingModel: data.packagePricingSettings.pricingModel || "Monthly Subscription",
+            monthlySubscriptionPricing: Array.isArray(
+              data.packagePricingSettings.monthlySubscriptionPricing
+            )
+              ? data.packagePricingSettings.monthlySubscriptionPricing
+              : undefined,
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Error loading payment config:", error);
+    }
+
+    paymentConfigCache = config;
+    return config;
+  })();
+
+  try {
+    return await paymentConfigPromise;
+  } finally {
+    paymentConfigPromise = null;
+  }
+};
+
 const CourseCard: React.FC<CourseCardProps> = ({
   course,
   userData,
@@ -104,148 +201,85 @@ const CourseCard: React.FC<CourseCardProps> = ({
   // Fetch payment methods and tax settings for student's academy
   useEffect(() => {
     if (shouldShowPayNow && userData?.academyId) {
-      const fetchPaymentMethods = async () => {
-        try {
-          const response = await fetch("/Api/student/paymentMethods");
-          if (response.ok) {
-            const data = await response.json();
-            console.log("Initial payment methods fetch:", data);
-            if (data.success && data.paymentMethods?.selectedMethods) {
-              setAvailablePaymentMethods(data.paymentMethods.selectedMethods);
-              // Set default payment method to preferredMethod if available, otherwise first method
-              const preferredMethod = data.paymentMethods.preferredMethod;
-              if (preferredMethod && 
-                  data.paymentMethods.selectedMethods.includes(preferredMethod)) {
-                setPaymentMethod(preferredMethod);
-                console.log("Initial payment method set to preferred:", preferredMethod);
-              } else if (data.paymentMethods.selectedMethods.length > 0) {
-                setPaymentMethod(data.paymentMethods.selectedMethods[0]);
-                console.log("Initial payment method set to first available:", data.paymentMethods.selectedMethods[0]);
-              }
+      loadPaymentConfig()
+        .then((config) => {
+          if (config.paymentMethods?.selectedMethods?.length) {
+            setAvailablePaymentMethods(config.paymentMethods.selectedMethods);
+            const preferredMethod = config.paymentMethods.preferredMethod;
+            if (
+              preferredMethod &&
+              config.paymentMethods.selectedMethods.includes(preferredMethod)
+            ) {
+              setPaymentMethod(preferredMethod);
+            } else {
+              setPaymentMethod(config.paymentMethods.selectedMethods[0]);
             }
           }
-        } catch (error) {
-          console.error("Error fetching payment methods:", error);
-        }
-      };
 
-      const fetchTaxSettings = async () => {
-        try {
-          const response = await fetch("/Api/student/taxSettings");
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.taxSettings?.defaultGSTRate) {
-              setGstRate(data.taxSettings.defaultGSTRate);
+          if (config.taxSettings?.defaultGSTRate) {
+            setGstRate(config.taxSettings.defaultGSTRate);
+          }
+
+          if (config.packagePricing) {
+            setPricingModel(
+              config.packagePricing.pricingModel || "Monthly Subscription"
+            );
+            if (
+              config.packagePricing.monthlySubscriptionPricing &&
+              Array.isArray(config.packagePricing.monthlySubscriptionPricing) &&
+              config.packagePricing.monthlySubscriptionPricing.length > 0
+            ) {
+              setMonthlySubscriptionPricing(
+                config.packagePricing.monthlySubscriptionPricing
+              );
             }
           }
-        } catch (error) {
-          console.error("Error fetching tax settings:", error);
-        }
-      };
-
-      const fetchPackagePricing = async () => {
-        try {
-          const response = await fetch("/Api/student/packagePricing");
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.packagePricingSettings) {
-              setPricingModel(data.packagePricingSettings.pricingModel || 'Monthly Subscription');
-              if (data.packagePricingSettings.monthlySubscriptionPricing && 
-                  Array.isArray(data.packagePricingSettings.monthlySubscriptionPricing) &&
-                  data.packagePricingSettings.monthlySubscriptionPricing.length > 0) {
-                setMonthlySubscriptionPricing(data.packagePricingSettings.monthlySubscriptionPricing);
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error fetching package pricing:", error);
-        }
-      };
-
-      fetchPaymentMethods();
-      fetchTaxSettings();
-      fetchPackagePricing();
+        })
+        .catch((error) => {
+          console.error("Error applying payment config:", error);
+        });
     }
   }, [shouldShowPayNow, userData?.academyId]);
 
   const handleOpenPaymentModal = async () => {
     setSelectedMonths(1);
-    
-    // Fetch payment methods and tax settings
     try {
-      const [paymentMethodsResponse, taxSettingsResponse] = await Promise.all([
-        fetch("/Api/student/paymentMethods"),
-        fetch("/Api/student/taxSettings")
-      ]);
-      
-      // Handle payment methods
-      if (paymentMethodsResponse.ok) {
-        const data = await paymentMethodsResponse.json();
-        console.log("Student payment methods API response:", data);
-        
-        if (data.success && data.paymentMethods?.selectedMethods) {
-          setAvailablePaymentMethods(data.paymentMethods.selectedMethods);
-          
-          // Set to preferred method if available, otherwise first method
-          const preferredMethod = data.paymentMethods.preferredMethod;
-          console.log("Preferred method from API:", preferredMethod);
-          console.log("Available methods:", data.paymentMethods.selectedMethods);
-          
-          if (preferredMethod && 
-              data.paymentMethods.selectedMethods.includes(preferredMethod)) {
-            setPaymentMethod(preferredMethod);
-            console.log("Setting payment method to preferred:", preferredMethod);
-          } else if (data.paymentMethods.selectedMethods.length > 0) {
-            const firstMethod = data.paymentMethods.selectedMethods[0];
-            setPaymentMethod(firstMethod);
-            console.log("Preferred method not available, using first method:", firstMethod);
-          } else {
-            setPaymentMethod("UPI");
-            console.log("No methods available, using default: UPI");
-          }
+      const config = await loadPaymentConfig();
+
+      if (config.paymentMethods?.selectedMethods?.length) {
+        setAvailablePaymentMethods(config.paymentMethods.selectedMethods);
+        const preferredMethod = config.paymentMethods.preferredMethod;
+        if (
+          preferredMethod &&
+          config.paymentMethods.selectedMethods.includes(preferredMethod)
+        ) {
+          setPaymentMethod(preferredMethod);
         } else {
-          console.warn("Payment methods data structure unexpected:", data);
-          // Fallback to first available method or UPI
-          if (availablePaymentMethods.length > 0) {
-            setPaymentMethod(availablePaymentMethods[0]);
-          } else {
-            setPaymentMethod("UPI");
-          }
+          setPaymentMethod(config.paymentMethods.selectedMethods[0]);
         }
+      } else if (availablePaymentMethods.length > 0) {
+        setPaymentMethod(availablePaymentMethods[0]);
       } else {
-        console.error("Failed to fetch payment methods:", paymentMethodsResponse.status, paymentMethodsResponse.statusText);
-        // Fallback to first available method or UPI
-        if (availablePaymentMethods.length > 0) {
-          setPaymentMethod(availablePaymentMethods[0]);
-        } else {
-          setPaymentMethod("UPI");
-        }
+        setPaymentMethod("UPI");
       }
 
-      // Handle tax settings
-      if (taxSettingsResponse.ok) {
-        const taxData = await taxSettingsResponse.json();
-        if (taxData.success && taxData.taxSettings?.defaultGSTRate) {
-          setGstRate(taxData.taxSettings.defaultGSTRate);
-        }
+      if (config.taxSettings?.defaultGSTRate) {
+        setGstRate(config.taxSettings.defaultGSTRate);
       }
 
-      // Fetch package pricing settings
-      const packagePricingResponse = await fetch("/Api/student/packagePricing");
-      if (packagePricingResponse.ok) {
-        const packagePricingData = await packagePricingResponse.json();
-        if (packagePricingData.success && packagePricingData.packagePricingSettings) {
-          setPricingModel(packagePricingData.packagePricingSettings.pricingModel || 'Monthly Subscription');
-          if (packagePricingData.packagePricingSettings.monthlySubscriptionPricing && 
-              Array.isArray(packagePricingData.packagePricingSettings.monthlySubscriptionPricing) &&
-              packagePricingData.packagePricingSettings.monthlySubscriptionPricing.length > 0) {
-            setMonthlySubscriptionPricing(packagePricingData.packagePricingSettings.monthlySubscriptionPricing);
-          }
+      if (config.packagePricing) {
+        setPricingModel(config.packagePricing.pricingModel || "Monthly Subscription");
+        if (
+          config.packagePricing.monthlySubscriptionPricing &&
+          Array.isArray(config.packagePricing.monthlySubscriptionPricing) &&
+          config.packagePricing.monthlySubscriptionPricing.length > 0
+        ) {
+          setMonthlySubscriptionPricing(config.packagePricing.monthlySubscriptionPricing);
         }
       }
     } catch (error) {
-      console.error("Error fetching payment methods or tax settings:", error);
-      // Fallback to first available method or UPI
+      console.error("Error loading payment configuration:", error);
+      // Fallback to first available method or UPI if config load fails
       if (availablePaymentMethods.length > 0) {
         setPaymentMethod(availablePaymentMethods[0]);
       } else {
