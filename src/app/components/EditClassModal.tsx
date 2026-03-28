@@ -69,6 +69,10 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
   const [hasRecurrence, setHasRecurrence] = useState(false);
 
   const hasDateChanged = form.date && form.date !== original.date;
+  const hasTimeChanged =
+    (form.startTime && form.startTime !== original.startTime) ||
+    (form.endTime && form.endTime !== original.endTime);
+  const hasScheduleChanged = !!(hasDateChanged || hasTimeChanged);
 
   useEffect(() => {
     let mounted = true;
@@ -162,7 +166,7 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
       return "Date and times are required";
     if (form.endTime <= form.startTime)
       return "End time must be after start time";
-    if (hasDateChanged && !reasonForReschedule.trim())
+    if (hasScheduleChanged && !reasonForReschedule.trim())
       return "Please provide a reason for rescheduling";
     return "";
   };
@@ -197,7 +201,7 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
       startTime: form.startTime,
       endTime: form.endTime,
       timezone: timezoneToSend,
-      reasonForReschedule: hasDateChanged ? reasonForReschedule : "",
+      reasonForReschedule: hasScheduleChanged ? reasonForReschedule : "",
     };
 
     // Build ISO strings for UI state so calendar logic keeps working
@@ -228,7 +232,7 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
         description: form.description,
         startTime: newStartIso,
         endTime: newEndIso,
-        ...(hasDateChanged && reasonForReschedule.trim()
+        ...(hasScheduleChanged && reasonForReschedule.trim()
           ? {
               status: "rescheduled",
               rescheduleReason: reasonForReschedule,

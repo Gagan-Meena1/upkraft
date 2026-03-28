@@ -63,6 +63,13 @@ const STATUS_COLORS = {
     dot: "bg-blue-500",
     label: "Rescheduled",
   },
+  rescheduled_present: {
+    bg: "bg-teal-50",
+    border: "border-teal-400",
+    text: "text-teal-700",
+    dot: "bg-teal-500",
+    label: "Rescheduled (Present)",
+  },
   pending: {
     bg: "bg-purple-50",
     border: "border-purple-400",
@@ -397,6 +404,8 @@ const StudentCalendarView = () => {
         return STATUS_COLORS.cancelled;
       case "rescheduled":
         return STATUS_COLORS.rescheduled;
+      case "rescheduled_present":
+        return STATUS_COLORS.rescheduled_present;
       case "pending":
       default:
         return STATUS_COLORS.pending;
@@ -406,20 +415,32 @@ const StudentCalendarView = () => {
   // Resolve attendance/status for a class (prefers explicit class.status for canceled/rescheduled, otherwise attendance records)
   const getClassAttendanceStatus = (classItem: any) => {
     const rawStatus = (classItem?.status || "").toString().toLowerCase();
+    let attendanceStatus = "pending";
 
-    // Explicit class status only for canceled / rescheduled
-    if (rawStatus === "canceled" || rawStatus === "cancelled") return "cancelled";
-    if (rawStatus === "reschedule" || rawStatus === "rescheduled") return "rescheduled";
+    if (attendanceRecords && attendanceRecords.length > 0) {
+      const classRecord = attendanceRecords.find(
+        (rec) => rec.classId === classItem._id || rec.sessionId === classItem._id
+      );
 
-    // Otherwise, use attendance records (present / absent / pending)
-    if (!attendanceRecords || attendanceRecords.length === 0) return "pending";
+      if (classRecord) {
+        attendanceStatus = (classRecord.status || "pending")
+          .toString()
+          .toLowerCase();
+      }
+    }
 
-    const classRecord = attendanceRecords.find(
-      (rec) => rec.classId === classItem._id || rec.sessionId === classItem._id
-    );
-    if (!classRecord) return "pending";
+    if (rawStatus === "canceled" || rawStatus === "cancelled") {
+      return "cancelled";
+    }
 
-    return (classRecord.status || "pending").toString().toLowerCase();
+    if (rawStatus === "reschedule" || rawStatus === "rescheduled") {
+      if (classItem.feedbackId && attendanceStatus === "present") {
+        return "rescheduled_present";
+      }
+      return "rescheduled";
+    }
+
+    return attendanceStatus;
   };
 
   return (
