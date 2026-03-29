@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, Star, User } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, User, ArrowRightLeft, X, Loader2 } from "lucide-react";
 
 interface UserInfo {
     _id: string;
@@ -63,6 +63,13 @@ export default function RMStudentFeedbacksPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [enablingFeedbackId, setEnablingFeedbackId] = useState<string | null>(null);
+
+    const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+    const [studentToReassign, setStudentToReassign] = useState<UserInfo | null>(null);
+    const [availableTutors, setAvailableTutors] = useState<any[]>([]);
+    const [newTutorId, setNewTutorId] = useState<string>("");
+    const [isSubmittingReassign, setIsSubmittingReassign] = useState(false);
+    const [isLoadingTutors, setIsLoadingTutors] = useState(false);
 
     useEffect(() => {
         if (!tutorId) {
@@ -146,6 +153,62 @@ export default function RMStudentFeedbacksPage() {
             fb.class.title.toLowerCase().includes(lowerSearch)
         );
     }, [feedbacks, selectedStudentId, searchTerm]);
+
+    const handleOpenReassignModal = async (student: UserInfo) => {
+        setStudentToReassign(student);
+        setIsReassignModalOpen(true);
+        setNewTutorId("");
+        
+        if (availableTutors.length === 0) {
+            setIsLoadingTutors(true);
+            try {
+                const res = await fetch('/Api/relationship-manager/tutors', {
+                    credentials: "include"
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    setAvailableTutors(data.tutors || []);
+                } else {
+                    alert(data.error || "Failed to load tutors");
+                }
+            } catch (err) {
+                console.error("Error fetching tutors:", err);
+            } finally {
+                setIsLoadingTutors(false);
+            }
+        }
+    };
+
+    const handleReassignSubmit = async () => {
+        if (!newTutorId || !studentToReassign || !tutorId) return;
+        
+        setIsSubmittingReassign(true);
+        try {
+            const res = await fetch('/Api/relationship-manager/student/reassign', {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({
+                    studentId: studentToReassign._id,
+                    oldTutorId: tutorId,
+                    newTutorId: newTutorId
+                })
+            });
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                setFeedbacks(prev => prev.filter(fb => fb.student._id !== studentToReassign._id));
+                setIsReassignModalOpen(false);
+                setStudentToReassign(null);
+            } else {
+                alert(data.error || "Failed to reassign student");
+            }
+        } catch (err: any) {
+            alert(err.message || "An error occurred during reassignment.");
+        } finally {
+            setIsSubmittingReassign(false);
+        }
+    };
 
     const handleEnableEdit = async (feedbackId: string) => {
         if (!tutorId) return;
@@ -302,7 +365,19 @@ export default function RMStudentFeedbacksPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 mt-3 transition-colors" />
+                                        <div className="flex items-center gap-1 mt-3">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleOpenReassignModal(summary.student);
+                                                }}
+                                                className="p-1.5 rounded-full text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors z-10 relative"
+                                                title="Reassign to another tutor"
+                                            >
+                                                <ArrowRightLeft className="w-5 h-5" />
+                                            </button>
+                                            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" />
+                                        </div>
                                     </div>
 
                                     <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
@@ -423,6 +498,86 @@ export default function RMStudentFeedbacksPage() {
                     )
                 )}
             </main>
+
+            {/* Reassign Modal */}
+            {isReassignModalOpen && studentToReassign && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
+                            <h2 className="text-lg font-semibold text-gray-900">Reassign Student</h2>
+                            <button 
+                                onClick={() => setIsReassignModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        
+                        <div className="p-6">
+                            <p className="text-sm text-gray-600 mb-4">
+                                Select a new tutor to assign <span className="font-semibold text-gray-900">{studentToReassign.username}</span> to. Historical data will remain preserved.
+                            </p>
+                            
+                            {isLoadingTutors ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            New Tutor
+                                        </label>
+                                        <select
+                                            value={newTutorId}
+                                            onChange={(e) => setNewTutorId(e.target.value)}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                                        >
+                                            <option value="">Select a tutor...</option>
+                                            {availableTutors
+                                                .filter(t => t._id !== tutorId)
+                                                .map(t => (
+                                                <option key={t._id} value={t._id}>
+                                                    {t.username} ({t.email})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <div className="pt-2 flex justify-end gap-3">
+                                        <button
+                                            onClick={() => setIsReassignModalOpen(false)}
+                                            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                                            disabled={isSubmittingReassign}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleReassignSubmit}
+                                            disabled={!newTutorId || isSubmittingReassign}
+                                            className={`px-4 py-2 text-sm font-medium text-white shadow-sm rounded-lg transition-colors flex items-center gap-2 ${
+                                                !newTutorId || isSubmittingReassign 
+                                                ? 'bg-purple-400 cursor-not-allowed' 
+                                                : 'bg-purple-600 hover:bg-purple-700'
+                                            }`}
+                                        >
+                                            {isSubmittingReassign ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Reassigning...
+                                                </>
+                                            ) : (
+                                                'Confirm Reassignment'
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
