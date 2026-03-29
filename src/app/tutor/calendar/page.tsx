@@ -108,6 +108,13 @@ const STATUS_COLORS: Record<
     dot: "bg-blue-500",
     label: "Rescheduled/Edited",
   },
+  rescheduled_present: {
+    bg: "bg-teal-50",
+    border: "border-teal-400",
+    text: "text-teal-700",
+    dot: "bg-teal-500",
+    label: "Rescheduled (Present)",
+  },
   pending: {
     bg: "bg-purple-50",
     border: "border-purple-400",
@@ -202,6 +209,8 @@ function getStatusColor(status: string) {
       return STATUS_COLORS.cancelled;
     case "rescheduled":
       return STATUS_COLORS.rescheduled;
+    case "rescheduled_present":
+      return STATUS_COLORS.rescheduled_present;
     default:
       return DEFAULT_STATUS_COLOR;
   }
@@ -459,22 +468,35 @@ const fetchStudents = useCallback(async (page = 1): Promise<Student[]> => {
   const getClassAttendanceStatus = useCallback(
     (classItem: ClassItem): string => {
       const rawStatus = (classItem?.status || "").toString().toLowerCase();
-
-      if (rawStatus === "canceled" || rawStatus === "cancelled")
-        return "cancelled";
-      if (rawStatus === "reschedule" || rawStatus === "rescheduled")
-        return "rescheduled";
-
       const studentId = classItem.studentId || classItem.student?._id;
-      if (!studentId || !attendanceMap[studentId]) return "pending";
+      let attendanceStatus = "pending";
 
-      const classRecord = attendanceMap[studentId].find(
-        (record: any) =>
-          record.classId === classItem._id ||
-          record.sessionId === classItem._id
-      );
-      if (!classRecord) return "pending";
-      return (classRecord.status || "pending").toString().toLowerCase();
+      if (studentId && attendanceMap[studentId]) {
+        const classRecord = attendanceMap[studentId].find(
+          (record: any) =>
+            record.classId === classItem._id ||
+            record.sessionId === classItem._id
+        );
+
+        if (classRecord) {
+          attendanceStatus = (classRecord.status || "pending")
+            .toString()
+            .toLowerCase();
+        }
+      }
+
+      if (rawStatus === "canceled" || rawStatus === "cancelled") {
+        return "cancelled";
+      }
+
+      if (rawStatus === "reschedule" || rawStatus === "rescheduled") {
+        if (classItem.feedbackId && attendanceStatus === "present") {
+          return "rescheduled_present";
+        }
+        return "rescheduled";
+      }
+
+      return attendanceStatus;
     },
     [attendanceMap]
   );
@@ -782,32 +804,20 @@ const studentList = await fetchStudents(currentPage);
   const handleEditSuccess = useCallback(
     async (updatedData?: Partial<ClassItem>) => {
       const classId = editingClassId;
-      const reason = rescheduleReason.trim();
 
       if (classId) {
-        const mergeFields: Partial<ClassItem> = {
-          ...(updatedData || {}),
-          ...(reason
-            ? {
-              status: "rescheduled",
-              rescheduleReason: reason,
-              reasonForReschedule: reason,
-            }
-            : {}),
-        };
-
         setAllClasses((prev) =>
           prev.map((block) => ({
             ...block,
             classes: block.classes.map((cls) =>
-              cls._id === classId ? { ...cls, ...mergeFields } : cls
+              cls._id === classId ? { ...cls, ...(updatedData || {}) } : cls
             ),
           }))
         );
 
         setSelectedClass((prev) =>
           prev && prev._id === classId
-            ? { ...prev, ...mergeFields }
+            ? { ...prev, ...(updatedData || {}) }
             : prev
         );
       }
@@ -820,16 +830,6 @@ const studentList = await fetchStudents(currentPage);
       // Background sync
       (async () => {
         try {
-          if (reason && classId) {
-            await fetch(`/Api/calendar/classes/${classId}`, {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                reasonForReschedule: reason,
-                status: "rescheduled",
-              }),
-            });
-          }
 const studentList = await fetchStudents(currentPage);
           if (studentList.length > 0) await fetchAllClasses(studentList);
         } catch (err) {
@@ -1743,14 +1743,6 @@ const CancelClassModal = React.memo<CancelClassModalProps>(
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              variant="secondary"
-              className="flex-1 !py-2 !rounded-md !text-sm"
-              onClick={() => onCancel(reason, "following")}
-              disabled={!reason.trim() || disabled || loading}
-            >
-              {loading ? "Cancelling..." : "Cancel Following"}
-            </Button>
-            <Button
               variant="warning"
               className="flex-1 !py-2 !rounded-md !text-sm"
               onClick={() => onCancel(reason, "single")}
@@ -1759,13 +1751,22 @@ const CancelClassModal = React.memo<CancelClassModalProps>(
               {loading ? "Cancelling..." : "Cancel This Event"}
             </Button>
             <Button
+              variant="secondary"
+              className="flex-1 !py-2 !rounded-md !text-sm"
+              onClick={() => onCancel(reason, "following")}
+              disabled={!reason.trim() || disabled || loading}
+            >
+              {loading ? "Cancelling..." : "Cancel Following"}
+            </Button>
+            
+            {/* <Button
               variant="danger"
               className="flex-1 !py-2 !rounded-md !text-sm"
               onClick={() => onCancel(reason, "all")}
               disabled={!reason.trim() || disabled || loading}
             >
               {loading ? "Cancelling..." : "Cancel All Events"}
-            </Button>
+            </Button> */}
           </div>
         </Modal.Body>
       </Modal>

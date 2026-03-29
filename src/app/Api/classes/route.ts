@@ -508,17 +508,26 @@ export async function PUT(request: NextRequest) {
       storedEndUTC: endDateTime.toISOString(),
     });
 
+    const scheduleChanged =
+      existingClass.startTime.getTime() !== startDateTime.getTime() ||
+      existingClass.endTime.getTime() !== endDateTime.getTime();
+
+    const updatePayload: any = {
+      title,
+      description,
+      startTime: startDateTime, // Store in UTC
+      endTime: endDateTime, // Store in UTC
+      ...(joinLink !== undefined && { joinLink: joinLink || null }),
+    };
+
+    if (scheduleChanged) {
+      updatePayload.reasonForReschedule = reasonForReschedule;
+      updatePayload.status = 'rescheduled';
+    }
+
     const updatedClass = await Class.findByIdAndUpdate(
       classId,
-      {
-        title,
-        description,
-        startTime: startDateTime, // Store in UTC
-        endTime: endDateTime, // Store in UTC
-        reasonForReschedule: reasonForReschedule,
-        status: 'rescheduled',
-        ...(joinLink !== undefined && { joinLink: joinLink || null }),
-      },
+      updatePayload,
       { new: true, runValidators: true }
     );
 
