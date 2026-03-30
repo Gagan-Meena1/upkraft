@@ -107,7 +107,7 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Not a protected route, but still check if we need to swap cookies for APIs
+  // Not a protected route, but still check if we need to swap cookies for APIs.
   if (isTutorContext && impersonateToken) {
     const requestHeaders = new Headers(request.headers);
     const cookieHeader = request.headers.get('cookie') || '';

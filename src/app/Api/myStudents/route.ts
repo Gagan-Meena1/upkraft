@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     // ── Single-student email lookup ─────────────────────────────────────────
     if (email) {
-      const user = await User.findOne({
+      const user = await (User as any).findOne({
         email: { $regex: `^${email}$`, $options: 'i' },
         category: "Student",
       })
@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
 
     // ── Tutor meta + course IDs in parallel ─────────────────────────────────
     const [tutor, tutorCourses] = await Promise.all([
-      User.findById(tutorId).select('academyId pendingAssignments').lean(),
-      courseName.find({ instructorId: tutorId }).select('_id').lean(),
+      (User as any).findById(tutorId).select('academyId pendingAssignments').lean(),
+      (courseName as any).find({ instructorId: tutorId }).select('_id').lean(),
     ]);
 
     const courseIds = (tutorCourses as any[]).map((c) => c._id);
@@ -107,15 +107,22 @@ export async function GET(request: NextRequest) {
     };
 
     // Count + paginated fetch in parallel
-    const [totalCount, users] = await Promise.all([
-      User.countDocuments(filter),
-      User.find(filter)
-        .select('username email contact city profileImage assignment courses attendance _id')
+    const [totalCountRaw, usersRaw] = await Promise.all([
+      (User as any).countDocuments(filter),
+      (User as any).find(filter)
+        .select('username email contact city profileImage assignment courses attendance instructorId _id')
         .populate(populateConfig)
         .skip(skip)
         .limit(pageLength)
         .lean(),
     ]);
+
+    // TEMPORARY HIDE: Filter out students who do not have this tutorId in their instructorId array.
+    // This hides students who were reassigned by the RM (since we removed the old tutor from instructorId).
+    const users = (usersRaw as any[]).filter(u => 
+      u.instructorId && u.instructorId.some((id: any) => id.toString() === tutorId.toString())
+    );
+    const totalCount = totalCountRaw - (usersRaw.length - users.length);
 
     const totalPages = Math.max(1, Math.ceil(totalCount / pageLength));
 
@@ -198,7 +205,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Find and delete the student
-    const deletedStudent = await User.findByIdAndDelete(studentId);
+    const deletedStudent = await (User as any).findByIdAndDelete(studentId);
 
     if (!deletedStudent) {
       return NextResponse.json(
@@ -258,11 +265,11 @@ export async function POST(request: NextRequest) {
     const { email } = await request.json();
 
     // Find the student
-    const student = await User.findOne({
+    const student = await (User as any).findOne({
       email: { $regex: `^${email}$`, $options: 'i' }
     });
 
-    const instructor = await User.findById(tutorId);
+    const instructor = await (User as any).findById(tutorId);
 
 
     if (!student) {
@@ -281,21 +288,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Add tutor to student's instructorId array
-    await User.findByIdAndUpdate(
+    await (User as any).findByIdAndUpdate(
       student._id,
       { $push: { instructorId: tutorId } },
       { new: true }
     );
 
     if (instructor.category == "Academic") {
-      await User.findByIdAndUpdate(
+      await (User as any).findByIdAndUpdate(
         student._id,
         { $set: { academyId: tutorId } },
         { new: true }
       );
     }
 
-    await User.findByIdAndUpdate(
+    await (User as any).findByIdAndUpdate(
       tutorId,
       { $push: { students: student._id } },
       { new: true }

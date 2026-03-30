@@ -41,7 +41,7 @@ export async function GET(
             );
         }
 
-        const rmUser = (await User.findById(rmId).select("category")) as any;
+        const rmUser = (await (User as any).findById(rmId).select("category")) as any;
         if (
             !rmUser ||
             !["RelationshipManager", "Relationship Manager"].includes(
@@ -65,8 +65,8 @@ export async function GET(
             );
         }
 
-        const tutor = (await User.findById(tutorId)
-            .select("_id username email relationshipManager classes")
+        const tutor = (await (User as any).findById(tutorId)
+            .select("_id username email relationshipManager classes students")
             .lean()) as any;
 
         if (!tutor) {
@@ -94,7 +94,11 @@ export async function GET(
             typeof id === "object" ? id._id : id
         );
 
-        if (classIds.length === 0) {
+        const studentIds = (tutor.students || []).map((id: any) =>
+            typeof id === "object" ? id._id : id
+        );
+
+        if (classIds.length === 0 && studentIds.length === 0) {
             return NextResponse.json({
                 success: true,
                 tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
@@ -102,8 +106,17 @@ export async function GET(
             });
         }
 
-        const feedbacks = (await feedback
-            .find({ classId: { $in: classIds } })
+        const query: any = {};
+        if (classIds.length > 0 && studentIds.length > 0) {
+            query.$or = [{ classId: { $in: classIds } }, { userId: { $in: studentIds } }];
+        } else if (classIds.length > 0) {
+            query.classId = { $in: classIds };
+        } else if (studentIds.length > 0) {
+            query.userId = { $in: studentIds };
+        }
+
+        const feedbacks = (await (feedback as any)
+            .find(query)
             .populate("userId", "username email")
             .populate({
                 path: "classId",

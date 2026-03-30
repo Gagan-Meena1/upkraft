@@ -198,24 +198,14 @@ export async function GET(request: NextRequest) {
         .map((id) => id.trim())
         .filter(Boolean);
 
-      // Fetch instructor + all queried students in parallel
-      const [instructor, ...queriedUsers] = await Promise.all([
-        User.findById(instructorId).select("classes").lean(),
-        ...studentIds.map((sid) =>
+      // Fetch all queried students in parallel
+      const queriedUsers = await Promise.all(
+        studentIds.map((sid) =>
           User.findById(sid).select("_id classes").lean()
-        ),
-      ]);
-
-      if (!instructor) {
-        return NextResponse.json(
-          { message: "Instructor not found" },
-          { status: 404 }
-        );
-      }
-
-      const instructorClassIds = new Set(
-        (instructor.classes || []).map((id: any) => id.toString())
+        )
       );
+
+      // The queriedUsers array already handles empty values
 
       // For each student, find common class IDs, then batch-query Class docs
       const allCommonIds: string[] = [];
@@ -225,8 +215,7 @@ export async function GET(request: NextRequest) {
         if (!student) continue;
         const sid = student._id.toString();
         const commonIds = (student.classes || [])
-          .map((id: any) => id.toString())
-          .filter((id: string) => instructorClassIds.has(id));
+          .map((id: any) => id.toString());
         studentClassIdMap[sid] = commonIds;
         allCommonIds.push(...commonIds);
       }
@@ -265,30 +254,15 @@ export async function GET(request: NextRequest) {
 
     // ── SINGLE student: find common classes between instructor and student ──
     if (userIdFromQuery) {
-      const [instructor, queriedUser] = await Promise.all([
-        User.findById(instructorId).select("classes").lean(),
-        User.findById(userIdFromQuery).select("classes").lean(),
-      ]);
-
-      if (!instructor) {
-        return NextResponse.json(
-          { message: "Instructor not found" },
-          { status: 404 }
-        );
-      }
+      const queriedUser = await User.findById(userIdFromQuery).select("classes").lean();
       if (!queriedUser) {
         return NextResponse.json(
           { message: "Queried user not found" },
           { status: 404 }
         );
       }
-
-      const instructorClassIds = new Set(
-        (instructor.classes || []).map((c: any) => c.toString())
-      );
       const commonIds = (queriedUser.classes || [])
-        .map((c: any) => c.toString())
-        .filter((id: string) => instructorClassIds.has(id));
+        .map((c: any) => c.toString());
 
       const classQuery: Record<string, any> = {
         _id: { $in: commonIds },

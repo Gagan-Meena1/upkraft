@@ -36,8 +36,8 @@ export async function GET(request:NextRequest) {
     
     // Find both users in parallel for efficiency
     const [student, instructor] = await Promise.all([
-      User.findById(studentId).select('username email courses profileImage contact city age'),
-      User.findById(instructorId).select('courses')
+      (User as any).findById(studentId).select('username email courses profileImage contact city age'),
+      (User as any).findById(instructorId).select('courses students')
     ]);
     
     if (!student) {
@@ -53,8 +53,8 @@ export async function GET(request:NextRequest) {
     const instructorCourseIds = instructor.courses || [];
     
     // Find common course IDs (courses that both student and instructor have)
-    const commonCourseIds = studentCourseIds.filter(courseId => 
-      instructorCourseIds.some(instructorCourseId => 
+    const commonCourseIds = studentCourseIds.filter((courseId: any) => 
+      instructorCourseIds.some((instructorCourseId: any) => 
         instructorCourseId.toString() === courseId.toString()
       )
     );
@@ -75,7 +75,7 @@ export async function GET(request:NextRequest) {
     }
     
     // Fetch the common courses
-    const commonCourses = await courseName.find({ _id: { $in: commonCourseIds } });
+    const commonCourses = await (courseName as any).find({ _id: { $in: commonCourseIds } });
     
     return NextResponse.json({
       message: "Common courses retrieved successfully",
