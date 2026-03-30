@@ -144,10 +144,10 @@ export async function POST(request: NextRequest) {
       ),
       ...(instructorId
         ? [
-            User.findByIdAndUpdate(instructorId, {
-              $addToSet: { classes: savedClass._id },
-            }),
-          ]
+          User.findByIdAndUpdate(instructorId, {
+            $addToSet: { classes: savedClass._id },
+          }),
+        ]
         : []),
     ]);
 
@@ -169,6 +169,154 @@ export async function POST(request: NextRequest) {
 
 // ─── GET — Fetch classes (supports bulk studentIds + date-range filtering) ──
 
+// export async function GET(request: NextRequest) {
+//   try {
+//     const instructorId = getTokenUserId(request);
+//     if (!instructorId) {
+//       return NextResponse.json(
+//         { message: "User ID not found", error: "No user ID provided" },
+//         { status: 400 }
+//       );
+//     }
+
+//     const { searchParams } = new URL(request.url);
+//     const userIdFromQuery = searchParams.get("userid");
+//     const startDate = searchParams.get("startDate"); // ISO string
+//     const endDate = searchParams.get("endDate"); // ISO string
+//     const studentIdsParam = searchParams.get("studentIds"); // comma-separated
+
+//     // ── Build a date-range filter for Class documents ──
+//     const dateFilter: Record<string, any> = {};
+//     if (startDate) dateFilter.$gte = new Date(startDate);
+//     if (endDate) dateFilter.$lte = new Date(endDate);
+//     const hasDateFilter = Object.keys(dateFilter).length > 0;
+
+//     // ── BULK: multiple students in one request ──
+//     if (studentIdsParam) {
+//       const studentIds = studentIdsParam
+//         .split(",")
+//         .map((id) => id.trim())
+//         .filter(Boolean);
+
+//       // Fetch all queried students in parallel
+//       const queriedUsers = await Promise.all(
+//         studentIds.map((sid) =>
+//           User.findById(sid).select("_id classes").lean()
+//         )
+//       );
+
+//       // The queriedUsers array already handles empty values
+
+//       // For each student, find common class IDs, then batch-query Class docs
+//       const allCommonIds: string[] = [];
+//       const studentClassIdMap: Record<string, string[]> = {};
+
+//       for (const student of queriedUsers) {
+//         if (!student) continue;
+//         const sid = student._id.toString();
+//         const commonIds = (student.classes || [])
+//           .map((id: any) => id.toString());
+//         studentClassIdMap[sid] = commonIds;
+//         allCommonIds.push(...commonIds);
+//       }
+
+//       // Single DB query for all class documents with optional date filtering
+//       const uniqueIds = [...new Set(allCommonIds)];
+//       const classQuery: Record<string, any> = {
+//         _id: { $in: uniqueIds },
+//       };
+//       if (hasDateFilter) classQuery.startTime = dateFilter;
+
+//       const classDocs = await Class.find(classQuery).lean();
+//       const classMap = new Map(
+//         classDocs.map((doc: any) => [doc._id.toString(), doc])
+//       );
+
+//       // Assemble per-student results
+//       const results = Object.entries(studentClassIdMap).map(
+//         ([sid, classIds]) => ({
+//           studentId: sid,
+//           classes: classIds
+//             .map((id) => classMap.get(id))
+//             .filter(Boolean),
+//         })
+//       );
+
+//       return NextResponse.json(
+//         {
+//           message: "Bulk classes fetched successfully",
+//           data: results,
+//           totalStudents: results.length,
+//         },
+//         { status: 200 }
+//       );
+//     }
+
+//     // ── SINGLE student: find common classes between instructor and student ──
+//     if (userIdFromQuery) {
+//       const queriedUser = await User.findById(userIdFromQuery).select("classes").lean();
+//       if (!queriedUser) {
+//         return NextResponse.json(
+//           { message: "Queried user not found" },
+//           { status: 404 }
+//         );
+//       }
+//       const commonIds = (queriedUser.classes || [])
+//         .map((c: any) => c.toString());
+
+//       const classQuery: Record<string, any> = {
+//         _id: { $in: commonIds },
+//       };
+//       if (hasDateFilter) classQuery.startTime = dateFilter;
+
+//       const commonClasses = await Class.find(classQuery).lean();
+
+//       return NextResponse.json(
+//         {
+//           message: "Common classes fetched successfully",
+//           classData: commonClasses,
+//           totalClasses: commonClasses.length,
+//         },
+//         { status: 200 }
+//       );
+//     }
+
+//     // ── DEFAULT: return all instructor's classes ──
+//     const classQuery: Record<string, any> = {};
+//     const user = await User.findById(instructorId).select("classes").lean();
+
+//     if (!user) {
+//       return NextResponse.json(
+//         { message: "User not found" },
+//         { status: 404 }
+//       );
+//     }
+
+//     classQuery._id = { $in: user.classes || [] };
+//     if (hasDateFilter) classQuery.startTime = dateFilter;
+
+//     const classData = await Class.find(classQuery).lean();
+
+//     return NextResponse.json(
+//       {
+//         message: "Classes fetched successfully",
+//         classData,
+//         totalClasses: classData.length,
+//       },
+//       { status: 200 }
+//     );
+//   } catch (error) {
+//     console.error("GET /Api/calendar/classes error:", error);
+//     return NextResponse.json(
+//       {
+//         message: "Server error",
+//         error: error instanceof Error ? error.message : "Unknown error",
+//       },
+//       { status: 500 }
+//     );
+//   }
+// }
+
 export async function GET(request: NextRequest) {
   try {
     const instructorId = getTokenUserId(request);
@@ -181,64 +329,105 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const userIdFromQuery = searchParams.get("userid");
-    const startDate = searchParams.get("startDate"); // ISO string
-    const endDate = searchParams.get("endDate"); // ISO string
+    const startDateRaw = searchParams.get("startDate"); // ISO string
+    const endDateRaw = searchParams.get("endDate");   // ISO string
     const studentIdsParam = searchParams.get("studentIds"); // comma-separated
 
-    // ── Build a date-range filter for Class documents ──
-    const dateFilter: Record<string, any> = {};
-    if (startDate) dateFilter.$gte = new Date(startDate);
-    if (endDate) dateFilter.$lte = new Date(endDate);
-    const hasDateFilter = Object.keys(dateFilter).length > 0;
+    // ── Normalize dates ────────────────────────────────────────────────────
+    // Floor startDate to 00:00:00.000 UTC and ceil endDate to 23:59:59.999 UTC
+    // so that the time component of the incoming ISO string never accidentally
+    // cuts off classes on the boundary dates.
+    //
+    // Example problem without this:
+    //   week startDate = 2026-03-30T14:37:18Z
+    //   class startTime = 2026-03-30T09:00:00Z  → 09:00 < 14:37 → excluded ❌
+    //
+    // After normalization:
+    //   week startDate = 2026-03-30T00:00:00.000Z → 09:00 >= 00:00 → included ✅
+    const normalizeStart = (iso: string): Date => {
+      const d = new Date(iso);
+      d.setUTCHours(0, 0, 0, 0);
+      return d;
+    };
+    const normalizeEnd = (iso: string): Date => {
+      const d = new Date(iso);
+      d.setUTCHours(23, 59, 59, 999);
+      return d;
+    };
 
-    // ── BULK: multiple students in one request ──
+    const startDate = startDateRaw ? normalizeStart(startDateRaw) : null;
+    const endDate = endDateRaw ? normalizeEnd(endDateRaw) : null;
+
+    // ── Build overlap filter ───────────────────────────────────────────────
+    // Overlap condition: class.startTime <= windowEnd AND class.endTime >= windowStart
+    // Catches classes that started before the window but extend into it.
+    const buildDateFilter = (): Record<string, any> | null => {
+      if (!startDate && !endDate) return null;
+
+      if (startDate && endDate) {
+        return {
+          $and: [
+            { startTime: { $lte: endDate } },
+            { endTime: { $gte: startDate } },
+          ],
+        };
+      }
+      if (startDate) return { endTime: { $gte: startDate } };
+      if (endDate) return { startTime: { $lte: endDate } };
+      return null;
+    };
+
+    const dateFilter = buildDateFilter();
+    const hasDateFilter = dateFilter !== null;
+
+    // Helper: merge date filter safely into any base query
+    const applyDateFilter = (query: Record<string, any>): Record<string, any> => {
+      if (!hasDateFilter) return query;
+      if (dateFilter!.$and) {
+        return {
+          ...query,
+          $and: [...(query.$and || []), ...dateFilter!.$and],
+        };
+      }
+      return { ...query, ...dateFilter };
+    };
+
+    // ── BULK: multiple students ────────────────────────────────────────────
     if (studentIdsParam) {
       const studentIds = studentIdsParam
         .split(",")
         .map((id) => id.trim())
         .filter(Boolean);
 
-      // Fetch all queried students in parallel
       const queriedUsers = await Promise.all(
         studentIds.map((sid) =>
           User.findById(sid).select("_id classes").lean()
         )
       );
 
-      // The queriedUsers array already handles empty values
-
-      // For each student, find common class IDs, then batch-query Class docs
       const allCommonIds: string[] = [];
       const studentClassIdMap: Record<string, string[]> = {};
 
       for (const student of queriedUsers) {
         if (!student) continue;
         const sid = student._id.toString();
-        const commonIds = (student.classes || [])
-          .map((id: any) => id.toString());
-        studentClassIdMap[sid] = commonIds;
-        allCommonIds.push(...commonIds);
+        const classIds = (student.classes || []).map((id: any) => id.toString());
+        studentClassIdMap[sid] = classIds;
+        allCommonIds.push(...classIds);
       }
 
-      // Single DB query for all class documents with optional date filtering
       const uniqueIds = [...new Set(allCommonIds)];
-      const classQuery: Record<string, any> = {
-        _id: { $in: uniqueIds },
-      };
-      if (hasDateFilter) classQuery.startTime = dateFilter;
-
+      const classQuery = applyDateFilter({ _id: { $in: uniqueIds } });
       const classDocs = await Class.find(classQuery).lean();
+
       const classMap = new Map(
         classDocs.map((doc: any) => [doc._id.toString(), doc])
       );
 
-      // Assemble per-student results
       const results = Object.entries(studentClassIdMap).map(
         ([sid, classIds]) => ({
           studentId: sid,
-          classes: classIds
-            .map((id) => classMap.get(id))
-            .filter(Boolean),
+          classes: classIds.map((id) => classMap.get(id)).filter(Boolean),
         })
       );
 
@@ -252,23 +441,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ── SINGLE student: find common classes between instructor and student ──
+    // ── SINGLE student ─────────────────────────────────────────────────────
     if (userIdFromQuery) {
-      const queriedUser = await User.findById(userIdFromQuery).select("classes").lean();
+      const queriedUser = await User.findById(userIdFromQuery)
+        .select("classes")
+        .lean();
+
       if (!queriedUser) {
         return NextResponse.json(
           { message: "Queried user not found" },
           { status: 404 }
         );
       }
-      const commonIds = (queriedUser.classes || [])
-        .map((c: any) => c.toString());
 
-      const classQuery: Record<string, any> = {
-        _id: { $in: commonIds },
-      };
-      if (hasDateFilter) classQuery.startTime = dateFilter;
-
+      const classIds = (queriedUser.classes || []).map((c: any) => c.toString());
+      const classQuery = applyDateFilter({ _id: { $in: classIds } });
       const commonClasses = await Class.find(classQuery).lean();
 
       return NextResponse.json(
@@ -281,8 +468,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ── DEFAULT: return all instructor's classes ──
-    const classQuery: Record<string, any> = {};
+    // ── DEFAULT: all instructor classes ───────────────────────────────────
     const user = await User.findById(instructorId).select("classes").lean();
 
     if (!user) {
@@ -292,9 +478,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    classQuery._id = { $in: user.classes || [] };
-    if (hasDateFilter) classQuery.startTime = dateFilter;
-
+    const classQuery = applyDateFilter({
+      _id: { $in: (user as any).classes || [] },
+    });
     const classData = await Class.find(classQuery).lean();
 
     return NextResponse.json(
@@ -305,6 +491,7 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
+
   } catch (error) {
     console.error("GET /Api/calendar/classes error:", error);
     return NextResponse.json(
@@ -533,8 +720,8 @@ export async function DELETE(request: NextRequest) {
     await Promise.all([
       existingClass.course
         ? courseName.findByIdAndUpdate(existingClass.course, {
-            $pull: { class: existingClass._id },
-          })
+          $pull: { class: existingClass._id },
+        })
         : Promise.resolve(),
       User.updateMany(
         { classes: existingClass._id },
