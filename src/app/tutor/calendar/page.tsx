@@ -197,7 +197,14 @@ function getInitials(name?: string): string {
     .toUpperCase()
     .substring(0, 2);
 }
-
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
 function getStatusColor(status: string) {
   switch (status) {
     case "present":
@@ -270,9 +277,9 @@ const StudentCalendarView = () => {
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-const [totalPages, setTotalPages] = useState(1);
-const [totalCount, setTotalCount] = useState(0);
-const pageLength = 10;
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageLength = 10;
 
   // Class detail / action modals
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
@@ -338,25 +345,48 @@ const pageLength = 10;
 
   // ─── Data fetching ────────────────────────────────────────────────────────
 
-const fetchStudents = useCallback(async (page = 1): Promise<Student[]> => {
-  try {
-    const response = await fetch(
-      `/Api/myStudents?page=${page}&pageLength=${pageLength}`
-    );
-    const data = await response.json();
-    if (data.success) {
-      const list = data.filteredUsers || [];
-      setStudents(list);
-      setTotalPages(data.totalPages || 1);
-      setTotalCount(data.totalCount || 0);
-      setCurrentPage(data.currentPage || page);
-      return list;
+  // const fetchStudents = useCallback(async (page = 1): Promise<Student[]> => {
+  //   try {
+  //     const response = await fetch(
+  //       `/Api/myStudents?page=${page}&pageLength=${pageLength}`
+  //     );
+  //     const data = await response.json();
+  //     if (data.success) {
+  //       const list = data.filteredUsers || [];
+  //       setStudents(list);
+  //       setTotalPages(data.totalPages || 1);
+  //       setTotalCount(data.totalCount || 0);
+  //       setCurrentPage(data.currentPage || page);
+  //       return list;
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching students:", error);
+  //   }
+  //   return [];
+  // }, [pageLength]);
+
+  const fetchStudents = useCallback(async (page = 1, search = ""): Promise<Student[]> => {
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        pageLength: String(pageLength),
+        ...(search.trim() && { search: search.trim() }),
+      });
+      const response = await fetch(`/Api/myStudents?${params.toString()}`);
+      const data = await response.json();
+      if (data.success) {
+        const list = data.filteredUsers || [];
+        setStudents(list);
+        setTotalPages(data.totalPages || 1);
+        setTotalCount(data.totalCount || 0);
+        setCurrentPage(data.currentPage || page);
+        return list;
+      }
+    } catch (error) {
+      console.error("Error fetching students:", error);
     }
-  } catch (error) {
-    console.error("Error fetching students:", error);
-  }
-  return [];
-}, [pageLength]);
+    return [];
+  }, [pageLength]);
 
   // ─── OPTIMIZED: single batch request instead of N parallel calls ────────
   // const fetchAttendanceForStudents = useCallback(
@@ -554,16 +584,16 @@ const fetchStudents = useCallback(async (page = 1): Promise<Student[]> => {
   );
 
   const handlePageChange = useCallback(
-  (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    setLoading(true);
-    fetchStudents(newPage).then((list) => {
-      if (list.length > 0) fetchAllClasses(list);
-      setLoading(false);
-    });
-  },
-  [totalPages, fetchStudents, fetchAllClasses]
-);
+    (newPage: number) => {
+      if (newPage < 1 || newPage > totalPages) return;
+      setLoading(true);
+      fetchStudents(newPage).then((list) => {
+        if (list.length > 0) fetchAllClasses(list);
+        setLoading(false);
+      });
+    },
+    [totalPages, fetchStudents, fetchAllClasses]
+  );
 
   // ─── Modal handlers ──────────────────────────────────────────────────────
 
@@ -730,9 +760,9 @@ const fetchStudents = useCallback(async (page = 1): Promise<Student[]> => {
         );
 
         // Background refresh
-       fetchStudents(currentPage).then((list) => {
-  if (list.length > 0) fetchAllClasses(list);
-});
+        fetchStudents(currentPage).then((list) => {
+          if (list.length > 0) fetchAllClasses(list);
+        });
       } catch (err: any) {
         console.error("Cancel error:", err);
         toast.error(err.message || "Failed to cancel class");
@@ -789,7 +819,7 @@ const fetchStudents = useCallback(async (page = 1): Promise<Student[]> => {
         setShowClassModal(false);
         setSelectedClass(null);
 
-const studentList = await fetchStudents(currentPage);
+        const studentList = await fetchStudents(currentPage);
         if (studentList.length > 0) await fetchAllClasses(studentList);
       } catch (err: any) {
         console.error("Delete error:", err);
@@ -830,7 +860,7 @@ const studentList = await fetchStudents(currentPage);
       // Background sync
       (async () => {
         try {
-const studentList = await fetchStudents(currentPage);
+          const studentList = await fetchStudents(currentPage);
           if (studentList.length > 0) await fetchAllClasses(studentList);
         } catch (err) {
           console.error("Refresh after edit failed:", err);
@@ -926,18 +956,28 @@ const studentList = await fetchStudents(currentPage);
   }, []);
 
   // Initial data load
-useEffect(() => {
-  const loadData = async () => {
-    setLoading(true);
-    const studentList = await fetchStudents(1); // pass page 1
-    if (studentList.length > 0) {
-      await fetchAllClasses(studentList);
-    }
-    setLoading(false);
-  };
-  loadData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      const studentList = await fetchStudents(1); // pass page 1
+      if (studentList.length > 0) {
+        await fetchAllClasses(studentList);
+      }
+      setLoading(false);
+    };
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const debouncedSearch = useDebounce(searchTerm, 400);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchStudents(1, debouncedSearch).then((list) => {
+      if (list.length > 0) fetchAllClasses(list);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
 
   // Refetch classes when date or view changes (date-range filtering)
   useEffect(() => {
@@ -1360,95 +1400,94 @@ useEffect(() => {
               ))}
             </div>
             {/* Pagination Controls */}
-{totalPages > 1 && (
-  <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-100 pt-4">
-    <div className="text-sm text-gray-500">
-      Showing{" "}
-      <span className="font-medium text-gray-700">
-        {(currentPage - 1) * pageLength + 1}
-      </span>{" "}
-      –{" "}
-      <span className="font-medium text-gray-700">
-        {Math.min(currentPage * pageLength, totalCount)}
-      </span>{" "}
-      of{" "}
-      <span className="font-medium text-gray-700">{totalCount}</span>{" "}
-      students
-    </div>
+            {totalPages > 1 && (
+              <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-100 pt-4">
+                <div className="text-sm text-gray-500">
+                  Showing{" "}
+                  <span className="font-medium text-gray-700">
+                    {(currentPage - 1) * pageLength + 1}
+                  </span>{" "}
+                  –{" "}
+                  <span className="font-medium text-gray-700">
+                    {Math.min(currentPage * pageLength, totalCount)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-medium text-gray-700">{totalCount}</span>{" "}
+                  students
+                </div>
 
-    <div className="flex items-center gap-1">
-      {/* First */}
-      <button
-        onClick={() => handlePageChange(1)}
-        disabled={currentPage === 1}
-        className="px-2 py-1.5 text-xs rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        «
-      </button>
+                <div className="flex items-center gap-1">
+                  {/* First */}
+                  <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={currentPage === 1}
+                    className="px-2 py-1.5 text-xs rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    «
+                  </button>
 
-      {/* Prev */}
-      <button
-        onClick={() => handlePageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className="px-3 py-1.5 text-xs rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        ‹ Prev
-      </button>
+                  {/* Prev */}
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-xs rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    ‹ Prev
+                  </button>
 
-      {/* Page numbers */}
-      {Array.from({ length: totalPages }, (_, i) => i + 1)
-        .filter(
-          (p) =>
-            p === 1 ||
-            p === totalPages ||
-            Math.abs(p - currentPage) <= 1
-        )
-        .reduce<(number | "...")[]>((acc, p, idx, arr) => {
-          if (idx > 0 && p - (arr[idx - 1] as number) > 1)
-            acc.push("...");
-          acc.push(p);
-          return acc;
-        }, [])
-        .map((p, idx) =>
-          p === "..." ? (
-            <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">
-              …
-            </span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => handlePageChange(p as number)}
-              className={`w-8 h-8 text-xs rounded border transition-all ${
-                currentPage === p
-                  ? "bg-purple-600 text-white border-purple-600 font-semibold"
-                  : "border-gray-200 hover:bg-gray-100 text-gray-700"
-              }`}
-            >
-              {p}
-            </button>
-          )
-        )}
+                  {/* Page numbers */}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(
+                      (p) =>
+                        p === 1 ||
+                        p === totalPages ||
+                        Math.abs(p - currentPage) <= 1
+                    )
+                    .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && p - (arr[idx - 1] as number) > 1)
+                        acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, idx) =>
+                      p === "..." ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">
+                          …
+                        </span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => handlePageChange(p as number)}
+                          className={`w-8 h-8 text-xs rounded border transition-all ${currentPage === p
+                            ? "bg-purple-600 text-white border-purple-600 font-semibold"
+                            : "border-gray-200 hover:bg-gray-100 text-gray-700"
+                            }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
 
-      {/* Next */}
-      <button
-        onClick={() => handlePageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className="px-3 py-1.5 text-xs rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        Next ›
-      </button>
+                  {/* Next */}
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 text-xs rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next ›
+                  </button>
 
-      {/* Last */}
-      <button
-        onClick={() => handlePageChange(totalPages)}
-        disabled={currentPage === totalPages}
-        className="px-2 py-1.5 text-xs rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
-      >
-        »
-      </button>
-    </div>
-  </div>
-)}
+                  {/* Last */}
+                  <button
+                    onClick={() => handlePageChange(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-2 py-1.5 text-xs rounded border border-gray-200 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    »
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -1758,7 +1797,7 @@ const CancelClassModal = React.memo<CancelClassModalProps>(
             >
               {loading ? "Cancelling..." : "Cancel Following"}
             </Button>
-            
+
             {/* <Button
               variant="danger"
               className="flex-1 !py-2 !rounded-md !text-sm"
