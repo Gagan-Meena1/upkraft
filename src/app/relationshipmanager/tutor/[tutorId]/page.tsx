@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronDown, Trash2, X } from "lucide-react";
 import { formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
 import { toast } from "react-hot-toast";
 
@@ -54,7 +54,9 @@ export default function RMTutorCalendarPage() {
   const [activeView, setActiveView] = useState<"day" | "week" | "month">("week");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [classToDelete, setClassToDelete] = useState<ClassItem | null>(null);
+  const [selectedStudentsForDelete, setSelectedStudentsForDelete] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const userTz = getUserTimeZone();
 
@@ -191,21 +193,39 @@ export default function RMTutorCalendarPage() {
 
   const openDeleteModal = (cls: ClassItem) => {
     setClassToDelete(cls);
+    setSelectedStudentsForDelete(cls.students.map(s => s._id)); // By default select all
     setDeleteModalOpen(true);
   };
 
   const closeDeleteModal = () => {
     setDeleteModalOpen(false);
     setClassToDelete(null);
+    setSelectedStudentsForDelete([]);
+    setIsDropdownOpen(false);
   };
 
   const handleDeleteRequest = async () => {
     if (!classToDelete) return;
+    
+    if (classToDelete.students.length > 1 && selectedStudentsForDelete.length === 0) {
+      toast.error("Please select at least one student or cancel.");
+      return;
+    }
+
     try {
       setIsDeleting(true);
+      const actionType = selectedStudentsForDelete.length > 0 && selectedStudentsForDelete.length < classToDelete.students.length 
+        ? "partial" 
+        : "full";
+
       const res = await fetch(
         `/Api/relationship-manager/tutor/${tutorId}/classes/${classToDelete._id}/delete-request`,
-        { method: "POST", credentials: "include" }
+        { 
+          method: "POST", 
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ actionType, studentIds: selectedStudentsForDelete })
+        }
       );
       const data = await res.json();
       if (res.ok && data.success) {
@@ -507,11 +527,90 @@ export default function RMTutorCalendarPage() {
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Class</h3>
-            <p className="text-gray-600 text-sm mb-6">
-              Are you sure you want to request deletion for{" "}
-              <span className="font-semibold">{classToDelete.title}</span>? This
-              request will be sent to your team lead for approval.
-            </p>
+            
+            <div className="text-gray-600 text-sm mb-6">
+              {classToDelete.students.length > 1 ? (
+                <>
+                  <p className="mb-4 text-gray-600">
+                    Select the students you want to remove from <span className="font-semibold text-gray-900">{classToDelete.title}</span>. 
+                    If all students are selected, the entire class will be deleted. This request will be sent to your team lead.
+                  </p>
+                  
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm transition-colors hover:bg-gray-50 mb-2"
+                    >
+                      <span className="text-gray-700 text-sm font-medium">
+                        {selectedStudentsForDelete.length === 0 
+                          ? "Select students..."
+                          : selectedStudentsForDelete.length === classToDelete.students.length
+                            ? "All students selected"
+                            : `${selectedStudentsForDelete.length} student${selectedStudentsForDelete.length > 1 ? 's' : ''} selected`}
+                      </span>
+                      <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {isDropdownOpen && (
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm mt-1">
+                        {/* Select All Row */}
+                        <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+                          <label className="flex items-center gap-3 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={selectedStudentsForDelete.length === classToDelete.students.length}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedStudentsForDelete(classToDelete.students.map(s => s._id));
+                                } else {
+                                  setSelectedStudentsForDelete([]);
+                                }
+                              }}
+                              className="w-5 h-5 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500 focus:ring-2 cursor-pointer transition flex-shrink-0"
+                            />
+                            <span className="font-semibold text-sm text-gray-900">Select All Students</span>
+                          </label>
+                        </div>
+                        
+                        {/* Individual Students List */}
+                        <div className="max-h-52 overflow-y-auto p-2 flex flex-col gap-1">
+                          {classToDelete.students.map((student) => (
+                            <label 
+                              key={student._id} 
+                              className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-gray-50 transition-colors select-none group"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedStudentsForDelete.includes(student._id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedStudentsForDelete(prev => [...prev, student._id]);
+                                  } else {
+                                    setSelectedStudentsForDelete(prev => prev.filter(id => id !== student._id));
+                                  }
+                                }}
+                                className="w-5 h-5 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500 focus:ring-2 cursor-pointer transition flex-shrink-0"
+                              />
+                              <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors">
+                                {student.username || student.email || "—"}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p>
+                  Are you sure you want to request deletion for{" "}
+                  <span className="font-semibold">{classToDelete.title}</span>? This
+                  request will be sent to your team lead for approval.
+                </p>
+              )}
+            </div>
+
             <div className="flex gap-3 justify-end">
               <button
                 onClick={closeDeleteModal}

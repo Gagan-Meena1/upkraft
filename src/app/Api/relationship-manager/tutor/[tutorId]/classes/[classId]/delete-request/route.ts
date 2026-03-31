@@ -39,6 +39,19 @@ export async function POST(
     }
 
     const { tutorId, classId } = await params;
+    const bodyText = await request.text();
+    let actionType = 'full';
+    let studentIds: string[] = [];
+
+    if (bodyText) {
+      try {
+        const body = JSON.parse(bodyText);
+        actionType = body.actionType || 'full';
+        studentIds = body.studentIds || [];
+      } catch (e) {
+        // body parsing failed, proceeding with default full
+      }
+    }
     
     if (!tutorId || !classId) {
       return NextResponse.json({ success: false, error: "Tutor ID and Class ID required" }, { status: 400 });
@@ -63,6 +76,8 @@ export async function POST(
     // Set deletion request flags
     cls.deleteRequest = true;
     cls.deleteRequestStatus = "pending";
+    cls.deleteRequestType = actionType === 'partial' ? 'partial' : 'full';
+    cls.deleteRequestStudents = actionType === 'partial' ? studentIds : [];
     await cls.save();
 
     return NextResponse.json({ success: true, message: "Delete request sent to team lead" });

@@ -123,6 +123,15 @@ const ClassSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected', null],
     default: null,
   },
+  deleteRequestType: {
+    type: String,
+    enum: ['full', 'partial'],
+    default: 'full',
+  },
+  deleteRequestStudents: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'users',
+  }],
 
   // Class Quality Evaluation Data
   evaluation: {

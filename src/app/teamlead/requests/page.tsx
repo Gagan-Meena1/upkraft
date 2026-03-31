@@ -14,6 +14,9 @@ interface ClassRequest {
   tutor?: { _id: string; username: string; email: string };
   course?: { _id: string; name: string; title: string; courseName: string };
   deleteRequestStatus: string;
+  deleteRequestType?: string;
+  deleteRequestStudents?: { _id: string; username: string; email: string }[];
+  students?: { _id: string; username: string; email: string }[];
 }
 
 export default function TeamLeadRequestsPage() {
@@ -43,11 +46,11 @@ export default function TeamLeadRequestsPage() {
     fetchRequests();
   }, []);
 
-  const handleAction = async (classId: string, action: "approve" | "reject") => {
-    if (action === "approve" && !confirm("Are you sure you want to approve this request? This will cancel the class.")) {
+  const handleAction = async (classId: string, action: "approve" | "reject", isPartial: boolean) => {
+    if (action === "approve" && !confirm(isPartial ? "Are you sure you want to approve this partial deletion request? This will remove the selected students from the class." : "Are you sure you want to approve this request? This will completely cancel and delete the class.")) {
       return;
     }
-    if (action === "reject" && !confirm("Are you sure you want to reject this request? The class will remain scheduled.")) {
+    if (action === "reject" && !confirm(isPartial ? "Are you sure you want to reject this partial deletion request? The students will remain in the class." : "Are you sure you want to reject this request? The class will remain scheduled.")) {
       return;
     }
 
@@ -121,13 +124,19 @@ export default function TeamLeadRequestsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-lg font-bold text-gray-900">{req.title}</h3>
-                          <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-xs font-medium rounded">
-                            Pending
-                          </span>
+                          {req.deleteRequestType === 'partial' ? (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-semibold rounded">
+                              PARTIAL DELETION
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-xs font-medium rounded">
+                              Pending
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-gray-600 mb-2">{req.description || "No description provided."}</p>
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mt-3">
                           <div>
                             <span className="font-semibold text-gray-700">Tutor: </span>
                             {req.tutor?.username || "Unknown"}
@@ -136,16 +145,32 @@ export default function TeamLeadRequestsPage() {
                             <span className="font-semibold text-gray-700">Course: </span>
                             {courseName}
                           </div>
-                          <div>
+                          <div className="sm:col-span-2">
                             <span className="font-semibold text-gray-700">Time: </span>
                             {new Date(req.startTime).toLocaleString()} - {new Date(req.endTime).toLocaleTimeString()}
+                          </div>
+                          <div className="sm:col-span-2 mt-1">
+                            <span className="font-semibold text-gray-700">Requested Student(s) to Remove: </span>
+                            <span className="text-gray-600">
+                              {(() => {
+                                if (req.deleteRequestType === 'partial') {
+                                  return req.deleteRequestStudents?.length 
+                                    ? req.deleteRequestStudents.map(s => s.username || s.email || "Unknown").join(", ") 
+                                    : "No students provided";
+                                } else {
+                                  return req.students?.length 
+                                    ? req.students.map(s => s.username || s.email || "Unknown").join(", ") 
+                                    : "None";
+                                }
+                              })()}
+                            </span>
                           </div>
                         </div>
                       </div>
                       
                       <div className="flex flex-row md:flex-col gap-2 shrink-0">
                         <button
-                          onClick={() => handleAction(req._id, "approve")}
+                          onClick={() => handleAction(req._id, "approve", req.deleteRequestType === "partial")}
                           disabled={actionLoading !== null}
                           className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 w-full md:w-32"
                         >
@@ -158,7 +183,7 @@ export default function TeamLeadRequestsPage() {
                           )}
                         </button>
                         <button
-                          onClick={() => handleAction(req._id, "reject")}
+                          onClick={() => handleAction(req._id, "reject", req.deleteRequestType === "partial")}
                           disabled={actionLoading !== null}
                           className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 w-full md:w-32"
                         >

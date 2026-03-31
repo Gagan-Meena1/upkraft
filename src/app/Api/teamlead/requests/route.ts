@@ -32,8 +32,32 @@ export async function GET(request: NextRequest) {
     const pendingClasses = await Class.find({ deleteRequestStatus: "pending" })
       .populate("instructor", "username email")
       .populate("course", "courseName title name")
+      .populate({ path: "deleteRequestStudents", select: "username email", strictPopulate: false })
       .sort({ createdAt: -1 })
       .lean();
+
+    const classIds = pendingClasses.map(c => c._id);
+    const allStudentsInClasses = await User.find({
+      category: { $in: ["Student", "student", "STUDENT"] },
+      classes: { $in: classIds }
+    }).select("_id username email classes");
+
+    const studentsByClassId = new Map();
+    allStudentsInClasses.forEach((student: any) => {
+      if (Array.isArray(student.classes)) {
+        student.classes.forEach((classId: any) => {
+          const classIdStr = classId.toString();
+          if (!studentsByClassId.has(classIdStr)) {
+            studentsByClassId.set(classIdStr, []);
+          }
+          studentsByClassId.get(classIdStr).push({
+            _id: student._id,
+            username: student.username,
+            email: student.email
+          });
+        });
+      }
+    });
 
     const mappedClasses = pendingClasses.map((cls: any) => ({
       _id: cls._id,
@@ -42,8 +66,11 @@ export async function GET(request: NextRequest) {
       startTime: cls.startTime,
       endTime: cls.endTime,
       deleteRequestStatus: cls.deleteRequestStatus,
+      deleteRequestType: cls.deleteRequestType,
+      deleteRequestStudents: cls.deleteRequestStudents,
       tutor: cls.instructor ? { _id: cls.instructor._id, username: cls.instructor.username, email: cls.instructor.email } : undefined,
       course: cls.course,
+      students: studentsByClassId.get(cls._id.toString()) || [],
     }));
 
     return NextResponse.json({ success: true, classes: mappedClasses });
