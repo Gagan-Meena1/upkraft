@@ -157,11 +157,12 @@ import { Button } from "react-bootstrap";
 // };
 
 // Music Library Table Component
-const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
+const MusicLibraryTable = ({ isTrinity, isUpKraftGuitarBook }: { isTrinity: boolean, isUpKraftGuitarBook: boolean }) => {
   const [songs, setSongs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+
   const [filters, setFilters] = useState({
     genre: "",
     difficulty: "",
@@ -196,7 +197,7 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
       if (filters.difficulty) params.append("difficulty", filters.difficulty);
       if (filters.instrument) params.append("instrument", filters.instrument);
       if(isTrinity) params.append("institution", "trinity")
-
+      if(isUpKraftGuitarBook) params.append("institution", "UpKraft Guitar Book")
       const response = await fetch(`/Api/songs?${params}`);
       const data = await response.json();
 
@@ -635,7 +636,7 @@ const MusicLibraryTable = ({isTrinity}: {isTrinity: boolean}) => {
 const MusicLibraryPage = () => {
    const [sidebarOpen, setSidebarOpen] = useState(false);
    const [isMobile, setIsMobile] = useState(false);
-  const [activeView, setActiveView] = useState<"songs" | "trinity">("songs");
+const [activeView, setActiveView] = useState<"songs" | "trinity" | "upkraft">("songs");
    const router = useRouter();
 
    // Check if mobile
@@ -706,6 +707,12 @@ const MusicLibraryPage = () => {
               >
                 Trinity
               </button>
+              <button
+  onClick={() => setActiveView("upkraft")}
+  className={`!px-3 !py-2 !rounded-md text-sm !font-medium !transition ${activeView === "upkraft" ? "bg-purple-700 shadow-sm text-white" : "text-gray-600 hover:text-gray-800"}`}
+>
+  UpKraft Guitar Book
+</button>
             </div>
 
             {/* Favourites page link */}
@@ -729,9 +736,9 @@ const MusicLibraryPage = () => {
 
          {/* Page Content */}
          <main className="flex-1 p-4 sm:p-6 overflow-auto bg-gray-50">
-          {activeView === "songs" && <MusicLibraryTable isTrinity={false}/>}
-
-          {activeView === "trinity" && <MusicLibraryTable isTrinity={true} />}
+          {activeView === "songs" && <MusicLibraryTable isTrinity={false} isUpKraftGuitarBook={false} />}
+{activeView === "trinity" && <MusicLibraryTable isTrinity={true} isUpKraftGuitarBook={false} />}
+{activeView === "upkraft" && <MusicLibraryTable isTrinity={false} isUpKraftGuitarBook={true} />}
          </main>
        </div>
      </div>

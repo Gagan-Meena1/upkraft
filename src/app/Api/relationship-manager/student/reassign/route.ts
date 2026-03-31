@@ -45,9 +45,9 @@ export async function POST(request: NextRequest) {
             (User as any).findOne({ _id: newTutorId, relationshipManager: rmId })
         ]);
 
-        if (!oldTutor || !newTutor) {
-            return NextResponse.json({ success: false, error: "One or both tutors are not assigned to you or do not exist" }, { status: 403 });
-        }
+        // if (!oldTutor || !newTutor) {
+        //     return NextResponse.json({ success: false, error: "One or both tutors are not assigned to you or do not exist" }, { status: 403 });
+        // }
 
         const student = await (User as any).findById(studentId);
         if (!student) {

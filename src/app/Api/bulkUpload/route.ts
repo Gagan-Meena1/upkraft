@@ -44,13 +44,13 @@ export async function POST(request) {
       songDatabase = rawData.map(row => ({
   song: row.Song?.toString().trim().replace(/\([^)]*\)/g, '').trim() || '',  // ← Remove brackets HERE
   artist: row.Artist?.toString().trim() || '',
-  primaryInstrumentFocus: row.Primary_Instrument_Focus?.toString().trim() || '',
+  primaryInstrumentFocus: row.Primary_Instrument_Focus?.toString().trim() || 'Guitar',
   genre: row.Genre?.toString().trim() || '',
   difficulty: row.Difficulty?.toString().trim() || '',
   year: row.Year ? parseInt(row.Year) : null,
   // notes: row.Notes?.toString().trim() || '',
   skills: row.Skills?.toString().trim() || '',
-  institution: row.Institution?.toString().trim() || ''
+  institution: row.Institution?.toString().trim() || 'UpKraft Guitar Book' // Default institution if not provided
 }));
       
       
@@ -67,7 +67,7 @@ export async function POST(request) {
 
     const allowedExtensions = [
       '.mp3', '.gp', '.gp1', '.gp2', '.gp3', '.gp4', '.gp5', 
-      '.gp6', '.gp7', '.gp8', '.gpx', '.dp', '.mxl'
+      '.gp6', '.gp7', '.gp8', '.gpx', '.dp', '.mxl' , '.xml'
     ];
 
     const results = {
@@ -101,7 +101,7 @@ export async function POST(request) {
 const findSongData = (filename) => {
   const cleanFilename = filename
     .toLowerCase()
-    .replace(/\.(gp\d?|gpx?|dp|mp3|mxl)$/i, '')
+    .replace(/\.(gp\d?|gpx?|dp|mp3|mxl|xml)$/i, '')
     .replace(/[_-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();

@@ -12,7 +12,7 @@ export default function EnhancedBatchUpload() {
     const selectedFiles = Array.from(e.target.files);
     const validFiles = selectedFiles.filter(file => {
       const extension = file.name.toLowerCase().split('.').pop();
-      return ['mp3', 'gp', 'gp1', 'gp2', 'gp3', 'gp4', 'gp5', 'gp6', 'gp7', 'gp8', 'gpx', 'dp','mxl'].includes(extension);
+      return ['mp3', 'gp', 'gp1', 'gp2', 'gp3', 'gp4', 'gp5', 'gp6', 'gp7', 'gp8', 'gpx', 'dp','mxl','xml'].includes(extension);
     });
     setFiles(validFiles);
   };
@@ -94,14 +94,14 @@ export default function EnhancedBatchUpload() {
             <label htmlFor="song-files" className="cursor-pointer">
               <span className="text-lg font-medium text-gray-700">Select Song Files</span>
               <p className="text-sm text-gray-500 mt-2">
-                .mp3, .gp, .gp1-gp8, .gpx, .dp, .mxl files
+                .mp3, .gp, .gp1-gp8, .gpx, .dp, .mxl, .xml files
               </p>
             </label>
             <input
               id="song-files"
               type="file"
               multiple
-              accept=".mp3,.gp,.gp1,.gp2,.gp3,.gp4,.gp5,.gp6,.gp7,.gp8,.gpx,.dp,.mxl"
+              accept=".mp3,.gp,.gp1,.gp2,.gp3,.gp4,.gp5,.gp6,.gp7,.gp8,.gpx,.dp,.mxl,.xml"
               onChange={handleFileSelect}
               className="hidden"
             />
