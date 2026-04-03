@@ -26,6 +26,7 @@ interface ReassignRequest {
   newTutor: { _id: string; username: string; email: string };
   relationshipManager: { _id: string; username: string; email: string };
   status: string;
+  reassignType: string;
   createdAt: string;
 }
 
@@ -212,9 +213,15 @@ export default function TeamLeadRequestsPage() {
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
                           <h3 className="text-md font-bold text-gray-900 truncate">Reassign: {req.student?.username}</h3>
-                          <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-semibold rounded">
-                            REASSIGN
-                          </span>
+                          <div className="flex gap-1">
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
+                              req.reassignType === 'temporary' 
+                                ? 'bg-blue-100 text-blue-800' 
+                                : 'bg-purple-100 text-purple-800'
+                            }`}>
+                              {req.reassignType?.toUpperCase() || 'PERMANENT'}
+                            </span>
+                          </div>
                         </div>
                         
                         <div className="space-y-2 text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">

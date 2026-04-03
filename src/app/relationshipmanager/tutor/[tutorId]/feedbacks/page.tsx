@@ -70,6 +70,7 @@ export default function RMStudentFeedbacksPage() {
     const [newTutorId, setNewTutorId] = useState<string>("");
     const [isSubmittingReassign, setIsSubmittingReassign] = useState(false);
     const [isLoadingTutors, setIsLoadingTutors] = useState(false);
+    const [reassignType, setReassignType] = useState<"permanent" | "temporary">("permanent");
 
     useEffect(() => {
         if (!tutorId) {
@@ -158,6 +159,7 @@ export default function RMStudentFeedbacksPage() {
         setStudentToReassign(student);
         setIsReassignModalOpen(true);
         setNewTutorId("");
+        setReassignType("permanent");
         
         if (availableTutors.length === 0) {
             setIsLoadingTutors(true);
@@ -191,7 +193,8 @@ export default function RMStudentFeedbacksPage() {
                 body: JSON.stringify({
                     studentId: studentToReassign._id,
                     oldTutorId: tutorId,
-                    newTutorId: newTutorId
+                    newTutorId: newTutorId,
+                    reassignType: reassignType
                 })
             });
             const data = await res.json();
@@ -524,6 +527,41 @@ export default function RMStudentFeedbacksPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Reassignment Type
+                                        </label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="radio"
+                                                    name="reassignType"
+                                                    value="permanent"
+                                                    checked={reassignType === "permanent"}
+                                                    onChange={(e) => setReassignType(e.target.value as any)}
+                                                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                                                />
+                                                <span className="text-sm text-gray-700 group-hover:text-gray-900">Permanent</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="radio"
+                                                    name="reassignType"
+                                                    value="temporary"
+                                                    checked={reassignType === "temporary"}
+                                                    onChange={(e) => setReassignType(e.target.value as any)}
+                                                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                                                />
+                                                <span className="text-sm text-gray-700 group-hover:text-gray-900">Temporary</span>
+                                            </label>
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 mt-1">
+                                            {reassignType === "permanent" 
+                                                ? "Completely transfers student to new tutor." 
+                                                : "Student remains visible to current tutor."}
+                                        </p>
+                                    </div>
+
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             New Tutor

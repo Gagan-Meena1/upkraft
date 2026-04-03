@@ -47,7 +47,7 @@ export async function PUT(
         }
 
         if (action === "approve") {
-            const { student: studentId, oldTutor: oldTutorId, newTutor: newTutorId } = reassignReq;
+            const { student: studentId, oldTutor: oldTutorId, newTutor: newTutorId, reassignType = "permanent" } = reassignReq;
 
             const [student, oldTutor, newTutor] = await Promise.all([
                 (User as any).findById(studentId),
@@ -59,23 +59,27 @@ export async function PUT(
                 return NextResponse.json({ success: false, error: "Student or tutors not found" }, { status: 404 });
             }
 
-            // PERFORM ACTUAL REASSIGNMENT (Logic from the old POST API)
+            // PERFORM ACTUAL REASSIGNMENT
             
-            // 1. Remove oldTutorId from student.instructorId and add newTutorId
-            student.instructorId = (student.instructorId || []).filter((id: any) => id.toString() !== oldTutorId.toString());
+            // 1. Handle oldTutor removal based on type
+            if (reassignType === "permanent") {
+                // Remove oldTutorId from student.instructorId
+                student.instructorId = (student.instructorId || []).filter((id: any) => id.toString() !== oldTutorId.toString());
+                
+                // Remove student from oldTutor.students
+                oldTutor.students = (oldTutor.students || []).filter((id: any) => id.toString() !== studentId.toString());
+            }
+
+            // 2. Add student to new tutor
             if (!student.instructorId.some((id: any) => id.toString() === newTutorId.toString())) {
                 student.instructorId.push(new mongoose.Types.ObjectId(newTutorId));
             }
 
-            // 2. Remove student from oldTutor.students
-            oldTutor.students = (oldTutor.students || []).filter((id: any) => id.toString() !== studentId.toString());
-
-            // 3. Add studentId to newTutor.students
             if (!newTutor.students.some((id: any) => id.toString() === studentId.toString())) {
                 newTutor.students.push(new mongoose.Types.ObjectId(studentId));
             }
 
-            // 4. Inherit courses: Add the assigned courses from old tutor to new tutor
+            // 3. Inherit courses: Add the assigned courses from old tutor to new tutor
             const studentCourseIds = student.courses || [];
             const oldTutorCourseIds = oldTutor.courses || [];
             const commonCourseIds = studentCourseIds.filter((courseId: any) => 

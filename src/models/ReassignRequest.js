@@ -26,6 +26,11 @@ const reassignRequestSchema = new mongoose.Schema({
         enum: ["pending", "approved", "rejected"],
         default: "pending"
     },
+    reassignType: {
+        type: String,
+        enum: ["permanent", "temporary"],
+        default: "permanent"
+    },
     reason: {
         type: String,
         default: ""
@@ -34,5 +39,10 @@ const reassignRequestSchema = new mongoose.Schema({
     timestamps: true
 });
 
-const ReassignRequest = mongoose.models.ReassignRequest || mongoose.model("ReassignRequest", reassignRequestSchema);
+// Delete the model if it exists to ensure schema updates are picked up in Next.js
+if (mongoose.models.ReassignRequest) {
+    delete mongoose.models.ReassignRequest;
+}
+
+const ReassignRequest = mongoose.model("ReassignRequest", reassignRequestSchema);
 export default ReassignRequest;

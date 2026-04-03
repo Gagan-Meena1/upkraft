@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { studentId, oldTutorId, newTutorId } = body;
+        const { studentId, oldTutorId, newTutorId, reassignType = "permanent" } = body;
 
         if (!studentId || !oldTutorId || !newTutorId) {
             return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
             oldTutor: oldTutorId,
             newTutor: newTutorId,
             relationshipManager: rmId,
+            reassignType: reassignType,
             status: "pending"
         });
 
