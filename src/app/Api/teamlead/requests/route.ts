@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import Class from "@/models/Class";
+import ReassignRequest from "@/models/ReassignRequest";
 import User from "@/models/userModel";
 import jwt from "jsonwebtoken";
 
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
     }
 
-    const user = await User.findById(userId).select("category");
+    const user = await (User as any).findById(userId).select("category");
     if (!user || !["teamlead", "team lead", "TeamLead"].includes(String(user.category).toLowerCase().replace(/\s/g, ""))) {
       // Depending on how Team Lead is stored, might need to adjust this check. Assuming 'teamlead', 'TeamLead'
       return NextResponse.json(
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const pendingClasses = await Class.find({ deleteRequestStatus: "pending" })
+    const pendingClasses = await (Class as any).find({ deleteRequestStatus: "pending" })
       .populate("instructor", "username email")
       .populate("course", "courseName title name")
       .populate({ path: "deleteRequestStudents", select: "username email", strictPopulate: false })
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
       .lean();
 
     const classIds = pendingClasses.map(c => c._id);
-    const allStudentsInClasses = await User.find({
+    const allStudentsInClasses = await (User as any).find({
       category: { $in: ["Student", "student", "STUDENT"] },
       classes: { $in: classIds }
     }).select("_id username email classes");
@@ -73,10 +74,23 @@ export async function GET(request: NextRequest) {
       students: studentsByClassId.get(cls._id.toString()) || [],
     }));
 
-    return NextResponse.json({ success: true, classes: mappedClasses });
+    // Fetch pending reassignment requests
+    const reassignRequests = await (ReassignRequest as any).find({ status: "pending" })
+      .populate("student", "username email")
+      .populate("oldTutor", "username email")
+      .populate("newTutor", "username email")
+      .populate("relationshipManager", "username email")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return NextResponse.json({ 
+      success: true, 
+      classes: mappedClasses,
+      reassignRequests: reassignRequests
+    });
 
   } catch (error: any) {
-    console.error("Error fetching delete requests:", error);
+    console.error("Error fetching requests:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to fetch requests" },
       { status: 500 }
