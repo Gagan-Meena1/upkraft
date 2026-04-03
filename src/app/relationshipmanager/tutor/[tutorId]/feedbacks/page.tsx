@@ -197,11 +197,11 @@ export default function RMStudentFeedbacksPage() {
             const data = await res.json();
             
             if (res.ok && data.success) {
-                setFeedbacks(prev => prev.filter(fb => fb.student._id !== studentToReassign._id));
+                alert(data.message || "Reassignment request has been sent to team lead for approval.");
                 setIsReassignModalOpen(false);
                 setStudentToReassign(null);
             } else {
-                alert(data.error || "Failed to reassign student");
+                alert(data.error || "Failed to submit reassignment request");
             }
         } catch (err: any) {
             alert(err.message || "An error occurred during reassignment.");
@@ -504,7 +504,7 @@ export default function RMStudentFeedbacksPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
-                            <h2 className="text-lg font-semibold text-gray-900">Reassign Student</h2>
+                            <h2 className="text-lg font-semibold text-gray-900">Request Student Reassignment</h2>
                             <button 
                                 onClick={() => setIsReassignModalOpen(false)}
                                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -515,7 +515,7 @@ export default function RMStudentFeedbacksPage() {
                         
                         <div className="p-6">
                             <p className="text-sm text-gray-600 mb-4">
-                                Select a new tutor to assign <span className="font-semibold text-gray-900">{studentToReassign.username}</span> to. Historical data will remain preserved.
+                                Select a new tutor to assign <span className="font-semibold text-gray-900">{studentToReassign.username}</span> to. This will be sent as a request to the Team Lead for approval.
                             </p>
                             
                             {isLoadingTutors ? (
@@ -564,10 +564,10 @@ export default function RMStudentFeedbacksPage() {
                                             {isSubmittingReassign ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Reassigning...
+                                                    Sending Request...
                                                 </>
                                             ) : (
-                                                'Confirm Reassignment'
+                                                'Send Reassignment Request'
                                             )}
                                         </button>
                                     </div>
