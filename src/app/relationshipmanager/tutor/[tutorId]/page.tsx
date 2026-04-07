@@ -106,6 +106,8 @@ export default function RMTutorCalendarPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [attendanceMap, setAttendanceMap] = useState<Record<string, any[]>>({});
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<ClassItem | null>(null);
 
   const userTz = getUserTimeZone();
 
@@ -546,7 +548,11 @@ export default function RMTutorCalendarPage() {
                               return (
                                 <div
                                   key={cls._id}
-                                  className={`p-2 rounded-lg border-l-4 ${style.bg} ${style.border} text-xs relative`}
+                                  className={`p-2 rounded-lg border-l-4 ${style.bg} ${style.border} text-xs relative cursor-pointer hover:shadow-md transition-shadow`}
+                                  onClick={() => {
+                                    setSelectedClassForAttendance(cls);
+                                    setAttendanceModalOpen(true);
+                                  }}
                                 >
                                   <div className="flex justify-between items-start gap-1">
                                     <div className={`font-semibold truncate ${style.text} ${style.strikethrough || ""}`}>
@@ -637,6 +643,70 @@ export default function RMTutorCalendarPage() {
           </div>
         </div>
       </main>
+
+      {/* Attendance Details Modal */}
+      {attendanceModalOpen && selectedClassForAttendance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 relative">
+            <button
+              onClick={() => {
+                setAttendanceModalOpen(false);
+                setSelectedClassForAttendance(null);
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">{selectedClassForAttendance.title || "Class"}</h3>
+            <p className="text-xs text-gray-500 mb-4">{formatTime(selectedClassForAttendance.startTime, selectedClassForAttendance.endTime)}</p>
+            
+            <div className="max-h-60 overflow-y-auto pr-2">
+              <div className="space-y-2">
+                {selectedClassForAttendance.students.length > 0 ? (
+                  selectedClassForAttendance.students.map((student) => {
+                    let studentStatus = "pending";
+                    const records = attendanceMap[student._id];
+                    if (records) {
+                      const record = records.find((r: any) => r.classId === selectedClassForAttendance._id || r.sessionId === selectedClassForAttendance._id);
+                      if (record && record.status) {
+                        studentStatus = record.status;
+                      }
+                    }
+                    
+                    const sc = STATUS_COLORS[studentStatus] || STATUS_COLORS.pending;
+
+                    return (
+                      <div key={student._id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">{student.username || student.email || "—"}</span>
+                        </div>
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold ${sc.bg} ${sc.text} border ${sc.border}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></span>
+                          {sc.label}
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No students assigned to this class.</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  setAttendanceModalOpen(false);
+                  setSelectedClassForAttendance(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && classToDelete && (
