@@ -103,15 +103,13 @@ await connect();
 export async function POST(request: NextRequest) {
     try {
         const authHeader = request.headers.get("authorization") || "";
+        let token = "";
 
-        if (!authHeader.startsWith("Bearer ")) {
-            return NextResponse.json(
-                { error: "Unauthorized - No token provided" },
-                { status: 401 }
-            );
+        if (authHeader.startsWith("Bearer ")) {
+            token = authHeader.slice(7);
+        } else {
+            token = request.cookies.get("token")?.value || "";
         }
-
-        const token = authHeader.slice(7);
 
         if (!token) {
             return NextResponse.json(
