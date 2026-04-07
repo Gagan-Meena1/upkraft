@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import Class from "@/models/Class";
 import ReassignRequest from "@/models/ReassignRequest";
+import AttendanceResetRequest from "@/models/AttendanceResetRequest";
 import User from "@/models/userModel";
 import jwt from "jsonwebtoken";
 
@@ -83,10 +84,26 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Fetch pending attendance reset requests
+    const attendanceResetRequests = await (AttendanceResetRequest as any).find({ status: "pending" })
+      .populate("student", "username email")
+      .populate({
+         path: "classItem",
+         select: "title startTime endTime course instructor",
+         populate: [
+            { path: "course", select: "courseName title name" },
+            { path: "instructor", select: "username email" }
+         ]
+      })
+      .populate("relationshipManager", "username email")
+      .sort({ createdAt: -1 })
+      .lean();
+
     return NextResponse.json({ 
       success: true, 
       classes: mappedClasses,
-      reassignRequests: reassignRequests
+      reassignRequests: reassignRequests,
+      attendanceResetRequests: attendanceResetRequests
     });
 
   } catch (error: any) {

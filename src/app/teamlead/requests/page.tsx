@@ -30,9 +30,26 @@ interface ReassignRequest {
   createdAt: string;
 }
 
+interface AttendanceResetRequest {
+  _id: string;
+  student: { _id: string; username: string; email: string };
+  classItem: {
+    _id: string;
+    title: string;
+    startTime: string;
+    endTime: string;
+    course?: { courseName: string; title: string; name: string };
+    instructor?: { username: string; email: string };
+  };
+  relationshipManager: { _id: string; username: string; email: string };
+  status: string;
+  createdAt: string;
+}
+
 export default function TeamLeadRequestsPage() {
   const [requests, setRequests] = useState<ClassRequest[]>([]);
   const [reassignRequests, setReassignRequests] = useState<ReassignRequest[]>([]);
+  const [attendanceResetRequests, setAttendanceResetRequests] = useState<AttendanceResetRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -44,6 +61,7 @@ export default function TeamLeadRequestsPage() {
       if (res.ok && data.success) {
         setRequests(data.classes || []);
         setReassignRequests(data.reassignRequests || []);
+        setAttendanceResetRequests(data.attendanceResetRequests || []);
       } else {
         toast.error(data.error || "Failed to fetch requests");
       }
@@ -59,12 +77,16 @@ export default function TeamLeadRequestsPage() {
     fetchRequests();
   }, []);
 
-  const handleAction = async (id: string, action: "approve" | "reject", type: "class" | "reassign", isPartial?: boolean) => {
+  const handleAction = async (id: string, action: "approve" | "reject", type: "class" | "reassign" | "attendanceReset", isPartial?: boolean) => {
     let confirmMsg = "";
     if (type === "class") {
       confirmMsg = action === "approve" 
         ? (isPartial ? "Are you sure you want to approve this partial deletion request? This will remove the selected students from the class." : "Are you sure you want to approve this request? This will completely cancel and delete the class.")
         : (isPartial ? "Are you sure you want to reject this partial deletion request? The students will remain in the class." : "Are you sure you want to reject this request? The class will remain scheduled.");
+    } else if (type === "attendanceReset") {
+      confirmMsg = action === "approve"
+        ? "Are you sure you want to approve this attendance reset request? This will remove the 'absent' status for this student."
+        : "Are you sure you want to reject this attendance reset request?";
     } else {
       confirmMsg = action === "approve"
         ? "Are you sure you want to approve this student reassignment request?"
@@ -77,6 +99,8 @@ export default function TeamLeadRequestsPage() {
       setActionLoading(id);
       const endpoint = type === "class" 
         ? `/Api/teamlead/requests/${id}`
+        : type === "attendanceReset"
+        ? `/Api/teamlead/attendance-reset-requests/${id}`
         : `/Api/teamlead/reassign-requests/${id}`;
 
       const res = await fetch(endpoint, {
@@ -127,7 +151,7 @@ export default function TeamLeadRequestsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Class Delete Requests Section */}
             <div className="bg-white shadow rounded-xl p-6 border border-gray-100">
               <div className="flex items-center mb-6">
@@ -261,6 +285,71 @@ export default function TeamLeadRequestsPage() {
                 </div>
               )}
             </div>
+
+            {/* Attendance Reset Requests Section */}
+            <div className="bg-white shadow rounded-xl p-6 border border-gray-100">
+              <div className="flex items-center mb-6">
+                <Clock className="text-blue-500 mr-2" />
+                <h2 className="text-xl font-semibold text-gray-800">Attendance Reset ({attendanceResetRequests.length})</h2>
+              </div>
+
+              {attendanceResetRequests.length === 0 ? (
+                <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                  <p className="text-gray-500">No pending attendance reset requests found.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {attendanceResetRequests.map((req) => {
+                    const classTitle = req.classItem?.title || "Unknown Class";
+                    return (
+                      <div key={req._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-md font-bold text-gray-900 truncate">Reset: {req.student?.username}</h3>
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
+                              ATTENDANCE
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-2 text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold">Class:</span>
+                              <span className="text-gray-900">{classTitle}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold text-gray-600">Tutor:</span>
+                              <span className="text-gray-900">{req.classItem?.instructor?.username || "—"}</span>
+                            </div>
+                            <div className="pt-1 border-t border-gray-200 flex justify-between items-center text-[10px]">
+                              <span className="italic">Requested by RM: {req.relationshipManager?.username}</span>
+                              <span>{new Date(req.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => handleAction(req._id, "approve", "attendanceReset")}
+                              disabled={actionLoading !== null}
+                              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {actionLoading === req._id ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div> : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => handleAction(req._id, "reject", "attendanceReset")}
+                              disabled={actionLoading !== null}
+                              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       </div>

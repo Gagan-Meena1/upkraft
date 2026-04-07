@@ -108,6 +108,31 @@ export default function RMTutorCalendarPage() {
   const [attendanceMap, setAttendanceMap] = useState<Record<string, any[]>>({});
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<ClassItem | null>(null);
+  const [resettingAttendanceFor, setResettingAttendanceFor] = useState<string | null>(null);
+  const [pendingResetRequests, setPendingResetRequests] = useState<any[]>([]);
+
+  const resetAttendance = async (studentId: string, classId: string) => {
+    try {
+      setResettingAttendanceFor(studentId);
+      const res = await fetch("/Api/relationship-manager/attendance/request-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, classId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPendingResetRequests(prev => [...prev, data.data]);
+        toast?.success?.("Attendance reset requested sent to Team Lead.");
+      } else {
+        alert(data.error || data.message || "Failed to request attendance reset");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Failed to request attendance reset");
+    } finally {
+      setResettingAttendanceFor(null);
+    }
+  };
 
   const userTz = getUserTimeZone();
 
@@ -135,6 +160,7 @@ export default function RMTutorCalendarPage() {
         const loadedClasses = data.classes || [];
         setTutor(data.tutor || null);
         setClasses(loadedClasses);
+        setPendingResetRequests(data.pendingResetRequests || []);
 
         const studentIds = new Set<string>();
         loadedClasses.forEach((cls: ClassItem) => {
@@ -674,16 +700,31 @@ export default function RMTutorCalendarPage() {
                     }
                     
                     const sc = STATUS_COLORS[studentStatus] || STATUS_COLORS.pending;
+                    
+                    const isResetRequested = pendingResetRequests.some((req: any) => 
+                      req.student === student._id && req.classItem === selectedClassForAttendance._id
+                    );
 
                     return (
                       <div key={student._id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100">
                         <div className="flex flex-col">
                           <span className="text-sm font-medium text-gray-900">{student.username || student.email || "—"}</span>
                         </div>
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold ${sc.bg} ${sc.text} border ${sc.border}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></span>
-                          {sc.label}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold ${sc.bg} ${sc.text} border ${sc.border}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></span>
+                            {sc.label}
+                          </span>
+                          {studentStatus === "absent" && (
+                            <button
+                              disabled={isResetRequested || resettingAttendanceFor === student._id}
+                              onClick={() => resetAttendance(student._id, selectedClassForAttendance._id)}
+                              className={`text-[10px] px-2 py-1 rounded border transition-colors disabled:opacity-50 ${isResetRequested ? 'text-orange-700 bg-orange-100 border-orange-200' : 'text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border-red-200'}`}
+                            >
+                              {isResetRequested ? "Reset Requested" : resettingAttendanceFor === student._id ? "Requesting..." : "Reset"}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })
