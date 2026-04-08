@@ -442,6 +442,7 @@ export async function PUT(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId");
+    const editType = (searchParams.get("editType") || "single").toLowerCase();
 
     if (!classId) {
       return NextResponse.json(
@@ -478,11 +479,11 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { title, description, date, startTime, endTime, timezone, reasonForReschedule, joinLink } = body;
 
-    console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone, reasonForReschedule });
+    console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone, reasonForReschedule, editType });
 
-    if (!title || !description || !date || !startTime || !endTime) {
+    if (!title || !description || !startTime || !endTime || (editType === "single" && !date)) {
       return NextResponse.json(
-        { error: "All fields are required" },
+        { error: "All required fields are missing or invalid" },
         { status: 400 }
       );
     }
@@ -494,10 +495,83 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const userTz = timezone || 'UTC';
+
+    // ── BULK series update (all occurrences sharing recurrenceId) ──
+    if (editType === 'all' && existingClass.recurrenceId) {
+      const recurrenceId = existingClass.recurrenceId;
+
+      const docs = await Class.find({ recurrenceId });
+      if (!docs.length) {
+        return NextResponse.json(
+          { error: 'No classes found for this series' },
+          { status: 404 }
+        );
+      }
+
+      const trimmedReason = (reasonForReschedule ?? '').toString().trim();
+
+      const ops = docs.map((doc) => {
+        // Keep each class on its own date, only change time/title/description
+        const localStart = dateFnsTz.toZonedTime(doc.startTime, userTz);
+        const dateStrForDoc = format(localStart, 'yyyy-MM-dd');
+
+        const dateTimeStrForDoc = `${dateStrForDoc}T${startTime}:00`;
+        const endDateTimeStrForDoc = `${dateStrForDoc}T${endTime}:00`;
+
+        const newStart = dateFnsTz.fromZonedTime(dateTimeStrForDoc, userTz);
+        const newEnd = dateFnsTz.fromZonedTime(endDateTimeStrForDoc, userTz);
+
+        const scheduleChangedForDoc =
+          doc.startTime.getTime() !== newStart.getTime() ||
+          doc.endTime.getTime() !== newEnd.getTime();
+
+        const setPayload: any = {
+          title,
+          description,
+          startTime: newStart,
+          endTime: newEnd,
+          ...(joinLink !== undefined && { joinLink: joinLink || null }),
+        };
+
+        if (scheduleChangedForDoc || trimmedReason) {
+          setPayload.reasonForReschedule = trimmedReason;
+          setPayload.status = 'rescheduled';
+        }
+
+        return {
+          updateOne: {
+            filter: { _id: doc._id },
+            update: { $set: setPayload },
+          },
+        };
+      });
+
+      const result = await Class.bulkWrite(ops);
+      const modified =
+        (result as any).modifiedCount ??
+        Object.values(result as any).reduce(
+          (a: number, b: any) => a + (b?.nModified || 0),
+          0
+        );
+
+      console.log('Series updated in UTC for recurrenceId:', recurrenceId);
+
+      return NextResponse.json(
+        {
+          message: 'Series updated successfully',
+          editType: 'all',
+          recurrenceId,
+          updatedCount: modified,
+        },
+        { status: 200 }
+      );
+    }
+
+    // ── SINGLE class update (default/fallback) ──
     const dateTimeStr = `${date}T${startTime}:00`;
     const endDateTimeStr = `${date}T${endTime}:00`;
 
-    const userTz = timezone || 'UTC';
     const startDateTime = dateFnsTz.fromZonedTime(dateTimeStr, userTz);
     const endDateTime = dateFnsTz.fromZonedTime(endDateTimeStr, userTz);
 
@@ -520,7 +594,7 @@ export async function PUT(request: NextRequest) {
       ...(joinLink !== undefined && { joinLink: joinLink || null }),
     };
 
-    if (scheduleChanged) {
+    if (scheduleChanged || (reasonForReschedule && String(reasonForReschedule).trim())) {
       updatePayload.reasonForReschedule = reasonForReschedule;
       updatePayload.status = 'rescheduled';
     }
@@ -617,6 +691,8 @@ export async function PUT(request: NextRequest) {
       {
         message: "Class updated successfully",
         classData: updatedClass,
+        editType: 'single',
+        updatedCount: 1,
       },
       { status: 200 }
     );

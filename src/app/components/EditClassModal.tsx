@@ -12,6 +12,8 @@ interface EditClassModalProps {
   userTimezone?: string;
   onSuccess?: (updated?: any) => void;
   customFields?: React.ReactNode;
+  // "edit" = normal edit, "reschedule" = treat any change as reschedule
+  mode?: "edit" | "reschedule";
 }
 
 const extractDateTimeForForm = (iso?: string, tz?: string) => {
@@ -47,7 +49,9 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
   userTimezone,
   onSuccess,
   customFields,
+  mode = "edit",
 }) => {
+  const isRescheduleMode = mode === "reschedule";
   const tz = userTimezone || getUserTimeZone();
 
   const [loading, setLoading] = useState(false);
@@ -61,6 +65,8 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
     endTime: "",
   });
   const [original, setOriginal] = useState({
+    title: "",
+    description: "",
     date: "",
     startTime: "",
     endTime: "",
@@ -73,6 +79,10 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
     (form.startTime && form.startTime !== original.startTime) ||
     (form.endTime && form.endTime !== original.endTime);
   const hasScheduleChanged = !!(hasDateChanged || hasTimeChanged);
+  const hasTitleChanged = form.title !== original.title;
+  const hasDescriptionChanged = form.description !== original.description;
+  const hasMetaChanged = hasTitleChanged || hasDescriptionChanged;
+  const hasAnythingChanged = !!(hasScheduleChanged || hasMetaChanged);
 
   useEffect(() => {
     let mounted = true;
@@ -100,6 +110,8 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
           endTime: end.timeStr || "",
         });
         setOriginal({
+          title: initialData.title || "",
+          description: initialData.description || "",
           date: start.dateStr || "",
           startTime: start.timeStr || "",
           endTime: end.timeStr || "",
@@ -132,6 +144,8 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
           endTime: end.timeStr || "",
         });
         setOriginal({
+          title: cls.title || "",
+          description: cls.description || "",
           date: start.dateStr || "",
           startTime: start.timeStr || "",
           endTime: end.timeStr || "",
@@ -166,7 +180,10 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
       return "Date and times are required";
     if (form.endTime <= form.startTime)
       return "End time must be after start time";
-    if (hasScheduleChanged && !reasonForReschedule.trim())
+    const needsRescheduleReason = isRescheduleMode
+      ? hasAnythingChanged
+      : hasScheduleChanged;
+    if (needsRescheduleReason && !reasonForReschedule.trim())
       return "Please provide a reason for rescheduling";
     return "";
   };
@@ -194,6 +211,10 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
     const timezoneToSend =
       userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+    const includeRescheduleReason = isRescheduleMode
+      ? hasAnythingChanged
+      : hasScheduleChanged;
+
     const payload = {
       title: form.title,
       description: form.description,
@@ -201,7 +222,7 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
       startTime: form.startTime,
       endTime: form.endTime,
       timezone: timezoneToSend,
-      reasonForReschedule: hasScheduleChanged ? reasonForReschedule : "",
+      reasonForReschedule: includeRescheduleReason ? reasonForReschedule : "",
     };
 
     // Build ISO strings for UI state so calendar logic keeps working
@@ -232,7 +253,7 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
         description: form.description,
         startTime: newStartIso,
         endTime: newEndIso,
-        ...(hasScheduleChanged && reasonForReschedule.trim()
+        ...(includeRescheduleReason && reasonForReschedule.trim()
           ? {
               status: "rescheduled",
               rescheduleReason: reasonForReschedule,
@@ -344,7 +365,7 @@ const EditClassModal: React.FC<EditClassModalProps> = ({
             </div>
           </div>
 
-          {hasDateChanged && (
+          {(isRescheduleMode ? hasAnythingChanged : hasScheduleChanged) && (
             <Form.Group className="mt-3">
               <Form.Label>
                 Reason for Reschedule <span className="text-red-500">*</span>
