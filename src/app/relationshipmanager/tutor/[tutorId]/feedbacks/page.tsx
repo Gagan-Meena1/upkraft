@@ -70,6 +70,7 @@ export default function RMStudentFeedbacksPage() {
     const [newTutorId, setNewTutorId] = useState<string>("");
     const [isSubmittingReassign, setIsSubmittingReassign] = useState(false);
     const [isLoadingTutors, setIsLoadingTutors] = useState(false);
+    const [reassignType, setReassignType] = useState<"permanent" | "temporary">("permanent");
 
     useEffect(() => {
         if (!tutorId) {
@@ -158,6 +159,7 @@ export default function RMStudentFeedbacksPage() {
         setStudentToReassign(student);
         setIsReassignModalOpen(true);
         setNewTutorId("");
+        setReassignType("permanent");
         
         if (availableTutors.length === 0) {
             setIsLoadingTutors(true);
@@ -191,17 +193,18 @@ export default function RMStudentFeedbacksPage() {
                 body: JSON.stringify({
                     studentId: studentToReassign._id,
                     oldTutorId: tutorId,
-                    newTutorId: newTutorId
+                    newTutorId: newTutorId,
+                    reassignType: reassignType
                 })
             });
             const data = await res.json();
             
             if (res.ok && data.success) {
-                setFeedbacks(prev => prev.filter(fb => fb.student._id !== studentToReassign._id));
+                alert(data.message || "Reassignment request has been sent to team lead for approval.");
                 setIsReassignModalOpen(false);
                 setStudentToReassign(null);
             } else {
-                alert(data.error || "Failed to reassign student");
+                alert(data.error || "Failed to submit reassignment request");
             }
         } catch (err: any) {
             alert(err.message || "An error occurred during reassignment.");
@@ -504,7 +507,7 @@ export default function RMStudentFeedbacksPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
-                            <h2 className="text-lg font-semibold text-gray-900">Reassign Student</h2>
+                            <h2 className="text-lg font-semibold text-gray-900">Request Student Reassignment</h2>
                             <button 
                                 onClick={() => setIsReassignModalOpen(false)}
                                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -515,7 +518,7 @@ export default function RMStudentFeedbacksPage() {
                         
                         <div className="p-6">
                             <p className="text-sm text-gray-600 mb-4">
-                                Select a new tutor to assign <span className="font-semibold text-gray-900">{studentToReassign.username}</span> to. Historical data will remain preserved.
+                                Select a new tutor to assign <span className="font-semibold text-gray-900">{studentToReassign.username}</span> to. This will be sent as a request to the Team Lead for approval.
                             </p>
                             
                             {isLoadingTutors ? (
@@ -524,6 +527,41 @@ export default function RMStudentFeedbacksPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Reassignment Type
+                                        </label>
+                                        <div className="flex gap-4">
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="radio"
+                                                    name="reassignType"
+                                                    value="permanent"
+                                                    checked={reassignType === "permanent"}
+                                                    onChange={(e) => setReassignType(e.target.value as any)}
+                                                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                                                />
+                                                <span className="text-sm text-gray-700 group-hover:text-gray-900">Permanent</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer group">
+                                                <input
+                                                    type="radio"
+                                                    name="reassignType"
+                                                    value="temporary"
+                                                    checked={reassignType === "temporary"}
+                                                    onChange={(e) => setReassignType(e.target.value as any)}
+                                                    className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
+                                                />
+                                                <span className="text-sm text-gray-700 group-hover:text-gray-900">Temporary</span>
+                                            </label>
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 mt-1">
+                                            {reassignType === "permanent" 
+                                                ? "Completely transfers student to new tutor." 
+                                                : "Student remains visible to current tutor."}
+                                        </p>
+                                    </div>
+
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">
                                             New Tutor
@@ -564,10 +602,10 @@ export default function RMStudentFeedbacksPage() {
                                             {isSubmittingReassign ? (
                                                 <>
                                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                                    Reassigning...
+                                                    Sending Request...
                                                 </>
                                             ) : (
-                                                'Confirm Reassignment'
+                                                'Send Reassignment Request'
                                             )}
                                         </button>
                                     </div>

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
+import ReassignRequest from "@/models/ReassignRequest";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { studentId, oldTutorId, newTutorId } = body;
+        const { studentId, oldTutorId, newTutorId, reassignType = "permanent" } = body;
 
         if (!studentId || !oldTutorId || !newTutorId) {
             return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
@@ -54,42 +55,28 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Student not found" }, { status: 404 });
         }
 
-        // Use mongoose session if replica set is available, but for simplicity we'll just update sequentially
-        
-        // 1. Remove oldTutorId from student.instructorId and add newTutorId
-        student.instructorId = (student.instructorId || []).filter((id: any) => id.toString() !== oldTutorId);
-        if (!student.instructorId.some((id: any) => id.toString() === newTutorId)) {
-            student.instructorId.push(new mongoose.Types.ObjectId(newTutorId));
-        }
-
-        // 2. Remove student from oldTutor.students
-        oldTutor.students = (oldTutor.students || []).filter((id: any) => id.toString() !== studentId);
-
-        // 3. Add studentId to newTutor.students
-        if (!newTutor.students.some((id: any) => id.toString() === studentId)) {
-            newTutor.students.push(new mongoose.Types.ObjectId(studentId));
-        }
-
-        // 4. Inherit courses: Add the assigned courses from old tutor to new tutor
-        const studentCourseIds = student.courses || [];
-        const oldTutorCourseIds = oldTutor.courses || [];
-        const commonCourseIds = studentCourseIds.filter((courseId: any) => 
-            oldTutorCourseIds.some((oldId: any) => oldId.toString() === courseId.toString())
-        );
-        
-        commonCourseIds.forEach((courseId: any) => {
-            if (!newTutor.courses.some((id: any) => id.toString() === courseId.toString())) {
-                newTutor.courses.push(courseId);
-            }
+        // Check if there is already a pending request for this student and old tutor
+        const existingRequest = await (ReassignRequest as any).findOne({
+            student: studentId,
+            oldTutor: oldTutorId,
+            status: "pending"
         });
 
-        await Promise.all([
-            student.save(),
-            oldTutor.save(),
-            newTutor.save()
-        ]);
+        if (existingRequest) {
+            return NextResponse.json({ success: false, error: "A reassignment request for this student is already pending approval" }, { status: 400 });
+        }
 
-        return NextResponse.json({ success: true, message: "Student reassigned successfully" });
+        // Create a new reassign request
+        await (ReassignRequest as any).create({
+            student: studentId,
+            oldTutor: oldTutorId,
+            newTutor: newTutorId,
+            relationshipManager: rmId,
+            reassignType: reassignType,
+            status: "pending"
+        });
+
+        return NextResponse.json({ success: true, message: "Reassignment request sent to team lead for approval" });
     } catch (error: any) {
         console.error("Error reassigning student:", error);
         return NextResponse.json({ success: false, error: error.message || "Failed to reassign student" }, { status: 500 });
