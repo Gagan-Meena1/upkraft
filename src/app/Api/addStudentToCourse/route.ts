@@ -11,7 +11,7 @@ connect();
 export async function POST(req: NextRequest) {
   try {
     const requestData = await req.json();
-    const { courseId, studentId, tutorId, credits, message, startDate, classIds: selectedClassIds = [] ,classType} = requestData;
+    const { courseId, studentId, tutorId, credits, message, startDate, classIds: selectedClassIds = [] ,classType , endDate } = requestData;
     console.log("requestData:", requestData);
 
     let instructorId;
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     const courseClassIds = course.class || [];
 
     const startTimeEntry = startDate
-      ? { date: new Date(startDate), message: message || "" ,classIds : selectedClassIds}
+      ? { date: new Date(startDate), message: message || "" ,classIds : selectedClassIds , endDate: endDate ? new Date(endDate) : null}
       : null;
 
     const existingEntry = student.creditsPerCourse?.find(
@@ -72,7 +72,7 @@ function getNearestPastEntryIndex(creditsPerCourse: any[], courseId: string): nu
   const now = new Date();
 
 const pastEntries = entry.startTime
-  .map((s: any, idx: number) => ({ date: s.date, idx }))  // sirf date aur idx rakho
+  .map((s: any, idx: number) => ({ date: s.date, idx }))  
   .filter((s: any) => {
     const entryDate = new Date(s.date);
     console.log("[classType flow] checking date:", entryDate, "<=", now, "→", entryDate <= now);
@@ -147,6 +147,18 @@ if (!startDate && selectedClassIds.length > 0 && courseId) {
         }
       });
 
+      // After pushing classIds, before student.save()
+if (endDate) {
+  const targetEndDate = targetEntry.endDate ? new Date(targetEntry.endDate) : null;
+  const incomingEndDate = new Date(endDate);
+  if (!targetEndDate || incomingEndDate > targetEndDate) {
+    student.creditsPerCourse[courseEntryIdx].startTime[nearestIdx].endDate = incomingEndDate;
+    console.log("[classType flow] endDate updated to:", incomingEndDate);
+  } else {
+    console.log("[classType flow] endDate kept as existing:", targetEndDate);
+  }
+}
+
       await student.save();
       console.log("[classType flow] student.save() done ✅");
 
@@ -193,6 +205,18 @@ if (!startDate && selectedClassIds.length > 0 && courseId) {
           "creditsPerCourse.$.startTime.$[entry].message": message,
         },
       }),
+       // ✅ Only update endDate if incoming is later than existing
+  ...(endDate && existingStartTimeEntry.endDate && new Date(endDate) > new Date(existingStartTimeEntry.endDate) && {
+    $set: {
+      "creditsPerCourse.$.startTime.$[entry].endDate": new Date(endDate),
+    },
+  }),
+  // ✅ If no endDate exists yet, just set it
+  ...(!existingStartTimeEntry.endDate && endDate && {
+    $set: {
+      "creditsPerCourse.$.startTime.$[entry].endDate": new Date(endDate),
+    },
+  }),
     };
 
     const [finalStudent, finalInstructor] = await Promise.all([

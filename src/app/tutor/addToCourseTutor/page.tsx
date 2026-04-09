@@ -157,6 +157,7 @@ const fetchClasses = async (courseId: string) => {
         startDate: payload.startDate,
         message: payload.message,
         credits: payload.credits,
+        endDate: payload.endDate,
       });
 
       console.log("RESPONSE.    :     " , response);

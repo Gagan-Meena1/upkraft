@@ -46,6 +46,7 @@ export interface AssignPayload {
   message: string;
   credits: number;
     isEdit?: boolean; // ← new
+    endDate: string;
     classType?: 'makeup' | 'regularClass';
 
 }
@@ -420,12 +421,23 @@ const toggleClassOverride = (
   });
 };
  const handleConfirm = () => {
+  const selectedClasses = classes.filter((cls) =>
+    allSelectedClassIds.includes(cls._id)
+  );
+  const lastClass = selectedClasses.reduce<ClassItem | null>((latest, cls) => {
+    if (!latest) return cls;
+    return new Date(cls.startTime) > new Date(latest.startTime) ? cls : latest;
+  }, null);
+  const endDate = lastClass
+  ? new Date(lastClass.startTime).toISOString() // ← remove the .split("T")[0]
+  : "";
   onConfirm({
     classIds: allSelectedClassIds,
     startDate,
     message,
     credits: parseInt(credits, 10) || 0,
     isEdit: !!editingEntry,
+    endDate,
     classType: showClassType ? classType : undefined,
   });
 };
