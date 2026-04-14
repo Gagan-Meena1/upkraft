@@ -1,8 +1,7 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import Link from 'next/link';
-import { Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, Menu, X, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { User, ArrowLeft } from 'lucide-react';
 import axios from "axios";
 import DashboardLayout from '@/app/components/DashboardLayout'; // Adjust the path as needed
 
@@ -22,6 +21,41 @@ interface Tutor {
   rating?: number;
   bio?: string;
 }
+
+const TutorCard: React.FC<{ tutor: Tutor }> = memo(({ tutor }) => {
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+      <div className="flex items-center mb-4">
+        <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mr-4">
+          <User size={24} className="text-purple-700" />
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 !text-[24px]">{tutor.username}</h3>
+          <p className="text-sm text-gray-600">Tutor</p>
+        </div>
+      </div>
+
+      <div className="space-y-2 mb-4">
+        {/* <div className="flex">
+                  <span className="text-sm text-gray-500 w-20">Email:</span>
+                  <span className="text-sm text-gray-500 word-brk">{tutor.email}</span>
+                </div> */}
+        {/* <div className="flex">
+                  <span className="text-sm text-gray-500 w-20">Contact:</span>
+                  <span className="text-sm text-gray-500">{tutor.contact || 'Not available'}</span>
+                </div> */}
+      </div>
+
+      <Link href={`/student/tutorProfile?tutorId=${tutor._id}`}>
+        <button className="w-full bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-800 transition-colors">
+          View Profile
+        </button>
+      </Link>
+    </div>
+  );
+});
+
+TutorCard.displayName = 'TutorCard';
 
 // const SidebarItem: React.FC<SidebarItemProps> = ({ 
 //   title, 
@@ -51,7 +85,6 @@ interface Tutor {
 // };
 
 export default function TutorsPage() {
-  const router = useRouter();
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,8 +111,6 @@ export default function TutorsPage() {
         const response = await axios.get('/Api/student/tutors');
         if (response.data.success) {
           setTutors(response.data.tutors);
-          console.log("response.data.tutors : ",response.data.tutors);
-          
         } else {
           setError('Failed to fetch tutors');
         }
@@ -156,34 +187,7 @@ const tutorContent=(
         {/* Tutors Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {tutors.map((tutor) => (
-            <div key={tutor._id} className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mr-4">
-                  <User size={24} className="text-purple-700" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 !text-[24px]">{tutor.username}</h3>
-                  <p className="text-sm text-gray-600">Tutor</p>
-                </div>
-              </div>
-              
-              <div className="space-y-2 mb-4">
-                {/* <div className="flex">
-                  <span className="text-sm text-gray-500 w-20">Email:</span>
-                  <span className="text-sm text-gray-500 word-brk">{tutor.email}</span>
-                </div> */}
-                {/* <div className="flex">
-                  <span className="text-sm text-gray-500 w-20">Contact:</span>
-                  <span className="text-sm text-gray-500">{tutor.contact || 'Not available'}</span>
-                </div> */}
-              </div>
-              
-              <Link href={`/student/tutorProfile?tutorId=${tutor._id}`}>
-                  <button className="w-full bg-purple-700 text-white px-4 py-2 rounded-lg hover:bg-purple-800 transition-colors">
-                    View Profile
-                  </button>
-                </Link>
-            </div>
+            <TutorCard key={tutor._id} tutor={tutor} />
           ))}
 
           {tutors.length === 0 && (
