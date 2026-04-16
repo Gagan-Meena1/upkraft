@@ -715,7 +715,7 @@ export default function RMTutorCalendarPage() {
                             <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></span>
                             {sc.label}
                           </span>
-                          {studentStatus === "absent" && (
+                          {(studentStatus === "absent" || studentStatus === "present") && (
                             <button
                               disabled={isResetRequested || resettingAttendanceFor === student._id}
                               onClick={() => resetAttendance(student._id, selectedClassForAttendance._id)}

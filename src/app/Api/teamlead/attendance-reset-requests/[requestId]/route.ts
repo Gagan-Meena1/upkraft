@@ -3,7 +3,12 @@ import { connect } from "@/dbConnection/dbConfic";
 import jwt from "jsonwebtoken";
 import AttendanceResetRequest from "@/models/AttendanceResetRequest";
 import User from "@/models/userModel";
-
+import Feedback from "@/models/feedback";
+import FeedbackDance from "@/models/feedbackDance";
+import FeedbackDrawing from "@/models/feedbackDrawing";
+import FeedbackDrums from "@/models/feedbackDrums";
+import FeedbackVocal from "@/models/feedbackVocal";
+import FeedbackViolin from "@/models/feedbackViolin";
 await connect();
 
 export async function PUT(request: NextRequest, { params }: { params: { requestId: string } }) {
@@ -42,11 +47,25 @@ export async function PUT(request: NextRequest, { params }: { params: { requestI
         }
 
         if (action === "approve") {
+            const studentId = reqObj.student;
+            const classId = reqObj.classItem;
+
             // Delete actual attendance record via $pull
             await (User as any).updateOne(
-                { _id: reqObj.student },
-                { $pull: { attendance: { classId: reqObj.classItem } } }
+                { _id: studentId },
+                { $pull: { attendance: { classId: classId } } }
             );
+
+            // Delete feedbacks for this student and class
+            await Promise.all([
+                Feedback.deleteMany({ classId: classId, userId: studentId }),
+                FeedbackDance.deleteMany({ classId: classId, userId: studentId }),
+                FeedbackDrawing.deleteMany({ classId: classId, userId: studentId }),
+                FeedbackDrums.deleteMany({ classId: classId, userId: studentId }),
+                FeedbackVocal.deleteMany({ classId: classId, userId: studentId }),
+                FeedbackViolin.deleteMany({ classId: classId, userId: studentId })
+            ]);
+
             reqObj.status = "approved";
             await reqObj.save();
             return NextResponse.json({ success: true, message: "Attendance reset successfully approved" });
