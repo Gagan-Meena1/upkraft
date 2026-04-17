@@ -55,7 +55,8 @@ export const CourseEnrolledItem: React.FC<CourseEnrolledItemProps> = ({
         courseId: course._id,
         studentId,
         classIds: payload.classIds,
-        classType:payload.classType
+        classType:payload.classType,
+        endDate: payload.endDate,
         // simpleMode doesn't send startDate/message/credits,
         // but they'll be empty strings/0 — safe to omit or send as-is
       });
