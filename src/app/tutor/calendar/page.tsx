@@ -288,6 +288,7 @@ const StudentCalendarView = () => {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingClassId, setEditingClassId] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState<"edit" | "reschedule">("edit");
   const [attendanceMap, setAttendanceMap] = useState<Record<string, any[]>>(
     {}
   );
@@ -628,11 +629,12 @@ const StudentCalendarView = () => {
     setSelectedClass(null);
   }, []);
 
-  const handleEditClass = useCallback(() => {
+  const handleEditClass = useCallback((mode: "edit" | "reschedule" = "edit") => {
     if (!selectedClass) {
       toast.error("No class selected");
       return;
     }
+    setEditMode(mode);
     setEditingClassId(selectedClass._id);
     setShowEditModal(true);
     setShowClassModal(false);
@@ -1615,9 +1617,17 @@ const StudentCalendarView = () => {
               <Button
                 variant="outline-primary"
                 className="!rounded-md !py-2 !text-sm"
-                onClick={handleEditClass}
+                onClick={() => handleEditClass("edit")}
               >
-                Reschedule/Edit
+                Edit
+              </Button>
+
+              <Button
+                variant="outline-primary"
+                className="!rounded-md !py-2 !text-sm"
+                onClick={() => handleEditClass("reschedule")}
+              >
+                Reschedule
               </Button>
 
               <Button
@@ -1708,6 +1718,7 @@ const StudentCalendarView = () => {
         classId={editingClassId}
         initialData={selectedClass}
         userTimezone={userTz}
+        mode={editMode}
         onSuccess={handleEditSuccess}
       />
 
