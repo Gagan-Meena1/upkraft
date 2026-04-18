@@ -3,6 +3,7 @@ import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
 import courseName from "@/models/courseName";
 import Class from "@/models/Class";
+import AttendanceResetRequest from "@/models/AttendanceResetRequest";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -134,6 +135,11 @@ export async function GET(
       });
     });
 
+    const pendingResetRequests = await AttendanceResetRequest.find({
+      classItem: { $in: classObjectIdList },
+      status: "pending"
+    }).lean();
+
     const classesWithStudents = classes.map((cls: any) => {
       const classIdStr = cls._id.toString();
       const studentsInClass = studentsByClassId.get(classIdStr) || [];
@@ -161,6 +167,7 @@ export async function GET(
       success: true,
       tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
       classes: classesWithStudents,
+      pendingResetRequests: pendingResetRequests,
     });
   } catch (error: any) {
     console.error("Error fetching RM tutor classes:", error);

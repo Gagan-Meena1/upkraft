@@ -64,7 +64,9 @@ const userSchema = new mongoose.Schema({
                 type:[{
                     date: Date,
                     message:String,
-                classIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Class" }]
+                    classIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Class" }],
+                    endDate: Date,
+                    
                     
                 }]
             },

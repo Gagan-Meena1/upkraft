@@ -399,22 +399,29 @@ export async function GET(request: NextRequest) {
         .map((id) => id.trim())
         .filter(Boolean);
 
-      const queriedUsers = await Promise.all(
-        studentIds.map((sid) =>
-          User.findById(sid).select("_id classes").lean()
-        )
-      );
+      const [instructor, ...queriedUsers] = await Promise.all([
+  User.findById(instructorId).select("classes").lean(),
+  ...studentIds.map((sid) =>
+    User.findById(sid).select("_id classes").lean()
+  ),
+]);
 
-      const allCommonIds: string[] = [];
-      const studentClassIdMap: Record<string, string[]> = {};
+const instructorClassIds = new Set(
+  (instructor?.classes || []).map((id: any) => id.toString())
+);
 
-      for (const student of queriedUsers) {
-        if (!student) continue;
-        const sid = student._id.toString();
-        const classIds = (student.classes || []).map((id: any) => id.toString());
-        studentClassIdMap[sid] = classIds;
-        allCommonIds.push(...classIds);
-      }
+const allCommonIds: string[] = [];
+const studentClassIdMap: Record<string, string[]> = {};
+
+for (const student of queriedUsers) {
+  if (!student) continue;
+  const sid = student._id.toString();
+  const commonIds = (student.classes || [])
+    .map((id: any) => id.toString())
+    .filter((id) => instructorClassIds.has(id)); // ← intersection
+  studentClassIdMap[sid] = commonIds;
+  allCommonIds.push(...commonIds);
+}
 
       const uniqueIds = [...new Set(allCommonIds)];
       const classQuery = applyDateFilter({ _id: { $in: uniqueIds } });
@@ -454,9 +461,18 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const classIds = (queriedUser.classes || []).map((c: any) => c.toString());
-      const classQuery = applyDateFilter({ _id: { $in: classIds } });
-      const commonClasses = await Class.find(classQuery).lean();
+      const instructor = await User.findById(instructorId).select("classes").lean();
+
+const instructorClassIds = new Set(
+  (instructor?.classes || []).map((id: any) => id.toString())
+);
+
+const commonIds = (queriedUser.classes || [])
+  .map((c: any) => c.toString())
+  .filter((id) => instructorClassIds.has(id)); // ← intersection
+
+const classQuery = applyDateFilter({ _id: { $in: commonIds } });
+const commonClasses = await Class.find(classQuery).lean();
 
       return NextResponse.json(
         {

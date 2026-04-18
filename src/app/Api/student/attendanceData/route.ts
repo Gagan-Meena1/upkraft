@@ -103,15 +103,13 @@ await connect();
 export async function POST(request: NextRequest) {
     try {
         const authHeader = request.headers.get("authorization") || "";
+        let token = "";
 
-        if (!authHeader.startsWith("Bearer ")) {
-            return NextResponse.json(
-                { error: "Unauthorized - No token provided" },
-                { status: 401 }
-            );
+        if (authHeader.startsWith("Bearer ")) {
+            token = authHeader.slice(7);
+        } else {
+            token = request.cookies.get("token")?.value || "";
         }
-
-        const token = authHeader.slice(7);
 
         if (!token) {
             return NextResponse.json(
@@ -156,6 +154,51 @@ export async function POST(request: NextRequest) {
         );
     } catch (error) {
         console.error("Batch attendance error:", error);
+        return NextResponse.json(
+            { message: "Internal Server Error" },
+            { status: 500 }
+        );
+    }
+}
+
+export async function DELETE(request: NextRequest) {
+    try {
+        const authHeader = request.headers.get("authorization") || "";
+        let token = "";
+
+        if (authHeader.startsWith("Bearer ")) {
+            token = authHeader.slice(7);
+        } else {
+            token = request.cookies.get("token")?.value || "";
+        }
+
+        if (!token) {
+            return NextResponse.json(
+                { error: "Unauthorized - Invalid token" },
+                { status: 401 }
+            );
+        }
+
+        const decoded: any = jwt.decode(token);
+        if (!decoded?.id) {
+            return NextResponse.json({ message: "Invalid token" }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { studentId, classId } = body;
+
+        if (!studentId || !classId) {
+            return NextResponse.json({ error: "studentId and classId are required" }, { status: 400 });
+        }
+
+        await User.updateOne(
+            { _id: studentId },
+            { $pull: { attendance: { classId: classId } } }
+        );
+
+        return NextResponse.json({ success: true, message: "Attendance reset successfully" }, { status: 200 });
+    } catch (error) {
+        console.error("Error resetting attendance:", error);
         return NextResponse.json(
             { message: "Internal Server Error" },
             { status: 500 }

@@ -34,12 +34,60 @@ interface TutorInfo {
   email?: string;
 }
 
-const STATUS_STYLES: Record<string, { bg: string; border: string; text: string }> = {
-  completed: { bg: "bg-green-50", border: "border-green-400", text: "text-green-700" },
-  scheduled: { bg: "bg-blue-50", border: "border-blue-400", text: "text-blue-700" },
-  rescheduled: { bg: "bg-amber-50", border: "border-amber-400", text: "text-amber-700" },
-  canceled: { bg: "bg-gray-100", border: "border-gray-400", text: "text-gray-600" },
-  cancelled: { bg: "bg-gray-100", border: "border-gray-400", text: "text-gray-600" },
+const STATUS_COLORS: Record<
+  string,
+  {
+    bg: string;
+    border: string;
+    text: string;
+    dot: string;
+    label: string;
+    strikethrough?: string;
+  }
+> = {
+  present: {
+    bg: "bg-green-50",
+    border: "border-green-400",
+    text: "text-green-700",
+    dot: "bg-green-500",
+    label: "Present",
+  },
+  absent: {
+    bg: "bg-red-50",
+    border: "border-red-400",
+    text: "text-red-700",
+    dot: "bg-red-500",
+    label: "Absent",
+  },
+  cancelled: {
+    bg: "bg-gray-100",
+    border: "border-gray-400",
+    text: "text-gray-500",
+    dot: "bg-gray-400",
+    strikethrough: "line-through",
+    label: "Cancelled",
+  },
+  rescheduled: {
+    bg: "bg-blue-50",
+    border: "border-blue-400",
+    text: "text-blue-700",
+    dot: "bg-blue-500",
+    label: "Rescheduled/Edited",
+  },
+  rescheduled_present: {
+    bg: "bg-teal-50",
+    border: "border-teal-400",
+    text: "text-teal-700",
+    dot: "bg-teal-500",
+    label: "Rescheduled (Present)",
+  },
+  pending: {
+    bg: "bg-purple-50",
+    border: "border-purple-400",
+    text: "text-purple-700",
+    dot: "bg-purple-500",
+    label: "Pending",
+  },
 };
 
 export default function RMTutorCalendarPage() {
@@ -57,6 +105,34 @@ export default function RMTutorCalendarPage() {
   const [selectedStudentsForDelete, setSelectedStudentsForDelete] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, any[]>>({});
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<ClassItem | null>(null);
+  const [resettingAttendanceFor, setResettingAttendanceFor] = useState<string | null>(null);
+  const [pendingResetRequests, setPendingResetRequests] = useState<any[]>([]);
+
+  const resetAttendance = async (studentId: string, classId: string) => {
+    try {
+      setResettingAttendanceFor(studentId);
+      const res = await fetch("/Api/relationship-manager/attendance/request-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, classId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPendingResetRequests(prev => [...prev, data.data]);
+        toast?.success?.("Attendance reset requested sent to Team Lead.");
+      } else {
+        alert(data.error || data.message || "Failed to request attendance reset");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Failed to request attendance reset");
+    } finally {
+      setResettingAttendanceFor(null);
+    }
+  };
 
   const userTz = getUserTimeZone();
 
@@ -81,8 +157,31 @@ export default function RMTutorCalendarPage() {
           throw new Error(data.error || "Failed to load classes");
         }
 
+        const loadedClasses = data.classes || [];
         setTutor(data.tutor || null);
-        setClasses(data.classes || []);
+        setClasses(loadedClasses);
+        setPendingResetRequests(data.pendingResetRequests || []);
+
+        const studentIds = new Set<string>();
+        loadedClasses.forEach((cls: ClassItem) => {
+          cls.students?.forEach((s) => studentIds.add(s._id));
+        });
+
+        if (studentIds.size > 0) {
+          try {
+            const attRes = await fetch("/Api/student/attendanceData", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ studentIds: Array.from(studentIds) })
+            });
+            const attData = await attRes.json();
+            if (attData.success && attData.data) {
+              setAttendanceMap(attData.data);
+            }
+          } catch (e) {
+            console.error("Failed to fetch attendance for RM view", e);
+          }
+        }
       } catch (err: any) {
         setError(err.message || "Failed to load calendar");
       } finally {
@@ -139,9 +238,38 @@ export default function RMTutorCalendarPage() {
   const formatTime = (startTime: string, endTime: string) =>
     formatTimeRangeInTz(startTime, endTime, userTz);
 
-  const getStatusStyle = (status?: string) => {
-    const key = (status || "scheduled").toLowerCase();
-    return STATUS_STYLES[key] || STATUS_STYLES.scheduled;
+  const getStatusStyle = (cls: ClassItem) => {
+    const rawStatus = (cls.status || "scheduled").toLowerCase();
+    
+    if (rawStatus === "canceled" || rawStatus === "cancelled") {
+      return STATUS_COLORS.cancelled;
+    }
+    
+    let isPresent = false;
+    let isAbsent = false;
+    
+    cls.students?.forEach(student => {
+      const records = attendanceMap[student._id];
+      if (records) {
+        const record = records.find((r: any) => r.classId === cls._id || r.sessionId === cls._id);
+        if (record) {
+          if (record.status === "present") isPresent = true;
+          if (record.status === "absent") isAbsent = true;
+        }
+      }
+    });
+
+    if (rawStatus === "reschedule" || rawStatus === "rescheduled") {
+      if (isPresent) return STATUS_COLORS.rescheduled_present;
+      return STATUS_COLORS.rescheduled;
+    }
+
+    if (isPresent) return STATUS_COLORS.present;
+    if (isAbsent && !isPresent) return STATUS_COLORS.absent;
+    
+    if (rawStatus === "completed") return STATUS_COLORS.present;
+    
+    return STATUS_COLORS.pending;
   };
 
   const generateMonthDays = (date: Date) => {
@@ -442,17 +570,25 @@ export default function RMTutorCalendarPage() {
                             </div>
                           ) : (
                             dayClasses.map((cls) => {
-                              const style = getStatusStyle(cls.status);
+                              const style = getStatusStyle(cls);
                               return (
                                 <div
                                   key={cls._id}
-                                  className={`p-2 rounded-lg border-l-4 ${style.bg} ${style.border} ${style.text} text-xs relative`}
+                                  className={`p-2 rounded-lg border-l-4 ${style.bg} ${style.border} text-xs relative cursor-pointer hover:shadow-md transition-shadow`}
+                                  onClick={() => {
+                                    setSelectedClassForAttendance(cls);
+                                    setAttendanceModalOpen(true);
+                                  }}
                                 >
                                   <div className="flex justify-between items-start gap-1">
-                                    <div className="font-semibold truncate">
+                                    <div className={`font-semibold truncate ${style.text} ${style.strikethrough || ""}`}>
                                       {cls.title || "Class"}
                                     </div>
-                                    <div className="flex-shrink-0 ml-1">
+                                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
+                                      <span
+                                        className={`w-2 h-2 rounded-full ${style.dot}`}
+                                        title={style.label}
+                                      ></span>
                                       {cls.deleteRequestStatus === "pending" ? (
                                         <span className="text-[10px] bg-orange-100 text-orange-700 px-1 py-0.5 rounded whitespace-nowrap">
                                           Delete Requested
@@ -513,8 +649,105 @@ export default function RMTutorCalendarPage() {
               </>
             )}
           </div>
+
+          {/* Status Legend */}
+          <div className="p-4 border-t border-gray-100 bg-white">
+            <div className="flex flex-wrap gap-4 items-center justify-center">
+              {Object.entries(STATUS_COLORS).map(([key, val]) => (
+                <div key={key} className="flex items-center gap-2">
+                  <span
+                    className={`inline-block w-4 h-4 rounded-full border ${val.dot} ${val.border}`}
+                  ></span>
+                  <span
+                    className={`text-xs text-gray-700 ${val.strikethrough || ""}`}
+                  >
+                    {val.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </main>
+
+      {/* Attendance Details Modal */}
+      {attendanceModalOpen && selectedClassForAttendance && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 relative">
+            <button
+              onClick={() => {
+                setAttendanceModalOpen(false);
+                setSelectedClassForAttendance(null);
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-lg font-bold text-gray-900 mb-1">{selectedClassForAttendance.title || "Class"}</h3>
+            <p className="text-xs text-gray-500 mb-4">{formatTime(selectedClassForAttendance.startTime, selectedClassForAttendance.endTime)}</p>
+            
+            <div className="max-h-60 overflow-y-auto pr-2">
+              <div className="space-y-2">
+                {selectedClassForAttendance.students.length > 0 ? (
+                  selectedClassForAttendance.students.map((student) => {
+                    let studentStatus = "pending";
+                    const records = attendanceMap[student._id];
+                    if (records) {
+                      const record = records.find((r: any) => r.classId === selectedClassForAttendance._id || r.sessionId === selectedClassForAttendance._id);
+                      if (record && record.status) {
+                        studentStatus = record.status;
+                      }
+                    }
+                    
+                    const sc = STATUS_COLORS[studentStatus] || STATUS_COLORS.pending;
+                    
+                    const isResetRequested = pendingResetRequests.some((req: any) => 
+                      req.student === student._id && req.classItem === selectedClassForAttendance._id
+                    );
+
+                    return (
+                      <div key={student._id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-gray-900">{student.username || student.email || "—"}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold ${sc.bg} ${sc.text} border ${sc.border}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></span>
+                            {sc.label}
+                          </span>
+                          {(studentStatus === "absent" || studentStatus === "present") && (
+                            <button
+                              disabled={isResetRequested || resettingAttendanceFor === student._id}
+                              onClick={() => resetAttendance(student._id, selectedClassForAttendance._id)}
+                              className={`text-[10px] px-2 py-1 rounded border transition-colors disabled:opacity-50 ${isResetRequested ? 'text-orange-700 bg-orange-100 border-orange-200' : 'text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border-red-200'}`}
+                            >
+                              {isResetRequested ? "Reset Requested" : resettingAttendanceFor === student._id ? "Requesting..." : "Reset"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="text-sm text-gray-500 italic">No students assigned to this class.</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => {
+                  setAttendanceModalOpen(false);
+                  setSelectedClassForAttendance(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteModalOpen && classToDelete && (
