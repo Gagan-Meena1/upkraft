@@ -4,8 +4,9 @@ import Class from '@/models/Class';
 import feedback from '@/models/feedback';
 import jwt from 'jsonwebtoken'
 import courseName from '@/models/courseName';
-import User from '@/models/userModel';
-import { sendEmail } from '@/helper/mailer';
+import User  from '@/models/userModel';
+import {sendEmail} from '@/helper/mailer';
+import { formatPhoneNumber } from '@/helper/whatsappService';
 
 await connect();
 
@@ -68,6 +69,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    
     const courseIndex = (user.creditsPerCourse ?? []).findIndex(
   (c) => c?.courseId?.toString() === courseId.toString()
 );
@@ -79,6 +81,7 @@ export async function POST(request: NextRequest) {
           Math.max(0, user.creditsPerCourse[courseIndex].credits - 1);
       }
       console.log("[CREDITDPERCOURSE AFTER : " , user.creditsPerCourse)
+
 
     // Save the updated user
     await user.save();
@@ -190,6 +193,7 @@ export async function POST(request: NextRequest) {
             email: studentUser.email,
             emailType: "FEEDBACK_RECEIVED",
             username: studentUser.username,
+            phone: user.contact ? formatPhoneNumber(user.contact) : undefined,
             courseName: (await courseName.findById(courseId).select('title'))?.title || undefined,
             className: updatedClass.title,
             personalFeedback: personalFeedback,

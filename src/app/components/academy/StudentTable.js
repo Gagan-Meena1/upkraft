@@ -6,6 +6,7 @@ import { Button, Form, ProgressBar } from "react-bootstrap";
 import Pagination from "react-bootstrap/Pagination";
 import Profile from "../../../assets/Mask-profile.png";
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const StudentTable = ({ students, pagination, onPageChange }) => {
   console.log("StudentTable students:", students);
@@ -15,6 +16,13 @@ const [formData, setFormData] = useState({});
 const [isSubmitting, setIsSubmitting] = useState(false);
 const [updateSuccess, setUpdateSuccess] = useState(false);
 const [formErrors, setFormErrors] = useState({});
+const [isAssignCreditsModalOpen, setIsAssignCreditsModalOpen] = useState(false);
+const [selectedStudentForCredits, setSelectedStudentForCredits] = useState(null);
+const router = useRouter();
+const [creditsInput, setCreditsInput] = useState(''); // Add this new state
+const [isSubmittingCredits, setIsSubmittingCredits] = useState(false); 
+const [creditsMessage, setCreditsMessage] = useState(''); 
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
@@ -24,6 +32,72 @@ const [formErrors, setFormErrors] = useState({});
       year: 'numeric' 
     });
   };
+
+  const handleProfileClick = (student) => {
+  // Only show popup for online students
+  if (student.teachingMode?.toLowerCase() === 'online') {
+    setSelectedStudentForCredits(student);
+    setIsAssignCreditsModalOpen(true);
+  }
+};
+
+const handleAssignCredits = async (isDeduction = false) => {
+  if (!selectedStudentForCredits || !creditsInput) {
+    alert('Please enter credits amount');
+    return;
+  }
+
+  const credits = parseInt(creditsInput);
+  if (isNaN(credits) || credits <= 0) {
+    alert('Please enter a valid positive number');
+    return;
+  }
+
+  setIsSubmittingCredits(true);
+
+  try {
+    const response = await fetch('/Api/academy/creditsPerCourse', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        studentId: selectedStudentForCredits._id,
+        credits: isDeduction ? -credits : credits,
+        message: creditsMessage || '' // Include the message
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to assign credits');
+    }
+
+    const result = await response.json();
+    alert(`Credits ${isDeduction ? 'deducted' : 'added'} successfully!`);
+    
+    // Close modal and reset
+    handleCloseCreditsModal();
+    setCreditsInput('');
+    setCreditsMessage('');
+    
+    // Optionally reload to reflect changes
+    window.location.reload();
+
+  } catch (error) {
+    console.error('Error assigning credits:', error);
+    alert(error.message || 'Failed to assign credits. Please try again.');
+  } finally {
+    setIsSubmittingCredits(false);
+  }
+};
+const handleCloseCreditsModal = () => {
+  setIsAssignCreditsModalOpen(false);
+  setSelectedStudentForCredits(null);
+   setCreditsInput(''); // Reset credits input
+     setCreditsMessage('');
+  setIsSubmittingCredits(false); 
+};
 
   const calculateAttendancePercentage = (attendance) => {
   if (!attendance || !Array.isArray(attendance) || attendance.length === 0) {
@@ -291,30 +365,41 @@ const handleSubmit = async (e) => {
                       return (
                         <tr key={student._id}>
                           <td>
-                            <div className="student-img-name d-flex align-items-center gap-2">
-                              <div className="img-box">
-                                <Image 
-                                  src={student.profileImage || Profile} 
-                                  alt={student.username}
-                                  width={40}
-                                  height={40}
-                                />
-                              </div>
-                              <div className="text-box">
-                                <h6>{student.username}</h6>
-                                <span>{student.email}</span>
-                              </div>
-                            </div>
-                          </td>
+  <div 
+    className={`student-img-name d-flex align-items-center gap-2 ${
+      student.teachingMode?.toLowerCase() === 'online' ? 'cursor-pointer hover:bg-gray-50 rounded p-2 transition-colors' : ''
+    }`}
+    onClick={() => handleProfileClick(student)}
+    style={{ cursor: student.teachingMode?.toLowerCase() === 'online' ? 'pointer' : 'default' }}
+  >
+    <div className="img-box">
+      <Image 
+        src={student.profileImage || Profile} 
+        alt={student.username}
+        width={40}
+        height={40}
+      />
+    </div>
+    <div className="text-box">
+      <h6>{student.username}</h6>
+      <span>{student.email}</span>
+    </div>
+  </div>
+</td>
                           <td>{student.tutor}</td>
                           <td>{student.course}</td>
-                        <td>
-              <div className="text-box-progress d-flex align-items-center gap-2">
-                <span className="text-purple-700 font-semibold">
-                  {student.credits || 0}
-                </span>
-              </div>
-            </td>
+                    <td>
+                      {student.teachingMode?.toLowerCase() === 'online' ? (
+                        <Link 
+                          href={`/academy/creditsInfo?userId=${student._id}`}
+                          className="btn btn-sm border-black d-inline-flex align-items-center gap-1 hover-btn hover-bg-black"
+                        >
+                          <span className="text-purple-700 font-semibold">{student.credits || 0}</span>
+                        </Link>
+                      ) : (
+                        <span className="text-gray-500">N/A</span>
+                      )}
+                    </td>
 {/* // Update the Attendance link in StudentTable component: */}
 <td>
   <Link 
@@ -527,6 +612,140 @@ const handleSubmit = async (e) => {
     </div>
   </div>
 )}
+
+{/* Assign Credits Modal */}
+{isAssignCreditsModalOpen && selectedStudentForCredits && (
+  <div 
+    className="modal-overlay" 
+    style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1050
+    }}
+  >
+    <div 
+      className="modal-content-custom" 
+      style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        padding: '24px',
+        maxWidth: '500px',
+        width: '90%'
+      }}
+    >
+      <h3 style={{ marginBottom: '20px' }}>Manage Student Credits</h3>
+      
+      {/* Student Info */}
+      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <Image
+          src={selectedStudentForCredits.profileImage || Profile}
+          alt={selectedStudentForCredits.username}
+          width={50}
+          height={50}
+          style={{ borderRadius: '50%' }}
+        />
+        <div>
+          <div style={{ fontWeight: '600' }}>{selectedStudentForCredits.username}</div>
+          <div style={{ color: '#666', fontSize: '14px' }}>{selectedStudentForCredits.email}</div>
+        </div>
+      </div>
+
+      {/* Current Credits Display */}
+      <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#f5f5f5', borderRadius: '6px' }}>
+        <div style={{ fontSize: '14px', color: '#666' }}>Current Credits</div>
+        <div style={{ fontSize: '24px', fontWeight: '600', color: '#333' }}>
+          {selectedStudentForCredits.credits || 0}
+        </div>
+      </div>
+
+      {/* Credits Input */}
+      <div style={{ marginBottom: '16px' }}>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+          Credits Amount *
+        </label>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          value={creditsInput}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value === '' || parseInt(value) > 0) {
+              setCreditsInput(value);
+            }
+          }}
+          placeholder="Enter number of credits"
+          style={{
+            width: '100%',
+            padding: '10px',
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            fontSize: '16px'
+          }}
+          disabled={isSubmittingCredits}
+        />
+      </div>
+
+      {/* Message Input */}
+      <div style={{ marginBottom: '20px' }}>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+          Message (Optional)
+        </label>
+        <textarea
+          value={creditsMessage}
+          onChange={(e) => setCreditsMessage(e.target.value)}
+          placeholder="Add a note about this credit transaction..."
+          rows="3"
+          style={{
+            width: '100%',
+            padding: '10px',
+            border: '1px solid #ddd',
+            borderRadius: '6px',
+            fontSize: '16px',
+            resize: 'vertical'
+          }}
+          disabled={isSubmittingCredits}
+        />
+      </div>
+
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+        <Button 
+          variant="secondary" 
+          onClick={handleCloseCreditsModal}
+          disabled={isSubmittingCredits}
+          style={{ padding: '8px 16px' }}
+        >
+          Cancel
+        </Button>
+        <Button 
+          variant="danger" 
+          onClick={() => handleAssignCredits(true)}
+          disabled={isSubmittingCredits || !creditsInput}
+          style={{ padding: '8px 16px', backgroundColor: '#dc3545', border: 'none' }}
+        >
+          {isSubmittingCredits ? 'Processing...' : 'Deduct Credits'}
+        </Button>
+        <Button 
+          variant="success" 
+          onClick={() => handleAssignCredits(false)}
+          disabled={isSubmittingCredits || !creditsInput}
+          style={{ padding: '8px 16px', backgroundColor: '#28a745', border: 'none' }}
+        >
+          {isSubmittingCredits ? 'Processing...' : 'Add Credits'}
+        </Button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
