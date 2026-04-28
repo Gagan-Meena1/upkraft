@@ -197,6 +197,7 @@ export default function ClassSelectionModal({
   const [credits, setCredits] = useState<string>("");  // ← add this
   const [editingEntry, setEditingEntry] = useState<AssignmentHistory | null>(null);
 const [classType, setClassType] = useState<'makeup' | 'regularClass'>('regularClass');
+const [viewingClassesEntry, setViewingClassesEntry] = useState<AssignmentHistory | null>(null);
 
   
 
@@ -273,6 +274,7 @@ React.useEffect(() => {
 
   const getSlotSelection = (groupKey: string): SlotSelection =>
     slotSelections[groupKey] ?? { mode: "all", count: 1, manualOverrides: {} };
+  
 
 
 
@@ -569,17 +571,28 @@ const endDate = getEndDateForAssignment(entry);
                         </div>
 
                         {/* Check if last class end is after now */}
-{new Date(getEndDateForAssignment(entry)) > new Date() && (  <button
-    onClick={() => {
-      setEditingEntry(entry);
-      setStartDate(new Date(entry.date).toISOString().split("T")[0]);
-      setActiveTab("form");
-    }}
-    className="mt-2 text-xs text-purple-600 border border-purple-300 rounded-lg px-3 py-1.5 hover:bg-purple-50 transition-colors"
+{/* Replace the existing edit button block with this */}
+<div className="mt-2 flex items-center gap-2">
+  <button
+    onClick={() => setViewingClassesEntry(entry)}
+    className="text-xs text-indigo-600 border border-indigo-300 rounded-lg px-3 py-1.5 hover:bg-indigo-50 transition-colors"
   >
-    ✏️ Edit
+    📋 Classes ({entry.classIds?.length || 0})
   </button>
-)}
+
+  {new Date(getEndDateForAssignment(entry)) > new Date() && (
+    <button
+      onClick={() => {
+        setEditingEntry(entry);
+        setStartDate(new Date(entry.date).toISOString().split("T")[0]);
+        setActiveTab("form");
+      }}
+      className="text-xs text-purple-600 border border-purple-300 rounded-lg px-3 py-1.5 hover:bg-purple-50 transition-colors"
+    >
+      ✏️ Edit
+    </button>
+  )}
+</div>
                       </div>
                     </div>
                   </div>
@@ -1048,6 +1061,69 @@ const effectiveIds = (() => {
           </div>
         </div>
       </div>
+{/* Classes Popup Modal */}
+{viewingClassesEntry && (
+  <div
+    className="fixed inset-0 flex items-center justify-center z-[60]"
+    style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+    onClick={() => setViewingClassesEntry(null)}
+  >
+    <div
+      className="bg-white rounded-xl shadow-xl w-full max-w-sm mx-4 max-h-[70vh] flex flex-col"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+        <h3 className="text-sm font-semibold text-gray-900">
+          Assigned Classes ({viewingClassesEntry.classIds?.length || 0})
+        </h3>
+        <button
+          onClick={() => setViewingClassesEntry(null)}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+            <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+      <div className="overflow-y-auto flex-1 px-5 py-3 space-y-2">
+        {(viewingClassesEntry.classIds || []).map((id) => {
+          // Temporarily add inside the popup map, before the find:
+console.log("classId from history:", id, typeof id);
+console.log("first class _id:", classes[0]?._id, typeof classes[0]?._id);
+          const cls = classes.find((c) => c._id.toString() === id.toString());
+          if (!cls) return null;
+          const start = new Date(cls.startTime);
+          const end = new Date(cls.endTime);
+          return (
+            <div
+              key={id}
+              className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-200"
+            >
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${getStatusColor(cls.status)}`} />
+                <span className="text-xs font-medium text-gray-800">
+                  {start.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </span>
+              </div>
+              <span className="text-xs text-gray-500">
+                {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –{" "}
+                {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
+              <span className={`text-xs capitalize px-2 py-0.5 rounded-full font-medium ${
+                cls.status === "completed" ? "bg-green-100 text-green-700" :
+                cls.status === "canceled" ? "bg-red-100 text-red-700" :
+                cls.status === "rescheduled" ? "bg-orange-100 text-orange-700" :
+                "bg-blue-100 text-blue-700"
+              }`}>
+                {cls.status}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
