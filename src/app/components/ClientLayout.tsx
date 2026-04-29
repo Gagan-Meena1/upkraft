@@ -24,7 +24,8 @@ import "../../app/media.css";
  
 import { Toaster } from "react-hot-toast";
 import Chat from "./Chat";
-import { useEffect } from "react";  
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { UserDataProvider } from "../providers/UserData/page";
  
 export default function ClientLayout({
@@ -32,6 +33,8 @@ export default function ClientLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
   useEffect(() => {
     // Dynamic import for Bootstrap JavaScript only on the client side
     const loadBootstrap = async () => {
@@ -41,9 +44,35 @@ export default function ClientLayout({
         console.error("Error loading Bootstrap:", error);
       }
     };
- 
+
     loadBootstrap();
   }, []);
+
+  useEffect(() => {
+    const cleanupOrphanBackdrops = () => {
+      const hasVisibleModal = Boolean(
+        document.querySelector(".modal.show, .offcanvas.show")
+      );
+
+      if (hasVisibleModal) return;
+
+      document.querySelectorAll(".modal-backdrop").forEach((node) => {
+        node.parentElement?.removeChild(node);
+      });
+
+      document.body.classList.remove("modal-open");
+      document.body.style.removeProperty("overflow");
+      document.body.style.removeProperty("padding-right");
+    };
+
+    // Run on route transitions and once after paint in case a modal unmount races.
+    cleanupOrphanBackdrops();
+    const timerId = window.setTimeout(cleanupOrphanBackdrops, 120);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [pathname]);
  
   return (
     <>
