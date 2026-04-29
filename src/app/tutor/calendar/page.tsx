@@ -16,6 +16,12 @@ import {
   getUserTimeZone,
 } from "@/helper/time";
 import EditClassModal from "@/app/components/EditClassModal";
+import CalendarControls from "@/app/components/calendar/CalendarControls";
+import {
+  CALENDAR_STATUS_COLORS,
+  getCalendarStatusColor,
+  resolveCalendarClassStatus,
+} from "@/app/components/calendar/status";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -68,70 +74,7 @@ interface StudentClassBlock {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const STATUS_COLORS: Record<
-  string,
-  {
-    bg: string;
-    border: string;
-    text: string;
-    dot: string;
-    label: string;
-    strikethrough?: string;
-  }
-> = {
-  present: {
-    bg: "bg-green-50",
-    border: "border-green-400",
-    text: "text-green-700",
-    dot: "bg-green-500",
-    label: "Present",
-  },
-  absent: {
-    bg: "bg-red-50",
-    border: "border-red-400",
-    text: "text-red-700",
-    dot: "bg-red-500",
-    label: "Absent",
-  },
-  cancelled: {
-    bg: "bg-gray-100",
-    border: "border-gray-400",
-    text: "text-gray-500",
-    dot: "bg-gray-400",
-    strikethrough: "line-through",
-    label: "Cancelled",
-  },
-  rescheduled: {
-    bg: "bg-blue-50",
-    border: "border-blue-400",
-    text: "text-blue-700",
-    dot: "bg-blue-500",
-    label: "Rescheduled",
-  },
-  edited: {
-    bg: "bg-blue-50",
-    border: "border-blue-400",
-    text: "text-blue-700",
-    dot: "bg-blue-500",
-    label: "Edited",
-  },
-  rescheduled_present: {
-    bg: "bg-teal-50",
-    border: "border-teal-400",
-    text: "text-teal-700",
-    dot: "bg-teal-500",
-    label: "Rescheduled (Present)",
-  },
-  pending: {
-    bg: "bg-purple-50",
-    border: "border-purple-400",
-    text: "text-purple-700",
-    dot: "bg-purple-500",
-    label: "Pending",
-  },
-};
-
-const DEFAULT_STATUS_COLOR = STATUS_COLORS.pending;
+const STATUS_COLORS = CALENDAR_STATUS_COLORS;
 
 // ─── Utility functions (pure, no hooks) ─────────────────────────────────────
 
@@ -212,25 +155,7 @@ function useDebounce<T>(value: T, delay: number): T {
   }, [value, delay]);
   return debouncedValue;
 }
-function getStatusColor(status: string) {
-  switch (status) {
-    case "present":
-      return STATUS_COLORS.present;
-    case "absent":
-      return STATUS_COLORS.absent;
-    case "cancelled":
-    case "canceled":
-      return STATUS_COLORS.cancelled;
-    case "rescheduled":
-      return STATUS_COLORS.rescheduled;
-    case "edited":
-      return STATUS_COLORS.edited;
-    case "rescheduled_present":
-      return STATUS_COLORS.rescheduled_present;
-    default:
-      return DEFAULT_STATUS_COLOR;
-  }
-}
+const getStatusColor = getCalendarStatusColor;
 
 /** Compute the visible date range (start/end ISO strings) for query params. */
 function getVisibleDateRange(
@@ -507,7 +432,6 @@ const StudentCalendarView = () => {
 
   const getClassAttendanceStatus = useCallback(
     (classItem: ClassItem): string => {
-      const rawStatus = (classItem?.status || "").toString().toLowerCase();
       const studentId = classItem.studentId || classItem.student?._id;
       let attendanceStatus = "pending";
 
@@ -525,22 +449,11 @@ const StudentCalendarView = () => {
         }
       }
 
-      if (rawStatus === "canceled" || rawStatus === "cancelled") {
-        return "cancelled";
-      }
-
-      if (rawStatus === "reschedule" || rawStatus === "rescheduled") {
-        if (classItem.feedbackId && attendanceStatus === "present") {
-          return "rescheduled_present";
-        }
-        return "rescheduled";
-      }
-
-      if (rawStatus === "edited") {
-        return "rescheduled";
-      }
-
-      return attendanceStatus;
+      return resolveCalendarClassStatus(
+        classItem?.status,
+        attendanceStatus,
+        Boolean(classItem?.feedbackId)
+      );
     },
     [attendanceMap]
   );
@@ -1007,14 +920,6 @@ const StudentCalendarView = () => {
     []
   );
 
-  // Grid template for day/week view
-  const gridTemplate = useMemo(
-    () => ({
-      gridTemplateColumns: "263px repeat(7, minmax(0, 1fr))",
-    }),
-    []
-  );
-
   // ─── Loading screen ──────────────────────────────────────────────────────
 
   if (loading) {
@@ -1066,6 +971,8 @@ const StudentCalendarView = () => {
           {isMobile && (
             <button
               onClick={toggleSidebar}
+              aria-label="Toggle sidebar"
+              title="Toggle sidebar"
               className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
             >
               <Menu size={24} />
@@ -1077,53 +984,14 @@ const StudentCalendarView = () => {
         <main className="p-4 sm:p-6">
           {/* Calendar Container */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            {/* Top Navigation Bar */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-4 text-[20px] text-[#212121]">
-                <button
-                  onClick={handlePrev}
-                  className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
-                >
-                  {"<"}
-                </button>
-                <span className="font-medium text-[20px] text-[#212121]">
-                  {currentDate.toLocaleDateString("en-US", {
-                    day: "2-digit",
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                  })}
-                </span>
-                <button
-                  onClick={handleNext}
-                  className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
-                >
-                  {">"}
-                </button>
-                <button
-                  onClick={handleToday}
-                  className="ml-3 px-3 py-1 rounded bg-gray-100 text-sm"
-                >
-                  Today
-                </button>
-              </div>
-
-              {/* View toggle buttons */}
-              <div className="inline-flex items-center gap-2">
-                {(["day", "week", "month"] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => handleSetView(v)}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${activeView === v
-                      ? "bg-purple-600 text-white shadow-sm"
-                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-                      }`}
-                  >
-                    {v.charAt(0).toUpperCase() + v.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <CalendarControls
+              currentDate={currentDate}
+              activeView={activeView}
+              onPrev={handlePrev}
+              onNext={handleNext}
+              onToday={handleToday}
+              onSetView={handleSetView}
+            />
 
             {/* Create Class Button + Course Select Modal */}
             <div className="flex items-center gap-4 mb-6">
@@ -1157,6 +1025,8 @@ const StudentCalendarView = () => {
                         <select
                           value={selectedCourseId}
                           onChange={(e) => setSelectedCourseId(e.target.value)}
+                          aria-label="Select course"
+                          title="Select course"
                           className="form-select"
                         >
                           {courses.length === 0 && (
@@ -1257,10 +1127,7 @@ const StudentCalendarView = () => {
                 /* ── Day / Week View ── */
                 <>
                   {/* Header Row */}
-                  <div
-                    className="grid items-stretch bg-white"
-                    style={gridTemplate}
-                  >
+                  <div className="grid items-stretch bg-white grid-cols-[263px_repeat(7,minmax(0,1fr))]">
                     {/* Search Input Cell */}
                     <div className="p-3 bg-white">
                       <input
@@ -1268,7 +1135,7 @@ const StudentCalendarView = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         type="text"
                         placeholder="Search Students"
-                        className="w-full h-[48px] px-4 rounded border border-[#505050] text-[14px] text-[#505050] bg-white font-inter font-normal focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="w-full h-12 px-4 rounded border border-[#505050] text-[14px] text-[#505050] bg-white font-inter font-normal focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       />
                     </div>
 
@@ -1302,8 +1169,7 @@ const StudentCalendarView = () => {
                       filteredStudents.map((student) => (
                         <div
                           key={student._id}
-                          className="grid items-center hover:bg-gray-50 transition-colors"
-                          style={gridTemplate}
+                          className="grid items-center hover:bg-gray-50 transition-colors grid-cols-[263px_repeat(7,minmax(0,1fr))]"
                         >
                           {/* Student Info Cell */}
                           <div className="p-3 flex items-center gap-3 min-h-[88px] border-r border-gray-200">
@@ -1598,7 +1464,7 @@ const StudentCalendarView = () => {
                 selectedClass.status === "edited") && (
               <div className="p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded-md">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
                   <div>
                     <div className="text-sm font-semibold text-yellow-800 mb-1">
                       Reason for Reschedule
@@ -1614,7 +1480,7 @@ const StudentCalendarView = () => {
             {selectedClass?.reasonForCancelation && (
               <div className="p-3 bg-red-50 border-l-4 border-red-400 rounded-md">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                  <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
                   <div>
                     <div className="text-sm font-semibold text-red-800 mb-1">
                       Reason for Cancellation
