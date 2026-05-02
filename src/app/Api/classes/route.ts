@@ -527,16 +527,18 @@ export async function PUT(request: NextRequest) {
       const isExplicitReschedule =
         normalizedIntent === 'reschedule' || normalizedStatus === 'rescheduled';
 
-      const ops = docs.map((doc) => {
-        // Keep each class on its own date, only change time/title/description
-        const localStart = dateFnsTz.toZonedTime(doc.startTime, userTz);
-        const dateStrForDoc = format(localStart, 'yyyy-MM-dd');
+// Calculate delta from the selected class (existingClass) to the new requested time
+const dateTimeStr = `${date}T${startTime}:00`;
+const endDateTimeStr = `${date}T${endTime}:00`;
+const requestedStart = dateFnsTz.fromZonedTime(dateTimeStr, userTz);
+const requestedEnd = dateFnsTz.fromZonedTime(endDateTimeStr, userTz);
 
-        const dateTimeStrForDoc = `${dateStrForDoc}T${startTime}:00`;
-        const endDateTimeStrForDoc = `${dateStrForDoc}T${endTime}:00`;
+const startDeltaMs = requestedStart.getTime() - existingClass.startTime.getTime();
+const endDeltaMs = requestedEnd.getTime() - existingClass.endTime.getTime();
 
-        const newStart = dateFnsTz.fromZonedTime(dateTimeStrForDoc, userTz);
-        const newEnd = dateFnsTz.fromZonedTime(endDateTimeStrForDoc, userTz);
+const ops = docs.map((doc) => {
+  const newStart = new Date(doc.startTime.getTime() + startDeltaMs);
+  const newEnd = new Date(doc.endTime.getTime() + endDeltaMs);
 
         const scheduleChangedForDoc =
           doc.startTime.getTime() !== newStart.getTime() ||

@@ -1087,9 +1087,7 @@ const effectiveIds = (() => {
       </div>
       <div className="overflow-y-auto flex-1 px-5 py-3 space-y-2">
         {(viewingClassesEntry.classIds || []).map((id) => {
-          // Temporarily add inside the popup map, before the find:
-console.log("classId from history:", id, typeof id);
-console.log("first class _id:", classes[0]?._id, typeof classes[0]?._id);
+        
           const cls = classes.find((c) => c._id.toString() === id.toString());
           if (!cls) return null;
           const start = new Date(cls.startTime);
