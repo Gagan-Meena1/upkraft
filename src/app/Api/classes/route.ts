@@ -554,7 +554,9 @@ const ops = docs.map((doc) => {
 
         if (trimmedReason || isExplicitEdit || isExplicitReschedule || scheduleChangedForDoc) {
           setPayload.reasonForReschedule = trimmedReason;
-          setPayload.status = isExplicitEdit ? 'scheduled' : 'rescheduled';
+          if (!isExplicitEdit) {
+            setPayload.status = 'rescheduled';
+          }
         }
 
         return {
