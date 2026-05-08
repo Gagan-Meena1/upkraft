@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>UpKraft — Book Hobby Classes at Your Society</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--surface:#f8f7ff;--card:#ffffff;--card2:#f0eeff;
+  --primary:#5C16C5;--primary-lite:rgba(92,22,197,.09);--primary-glow:rgba(92,22,197,.22);
+  --primary-dark:#3d0e88;--primary-mid:#7c3aed;
+  --red:#e8365d;--red-lite:rgba(232,54,93,.08);--red-glow:rgba(232,54,93,.2);
+  --gold:#e0a800;--green:#059669;--blue:#2563eb;
+  --text:#1a1a2e;--text2:#585858;--muted:#6b6b8a;
+  --border:rgba(0,0,0,.08);--border2:rgba(0,0,0,.12);
+  --uk:#5C16C5;--uk-gray:#585858
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:10px}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:50;background:#ffffff;backdrop-filter:blur(14px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 24px;height:58px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.upkraft-logo{display:flex;align-items:center;gap:0;text-decoration:none;flex-shrink:0}
+.uk-mark{width:34px;height:34px;flex-shrink:0}
+.uk-wordmark{font-family:'Inter',sans-serif;font-weight:900;font-size:21px;letter-spacing:-.3px;line-height:1}
+.uk-wordmark .up{color:var(--primary)}.uk-wordmark .kraft{color:var(--uk-gray)}
+.uk-tagline{font-size:9px;color:var(--muted);letter-spacing:.5px;margin-top:1px}
+.uk-logo-pill{background:transparent;padding:0;display:flex;align-items:center;justify-content:center;line-height:0}
+.uk-img{height:28px;width:auto;object-fit:contain;max-width:140px;display:block}
+.topbar-steps{display:flex;align-items:center;gap:0;margin-left:20px}
+.step{display:flex;align-items:center;gap:6px;font-size:11px;color:#8888aa;padding:4px 10px;border-radius:20px;transition:all .2s}
+.step.done{color:var(--green)}.step.active{color:var(--primary);background:var(--primary-lite)}
+.step-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);transition:background .2s}
+.step.done .step-dot{background:var(--green)}.step.active .step-dot{background:var(--primary)}
+.step-sep{width:18px;height:1px;background:var(--border2)}
+.topbar-city{margin-left:auto;display:flex;align-items:center;gap:6px;background:#f5f5fa;border:1px solid var(--border2);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--muted);cursor:pointer;transition:all .2s}
+.topbar-city:hover{background:var(--primary-lite);color:var(--primary)}
+
+/* ── SCREENS ── */
+.screen{display:none;animation:fadeUp .3s ease forwards}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── SCREEN 1 HOME ── */
+.hero-section{min-height:320px;background:linear-gradient(160deg,#f5f0ff 0%,#eef2ff 100%);position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px 52px;text-align:center}
+.hero-glow{position:absolute;width:600px;height:300px;top:-80px;left:50%;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(92,22,197,.1) 0%,transparent 65%);pointer-events:none}
+.hero-eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--primary);font-weight:600;margin-bottom:10px;position:relative}
+.hero-h1{font-family:'Inter',sans-serif;font-size:clamp(24px,4vw,40px);font-weight:900;line-height:1.15;margin-bottom:10px;position:relative;color:#1a1a2e}
+.hero-h1 em{font-style:normal;color:var(--primary)}
+.hero-sub{font-size:14px;color:var(--muted);margin-bottom:28px;position:relative;max-width:480px;line-height:1.6}
+.search-wrap{position:relative;width:100%;max-width:520px;z-index:5}
+.search-box{width:100%;padding:15px 20px 15px 50px;background:#fff;border:1.5px solid rgba(0,0,0,.15);border-radius:32px;font-size:15px;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color .2s,background .2s;box-shadow:0 2px 12px rgba(0,0,0,.07)}
+.search-box:focus{border-color:var(--primary);background:#fff}
+.search-box::placeholder{color:var(--muted)}
+.search-ico{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none;color:var(--muted)}
+.search-clear{position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:4px;display:none}
+.search-clear.show{display:block}
+.suggestions{position:absolute;top:calc(100% + 8px);left:0;right:0;background:#fff;border:1px solid var(--border2);border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.12);display:none;z-index:20}
+.sug-item{padding:13px 18px;display:flex;align-items:center;gap:12px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
+.sug-item:last-child{border-bottom:none}
+.sug-item:hover{background:rgba(232,54,93,.1)}
+.sug-meta{margin-left:auto;font-size:11px;color:var(--muted)}
+.home-body{padding:24px;background:#fff}
+.section-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:12px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.chip{background:#fff;border:1px solid var(--border2);border-radius:20px;padding:8px 16px;font-size:13px;cursor:pointer;transition:all .18s;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.chip:hover{background:var(--primary-lite);border-color:var(--primary-glow);color:var(--primary)}
+.promo-banner{background:linear-gradient(120deg,rgba(92,22,197,.06) 0%,rgba(92,22,197,.04) 100%);border:1px solid rgba(92,22,197,.18);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:14px;font-size:13px;margin-bottom:24px}
+.promo-badge{background:var(--primary);color:#fff;font-size:10px;font-weight:700;padding:4px 8px;border-radius:6px;flex-shrink:0;letter-spacing:.5px}
+.promo-banner p{color:var(--muted);margin:0}
+.promo-banner p strong{color:var(--text)}
+.categories-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px;margin-bottom:28px}
+.cat-pill{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 8px;text-align:center;cursor:pointer;transition:all .18s;font-size:11px;color:var(--muted);box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.cat-pill:hover{border-color:var(--primary-glow);background:var(--primary-lite);color:var(--primary)}
+.cat-pill .cat-em{font-size:24px;display:block;margin-bottom:6px}
+
+/* ── SCREEN 2 CATEGORIES ── */
+.page-header{background:#fff;padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.back-btn{background:#f5f5fa;border:1px solid var(--border2);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:16px;transition:all .15s;flex-shrink:0}
+.back-btn:hover{background:#ebebf5;color:var(--text)}
+.page-hinfo h2{font-size:15px;font-weight:700;line-height:1.3}
+.page-hinfo p{font-size:11px;color:var(--muted);margin-top:2px}
+.breadcrumb{font-size:11px;color:var(--muted)}
+.breadcrumb strong{color:var(--text)}
+.filter-bar{display:flex;gap:8px;padding:14px 24px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);background:#fff}
+.filter-bar::-webkit-scrollbar{display:none}
+.fbtn{background:#f5f5fa;border:1px solid var(--border2);border-radius:20px;padding:7px 16px;font-size:12px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:'Inter',sans-serif;color:var(--muted);transition:all .15s}
+.fbtn:hover,.fbtn.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.movies-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;padding:20px 24px;background:#f7f7fb}
+.movie-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.movie-card:hover{transform:translateY(-4px);border-color:rgba(92,22,197,.3);box-shadow:0 12px 30px rgba(92,22,197,.1)}
+.movie-poster{aspect-ratio:2/2.8;display:flex;align-items:center;justify-content:center;font-size:52px;position:relative}
+.poster-new{position:absolute;top:8px;left:8px;background:var(--primary);color:#fff;font-size:9px;font-weight:700;padding:3px 8px;border-radius:5px;letter-spacing:.5px}
+.poster-hot{position:absolute;top:8px;left:8px;background:var(--gold);color:#1a1200;font-size:9px;font-weight:700;padding:3px 8px;border-radius:5px}
+.poster-rating{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.75);color:#f59e0b;font-size:11px;font-weight:700;padding:4px 8px;border-radius:7px;display:flex;align-items:center;gap:3px}
+.poster-slots{position:absolute;bottom:8px;left:8px;background:rgba(0,196,140,.15);color:var(--green);font-size:9px;font-weight:600;padding:3px 7px;border-radius:5px;border:1px solid rgba(0,196,140,.3)}
+.movie-info{padding:12px 12px 14px}
+.movie-title{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:4px;color:#1a1a2e}
+.movie-cat{font-size:10px;color:var(--muted);margin-bottom:6px}
+.tag-row{display:flex;gap:4px;flex-wrap:wrap}
+.tag{font-size:9px;background:rgba(255,255,255,.06);border:1px solid var(--border2);border-radius:4px;padding:2px 7px;color:var(--muted)}
+.tag.green{background:rgba(0,196,140,.1);border-color:rgba(0,196,140,.25);color:var(--green)}
+.tag.blue{background:rgba(79,158,248,.1);border-color:rgba(79,158,248,.25);color:var(--blue)}
+
+/* ── SCREEN 3 SLOTS ── */
+.movie-hero-bar{background:#f7f7fb;border-bottom:1px solid var(--border);padding:20px 24px;display:flex;gap:18px;align-items:flex-start}
+.mh-poster{width:90px;height:128px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:44px;flex-shrink:0;border:1px solid var(--border2)}
+.mh-info h2{font-size:20px;font-weight:800;margin-bottom:4px}
+.mh-info .mh-meta{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6}
+.mh-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.mh-tag{font-size:11px;border-radius:5px;padding:4px 10px;border:1px solid;font-weight:500}
+.mh-tag.age{border-color:var(--gold);color:var(--gold)}
+.mh-tag.lang{border-color:var(--blue);color:var(--blue)}
+.mh-tag.loc{border-color:var(--green);color:var(--green)}
+.mh-avail{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.mh-avail span{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── 7-DAY TAB GRID ── */
+.week-tabs-wrapper{background:#fff;
+  background:var(--surface);
+  border-bottom:2px solid var(--border);
+  padding:16px 20px 0;
+}
+.week-tabs-label{
+  font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:12px;display:flex;align-items:center;gap:8px
+}
+.week-tabs-label::after{content:'';flex:1;height:1px;background:rgba(0,0,0,.1)}
+.week-tabs-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:6px;
+  padding-bottom:0;
+}
+.wday{
+  position:relative;cursor:pointer;
+  background:#f5f5fa;
+  border:1.5px solid rgba(0,0,0,.1);
+  border-bottom:3px solid transparent;
+  border-radius:10px 10px 0 0;
+  padding:10px 4px 12px;
+  text-align:center;
+  transition:all .18s;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.wday:hover:not(.active):not(.no-slots){background:rgba(92,22,197,.05);border-color:rgba(92,22,197,.2)}
+.wday.active{
+  background:rgba(92,22,197,.08);
+  border-color:var(--primary);
+  border-bottom-color:var(--primary);
+  color:var(--primary);
+}
+.wday.no-slots{opacity:.38;cursor:not-allowed}
+.wday-name{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:inherit}
+.wday-num{font-family:'Inter',sans-serif;font-size:20px;font-weight:900;line-height:1;color:inherit}
+.wday-mon{font-size:9px;color:var(--muted);line-height:1}
+.wday.active .wday-mon{color:rgba(92,22,197,.65)}
+.wday-slots{
+  margin-top:4px;font-size:9px;font-weight:700;
+  padding:2px 7px;border-radius:10px;line-height:1.4;
+}
+.wday-slots.has{background:rgba(0,196,140,.15);color:var(--green);border:1px solid rgba(0,196,140,.3)}
+.wday-slots.soc{background:rgba(92,22,197,.1);color:var(--primary);border:1px solid rgba(92,22,197,.25)}
+.wday-slots.none{background:rgba(255,255,255,.05);color:var(--muted);border:1px solid var(--border)}
+.wday-today-dot{
+  position:absolute;top:6px;right:6px;
+  width:5px;height:5px;border-radius:50%;background:var(--gold)
+}
+
+/* selected day header under tabs */
+.selected-day-bar{
+  background:linear-gradient(90deg,rgba(92,22,197,.06),transparent);
+  border-bottom:1px solid var(--border);
+  padding:10px 24px;
+  display:flex;align-items:center;gap:10px;
+  font-size:13px;font-weight:600;
+}
+.sdb-date{color:var(--primary);font-family:'Inter',sans-serif;font-size:16px;font-weight:800}
+.sdb-pill{font-size:10px;background:rgba(5,150,105,.1);border:1px solid rgba(5,150,105,.3);color:var(--green);border-radius:20px;padding:3px 10px}
+.sdb-pill.soc{background:rgba(92,22,197,.1);border-color:rgba(92,22,197,.3);color:var(--primary)}
+.sdb-pill.empty{background:rgba(255,255,255,.05);border-color:var(--border);color:var(--muted)}
+
+/* ── TUTOR BLOCKS ── */
+.tutors-area{padding:20px 24px;background:#f7f7fb}
+.tutor-block{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.tutor-top{padding:16px 18px;display:flex;align-items:flex-start;gap:14px;border-bottom:1px solid var(--border);background:#fafafa}
+.tutor-ava{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:linear-gradient(135deg,rgba(92,22,197,.15),rgba(92,22,197,.08));border:2px solid rgba(92,22,197,.25)}
+.tutor-name{font-size:15px;font-weight:700;margin-bottom:3px}
+.tutor-detail{font-size:11px;color:var(--muted);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stars{color:var(--gold);font-size:12px;letter-spacing:1px}
+.tutor-bio{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.5}
+.tutor-right{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.tutor-verify{background:rgba(0,196,140,.1);border:1px solid rgba(0,196,140,.25);color:var(--green);font-size:10px;font-weight:600;padding:5px 12px;border-radius:20px;display:flex;align-items:center;gap:4px}
+.tutor-visit-badge{font-size:10px;background:var(--primary-lite);border:1px solid var(--primary-glow);color:var(--primary);border-radius:5px;padding:3px 8px;font-weight:600;text-align:center}
+.tutor-not-visiting{font-size:10px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--muted);border-radius:5px;padding:3px 8px;text-align:center}
+
+/* SLOT GRID inside tutor */
+.slots-wrap{padding:16px 18px}
+.slots-time-band{margin-bottom:16px}
+.slots-band-label{
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px
+}
+.slots-band-label::after{content:'';flex:1;height:1px;background:rgba(0,0,0,.1)}
+.slots-grid{display:flex;gap:8px;flex-wrap:wrap}
+.slot-pill{
+  padding:10px 14px;border-radius:9px;font-size:12px;font-weight:700;
+  border:1.5px solid;text-align:center;min-width:82px;
+  transition:all .18s;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.slot-pill .stime{font-size:13px;font-weight:700}
+.slot-pill.avail{background:rgba(0,196,140,.1);border-color:rgba(0,196,140,.4);color:var(--green)}
+.slot-pill.avail:hover{background:rgba(0,196,140,.22);transform:scale(1.06);box-shadow:0 4px 16px rgba(0,196,140,.25)}
+.slot-pill.soc{background:rgba(92,22,197,.09);border-color:rgba(92,22,197,.4);color:var(--primary)}
+.slot-pill.soc:hover{background:rgba(92,22,197,.18);transform:scale(1.06);box-shadow:0 4px 16px rgba(92,22,197,.2)}
+.slot-pill.blocked{background:#f0f0f5;border-color:rgba(0,0,0,.1);color:#aaaacc;cursor:not-allowed}
+.slot-pill.blocked .stime{text-decoration:line-through}
+.slot-pill.buf{background:transparent;border:1px dashed rgba(0,0,0,.12);color:#bbbbcc;cursor:not-allowed;font-size:10px;min-width:60px;padding:8px 10px}
+.slot-pill.travel{background:rgba(224,168,0,.06);border:1px dashed rgba(224,168,0,.3);color:#b38a00;cursor:not-allowed;font-size:10px;min-width:72px;font-style:italic;padding:8px 10px}
+
+/* empty day state */
+.empty-day{
+  text-align:center;padding:36px 20px;
+  background:#f7f7fb;border-radius:12px;
+  border:1px dashed rgba(0,0,0,.1);
+}
+.empty-day .em-icon{font-size:36px;margin-bottom:10px}
+.empty-day p{font-size:13px;color:var(--muted);line-height:1.6}
+.empty-day strong{color:var(--text)}
+
+/* LEGEND */
+.legend-bar{display:flex;gap:16px;flex-wrap:wrap;padding:14px 24px;border-top:1px solid var(--border);background:#f7f7fb}
+.leg{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
+.leg-box{width:14px;height:14px;border-radius:3px;border:1.5px solid}
+.leg-box.a{background:rgba(0,196,140,.1);border-color:rgba(0,196,140,.4)}
+.leg-box.s{background:rgba(92,22,197,.09);border-color:rgba(92,22,197,.4)}
+.leg-box.b{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.1)}
+.leg-box.buf{background:transparent;border:1px dashed rgba(255,255,255,.18)}
+
+
+/* ── SLOT FILTERS ── */
+.slot-filters{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.sf-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);white-space:nowrap}
+.sf-divider{width:1px;height:20px;background:var(--border);flex-shrink:0}
+.sf-chips{display:flex;gap:6px;flex-wrap:wrap}
+.sf-chip{
+  background:#f5f5fa;border:1.5px solid var(--border2);
+  border-radius:20px;padding:6px 14px;font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .15s;color:var(--muted);white-space:nowrap;
+  font-family:'Inter',sans-serif;
+}
+.sf-chip:hover{border-color:var(--primary-glow);color:var(--primary);background:var(--primary-lite)}
+.sf-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.sf-chip.active:hover{background:var(--primary-dark)}
+.slot-class-note{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(92,22,197,.06);border:1px solid rgba(92,22,197,.15);
+  border-radius:8px;padding:6px 12px;font-size:11px;color:var(--primary);font-weight:600;
+  white-space:nowrap;
+}
+
+/* ── FORM SHEET ── */
+.overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center}
+.overlay.show{display:flex;animation:fadein .2s}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.sheet{background:#ffffff;border-radius:24px 24px 0 0;border-top:3px solid var(--primary);width:100%;max-width:700px;max-height:90vh;overflow-y:auto;padding:0 24px 40px;animation:slideUp .3s ease}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.sheet-handle{width:40px;height:4px;border-radius:2px;background:rgba(0,0,0,.1);margin:12px auto 22px}
+.sheet-head{margin-bottom:6px;display:flex;align-items:flex-start;justify-content:space-between}
+.sheet-title{font-size:18px;font-weight:800;font-family:'Inter',sans-serif}
+.sheet-close{background:#f0f0f5;border:1px solid var(--border2);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--muted);flex-shrink:0;transition:all .15s}
+.sheet-close:hover{background:#e0e0ea;color:var(--text)}
+.sheet-sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+.booking-pill{background:rgba(92,22,197,.06);border:1px solid rgba(92,22,197,.18);border-radius:12px;padding:14px 16px;margin-bottom:22px;display:grid;grid-template-columns:1fr 1fr;gap:10px 16px}
+.bp-item .bpl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.bp-item .bpv{font-size:13px;font-weight:700}
+.bp-item .bpv.green{color:var(--green)}
+.form-row{margin-bottom:15px}
+.form-row.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.flabel{font-size:12px;color:#9999bb;margin-bottom:5px;display:flex;align-items:center;gap:4px}
+.flabel .req{color:var(--red)}
+.finput{width:100%;padding:12px 15px;background:#f7f7fb;border:1.5px solid rgba(0,0,0,.12);border-radius:9px;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;outline:none;transition:border-color .2s}
+.finput:focus{border-color:var(--primary);background:#fff}
+.finput[readonly]{background:#f0f0f5;color:var(--muted);cursor:default;border-color:rgba(0,0,0,.07)}
+.finput.ta{resize:none}
+.consent-row{display:flex;gap:10px;align-items:flex-start;margin:18px 0 20px}
+.consent-row input[type=checkbox]{width:16px;height:16px;margin-top:2px;accent-color:var(--red);flex-shrink:0}
+.consent-row label{font-size:12px;color:var(--muted);line-height:1.6;cursor:pointer}
+.submit-btn{width:100%;padding:15px;background:var(--primary);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;transition:all .18s;letter-spacing:.3px}
+.submit-btn:hover:not(:disabled){background:var(--primary-dark);transform:translateY(-1px)}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ── SCREEN 4 CONFIRM ── */
+.confirm-wrap{max-width:480px;margin:0 auto;padding:60px 24px 40px;text-align:center;background:#fff}
+.confirm-anim{width:90px;height:90px;border-radius:50%;background:rgba(92,22,197,.1);border:2px solid rgba(92,22,197,.25);display:flex;align-items:center;justify-content:center;font-size:40px;margin:0 auto 20px;animation:popIn .4s ease}
+@keyframes popIn{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.confirm-title{font-family:'Inter',sans-serif;font-size:28px;font-weight:900;margin-bottom:8px}
+.confirm-title span{color:var(--primary)}
+.confirm-sub{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:28px}
+.confirm-card{background:#f7f7fb;border:1px solid var(--border);border-radius:16px;padding:18px;text-align:left;margin-bottom:24px}
+.confirm-card-head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.cr{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.cr:last-child{border-bottom:none}
+.cr .k{color:var(--muted)}.cr .v{font-weight:600}.cr .v.green{color:var(--green)}
+.confirm-note{background:rgba(247,201,72,.07);border:1px solid rgba(247,201,72,.2);border-radius:10px;padding:12px 16px;font-size:12px;color:#d4a017;margin-bottom:24px;text-align:left;line-height:1.6;display:flex;gap:10px;align-items:flex-start}
+.home-btn{background:var(--primary);border:none;border-radius:12px;color:#fff;padding:14px 36px;font-size:15px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;transition:all .18s;margin-bottom:10px;width:100%}
+.home-btn:hover{background:var(--primary-dark);transform:translateY(-1px)}
+.home-btn.secondary{background:#f5f5fa;border:1px solid var(--border2);color:var(--muted);margin-bottom:0}
+.home-btn.secondary:hover{background:#ebebf5;color:var(--text)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#fff;border:1px solid var(--border2);box-shadow:0 4px 20px rgba(0,0,0,.12);color:#1a1a2e;border-radius:20px;padding:12px 20px;font-size:13px;color:var(--text);box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:200;transition:transform .3s ease;white-space:nowrap;display:flex;align-items:center;gap:8px}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.err{border-color:rgba(232,54,93,.4)}
+.toast.ok{border-color:rgba(92,22,197,.4)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .topbar-steps{display:none}
+  .movies-grid{grid-template-columns:repeat(2,1fr);gap:12px;padding:14px 16px}
+  .tutors-area{padding:14px}
+  .week-tabs-wrapper{background:#fff;padding:12px 12px 0}
+  .wday-num{font-size:16px}
+  .wday{padding:8px 2px 10px}
+  .booking-pill{grid-template-columns:1fr}
+  .form-row.two{grid-template-columns:1fr}
+  .movie-hero-bar{padding:14px}
+  .home-body{padding:16px}
+  .mh-poster{width:72px;height:104px}
+  .wday-slots{display:none}
+}
+@media(max-width:400px){
+  .week-tabs-grid{gap:3px}
+  .wday-name{font-size:9px}
+  .wday-num{font-size:14px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <a class="upkraft-logo" href="#" onclick="goTo('home');return false;" aria-label="UpKraft home">
+    <span class="uk-logo-pill"><img
+      id="uk-logo-img"
+      src="data:image/png;base64,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"
+      alt="UpKraft"
+      class="uk-img"
+      onerror="this.style.display='none';document.getElementById('uk-fallback').style.display='flex'"
+    /></span>
+    <div id="uk-fallback" style="display:none;align-items:center;gap:9px">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0">
+        <rect width="34" height="34" rx="9" fill="#FF6B35"/>
+        <path d="M17 7 L17 24" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+        <path d="M11 13 L17 7 L23 13" stroke="white" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="10" cy="26" r="2.2" fill="white" fill-opacity="0.55"/>
+        <circle cx="17" cy="27" r="2.2" fill="white"/>
+        <circle cx="24" cy="26" r="2.2" fill="white" fill-opacity="0.55"/>
+      </svg>
+      <div>
+        <div class="uk-wordmark"><span class="up">up</span><span class="kraft">kraft</span></div>
+        <div class="uk-tagline">LEARN · GROW · BELONG</div>
+      </div>
+    </div>
+  </a>
+  <div class="topbar-steps" id="topbar-steps">
+    <div class="step active" id="step1"><span class="step-dot"></span>Find Society</div>
+    <div class="step-sep"></div>
+    <div class="step" id="step2"><span class="step-dot"></span>Hobby</div>
+    <div class="step-sep"></div>
+    <div class="step" id="step3"><span class="step-dot"></span>Pick Slot</div>
+    <div class="step-sep"></div>
+    <div class="step" id="step4"><span class="step-dot"></span>Confirm</div>
+  </div>
+  <div class="topbar-city">📍 <span id="city-label">Bengaluru</span> ▾</div>
+</nav>
+
+<!-- ══ SCREEN 1 — HOME ══ -->
+<div class="screen active" id="screen-home">
+  <section class="hero-section">
+    <div class="hero-glow"></div>
+    <div class="hero-eyebrow">✦ Skills At Your Doorstep ✦</div>
+    <h1 class="hero-h1">UpKraft your skills,<br><em>right in your society</em></h1>
+    <p class="hero-sub">Discover certified tutors at your society, pick a slot &amp; lock your free trial — just like booking a movie!</p>
+    <div class="search-wrap">
+      <span class="search-ico">🏢</span>
+      <input class="search-box" id="society-input" type="text" placeholder="Search your society name…" autocomplete="off"/>
+      <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
+      <div class="suggestions" id="suggestions"></div>
+    </div>
+  </section>
+  <div class="home-body">
+    <div class="promo-banner">
+      <div class="promo-badge">NEW</div>
+      <p><strong>12 societies</strong> now have Yoga &amp; Mindfulness — grab a free trial slot this week!</p>
+    </div>
+    <div class="section-head">Popular Societies</div>
+    <div class="chips" id="popular-chips"></div>
+    <div class="section-head">Browse by Category</div>
+    <div class="categories-row" id="cat-quick"></div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 2 — CATEGORIES ══ -->
+<div class="screen" id="screen-categories">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTo('home')">←</button>
+    <div class="page-hinfo">
+      <h2 id="cat-society-name">Society</h2>
+      <p class="breadcrumb">Home › <strong id="cat-bc">—</strong></p>
+    </div>
+  </div>
+  <div class="filter-bar">
+    <button class="fbtn active" onclick="filterHobbies('All',this)">All</button>
+    <button class="fbtn" onclick="filterHobbies('Performing Arts',this)">Performing Arts</button>
+    <button class="fbtn" onclick="filterHobbies('Fitness',this)">Fitness</button>
+    <button class="fbtn" onclick="filterHobbies('Visual Arts',this)">Visual Arts</button>
+    <button class="fbtn" onclick="filterHobbies('Music',this)">Music</button>
+    <button class="fbtn" onclick="filterHobbies('Language',this)">Language</button>
+  </div>
+  <div class="movies-grid" id="hobbies-grid"></div>
+</div>
+
+<!-- ══ SCREEN 3 — SLOTS ══ -->
+<div class="screen" id="screen-slots">
+  <div class="page-header">
+    <button class="back-btn" onclick="goTo('categories')">←</button>
+    <div class="page-hinfo">
+      <h2 id="slot-hobby-header">Hobby</h2>
+      <p class="breadcrumb" id="slot-breadcrumb">Home › Society › <strong>Hobby</strong></p>
+    </div>
+  </div>
+
+  <!-- hobby hero strip -->
+  <div class="movie-hero-bar">
+    <div class="mh-poster" id="mh-poster">🎭</div>
+    <div class="mh-info">
+      <h2 id="mh-title">—</h2>
+      <p class="mh-meta" id="mh-desc">—</p>
+      <div class="mh-tags">
+        <span class="mh-tag age" id="mh-age">All Ages</span>
+        <span class="mh-tag lang">English / Hindi</span>
+        <span class="mh-tag loc">In-Society</span>
+      </div>
+      <div class="mh-avail"><span></span> Slots available this week</div>
+    </div>
+  </div>
+
+  <!-- ★ 7-DAY TAB GRID ★ -->
+  <div class="week-tabs-wrapper" id="week-tabs-wrapper">
+    <div class="week-tabs-label">Select a day to view slots</div>
+    <div class="week-tabs-grid" id="week-tabs-grid" role="tablist" aria-label="Select day"></div>
+  </div>
+
+  <!-- selected day context bar -->
+  <div class="selected-day-bar" id="selected-day-bar">
+    <span class="sdb-date" id="sdb-date">Monday, 12 May</span>
+    <span class="sdb-pill" id="sdb-pill">4 slots available</span>
+    <span style="margin-left:auto;font-size:11px;color:var(--muted)" id="sdb-hint">Tap a slot to book your free trial</span>
+  </div>
+
+
+  <!-- ★ SLOT FILTERS ★ -->
+  <p style="font-size:11px;color:var(--muted);padding:8px 22px 0;margin:0">Each class is 45 minutes long.</p>
+  <div class="slot-filters" id="slot-filters">
+    <span class="sf-label">Filter</span>
+    <div class="sf-chips" id="time-filter-chips">
+      <button class="sf-chip active" onclick="setTimeFilter('all',this)">All Times</button>
+      <button class="sf-chip" onclick="setTimeFilter('morning',this)">🌅 Morning (10am–12pm)</button>
+      <button class="sf-chip" onclick="setTimeFilter('afternoon',this)">☀️ Afternoon (12pm–5pm)</button>
+      <button class="sf-chip" onclick="setTimeFilter('evening',this)">🌆 Evening (5pm–9pm)</button>
+    </div>  </div>
+
+  <div class="tutors-area" id="tutors-area"></div>
+
+  <div class="legend-bar">
+    <div class="leg"><div class="leg-box a"></div>Available</div>
+    <div class="leg"><div class="leg-box s"></div>Priority — your society</div>
+    <div class="leg"><div class="leg-box b"></div>Booked</div>
+    <div style="margin-left:auto;font-size:11px;color:var(--muted)">Tap a slot to block your free trial</div>
+  </div>
+</div>
+
+<!-- ══ SCREEN 4 — CONFIRM ══ -->
+<div class="screen" id="screen-confirm">
+  <div class="confirm-wrap">
+    <div class="confirm-anim">🎉</div>
+    <div class="confirm-title">All set, <span id="confirm-name">Friend</span>!</div>
+    <p class="confirm-sub">Your free trial slot is blocked. Our team will call within <strong style="color:var(--text)">24 hours</strong> to confirm the session.</p>
+    <div class="confirm-card">
+      <div class="confirm-card-head">Booking Summary</div>
+      <div id="confirm-rows"></div>
+    </div>
+    <div class="confirm-note"><span style="font-size:16px;flex-shrink:0">💡</span><div>This is a free trial enquiry — no payment required. A team member will confirm the slot and share class details with you.</div></div>
+    <button class="home-btn" onclick="goTo('home')">Explore More Classes →</button>
+    <button class="home-btn secondary" onclick="goTo('categories')">Back to Hobbies</button>
+  </div>
+</div>
+
+<!-- ══ ENQUIRY FORM SHEET ══ -->
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="sheet-title-el">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <span class="sheet-title" id="sheet-title-el">Block Free Trial Slot</span>
+      <button class="sheet-close" onclick="closeForm()">✕</button>
+    </div>
+    <p class="sheet-sub" id="sheet-sub-text">Fill details to confirm your slot</p>
+    <div class="booking-pill" id="booking-pill"></div>
+    <div class="form-row">
+      <div class="flabel">Your Name <span class="req">*</span></div>
+      <input class="finput" id="f-name" placeholder="Full name"/>
+    </div>
+    <div class="form-row two">
+      <div>
+        <div class="flabel">Mobile <span class="req">*</span></div>
+        <input class="finput" id="f-phone" placeholder="10-digit number" maxlength="10" inputmode="numeric"/>
+      </div>
+      <div>
+        <div class="flabel">Email</div>
+        <input class="finput" id="f-email" placeholder="Optional" type="email"/>
+      </div>
+    </div>
+    <div class="form-row two">
+      <div>
+        <div class="flabel">Participant Name <span class="req">*</span></div>
+        <input class="finput" id="f-pname" placeholder="Who will attend?"/>
+      </div>
+      <div>
+        <div class="flabel">Age <span class="req">*</span></div>
+        <input class="finput" id="f-age" placeholder="e.g. 10" type="number" min="1" max="99"/>
+      </div>
+    </div>
+    <div class="form-row two">
+      <div>
+        <div class="flabel">Society</div>
+        <input class="finput" id="f-society" readonly/>
+      </div>
+      <div>
+        <div class="flabel">Hobby</div>
+        <input class="finput" id="f-hobby" readonly/>
+      </div>
+    </div>
+    <div class="form-row two">
+      <div>
+        <div class="flabel">Tutor</div>
+        <input class="finput" id="f-tutor" readonly/>
+      </div>
+      <div>
+        <div class="flabel">Slot</div>
+        <input class="finput" id="f-slot" readonly/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="flabel">Notes</div>
+      <textarea class="finput ta" id="f-notes" rows="2" placeholder="Special requirements? (optional)" maxlength="250"></textarea>
+    </div>
+    <div class="consent-row">
+      <input type="checkbox" id="f-consent"/>
+      <label for="f-consent">I agree to be contacted by the UpKraft team for trial class confirmation and updates.</label>
+    </div>
+    <button class="submit-btn" id="submit-btn" disabled onclick="submitForm()">Confirm Free Trial →</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast" role="alert" aria-live="polite"></div>
+
+<script>
+/* ═══════════════════════ DATA ═══════════════════════════ */
+const SOCIETIES = [
+  {id:1,name:"Prestige Lakeside Habitat", city:"Whitefield",    units:850,  hobbies:6},
+  {id:2,name:"Brigade Metropolis",        city:"Marathahalli",  units:1200, hobbies:5},
+  {id:3,name:"Sobha Dream Acres",         city:"Panathur",      units:2400, hobbies:7},
+  {id:4,name:"Embassy Springs",           city:"Devanahalli",   units:600,  hobbies:4},
+  {id:5,name:"Godrej Splendour",          city:"Whitefield",    units:940,  hobbies:5},
+  {id:6,name:"Purva Panorama",            city:"Sarjapur Road", units:780,  hobbies:6},
+  {id:7,name:"Salarpuria Sattva Senorita",city:"Hebbal",        units:1100, hobbies:4},
+];
+
+const HOBBIES = [
+  {id:1, emoji:"💃", name:"Classical Dance",    cat:"Performing Arts", tutors:2, rating:"4.8", age:"5–14 yrs", desc:"Bharatanatyam & Kathak with certified instructors. Build grace, rhythm and cultural connect.", slots:14, new:true,  hot:false, col:["#1a0d2e","#2a1040"]},
+  {id:2, emoji:"🎸", name:"Guitar",             cat:"Music",           tutors:1, rating:"4.6", age:"8+ yrs",   desc:"Western & Carnatic guitar from beginner to advanced. Learn theory, chords and solos.",            slots:9,  new:false, hot:false, col:["#0d1a0d","#142214"]},
+  {id:3, emoji:"🧘", name:"Yoga & Mindfulness", cat:"Fitness",         tutors:2, rating:"4.9", age:"All ages",  desc:"Hatha & Vinyasa flows guided by certified yoga instructors. Suitable for all fitness levels.",    slots:18, new:true,  hot:true,  col:["#0d1a2e","#102035"]},
+  {id:4, emoji:"🎨", name:"Sketching & Drawing",cat:"Visual Arts",     tutors:1, rating:"4.5", age:"6+ yrs",   desc:"Pencil sketching, charcoal art, cartooning & watercolour basics with a seasoned artist.",        slots:7,  new:false, hot:false, col:["#2e1a0d","#3a2210"]},
+  {id:5, emoji:"🥋", name:"Karate",             cat:"Fitness",         tutors:1, rating:"4.7", age:"5–16 yrs", desc:"Shotokan karate from a certified black belt. Discipline, focus and fitness all in one class.",    slots:11, new:false, hot:false, col:["#1a0d0d","#2a1515"]},
+  {id:6, emoji:"🎹", name:"Keyboard & Piano",   cat:"Music",           tutors:1, rating:"4.6", age:"6+ yrs",   desc:"Western classical and Bollywood film music on keyboard. All beginners welcome.",                  slots:6,  new:false, hot:false, col:["#0d0d2e","#101035"]},
+  {id:7, emoji:"🎭", name:"Theatre & Drama",    cat:"Performing Arts", tutors:1, rating:"4.7", age:"8–16 yrs", desc:"Improv, scripted drama and stage confidence workshops. Builds communication and creativity.",     slots:8,  new:false, hot:true,  col:["#1a1a0d","#252510"]},
+  {id:8, emoji:"📸", name:"Photography",        cat:"Visual Arts",     tutors:1, rating:"4.5", age:"12+ yrs",  desc:"DSLR & mobile photography basics, composition rules, and light editing techniques.",              slots:5,  new:false, hot:false, col:["#0a1520","#0e1e2a"]},
+  {id:9, emoji:"🇫🇷",name:"French Language",   cat:"Language",        tutors:1, rating:"4.6", age:"10+ yrs",  desc:"Conversational French from A1 level. Great for travel, academics and culture.",                   slots:10, new:false, hot:false, col:["#0d1a2e","#111f35"]},
+];
+
+const TUTORS = {
+  1:[{name:"Priya Sharma",  emoji:"👩",    exp:"8 yrs",  rating:"4.9", bio:"Natyashastra-certified, trained under Kalakshetra",             visitDays:[0,2,4]},
+     {name:"Meena Pillai",  emoji:"👩‍🦱", exp:"6 yrs",  rating:"4.7", bio:"Kathak specialist with 200+ students trained",                  visitDays:[1,3,5]}],
+  2:[{name:"Karthik Raj",   emoji:"👨‍🎤", exp:"10 yrs", rating:"4.6", bio:"Berklee graduate, teaches Western & Carnatic guitar",            visitDays:[0,2,4,6]}],
+  3:[{name:"Ananya Menon",  emoji:"🧘‍♀️",exp:"7 yrs",  rating:"4.9", bio:"200-hr RYT certified, specialises in therapeutic yoga",         visitDays:[0,1,3,5]},
+     {name:"Suresh Kumar",  emoji:"🧘",    exp:"5 yrs",  rating:"4.8", bio:"Vinyasa & Power Yoga, 300+ hrs training",                       visitDays:[2,4,6]}],
+  4:[{name:"Ravi Illustra", emoji:"👨‍🎨", exp:"9 yrs",  rating:"4.5", bio:"Fine arts graduate, featured in 3 city exhibitions",            visitDays:[1,3,5]}],
+  5:[{name:"Sensei Madan",  emoji:"🥋",   exp:"15 yrs", rating:"4.8", bio:"3rd-degree black belt, state-level Karate champion",            visitDays:[0,2,4]}],
+  6:[{name:"Lisa D'Souza",  emoji:"🎹",   exp:"12 yrs", rating:"4.7", bio:"Trinity College certified, teaches classical & film music",      visitDays:[1,3,5,6]}],
+  7:[{name:"Amar Theatrics",emoji:"🎭",   exp:"7 yrs",  rating:"4.7", bio:"NSD alumnus, conducted workshops in 8 schools",                 visitDays:[0,2,4]}],
+  8:[{name:"Shreya Lens",   emoji:"📸",   exp:"5 yrs",  rating:"4.5", bio:"Award-winning photojournalist & hobbyist instructor",           visitDays:[1,3,5]}],
+  9:[{name:"Sophie Martin", emoji:"🇫🇷",  exp:"8 yrs",  rating:"4.6", bio:"Native French speaker from Lyon; Alliance Française certified", visitDays:[0,2,4,6]}],
+};
+
+/* ═══════════════════════ WEEK DATES ═════════════════════ */
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const DAYS_SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const DAYS_FULL  = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const START = new Date(2026,4,12); // Mon 12 May 2026
+
+const WEEK = DAYS_SHORT.map((d,i)=>{
+  const dt = new Date(START); dt.setDate(START.getDate()+i);
+  return {short:d, full:DAYS_FULL[i], num:dt.getDate(), mon:MONTHS[dt.getMonth()], label:`${DAYS_FULL[i]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}`};
+});
+
+/* ═══════════════════════ SLOT ENGINE ═══════════════════ */
+function buildSlots(visitDays, dayIdx) {
+  const visit = visitDays.includes(dayIdx);
+  return [
+    {band:"Morning", slots:[
+      {time:"10:00 AM", end:"10:45 AM", type:visit?"soc":"avail", label:visit?"Your society":"Available"},
+      {time:"11:00 AM", end:"11:45 AM", type:visit?"soc":"avail", label:visit?"Your society":"Available"}
+    ]},
+    {band:"Afternoon", slots:[
+      {time:"12:00 PM", end:"12:45 PM", type:visit?"soc":"avail", label:visit?"Your society":"Available"},
+      {time:"01:00 PM", end:"01:45 PM", type:visit?"soc":"avail", label:visit?"Your society":"Available"},
+      {time:"02:00 PM", end:"02:45 PM", type:visit?"soc":"avail", label:visit?"Your society":"Available"},
+      {time:"03:00 PM", end:"03:45 PM", type:visit?"avail":"blocked", label:visit?"Available":"Booked"},
+      {time:"04:00 PM", end:"04:45 PM", type:visit?"avail":"blocked", label:visit?"Available":"Booked"}
+    ]},
+    {band:"Evening", slots:[
+      {time:"05:00 PM", end:"05:45 PM", type:"avail", label:"Available"},
+      {time:"06:00 PM", end:"06:45 PM", type:"avail", label:"Available"},
+      {time:"07:00 PM", end:"07:45 PM", type:"avail", label:"Available"},
+      {time:"08:00 PM", end:"08:45 PM", type:"avail", label:"Available"}
+    ]},
+  ];
+}
+
+function countAvailForDay(hobbyId, dayIdx){
+  const tutors = TUTORS[hobbyId]||[];
+  let a=0,s=0;
+  tutors.forEach(t=>{
+    buildSlots(t.visitDays, dayIdx).forEach(band=>{
+      band.slots.forEach(sl=>{
+        if(sl.type==="avail") a++;
+        if(sl.type==="soc")   s++;
+      });
+    });
+  });
+  return {avail:a, soc:s, total:a+s};
+}
+
+/* ═══════════════════════ APP STATE ═══════════════════════ */
+const S = {society:null, hobby:null, day:0, tutor:null, slot:null, timeFilter:'all'};
+
+/* ═══════════════════════ NAVIGATION ═══════════════════════ */
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+  const map={home:1,categories:2,slots:3,confirm:4};
+  const n=map[id]||1;
+  [1,2,3,4].forEach(i=>{
+    const el=document.getElementById('step'+i);
+    el.classList.remove('active','done');
+    if(i<n) el.classList.add('done');
+    else if(i===n) el.classList.add('active');
+  });
+}
+
+/* ═══════════════════════ HOME / SEARCH ═══════════════════ */
+const inp=document.getElementById('society-input');
+const sugg=document.getElementById('suggestions');
+const clr=document.getElementById('search-clear');
+
+inp.addEventListener('input',function(){
+  const q=this.value.trim().toLowerCase();
+  clr.className=q?'search-clear show':'search-clear';
+  if(q.length<2){sugg.style.display='none';return;}
+  const hits=SOCIETIES.filter(s=>s.name.toLowerCase().includes(q));
+  if(!hits.length){
+    sugg.innerHTML=`<div class="sug-item" style="color:var(--muted)"><span>😕</span><span>No societies found.</span></div>`;
+    sugg.style.display='block';return;
+  }
+  sugg.innerHTML=hits.map(s=>`<div class="sug-item" onclick="selectSociety(${s.id})" tabindex="0" onkeydown="if(event.key==='Enter')selectSociety(${s.id})"><span style="color:var(--red);font-size:16px">🏢</span><span><strong>${s.name}</strong></span><span class="sug-meta">${s.city} · ${s.hobbies} hobbies</span></div>`).join('');
+  sugg.style.display='block';
+});
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrap'))sugg.style.display='none';});
+function clearSearch(){inp.value='';clr.className='search-clear';sugg.style.display='none';inp.focus();}
+
+// Popular chips
+SOCIETIES.slice(0,5).forEach(s=>{
+  const c=document.createElement('button');c.className='chip';c.textContent=s.name;
+  c.addEventListener('click',()=>selectSociety(s.id));
+  document.getElementById('popular-chips').appendChild(c);
+});
+
+// Category quick browse
+[{n:"Performing Arts",e:"🎭"},{n:"Music",e:"🎵"},{n:"Fitness",e:"💪"},{n:"Visual Arts",e:"🎨"},{n:"Language",e:"📚"}].forEach(c=>{
+  const d=document.createElement('div');d.className='cat-pill';
+  d.innerHTML=`<span class="cat-em">${c.e}</span>${c.n}`;
+  d.addEventListener('click',()=>{if(!S.society){showToast('Please select your society first 👆','err');return;}filterHobbies(c.n,null);goTo('categories');});
+  document.getElementById('cat-quick').appendChild(d);
+});
+
+function selectSociety(id){
+  S.society=SOCIETIES.find(x=>x.id===id);
+  sugg.style.display='none'; inp.value=''; clr.className='search-clear';
+  document.getElementById('cat-society-name').textContent=S.society.name;
+  document.getElementById('cat-bc').textContent=S.society.name;
+  renderHobbies(HOBBIES);
+  document.querySelectorAll('.fbtn').forEach((b,i)=>b.classList.toggle('active',i===0));
+  goTo('categories');
+}
+
+/* ═══════════════════════ HOBBIES ═══════════════════════════ */
+function filterHobbies(cat,btn){
+  if(btn){document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
+  renderHobbies(cat==='All'?HOBBIES:HOBBIES.filter(h=>h.cat===cat));
+}
+
+function renderHobbies(list){
+  document.getElementById('hobbies-grid').innerHTML=list.map(h=>`
+    <div class="movie-card" onclick="selectHobby(${h.id})" tabindex="0" onkeydown="if(event.key==='Enter')selectHobby(${h.id})" role="button">
+      <div class="movie-poster" style="background:linear-gradient(145deg,${h.col[0]},${h.col[1]})">
+        ${h.new?'<div class="poster-new">NEW</div>':''}
+        ${h.hot&&!h.new?'<div class="poster-hot">🔥 HOT</div>':''}
+        <span style="font-size:52px">${h.emoji}</span>
+        <div class="poster-rating">⭐ ${h.rating}</div>
+        <div class="poster-slots">${h.slots} slots</div>
+      </div>
+      <div class="movie-info">
+        <div class="movie-title">${h.name}</div>
+        <div class="movie-cat">${h.cat} · ${h.tutors} tutor${h.tutors>1?'s':''}</div>
+        <div class="tag-row">
+          <span class="tag">${h.age}</span>
+          <span class="tag green">Free trial</span>
+          ${h.new?'<span class="tag blue">New</span>':''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+/* ═══════════════════════ SLOTS SCREEN ══════════════════════ */
+function selectHobby(id){
+  S.hobby=HOBBIES.find(x=>x.id===id); S.day=0; S.timeFilter='all'; setTimeout(resetTimeFilter,50);
+  document.getElementById('slot-hobby-header').textContent=S.hobby.name;
+  document.getElementById('slot-breadcrumb').innerHTML=`Home › ${S.society.name} › <strong>${S.hobby.name}</strong>`;
+  const p=document.getElementById('mh-poster');
+  p.textContent=S.hobby.emoji;
+  p.style.background=`linear-gradient(145deg,${S.hobby.col[0]},${S.hobby.col[1]})`;
+  document.getElementById('mh-title').textContent=S.hobby.name;
+  document.getElementById('mh-desc').textContent=S.hobby.desc;
+  document.getElementById('mh-age').textContent=S.hobby.age;
+  renderWeekTabs();
+  renderTutors();
+  goTo('slots');
+}
+
+/* ─── 7-DAY TAB GRID ─── */
+function renderWeekTabs(){
+  const grid=document.getElementById('week-tabs-grid');
+  grid.innerHTML=WEEK.map((d,i)=>{
+    const {avail,soc,total}=countAvailForDay(S.hobby.id, i);
+    const hasSlots=total>0;
+    const isSocDay=soc>0;
+    let pillClass='none', pillText='No slots';
+    if(isSocDay){pillClass='soc'; pillText=`${soc} priority`;}
+    else if(avail>0){pillClass='has'; pillText=`${avail} open`;}
+    return `<div class="wday${i===S.day?' active':''}${!hasSlots?' no-slots':''}"
+               role="tab" aria-selected="${i===S.day}" tabindex="${hasSlots?0:-1}"
+               onclick="${hasSlots?`selectDay(${i})`:'showToast(\'No slots on this day\',\'err\')'}"
+               onkeydown="if(event.key==='Enter'&&${hasSlots})selectDay(${i})"
+               title="${d.label}${!hasSlots?' — No slots':''}"
+               aria-label="${d.label}, ${pillText}">
+             ${i===0?'<div class="wday-today-dot" title="Today"></div>':''}
+             <span class="wday-name">${d.short}</span>
+             <span class="wday-num">${d.num}</span>
+             <span class="wday-mon">${d.mon}</span>
+             <span class="wday-slots ${pillClass}">${pillText}</span>
+           </div>`;
+  }).join('');
+}
+
+function resetTimeFilter(){
+  S.timeFilter='all';
+  document.querySelectorAll('#time-filter-chips .sf-chip').forEach((b,i)=>b.classList.toggle('active',i===0));
+}
+
+function selectDay(idx){
+  S.day=idx;
+  renderWeekTabs();
+  renderTutors();
+  updateDayBar();
+}
+
+function updateDayBar(){
+  const d=WEEK[S.day];
+  const {avail,soc,total}=countAvailForDay(S.hobby.id, S.day);
+  document.getElementById('sdb-date').textContent=d.label;
+  const pill=document.getElementById('sdb-pill');
+  if(soc>0){pill.textContent=`${soc} priority slots for your society`;pill.className='sdb-pill soc';}
+  else if(avail>0){pill.textContent=`${avail} slots available`;pill.className='sdb-pill';}
+  else{pill.textContent='No slots this day';pill.className='sdb-pill empty';}
+}
+
+
+function setTimeFilter(f, btn){
+  S.timeFilter = f;
+  document.querySelectorAll('#time-filter-chips .sf-chip').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTutors();
+}
+
+/* ─── TUTOR BLOCKS ─── */
+function renderTutors(){
+  updateDayBar();
+  const tutors=TUTORS[S.hobby.id]||[];
+  const {total}=countAvailForDay(S.hobby.id, S.day);
+
+  if(total===0){
+    document.getElementById('tutors-area').innerHTML=`
+      <div class="empty-day">
+        <div class="em-icon">📅</div>
+        <p><strong>No classes on ${WEEK[S.day].full}</strong><br>
+           Tutors are not visiting your society on this day.<br>
+           Try <strong>Mon, Wed or Fri</strong> for the most availability.</p>
+      </div>`;
+    return;
+  }
+
+  document.getElementById('tutors-area').innerHTML=tutors.map(t=>{
+    const isVisiting=t.visitDays.includes(S.day);
+    const bands=buildSlots(t.visitDays, S.day);
+    // Apply time-of-day filter
+    const bandMap = {morning:['Morning'], afternoon:['Afternoon'], evening:['Evening'], all:['Morning','Afternoon','Evening']};
+    const visibleBands = bandMap[S.timeFilter] || bandMap.all;
+    const filteredBands = bands.filter(b => visibleBands.includes(b.band));
+
+    const bandHtml = filteredBands.length === 0
+      ? `<div class="empty-day" style="margin:12px"><p>No slots in this time range. Try a different filter.</p></div>`
+      : filteredBands.map(band=>{
+      const pills=band.slots.map(sl=>{
+        if(sl.type==='buf')
+          return `<div class="slot-pill buf" aria-disabled="true"><span class="stime">—</span><span class="slabel">${sl.label}</span></div>`;
+        if(sl.type==='blocked')
+          return `<div class="slot-pill blocked" aria-disabled="true"><span class="stime">${sl.time}</span></div>`;
+        if(sl.type==='soc')
+          return `<div class="slot-pill soc" role="button" tabindex="0"
+                     onclick="openForm('${escQ(t.name)}','${sl.time}','${sl.end}')"
+                     onkeydown="if(event.key==='Enter')openForm('${escQ(t.name)}','${sl.time}','${sl.end}')"
+                     aria-label="${sl.time}, priority slot for your society">
+                   <span class="stime">${sl.time}</span></div>`;
+        return `<div class="slot-pill avail" role="button" tabindex="0"
+                   onclick="openForm('${escQ(t.name)}','${sl.time}','${sl.end}')"
+                   onkeydown="if(event.key==='Enter')openForm('${escQ(t.name)}','${sl.time}','${sl.end}')"
+                   aria-label="${sl.time}, available slot">
+                 <span class="stime">${sl.time}</span></div>`;
+      }).join('');
+      return `<div class="slots-time-band"><div class="slots-band-label">${band.band}</div><div class="slots-grid">${pills}</div></div>`;
+    }).join('');
+
+    return `<div class="tutor-block">
+      <div class="tutor-top">
+        <div class="tutor-ava">${t.emoji}</div>
+        <div style="flex:1;min-width:0">
+          <div class="tutor-name">${t.name}</div>
+          <div class="tutor-detail"><span class="stars">★★★★★</span><span>${t.rating} rating</span><span style="opacity:.3">·</span><span>${t.exp} exp.</span></div>
+          <div class="tutor-bio">${t.bio}</div>
+        </div>
+        <div class="tutor-right">
+          <div class="tutor-verify">✔ Verified</div>
+          ${isVisiting
+            ?`<div class="tutor-visit-badge">📍 Visiting your<br>society today</div>`
+            :`<div class="tutor-not-visiting">Not visiting<br>this day</div>`}
+        </div>
+      </div>
+      <div class="slots-wrap">${bandHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function escQ(s){return s.replace(/'/g,"\\'").replace(/"/g,'&quot;')}
+
+/* ═══════════════════════ FORM ═══════════════════════════ */
+function openForm(tutorName, slotTime, slotEnd=''){
+  S.tutor=tutorName; S.slot=slotTime;
+  const d=WEEK[S.day];
+  document.getElementById('sheet-sub-text').textContent=`Reserving ${slotTime} at ${S.society.name}`;
+  document.getElementById('booking-pill').innerHTML=`
+    <div class="bp-item"><div class="bpl">Hobby</div><div class="bpv">${S.hobby.emoji} ${S.hobby.name}</div></div>
+    <div class="bp-item"><div class="bpl">Tutor</div><div class="bpv">${tutorName}</div></div>
+    <div class="bp-item"><div class="bpl">Day &amp; Date</div><div class="bpv">${d.label}</div></div>
+    <div class="bp-item"><div class="bpl">Slot Time</div><div class="bpv green">${slotTime}</div></div>`;
+  document.getElementById('f-society').value=S.society.name;
+  document.getElementById('f-hobby').value=S.hobby.name;
+  document.getElementById('f-tutor').value=tutorName;
+  document.getElementById('f-slot').value=`${d.label} · ${slotTime}`;
+  ['f-name','f-phone','f-email','f-pname','f-age','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-consent').checked=false;
+  updateSubmit();
+  document.getElementById('overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('f-name').focus(),300);
+}
+function closeForm(){document.getElementById('overlay').classList.remove('show');}
+document.getElementById('overlay').addEventListener('click',function(e){if(e.target===this)closeForm();});
+['f-name','f-phone','f-pname','f-age'].forEach(id=>document.getElementById(id).addEventListener('input',updateSubmit));
+document.getElementById('f-consent').addEventListener('change',updateSubmit);
+
+function updateSubmit(){
+  const ok=document.getElementById('f-name').value.trim().length>=2&&
+           document.getElementById('f-phone').value.trim().length===10&&
+           document.getElementById('f-pname').value.trim().length>=2&&
+           document.getElementById('f-age').value>0&&
+           document.getElementById('f-consent').checked;
+  document.getElementById('submit-btn').disabled=!ok;
+}
+
+function submitForm(){
+  const fname=document.getElementById('f-name').value.trim();
+  const pname=document.getElementById('f-pname').value.trim();
+  const phone=document.getElementById('f-phone').value.trim();
+  const age  =document.getElementById('f-age').value;
+  const d    =WEEK[S.day];
+  document.getElementById('confirm-name').textContent=fname.split(' ')[0];
+  document.getElementById('confirm-rows').innerHTML=[
+    ['Society',    S.society.name],
+    ['Hobby',      `${S.hobby.emoji} ${S.hobby.name}`],
+    ['Tutor',      S.tutor],
+    ['Date &amp; Slot', `${d.label} · <span class="green">${S.slot}</span>`],
+    ['Participant',`${pname} (${age} yrs)`],
+    ['Contact',    `+91 ${phone}`],
+  ].map(([k,v])=>`<div class="cr"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
+  closeForm(); goTo('confirm');
+  showToast('🎉 Slot blocked successfully!','ok');
+}
+
+/* ═══════════════════════ TOAST ════════════════════════════ */
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+/* ═══════════════════════ INIT ═════════════════════════════ */
+renderHobbies(HOBBIES);
+</script>
+</body>
+</html>
