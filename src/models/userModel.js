@@ -205,6 +205,12 @@ const userSchema = new mongoose.Schema({
             endTime: Date
         }]
     },
+    demoSlotsAvailable: {
+        type: [{
+            startTime: Date,
+            endTime: Date
+        }]
+    },
     academyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "users"
