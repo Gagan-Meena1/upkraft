@@ -1,9 +1,9 @@
 // middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { jwtVerify } from 'jsonwebtoken';
 
-export function middleware(request: NextRequest) {
+export  function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const impersonateToken = request.cookies.get('impersonate_token')?.value;
   const { pathname } = request.nextUrl;
@@ -62,8 +62,8 @@ export function middleware(request: NextRequest) {
 
     try {
       // Verify token (checks signature AND expiration)
-      jwt.verify(activeToken, process.env.TOKEN_SECRET!);
-      console.log('[Middleware] Token valid, allowing access');
+          jwt.verify(activeToken, process.env.TOKEN_SECRET!);
+          console.log('[Middleware] Token valid, allowing access');
 
       // Token is valid, allow access. 
       // If we used an impersonateToken, we transparently swap it for the 'token'

@@ -37,13 +37,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { tutorId, slots } = body;
+    const { tutorId, slots , societyId } = body;
 
     console.log("Received slot update request:", {
       tutorId,
       slotsCount: slots?.length,
       firstSlot: slots?.[0],
+      societyId
     });
+
+    if (!societyId) {
+  return NextResponse.json(
+    { success: false, message: "Society ID is required" },
+    { status: 400 }
+  );
+}
 
     if (!tutorId) {
       return NextResponse.json(
@@ -68,12 +76,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (tutor.category !== "Tutor") {
-      return NextResponse.json(
-        { success: false, message: "Selected user is not a tutor" },
-        { status: 400 }
-      );
-    }
+   
 
     // Validate and convert slot format
     const validatedSlots = slots.map((slot, index) => {
@@ -97,6 +100,7 @@ export async function POST(request: NextRequest) {
       return {
         startTime: startTime,
         endTime: endTime,
+        societyId: societyId, 
       };
     });
 
@@ -105,9 +109,16 @@ export async function POST(request: NextRequest) {
       firstSlot: validatedSlots[0],
     });
 
-    // Update tutor's slots (replace existing slots with new ones)
-    tutor.demoSlotsAvailable = validatedSlots;
-    await tutor.save();
+    // Pehle us society ke purane slots hata do, phir naye add karo
+tutor.demoSlotsAvailable = [
+  ...(tutor.demoSlotsAvailable || []).filter(
+    (s) => s.societyId?.toString() !== societyId
+  ),
+  ...validatedSlots,
+];
+
+await tutor.save();
+
 
     console.log("Successfully updated tutor slots");
 
@@ -184,7 +195,7 @@ export async function GET(request: NextRequest) {
       username: tutor.username,
       email: tutor.email,
       timezone: tutor.timezone || "UTC",
-      demoSlotsAvailable: (tutor.demoSlotsAvailable || []).map((slot) => ({
+      slotsAvailable: (tutor.demoSlotsAvailable || []).map((slot) => ({
         startTime: slot.startTime instanceof Date ? slot.startTime.toISOString() : slot.startTime,
         endTime: slot.endTime instanceof Date ? slot.endTime.toISOString() : slot.endTime,
       })),
