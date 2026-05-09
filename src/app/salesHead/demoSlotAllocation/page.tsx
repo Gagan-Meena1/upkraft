@@ -99,7 +99,7 @@ const router = useRouter();
     const fetchTutors = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/Api/academy/tutorPersonalInfo");
+        const response = await fetch("/Api/salesHead/allTutorsInfo");
         const data = await response.json();
         if (data.success && data.tutors) {
           setTutors(data.tutors);
@@ -512,7 +512,7 @@ useEffect(() => {
         }
       });
 
-      const response = await fetch("/Api/academy/tutorSlots", {
+      const response = await fetch("/Api/salesHead/demoSlots", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -531,7 +531,7 @@ useEffect(() => {
 
       toast.success("Slots saved successfully!");
       
-      const tutorsResponse = await fetch("/Api/academy/tutorPersonalInfo");
+      const tutorsResponse = await fetch("/Api/salesHead/allTutorsInfo");
       const tutorsData = await tutorsResponse.json();
       if (tutorsData.success && tutorsData.tutors) {
         setTutors(tutorsData.tutors);
@@ -546,7 +546,7 @@ useEffect(() => {
     }
   };
   const handleCalendar = () => {
-    router.push(`/academy/calendar`);
+    router.push(`/salesHead/demoSlotAllocation`);
   };
 
   const weekDays = getWeekDays();
