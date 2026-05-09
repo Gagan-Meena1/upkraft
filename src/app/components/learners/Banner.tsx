@@ -33,8 +33,8 @@ const Banner = () => {
           <h3 className='mb-2'>Built for Homes, Communities & Campuses
 </h3>
           <p>Structured extracurricular learning at home, in societies, and schools—led by expert tutors with clear progress tracking.</p>
-          <Link href="" className='btn btn-orange' onClick={handleShow}>
-            Book a Demo
+          <Link href="/book-slot" className='btn btn-orange'>
+            Book a Slot
           </Link>
 
           <ul className='d-flex p-0 m-0 mt-xl-5 mt-4 list-unstyled justify-content-center'>
