@@ -84,8 +84,12 @@ const [cancellationReason, setCancellationReason] = useState("");
 // Add this state near your other state declarations
 const [isCancelling, setIsCancelling] = useState(false);
 const router = useRouter();
-const societyId = searchParams.get("societyId") || "";
+// const societyId = searchParams.get("societyId") || "";
 const [slotSocietyMap, setSlotSocietyMap] = useState<Map<string, string>>(new Map());
+const [currentSocietyId, setCurrentSocietyId] = useState<string>(
+  searchParams.get("societyId") || ""
+);
+const [societies, setSocieties] = useState<{_id: string, name: string, city: string}[]>([]);
 
 
   const toast = {
@@ -107,6 +111,19 @@ const [slotSocietyMap, setSlotSocietyMap] = useState<Map<string, string>>(new Ma
     };
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+  const fetchSocieties = async () => {
+    try {
+      const res = await fetch("/Api/salesHead/society");
+      const data = await res.json();
+      if (data.success) setSocieties(data.societies);
+    } catch (e) {
+      console.error("Failed to fetch societies", e);
+    }
+  };
+  fetchSocieties();
+}, []);
 
   useEffect(() => {
     const fetchTutors = async () => {
@@ -169,9 +186,9 @@ const [slotSocietyMap, setSlotSocietyMap] = useState<Map<string, string>>(new Ma
 
     tutor.slotsAvailable.forEach((slot) => {
       try {
+if (currentSocietyId && slot.societyId && slot.societyId !== currentSocietyId) return;
         const startTimeStr = typeof slot.startTime === 'string' ? slot.startTime : slot.startTime?.toISOString();
         const endTimeStr = typeof slot.endTime === 'string' ? slot.endTime : slot.endTime?.toISOString();
-         if (societyId && slot.societyId && slot.societyId !== societyId) return;
         
         if (!startTimeStr || !endTimeStr) return;
         
@@ -540,7 +557,7 @@ useEffect(() => {
         body: JSON.stringify({
           tutorId: selectedTutor,
           slots: slotsToSave,
-          societyId: societyId
+          societyId: currentSocietyId 
         }),
       });
 
@@ -866,6 +883,25 @@ const handleConfirmCancellation = async () => {
   <div className="px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 font-medium">
     {tutors.find(t => t._id === selectedTutor)?.username || "Loading..."}
   </div>
+</div>
+
+{/* Society selector — add karo yahan */}
+<div className="flex-1 w-full min-w-[200px]">
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Society
+  </label>
+  <select
+    value={currentSocietyId}
+    onChange={(e) => setCurrentSocietyId(e.target.value)}
+    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+  >
+    <option value="">-- Select Society --</option>
+    {societies.map((s) => (
+      <option key={s._id} value={s._id}>
+        {s.name} ({s.city})
+      </option>
+    ))}
+  </select>
 </div>
 
             
