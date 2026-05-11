@@ -237,6 +237,7 @@ if (studentUser && studentUser.email && !['69537664baecc0ac710182f3', '6a0199da1
 
       await course.save();
     }
+    
     return NextResponse.json({
       success: true,
       message: 'Feedback submitted successfully and class updated',
