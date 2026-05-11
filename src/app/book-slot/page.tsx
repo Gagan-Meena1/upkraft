@@ -304,7 +304,7 @@ export default function BookSlotPage() {
             </div>
             <div className="section-head">Browse by Category</div>
             <div className="categories-row">
-              {[{n:"Performing Arts",e:"🎭"},{n:"Music",e:"🎵"},{n:"Fitness",e:"💪"},{n:"Visual Arts",e:"🎨"},{n:"Language",e:"📚"}].map(c => (
+              {[{n:"Music",e:"🎵"}].map(c => (
                 <div className="cat-pill" key={c.n} onClick={() => {
                   if(!society) { showToastMsg('Please select your society first 👆', 'err'); return; }
                   setCatFilter(c.n); goTo('categories');
@@ -328,7 +328,7 @@ export default function BookSlotPage() {
             </div>
           </div>
           <div className="filter-bar">
-            {['All', 'Performing Arts', 'Fitness', 'Visual Arts', 'Music', 'Language'].map(f => (
+            {['All', 'Music'].map(f => (
               <button key={f} className={`fbtn ${catFilter === f ? 'active' : ''}`} onClick={() => setCatFilter(f)}>{f}</button>
             ))}
           </div>
