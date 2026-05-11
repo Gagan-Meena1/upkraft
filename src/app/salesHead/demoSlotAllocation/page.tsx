@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use , Suspense } from "react";
 import { ChevronLeft, ChevronRight, Calendar, Clock, Save, User, Repeat, X, Edit2, Trash2, AlertCircle } from "lucide-react";
 import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO, addDays } from 'date-fns';
@@ -1619,4 +1619,14 @@ const handleConfirmCancellation = async () => {
   );
 };
 
-export default TutorAvailabilitySlots;
+const TutorAvailabilitySlotsWrapper = () => (
+  <Suspense fallback={
+    <div className="flex justify-center items-center min-h-screen bg-gray-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+    </div>
+  }>
+    <TutorAvailabilitySlots />
+  </Suspense>
+);
+
+export default TutorAvailabilitySlotsWrapper;
