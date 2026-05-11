@@ -185,8 +185,8 @@ export async function POST(request: NextRequest) {
       // Send notification email to the student
       try {
         const studentUser = await User.findById(studentId).select('email username').lean();
-        if (studentUser && studentUser.email &&studentId !== '69537664baecc0ac710182f3') {
-          await sendEmail({
+if (studentUser && studentUser.email && !['69537664baecc0ac710182f3', '6a0199da17706942db4cede7', '69e33a6bf95ccd03626cd1a2'].includes(studentId)) {
+            await sendEmail({
             email: studentUser.email,
             emailType: "FEEDBACK_RECEIVED",
             username: studentUser.username,
