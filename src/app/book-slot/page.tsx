@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import './book-slot.css';
-import { SOCIETIES, HOBBIES, TUTORS, WEEK, buildSlots, countAvailForDay } from './data';
+import { HOBBIES, TUTORS, WEEK, buildSlots, countAvailForDay } from './data';
 
 type ScreenType = 'home' | 'categories' | 'slots' | 'confirm';
 type TimeFilterType = 'all' | 'morning' | 'afternoon' | 'evening';
@@ -17,6 +17,9 @@ export default function BookSlotPage() {
   const [day, setDay] = useState<number>(0);
   const [timeFilter, setTimeFilter] = useState<TimeFilterType>('all');
   
+  const [allSocieties, setAllSocieties] = useState<any[]>([]);
+  const [citySocieties, setCitySocieties] = useState<any[]>([]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -47,6 +50,43 @@ export default function BookSlotPage() {
   }, []);
 
   useEffect(() => {
+    const fetchSocieties = async () => {
+      try {
+        const res = await fetch("/Api/salesHead/society");
+        const data = await res.json();
+        if (data.success && data.societies) {
+          const mapped = data.societies.map((s: any) => ({
+            id: s._id,
+            name: s.name,
+            city: s.city,
+            isPopular: s.isPopular,
+            tutors: s.tutors || [],
+            hobbies: Math.floor(Math.random() * 5) + 3,
+            units: 1000,
+          }));
+          setAllSocieties(mapped);
+        }
+      } catch (err) {
+        console.error("Error fetching societies:", err);
+      }
+    };
+    fetchSocieties();
+  }, []);
+
+  useEffect(() => {
+    const filtered = allSocieties.filter((s) => {
+      const sCity = s.city.toLowerCase();
+      if (city === 'Bengaluru') {
+        return sCity.includes('bengaluru') || sCity.includes('bangalore');
+      } else if (city === 'Gurugram') {
+        return sCity.includes('gurugram') || sCity.includes('gurgaon');
+      }
+      return false;
+    });
+    setCitySocieties(filtered);
+  }, [allSocieties, city]);
+
+  useEffect(() => {
     const ok = formData.name.trim().length >= 2 &&
                formData.phone.trim().length === 10 &&
                formData.pname.trim().length >= 2 &&
@@ -72,7 +112,7 @@ export default function BookSlotPage() {
       setShowSuggestions(false);
       return;
     }
-    const hits = SOCIETIES.filter(s => s.name.toLowerCase().includes(q.toLowerCase()));
+    const hits = citySocieties.filter(s => s.name.toLowerCase().includes(q.toLowerCase()));
     setSuggestions(hits);
     setShowSuggestions(true);
   };
@@ -250,13 +290,17 @@ export default function BookSlotPage() {
           <div className="home-body">
             <div className="promo-banner">
               <div className="promo-badge">NEW</div>
-              <p><strong>12 societies</strong> now have Yoga &amp; Mindfulness — grab a free trial slot this week!</p>
+              <p><strong>More societies & Hobbies</strong> are coming soon ! </p>
             </div>
             <div className="section-head">Popular Societies</div>
             <div className="chips">
-              {SOCIETIES.slice(0, 5).map(s => (
-                <button key={s.id} className="chip" onClick={() => selectSociety(s)}>{s.name}</button>
-              ))}
+              {(() => {
+                const popular = citySocieties.filter(s => s.isPopular);
+                const displaySocieties = popular.length > 0 ? popular.slice(0, 5) : citySocieties.slice(0, 5);
+                return displaySocieties.map(s => (
+                  <button key={s.id} className="chip" onClick={() => selectSociety(s)}>{s.name}</button>
+                ));
+              })()}
             </div>
             <div className="section-head">Browse by Category</div>
             <div className="categories-row">
