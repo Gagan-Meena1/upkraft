@@ -24,7 +24,7 @@ export default function BookSlotPage() {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   
-  const [catFilter, setCatFilter] = useState('All');
+  const [catFilter, setCatFilter] = useState('Music');
   
   const [formOpen, setFormOpen] = useState(false);
   const [formTutor, setFormTutor] = useState('');
@@ -121,7 +121,7 @@ export default function BookSlotPage() {
     setSociety(soc);
     setSearchQuery('');
     setShowSuggestions(false);
-    setCatFilter('All');
+    setCatFilter('Music');
     goTo('categories');
   };
 
@@ -328,7 +328,7 @@ export default function BookSlotPage() {
             </div>
           </div>
           <div className="filter-bar">
-            {['All', 'Music'].map(f => (
+            {['Music'].map(f => (
               <button key={f} className={`fbtn ${catFilter === f ? 'active' : ''}`} onClick={() => setCatFilter(f)}>{f}</button>
             ))}
           </div>
