@@ -99,6 +99,8 @@ export default function LoginPage() {
         router.push("/teamlead/tutors");
       } else if (normalizedCategory === "relationshipmanager") {
         router.push("/relationshipmanager");
+      } else if (normalizedCategory === "saleshead") {
+        router.push("/salesHead/society");
       }
     } catch (error: any) {
       console.log("Login failed", error.response?.data?.error || error.message);

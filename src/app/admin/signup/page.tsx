@@ -6,6 +6,7 @@ const MANAGEMENT_ROLES = [
   { value: "Admin", label: "Admin" },
   { value: "TeamLead", label: "Team Lead" },
   { value: "Relationship Manager", label: "Relationship Manager" },
+  { value: "Sales Head", label: "Sales Head" },
 ];
 
 export default function AdminSignupPage() {

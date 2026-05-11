@@ -1,15 +1,21 @@
 "use client";
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use , Suspense } from "react";
 import { ChevronLeft, ChevronRight, Calendar, Clock, Save, User, Repeat, X, Edit2, Trash2, AlertCircle } from "lucide-react";
 import * as dateFnsTz from 'date-fns-tz';
 import { format, parseISO, addDays } from 'date-fns';
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 interface Tutor {
   _id: string;
   username: string;
   email: string;
   timezone: string;
-  slotsAvailable: { startTime: string; endTime: string }[];
+  slotsAvailable: { 
+  startTime: string; 
+  endTime: string;
+  societyId?: string;
+  societyName?: string;
+}[];
   description?: string;
 }
 
@@ -36,9 +42,14 @@ interface CreateClassForm {
 
 
 
+
+
 const TutorAvailabilitySlots = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
-  const [selectedTutor, setSelectedTutor] = useState<string>("");
+const searchParams = useSearchParams();
+const [selectedTutor, setSelectedTutor] = useState<string>(
+  searchParams.get("tutorId") || ""
+);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [slots, setSlots] = useState<Map<string, "available" | "unavailable">>(new Map());
   const [loading, setLoading] = useState(false);
@@ -73,6 +84,12 @@ const [cancellationReason, setCancellationReason] = useState("");
 // Add this state near your other state declarations
 const [isCancelling, setIsCancelling] = useState(false);
 const router = useRouter();
+// const societyId = searchParams.get("societyId") || "";
+const [slotSocietyMap, setSlotSocietyMap] = useState<Map<string, string>>(new Map());
+const [currentSocietyId, setCurrentSocietyId] = useState<string>(
+  searchParams.get("societyId") || ""
+);
+const [societies, setSocieties] = useState<{_id: string, name: string, city: string}[]>([]);
 
 
   const toast = {
@@ -94,6 +111,19 @@ const router = useRouter();
     };
     fetchUserData();
   }, []);
+
+  useEffect(() => {
+  const fetchSocieties = async () => {
+    try {
+      const res = await fetch("/Api/salesHead/society");
+      const data = await res.json();
+      if (data.success) setSocieties(data.societies);
+    } catch (e) {
+      console.error("Failed to fetch societies", e);
+    }
+  };
+  fetchSocieties();
+}, []);
 
   useEffect(() => {
     const fetchTutors = async () => {
@@ -151,9 +181,12 @@ const router = useRouter();
     }
 
     const newSlots = new Map<string, "available" | "unavailable">();
+    const newSocietyMap = new Map<string, string>();  // key -> societyName
+
 
     tutor.slotsAvailable.forEach((slot) => {
       try {
+if (currentSocietyId && slot.societyId && slot.societyId !== currentSocietyId) return;
         const startTimeStr = typeof slot.startTime === 'string' ? slot.startTime : slot.startTime?.toISOString();
         const endTimeStr = typeof slot.endTime === 'string' ? slot.endTime : slot.endTime?.toISOString();
         
@@ -171,6 +204,9 @@ const router = useRouter();
         for (let hour = startHour; hour < endHour; hour++) {
           const key = `${slotDate}-${hour}`;
           newSlots.set(key, "available");
+          if (slot.societyName) {
+      newSocietyMap.set(key, slot.societyName);  // store society name
+    }
         }
       } catch (error) {
         console.error("Error processing slot:", error);
@@ -178,6 +214,7 @@ const router = useRouter();
     });
 
     setSlots(newSlots);
+    setSlotSocietyMap(newSocietyMap);
     setSelectedSlots(new Set());
   }, [selectedTutor, currentDate, tutors, userTimezone]);
 
@@ -520,6 +557,7 @@ useEffect(() => {
         body: JSON.stringify({
           tutorId: selectedTutor,
           slots: slotsToSave,
+          societyId: currentSocietyId 
         }),
       });
 
@@ -546,7 +584,7 @@ useEffect(() => {
     }
   };
   const handleCalendar = () => {
-    router.push(`/salesHead/demoSlotsAllocation`);
+    router.push(`/salesHead/demoSlotAllocation`);
   };
 
   const weekDays = getWeekDays();
@@ -821,7 +859,7 @@ const handleConfirmCancellation = async () => {
           </h1>
 
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center flex-wrap">
-            <div className="flex-1 w-full min-w-[250px]">
+            {/* <div className="flex-1 w-full min-w-[250px]">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select Tutor
               </label>
@@ -837,16 +875,36 @@ const handleConfirmCancellation = async () => {
                   </option>
                 ))}
               </select>
-            </div>
+            </div> */}
+            <div className="flex-1 w-full min-w-[250px]">
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Tutor
+  </label>
+  <div className="px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 font-medium">
+    {tutors.find(t => t._id === selectedTutor)?.username || "Loading..."}
+  </div>
+</div>
 
-            <button
-              onClick={handleCalendar}
-              
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <Calendar size={18} />
-              View Calendar
-            </button>
+{/* Society selector — add karo yahan */}
+<div className="flex-1 w-full min-w-[200px]">
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Society
+  </label>
+  <select
+    value={currentSocietyId}
+    onChange={(e) => setCurrentSocietyId(e.target.value)}
+    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+  >
+    <option value="">-- Select Society --</option>
+    {societies.map((s) => (
+      <option key={s._id} value={s._id}>
+        {s.name} ({s.city})
+      </option>
+    ))}
+  </select>
+</div>
+
+            
 
             <button
               onClick={handleSave}
@@ -1162,6 +1220,12 @@ const handleConfirmCancellation = async () => {
           })}
         </div>
       ) : (
+        <>
+        {status === "available" && slotSocietyMap.get(key) && (
+  <div className="text-[9px] text-purple-700 bg-purple-100 rounded px-1 mb-0.5 truncate text-center font-medium">
+    📍 {slotSocietyMap.get(key)}
+  </div>
+)}
         <select
   value={status}
   onChange={(e) => {
@@ -1190,6 +1254,7 @@ const handleConfirmCancellation = async () => {
     <option value="create-class">+ Create Class</option>
   )}
 </select>
+</>
       )}
     </div>
   );
@@ -1554,4 +1619,14 @@ const handleConfirmCancellation = async () => {
   );
 };
 
-export default TutorAvailabilitySlots;
+const TutorAvailabilitySlotsWrapper = () => (
+  <Suspense fallback={
+    <div className="flex justify-center items-center min-h-screen bg-gray-50">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+    </div>
+  }>
+    <TutorAvailabilitySlots />
+  </Suspense>
+);
+
+export default TutorAvailabilitySlotsWrapper;

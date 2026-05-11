@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { type } from "os";
 import { start } from "repl";
 import Class from "./Class";
+import society from "./society";
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -204,6 +205,19 @@ const userSchema = new mongoose.Schema({
             startTime: Date,
             endTime: Date
         }]
+    },
+    demoSlotsAvailable: {
+        type: [{
+            startTime: Date,
+            endTime: Date,
+            societyId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "society"
+            }
+        }]
+    },
+    societies: {
+        type:[{}]
     },
     academyId: {
         type: mongoose.Schema.Types.ObjectId,
