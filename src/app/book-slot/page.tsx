@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import './book-slot.css';
-import { HOBBIES, TUTORS, WEEK, buildSlots, countAvailForDay } from './data';
+import { HOBBIES, TUTORS, WEEK, buildSlots } from './data';
 
 type ScreenType = 'home' | 'categories' | 'slots' | 'confirm';
 type TimeFilterType = 'all' | 'morning' | 'afternoon' | 'evening';
@@ -149,10 +149,49 @@ export default function BookSlotPage() {
   const filteredHobbies = catFilter === 'All' ? HOBBIES : HOBBIES.filter(h => h.cat === catFilter);
   const activeStep = { home: 1, categories: 2, slots: 3, confirm: 4 }[screen];
 
+  const activeTutors = (() => {
+    if (society && society.tutors && society.tutors.length > 0 && typeof society.tutors[0] === 'object') {
+      return society.tutors.map((t: any) => ({
+        id: t._id,
+        name: t.username || "Tutor",
+        emoji: t.profileImage ? "🖼️" : "👨‍🏫",
+        exp: (t.experience || 5) + " yrs",
+        rating: "4.8",
+        bio: t.aboutMyself || t.skills || "Certified UpKraft tutor",
+        visitDays: [0, 1, 2, 3, 4, 5, 6] // Defaulting to all days for now
+      }));
+    }
+    return [];
+  })();
+
+  const getDayAvailability = (dayIdx: number) => {
+    let a=0,s=0;
+    activeTutors.forEach((t: any) => {
+      buildSlots(t.visitDays || [0,1,2,3,4,5,6], dayIdx).forEach(band => {
+        band.slots.forEach(sl => {
+          if(sl.type === "avail") a++;
+          if(sl.type === "soc")   s++;
+        });
+      });
+    });
+    return { avail: a, soc: s, total: a + s };
+  };
+
   const renderTutors = () => {
     if (!hobby) return null;
-    const tutors = TUTORS[hobby.id] || [];
-    const { total } = countAvailForDay(hobby.id, day);
+    
+    if (activeTutors.length === 0) {
+      return (
+        <div className="empty-day" style={{ padding: '40px 20px' }}>
+          <div className="em-icon">😔</div>
+          <p><strong>Right now any tutor is not available.</strong><br/>
+             Please contact our support directly.<br/>
+             Support email: <a href="mailto:support@upkraft.in" style={{color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'none'}}>support@upkraft.in</a></p>
+        </div>
+      );
+    }
+
+    const { total } = getDayAvailability(day);
 
     if (total === 0) {
       return (
@@ -160,12 +199,12 @@ export default function BookSlotPage() {
           <div className="em-icon">📅</div>
           <p><strong>No classes on {WEEK[day].full}</strong><br/>
              Tutors are not visiting your society on this day.<br/>
-             Try <strong>Mon, Wed or Fri</strong> for the most availability.</p>
+             Try selecting another day for the most availability.</p>
         </div>
       );
     }
 
-    return tutors.map((t, tidx) => {
+    return activeTutors.map((t, tidx) => {
       const isVisiting = t.visitDays.includes(day);
       const bands = buildSlots(t.visitDays, day);
       
@@ -385,7 +424,7 @@ export default function BookSlotPage() {
             <div className="week-tabs-label">Select a day to view slots</div>
             <div className="week-tabs-grid">
               {WEEK.map((d, i) => {
-                const { avail, soc, total } = countAvailForDay(hobby.id, i);
+                const { avail, soc, total } = getDayAvailability(i);
                 const hasSlots = total > 0;
                 let pillClass = 'none', pillText = 'No slots';
                 if (soc > 0) { pillClass = 'soc'; pillText = `${soc} priority`; }
@@ -408,7 +447,7 @@ export default function BookSlotPage() {
           <div className="selected-day-bar">
             <span className="sdb-date">{WEEK[day].label}</span>
             {(() => {
-              const { avail, soc } = countAvailForDay(hobby.id, day);
+              const { avail, soc } = getDayAvailability(day);
               if (soc > 0) return <span className="sdb-pill soc">{soc} priority slots for your society</span>;
               if (avail > 0) return <span className="sdb-pill">{avail} slots available</span>;
               return <span className="sdb-pill empty">No slots this day</span>;

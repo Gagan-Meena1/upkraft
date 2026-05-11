@@ -7,6 +7,7 @@ export async function GET() {
   try {
     await connect();
     const societies = await Society.find({})
+      .populate('tutors', 'username email profileImage timezone demoSlotsAvailable')
       .sort({ isPopular: -1, name: 1 })
       .lean();
     return NextResponse.json({ success: true, societies });
