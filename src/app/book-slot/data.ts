@@ -41,10 +41,15 @@ const DAYS_SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const DAYS_FULL  = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const START = new Date(2026,4,12); // Mon 12 May 2026
 
-export const WEEK = DAYS_SHORT.map((d,i)=>{
-  const dt = new Date(START); dt.setDate(START.getDate()+i);
-  return {short:d, full:DAYS_FULL[i], num:dt.getDate(), mon:MONTHS[dt.getMonth()], label:`${DAYS_FULL[i]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}`, date: dt};
-});
+export function generateWeek(offsetWeeks: number = 0) {
+  return DAYS_SHORT.map((d,i)=>{
+    const dt = new Date(START); 
+    dt.setDate(START.getDate() + (offsetWeeks * 7) + i);
+    return {short:d, full:DAYS_FULL[i], num:dt.getDate(), mon:MONTHS[dt.getMonth()], label:`${DAYS_FULL[i]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}`, date: dt};
+  });
+}
+
+export const WEEK = generateWeek(0);
 
 export function buildSlots(visitDays: number[], dayIdx: number) {
   const visit = visitDays.includes(dayIdx);

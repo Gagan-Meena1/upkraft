@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import './book-slot.css';
-import { HOBBIES, TUTORS, WEEK, buildSlots } from './data';
+import { HOBBIES, TUTORS, WEEK, buildSlots, generateWeek } from './data';
 
 type ScreenType = 'home' | 'categories' | 'slots' | 'confirm';
 type TimeFilterType = 'all' | 'morning' | 'afternoon' | 'evening';
@@ -15,6 +15,8 @@ export default function BookSlotPage() {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [hobby, setHobby] = useState<any>(null);
   const [day, setDay] = useState<number>(0);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const currentWeek = generateWeek(weekOffset);
   const [timeFilter, setTimeFilter] = useState<TimeFilterType>('all');
   
   const [allSocieties, setAllSocieties] = useState<any[]>([]);
@@ -166,7 +168,7 @@ export default function BookSlotPage() {
   })();
 
   const getDynamicSlots = (tutor: any, dayIdx: number, currentSocietyId: string) => {
-    const dayDate = WEEK[dayIdx].date;
+    const dayDate = currentWeek[dayIdx].date;
     const targetDateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
 
     const slotsForDay = tutor.demoSlotsAvailable.filter((slot: any) => {
@@ -254,7 +256,7 @@ export default function BookSlotPage() {
       return (
         <div className="empty-day">
           <div className="em-icon">📅</div>
-          <p><strong>No classes on {WEEK[day].full}</strong><br/>
+          <p><strong>No classes on {currentWeek[day].full}</strong><br/>
              Tutors are not visiting your society on this day.<br/>
              Try selecting another day for the most availability.</p>
         </div>
@@ -481,30 +483,55 @@ export default function BookSlotPage() {
 
           <div className="week-tabs-wrapper">
             <div className="week-tabs-label">Select a day to view slots</div>
-            <div className="week-tabs-grid">
-              {WEEK.map((d, i) => {
-                const { avail, soc, total } = getDayAvailability(i);
-                const hasSlots = total > 0;
-                let pillClass = 'none', pillText = 'No slots';
-                if (soc > 0) { pillClass = 'soc'; pillText = `${soc} priority`; }
-                else if (avail > 0) { pillClass = 'has'; pillText = `${avail} open`; }
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button 
+                onClick={() => { setWeekOffset(w => Math.max(0, w - 1)); setDay(0); }} 
+                disabled={weekOffset === 0}
+                style={{
+                  background: 'var(--bg-card)', border: '1px solid var(--border2)', 
+                  borderRadius: '50%', width: 36, height: 36, cursor: weekOffset === 0 ? 'not-allowed' : 'pointer',
+                  opacity: weekOffset === 0 ? 0.3 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, padding: 0
+                }}
+              >
+                ←
+              </button>
+              <div className="week-tabs-grid" style={{ flex: 1 }}>
+                {currentWeek.map((d, i) => {
+                  const { avail, soc, total } = getDayAvailability(i);
+                  const hasSlots = total > 0;
+                  let pillClass = 'none', pillText = 'No slots';
+                  if (soc > 0) { pillClass = 'soc'; pillText = `${soc} priority`; }
+                  else if (avail > 0) { pillClass = 'has'; pillText = `${avail} open`; }
 
-                return (
-                  <div key={i} className={`wday ${i === day ? 'active' : ''} ${!hasSlots ? 'no-slots' : ''}`}
-                    onClick={() => { if (hasSlots) setDay(i); else showToastMsg('No slots on this day', 'err'); }}>
-                    {i === 0 && <div className="wday-today-dot"></div>}
-                    <span className="wday-name">{d.short}</span>
-                    <span className="wday-num">{d.num}</span>
-                    <span className="wday-mon">{d.mon}</span>
-                    <span className={`wday-slots ${pillClass}`}>{pillText}</span>
-                  </div>
-                );
-              })}
+                  return (
+                    <div key={i} className={`wday ${i === day ? 'active' : ''} ${!hasSlots ? 'no-slots' : ''}`}
+                      onClick={() => { if (hasSlots) setDay(i); else showToastMsg('No slots on this day', 'err'); }}>
+                      {i === 0 && weekOffset === 0 && <div className="wday-today-dot"></div>}
+                      <span className="wday-name">{d.short}</span>
+                      <span className="wday-num">{d.num}</span>
+                      <span className="wday-mon">{d.mon}</span>
+                      <span className={`wday-slots ${pillClass}`}>{pillText}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <button 
+                onClick={() => { setWeekOffset(w => w + 1); setDay(0); }} 
+                style={{
+                  background: 'var(--bg-card)', border: '1px solid var(--border2)', 
+                  borderRadius: '50%', width: 36, height: 36, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0, padding: 0
+                }}
+              >
+                →
+              </button>
             </div>
           </div>
 
           <div className="selected-day-bar">
-            <span className="sdb-date">{WEEK[day].label}</span>
+            <span className="sdb-date">{currentWeek[day].label}</span>
             {(() => {
               const { avail, soc } = getDayAvailability(day);
               if (soc > 0) return <span className="sdb-pill soc">{soc} priority slots for your society</span>;
@@ -549,7 +576,7 @@ export default function BookSlotPage() {
                 <div className="cr"><span className="k">Society</span><span className="v">{society?.name}</span></div>
                 <div className="cr"><span className="k">Hobby</span><span className="v">{hobby?.emoji} {hobby?.name}</span></div>
                 <div className="cr"><span className="k">Tutor</span><span className="v">{formTutor}</span></div>
-                <div className="cr"><span className="k">Date &amp; Slot</span><span className="v">{WEEK[day]?.label} · <span className="green">{formSlotTime}</span></span></div>
+                <div className="cr"><span className="k">Date &amp; Slot</span><span className="v">{currentWeek[day]?.label} · <span className="green">{formSlotTime}</span></span></div>
                 <div className="cr"><span className="k">Participant</span><span className="v">{formData.pname} ({formData.age} yrs)</span></div>
                 <div className="cr"><span className="k">Contact</span><span className="v">+91 {formData.phone}</span></div>
               </div>
@@ -574,7 +601,7 @@ export default function BookSlotPage() {
             <div className="booking-pill">
               <div className="bp-item"><div className="bpl">Hobby</div><div className="bpv">{hobby.emoji} {hobby.name}</div></div>
               <div className="bp-item"><div className="bpl">Tutor</div><div className="bpv">{formTutor}</div></div>
-              <div className="bp-item"><div className="bpl">Day &amp; Date</div><div className="bpv">{WEEK[day].label}</div></div>
+              <div className="bp-item"><div className="bpl">Day &amp; Date</div><div className="bpv">{currentWeek[day].label}</div></div>
               <div className="bp-item"><div className="bpl">Slot Time</div><div className="bpv green">{formSlotTime}</div></div>
             </div>
             
@@ -619,7 +646,7 @@ export default function BookSlotPage() {
               </div>
               <div>
                 <div className="flabel">Slot</div>
-                <input className="finput" readOnly value={`${WEEK[day].label} · ${formSlotTime}`} />
+                <input className="finput" readOnly value={`${currentWeek[day].label} · ${formSlotTime}`} />
               </div>
             </div>
             <div className="form-row">
