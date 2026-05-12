@@ -154,20 +154,77 @@ export default function BookSlotPage() {
       return society.tutors.map((t: any) => ({
         id: t._id,
         name: t.username || "Tutor",
-        emoji: t.profileImage ? "🖼️" : "👨‍🏫",
+        emoji: "👨‍🏫",
+        profileImage: t.profileImage || null,
         exp: (t.experience || 5) + " yrs",
         rating: "4.8",
         bio: t.aboutMyself || t.skills || "Certified UpKraft tutor",
-        visitDays: [0, 1, 2, 3, 4, 5, 6] // Defaulting to all days for now
+        demoSlotsAvailable: t.demoSlotsAvailable || []
       }));
     }
     return [];
   })();
 
+  const getDynamicSlots = (tutor: any, dayIdx: number, currentSocietyId: string) => {
+    const dayDate = WEEK[dayIdx].date;
+    const targetDateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
+
+    const slotsForDay = tutor.demoSlotsAvailable.filter((slot: any) => {
+      if (!slot.startTime) return false;
+      const st = new Date(slot.startTime);
+      const slotDateStr = `${st.getFullYear()}-${String(st.getMonth() + 1).padStart(2, '0')}-${String(st.getDate()).padStart(2, '0')}`;
+      return slotDateStr === targetDateStr;
+    });
+
+    const bands = [
+      { band: "Morning", slots: [] as any[] },
+      { band: "Afternoon", slots: [] as any[] },
+      { band: "Evening", slots: [] as any[] }
+    ];
+
+    slotsForDay.forEach((slot: any) => {
+      const st = new Date(slot.startTime);
+      const et = new Date(slot.endTime);
+
+      let currentSt = new Date(st);
+      while (currentSt.getTime() + 45 * 60000 <= et.getTime()) {
+        const hours = currentSt.getHours();
+        
+        let bandIdx = 0;
+        if (hours >= 12 && hours < 17) bandIdx = 1;
+        else if (hours >= 17) bandIdx = 2;
+
+        const timeStr = currentSt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        
+        let type = "avail";
+        let label = "Available";
+        if (slot.societyId === currentSocietyId) {
+          type = "soc";
+          label = "Your society";
+        }
+
+        bands[bandIdx].slots.push({
+          time: timeStr,
+          type: type,
+          label: label,
+          rawSlotStartTime: new Date(currentSt)
+        });
+
+        // advance by 60 minutes (45 min class + 15 min buffer)
+        currentSt = new Date(currentSt.getTime() + 60 * 60000);
+      }
+    });
+
+    bands.forEach(b => b.slots.sort((a, b) => a.rawSlotStartTime.getTime() - b.rawSlotStartTime.getTime()));
+
+    return bands.filter(b => b.slots.length > 0);
+  };
+
   const getDayAvailability = (dayIdx: number) => {
     let a=0,s=0;
     activeTutors.forEach((t: any) => {
-      buildSlots(t.visitDays || [0,1,2,3,4,5,6], dayIdx).forEach(band => {
+      const bands = getDynamicSlots(t, dayIdx, society?.id);
+      bands.forEach(band => {
         band.slots.forEach(sl => {
           if(sl.type === "avail") a++;
           if(sl.type === "soc")   s++;
@@ -205,8 +262,8 @@ export default function BookSlotPage() {
     }
 
     return activeTutors.map((t, tidx) => {
-      const isVisiting = t.visitDays.includes(day);
-      const bands = buildSlots(t.visitDays, day);
+      const bands = getDynamicSlots(t, day, society?.id);
+      const isVisiting = bands.length > 0;
       
       const bandMap: Record<string, string[]> = {
         morning: ['Morning'], afternoon: ['Afternoon'], evening: ['Evening'], all: ['Morning','Afternoon','Evening']
@@ -241,7 +298,9 @@ export default function BookSlotPage() {
       return (
         <div className="tutor-block" key={tidx}>
           <div className="tutor-top">
-            <div className="tutor-ava">{t.emoji}</div>
+            <div className="tutor-ava">
+              {t.profileImage ? <img src={t.profileImage} alt={t.name} style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%'}} /> : t.emoji}
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="tutor-name">{t.name}</div>
               <div className="tutor-detail"><span className="stars">★★★★★</span><span>{t.rating} rating</span><span style={{ opacity: .3 }}>·</span><span>{t.exp} exp.</span></div>

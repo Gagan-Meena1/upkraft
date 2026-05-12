@@ -43,7 +43,7 @@ const START = new Date(2026,4,12); // Mon 12 May 2026
 
 export const WEEK = DAYS_SHORT.map((d,i)=>{
   const dt = new Date(START); dt.setDate(START.getDate()+i);
-  return {short:d, full:DAYS_FULL[i], num:dt.getDate(), mon:MONTHS[dt.getMonth()], label:`${DAYS_FULL[i]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}`};
+  return {short:d, full:DAYS_FULL[i], num:dt.getDate(), mon:MONTHS[dt.getMonth()], label:`${DAYS_FULL[i]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}`, date: dt};
 });
 
 export function buildSlots(visitDays: number[], dayIdx: number) {

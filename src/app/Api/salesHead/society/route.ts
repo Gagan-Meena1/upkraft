@@ -2,14 +2,39 @@
 import { NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic"; // adjust to your db connect util
 import Society from "@/models/society";   // adjust to your model path
+import User from "@/models/userModel";
 
 export async function GET() {
   try {
     await connect();
     const societies = await Society.find({})
-      .populate('tutors', 'username email profileImage timezone demoSlotsAvailable')
+      .populate('tutors', 'username email profileImage timezone demoSlotsAvailable skills experience aboutMyself')
       .sort({ isPopular: -1, name: 1 })
       .lean();
+
+    const societyIds = societies.map(s => s._id);
+    const tutorsWithDemoSlots = await User.find({
+      category: "Tutor",
+      "demoSlotsAvailable.societyId": { $in: societyIds }
+    }).select('username email profileImage timezone demoSlotsAvailable skills experience aboutMyself').lean();
+
+    societies.forEach(society => {
+      if (!society.tutors) {
+        society.tutors = [];
+      }
+      
+      const socIdStr = society._id.toString();
+      const existingTutorIds = new Set(society.tutors.map((t: any) => t._id.toString()));
+
+      tutorsWithDemoSlots.forEach((tutor: any) => {
+        const hasSlotForSoc = tutor.demoSlotsAvailable?.some((slot: any) => slot.societyId?.toString() === socIdStr);
+        if (hasSlotForSoc && !existingTutorIds.has(tutor._id.toString())) {
+          society.tutors.push(tutor);
+          existingTutorIds.add(tutor._id.toString());
+        }
+      });
+    });
+
     return NextResponse.json({ success: true, societies });
   } catch (error: any) {
     console.error("Error fetching societies:", error);
