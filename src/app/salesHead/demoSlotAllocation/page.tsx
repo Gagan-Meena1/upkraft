@@ -83,6 +83,7 @@ const [cancellingClassId, setCancellingClassId] = useState<string | null>(null);
 const [cancellationReason, setCancellationReason] = useState("");
 // Add this state near your other state declarations
 const [isCancelling, setIsCancelling] = useState(false);
+const [viewClassDetails, setViewClassDetails] = useState<ClassData | null>(null);
 const router = useRouter();
 // const societyId = searchParams.get("societyId") || "";
 const [slotSocietyMap, setSlotSocietyMap] = useState<Map<string, string>>(new Map());
@@ -1174,7 +1175,8 @@ const handleConfirmCancellation = async () => {
             return (
               <div
                 key={idx}
-                className="group/class relative w-full px-2 py-1.5 rounded-lg text-xs font-medium bg-blue-500 text-white border border-blue-600 hover:bg-blue-600"
+                onClick={(e) => { e.stopPropagation(); setViewClassDetails(classItem); }}
+                className="group/class relative w-full px-2 py-1.5 rounded-lg text-xs font-medium bg-blue-500 text-white border border-blue-600 hover:bg-blue-600 cursor-pointer"
               >
                 <div className="flex items-center justify-between gap-1">
                   <span className="truncate flex-1" title={classItem.title}>
@@ -1610,7 +1612,43 @@ const handleConfirmCancellation = async () => {
       "Cancel Class"
     )}
   </button>
+      </div>
+    </div>
+  </div>
 </div>
+)}
+
+{/* View Class Details Modal */}
+{viewClassDetails && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-md border border-gray-200">
+      <div className="flex justify-between items-start mb-4">
+        <h2 className="text-xl font-bold text-gray-800">
+          {viewClassDetails.title}
+        </h2>
+        <button
+          onClick={() => setViewClassDetails(null)}
+          className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+          <p className="text-sm text-blue-900 font-medium whitespace-pre-wrap">
+            {viewClassDetails.description || "No additional details provided."}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 flex justify-end">
+        <button
+          onClick={() => setViewClassDetails(null)}
+          className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all"
+        >
+          Close
+        </button>
       </div>
     </div>
   </div>

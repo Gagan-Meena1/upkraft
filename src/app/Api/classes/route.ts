@@ -374,7 +374,7 @@ export async function GET(request: NextRequest) {
         path: "course",
         select: "title category subCategory maxStudentCount studentEnrolledCount"
       })
-      .select("-description -evaluation")
+      .select("-evaluation")
       .lean();
 
     const classData = await classQuery;
