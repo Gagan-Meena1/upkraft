@@ -115,29 +115,39 @@ const TutorManagementPage = () => {
       <div className="max-w-5xl mx-auto">
 
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm p-5 sm:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <Users className="w-6 h-6 text-purple-600" />
-                Tutor Management
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Assign societies and demo slots to tutors
-              </p>
-            </div>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search tutors..."
-                value={tutorSearch}
-                onChange={(e) => setTutorSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-              />
-            </div>
-          </div>
-        </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+  <div>
+    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+      <Users className="w-6 h-6 text-purple-600" />
+      Tutor Management
+    </h1>
+    <p className="text-sm text-gray-500 mt-1">
+      Assign societies and demo slots to tutors
+    </p>
+  </div>
+  <div className="flex items-center gap-3">
+    <div className="relative w-full sm:w-72">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <input
+        type="text"
+        placeholder="Search tutors..."
+        value={tutorSearch}
+        onChange={(e) => setTutorSearch(e.target.value)}
+        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+      />
+    </div>
+    <button
+      onClick={async () => {
+        await fetch("/Api/users/logout", { method: "POST" });
+        router.push("/login");
+      }}
+      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200 whitespace-nowrap"
+    >
+      <X className="w-4 h-4" />
+      Logout
+    </button>
+  </div>
+</div>
 
         {/* Tutor List */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -194,15 +204,23 @@ const TutorManagementPage = () => {
 
                   {/* Actions */}
                   <div className="col-span-6 sm:col-span-3 flex items-center justify-end gap-2">
-                    <button
-                      onClick={() => handleAssignSocietyClick(tutor)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors"
-                    >
-                      <Building2 className="w-3.5 h-3.5" />
-                      <span className="hidden sm:inline">Assign Society</span>
-                      <span className="sm:hidden">Society</span>
-                    </button>
-                  </div>
+  <button
+    onClick={() => router.push(`/salesHead/demoSlotAllocation?tutorId=${tutor._id}`)}
+    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+  >
+    <Calendar className="w-3.5 h-3.5" />
+    <span className="hidden sm:inline">View Slots</span>
+    <span className="sm:hidden">Slots</span>
+  </button>
+  <button
+    onClick={() => handleAssignSocietyClick(tutor)}
+    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+  >
+    <Building2 className="w-3.5 h-3.5" />
+    <span className="hidden sm:inline">Assign Society</span>
+    <span className="sm:hidden">Society</span>
+  </button>
+</div>
                 </div>
               ))}
             </div>
