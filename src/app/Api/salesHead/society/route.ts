@@ -8,7 +8,11 @@ export async function GET() {
   try {
     await connect();
     const societies = await Society.find({})
-      .populate('tutors', 'username email profileImage timezone demoSlotsAvailable skills experience aboutMyself')
+      .populate({
+        path: 'tutors',
+        select: 'username email profileImage timezone demoSlotsAvailable skills experience aboutMyself classes',
+        populate: { path: 'classes', select: 'startTime endTime status classType' }
+      })
       .sort({ isPopular: -1, name: 1 })
       .lean();
 
@@ -16,7 +20,10 @@ export async function GET() {
     const tutorsWithDemoSlots = await User.find({
       category: "Tutor",
       "demoSlotsAvailable.societyId": { $in: societyIds }
-    }).select('username email profileImage timezone demoSlotsAvailable skills experience aboutMyself').lean();
+    })
+      .select('username email profileImage timezone demoSlotsAvailable skills experience aboutMyself classes')
+      .populate('classes', 'startTime endTime status classType')
+      .lean();
 
     societies.forEach(society => {
       if (!society.tutors) {

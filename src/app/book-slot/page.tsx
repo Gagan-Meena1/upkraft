@@ -31,6 +31,7 @@ export default function BookSlotPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [formTutor, setFormTutor] = useState('');
   const [formSlotTime, setFormSlotTime] = useState('');
+  const [formRawSlotTime, setFormRawSlotTime] = useState<Date | null>(null);
   const [formData, setFormData] = useState({
     name: '', phone: '', email: '', pname: '', age: '', notes: '', consent: false
   });
@@ -134,18 +135,45 @@ export default function BookSlotPage() {
     goTo('slots');
   };
 
-  const openForm = (tutorName: string, slotTime: string) => {
+  const openForm = (tutorName: string, slotTime: string, rawSlotStartTime: Date) => {
     setFormTutor(tutorName);
     setFormSlotTime(slotTime);
+    setFormRawSlotTime(rawSlotStartTime);
     setFormData({ name: '', phone: '', email: '', pname: '', age: '', notes: '', consent: false });
     setFormOpen(true);
   };
 
-  const submitForm = () => {
-    setConfirmName(formData.name.split(' ')[0]);
-    setFormOpen(false);
-    goTo('confirm');
-    showToastMsg('🎉 Slot blocked successfully!', 'ok');
+  const submitForm = async () => {
+    try {
+      setSubmitDisabled(true);
+      const tutor = society.tutors.find((t: any) => t.username === formTutor || t.name === formTutor);
+      const res = await fetch('/Api/public/bookTrial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          society,
+          hobby,
+          tutorId: tutor?._id,
+          date: formRawSlotTime?.toISOString(),
+          slotTime: formSlotTime
+        })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setConfirmName(formData.name.split(' ')[0]);
+        setFormOpen(false);
+        goTo('confirm');
+        showToastMsg('🎉 Slot blocked successfully!', 'ok');
+      } else {
+        showToastMsg(data.message || 'Failed to book slot', 'err');
+        setSubmitDisabled(false);
+      }
+    } catch (err) {
+      showToastMsg('Network error while booking slot', 'err');
+      setSubmitDisabled(false);
+    }
   };
 
   const filteredHobbies = catFilter === 'All' ? HOBBIES : HOBBIES.filter(h => h.cat === catFilter);
@@ -161,7 +189,8 @@ export default function BookSlotPage() {
         exp: (t.experience || 5) + " yrs",
         rating: "4.8",
         bio: t.aboutMyself || t.skills || "Certified UpKraft tutor",
-        demoSlotsAvailable: t.demoSlotsAvailable || []
+        demoSlotsAvailable: t.demoSlotsAvailable || [],
+        classes: t.classes || []
       }));
     }
     return [];
@@ -198,11 +227,27 @@ export default function BookSlotPage() {
 
         const timeStr = currentSt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         
+        const slotStartMs = currentSt.getTime();
+        const slotEndMs = slotStartMs + 45 * 60000;
+        
         let type = "avail";
         let label = "Available";
         if (slot.societyId === currentSocietyId) {
           type = "soc";
           label = "Your society";
+        }
+
+        // Check for overlap with existing classes
+        const isBlocked = tutor.classes?.some((cls: any) => {
+          if (cls.status === 'canceled' || cls.status === 'rescheduled') return false;
+          const clsStart = new Date(cls.startTime).getTime();
+          const clsEnd = new Date(cls.endTime).getTime();
+          return (slotStartMs < clsEnd && slotEndMs > clsStart);
+        });
+
+        if (isBlocked) {
+          type = "blocked";
+          label = "Booked";
         }
 
         bands[bandIdx].slots.push({
@@ -283,12 +328,12 @@ export default function BookSlotPage() {
                   if (sl.type === 'buf') return <div key={slidx} className="slot-pill buf"><span className="stime">—</span><span className="slabel">{sl.label}</span></div>;
                   if (sl.type === 'blocked') return <div key={slidx} className="slot-pill blocked"><span className="stime">{sl.time}</span></div>;
                   if (sl.type === 'soc') return (
-                    <div key={slidx} className="slot-pill soc" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time)}>
+                    <div key={slidx} className="slot-pill soc" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
                       <span className="stime">{sl.time}</span>
                     </div>
                   );
                   return (
-                    <div key={slidx} className="slot-pill avail" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time)}>
+                    <div key={slidx} className="slot-pill avail" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
                       <span className="stime">{sl.time}</span>
                     </div>
                   );

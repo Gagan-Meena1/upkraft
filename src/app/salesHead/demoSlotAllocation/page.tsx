@@ -269,11 +269,11 @@ useEffect(() => {
         const startLocal = dateFnsTz.toZonedTime(startUTC, tutorTz);
         const endLocal = dateFnsTz.toZonedTime(endUTC, tutorTz);
 
-        const classDate = format(startLocal, 'yyyy-MM-dd');
-        const startHour = startLocal.getHours();
-        const endHour = endLocal.getHours();
+        const [year, month, day] = date.split('-').map(Number);
+        const slotStartLocal = new Date(year, month - 1, day, hour, 0, 0);
+        const slotEndLocal = new Date(year, month - 1, day, hour + 1, 0, 0);
 
-        return classDate === date && hour >= startHour && hour < endHour;
+        return startLocal < slotEndLocal && endLocal > slotStartLocal;
       } catch (error) {
         return false;
       }
