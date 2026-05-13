@@ -454,16 +454,24 @@ export default function BookSlotPage() {
                 ));
               })()}
             </div>
-            <div className="section-head">Browse by Category</div>
-            <div className="categories-row">
-              {[{n:"Music",e:"🎵"}].map(c => (
-                <div className="cat-pill" key={c.n} onClick={() => {
-                  if(!society) { showToastMsg('Please select your society first 👆', 'err'); return; }
-                  setCatFilter(c.n); goTo('categories');
-                }}>
-                  <span className="cat-em">{c.e}</span>{c.n}
-                </div>
-              ))}
+            <div className="section-head">Other Societies</div>
+            <div className="chips">
+              {(() => {
+                const popular = citySocieties.filter(s => s.isPopular);
+                const hasPopular = popular.length > 0;
+                const others = citySocieties.filter(s => hasPopular ? !s.isPopular : false);
+                // If there are no popular ones explicitly, we already showed the first 5 as popular. 
+                // So 'others' would be the rest.
+                const displayOthers = hasPopular ? others : citySocieties.slice(5);
+                
+                if (displayOthers.length === 0) {
+                  return <div style={{ fontSize: 13, color: 'var(--muted)' }}>No other societies found in this city.</div>;
+                }
+                
+                return displayOthers.map(s => (
+                  <button key={s.id} className="chip" style={{ background: '#f8f9fa' }} onClick={() => selectSociety(s)}>{s.name}</button>
+                ));
+              })()}
             </div>
           </div>
         </div>
