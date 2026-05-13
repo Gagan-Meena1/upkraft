@@ -410,34 +410,6 @@ export default function BookSlotPage() {
             <div className="hero-eyebrow">✦ Skills At Your Doorstep ✦</div>
             <h1 className="hero-h1">UpKraft your skills,<br/><em>right in your society</em></h1>
             <p className="hero-sub">Discover certified tutors at your society, pick a slot &amp; lock your free trial — just like booking a movie!</p>
-            <div className="search-wrap" ref={searchRef}>
-              <span className="search-ico">🏢</span>
-              <input 
-                className="search-box" 
-                type="text" 
-                placeholder="Search your society name…" 
-                value={searchQuery}
-                onChange={handleSearch}
-                onFocus={() => { if (searchQuery.length >= 2) setShowSuggestions(true); }}
-              />
-              {searchQuery && <button className="search-clear show" onClick={() => { setSearchQuery(''); setShowSuggestions(false); }}>✕</button>}
-              
-              {showSuggestions && (
-                <div className="suggestions" style={{ display: 'block' }}>
-                  {suggestions.length === 0 ? (
-                    <div className="sug-item" style={{ color: 'var(--muted)' }}><span>😕</span><span>No societies found.</span></div>
-                  ) : (
-                    suggestions.map(s => (
-                      <div className="sug-item" key={s.id} onClick={() => selectSociety(s)}>
-                        <span style={{ color: 'var(--red)', fontSize: 16 }}>🏢</span>
-                        <span><strong>{s.name}</strong></span>
-                        <span className="sug-meta">{s.city} · {s.hobbies} hobbies</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
           </section>
           <div className="home-body">
             <div className="promo-banner">

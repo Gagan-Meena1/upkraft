@@ -39,7 +39,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── SCREEN 1 HOME ── */
-.hero-section{min-height:320px;background:linear-gradient(160deg,#f5f0ff 0%,#eef2ff 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px 52px;text-align:center}
+.hero-section{min-height:297px;background:linear-gradient(160deg,#f5f0ff 0%,#eef2ff 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px 52px;text-align:center}
 .hero-glow{position:absolute;width:600px;height:300px;top:-80px;left:50%;transform:translateX(-50%);background:radial-gradient(ellipse,rgba(92,22,197,.1) 0%,transparent 65%);pointer-events:none}
 .hero-eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--primary);font-weight:600;margin-bottom:10px;position:relative}
 .hero-h1{font-family:'Inter',sans-serif;font-size:clamp(24px,4vw,40px);font-weight:900;line-height:1.15;margin-bottom:10px;position:relative;color:#1a1a2e}
