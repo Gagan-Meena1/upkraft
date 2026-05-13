@@ -1,45 +1,16 @@
 "use client";
-import React, { useState, useEffect, use , Suspense } from "react";
-import { ChevronLeft, ChevronRight, Calendar, Clock, Save, User, Repeat, X, Edit2, Trash2, AlertCircle } from "lucide-react";
-import * as dateFnsTz from 'date-fns-tz';
-import { format, parseISO, addDays } from 'date-fns';
-import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
-interface Tutor {
-  _id: string;
-  username: string;
-  email: string;
-  timezone: string;
-  slotsAvailable: { 
-  startTime: string; 
-  endTime: string;
-   societyIds?: string[];      // array now
-    societyNames?: string[];  
-}[];
-  description?: string;
-}
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Tutor, ClassData, Course, CreateClassForm } from "./components/Types";
 
-interface ClassData {
-  _id: string;
-  title: string;
-  startTime: string;
-  endTime: string;
-  description: string;
-}
-interface Course {
-  _id: string;
-  title: string;
-}
-
-interface CreateClassForm {
-  courseId: string;
-  title: string;
-  description: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-}
-
+// Import all modals + grid
+import SlotGrid from "./components/Slotgrid";
+import RepeatModal from "./components/Repeatmodal";
+import CreateClassModal from "./components/Createclassmodal";
+import EditClassModal from "./components/Editclassmodal";
+import CancelClassModal from "./components/Cancelclassmodal";
+import SocietyModal from "./components/Societymodal";
+import ViewClassModal from "./components/Viewclassmodal";
 
 
 
@@ -851,857 +822,123 @@ const handleConfirmCancellation = async () => {
     );
   }
 
-  return (
+ return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Tutor Availability Management
-          </h1>
+      {/* Header / tutor selector stays inline or extract to its own component */}
+      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          Tutor Availability Management
+        </h1>
+        {/* tutor display, society selector, save button */}
+      </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center flex-wrap">
-            {/* <div className="flex-1 w-full min-w-[250px]">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Tutor
-              </label>
-              <select
-                value={selectedTutor}
-                onChange={(e) => setSelectedTutor(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              >
-                <option value="">-- Choose a tutor --</option>
-                {tutors.map((tutor) => (
-                  <option key={tutor._id} value={tutor._id}>
-                    {tutor.username} ({tutor.email})
-                  </option>
-                ))}
-              </select>
-            </div> */}
-            <div className="flex-1 w-full min-w-[250px]">
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Tutor
-  </label>
-  <div className="px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 font-medium">
-    {tutors.find(t => t._id === selectedTutor)?.username || "Loading..."}
-  </div>
-</div>
+      {/* Slot Grid */}
+      <SlotGrid
+        slots={slots}
+        classes={classes}
+        tutors={tutors}
+        selectedTutor={selectedTutor}
+        currentDate={currentDate}
+        userTimezone={userTimezone}
+        slotSocietyMap={slotSocietyMap}
+        selectedSlots={selectedSlots}
+        onSlotChange={handleSlotChange}
+        onOpenCreateClass={handleOpenCreateClass}
+        onEditClass={handleEditClass}
+        onDeleteClass={handleDeleteClass}
+        onViewClass={setViewClassDetails}
+        onWeekChange={changeWeek}
+        onToday={() => setCurrentDate(new Date())}
+      />
 
-{/* Society selector — add karo yahan */}
-<div className="flex-1 w-full min-w-[200px]">
-  <label className="block text-sm font-medium text-gray-700 mb-2">
-    Society
-  </label>
-  <select
-    value={currentSocietyId}
-    onChange={(e) => setCurrentSocietyId(e.target.value)}
-    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
-  >
-    <option value="">-- Select Society --</option>
-    {societies.map((s) => (
-      <option key={s._id} value={s._id}>
-        {s.name} ({s.city})
-      </option>
-    ))}
-  </select>
-</div>
-
-            
-
-            <button
-              onClick={handleSave}
-              disabled={!selectedTutor || saving}
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              <Save size={18} />
-              {saving ? "Saving..." : "Save Slots"}
-            </button>
-            
-            {selectedSlots.size > 0 && (
-              <button
-                onClick={handleOpenRepeatModal}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-              >
-                <Repeat size={18} />
-                Apply Repeat ({selectedSlots.size})
-              </button>
-            )}
-          </div>
-        </div>
-
-        {showRepeatModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-900">Apply Repeat Pattern</h2>
-                  <button
-                    onClick={() => setShowRepeatModal(false)}
-                    className="p-1 hover:bg-gray-100 rounded"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                  <h3 className="font-semibold text-blue-900 mb-2">
-                    Selected Slots ({selectedSlots.size})
-                  </h3>
-                  <div className="text-sm text-blue-700 max-h-32 overflow-y-auto">
-                    {Array.from(selectedSlots).sort().slice(0, 10).map(key => {
-                      const parts = key.split("-");
-                      const date = parts.slice(0, 3).join("-");
-                      const hour = parseInt(parts[parts.length - 1]);
-                      const dayName = format(parseISO(date), 'EEE, MMM d');
-                      return (
-                        <div key={key}>
-                          {dayName} - {String(hour).padStart(2, '0')}:00
-                        </div>
-                      );
-                    })}
-                    {selectedSlots.size > 10 && (
-                      <div className="text-blue-600 font-medium mt-1">
-                        ...and {selectedSlots.size - 10} more
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Repeat Pattern
-                  </label>
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        value="daily"
-                        checked={repeatType === "daily"}
-                        onChange={(e) => setRepeatType(e.target.value as "daily")}
-                        className="mr-2"
-                      />
-                      Daily
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        value="weekly"
-                        checked={repeatType === "weekly"}
-                        onChange={(e) => setRepeatType(e.target.value as "weekly")}
-                        className="mr-2"
-                      />
-                      Weekly
-                    </label>
-                  </div>
-                </div>
-
-             {repeatType === "weekly" && (
-  <div className="mb-6">
-    <label className="block text-sm font-medium text-gray-700 mb-3">
-      Repeat on Days (Only days from your selected slots)
-    </label>
-    <div className="flex gap-2 flex-wrap">
-      {[
-        { value: 0, label: "Sun" },
-        { value: 1, label: "Mon" },
-        { value: 2, label: "Tue" },
-        { value: 3, label: "Wed" },
-        { value: 4, label: "Thu" },
-        { value: 5, label: "Fri" },
-        { value: 6, label: "Sat" },
-      ].map((day) => {
-        const allowedDays = getAllowedDaysFromSelectedSlots();
-        const isAllowed = allowedDays.includes(day.value);
-        const isSelected = selectedDays.includes(day.value);
-        
-        return (
-          <button
-            key={day.value}
-            onClick={() => toggleDay(day.value)}
-            disabled={!isAllowed}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              isSelected
-                ? "bg-purple-600 text-white ring-2 ring-purple-400"
-                : isAllowed
-                  ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed opacity-50"
-            }`}
-            title={!isAllowed ? "This day is not in your selected slots" : ""}
-          >
-            {day.label}
-          </button>
-        );
-      })}
-    </div>
-    <p className="text-xs text-gray-600 mt-2">
-      ℹ️ You can only select days that match your originally selected time slots
-    </p>
-  </div>
-)}
-
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Start Date
-                    </label>
-                    <input
-                      type="date"
-                      value={repeatStartDate}
-                      onChange={(e) => setRepeatStartDate(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      End Date
-                    </label>
-                    <input
-                      type="date"
-                      value={repeatEndDate}
-                      onChange={(e) => setRepeatEndDate(e.target.value)}
-                      min={repeatStartDate}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                    />
-                  </div>
-                </div>
-
-                {repeatStartDate && repeatEndDate && (
-                  <div className="mb-6 p-4 bg-green-50 rounded-lg">
-                    <h3 className="font-semibold text-green-900 mb-2">
-                      Preview: {getPreviewSlots().length} slots will be created
-                    </h3>
-                    <div className="text-sm text-green-700 max-h-48 overflow-y-auto">
-                      {getPreviewSlots().slice(0, 20).map((slot, idx) => (
-                        <div key={idx}>{slot}</div>
-                      ))}
-                      {getPreviewSlots().length > 20 && (
-                        <div className="text-green-600 font-medium mt-1">
-                          ...and {getPreviewSlots().length - 20} more
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex gap-3 justify-end">
-                  <button
-                    onClick={() => setShowRepeatModal(false)}
-                    className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={applyRepeatPattern}
-                    disabled={!repeatStartDate || !repeatEndDate}
-                    className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                  >
-                    Apply Pattern
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {selectedTutor && (
-          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-purple-600" />
-                Week of {weekDays[0].toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-              </h2>
-              <div className="flex gap-2 items-center">
-                <button
-                  onClick={() => changeWeek(-1)}
-                  className="p-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setCurrentDate(new Date())}
-                  className="px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium"
-                >
-                  Today
-                </button>
-                <button
-                  onClick={() => changeWeek(1)}
-                  className="p-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <div className="inline-block min-w-full">
-                <div className="grid grid-cols-8 gap-2" style={{ minWidth: "800px" }}>
-                  <div className="font-semibold text-center py-3 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Clock className="w-4 h-4 mr-1" />
-                    Time
-                  </div>
-                  {weekDays.map((day, idx) => (
-                    <div key={idx} className="font-semibold text-center py-3 bg-purple-100 rounded-lg">
-                      <div className="text-sm">
-                        {day.toLocaleDateString("en-US", { weekday: "short" })}
-                      </div>
-                      <div className="text-xs text-gray-600">
-                        {day.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </div>
-                    </div>
-                  ))}
-
-                  {hours.map((hour) => (
-                    <React.Fragment key={hour}>
-                      <div className="text-sm font-medium text-gray-700 py-2 text-center bg-gray-50 rounded-lg flex items-center justify-center hover:bg-purple-100 transition-colors">
-                        {String(hour).padStart(2, "0")}:00
-                      </div>
-
-            {weekDays.map((day) => {
-  const dateStr = formatDateString(day);
-  const key = `${dateStr}-${hour}`;
-  const status = slots.get(key) || "unavailable";
-  const slotClasses = getClassesForSlot(dateStr, hour);
-  const hasClass = slotClasses.length > 0;
-
-  return (
-    <div key={key} className="py-1 relative hover:bg-purple-50 transition-colors">
-      {hasClass ? (
-        <div className="flex flex-col gap-1">
-          {slotClasses.map((classItem, idx) => {
-            const tutor = tutors.find((t) => t._id === selectedTutor);
-            const tutorTz = tutor?.timezone || userTimezone;
-            const startLocal = dateFnsTz.toZonedTime(parseISO(classItem.startTime), tutorTz);
-            const endLocal = dateFnsTz.toZonedTime(parseISO(classItem.endTime), tutorTz);
-            
-            return (
-              <div
-                key={idx}
-                onClick={(e) => { e.stopPropagation(); setViewClassDetails(classItem); }}
-                className="group/class relative w-full px-2 py-1.5 rounded-lg text-xs font-medium bg-blue-500 text-white border border-blue-600 hover:bg-blue-600 cursor-pointer"
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="truncate flex-1" title={classItem.title}>
-                    {classItem.title}
-                  </span>
-                  <div className="flex gap-1  group-hover/class:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditClass(classItem);
-                      }}
-                      className="p-0.5 hover:bg-blue-700 rounded"
-                      title="Edit class"
-                    >
-                      <Edit2 className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteClass(classItem._id);
-                      }}
-                      className="p-0.5 hover:bg-red-600 rounded"
-                      title="Delete class"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="absolute hidden group-hover/class:block z-10 w-48 p-2 bg-gray-900 text-white text-xs rounded-lg shadow-lg -top-2 left-full ml-2 whitespace-normal">
-                  <div className="font-semibold">{classItem.title}</div>
-                  <div className="text-gray-300 mt-1">
-                    {format(startLocal, 'HH:mm')} - {format(endLocal, 'HH:mm')}
-                  </div>
-                  {classItem.description && (
-                    <div className="text-gray-400 mt-1 text-xs">
-                      {classItem.description}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <>
-        {status === "available" && slotSocietyMap.get(key)?.length > 0 && (
-  <div className="text-[9px] text-purple-700 bg-purple-100 rounded px-1 mb-0.5 text-center font-medium truncate">
-    📍 {slotSocietyMap.get(key)?.join(", ")}
-  </div>
-)}
-        <select
-  value={status}
-  onChange={(e) => {
-    const value = e.target.value;
-    if (value === "create-class") {
-      handleOpenCreateClass(dateStr, hour);
-      e.target.value = status; // Reset select
-    } else {
-      handleSlotChange(
-        dateStr,
-        hour,
-        value as "available" | "unavailable"
-      );
-    }
-  }}
-  className={`w-full px-2 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 ${
-    status === "available"
-      ? "bg-green-100 text-green-800 border-green-300"
-      : "bg-gray-100 text-gray-600 border-gray-300"
-  } border`}
->
-  <option value="available">Available</option>
-  <option value="unavailable">-</option>
-  {/* Only show Create Class option if slots is available */}
-  {status === "available" && (
-    <option value="create-class">+ Create Class</option>
-  )}
-</select>
-</>
+      {/* Modals — conditionally rendered, all controlled from page.tsx */}
+      {showRepeatModal && (
+        <RepeatModal
+          selectedSlots={selectedSlots}
+          repeatType={repeatType}
+          selectedDays={selectedDays}
+          repeatStartDate={repeatStartDate}
+          repeatEndDate={repeatEndDate}
+          onRepeatTypeChange={setRepeatType}
+          onToggleDay={toggleDay}
+          onStartDateChange={setRepeatStartDate}
+          onEndDateChange={setRepeatEndDate}
+          onApply={applyRepeatPattern}
+          onClose={() => setShowRepeatModal(false)}
+          getPreviewSlots={getPreviewSlots}
+          getAllowedDays={getAllowedDaysFromSelectedSlots}
+        />
       )}
-    </div>
-  );
-})}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
-            </div>
 
-            <div className="mt-6 flex gap-4 justify-center flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-                <span className="text-sm text-gray-600">Available</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-500 border border-blue-600 rounded"></div>
-                <span className="text-sm text-gray-600">Scheduled Class</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-gray-100 border border-gray-300 rounded"></div>
-                <span className="text-sm text-gray-600">Unavailable</span>
-              </div>
-            </div>
-          </div>
-        )}
+      {showCreateClassModal && (
+        <CreateClassModal
+          form={createClassForm}
+          courses={courses}
+          errorMessage={errorMessage}
+          isSubmitting={isSubmitting}
+          onFormChange={handleCreateClassFormChange}
+          onSubmit={handleCreateClassSubmit}
+          onClose={() => setShowCreateClassModal(false)}
+        />
+      )}
 
-        {!selectedTutor && (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
-            <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">Please select a tutor to manage availability slots</p>
-          </div>
-        )}
-      </div>
-      {/* Create Class Modal */}
-{showCreateClassModal && (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div className="bg-gradient-to-br from-blue-50/80 via-purple-50/80 to-white/80 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto border border-white/20">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-            Create New Class
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Date: {createClassForm.date} | Time: {createClassForm.startTime} - {createClassForm.endTime}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreateClassModal(false)}
-          className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-black/5 transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
-
-      <form onSubmit={handleCreateClassSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="courseId" className="block text-gray-600 mb-2 text-sm font-medium">
-            Select Course
-          </label>
-          <select
-            id="courseId"
-            name="courseId"
-            value={createClassForm.courseId}
-            onChange={handleCreateClassFormChange}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-            required
-          >
-            <option value="">-- Select a course --</option>
-            {courses.map((course) => (
-              <option key={course._id} value={course._id}>
-                {course.title}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="title" className="block text-gray-600 mb-2 text-sm font-medium">
-            Class Title
-          </label>
-          <input
-            type="text"
-            id="title"
-            name="title"
-            value={createClassForm.title}
-            onChange={handleCreateClassFormChange}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-            placeholder="e.g., Introduction to Algebra"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="description" className="block text-gray-600 mb-2 text-sm font-medium">
-            Description
-          </label>
-          <textarea
-            id="description"
-            name="description"
-            value={createClassForm.description}
-            onChange={handleCreateClassFormChange}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28 transition-all"
-            placeholder="Provide details about the class..."
-            required
-          />
-        </div>
-
-       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-  <div>
-    <label htmlFor="startTime" className="block text-gray-600 mb-2 text-sm font-medium">
-      Start Time (HH:MM)
-    </label>
-    <input
-      type="text"
-      id="startTime"
-      name="startTime"
-      value={createClassForm.startTime}
-      disabled
-      className="w-full px-4 py-2.5 rounded-lg bg-gray-100 border border-gray-300/70 text-gray-600 cursor-not-allowed"
-    />
-  </div>
-
-  <div>
-    <label htmlFor="endTime" className="block text-gray-600 mb-2 text-sm font-medium">
-      End Time (HH:MM)
-    </label>
-    <input
-      type="text"
-      id="endTime"
-      name="endTime"
-      value={createClassForm.endTime}
-      disabled
-      className="w-full px-4 py-2.5 rounded-lg bg-gray-100 border border-gray-300/70 text-gray-600 cursor-not-allowed"
-    />
-  </div>
-</div>
-
-        {errorMessage && (
-          <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-semibold text-white shadow-lg hover:shadow-purple-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
-          disabled={isSubmitting || !!errorMessage}
-        >
-          {isSubmitting ? "Creating..." : "Create Class"}
-        </button>
-      </form>
-    </div>
-  </div>
-)}
-
-{/* Edit Class Modal */}
-{showEditClassModal && editingClass && (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div className="bg-gradient-to-br from-blue-50/80 via-purple-50/80 to-white/80 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-lg max-h-[95vh] overflow-y-auto border border-white/20">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-            Edit Class
-          </h2>
-        </div>
-        <button
-          onClick={() => {
+      {showEditClassModal && editingClass && (
+        <EditClassModal
+          editingClass={editingClass}
+          errorMessage={errorMessage}
+          isSubmitting={isSubmitting}
+          onClassChange={setEditingClass}
+          onSubmit={handleUpdateClassSubmit}
+          onClose={() => {
             setShowEditClassModal(false);
             setEditingClass(null);
             setErrorMessage("");
           }}
-          className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-black/5 transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
+        />
+      )}
 
-      <form onSubmit={handleUpdateClassSubmit} className="space-y-6">
-        <div>
-          <label htmlFor="edit-title" className="block text-gray-600 mb-2 text-sm font-medium">
-            Class Title
-          </label>
-          <input
-            type="text"
-            id="edit-title"
-            value={editingClass.title}
-            onChange={(e) => setEditingClass({ ...editingClass, title: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-            required
-          />
-        </div>
-
-        <div>
-          <label htmlFor="edit-description" className="block text-gray-600 mb-2 text-sm font-medium">
-            Description
-          </label>
-          <textarea
-            id="edit-description"
-            value={editingClass.description || ""}
-            onChange={(e) => setEditingClass({ ...editingClass, description: e.target.value })}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28 transition-all"
-            required
-          />
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="edit-startTime" className="block text-gray-600 mb-2 text-sm font-medium">
-              Start Time (HH:MM)
-            </label>
-            <input
-              type="text"
-              id="edit-startTime"
-              value={editingClass.startTime}
-              onChange={(e) => {
-                let value = e.target.value.replace(/[^\d:]/g, '');
-                if (value.length === 2 && !value.includes(':')) value = value + ':';
-                if (value.length > 5) value = value.slice(0, 5);
-                setEditingClass({ ...editingClass, startTime: value });
-              }}
-              pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
-              maxLength={5}
-              className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="edit-endTime" className="block text-gray-600 mb-2 text-sm font-medium">
-              End Time (HH:MM)
-            </label>
-            <input
-              type="text"
-              id="edit-endTime"
-              value={editingClass.endTime}
-              onChange={(e) => {
-                let value = e.target.value.replace(/[^\d:]/g, '');
-                if (value.length === 2 && !value.includes(':')) value = value + ':';
-                if (value.length > 5) value = value.slice(0, 5);
-                setEditingClass({ ...editingClass, endTime: value });
-              }}
-              pattern="([01]?[0-9]|2[0-3]):[0-5][0-9]"
-              maxLength={5}
-              className="w-full px-4 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-            />
-          </div>
-        </div>
-
-        {errorMessage && (
-          <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        <button
-          type="submit"
-          className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-semibold text-white shadow-lg hover:shadow-purple-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5"
-          disabled={isSubmitting || !!errorMessage}
-        >
-          {isSubmitting ? "Updating..." : "Update Class"}
-        </button>
-      </form>
-    </div>
-
-  </div>
-)}
-{/* Cancel Class Modal */}
-{showCancelModal && (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div className="bg-gradient-to-br from-red-50/80 via-orange-50/80 to-white/80 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-lg border border-white/20">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-            Cancel Class
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Please provide a reason for cancelling this class
-          </p>
-        </div>
-        <button
-          onClick={() => {
+      {showCancelModal && (
+        <CancelClassModal
+          cancellationReason={cancellationReason}
+          isCancelling={isCancelling}
+          errorMessage={errorMessage}
+          onReasonChange={setCancellationReason}
+          onConfirm={handleConfirmCancellation}
+          onClose={() => {
             setShowCancelModal(false);
             setCancellingClassId(null);
             setCancellationReason("");
             setErrorMessage("");
           }}
-          className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-black/5 transition-colors"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
+        />
+      )}
 
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="cancellationReason" className="block text-gray-600 mb-2 text-sm font-medium">
-            Reason for Cancellation <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            id="cancellationReason"
-            value={cancellationReason}
-            onChange={(e) => setCancellationReason(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 h-32 transition-all"
-            placeholder="e.g., Instructor illness, scheduling conflict, etc."
-            required
-          />
-        </div>
+      {showSocietyModal && (
+        <SocietyModal
+          societies={societies}
+          selectedSocietyIds={selectedSocietyIds}
+          saving={saving}
+          onToggleSociety={(id) =>
+            setSelectedSocietyIds(prev =>
+              prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+            )
+          }
+          onConfirm={handleSocietyConfirmAndSave}
+          onClose={() => setShowSocietyModal(false)}
+        />
+      )}
 
-        {errorMessage && (
-          <div className="bg-red-100 border border-red-300 text-red-700 p-3 rounded-lg text-sm flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        {/* <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg"> */}
-          {/* <div className="flex items-start gap-2"> */}
-            {/* <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" /> */}
-            {/* <div className="text-sm text-yellow-800"> */}
-              {/* <p className="font-medium">Warning</p> */}
-              {/* <p className="mt-1">All enrolled students will be notified via email about this cancellation.</p> */}
-            {/* </div> */}
-          {/* </div> */}
-        {/* </div> */}
-
-    <div className="flex gap-3 pt-2">
-  <button
-    onClick={() => {
-      setShowCancelModal(false);
-      setCancellingClassId(null);
-      setCancellationReason("");
-      setErrorMessage("");
-    }}
-    disabled={isCancelling}
-    className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold text-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-  >
-    Keep Class
-  </button>
-  <button
-    onClick={handleConfirmCancellation}
-    disabled={!cancellationReason.trim() || isCancelling}
-    className="flex-1 py-3 px-4 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 rounded-lg font-semibold text-white shadow-lg hover:shadow-red-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-  >
-    {isCancelling ? (
-      <>
-        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-        <span>Cancelling...</span>
-      </>
-    ) : (
-      "Cancel Class"
-    )}
-  </button>
-      </div>
-    </div>
-  </div>
-</div>
-)}
-
-{/* View Class Details Modal */}
-{viewClassDetails && (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-md border border-gray-200">
-      <div className="flex justify-between items-start mb-4">
-        <h2 className="text-xl font-bold text-gray-800">
-          {viewClassDetails.title}
-        </h2>
-        <button
-          onClick={() => setViewClassDetails(null)}
-          className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-      
-      <div className="space-y-4">
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-          <p className="text-sm text-blue-900 font-medium whitespace-pre-wrap">
-            {viewClassDetails.description || "No additional details provided."}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={() => setViewClassDetails(null)}
-          className="px-5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-all"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-{showSocietyModal && (
-  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-md">
-      <h2 className="text-xl font-bold mb-4">Select Societies for these Slots</h2>
-      <p className="text-sm text-gray-500 mb-4">Choose one or more societies where these slots apply</p>
-
-      <div className="space-y-2 max-h-64 overflow-y-auto">
-        {societies.map((s) => (
-          <label key={s._id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 cursor-pointer border border-gray-200">
-            <input
-              type="checkbox"
-              checked={selectedSocietyIds.includes(s._id)}
-              onChange={(e) => {
-                setSelectedSocietyIds(prev =>
-                  e.target.checked
-                    ? [...prev, s._id]
-                    : prev.filter(id => id !== s._id)
-                );
-              }}
-              className="w-4 h-4 accent-purple-600"
-            />
-            <span className="text-gray-800 font-medium">{s.name}</span>
-            <span className="text-gray-400 text-sm ml-auto">{s.city}</span>
-          </label>
-        ))}
-      </div>
-
-      <div className="flex gap-3 mt-6">
-        <button
-          onClick={() => setShowSocietyModal(false)}
-          className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleSocietyConfirmAndSave}
-          disabled={selectedSocietyIds.length === 0 || saving}
-          className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium text-white disabled:opacity-50"
-        >
-          {saving ? "Saving..." : `Save for ${selectedSocietyIds.length} Society`}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+      {viewClassDetails && (
+        <ViewClassModal
+          classItem={viewClassDetails}
+          onClose={() => setViewClassDetails(null)}
+        />
+      )}
     </div>
   );
-
 };
+
+
 
 const TutorAvailabilitySlotsWrapper = () => (
   <Suspense fallback={
