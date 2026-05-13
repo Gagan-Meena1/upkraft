@@ -1,13 +1,13 @@
 import React from "react";
 import { X } from "lucide-react";
-import { ClassData } from "../types";
+import { ClassData } from "./Types";
 
 interface ViewClassModalProps {
-  classData: ClassData;
+  classItem: ClassData;
   onClose: () => void;
 }
 
-const ViewClassModal = ({ classData, onClose }: ViewClassModalProps) => {
+const ViewClassModal = ({ classItem: classData, onClose }: ViewClassModalProps) => {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-md border border-gray-200">

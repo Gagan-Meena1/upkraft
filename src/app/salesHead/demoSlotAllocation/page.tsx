@@ -1,7 +1,9 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Tutor, ClassData, Course, CreateClassForm } from "./components/Types";
+import { parseISO, format, addDays } from "date-fns";
+import * as dateFnsTz from "date-fns-tz";
+import { Tutor, ClassData, Course, CreateClassForm, Society } from "./components/Types";
 
 // Import all modals + grid
 import SlotGrid from "./components/Slotgrid";
@@ -63,6 +65,8 @@ const [currentSocietyId, setCurrentSocietyId] = useState<string>(
 );
 const [selectedSocietyIds, setSelectedSocietyIds] = useState<string[]>([]);
 const [showSocietyModal, setShowSocietyModal] = useState(false);
+const [pendingSlotInfo, setPendingSlotInfo] = useState<{ date: string; hour: number } | null>(null);
+const [pendingRepeatSlots, setPendingRepeatSlots] = useState<Set<string>>(new Set());
 
   const toast = {
     success: (msg: string) => alert(msg),
@@ -84,18 +88,7 @@ const [showSocietyModal, setShowSocietyModal] = useState(false);
     fetchUserData();
   }, []);
 
-  useEffect(() => {
-  const fetchSocieties = async () => {
-    try {
-      const res = await fetch("/Api/salesHead/society");
-      const data = await res.json();
-      if (data.success) setSocieties(data.societies);
-    } catch (e) {
-      console.error("Failed to fetch societies", e);
-    }
-  };
-  fetchSocieties();
-}, []);
+  // Societies come from tutor.societies (fetched with allTutorsInfo)
 
   useEffect(() => {
     const fetchTutors = async () => {
@@ -153,12 +146,14 @@ const [showSocietyModal, setShowSocietyModal] = useState(false);
     }
 
     const newSlots = new Map<string, "available" | "unavailable">();
-    const newSocietyMap = new Map<string, string>();  // key -> societyName
-
+    const newSocietyMap = new Map<string, string[]>();
 
     tutor.slotsAvailable.forEach((slot) => {
       try {
-if (currentSocietyId && slot.societyId && slot.societyId !== currentSocietyId) return;
+        // Filter by society if a filter is active
+        if (currentSocietyId && slot.societyIds && slot.societyIds.length > 0) {
+          if (!slot.societyIds.includes(currentSocietyId)) return;
+        }
         const startTimeStr = typeof slot.startTime === 'string' ? slot.startTime : slot.startTime?.toISOString();
         const endTimeStr = typeof slot.endTime === 'string' ? slot.endTime : slot.endTime?.toISOString();
         
@@ -176,9 +171,11 @@ if (currentSocietyId && slot.societyId && slot.societyId !== currentSocietyId) r
         for (let hour = startHour; hour < endHour; hour++) {
           const key = `${slotDate}-${hour}`;
           newSlots.set(key, "available");
-          if (slot.societyName) {
-      newSocietyMap.set(key, slot.societyName);  // store society name
-    }
+          if (slot.societyNames && slot.societyNames.length > 0) {
+            const existing = newSocietyMap.get(key) || [];
+            const merged = [...new Set([...existing, ...slot.societyNames])];
+            newSocietyMap.set(key, merged);
+          }
         }
       } catch (error) {
         console.error("Error processing slot:", error);
@@ -292,21 +289,21 @@ useEffect(() => {
 
   const handleSlotChange = (date: string, hour: number, status: "available" | "unavailable") => {
     const key = `${date}-${hour}`;
-    const newSlots = new Map(slots);
     
     if (status === "unavailable") {
+      // Mark as unavailable locally
+      const newSlots = new Map(slots);
       newSlots.delete(key);
       const newSelected = new Set(selectedSlots);
       newSelected.delete(key);
       setSelectedSlots(newSelected);
+      setSlots(newSlots);
     } else {
-      newSlots.set(key, status);
-      const newSelected = new Set(selectedSlots);
-      newSelected.add(key);
-      setSelectedSlots(newSelected);
+      // Open society popup — user must pick societies before slot is marked available
+      setPendingSlotInfo({ date, hour });
+      setSelectedSocietyIds([]);
+      setShowSocietyModal(true);
     }
-    
-    setSlots(newSlots);
   };
 
  const handleOpenRepeatModal = () => {
@@ -415,21 +412,17 @@ useEffect(() => {
       return;
     }
 
-    const newSlots = new Map(slots);
-    const newSelected = new Set(selectedSlots);
-
     const slotsToRepeat: Array<{ dayOfWeek: number; hour: number }> = [];
     selectedSlots.forEach(key => {
       const parts = key.split("-");
       const date = parts.slice(0, 3).join("-");
       const hour = parseInt(parts[parts.length - 1]);
       const dayOfWeek = parseISO(date).getDay();
-      
       slotsToRepeat.push({ dayOfWeek, hour });
     });
 
+    const generatedSlotKeys = new Set<string>();
     let currentDate = new Date(startDate);
-    let slotsAdded = 0;
 
     while (currentDate <= endDate) {
       const currentDayOfWeek = currentDate.getDay();
@@ -440,10 +433,7 @@ useEffect(() => {
           if (repeatType === "daily" || dayOfWeek === currentDayOfWeek) {
             const dateStr = format(currentDate, 'yyyy-MM-dd');
             const key = `${dateStr}-${hour}`;
-            
-            newSlots.set(key, "available");
-            newSelected.add(key);
-            slotsAdded++;
+            generatedSlotKeys.add(key);
           }
         });
       }
@@ -451,103 +441,83 @@ useEffect(() => {
       currentDate = addDays(currentDate, 1);
     }
 
-    setSlots(newSlots);
-    setSelectedSlots(newSelected);
+    // Store the repeated slot keys and open society popup
     setShowRepeatModal(false);
-    toast.success(`Applied repeat pattern: ${slotsAdded} slots added`);
+    setPendingRepeatSlots(generatedSlotKeys);
+    setPendingSlotInfo(null); // not a single slot
+    setSelectedSocietyIds([]);
+    setShowSocietyModal(true);
   };
 
-  const handleSave = async () => {
-  if (!selectedTutor) return toast.error("Please select a tutor");
-  if (slots.size === 0) return toast.error("No slots selected");
-  setShowSocietyModal(true); // show society picker before saving
-};
+  // Convert slot keys to API-ready slot objects
+  const slotKeysToApiSlots = (keys: Iterable<string>): { startTime: string; endTime: string }[] => {
+    const tutor = tutors.find((t) => t._id === selectedTutor);
+    const tutorTimezone = tutor?.timezone || userTimezone;
+    const result: { startTime: string; endTime: string }[] = [];
 
-const handleSocietyConfirmAndSave = async () => {
-  if (selectedSocietyIds.length === 0) return toast.error("Select at least one society");
-  setShowSocietyModal(false);
-  setSaving(true);
-      try {
-      const tutor = tutors.find((t) => t._id === selectedTutor);
-      const tutorTimezone = tutor?.timezone || userTimezone;
+    for (const key of keys) {
+      const parts = key.split("-");
+      const hour = parseInt(parts[parts.length - 1]);
+      const dateStr = parts.slice(0, 3).join("-");
+      const [year, month, day] = dateStr.split('-').map(Number);
 
-      const slotsByDate = new Map<string, number[]>();
-      
-      slots.forEach((status, key) => {
-        if (status === "available") {
-          const parts = key.split("-");
-          const hourStr = parts[parts.length - 1];
-          const date = parts.slice(0, 3).join("-");
-          const hour = parseInt(hourStr);
-          
-          if (!slotsByDate.has(date)) {
-            slotsByDate.set(date, []);
-          }
-          slotsByDate.get(date)!.push(hour);
-        }
-      });
+      const startLocal = new Date(year, month - 1, day, hour, 0, 0);
+      const endLocal = new Date(year, month - 1, day, hour + 1, 0, 0);
 
-      const slotsToSave: { startTime: string; endTime: string }[] = [];
+      if (isNaN(startLocal.getTime()) || isNaN(endLocal.getTime())) continue;
 
-      slotsByDate.forEach((hours, dateStr) => {
-        hours.sort((a, b) => a - b);
-        
-        let rangeStart = hours[0];
-        let rangeEnd = hours[0];
+      const startUTC = dateFnsTz.fromZonedTime(startLocal, tutorTimezone);
+      const endUTC = dateFnsTz.fromZonedTime(endLocal, tutorTimezone);
 
-        for (let i = 1; i <= hours.length; i++) {
-          if (i < hours.length && hours[i] === rangeEnd + 1) {
-            rangeEnd = hours[i];
-          } else {
-            const [year, month, day] = dateStr.split('-').map(Number);
-            
-            const startLocal = new Date(year, month - 1, day, rangeStart, 0, 0);
-            const endLocal = new Date(year, month - 1, day, rangeEnd + 1, 0, 0);
-            
-            if (isNaN(startLocal.getTime()) || isNaN(endLocal.getTime())) {
-              throw new Error(`Invalid date: ${dateStr}`);
-            }
-            
-            const startUTC = dateFnsTz.fromZonedTime(startLocal, tutorTimezone);
-            const endUTC = dateFnsTz.fromZonedTime(endLocal, tutorTimezone);
+      result.push({ startTime: startUTC.toISOString(), endTime: endUTC.toISOString() });
+    }
+    return result;
+  };
 
-            slotsToSave.push({
-              startTime: startUTC.toISOString(),
-              endTime: endUTC.toISOString(),
-            });
+  // Called when user confirms societies in the popup
+  const handleSocietyConfirmAndSave = async () => {
+    if (selectedSocietyIds.length === 0) return toast.error("Select at least one society");
+    if (!selectedTutor) return toast.error("Please select a tutor");
 
-            if (i < hours.length) {
-              rangeStart = hours[i];
-              rangeEnd = hours[i];
-            }
-          }
-        }
-      });
+    setSaving(true);
+    setShowSocietyModal(false);
+
+    try {
+      let slotsToSave: { startTime: string; endTime: string }[];
+
+      if (pendingSlotInfo) {
+        // Single slot save
+        slotsToSave = slotKeysToApiSlots([`${pendingSlotInfo.date}-${pendingSlotInfo.hour}`]);
+      } else if (pendingRepeatSlots.size > 0) {
+        // Repeat pattern save
+        slotsToSave = slotKeysToApiSlots(pendingRepeatSlots);
+      } else {
+        return toast.error("No slots to save");
+      }
 
       const response = await fetch("/Api/salesHead/demoSlots", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-          body: JSON.stringify({ tutorId: selectedTutor, slots: slotsToSave, societyIds: selectedSocietyIds })
-
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tutorId: selectedTutor, slots: slotsToSave, societyIds: selectedSocietyIds }),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to save slots");
-      }
+      if (!response.ok) throw new Error(data.message || "Failed to save slots");
 
       toast.success("Slots saved successfully!");
-      
+
+      // Refresh tutor data
       const tutorsResponse = await fetch("/Api/salesHead/allTutorsInfo");
       const tutorsData = await tutorsResponse.json();
       if (tutorsData.success && tutorsData.tutors) {
         setTutors(tutorsData.tutors);
       }
-      
+
+      // Reset pending state
+      setPendingSlotInfo(null);
+      setPendingRepeatSlots(new Set());
       setSelectedSlots(new Set());
+      setSelectedSocietyIds([]);
     } catch (error: any) {
       console.error("Error saving slots:", error);
       toast.error(error.message || "Failed to save slots");
@@ -823,13 +793,63 @@ const handleConfirmCancellation = async () => {
   }
 
  return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-50 px-1 py-2 sm:p-4 lg:p-6">
       {/* Header / tutor selector stays inline or extract to its own component */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">
-          Tutor Availability Management
+      <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
+          Demo Slot Allocation
         </h1>
-        {/* tutor display, society selector, save button */}
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 sm:items-end">
+          {/* Tutor Selector */}
+          <div className="w-full sm:flex-1 sm:min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Select Tutor</label>
+            <select
+              value={selectedTutor}
+              onChange={(e) => setSelectedTutor(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
+            >
+              <option value="">— Choose a tutor —</option>
+              {tutors.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.username} ({t.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Society Filter */}
+          {selectedTutor && (() => {
+            const tutor = tutors.find((t) => t._id === selectedTutor);
+            const tutorSocieties = tutor?.societies || [];
+            return tutorSocieties.length > 0 ? (
+              <div className="w-full sm:w-auto sm:min-w-[180px]">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Society</label>
+                <select
+                  value={currentSocietyId}
+                  onChange={(e) => setCurrentSocietyId(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                >
+                  <option value="">All Societies</option>
+                  {tutorSocieties.map((s) => (
+                    <option key={s._id} value={s._id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            ) : null;
+          })()}
+
+          {/* Action Buttons */}
+          {selectedTutor && (
+            <div className="flex gap-2">
+              <button
+                onClick={handleOpenRepeatModal}
+                className="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors"
+              >
+                🔁 Repeat Slots
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Slot Grid */}
@@ -913,20 +933,28 @@ const handleConfirmCancellation = async () => {
         />
       )}
 
-      {showSocietyModal && (
-        <SocietyModal
-          societies={societies}
-          selectedSocietyIds={selectedSocietyIds}
-          saving={saving}
-          onToggleSociety={(id) =>
-            setSelectedSocietyIds(prev =>
-              prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-            )
-          }
-          onConfirm={handleSocietyConfirmAndSave}
-          onClose={() => setShowSocietyModal(false)}
-        />
-      )}
+      {showSocietyModal && (() => {
+        const tutor = tutors.find((t) => t._id === selectedTutor);
+        const tutorSocieties: Society[] = tutor?.societies || [];
+        return (
+          <SocietyModal
+            societies={tutorSocieties}
+            selectedSocietyIds={selectedSocietyIds}
+            saving={saving}
+            onToggleSociety={(id) =>
+              setSelectedSocietyIds(prev =>
+                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+              )
+            }
+            onConfirm={handleSocietyConfirmAndSave}
+            onClose={() => {
+              setShowSocietyModal(false);
+              setPendingSlotInfo(null);
+              setPendingRepeatSlots(new Set());
+            }}
+          />
+        );
+      })()}
 
       {viewClassDetails && (
         <ViewClassModal

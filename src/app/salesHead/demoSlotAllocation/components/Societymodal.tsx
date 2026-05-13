@@ -1,10 +1,10 @@
 import React from "react";
-import { Society } from "../types";
+import { Society } from "./Types";
 
 interface SocietyModalProps {
   societies: Society[];
   selectedSocietyIds: string[];
-  setSelectedSocietyIds: (ids: string[]) => void;
+  onToggleSociety: (id: string) => void;
   saving: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -13,23 +13,18 @@ interface SocietyModalProps {
 const SocietyModal = ({
   societies,
   selectedSocietyIds,
-  setSelectedSocietyIds,
+  onToggleSociety,
   saving,
   onClose,
   onConfirm,
 }: SocietyModalProps) => {
-  const toggle = (id: string, checked: boolean) => {
-    setSelectedSocietyIds(
-      checked ? [...selectedSocietyIds, id] : selectedSocietyIds.filter((s) => s !== id)
-    );
-  };
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-md">
-        <h2 className="text-xl font-bold mb-2">Select Societies for these Slots</h2>
+        <h2 className="text-xl font-bold mb-2">Select Societies for this Slot</h2>
         <p className="text-sm text-gray-500 mb-4">
-          Choose one or more societies where these slots apply
+          Choose which societies this slot should be available for
         </p>
 
         <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -41,7 +36,7 @@ const SocietyModal = ({
               <input
                 type="checkbox"
                 checked={selectedSocietyIds.includes(s._id)}
-                onChange={(e) => toggle(s._id, e.target.checked)}
+                onChange={() => onToggleSociety(s._id)}
                 className="w-4 h-4 accent-purple-600"
               />
               <span className="text-gray-800 font-medium">{s.name}</span>

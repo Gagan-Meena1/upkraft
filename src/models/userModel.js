@@ -25,19 +25,19 @@ const userSchema = new mongoose.Schema({
             },
             status: {
                 type: String,
-                enum: ["present", "absent", "canceled", "not_marked","marked"],
+                enum: ["present", "absent", "canceled", "not_marked", "marked"],
                 default: "not_marked"
 
-        },
-        videoUrl:{
-            type:String,
-            default:""
-        },
-        creditDeducted:{
-            type:Number,
-            default:0   
-        }
-    }]
+            },
+            videoUrl: {
+                type: String,
+                default: ""
+            },
+            creditDeducted: {
+                type: Number,
+                default: 0
+            }
+        }]
     },
     contact: {
         type: String,
@@ -60,15 +60,15 @@ const userSchema = new mongoose.Schema({
             credits: {
                 type: Number,
                 default: 0
-            }   ,
+            },
             startTime: {
-                type:[{
+                type: [{
                     date: Date,
-                    message:String,
+                    message: String,
                     classIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Class" }],
                     endDate: Date,
-                    
-                    
+
+
                 }]
             },
         }],
@@ -90,10 +90,10 @@ const userSchema = new mongoose.Schema({
     //                 message:String
     //             }]
     //         },
-            
+
     //     }],
     //     default: {}
-        
+
     // },
     email: {
         type: String,
@@ -168,7 +168,7 @@ const userSchema = new mongoose.Schema({
     },
     teachingMode: {
         type: String,
-        enum: ["Online", "In-person", "Both", "", "Hybrid","Offline"],
+        enum: ["Online", "In-person", "Both", "", "Hybrid", "Offline"],
         default: ""
     },
     instagramLink: {
@@ -218,7 +218,13 @@ const userSchema = new mongoose.Schema({
         }]
     },
     societies: {
-        type:[{}]
+        type: [{
+            societyId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "society"
+            },
+
+        }]
     },
     academyId: {
         type: mongoose.Schema.Types.ObjectId,

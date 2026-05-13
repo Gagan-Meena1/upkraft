@@ -2,11 +2,9 @@ import React from "react";
 import { ChevronLeft, ChevronRight, Calendar, Clock, Edit2, Trash2 } from "lucide-react";
 import * as dateFnsTz from "date-fns-tz";
 import { format, parseISO } from "date-fns";
-import { ClassData, Tutor } from "../types";
+import { ClassData, Tutor } from "./Types";
 
 interface SlotGridProps {
-  weekDays: Date[];
-  hours: number[];
   slots: Map<string, "available" | "unavailable">;
   slotSocietyMap: Map<string, string[]>;
   classes: ClassData[];
@@ -14,17 +12,17 @@ interface SlotGridProps {
   tutors: Tutor[];
   userTimezone: string;
   currentDate: Date;
-  setCurrentDate: (date: Date) => void;
+  selectedSlots?: Set<string>;
   onSlotChange: (date: string, hour: number, status: "available" | "unavailable") => void;
   onOpenCreateClass: (date: string, hour: number) => void;
   onEditClass: (classItem: ClassData) => void;
   onDeleteClass: (classId: string) => void;
   onViewClass: (classItem: ClassData) => void;
+  onWeekChange: (direction: number) => void;
+  onToday: () => void;
 }
 
 const SlotGrid = ({
-  weekDays,
-  hours,
   slots,
   slotSocietyMap,
   classes,
@@ -32,20 +30,35 @@ const SlotGrid = ({
   tutors,
   userTimezone,
   currentDate,
-  setCurrentDate,
+  selectedSlots,
   onSlotChange,
   onOpenCreateClass,
   onEditClass,
   onDeleteClass,
   onViewClass,
+  onWeekChange,
+  onToday,
 }: SlotGridProps) => {
   const formatDateString = (date: Date) => format(date, "yyyy-MM-dd");
 
-  const changeWeek = (direction: number) => {
-    const newDate = new Date(currentDate);
-    newDate.setDate(currentDate.getDate() + direction * 7);
-    setCurrentDate(newDate);
+  // Compute weekDays from currentDate
+  const getWeekDays = (): Date[] => {
+    const ref = new Date(currentDate.getTime());
+    const day = ref.getDay();
+    const diff = ref.getDate() - day + (day === 0 ? -6 : 1);
+    const startOfWeek = new Date(ref);
+    startOfWeek.setDate(diff);
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      days.push(d);
+    }
+    return days;
   };
+
+  const weekDays = getWeekDays();
+  const hours = Array.from({ length: 24 }, (_, i) => i);
 
   const getClassesForSlot = (date: string, hour: number): ClassData[] => {
     if (!selectedTutor || classes.length === 0) return [];
@@ -67,10 +80,10 @@ const SlotGrid = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+    <div className="bg-white rounded-lg shadow-sm p-2 sm:p-4">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 sm:mb-4 gap-2">
+        <h2 className="text-sm sm:text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-purple-600" />
           Week of{" "}
           {weekDays[0].toLocaleDateString("en-US", {
@@ -81,19 +94,19 @@ const SlotGrid = ({
         </h2>
         <div className="flex gap-2 items-center">
           <button
-            onClick={() => changeWeek(-1)}
+            onClick={() => onWeekChange(-1)}
             className="p-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
-            onClick={() => setCurrentDate(new Date())}
+            onClick={onToday}
             className="px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium"
           >
             Today
           </button>
           <button
-            onClick={() => changeWeek(1)}
+            onClick={() => onWeekChange(1)}
             className="p-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white"
           >
             <ChevronRight className="w-5 h-5" />
@@ -102,17 +115,17 @@ const SlotGrid = ({
       </div>
 
       {/* Grid */}
-      <div className="overflow-x-auto">
-        <div className="inline-block min-w-full">
-          <div className="grid grid-cols-8 gap-2" style={{ minWidth: "800px" }}>
+      <div className="overflow-x-auto -mx-2 sm:mx-0">
+        <div className="min-w-full">
+          <div className="grid grid-cols-8 gap-px sm:gap-1" style={{ minWidth: "640px" }}>
             {/* Header row */}
-            <div className="font-semibold text-center py-3 bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="font-semibold text-center py-2 sm:py-3 bg-gray-100 rounded text-xs sm:text-sm flex items-center justify-center">
               <Clock className="w-4 h-4 mr-1" />
               Time
             </div>
             {weekDays.map((day, idx) => (
-              <div key={idx} className="font-semibold text-center py-3 bg-purple-100 rounded-lg">
-                <div className="text-sm">
+              <div key={idx} className="font-semibold text-center py-2 sm:py-3 bg-purple-100 rounded text-xs sm:text-sm">
+                <div>
                   {day.toLocaleDateString("en-US", { weekday: "short" })}
                 </div>
                 <div className="text-xs text-gray-600">

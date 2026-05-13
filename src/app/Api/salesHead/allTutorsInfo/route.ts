@@ -28,19 +28,21 @@ export async function GET(request: NextRequest) {
 
     const tutors = await User.find(
       { category: "Tutor" },
-      { _id: 1, username: 1, email: 1, timezone: 1, demoSlotsAvailable: 1, profileImage: 1 }
+      { _id: 1, username: 1, email: 1, timezone: 1, demoSlotsAvailable: 1, profileImage: 1, societies: 1 }
     ).sort({ username: 1 });
 
     const tutorsFormatted = await Promise.all(
       tutors.map(async (tutor) => {
-        // Collect all unique societyIds across all slots
-        const allSocietyIds = [
-          ...new Set(
-            (tutor.demoSlotsAvailable || [])
-              .flatMap((s) => (s.societyIds || []).map((id: any) => id.toString()))
-              .filter(Boolean)
-          ),
-        ];
+        // Collect ALL unique societyIds (from slots + tutor.societies)
+        const slotSocietyIds = (tutor.demoSlotsAvailable || [])
+          .flatMap((s) => (s.societyIds || []).map((id: any) => id.toString()))
+          .filter(Boolean);
+
+        const tutorSocietyIds = (tutor.societies || [])
+          .map((s: any) => s.societyId?.toString())
+          .filter(Boolean);
+
+        const allSocietyIds = [...new Set([...slotSocietyIds, ...tutorSocietyIds])];
 
         const societies = await Society.find(
           { _id: { $in: allSocietyIds } },
@@ -57,6 +59,15 @@ export async function GET(request: NextRequest) {
           email: tutor.email,
           timezone: tutor.timezone || "UTC",
           profileImage: tutor.profileImage,
+          societies: (tutor.societies || []).map((s: any) => {
+            const id = s.societyId?.toString() || "";
+            const soc = societyMap[id];
+            return {
+              _id: id,
+              name: soc?.name || "",
+              city: soc?.city || "",
+            };
+          }),
           slotsAvailable: (tutor.demoSlotsAvailable || []).map((slot) => ({
             startTime: slot.startTime instanceof Date ? slot.startTime.toISOString() : slot.startTime,
             endTime: slot.endTime instanceof Date ? slot.endTime.toISOString() : slot.endTime,

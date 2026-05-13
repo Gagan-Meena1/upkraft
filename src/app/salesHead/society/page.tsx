@@ -9,9 +9,11 @@ import {
   Search,
   Star,
   CheckCircle,
-  ChevronRight,
   Loader2,
   Building2,
+  ChevronDown,
+  Check,
+  Filter,
 } from "lucide-react";
 
 interface Tutor {
@@ -19,6 +21,7 @@ interface Tutor {
   username: string;
   email: string;
   timezone: string;
+  societies?: { _id: string; name: string; city: string }[];
 }
 
 interface Society {
@@ -37,12 +40,12 @@ const TutorManagementPage = () => {
   const [loadingSocieties, setLoadingSocieties] = useState(true);
   const [tutorSearch, setTutorSearch] = useState("");
 
-  // Society modal state
-  const [showSocietyModal, setShowSocietyModal] = useState(false);
-  const [selectedTutorForSociety, setSelectedTutorForSociety] = useState<Tutor | null>(null);
-  const [selectedSociety, setSelectedSociety] = useState<Society | null>(null);
+  // Inline society assignment state
+  const [expandedTutorId, setExpandedTutorId] = useState<string | null>(null);
+  const [selectedSocietyIds, setSelectedSocietyIds] = useState<string[]>([]);
   const [societySearch, setSocietySearch] = useState("");
-  const [assigningSlots, setAssigningSlots] = useState(false);
+  const [cityFilter, setCityFilter] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Fetch tutors
   useEffect(() => {
@@ -60,7 +63,7 @@ const TutorManagementPage = () => {
     fetchTutors();
   }, []);
 
-  // Fetch societies in background
+  // Fetch societies
   useEffect(() => {
     const fetchSocieties = async () => {
       try {
@@ -82,72 +85,107 @@ const TutorManagementPage = () => {
       t.email.toLowerCase().includes(tutorSearch.toLowerCase())
   );
 
-  const filteredSocieties = societies.filter(
-    (s) =>
+  // Get unique cities for the city filter
+  const uniqueCities = [...new Set(societies.map((s) => s.city))].sort();
+
+  // Filtered societies for the assignment panel
+  const filteredSocieties = societies.filter((s) => {
+    const matchesSearch =
       s.name.toLowerCase().includes(societySearch.toLowerCase()) ||
-      s.city.toLowerCase().includes(societySearch.toLowerCase())
-  );
+      s.city.toLowerCase().includes(societySearch.toLowerCase());
+    const matchesCity = !cityFilter || s.city === cityFilter;
+    return matchesSearch && matchesCity;
+  });
 
   const handleAssignSocietyClick = (tutor: Tutor) => {
-    setSelectedTutorForSociety(tutor);
-    setSelectedSociety(null);
+    if (expandedTutorId === tutor._id) {
+      // Collapse if already expanded
+      setExpandedTutorId(null);
+      setSelectedSocietyIds([]);
+      setSocietySearch("");
+      setCityFilter("");
+      return;
+    }
+
+    // Expand and pre-select the tutor's existing societies
+    setExpandedTutorId(tutor._id);
+    setSelectedSocietyIds(tutor.societies?.map((s) => s._id) || []);
     setSocietySearch("");
-    setShowSocietyModal(true);
+    setCityFilter("");
   };
 
-  const handleAssignSlots = () => {
-    if (!selectedTutorForSociety || !selectedSociety) return;
-    setAssigningSlots(true);
-    router.push(
-      `/salesHead/demoSlotAllocation?tutorId=${selectedTutorForSociety._id}&societyId=${selectedSociety._id}`
+  const toggleSociety = (id: string) => {
+    setSelectedSocietyIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
 
-  const closeModal = () => {
-    setShowSocietyModal(false);
-    setSelectedTutorForSociety(null);
-    setSelectedSociety(null);
-    setSocietySearch("");
+  const handleSaveSocieties = async () => {
+    if (!expandedTutorId) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/Api/salesHead/assignSocieties", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tutorId: expandedTutorId, societyIds: selectedSocietyIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to assign societies");
+
+      alert("Societies assigned successfully!");
+
+      // Refresh tutors
+      const tutorsRes = await fetch("/Api/salesHead/allTutorsInfo");
+      const tutorsData = await tutorsRes.json();
+      if (tutorsData.success && tutorsData.tutors) setTutors(tutorsData.tutors);
+
+      // Collapse
+      setExpandedTutorId(null);
+      setSelectedSocietyIds([]);
+    } catch (err: any) {
+      alert(err.message || "Failed to assign societies");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="max-w-5xl mx-auto">
-
+    <div className="min-h-screen bg-gray-50 p-3 sm:p-6">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-  <div>
-    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-      <Users className="w-6 h-6 text-purple-600" />
-      Tutor Management
-    </h1>
-    <p className="text-sm text-gray-500 mt-1">
-      Assign societies and demo slots to tutors
-    </p>
-  </div>
-  <div className="flex items-center gap-3">
-    <div className="relative w-full sm:w-72">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-      <input
-        type="text"
-        placeholder="Search tutors..."
-        value={tutorSearch}
-        onChange={(e) => setTutorSearch(e.target.value)}
-        className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-      />
-    </div>
-    <button
-      onClick={async () => {
-        await fetch("/Api/users/logout", { method: "POST" });
-        router.push("/login");
-      }}
-      className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200 whitespace-nowrap"
-    >
-      <X className="w-4 h-4" />
-      Logout
-    </button>
-  </div>
-</div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
+              Tutor Management
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              Assign societies and demo slots to tutors
+            </p>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="relative flex-1 sm:w-72 sm:flex-none">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search tutors..."
+                value={tutorSearch}
+                onChange={(e) => setTutorSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+              />
+            </div>
+            <button
+              onClick={async () => {
+                await fetch("/Api/users/logout", { method: "POST" });
+                router.push("/login");
+              }}
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors border border-red-200 whitespace-nowrap"
+            >
+              <X className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
+        </div>
 
         {/* Tutor List */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -162,67 +200,257 @@ const TutorManagementPage = () => {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {/* Table header */}
-              <div className="grid grid-cols-12 px-5 py-3 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              {/* Table header — hidden on mobile */}
+              <div className="hidden sm:grid grid-cols-12 px-5 py-3 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 <div className="col-span-1">#</div>
-                <div className="col-span-5">Tutor</div>
-                <div className="col-span-3 hidden sm:block">Timezone</div>
-                <div className="col-span-3 sm:col-span-3 text-right">Actions</div>
+                <div className="col-span-4">Tutor</div>
+                <div className="col-span-2">Timezone</div>
+                <div className="col-span-2">Societies</div>
+                <div className="col-span-3 text-right">Actions</div>
               </div>
 
-              {filteredTutors.map((tutor, idx) => (
-                <div
-                  key={tutor._id}
-                  className="grid grid-cols-12 px-5 py-4 items-center hover:bg-purple-50/40 transition-colors"
-                >
-                  {/* Index */}
-                  <div className="col-span-1 text-sm text-gray-400 font-mono">
-                    {idx + 1}
-                  </div>
+              {filteredTutors.map((tutor, idx) => {
+                const isExpanded = expandedTutorId === tutor._id;
+                const tutorSocieties = tutor.societies || [];
 
-                  {/* Tutor info */}
-                  <div className="col-span-5 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-semibold text-purple-700">
-                        {tutor.username.charAt(0).toUpperCase()}
-                      </span>
+                return (
+                  <div key={tutor._id}>
+                    {/* Tutor row */}
+                    <div className={`px-3 sm:px-5 py-3 sm:py-4 transition-colors ${isExpanded ? "bg-purple-50" : "hover:bg-gray-50"}`}>
+                      {/* Mobile layout */}
+                      <div className="sm:hidden space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-semibold text-purple-700">
+                                {tutor.username.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-gray-800 truncate">{tutor.username}</p>
+                              <p className="text-xs text-gray-400 truncate">{tutor.email}</p>
+                            </div>
+                          </div>
+                          <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                            {tutor.timezone || "UTC"}
+                          </span>
+                        </div>
+
+                        {/* Societies badges — mobile */}
+                        {tutorSocieties.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pl-10">
+                            {tutorSocieties.slice(0, 3).map((s) => (
+                              <span key={s._id} className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full">
+                                {s.name}
+                              </span>
+                            ))}
+                            {tutorSocieties.length > 3 && (
+                              <span className="text-[10px] text-gray-400">+{tutorSocieties.length - 3}</span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Action buttons — mobile */}
+                        <div className="flex gap-2 pl-10">
+                          <button
+                            onClick={() => router.push(`/salesHead/demoSlotAllocation?tutorId=${tutor._id}`)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                          >
+                            <Calendar className="w-3 h-3" />
+                            Slots
+                          </button>
+                          <button
+                            onClick={() => handleAssignSocietyClick(tutor)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                              isExpanded
+                                ? "bg-purple-700 text-white"
+                                : "bg-purple-600 text-white hover:bg-purple-700"
+                            }`}
+                          >
+                            <Building2 className="w-3 h-3" />
+                            {isExpanded ? "Close" : "Society"}
+                            <ChevronDown className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Desktop layout */}
+                      <div className="hidden sm:grid grid-cols-12 items-center">
+                        <div className="col-span-1 text-sm text-gray-400 font-mono">
+                          {idx + 1}
+                        </div>
+                        <div className="col-span-4 flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-semibold text-purple-700">
+                              {tutor.username.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-800 truncate">{tutor.username}</p>
+                            <p className="text-xs text-gray-400 truncate">{tutor.email}</p>
+                          </div>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
+                            {tutor.timezone || "UTC"}
+                          </span>
+                        </div>
+                        <div className="col-span-2">
+                          <div className="flex flex-wrap gap-1">
+                            {tutorSocieties.length === 0 ? (
+                              <span className="text-xs text-gray-400 italic">None</span>
+                            ) : (
+                              <>
+                                {tutorSocieties.slice(0, 2).map((s) => (
+                                  <span key={s._id} className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">
+                                    {s.name}
+                                  </span>
+                                ))}
+                                {tutorSocieties.length > 2 && (
+                                  <span className="text-[10px] text-gray-400 font-medium">+{tutorSocieties.length - 2}</span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="col-span-3 flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => router.push(`/salesHead/demoSlotAllocation?tutorId=${tutor._id}`)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                          >
+                            <Calendar className="w-3.5 h-3.5" />
+                            View Slots
+                          </button>
+                          <button
+                            onClick={() => handleAssignSocietyClick(tutor)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                              isExpanded
+                                ? "bg-purple-700 text-white"
+                                : "bg-purple-600 text-white hover:bg-purple-700"
+                            }`}
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            {isExpanded ? "Close" : "Assign Society"}
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
-                        {tutor.username}
-                      </p>
-                      <p className="text-xs text-gray-400 truncate">{tutor.email}</p>
-                    </div>
-                  </div>
 
-                  {/* Timezone */}
-                  <div className="col-span-3 hidden sm:block">
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">
-                      {tutor.timezone || "UTC"}
-                    </span>
-                  </div>
+                    {/* ── Inline Society Picker ── */}
+                    {isExpanded && (
+                      <div className="border-t border-purple-200 bg-purple-50/50 px-3 sm:px-5 py-4">
+                        <div className="space-y-3">
+                          {/* Search + City Filter */}
+                          <div className="flex flex-col sm:flex-row gap-2">
+                            <div className="relative flex-1">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <input
+                                type="text"
+                                placeholder="Search societies..."
+                                value={societySearch}
+                                onChange={(e) => setSocietySearch(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none bg-white"
+                                autoFocus
+                              />
+                            </div>
+                            <div className="relative sm:w-44">
+                              <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                              <select
+                                value={cityFilter}
+                                onChange={(e) => setCityFilter(e.target.value)}
+                                className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none bg-white appearance-none"
+                              >
+                                <option value="">All Cities</option>
+                                {uniqueCities.map((city) => (
+                                  <option key={city} value={city}>{city}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
 
-                  {/* Actions */}
-                  <div className="col-span-6 sm:col-span-3 flex items-center justify-end gap-2">
-  <button
-    onClick={() => router.push(`/salesHead/demoSlotAllocation?tutorId=${tutor._id}`)}
-    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
-  >
-    <Calendar className="w-3.5 h-3.5" />
-    <span className="hidden sm:inline">View Slots</span>
-    <span className="sm:hidden">Slots</span>
-  </button>
-  <button
-    onClick={() => handleAssignSocietyClick(tutor)}
-    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-purple-600 text-white hover:bg-purple-700 transition-colors"
-  >
-    <Building2 className="w-3.5 h-3.5" />
-    <span className="hidden sm:inline">Assign Society</span>
-    <span className="sm:hidden">Society</span>
-  </button>
-</div>
-                </div>
-              ))}
+                          {/* Society Grid */}
+                          {loadingSocieties ? (
+                            <div className="flex items-center justify-center py-8">
+                              <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+                            </div>
+                          ) : filteredSocieties.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 text-gray-400">
+                              <MapPin className="w-8 h-8 mb-2 opacity-30" />
+                              <p className="text-sm">No societies found</p>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 max-h-[480px] overflow-y-auto pr-1">
+                              {filteredSocieties.map((society) => {
+                                const isSelected = selectedSocietyIds.includes(society._id);
+                                return (
+                                  <button
+                                    key={society._id}
+                                    onClick={() => toggleSociety(society._id)}
+                                    className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border-2 text-left transition-all ${
+                                      isSelected
+                                        ? "border-purple-500 bg-purple-100/80"
+                                        : "border-gray-200 bg-white hover:border-purple-300 hover:bg-purple-50"
+                                    }`}
+                                  >
+                                    <div className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 ${
+                                      isSelected ? "bg-purple-600" : "border-2 border-gray-300"
+                                    }`}>
+                                      {isSelected && <Check className="w-3 h-3 text-white" />}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1">
+                                        <p className="text-sm font-medium text-gray-800 truncate">{society.name}</p>
+                                        {society.isPopular && (
+                                          <Star className="w-3 h-3 text-amber-500 fill-amber-500 flex-shrink-0" />
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1 mt-0.5">
+                                        <MapPin className="w-2.5 h-2.5 text-gray-400 flex-shrink-0" />
+                                        <p className="text-[11px] text-gray-400 truncate">{society.city}</p>
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* Footer */}
+                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
+                            <p className="text-xs text-gray-500">
+                              {selectedSocietyIds.length} societ{selectedSocietyIds.length !== 1 ? "ies" : "y"} selected
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setExpandedTutorId(null);
+                                  setSelectedSocietyIds([]);
+                                }}
+                                className="flex-1 sm:flex-none px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleSaveSocieties}
+                                disabled={saving}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2 rounded-lg bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                              >
+                                {saving ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="w-4 h-4" />
+                                )}
+                                {saving ? "Saving..." : "Save Societies"}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -234,158 +462,6 @@ const TutorManagementPage = () => {
           </p>
         )}
       </div>
-
-      {/* ── Society Modal ── */}
-      {showSocietyModal && selectedTutorForSociety && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
-
-            {/* Modal header */}
-            <div className="flex items-start justify-between p-6 border-b border-gray-100">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Assign Society</h2>
-                <p className="text-sm text-gray-500 mt-0.5">
-                  For{" "}
-                  <span className="font-medium text-purple-600">
-                    {selectedTutorForSociety.username}
-                  </span>
-                </p>
-              </div>
-              <button
-                onClick={closeModal}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Society search */}
-            <div className="px-6 pt-4 pb-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search by name or city..."
-                  value={societySearch}
-                  onChange={(e) => setSocietySearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                  autoFocus
-                />
-              </div>
-            </div>
-
-            {/* Society list */}
-            <div className="flex-1 overflow-y-auto px-6 pb-4 space-y-2">
-              {loadingSocieties ? (
-                <div className="flex items-center justify-center py-10">
-                  <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
-                </div>
-              ) : filteredSocieties.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-400">
-                  <MapPin className="w-8 h-8 mb-2 opacity-30" />
-                  <p className="text-sm">No societies found</p>
-                </div>
-              ) : (
-                filteredSocieties.map((society) => {
-                  const isSelected = selectedSociety?._id === society._id;
-                  return (
-                    <button
-                      key={society._id}
-                      onClick={() => setSelectedSociety(society)}
-                      className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${
-                        isSelected
-                          ? "border-purple-500 bg-purple-50"
-                          : "border-gray-100 hover:border-purple-200 hover:bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                              isSelected ? "bg-purple-600" : "bg-gray-100"
-                            }`}
-                          >
-                            <Building2
-                              className={`w-4 h-4 ${isSelected ? "text-white" : "text-gray-500"}`}
-                            />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-1.5">
-                              <p className="text-sm font-semibold text-gray-800">
-                                {society.name}
-                              </p>
-                              {society.isPopular && (
-                                <span className="flex items-center gap-0.5 text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">
-                                  <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
-                                  Popular
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3 text-gray-400" />
-                              <p className="text-xs text-gray-400">{society.city}</p>
-                              <span className="text-gray-300 mx-1">·</span>
-                              <p className="text-xs text-gray-400">
-                                {society.tutors?.length || 0} tutor
-                                {society.tutors?.length !== 1 ? "s" : ""}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <CheckCircle className="w-5 h-5 text-purple-600 flex-shrink-0" />
-                        )}
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Modal footer */}
-            <div className="p-6 border-t border-gray-100 space-y-3">
-              {selectedSociety && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-purple-50 rounded-lg text-sm text-purple-700">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>
-                    <span className="font-medium">{selectedSociety.name}</span> selected
-                  </span>
-                </div>
-              )}
-
-              <div className="flex gap-3">
-                <button
-                  onClick={closeModal}
-                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleAssignSlots}
-                  disabled={!selectedSociety || assigningSlots}
-                  className="flex-1 py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold hover:bg-purple-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  {assigningSlots ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Calendar className="w-4 h-4" />
-                      Assign Slots
-                      <ChevronRight className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {!selectedSociety && (
-                <p className="text-xs text-center text-gray-400">
-                  Select a society above to enable slot assignment
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

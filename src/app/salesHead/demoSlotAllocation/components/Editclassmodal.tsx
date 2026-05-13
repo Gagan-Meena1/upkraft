@@ -1,6 +1,6 @@
 import React from "react";
 import { X, AlertCircle } from "lucide-react";
-import { ClassData } from "../types";
+import { ClassData } from "./Types";
 
 interface EditClassModalProps {
   editingClass: ClassData;

@@ -9,6 +9,7 @@ export interface Tutor {
     societyIds?: string[];
     societyNames?: string[];
   }[];
+  societies?: Society[];
   description?: string;
 }
 

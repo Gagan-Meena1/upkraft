@@ -53,11 +53,9 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Remove old slots for ALL selected societies, then add new ones
+    // Append new slots (don't remove existing ones)
     tutor.demoSlotsAvailable = [
-      ...(tutor.demoSlotsAvailable || []).filter((s) =>
-        !s.societyIds?.some((id: any) => societyIds.includes(id.toString()))
-      ),
+      ...(tutor.demoSlotsAvailable || []),
       ...validatedSlots,
     ];
 

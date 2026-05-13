@@ -1,6 +1,6 @@
 import React from "react";
 import { X, AlertCircle } from "lucide-react";
-import { Course, CreateClassForm } from "../types";
+import { Course, CreateClassForm } from "./Types";
 
 interface CreateClassModalProps {
   form: CreateClassForm;
