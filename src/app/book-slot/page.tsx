@@ -674,6 +674,13 @@ export default function BookSlotPage() {
               </div>
             </div>
             <div className="form-row">
+              <div className="flabel">City <span className="req">*</span></div>
+              <select className="finput" value={city} onChange={e => setCity(e.target.value)}>
+                <option value="Bengaluru">Bengaluru</option>
+                <option value="Gurugram">Gurugram</option>
+              </select>
+            </div>
+            <div className="form-row">
               <div className="flabel">Notes</div>
               <textarea className="finput ta" rows={2} placeholder="Special requirements? (optional)" maxLength={250} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })}></textarea>
             </div>
