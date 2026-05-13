@@ -210,10 +210,11 @@ const userSchema = new mongoose.Schema({
         type: [{
             startTime: Date,
             endTime: Date,
-            societyId: {
+            societyIds: [{
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "society"
             }
+            ]
         }]
     },
     societies: {

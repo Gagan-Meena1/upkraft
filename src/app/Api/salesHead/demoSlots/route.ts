@@ -1,4 +1,3 @@
-// src/app/Api/tutorSlots/route.ts
 import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
@@ -8,142 +7,70 @@ await connect();
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify user is authenticated
     const token = (() => {
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
       try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
-      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl?.pathname?.startsWith("/Api/tutor"));
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value)
+        ? request.cookies.get("impersonate_token")?.value
+        : request.cookies.get("token")?.value;
     })();
-    if (!token) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+
+    if (!token) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
 
     const decodedToken = jwt.decode(token);
-    const userId =
-      decodedToken && typeof decodedToken === "object" && "id" in decodedToken
-        ? decodedToken.id
-        : null;
+    const userId = decodedToken && typeof decodedToken === "object" && "id" in decodedToken
+      ? decodedToken.id : null;
 
-    if (!userId) {
-      return NextResponse.json(
-        { success: false, message: "Invalid token" },
-        { status: 401 }
-      );
-    }
+    if (!userId) return NextResponse.json({ success: false, message: "Invalid token" }, { status: 401 });
 
     const body = await request.json();
-    const { tutorId, slots , societyId } = body;
+    const { tutorId, slots, societyIds } = body; // societyIds is now an array
 
-    console.log("Received slot update request:", {
-      tutorId,
-      slotsCount: slots?.length,
-      firstSlot: slots?.[0],
-      societyId
-    });
-
-    if (!societyId) {
-  return NextResponse.json(
-    { success: false, message: "Society ID is required" },
-    { status: 400 }
-  );
-}
-
-    if (!tutorId) {
-      return NextResponse.json(
-        { success: false, message: "Tutor ID is required" },
-        { status: 400 }
-      );
+    if (!tutorId) return NextResponse.json({ success: false, message: "Tutor ID is required" }, { status: 400 });
+    if (!slots || !Array.isArray(slots)) return NextResponse.json({ success: false, message: "Slots array is required" }, { status: 400 });
+    if (!societyIds || !Array.isArray(societyIds) || societyIds.length === 0) {
+      return NextResponse.json({ success: false, message: "At least one society must be selected" }, { status: 400 });
     }
 
-    if (!slots || !Array.isArray(slots)) {
-      return NextResponse.json(
-        { success: false, message: "Slots array is required" },
-        { status: 400 }
-      );
-    }
-
-    // Verify tutor exists
     const tutor = await User.findById(tutorId);
-    if (!tutor) {
-      return NextResponse.json(
-        { success: false, message: "Tutor not found" },
-        { status: 404 }
-      );
-    }
+    if (!tutor) return NextResponse.json({ success: false, message: "Tutor not found" }, { status: 404 });
 
-   
-
-    // Validate and convert slot format
     const validatedSlots = slots.map((slot, index) => {
-      if (!slot.startTime || !slot.endTime) {
-        throw new Error(`Slot ${index}: must have startTime and endTime`);
-      }
+      if (!slot.startTime || !slot.endTime) throw new Error(`Slot ${index}: must have startTime and endTime`);
 
-      // Parse ISO strings to Date objects
       const startTime = new Date(slot.startTime);
       const endTime = new Date(slot.endTime);
 
-      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-        throw new Error(`Slot ${index}: invalid date format`);
-      }
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) throw new Error(`Slot ${index}: invalid date format`);
+      if (endTime <= startTime) throw new Error(`Slot ${index}: end time must be after start time`);
 
-      if (endTime <= startTime) {
-        throw new Error(`Slot ${index}: end time must be after start time`);
-      }
-
-      // Return as Date objects for MongoDB storage
       return {
-        startTime: startTime,
-        endTime: endTime,
-        societyId: societyId, 
+        startTime,
+        endTime,
+        societyIds, // store all selected society IDs per slot
       };
     });
 
-    console.log("Validated slots:", {
-      count: validatedSlots.length,
-      firstSlot: validatedSlots[0],
-    });
+    // Remove old slots for ALL selected societies, then add new ones
+    tutor.demoSlotsAvailable = [
+      ...(tutor.demoSlotsAvailable || []).filter((s) =>
+        !s.societyIds?.some((id: any) => societyIds.includes(id.toString()))
+      ),
+      ...validatedSlots,
+    ];
 
-    // Pehle us society ke purane slots hata do, phir naye add karo
-tutor.demoSlotsAvailable = [
-  ...(tutor.demoSlotsAvailable || []).filter(
-    (s) => s.societyId?.toString() !== societyId
-  ),
-  ...validatedSlots,
-];
+    await tutor.save();
 
-await tutor.save();
-
-
-    console.log("Successfully updated tutor slots");
-
-    // Return formatted response with ISO strings
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Slots updated successfully",
-        slots: tutor.demoSlotsAvailable.map((slot) => ({
-          startTime: slot.startTime.toISOString(),
-          endTime: slot.endTime.toISOString(),
-        })),
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true, message: "Slots updated successfully" }, { status: 200 });
   } catch (error) {
     console.error("Error updating tutor slots:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Server error",
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      message: "Server error",
+      error: error instanceof Error ? error.message : "Unknown error",
+    }, { status: 500 });
   }
 }
 

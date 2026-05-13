@@ -13,8 +13,8 @@ interface Tutor {
   slotsAvailable: { 
   startTime: string; 
   endTime: string;
-  societyId?: string;
-  societyName?: string;
+   societyIds?: string[];      // array now
+    societyNames?: string[];  
 }[];
   description?: string;
 }
@@ -86,12 +86,12 @@ const [isCancelling, setIsCancelling] = useState(false);
 const [viewClassDetails, setViewClassDetails] = useState<ClassData | null>(null);
 const router = useRouter();
 // const societyId = searchParams.get("societyId") || "";
-const [slotSocietyMap, setSlotSocietyMap] = useState<Map<string, string>>(new Map());
+const [slotSocietyMap, setSlotSocietyMap] = useState<Map<string, string[]>>(new Map());
 const [currentSocietyId, setCurrentSocietyId] = useState<string>(
   searchParams.get("societyId") || ""
 );
-const [societies, setSocieties] = useState<{_id: string, name: string, city: string}[]>([]);
-
+const [selectedSocietyIds, setSelectedSocietyIds] = useState<string[]>([]);
+const [showSocietyModal, setShowSocietyModal] = useState(false);
 
   const toast = {
     success: (msg: string) => alert(msg),
@@ -487,13 +487,16 @@ useEffect(() => {
   };
 
   const handleSave = async () => {
-    if (!selectedTutor) {
-      toast.error("Please select a tutor");
-      return;
-    }
+  if (!selectedTutor) return toast.error("Please select a tutor");
+  if (slots.size === 0) return toast.error("No slots selected");
+  setShowSocietyModal(true); // show society picker before saving
+};
 
-    setSaving(true);
-    try {
+const handleSocietyConfirmAndSave = async () => {
+  if (selectedSocietyIds.length === 0) return toast.error("Select at least one society");
+  setShowSocietyModal(false);
+  setSaving(true);
+      try {
       const tutor = tutors.find((t) => t._id === selectedTutor);
       const tutorTimezone = tutor?.timezone || userTimezone;
 
@@ -555,11 +558,8 @@ useEffect(() => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          tutorId: selectedTutor,
-          slots: slotsToSave,
-          societyId: currentSocietyId 
-        }),
+          body: JSON.stringify({ tutorId: selectedTutor, slots: slotsToSave, societyIds: selectedSocietyIds })
+
       });
 
       const data = await response.json();
@@ -1223,9 +1223,9 @@ const handleConfirmCancellation = async () => {
         </div>
       ) : (
         <>
-        {status === "available" && slotSocietyMap.get(key) && (
-  <div className="text-[9px] text-purple-700 bg-purple-100 rounded px-1 mb-0.5 truncate text-center font-medium">
-    📍 {slotSocietyMap.get(key)}
+        {status === "available" && slotSocietyMap.get(key)?.length > 0 && (
+  <div className="text-[9px] text-purple-700 bg-purple-100 rounded px-1 mb-0.5 text-center font-medium truncate">
+    📍 {slotSocietyMap.get(key)?.join(", ")}
   </div>
 )}
         <select
@@ -1653,8 +1653,54 @@ const handleConfirmCancellation = async () => {
     </div>
   </div>
 )}
+{showSocietyModal && (
+  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl p-6 shadow-2xl w-full max-w-md">
+      <h2 className="text-xl font-bold mb-4">Select Societies for these Slots</h2>
+      <p className="text-sm text-gray-500 mb-4">Choose one or more societies where these slots apply</p>
+
+      <div className="space-y-2 max-h-64 overflow-y-auto">
+        {societies.map((s) => (
+          <label key={s._id} className="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 cursor-pointer border border-gray-200">
+            <input
+              type="checkbox"
+              checked={selectedSocietyIds.includes(s._id)}
+              onChange={(e) => {
+                setSelectedSocietyIds(prev =>
+                  e.target.checked
+                    ? [...prev, s._id]
+                    : prev.filter(id => id !== s._id)
+                );
+              }}
+              className="w-4 h-4 accent-purple-600"
+            />
+            <span className="text-gray-800 font-medium">{s.name}</span>
+            <span className="text-gray-400 text-sm ml-auto">{s.city}</span>
+          </label>
+        ))}
+      </div>
+
+      <div className="flex gap-3 mt-6">
+        <button
+          onClick={() => setShowSocietyModal(false)}
+          className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium text-gray-700"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={handleSocietyConfirmAndSave}
+          disabled={selectedSocietyIds.length === 0 || saving}
+          className="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium text-white disabled:opacity-50"
+        >
+          {saving ? "Saving..." : `Save for ${selectedSocietyIds.length} Society`}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
+
 };
 
 const TutorAvailabilitySlotsWrapper = () => (
