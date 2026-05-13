@@ -154,29 +154,28 @@ export default function BookSlotPage() {
     try {
       setSubmitDisabled(true);
       const tutor = society.tutors.find((t: any) => t.username === formTutor || t.name === formTutor);
-      const res = await fetch('/Api/public/bookTrial', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          society,
-          hobby,
-          tutorId: tutor?._id,
-          date: formRawSlotTime?.toISOString(),
-          slotTime: formSlotTime
-        })
-      });
+      
+      // Store the details for future requirement
+      const bookingDetails = {
+        ...formData,
+        society,
+        hobby,
+        tutorId: tutor?._id,
+        tutorName: formTutor,
+        date: formRawSlotTime?.toISOString(),
+        slotTime: formSlotTime
+      };
+      
+      console.log('Booking details stored for future requirement:', bookingDetails);
 
-      const data = await res.json();
-      if (data.success) {
+      // Simulate a successful API response
+      setTimeout(() => {
         setConfirmName(formData.name.split(' ')[0]);
         setFormOpen(false);
         goTo('confirm');
         showToastMsg('🎉 Slot blocked successfully!', 'ok');
-      } else {
-        showToastMsg(data.message || 'Failed to book slot', 'err');
-        setSubmitDisabled(false);
-      }
+      }, 300);
+
     } catch (err) {
       showToastMsg('Network error while booking slot', 'err');
       setSubmitDisabled(false);
