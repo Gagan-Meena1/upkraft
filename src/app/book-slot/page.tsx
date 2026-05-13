@@ -36,6 +36,14 @@ export default function BookSlotPage() {
     name: '', phone: '', email: '', pname: '', age: '', notes: '', consent: false
   });
   const [submitDisabled, setSubmitDisabled] = useState(true);
+  const [initialFormOpen, setInitialFormOpen] = useState(true);
+  
+  const initialSubmitDisabled = !(
+    formData.name.trim().length >= 2 &&
+    formData.phone.trim().length === 10 &&
+    formData.pname.trim().length >= 2 &&
+    Number(formData.age) > 0
+  );
   
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [confirmName, setConfirmName] = useState('');
@@ -139,7 +147,6 @@ export default function BookSlotPage() {
     setFormTutor(tutorName);
     setFormSlotTime(slotTime);
     setFormRawSlotTime(rawSlotStartTime);
-    setFormData({ name: '', phone: '', email: '', pname: '', age: '', notes: '', consent: false });
     setFormOpen(true);
   };
 
@@ -633,22 +640,14 @@ export default function BookSlotPage() {
         </div>
       )}
 
-      {/* FORM OVERLAY */}
-      {formOpen && society && hobby && (
-        <div className="overlay show" onClick={(e) => { if (e.target === e.currentTarget) setFormOpen(false); }}>
-          <div className="sheet">
-            <div className="sheet-handle"></div>
+      {/* INITIAL FORM OVERLAY */}
+      {initialFormOpen && (
+        <div className="overlay show" style={{ backdropFilter: 'blur(5px)' }}>
+          <div className="sheet" style={{ maxWidth: '500px', margin: 'auto' }}>
             <div className="sheet-head">
-              <span className="sheet-title">Block Free Trial Slot</span>
-              <button className="sheet-close" onClick={() => setFormOpen(false)}>✕</button>
+              <span className="sheet-title">Enter Details</span>
             </div>
-            <p className="sheet-sub">Reserving {formSlotTime} at {society.name}</p>
-            <div className="booking-pill">
-              <div className="bp-item"><div className="bpl">Hobby</div><div className="bpv">{hobby.emoji} {hobby.name}</div></div>
-              <div className="bp-item"><div className="bpl">Tutor</div><div className="bpv">{formTutor}</div></div>
-              <div className="bp-item"><div className="bpl">Day &amp; Date</div><div className="bpv">{currentWeek[day].label}</div></div>
-              <div className="bp-item"><div className="bpl">Slot Time</div><div className="bpv green">{formSlotTime}</div></div>
-            </div>
+            <p className="sheet-sub">Please fill in your details to continue.</p>
             
             <div className="form-row">
               <div className="flabel">Your Name <span className="req">*</span></div>
@@ -674,30 +673,36 @@ export default function BookSlotPage() {
                 <input className="finput" placeholder="e.g. 10" type="number" min={1} max={99} value={formData.age} onChange={e => setFormData({ ...formData, age: e.target.value })} />
               </div>
             </div>
-            <div className="form-row two">
-              <div>
-                <div className="flabel">Society</div>
-                <input className="finput" readOnly value={society.name} />
-              </div>
-              <div>
-                <div className="flabel">Hobby</div>
-                <input className="finput" readOnly value={hobby.name} />
-              </div>
-            </div>
-            <div className="form-row two">
-              <div>
-                <div className="flabel">Tutor</div>
-                <input className="finput" readOnly value={formTutor} />
-              </div>
-              <div>
-                <div className="flabel">Slot</div>
-                <input className="finput" readOnly value={`${currentWeek[day].label} · ${formSlotTime}`} />
-              </div>
-            </div>
             <div className="form-row">
               <div className="flabel">Notes</div>
               <textarea className="finput ta" rows={2} placeholder="Special requirements? (optional)" maxLength={250} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })}></textarea>
             </div>
+            
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button className="submit-btn" style={{ background: '#f5f5fa', color: 'var(--muted)', border: '1px solid var(--border2)' }} onClick={() => window.location.href = '/'}>Cancel</button>
+              <button className="submit-btn" disabled={initialSubmitDisabled} onClick={() => setInitialFormOpen(false)}>Submit</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FINAL BOOKING FORM OVERLAY */}
+      {formOpen && society && hobby && (
+        <div className="overlay show" onClick={(e) => { if (e.target === e.currentTarget) setFormOpen(false); }}>
+          <div className="sheet" style={{ maxWidth: '500px', margin: 'auto' }}>
+            <div className="sheet-handle"></div>
+            <div className="sheet-head">
+              <span className="sheet-title">Block Free Trial Slot</span>
+              <button className="sheet-close" onClick={() => setFormOpen(false)}>✕</button>
+            </div>
+            <p className="sheet-sub">Reserving {formSlotTime} at {society.name}</p>
+            <div className="booking-pill">
+              <div className="bp-item"><div className="bpl">Hobby</div><div className="bpv">{hobby.emoji} {hobby.name}</div></div>
+              <div className="bp-item"><div className="bpl">Tutor</div><div className="bpv">{formTutor}</div></div>
+              <div className="bp-item"><div className="bpl">Day &amp; Date</div><div className="bpv">{currentWeek[day].label}</div></div>
+              <div className="bp-item"><div className="bpl">Slot Time</div><div className="bpv green">{formSlotTime}</div></div>
+            </div>
+            
             <div className="consent-row">
               <input type="checkbox" id="f-consent" checked={formData.consent} onChange={e => setFormData({ ...formData, consent: e.target.checked })} />
               <label htmlFor="f-consent">I agree to be contacted by the UpKraft team for trial class confirmation and updates.</label>
