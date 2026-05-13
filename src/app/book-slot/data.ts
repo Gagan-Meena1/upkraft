@@ -37,15 +37,25 @@ export const TUTORS: Record<number, any[]> = {
 };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const DAYS_SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-const DAYS_FULL  = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
-const START = new Date(2026,4,12); // Mon 12 May 2026
+const DAYS_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DAYS_FULL  = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 
 export function generateWeek(offsetWeeks: number = 0) {
-  return DAYS_SHORT.map((d,i)=>{
+  const START = new Date();
+  START.setHours(0, 0, 0, 0);
+  
+  return Array.from({length: 7}).map((_, i) => {
     const dt = new Date(START); 
     dt.setDate(START.getDate() + (offsetWeeks * 7) + i);
-    return {short:d, full:DAYS_FULL[i], num:dt.getDate(), mon:MONTHS[dt.getMonth()], label:`${DAYS_FULL[i]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}`, date: dt};
+    const dayOfWeek = dt.getDay();
+    return {
+      short: DAYS_SHORT[dayOfWeek], 
+      full: DAYS_FULL[dayOfWeek], 
+      num: dt.getDate(), 
+      mon: MONTHS[dt.getMonth()], 
+      label: `${DAYS_FULL[dayOfWeek]}, ${dt.getDate()} ${MONTHS[dt.getMonth()]}`, 
+      date: dt
+    };
   });
 }
 
