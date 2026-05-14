@@ -49,6 +49,7 @@ export default function BookSlotPage() {
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [confirmName, setConfirmName] = useState('');
   const [showCustomSocietyModal, setShowCustomSocietyModal] = useState(false);
+  const [showCallbackModal, setShowCallbackModal] = useState(false);
 
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -634,14 +635,15 @@ export default function BookSlotPage() {
             <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>Tap a slot to book your free trial</span>
           </div>
 
-          <p style={{ fontSize: 11, color: 'var(--muted)', padding: '8px 22px 0', margin: 0 }}>Each class is 45 minutes long.</p>
-          <div className="slot-filters">
+          <p style={{ fontSize: 11, color: 'var(--muted)', padding: '8px 22px 0', margin: 0 }}>Slots not working? Request a callback</p>
+          <div className="slot-filters" style={{ flexWrap: 'wrap' }}>
             <span className="sf-label">Filter</span>
-            <div className="sf-chips">
+            <div className="sf-chips" style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
               <button className={`sf-chip ${timeFilter === 'all' ? 'active' : ''}`} onClick={() => setTimeFilter('all')}>All Times</button>
               <button className={`sf-chip ${timeFilter === 'morning' ? 'active' : ''}`} onClick={() => setTimeFilter('morning')}>🌅 Morning (10am–12pm)</button>
               <button className={`sf-chip ${timeFilter === 'afternoon' ? 'active' : ''}`} onClick={() => setTimeFilter('afternoon')}>☀️ Afternoon (12pm–5pm)</button>
               <button className={`sf-chip ${timeFilter === 'evening' ? 'active' : ''}`} onClick={() => setTimeFilter('evening')}>🌆 Evening (5pm–9pm)</button>
+              <button className="sf-chip" style={{ marginLeft: 'auto', background: 'var(--primary-lite)', color: 'var(--primary)', borderColor: 'var(--primary-glow)' }} onClick={() => { setShowCallbackModal(true); setTimeout(() => setShowCallbackModal(false), 3000); }}>📞 Request A Call</button>
             </div>
           </div>
 
@@ -767,6 +769,17 @@ export default function BookSlotPage() {
             <div style={{ fontSize: '48px', marginBottom: '16px' }}>😀</div>
             <h3 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px', color: 'var(--text)' }}>We Received your details!</h3>
             <p style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: '1.5', margin: 0 }}>Our Team will get back to you shortly.</p>
+          </div>
+        </div>
+      )}
+
+      {/* CALLBACK SUCCESS MODAL */}
+      {showCallbackModal && (
+        <div className="overlay show" style={{ backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', padding: '32px 24px', borderRadius: '24px', textAlign: 'center', maxWidth: '320px', width: '90%', animation: 'popIn 0.4s ease', boxShadow: '0 12px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📞</div>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px', color: 'var(--text)' }}>We Received your details!</h3>
+            <p style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: '1.5', margin: 0 }}>Our Team will call you shortly.</p>
           </div>
         </div>
       )}
