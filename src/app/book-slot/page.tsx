@@ -48,6 +48,7 @@ export default function BookSlotPage() {
   
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [confirmName, setConfirmName] = useState('');
+  const [showCustomSocietyModal, setShowCustomSocietyModal] = useState(false);
 
   const searchRef = useRef<HTMLDivElement>(null);
 
@@ -141,6 +142,15 @@ export default function BookSlotPage() {
     setHobby(h);
     setDay(0);
     setTimeFilter('all');
+    
+    if (society && typeof society.id === 'string' && society.id.startsWith('custom-')) {
+      setShowCustomSocietyModal(true);
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 3000);
+      return;
+    }
+
     goTo('slots');
   };
 
@@ -746,6 +756,17 @@ export default function BookSlotPage() {
               <label htmlFor="f-consent">I agree to be contacted by the UpKraft team for trial class confirmation and updates.</label>
             </div>
             <button className="submit-btn" disabled={submitDisabled} onClick={submitForm}>Confirm Free Trial →</button>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM SOCIETY SUCCESS MODAL */}
+      {showCustomSocietyModal && (
+        <div className="overlay show" style={{ backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', padding: '32px 24px', borderRadius: '24px', textAlign: 'center', maxWidth: '320px', width: '90%', animation: 'popIn 0.4s ease', boxShadow: '0 12px 40px rgba(0,0,0,0.15)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>😀</div>
+            <h3 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px', color: 'var(--text)' }}>We Received your details!</h3>
+            <p style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: '1.5', margin: 0 }}>Our Team will get back to you shortly.</p>
           </div>
         </div>
       )}
