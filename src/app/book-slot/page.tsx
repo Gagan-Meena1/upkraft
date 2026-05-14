@@ -473,7 +473,7 @@ export default function BookSlotPage() {
                     role="button"
                     tabIndex={0}
                   >
-                    <span>😕</span><span>No societies found! <strong style={{ color: 'var(--primary)' }}>Add Yours</strong></span>
+                    <span></span><span><strong style={{ color: 'var(--primary)' }}>Add Your Society</strong></span>
                   </div>
                 </div>
               )}
@@ -649,7 +649,7 @@ export default function BookSlotPage() {
               <button className={`sf-chip ${timeFilter === 'morning' ? 'active' : ''}`} onClick={() => setTimeFilter('morning')}>🌅 Morning (10am–12pm)</button>
               <button className={`sf-chip ${timeFilter === 'afternoon' ? 'active' : ''}`} onClick={() => setTimeFilter('afternoon')}>☀️ Afternoon (12pm–5pm)</button>
               <button className={`sf-chip ${timeFilter === 'evening' ? 'active' : ''}`} onClick={() => setTimeFilter('evening')}>🌆 Evening (5pm–9pm)</button>
-              <button className="sf-chip" style={{ marginLeft: 'auto', background: 'var(--primary-lite)', color: 'var(--primary)', borderColor: 'var(--primary-glow)' }} onClick={() => { setShowCallbackModal(true); setTimeout(() => setShowCallbackModal(false), 3000); }}>📞 Request A Call</button>
+              <button className="sf-chip" style={{ marginLeft: 'auto', background: 'var(--primary-lite)', color: 'var(--primary)', borderColor: 'var(--primary-glow)' }} onClick={() => { setShowCallbackModal(true); setTimeout(() => setShowCallbackModal(false), 3000); }}>📞 Request Callback</button>
             </div>
           </div>
 
