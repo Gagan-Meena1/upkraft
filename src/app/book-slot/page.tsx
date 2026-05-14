@@ -449,8 +449,14 @@ export default function BookSlotPage() {
               )}
               {showSuggestions && suggestions.length === 0 && searchQuery.trim().length >= 2 && (
                 <div className="suggestions" style={{ display: 'block' }}>
-                  <div className="sug-item" style={{ color: 'var(--muted)', cursor: 'default' }}>
-                    <span>😕</span><span>No societies found.</span>
+                  <div 
+                    className="sug-item" 
+                    style={{ cursor: 'pointer', color: 'var(--text)' }}
+                    onClick={() => selectSociety({ id: 'custom-' + Date.now(), name: searchQuery, city: city, isPopular: false, tutors: [], hobbies: 5, units: 1000 })}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <span>😕</span><span>No societies found! <strong style={{ color: 'var(--primary)' }}>Add Yours</strong></span>
                   </div>
                 </div>
               )}
