@@ -167,27 +167,33 @@ export default function BookSlotPage() {
       setSubmitDisabled(true);
       const tutor = society.tutors.find((t: any) => t.username === formTutor || t.name === formTutor);
       
-      // Store the details for future requirement
       const bookingDetails = {
         ...formData,
         society,
         hobby,
-        tutorId: tutor?._id,
+        tutorId: tutor?._id || tutor?.id,
         tutorName: formTutor,
         date: formRawSlotTime?.toISOString(),
         slotTime: formSlotTime
       };
       
-      console.log('Booking details stored for future requirement:', bookingDetails);
-
-      // Simulate a successful API response
-      setTimeout(() => {
+      const res = await fetch('/Api/public/bookTrial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingDetails)
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
         setConfirmName(formData.name.split(' ')[0]);
         setFormOpen(false);
         goTo('confirm');
         showToastMsg('🎉 Slot blocked successfully!', 'ok');
-      }, 300);
-
+      } else {
+        showToastMsg(data.message || 'Error booking slot', 'err');
+        setSubmitDisabled(false);
+      }
     } catch (err) {
       showToastMsg('Network error while booking slot', 'err');
       setSubmitDisabled(false);
@@ -742,22 +748,41 @@ export default function BookSlotPage() {
           <div className="sheet" style={{ maxWidth: '500px', margin: 'auto' }}>
             <div className="sheet-handle"></div>
             <div className="sheet-head">
-              <span className="sheet-title">Block Free Trial Slot</span>
+              <span className="sheet-title">Preview & Book Slot</span>
               <button className="sheet-close" onClick={() => setFormOpen(false)}>✕</button>
             </div>
-            <p className="sheet-sub">Reserving {formSlotTime} at {society.name}</p>
-            <div className="booking-pill">
-              <div className="bp-item"><div className="bpl">Hobby</div><div className="bpv">{hobby.emoji} {hobby.name}</div></div>
-              <div className="bp-item"><div className="bpl">Tutor</div><div className="bpv">{formTutor}</div></div>
-              <div className="bp-item"><div className="bpl">Day &amp; Date</div><div className="bpv">{currentWeek[day].label}</div></div>
-              <div className="bp-item"><div className="bpl">Slot Time</div><div className="bpv green">{formSlotTime}</div></div>
+            <p className="sheet-sub">Please review your details before confirming.</p>
+            <div className="booking-pill" style={{ gridTemplateColumns: '1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="bp-item"><div className="bpl">Participant</div><div className="bpv">{formData.pname} ({formData.age} yrs)</div></div>
+                <div className="bp-item"><div className="bpl">Your Name</div><div className="bpv">{formData.name}</div></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="bp-item"><div className="bpl">Phone</div><div className="bpv">{formData.phone}</div></div>
+                <div className="bp-item"><div className="bpl">Email</div><div className="bpv">{formData.email || '-'}</div></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="bp-item"><div className="bpl">Location</div><div className="bpv">{society.name}, {city}</div></div>
+                <div className="bp-item"><div className="bpl">Hobby</div><div className="bpv">{hobby.emoji} {hobby.name}</div></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div className="bp-item"><div className="bpl">Tutor</div><div className="bpv">{formTutor}</div></div>
+                <div className="bp-item"><div className="bpl">Time Slot</div><div className="bpv green">{currentWeek[day].label}<br/>{formSlotTime}</div></div>
+              </div>
+              {formData.notes && (
+                <div className="bp-item" style={{ marginTop: '4px' }}><div className="bpl">Notes</div><div className="bpv" style={{ fontWeight: 'normal', fontSize: '12px' }}>{formData.notes}</div></div>
+              )}
             </div>
             
             <div className="consent-row">
               <input type="checkbox" id="f-consent" checked={formData.consent} onChange={e => setFormData({ ...formData, consent: e.target.checked })} />
               <label htmlFor="f-consent">I agree to be contacted by the UpKraft team for trial class confirmation and updates.</label>
             </div>
-            <button className="submit-btn" disabled={submitDisabled} onClick={submitForm}>Confirm Free Trial →</button>
+            
+            <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+              <button className="submit-btn" style={{ background: '#f5f5fa', color: 'var(--muted)', border: '1px solid var(--border2)' }} onClick={() => setFormOpen(false)}>Cancel</button>
+              <button className="submit-btn" disabled={submitDisabled} onClick={submitForm}>Book A Slot</button>
+            </div>
           </div>
         </div>
       )}
