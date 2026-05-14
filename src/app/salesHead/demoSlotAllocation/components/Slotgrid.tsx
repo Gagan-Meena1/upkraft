@@ -219,12 +219,6 @@ const SlotGrid = ({
                         </div>
                       ) : (
                         <>
-                          {status === "available" &&
-                            (slotSocietyMap.get(key) ?? []).length > 0 && (
-                              <div className="text-[9px] text-purple-700 bg-purple-100 rounded px-1 mb-0.5 text-center font-medium truncate">
-                                📍 {slotSocietyMap.get(key)?.join(", ")}
-                              </div>
-                            )}
                           <select
                             value={status}
                             onChange={(e) => {
@@ -237,7 +231,9 @@ const SlotGrid = ({
                               }
                             }}
                             className={`w-full px-2 py-1.5 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 border ${
-                              status === "available"
+                              selectedSlots.has(key)
+                                ? "bg-yellow-100 text-yellow-800 border-yellow-400 ring-2 ring-yellow-300"
+                                : status === "available"
                                 ? "bg-green-100 text-green-800 border-green-300"
                                 : "bg-gray-100 text-gray-600 border-gray-300"
                             }`}
@@ -248,6 +244,20 @@ const SlotGrid = ({
                               <option value="create-class">+ Create Class</option>
                             )}
                           </select>
+
+                          {/* Society tooltip on hover */}
+                          {status === "available" &&
+                            (slotSocietyMap.get(key) ?? []).length > 0 && (
+                              <div className="group/soc absolute bottom-0 right-0.5 z-10">
+                                <div className="w-3 h-3 rounded-full bg-purple-500 border border-white cursor-pointer" />
+                                <div className="hidden group-hover/soc:block absolute z-20 bottom-full right-0 mb-1 w-40 p-2 bg-gray-900 text-white text-[11px] rounded-lg shadow-lg">
+                                  <div className="font-semibold mb-1 text-purple-300">📍 Societies</div>
+                                  {slotSocietyMap.get(key)?.map((name, i) => (
+                                    <div key={i} className="py-0.5">{name}</div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                         </>
                       )}
                     </div>
@@ -260,18 +270,26 @@ const SlotGrid = ({
       </div>
 
       {/* Legend */}
-      <div className="mt-6 flex gap-4 justify-center flex-wrap">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-green-100 border border-green-300 rounded" />
-          <span className="text-sm text-gray-600">Available</span>
+      <div className="mt-4 flex gap-3 sm:gap-4 justify-center flex-wrap text-xs sm:text-sm">
+        <div className="flex items-center gap-1.5">
+          <div className="w-3.5 h-3.5 bg-green-100 border border-green-300 rounded" />
+          <span className="text-gray-600">Available</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-blue-500 border border-blue-600 rounded" />
-          <span className="text-sm text-gray-600">Scheduled Class</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3.5 h-3.5 bg-yellow-100 border-2 border-yellow-400 rounded" />
+          <span className="text-gray-600">Selected (unsaved)</span>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 bg-gray-100 border border-gray-300 rounded" />
-          <span className="text-sm text-gray-600">Unavailable</span>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3.5 h-3.5 bg-blue-500 border border-blue-600 rounded" />
+          <span className="text-gray-600">Scheduled Class</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3.5 h-3.5 bg-gray-100 border border-gray-300 rounded" />
+          <span className="text-gray-600">Unavailable</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3 h-3 rounded-full bg-purple-500" />
+          <span className="text-gray-600">Has Societies (hover)</span>
         </div>
       </div>
     </div>

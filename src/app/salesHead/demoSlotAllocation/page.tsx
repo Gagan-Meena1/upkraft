@@ -299,11 +299,24 @@ useEffect(() => {
       setSelectedSlots(newSelected);
       setSlots(newSlots);
     } else {
-      // Open society popup — user must pick societies before slot is marked available
-      setPendingSlotInfo({ date, hour });
-      setSelectedSocietyIds([]);
-      setShowSocietyModal(true);
+      // Mark as selected — user will click "Save Slots" to pick societies
+      const newSlots = new Map(slots);
+      newSlots.set(key, "available");
+      const newSelected = new Set(selectedSlots);
+      newSelected.add(key);
+      setSelectedSlots(newSelected);
+      setSlots(newSlots);
     }
+  };
+
+  // Open society popup for all selected slots
+  const handleSaveSelectedSlots = () => {
+    if (!selectedTutor) return alert("Please select a tutor");
+    if (selectedSlots.size === 0) return alert("Please select at least one slot");
+    setPendingSlotInfo(null);
+    setPendingRepeatSlots(new Set());
+    setSelectedSocietyIds([]);
+    setShowSocietyModal(true);
   };
 
  const handleOpenRepeatModal = () => {
@@ -441,12 +454,17 @@ useEffect(() => {
       currentDate = addDays(currentDate, 1);
     }
 
-    // Store the repeated slot keys and open society popup
+    // Store the repeated slot keys — mark them as selected, don't open popup yet
+    const newSlots = new Map(slots);
+    const newSelected = new Set(selectedSlots);
+    generatedSlotKeys.forEach((key) => {
+      newSlots.set(key, "available");
+      newSelected.add(key);
+    });
+    setSlots(newSlots);
+    setSelectedSlots(newSelected);
     setShowRepeatModal(false);
-    setPendingRepeatSlots(generatedSlotKeys);
-    setPendingSlotInfo(null); // not a single slot
-    setSelectedSocietyIds([]);
-    setShowSocietyModal(true);
+    alert(`${generatedSlotKeys.size} slots added. Click "Save Slots" to assign societies.`);
   };
 
   // Convert slot keys to API-ready slot objects
@@ -479,22 +497,14 @@ useEffect(() => {
     if (selectedSocietyIds.length === 0) return toast.error("Select at least one society");
     if (!selectedTutor) return toast.error("Please select a tutor");
 
+    // Save ALL selected slots with the chosen societies
+    const slotsToSave = slotKeysToApiSlots(selectedSlots);
+    if (slotsToSave.length === 0) return toast.error("No slots to save");
+
     setSaving(true);
     setShowSocietyModal(false);
 
     try {
-      let slotsToSave: { startTime: string; endTime: string }[];
-
-      if (pendingSlotInfo) {
-        // Single slot save
-        slotsToSave = slotKeysToApiSlots([`${pendingSlotInfo.date}-${pendingSlotInfo.hour}`]);
-      } else if (pendingRepeatSlots.size > 0) {
-        // Repeat pattern save
-        slotsToSave = slotKeysToApiSlots(pendingRepeatSlots);
-      } else {
-        return toast.error("No slots to save");
-      }
-
       const response = await fetch("/Api/salesHead/demoSlots", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -847,6 +857,15 @@ const handleConfirmCancellation = async () => {
               >
                 🔁 Repeat Slots
               </button>
+              {selectedSlots.size > 0 && (
+                <button
+                  onClick={handleSaveSelectedSlots}
+                  disabled={saving}
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors disabled:bg-gray-400"
+                >
+                  💾 Save {selectedSlots.size} Slot{selectedSlots.size !== 1 ? "s" : ""}
+                </button>
+              )}
             </div>
           )}
         </div>
