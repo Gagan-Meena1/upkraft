@@ -635,7 +635,7 @@ export default function BookSlotPage() {
             <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>Tap a slot to book your free trial</span>
           </div>
 
-          <p style={{ fontSize: 11, color: 'var(--muted)', padding: '8px 22px 0', margin: 0 }}>Slots not working? Request a callback</p>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', padding: '12px 22px 0', margin: 0 }}>💡 Slots not working? Request a callback</p>
           <div className="slot-filters" style={{ flexWrap: 'wrap' }}>
             <span className="sf-label">Filter</span>
             <div className="sf-chips" style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
