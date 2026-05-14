@@ -4,10 +4,16 @@ export interface IRegistration extends Document {
   userType: 'Student' | 'Tutor';
   name: string;
   city: string;
+  societyName?: string | null;
   contactNumber: string;
   countryCode: string;
   email: string;
   instrument: string;
+  participantName?: string | null;
+  age?: number | null;
+  notes?: string | null;
+  payment?: { amount: number; status: string };
+  status?: string;
   tutorName?: string | null;
   demoDate?: string | null;
   demoTime?: string | null;
@@ -34,6 +40,7 @@ const RegistrationSchema: Schema = new Schema(
       required: [true, 'City is required'],
       trim: true,
     },
+    societyName: { type: String, trim: true, default: null },
     contactNumber: {
       type: String,
       required: [true, 'Contact number is required'],
@@ -54,9 +61,21 @@ const RegistrationSchema: Schema = new Schema(
       required: [true, 'Instrument is required'],
       trim: true,
     },
-    tutorName: {
+    participantName: { type: String, trim: true, default: null },
+    age: { type: Number, default: null },
+    notes: { type: String, trim: true, default: null },
+    payment: {
+      amount: { type: Number, default: 0 },
+      status: { type: String, enum: ['Done', 'Pending'], default: 'Pending' }
+    },
+    status: {
       type: String,
-      trim: true,
+      enum: ['Done', 'Pending', 'Cancelled', 'Overdue'],
+      default: 'Pending'
+    },
+    tutorName: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'users',
       default: null,
     },
     demoDate: { type: String, default: null },

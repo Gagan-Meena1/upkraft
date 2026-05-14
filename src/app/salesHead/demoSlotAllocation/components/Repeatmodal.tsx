@@ -1,207 +1,235 @@
 import React from "react";
-import { X, Repeat, Calendar, Eye } from "lucide-react";
+import { X } from "lucide-react";
+import { format, parseISO, addDays } from "date-fns";
 
 interface RepeatModalProps {
-  selectedSlots: Set<string>;
-  repeatType: "daily" | "weekly";
-  selectedDays: number[];
-  repeatStartDate: string;
-  repeatEndDate: string;
-  onRepeatTypeChange: (type: "daily" | "weekly") => void;
-  onToggleDay: (day: number) => void;
-  onStartDateChange: (date: string) => void;
-  onEndDateChange: (date: string) => void;
-  onApply: () => void;
-  onClose: () => void;
-  getPreviewSlots: () => string[];
-  getAllowedDays: () => number[];
+    selectedSlots: Set<string>;
+    repeatType: "daily" | "weekly";
+    setRepeatType: (type: "daily" | "weekly") => void;
+    selectedDays: number[];
+    repeatStartDate: string;
+    setRepeatStartDate: (date: string) => void;
+    repeatEndDate: string;
+    setRepeatEndDate: (date: string) => void;
+    onClose: () => void;
+    onApply: () => void;
+    getAllowedDaysFromSelectedSlots: () => number[];
+    toggleDay: (day: number) => void;
 }
 
-const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
 const RepeatModal = ({
-  selectedSlots,
-  repeatType,
-  selectedDays,
-  repeatStartDate,
-  repeatEndDate,
-  onRepeatTypeChange,
-  onToggleDay,
-  onStartDateChange,
-  onEndDateChange,
-  onApply,
-  onClose,
-  getPreviewSlots,
-  getAllowedDays,
+    selectedSlots,
+    repeatType,
+    setRepeatType,
+    selectedDays,
+    repeatStartDate,
+    setRepeatStartDate,
+    repeatEndDate,
+    setRepeatEndDate,
+    onClose,
+    onApply,
+    getAllowedDaysFromSelectedSlots,
+    toggleDay,
 }: RepeatModalProps) => {
-  const previewSlots = getPreviewSlots();
-  const allowedDays = getAllowedDays();
+    const getPreviewSlots = (): string[] => {
+        if (!repeatStartDate || !repeatEndDate || selectedSlots.size === 0) return [];
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-purple-50/80 via-indigo-50/80 to-white/80 backdrop-blur-lg rounded-2xl p-6 sm:p-8 shadow-2xl w-full max-w-lg border border-white/20">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-purple-100 p-2 rounded-lg">
-              <Repeat className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-                Repeat Slots
-              </h2>
-              <p className="text-sm text-gray-500 mt-0.5">
-                {selectedSlots.size} slot{selectedSlots.size !== 1 ? "s" : ""}{" "}
-                selected
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-black/5 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+        const preview: string[] = [];
+        const startDate = parseISO(repeatStartDate);
+        const endDate = parseISO(repeatEndDate);
+        let current = new Date(startDate);
 
-        <div className="space-y-5">
-          {/* Repeat Type */}
-          <div>
-            <label className="block text-gray-600 mb-2 text-sm font-medium">
-              Repeat Type
-            </label>
-            <div className="flex gap-3">
-              <button
-                onClick={() => onRepeatTypeChange("daily")}
-                className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all text-sm ${
-                  repeatType === "daily"
-                    ? "bg-purple-600 text-white shadow-md"
-                    : "bg-white/50 text-gray-600 border border-gray-300/70 hover:bg-white/80"
-                }`}
-              >
-                Daily
-              </button>
-              <button
-                onClick={() => onRepeatTypeChange("weekly")}
-                className={`flex-1 py-2.5 px-4 rounded-lg font-medium transition-all text-sm ${
-                  repeatType === "weekly"
-                    ? "bg-purple-600 text-white shadow-md"
-                    : "bg-white/50 text-gray-600 border border-gray-300/70 hover:bg-white/80"
-                }`}
-              >
-                Weekly
-              </button>
-            </div>
-          </div>
+        while (current <= endDate) {
+            const dayOfWeek = current.getDay();
+            const shouldInclude = repeatType === "daily" || selectedDays.includes(dayOfWeek);
 
-          {/* Day Selector (weekly only) */}
-          {repeatType === "weekly" && (
-            <div>
-              <label className="block text-gray-600 mb-2 text-sm font-medium">
-                Repeat on Days
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {DAY_LABELS.map((label, index) => {
-                  const isAllowed = allowedDays.includes(index);
-                  const isSelected = selectedDays.includes(index);
+            if (shouldInclude) {
+                selectedSlots.forEach((key) => {
+                    const parts = key.split("-");
+                    const originalDate = parts.slice(0, 3).join("-");
+                    const hour = parseInt(parts[parts.length - 1]);
+                    const originalDayOfWeek = parseISO(originalDate).getDay();
 
-                  return (
-                    <button
-                      key={index}
-                      onClick={() => onToggleDay(index)}
-                      disabled={!isAllowed}
-                      className={`w-11 h-11 rounded-lg text-xs font-semibold transition-all ${
-                        isSelected
-                          ? "bg-purple-600 text-white shadow-md"
-                          : isAllowed
-                          ? "bg-white/50 text-gray-600 border border-gray-300/70 hover:bg-white/80"
-                          : "bg-gray-100 text-gray-300 border border-gray-200 cursor-not-allowed"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+                    if (repeatType === "daily" || originalDayOfWeek === dayOfWeek) {
+                        const dateStr = format(current, "yyyy-MM-dd");
+                        preview.push(`${dateStr} ${String(hour).padStart(2, "0")}:00`);
+                    }
+                });
+            }
 
-          {/* Date Range */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-gray-600 mb-2 text-sm font-medium">
-                <Calendar className="w-3.5 h-3.5 inline mr-1" />
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={repeatStartDate}
-                onChange={(e) => onStartDateChange(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-gray-600 mb-2 text-sm font-medium">
-                <Calendar className="w-3.5 h-3.5 inline mr-1" />
-                End Date
-              </label>
-              <input
-                type="date"
-                value={repeatEndDate}
-                onChange={(e) => onEndDateChange(e.target.value)}
-                min={repeatStartDate}
-                className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all text-sm"
-              />
-            </div>
-          </div>
+            current = addDays(current, 1);
+        }
 
-          {/* Preview */}
-          {previewSlots.length > 0 && (
-            <div>
-              <label className="block text-gray-600 mb-2 text-sm font-medium">
-                <Eye className="w-3.5 h-3.5 inline mr-1" />
-                Preview ({previewSlots.length} slots)
-              </label>
-              <div className="max-h-32 overflow-y-auto bg-white/50 rounded-lg border border-gray-300/70 p-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {previewSlots.slice(0, 50).map((slot, i) => (
-                    <span
-                      key={i}
-                      className="inline-block bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-md font-medium"
-                    >
-                      {slot}
-                    </span>
-                  ))}
-                  {previewSlots.length > 50 && (
-                    <span className="inline-block text-gray-500 text-xs px-2 py-1">
-                      +{previewSlots.length - 50} more...
-                    </span>
-                  )}
+        return preview;
+    };
+
+    const previewSlots = getPreviewSlots();
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold text-gray-900">Apply Repeat Pattern</h2>
+                        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {/* Selected Slots Preview */}
+                    <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                        <h3 className="font-semibold text-blue-900 mb-2">
+                            Selected Slots ({selectedSlots.size})
+                        </h3>
+                        <div className="text-sm text-blue-700 max-h-32 overflow-y-auto">
+                            {Array.from(selectedSlots)
+                                .sort()
+                                .slice(0, 10)
+                                .map((key) => {
+                                    const parts = key.split("-");
+                                    const date = parts.slice(0, 3).join("-");
+                                    const hour = parseInt(parts[parts.length - 1]);
+                                    const dayName = format(parseISO(date), "EEE, MMM d");
+                                    return (
+                                        <div key={key}>
+                                            {dayName} - {String(hour).padStart(2, "0")}:00
+                                        </div>
+                                    );
+                                })}
+                            {selectedSlots.size > 10 && (
+                                <div className="text-blue-600 font-medium mt-1">
+                                    ...and {selectedSlots.size - 10} more
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Repeat Type */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Repeat Pattern
+                        </label>
+                        <div className="flex gap-4">
+                            {(["daily", "weekly"] as const).map((type) => (
+                                <label key={type} className="flex items-center">
+                                    <input
+                                        type="radio"
+                                        value={type}
+                                        checked={repeatType === type}
+                                        onChange={() => setRepeatType(type)}
+                                        className="mr-2"
+                                    />
+                                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Day selector */}
+                    {repeatType === "weekly" && (
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                Repeat on Days (Only days from your selected slots)
+                            </label>
+                            <div className="flex gap-2 flex-wrap">
+                                {[
+                                    { value: 0, label: "Sun" },
+                                    { value: 1, label: "Mon" },
+                                    { value: 2, label: "Tue" },
+                                    { value: 3, label: "Wed" },
+                                    { value: 4, label: "Thu" },
+                                    { value: 5, label: "Fri" },
+                                    { value: 6, label: "Sat" },
+                                ].map((day) => {
+                                    const allowedDays = getAllowedDaysFromSelectedSlots();
+                                    const isAllowed = allowedDays.includes(day.value);
+                                    const isSelected = selectedDays.includes(day.value);
+
+                                    return (
+                                        <button
+                                            key={day.value}
+                                            onClick={() => toggleDay(day.value)}
+                                            disabled={!isAllowed}
+                                            title={!isAllowed ? "This day is not in your selected slots" : ""}
+                                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${isSelected
+                                                ? "bg-purple-600 text-white ring-2 ring-purple-400"
+                                                : isAllowed
+                                                    ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                                    : "bg-gray-100 text-gray-400 cursor-not-allowed opacity-50"
+                                                }`}
+                                        >
+                                            {day.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <p className="text-xs text-gray-600 mt-2">
+                                ℹ️ You can only select days that match your originally selected time slots
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Date Range */}
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                            <input
+                                type="date"
+                                value={repeatStartDate}
+                                onChange={(e) => setRepeatStartDate(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                            <input
+                                type="date"
+                                value={repeatEndDate}
+                                onChange={(e) => setRepeatEndDate(e.target.value)}
+                                min={repeatStartDate}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Preview */}
+                    {repeatStartDate && repeatEndDate && (
+                        <div className="mb-6 p-4 bg-green-50 rounded-lg">
+                            <h3 className="font-semibold text-green-900 mb-2">
+                                Preview: {previewSlots.length} slots will be created
+                            </h3>
+                            <div className="text-sm text-green-700 max-h-48 overflow-y-auto">
+                                {previewSlots.slice(0, 20).map((slot, idx) => (
+                                    <div key={idx}>{slot}</div>
+                                ))}
+                                {previewSlots.length > 20 && (
+                                    <div className="text-green-600 font-medium mt-1">
+                                        ...and {previewSlots.length - 20} more
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="flex gap-3 justify-end">
+                        <button
+                            onClick={onClose}
+                            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onApply}
+                            disabled={!repeatStartDate || !repeatEndDate}
+                            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        >
+                            Apply Pattern
+                        </button>
+                    </div>
                 </div>
-              </div>
             </div>
-          )}
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-2">
-            <button
-              onClick={onClose}
-              className="flex-1 py-3 px-4 bg-gray-200 hover:bg-gray-300 rounded-lg font-semibold text-gray-700 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onApply}
-              disabled={!repeatStartDate || !repeatEndDate}
-              className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 rounded-lg font-semibold text-white shadow-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Apply Pattern
-            </button>
-          </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default RepeatModal;

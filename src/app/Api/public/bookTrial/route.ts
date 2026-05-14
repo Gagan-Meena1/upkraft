@@ -17,8 +17,12 @@ export async function POST(request: NextRequest) {
     // 1. Save Lead in Registration
     const reg = new Registration({
       userType: 'Student',
-      name: pname || name,
+      name: name,
+      participantName: pname,
+      age: age,
+      notes: notes,
       city: society?.city || 'Unknown',
+      societyName: society?.name || null,
       contactNumber: phone,
       countryCode: '+91',
       email: email || 'no-email@upkraft.in',
