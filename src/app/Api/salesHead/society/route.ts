@@ -10,7 +10,7 @@ export async function GET() {
     const societies = await Society.find({})
       .populate({
         path: 'tutors',
-        select: 'username email profileImage timezone demoSlotsAvailable skills experience aboutMyself classes',
+        select: 'username email profileImage timezone demoSlotsAvailable skills experience aboutMyself classes instruments',
         populate: { path: 'classes', select: 'startTime endTime status classType' }
       })
       .sort({ isPopular: -1, name: 1 })
@@ -21,7 +21,7 @@ export async function GET() {
       category: "Tutor",
       "demoSlotsAvailable.societyId": { $in: societyIds }
     })
-      .select('username email profileImage timezone demoSlotsAvailable skills experience aboutMyself classes')
+      .select('username email profileImage timezone demoSlotsAvailable skills experience aboutMyself classes instruments')
       .populate('classes', 'startTime endTime status classType')
       .lean();
 

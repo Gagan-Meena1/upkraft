@@ -53,6 +53,7 @@ export async function PUT(request: Request) {
       ...(userData.instagramLink && { instagramLink: userData.instagramLink }),
       ...(userData.aboutMyself && { aboutMyself: userData.aboutMyself }),
       ...(userData.tutorPayoutSettings && { tutorPayoutSettings: userData.tutorPayoutSettings }),
+      ...(Array.isArray(userData.instruments) && { instruments: userData.instruments }),
     };
 
     // Handle profile image if provided

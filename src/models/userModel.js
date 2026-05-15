@@ -124,6 +124,10 @@ const userSchema = new mongoose.Schema({
             }
         ]
     },
+    instruments: {
+        type: [String],
+        default: []
+    },
     isVerified: {
         type: Boolean,
         default: false

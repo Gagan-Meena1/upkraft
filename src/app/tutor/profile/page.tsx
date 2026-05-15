@@ -55,7 +55,10 @@ interface Tutor {
   profileImage?: string;
   aboutMyself?: string;
   timezone?: string;
+  instruments?: string[];
 }
+
+const INSTRUMENT_OPTIONS = ['Guitar', 'Piano', 'Vocals', 'Violin', 'Drum'];
 
 const teachingModeOptions = [
   { value: "", label: "Select Mode" },
@@ -165,11 +168,12 @@ const TutorProfilePage = () => {
         education: editedTutor.education,
         skills: editedTutor.skills,
         experience: editedTutor.experience,
-        studentsCoached: editedTutor.studentsCoached, // Ensure this is included
-        teachingMode: editedTutor.teachingMode, // Ensure this is included
+        studentsCoached: editedTutor.studentsCoached,
+        teachingMode: editedTutor.teachingMode,
         instagramLink: editedTutor.instagramLink,
         aboutMyself: editedTutor.aboutMyself,
-        timezone: editedTutor.timezone, // Save timezone
+        timezone: editedTutor.timezone,
+        instruments: editedTutor.instruments || [],
       };
 
       formData.append("userData", JSON.stringify(tutorData));
@@ -374,6 +378,10 @@ const TutorProfilePage = () => {
                 <InfoBox
                   label="Teaching Mode"
                   value={tutor.teachingMode || "Not specified"}
+                />
+                <InfoBox
+                  label="Instruments"
+                  value={tutor.instruments && tutor.instruments.length > 0 ? tutor.instruments.join(', ') : "Not specified"}
                 />
               </div>
             </div>
@@ -757,6 +765,40 @@ const EditModal = ({
             data={editedTutor}
             handleInputChange={handleInputChange}
           />
+
+          {/* Instruments */}
+          <div className="mt-6 text-gray-800">
+            <h4 className="font-bold text-gray-700 mb-3">Instruments You Teach</h4>
+            <div className="flex flex-wrap gap-3">
+              {INSTRUMENT_OPTIONS.map((inst) => {
+                const selected = (editedTutor.instruments || []).includes(inst);
+                return (
+                  <label
+                    key={inst}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border cursor-pointer transition-all ${
+                      selected
+                        ? 'bg-purple-50 border-[#6307c9] text-[#6307c9] font-semibold'
+                        : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => {
+                        const current = editedTutor.instruments || [];
+                        const next = selected
+                          ? current.filter((i: string) => i !== inst)
+                          : [...current, inst];
+                        handleSetField('instruments', next);
+                      }}
+                      className="accent-[#6307c9] w-4 h-4"
+                    />
+                    {inst}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
 
           {/* About Me */}
           <div className="mt-6">

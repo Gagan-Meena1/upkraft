@@ -189,9 +189,18 @@ export default function BookSlotPage() {
   const filteredHobbies = catFilter === 'All' ? HOBBIES : HOBBIES.filter(h => h.cat === catFilter);
   const activeStep = { home: 1, categories: 2, slots: 3, confirm: 4 }[screen];
 
+  // Map hobby names to instrument values
+  const HOBBY_TO_INSTRUMENT: Record<string, string> = {
+    'Guitar': 'Guitar',
+    'Keyboard & Piano': 'Piano',
+    'Vocals': 'Vocals',
+    'Violin': 'Violin',
+    'Drum': 'Drum',
+  };
+
   const activeTutors = (() => {
     if (society && society.tutors && society.tutors.length > 0 && typeof society.tutors[0] === 'object') {
-      return society.tutors.map((t: any) => {
+      const allTutors = society.tutors.map((t: any) => {
         const idStr = (t._id || '').toString();
         const seed = idStr.split('').reduce((acc: number, ch: string) => acc + ch.charCodeAt(0), 0);
         const rating = (4.5 + (seed % 6) * 0.1).toFixed(1);
@@ -204,9 +213,17 @@ export default function BookSlotPage() {
           rating,
           bio: t.aboutMyself || t.skills || "Certified UpKraft tutor",
           demoSlotsAvailable: t.demoSlotsAvailable || [],
-          classes: t.classes || []
+          classes: t.classes || [],
+          instruments: t.instruments || [],
         };
       });
+
+      // Filter by hobby's mapped instrument (if applicable)
+      const requiredInstrument = hobby ? HOBBY_TO_INSTRUMENT[hobby.name] : null;
+      if (requiredInstrument) {
+        return allTutors.filter((t: any) => t.instruments.includes(requiredInstrument));
+      }
+      return allTutors;
     }
     return [];
   })();
