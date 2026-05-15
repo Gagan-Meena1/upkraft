@@ -127,29 +127,29 @@
 .pg-btn:disabled{opacity:.4;cursor:not-allowed}
 .pg-info{font-size:12px;color:var(--muted);margin-left:auto}
 
-/* ── MODAL ── */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;align-items:center;justify-content:center}
-.modal-overlay.show{display:flex}
-.modal{background:#fff;border-radius:16px;padding:0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-.modal-head{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
-.modal-head h2{font-size:16px;font-weight:700}
-.modal-close{background:#f0f0f5;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;color:var(--muted);display:flex;align-items:center;justify-content:center}
-.modal-close:hover{background:#e0e0ea;color:var(--text)}
-.modal-body{padding:20px 24px}
-.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.modal-field{display:flex;flex-direction:column;gap:5px}
-.modal-field.full{grid-column:1/-1}
-.modal-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
-.modal-val{font-size:13px;font-weight:500;color:var(--text)}
-.modal-select{width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;color:var(--text)}
-.modal-select:focus{border-color:var(--primary)}
-.modal-textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:vertical;min-height:70px;color:var(--text)}
-.modal-textarea:focus{border-color:var(--primary)}
-.modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+/* ── EDIT MODAL ── */
+.edit-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1100;align-items:center;justify-content:center}
+.edit-modal-overlay.show{display:flex}
+.edit-modal{background:#fff;border-radius:16px;padding:0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative;z-index:1101}
+.edit-modal-head{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.edit-modal-head h2{font-size:16px;font-weight:700}
+.edit-modal-close{background:#f0f0f5;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+.edit-modal-close:hover{background:#e0e0ea;color:var(--text)}
+.edit-modal-body{padding:20px 24px}
+.edit-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px}
+.edit-modal-field{display:flex;flex-direction:column;gap:5px}
+.edit-modal-field.full{grid-column:1/-1}
+.edit-modal-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.edit-modal-val{font-size:13px;font-weight:500;color:var(--text)}
+.edit-modal-select{width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;color:var(--text)}
+.edit-modal-select:focus{border-color:var(--primary)}
+.edit-modal-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--primary);margin:16px 0 8px;padding-bottom:6px;border-bottom:1.5px solid var(--primary-lite)}
+.edit-modal-section-label:first-child{margin-top:0}
+.edit-modal-foot{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
 
 /* ── ADD LEAD FORM ── */
-.form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;color:var(--text)}
-.form-input:focus{border-color:var(--primary)}
+.edit-form-input{width:100%;padding:9px 12px;border:1.5px solid var(--border2);border-radius:8px;font-size:13px;font-family:'Inter',sans-serif;outline:none;color:var(--text)}
+.edit-form-input:focus{border-color:var(--primary)}
 
 /* ── EMPTY STATE ── */
 .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}

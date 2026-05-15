@@ -18,16 +18,16 @@ export default function BookSlotPage() {
   const [weekOffset, setWeekOffset] = useState(0);
   const currentWeek = generateWeek(weekOffset);
   const [timeFilter, setTimeFilter] = useState<TimeFilterType>('all');
-  
+
   const [allSocieties, setAllSocieties] = useState<any[]>([]);
   const [citySocieties, setCitySocieties] = useState<any[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  
+
   const [catFilter, setCatFilter] = useState('Music');
-  
+
   const [formOpen, setFormOpen] = useState(false);
   const [formTutor, setFormTutor] = useState('');
   const [formSlotTime, setFormSlotTime] = useState('');
@@ -37,7 +37,7 @@ export default function BookSlotPage() {
   });
   const [submitDisabled, setSubmitDisabled] = useState(true);
   const [initialFormOpen, setInitialFormOpen] = useState(true);
-  
+
   const initialSubmitDisabled = !(
     formData.name.trim().length >= 2 &&
     formData.phone.trim().length === 10 &&
@@ -45,7 +45,7 @@ export default function BookSlotPage() {
     Number(formData.age) > 0 &&
     /^\S+@\S+\.\S+$/.test(formData.email)
   );
-  
+
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
   const [confirmName, setConfirmName] = useState('');
   const [showCustomSocietyModal, setShowCustomSocietyModal] = useState(false);
@@ -102,10 +102,10 @@ export default function BookSlotPage() {
 
   useEffect(() => {
     const ok = formData.name.trim().length >= 2 &&
-               formData.phone.trim().length === 10 &&
-               formData.pname.trim().length >= 2 &&
-               Number(formData.age) > 0 &&
-               formData.consent;
+      formData.phone.trim().length === 10 &&
+      formData.pname.trim().length >= 2 &&
+      Number(formData.age) > 0 &&
+      formData.consent;
     setSubmitDisabled(!ok);
   }, [formData]);
 
@@ -143,7 +143,7 @@ export default function BookSlotPage() {
     setHobby(h);
     setDay(0);
     setTimeFilter('all');
-    
+
     if (society && typeof society.id === 'string' && society.id.startsWith('custom-')) {
       setShowCustomSocietyModal(true);
       setTimeout(() => {
@@ -166,7 +166,7 @@ export default function BookSlotPage() {
     try {
       setSubmitDisabled(true);
       const tutor = society.tutors.find((t: any) => t.username === formTutor || t.name === formTutor);
-      
+
       const bookingDetails = {
         ...formData,
         society,
@@ -176,15 +176,15 @@ export default function BookSlotPage() {
         date: formRawSlotTime?.toISOString(),
         slotTime: formSlotTime
       };
-      
+
       const res = await fetch('/Api/public/bookTrial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingDetails)
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok && data.success) {
         setConfirmName(formData.name.split(' ')[0]);
         setFormOpen(false);
@@ -205,17 +205,23 @@ export default function BookSlotPage() {
 
   const activeTutors = (() => {
     if (society && society.tutors && society.tutors.length > 0 && typeof society.tutors[0] === 'object') {
-      return society.tutors.map((t: any) => ({
-        id: t._id,
-        name: t.username || "Tutor",
-        emoji: "👨‍🏫",
-        profileImage: t.profileImage || null,
-        exp: (t.experience || 5) + " yrs",
-        rating: "4.8",
-        bio: t.aboutMyself || t.skills || "Certified UpKraft tutor",
-        demoSlotsAvailable: t.demoSlotsAvailable || [],
-        classes: t.classes || []
-      }));
+      return society.tutors.map((t: any) => {
+        // Generate a stable random rating between 4.5 and 5.0 based on tutor id
+        const idStr = (t._id || '').toString();
+        const seed = idStr.split('').reduce((acc: number, ch: string) => acc + ch.charCodeAt(0), 0);
+        const rating = (4.5 + (seed % 6) * 0.1).toFixed(1);
+        return {
+          id: t._id,
+          name: t.username || "Tutor",
+          emoji: "👨‍🏫",
+          profileImage: t.profileImage || null,
+          exp: (t.experience || 8) + " yrs",
+          rating,
+          bio: t.aboutMyself || t.skills || "Certified UpKraft tutor",
+          demoSlotsAvailable: t.demoSlotsAvailable || [],
+          classes: t.classes || []
+        };
+      });
     }
     return [];
   })();
@@ -244,16 +250,16 @@ export default function BookSlotPage() {
       let currentSt = new Date(st);
       while (currentSt.getTime() + 45 * 60000 <= et.getTime()) {
         const hours = currentSt.getHours();
-        
+
         let bandIdx = 0;
         if (hours >= 12 && hours < 17) bandIdx = 1;
         else if (hours >= 17) bandIdx = 2;
 
         const timeStr = currentSt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        
+
         const slotStartMs = currentSt.getTime();
         const slotEndMs = slotStartMs + 45 * 60000;
-        
+
         let type = "avail";
         let label = "Available";
         if (slot.societyId === currentSocietyId) {
@@ -292,13 +298,13 @@ export default function BookSlotPage() {
   };
 
   const getDayAvailability = (dayIdx: number) => {
-    let a=0,s=0;
+    let a = 0, s = 0;
     activeTutors.forEach((t: any) => {
       const bands = getDynamicSlots(t, dayIdx, society?.id);
       bands.forEach(band => {
         band.slots.forEach(sl => {
-          if(sl.type === "avail") a++;
-          if(sl.type === "soc")   s++;
+          if (sl.type === "avail") a++;
+          if (sl.type === "soc") s++;
         });
       });
     });
@@ -307,14 +313,14 @@ export default function BookSlotPage() {
 
   const renderTutors = () => {
     if (!hobby) return null;
-    
+
     if (activeTutors.length === 0) {
       return (
         <div className="empty-day" style={{ padding: '40px 20px' }}>
           <div className="em-icon">😔</div>
-          <p><strong>Right now any tutor is not available.</strong><br/>
-             Please contact our support directly.<br/>
-             Support email: <a href="mailto:support@upkraft.in" style={{color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'none'}}>support@upkraft.in</a></p>
+          <p><strong>Right now any tutor is not available.</strong><br />
+            Please contact our support directly.<br />
+            Support email: <a href="mailto:support@upkraft.in" style={{ color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'none' }}>support@upkraft.in</a></p>
         </div>
       );
     }
@@ -325,9 +331,9 @@ export default function BookSlotPage() {
       return (
         <div className="empty-day">
           <div className="em-icon">📅</div>
-          <p><strong>No classes on {currentWeek[day].full}</strong><br/>
-             Tutors are not visiting your society on this day.<br/>
-             Try selecting another day for the most availability.</p>
+          <p><strong>No classes on {currentWeek[day].full}</strong><br />
+            Tutors are not visiting your society on this day.<br />
+            Try selecting another day for the most availability.</p>
         </div>
       );
     }
@@ -335,9 +341,9 @@ export default function BookSlotPage() {
     return activeTutors.map((t, tidx) => {
       const bands = getDynamicSlots(t, day, society?.id);
       const isVisiting = bands.length > 0;
-      
+
       const bandMap: Record<string, string[]> = {
-        morning: ['Morning'], afternoon: ['Afternoon'], evening: ['Evening'], all: ['Morning','Afternoon','Evening']
+        morning: ['Morning'], afternoon: ['Afternoon'], evening: ['Evening'], all: ['Morning', 'Afternoon', 'Evening']
       };
       const visibleBands = bandMap[timeFilter] || bandMap.all;
       const filteredBands = bands.filter(b => visibleBands.includes(b.band));
@@ -345,32 +351,32 @@ export default function BookSlotPage() {
       const bandHtml = filteredBands.length === 0
         ? <div className="empty-day" style={{ margin: 12 }}><p>No slots in this time range. Try a different filter.</p></div>
         : filteredBands.map((band, bidx) => (
-            <div className="slots-time-band" key={bidx}>
-              <div className="slots-band-label">{band.band}</div>
-              <div className="slots-grid">
-                {band.slots.map((sl, slidx) => {
-                  if (sl.type === 'buf') return <div key={slidx} className="slot-pill buf"><span className="stime">—</span><span className="slabel">{sl.label}</span></div>;
-                  if (sl.type === 'blocked') return <div key={slidx} className="slot-pill blocked"><span className="stime">{sl.time}</span></div>;
-                  if (sl.type === 'soc') return (
-                    <div key={slidx} className="slot-pill soc" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
-                      <span className="stime">{sl.time}</span>
-                    </div>
-                  );
-                  return (
-                    <div key={slidx} className="slot-pill avail" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
-                      <span className="stime">{sl.time}</span>
-                    </div>
-                  );
-                })}
-              </div>
+          <div className="slots-time-band" key={bidx}>
+            <div className="slots-band-label">{band.band}</div>
+            <div className="slots-grid">
+              {band.slots.map((sl, slidx) => {
+                if (sl.type === 'buf') return <div key={slidx} className="slot-pill buf"><span className="stime">—</span><span className="slabel">{sl.label}</span></div>;
+                if (sl.type === 'blocked') return <div key={slidx} className="slot-pill blocked"><span className="stime">{sl.time}</span></div>;
+                if (sl.type === 'soc') return (
+                  <div key={slidx} className="slot-pill soc" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
+                    <span className="stime">{sl.time}</span>
+                  </div>
+                );
+                return (
+                  <div key={slidx} className="slot-pill avail" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
+                    <span className="stime">{sl.time}</span>
+                  </div>
+                );
+              })}
             </div>
-          ));
+          </div>
+        ));
 
       return (
         <div className="tutor-block" key={tidx}>
           <div className="tutor-top">
             <div className="tutor-ava">
-              {t.profileImage ? <img src={t.profileImage} alt={t.name} style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'50%'}} /> : t.emoji}
+              {t.profileImage ? <img src={t.profileImage} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : t.emoji}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="tutor-name">{t.name}</div>
@@ -380,8 +386,8 @@ export default function BookSlotPage() {
             <div className="tutor-right">
               <div className="tutor-verify">✔ Verified</div>
               {isVisiting
-                ? <div className="tutor-visit-badge">📍 Visiting your<br/>society today</div>
-                : <div className="tutor-not-visiting">Not visiting<br/>this day</div>}
+                ? <div className="tutor-visit-badge">📍 Visiting your<br />society today</div>
+                : <div className="tutor-not-visiting">Not visiting<br />this day</div>}
             </div>
           </div>
           <div className="slots-wrap">{bandHtml}</div>
@@ -425,14 +431,16 @@ export default function BookSlotPage() {
           <section className="hero-section">
             <div className="hero-glow"></div>
             <div className="hero-eyebrow">✦ Skills At Your Doorstep ✦</div>
-            <h1 className="hero-h1">UpKraft your skills,<br/><em>right in your society</em></h1>
-            <p className="hero-sub">Discover certified tutors at your society, pick a slot &amp; lock your free trial — just like booking a movie!</p>
+            <h1 className="hero-h1">UpKraft your skills,<br /><em>right in your society</em></h1>
+
+            <p className="hero-sub">Step 2 : Discover certified tutors at your society, pick a slot &amp; lock your free trial — just like booking a movie!</p>
+
             <div className="search-wrap" ref={searchRef}>
               <span className="search-ico">🏢</span>
-              <input 
-                className="search-box" 
-                type="text" 
-                placeholder="Search your society name…" 
+              <input
+                className="search-box"
+                type="text"
+                placeholder="Search your society name…"
                 value={searchQuery}
                 onChange={handleSearch}
                 onFocus={() => {
@@ -440,8 +448,8 @@ export default function BookSlotPage() {
                 }}
                 autoComplete="off"
               />
-              <button 
-                className={`search-clear ${searchQuery ? 'show' : ''}`} 
+              <button
+                className={`search-clear ${searchQuery ? 'show' : ''}`}
                 onClick={() => {
                   setSearchQuery('');
                   setShowSuggestions(false);
@@ -450,9 +458,9 @@ export default function BookSlotPage() {
               {showSuggestions && suggestions.length > 0 && (
                 <div className="suggestions" style={{ display: 'block' }}>
                   {suggestions.map((s: any) => (
-                    <div 
-                      key={s.id} 
-                      className="sug-item" 
+                    <div
+                      key={s.id}
+                      className="sug-item"
                       onClick={() => selectSociety(s)}
                       role="button"
                       tabIndex={0}
@@ -466,8 +474,8 @@ export default function BookSlotPage() {
               )}
               {showSuggestions && suggestions.length === 0 && searchQuery.trim().length >= 2 && (
                 <div className="suggestions" style={{ display: 'block' }}>
-                  <div 
-                    className="sug-item" 
+                  <div
+                    className="sug-item"
                     style={{ cursor: 'pointer', color: 'var(--text)' }}
                     onClick={() => selectSociety({ id: 'custom-' + Date.now(), name: searchQuery, city: city, isPopular: false, tutors: [], hobbies: 5, units: 1000 })}
                     role="button"
@@ -503,11 +511,11 @@ export default function BookSlotPage() {
                 // If there are no popular ones explicitly, we already showed the first 5 as popular. 
                 // So 'others' would be the rest.
                 const displayOthers = hasPopular ? others : citySocieties.slice(5);
-                
+
                 if (displayOthers.length === 0) {
                   return <div style={{ fontSize: 13, color: 'var(--muted)' }}>No other societies found in this city.</div>;
                 }
-                
+
                 return displayOthers.map(s => (
                   <button key={s.id} className="chip" style={{ background: '#f8f9fa' }} onClick={() => selectSociety(s)}>{s.name}</button>
                 ));
@@ -584,11 +592,11 @@ export default function BookSlotPage() {
           <div className="week-tabs-wrapper">
             <div className="week-tabs-label">Select a day to view slots</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button 
-                onClick={() => { setWeekOffset(w => Math.max(0, w - 1)); setDay(0); }} 
+              <button
+                onClick={() => { setWeekOffset(w => Math.max(0, w - 1)); setDay(0); }}
                 disabled={weekOffset === 0}
                 style={{
-                  background: 'var(--bg-card)', border: '1px solid var(--border2)', 
+                  background: 'var(--bg-card)', border: '1px solid var(--border2)',
                   borderRadius: '50%', width: 36, height: 36, cursor: weekOffset === 0 ? 'not-allowed' : 'pointer',
                   opacity: weekOffset === 0 ? 0.3 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0, padding: 0
@@ -616,10 +624,10 @@ export default function BookSlotPage() {
                   );
                 })}
               </div>
-              <button 
-                onClick={() => { setWeekOffset(w => w + 1); setDay(0); }} 
+              <button
+                onClick={() => { setWeekOffset(w => w + 1); setDay(0); }}
                 style={{
-                  background: 'var(--bg-card)', border: '1px solid var(--border2)', 
+                  background: 'var(--bg-card)', border: '1px solid var(--border2)',
                   borderRadius: '50%', width: 36, height: 36, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0, padding: 0
@@ -694,10 +702,10 @@ export default function BookSlotPage() {
         <div className="overlay show" style={{ backdropFilter: 'blur(5px)' }}>
           <div className="sheet" style={{ maxWidth: '500px', margin: 'auto' }}>
             <div className="sheet-head">
-              <span className="sheet-title">Enter Details</span>
+              <span className="sheet-title">Step 1 : Enter Details</span>
             </div>
             <p className="sheet-sub">Please fill in your details to continue.</p>
-            
+
             <div className="form-row">
               <div className="flabel">Your Name <span className="req">*</span></div>
               <input className="finput" placeholder="Full name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
@@ -733,10 +741,10 @@ export default function BookSlotPage() {
               <div className="flabel">Notes</div>
               <textarea className="finput ta" rows={2} placeholder="Special requirements? (optional)" maxLength={250} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })}></textarea>
             </div>
-            
+
             <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
               <button className="submit-btn" style={{ background: '#f5f5fa', color: 'var(--muted)', border: '1px solid var(--border2)' }} onClick={() => window.location.href = '/'}>Cancel</button>
-              <button className="submit-btn" disabled={initialSubmitDisabled} onClick={() => setInitialFormOpen(false)}>Submit</button>
+              <button className="submit-btn" disabled={initialSubmitDisabled} onClick={() => setInitialFormOpen(false)}>Click Next</button>
             </div>
           </div>
         </div>
@@ -767,18 +775,18 @@ export default function BookSlotPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div className="bp-item"><div className="bpl">Tutor</div><div className="bpv">{formTutor}</div></div>
-                <div className="bp-item"><div className="bpl">Time Slot</div><div className="bpv green">{currentWeek[day].label}<br/>{formSlotTime}</div></div>
+                <div className="bp-item"><div className="bpl">Time Slot</div><div className="bpv green">{currentWeek[day].label}<br />{formSlotTime}</div></div>
               </div>
               {formData.notes && (
                 <div className="bp-item" style={{ marginTop: '4px' }}><div className="bpl">Notes</div><div className="bpv" style={{ fontWeight: 'normal', fontSize: '12px' }}>{formData.notes}</div></div>
               )}
             </div>
-            
+
             <div className="consent-row">
               <input type="checkbox" id="f-consent" checked={formData.consent} onChange={e => setFormData({ ...formData, consent: e.target.checked })} />
               <label htmlFor="f-consent">I agree to be contacted by the UpKraft team for trial class confirmation and updates.</label>
             </div>
-            
+
             <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
               <button className="submit-btn" style={{ background: '#f5f5fa', color: 'var(--muted)', border: '1px solid var(--border2)' }} onClick={() => setFormOpen(false)}>Cancel</button>
               <button className="submit-btn" disabled={submitDisabled} onClick={submitForm}>Book A Slot</button>

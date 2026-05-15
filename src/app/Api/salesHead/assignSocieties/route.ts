@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
+import Society from "@/models/society";
 import jwt from "jsonwebtoken";
 
 await connect();
@@ -37,9 +38,15 @@ export async function PUT(request: NextRequest) {
     const tutor = await User.findById(tutorId);
     if (!tutor) return NextResponse.json({ success: false, message: "Tutor not found" }, { status: 404 });
 
-    // Replace societies entirely with the new selection
+    // 1. Update tutor's societies
     tutor.societies = societyIds.map((id: string) => ({ societyId: id }));
     await tutor.save();
+
+    // 2. Add tutor to each society (no duplicates)
+    await Society.updateMany(
+      { _id: { $in: societyIds } },
+      { $addToSet: { tutors: tutorId } }
+    );
 
     return NextResponse.json({ success: true, message: "Societies assigned successfully" }, { status: 200 });
   } catch (error) {

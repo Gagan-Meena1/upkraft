@@ -2,25 +2,36 @@ import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import Registration from "@/models/Registration";
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connect();
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     
+    // All editable registration fields
+    const allowedFields = [
+      'name', 'contactNumber', 'countryCode', 'email',
+      'city', 'societyName', 'instrument',
+      'participantName', 'age', 'notes',
+      'status', 'payment',
+      'demoDate', 'demoTime',
+    ];
+
     const updateData: any = {};
-    if (body.status !== undefined) {
-      updateData.status = body.status;
-    }
-    if (body.payment !== undefined) {
-      updateData.payment = body.payment;
+    for (const field of allowedFields) {
+      if (body[field] !== undefined) {
+        updateData[field] = body[field];
+      }
     }
 
     const updatedReg = await Registration.findByIdAndUpdate(
       id,
       { $set: updateData },
       { new: true }
-    );
+    ).populate({
+      path: 'tutorName',
+      select: 'username email contact'
+    });
 
     if (!updatedReg) {
       return NextResponse.json({ success: false, message: "Registration not found" }, { status: 404 });
