@@ -4,12 +4,77 @@ import React, { useState, useEffect } from 'react';
 interface LeadsTableProps {
   leads: any[];
   onLeadUpdated: (updatedLead: any) => void;
+  showAddModal: boolean;
+  onCloseAddModal: () => void;
+  onLeadCreated: (newLead: any) => void;
 }
 
-export default function LeadsTable({ leads, onLeadUpdated }: LeadsTableProps) {
+export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onCloseAddModal, onLeadCreated }: LeadsTableProps) {
   const [editingLead, setEditingLead] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [societies, setSocieties] = useState<any[]>([]);
+  const [tutors, setTutors] = useState<any[]>([]);
+
+  // Create lead form state
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [newPname, setNewPname] = useState('');
+  const [newAge, setNewAge] = useState<number | ''>('');
+  const [newNotes, setNewNotes] = useState('');
+  const [newSocietyId, setNewSocietyId] = useState('');
+  const [newHobby, setNewHobby] = useState('');
+  const [newTutorId, setNewTutorId] = useState('');
+  const [newDate, setNewDate] = useState('');
+  const [newSlotTime, setNewSlotTime] = useState('');
+
+  const resetCreateForm = () => {
+    setNewName(''); setNewEmail(''); setNewPhone('');
+    setNewPname(''); setNewAge(''); setNewNotes('');
+    setNewSocietyId(''); setNewHobby('');
+    setNewTutorId(''); setNewDate(''); setNewSlotTime('');
+  };
+
+  const selectedSocietyObj = societies.find((s: any) => s._id === newSocietyId) || null;
+
+  const handleCreateLead = async () => {
+    if (!newName || !newPhone || !newPname || !newHobby || !newTutorId || !newDate || !newSlotTime) {
+      alert('Please fill all required fields: Name, Phone, Participant, Hobby, Tutor, Date, Slot Time');
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await fetch('/Api/public/bookTrial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newName,
+          phone: newPhone,
+          email: newEmail || '',
+          pname: newPname,
+          age: newAge ? Number(newAge) : null,
+          notes: newNotes || '',
+          consent: true,
+          society: selectedSocietyObj ? { name: selectedSocietyObj.name, city: selectedSocietyObj.city } : null,
+          hobby: { name: newHobby },
+          tutorId: newTutorId,
+          date: newDate,
+          slotTime: newSlotTime,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to book trial');
+      alert('Trial booked successfully!');
+      onLeadCreated(null); // signal parent to refetch
+      resetCreateForm();
+      onCloseAddModal();
+    } catch (err: any) {
+      alert(err.message || 'Error booking trial');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   useEffect(() => {
     const fetchSocieties = async () => {
@@ -24,6 +89,22 @@ export default function LeadsTable({ leads, onLeadUpdated }: LeadsTableProps) {
       }
     };
     fetchSocieties();
+  }, []);
+
+  // Fetch tutors for the add lead modal
+  useEffect(() => {
+    const fetchTutors = async () => {
+      try {
+        const res = await fetch('/Api/salesHead/allTutorsInfo');
+        const data = await res.json();
+        if (data.success && data.tutors) {
+          setTutors(data.tutors);
+        }
+      } catch (err) {
+        console.error('Error fetching tutors:', err);
+      }
+    };
+    fetchTutors();
   }, []);
 
   // Edit form state — all Registration fields
@@ -353,6 +434,99 @@ export default function LeadsTable({ leads, onLeadUpdated }: LeadsTableProps) {
               <button className="btn btn-outline" onClick={closeEditModal}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Lead Modal — posts to bookTrial */}
+      {showAddModal && (
+        <div className="edit-modal-overlay show">
+          <div className="edit-modal" style={{ maxWidth: '640px' }}>
+            <div className="edit-modal-head">
+              <h2>Book a Trial</h2>
+              <button className="edit-modal-close" onClick={() => { resetCreateForm(); onCloseAddModal(); }}>×</button>
+            </div>
+            <div className="edit-modal-body" style={{ maxHeight: '65vh', overflowY: 'auto' }}>
+              <div className="edit-modal-section-label">Parent / Guardian *</div>
+              <div className="edit-modal-grid">
+                <div className="edit-modal-field">
+                  <label className="edit-modal-label">Name *</label>
+                  <input className="edit-form-input" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Parent name" />
+                </div>
+                <div className="edit-modal-field">
+                  <label className="edit-modal-label">Phone *</label>
+                  <input className="edit-form-input" value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="9876543210" />
+                </div>
+                <div className="edit-modal-field full">
+                  <label className="edit-modal-label">Email</label>
+                  <input className="edit-form-input" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="email@example.com" />
+                </div>
+              </div>
+
+              <div className="edit-modal-section-label">Participant *</div>
+              <div className="edit-modal-grid">
+                <div className="edit-modal-field">
+                  <label className="edit-modal-label">Participant Name *</label>
+                  <input className="edit-form-input" value={newPname} onChange={e => setNewPname(e.target.value)} placeholder="Child's name" />
+                </div>
+                <div className="edit-modal-field">
+                  <label className="edit-modal-label">Age</label>
+                  <input className="edit-form-input" type="number" min={1} max={99} value={newAge} onChange={e => setNewAge(e.target.value ? Number(e.target.value) : '')} />
+                </div>
+              </div>
+
+              <div className="edit-modal-section-label">Society & Hobby *</div>
+              <div className="edit-modal-grid">
+                <div className="edit-modal-field">
+                  <label className="edit-modal-label">Society</label>
+                  <select className="edit-modal-select" value={newSocietyId} onChange={e => setNewSocietyId(e.target.value)}>
+                    <option value="">-- Select Society --</option>
+                    {societies.map((s: any) => (
+                      <option key={s._id} value={s._id}>{s.name} ({s.city})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="edit-modal-field">
+                  <label className="edit-modal-label">Hobby *</label>
+                  <input className="edit-form-input" value={newHobby} onChange={e => setNewHobby(e.target.value)} placeholder="e.g. Guitar, Piano" />
+                </div>
+              </div>
+
+              <div className="edit-modal-section-label">Demo Slot *</div>
+              <div className="edit-modal-grid">
+                <div className="edit-modal-field">
+                  <label className="edit-modal-label">Tutor *</label>
+                  <select className="edit-modal-select" value={newTutorId} onChange={e => setNewTutorId(e.target.value)}>
+                    <option value="">-- Select Tutor --</option>
+                    {tutors.map((t: any) => (
+                      <option key={t._id} value={t._id}>{t.username} ({t.email})</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="edit-modal-field">
+                  <label className="edit-modal-label">Date *</label>
+                  <input className="edit-form-input" type="date" value={newDate} onChange={e => setNewDate(e.target.value)} />
+                </div>
+                <div className="edit-modal-field full">
+                  <label className="edit-modal-label">Slot Time *</label>
+                  <input className="edit-form-input" value={newSlotTime} onChange={e => setNewSlotTime(e.target.value)} placeholder="e.g. 04:00 PM" />
+                </div>
+              </div>
+
+              <div className="edit-modal-section-label">Notes</div>
+              <div className="edit-modal-grid">
+                <div className="edit-modal-field full">
+                  <label className="edit-modal-label">Notes</label>
+                  <textarea className="edit-form-input" rows={3} style={{ resize: 'vertical', minHeight: '60px' }} value={newNotes} onChange={e => setNewNotes(e.target.value)} placeholder="Any additional info..." />
+                </div>
+              </div>
+            </div>
+            <div className="edit-modal-foot">
+              <button className="btn btn-outline" onClick={() => { resetCreateForm(); onCloseAddModal(); }}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleCreateLead} disabled={creating}>
+                {creating ? 'Booking...' : 'Book Trial'}
               </button>
             </div>
           </div>

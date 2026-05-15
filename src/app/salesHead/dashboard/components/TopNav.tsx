@@ -11,9 +11,7 @@ export default function TopNav() {
         <button className="btn btn-outline">
           Export CSV
         </button>
-        <button className="btn btn-primary">
-          + Add Lead
-        </button>
+
       </div>
     </div>
   );

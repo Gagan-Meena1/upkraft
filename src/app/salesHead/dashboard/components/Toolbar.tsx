@@ -15,6 +15,7 @@ interface ToolbarProps {
   onDateFilterChange: (val: string) => void;
   totalCount: number;
   filteredCount: number;
+  onAddLead?: () => void;
 }
 
 export default function Toolbar({
@@ -25,6 +26,7 @@ export default function Toolbar({
   tutorNames,
   dateFilter, onDateFilterChange,
   totalCount, filteredCount,
+  onAddLead,
 }: ToolbarProps) {
   return (
     <div className="toolbar">
@@ -80,6 +82,11 @@ export default function Toolbar({
       />
 
       <div className="toolbar-right">
+        {onAddLead && (
+          <button className="btn btn-primary add-lead-btn" onClick={onAddLead}>
+            + Add Lead
+          </button>
+        )}
         <div className="result-count">
           Showing {filteredCount} of {totalCount} leads
         </div>

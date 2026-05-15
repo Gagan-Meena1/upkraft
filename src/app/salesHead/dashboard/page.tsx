@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import './dashboard.css';
 import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
-import StatsRow from './components/StatsRow';
+// import StatsRow from './components/StatsRow';
 import Toolbar from './components/Toolbar';
 import LeadsTable from './components/LeadsTable';
 import Pagination from './components/Pagination';
@@ -12,6 +12,7 @@ import Pagination from './components/Pagination';
 export default function SalesHeadDashboard() {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // Filter state
   const [search, setSearch] = useState('');
@@ -51,7 +52,6 @@ export default function SalesHeadDashboard() {
   // Filtered leads
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => {
-      // Search filter
       if (search) {
         const q = search.toLowerCase();
         const matchesSearch =
@@ -62,35 +62,25 @@ export default function SalesHeadDashboard() {
           (lead._id || '').toString().toLowerCase().includes(q);
         if (!matchesSearch) return false;
       }
-
-      // Demo status filter
       if (demoFilter) {
         const leadStatus = lead.status || 'Pending';
         if (leadStatus !== demoFilter) return false;
       }
-
-      // Payment status filter
       if (paymentFilter) {
         const leadPaymentStatus = lead.payment?.status || 'Pending';
         if (leadPaymentStatus !== paymentFilter) return false;
       }
-
-      // Tutor name filter
       if (tutorFilter) {
         const leadTutorName = lead.tutorName && typeof lead.tutorName === 'object'
           ? lead.tutorName.username : null;
         if (leadTutorName !== tutorFilter) return false;
       }
-
-      // Slot assigned date filter
       if (dateFilter) {
         const slotDate = lead.demoDate;
         if (!slotDate) return false;
-        // Compare YYYY-MM-DD
         const leadDate = new Date(slotDate).toISOString().split('T')[0];
         if (leadDate !== dateFilter) return false;
       }
-
       return true;
     });
   }, [leads, search, demoFilter, paymentFilter, tutorFilter, dateFilter]);
@@ -100,13 +90,26 @@ export default function SalesHeadDashboard() {
     setLeads(prev => prev.map(l => l._id === updatedLead._id ? { ...l, ...updatedLead } : l));
   };
 
+  // Callback when a new lead is created — refetch all leads
+  const handleLeadCreated = async () => {
+    try {
+      const res = await fetch('/Api/registration');
+      const data = await res.json();
+      if (data.success) {
+        setLeads(data.data);
+      }
+    } catch (err) {
+      console.error('Error refetching leads:', err);
+    }
+  };
+
   return (
     <div className="dashboard-root">
       <div className="dashboard-body">
         <Sidebar />
         <div className="main">
           <TopNav />
-          <StatsRow />
+          {/* <StatsRow /> */}
           <Toolbar
             search={search}
             onSearchChange={setSearch}
@@ -121,6 +124,7 @@ export default function SalesHeadDashboard() {
             onDateFilterChange={setDateFilter}
             totalCount={leads.length}
             filteredCount={filteredLeads.length}
+            onAddLead={() => setShowAddModal(true)}
           />
           {loading ? (
             <div className="empty-state">
@@ -128,7 +132,13 @@ export default function SalesHeadDashboard() {
               <p>Loading leads...</p>
             </div>
           ) : (
-            <LeadsTable leads={filteredLeads} onLeadUpdated={handleLeadUpdated} />
+            <LeadsTable
+              leads={filteredLeads}
+              onLeadUpdated={handleLeadUpdated}
+              showAddModal={showAddModal}
+              onCloseAddModal={() => setShowAddModal(false)}
+              onLeadCreated={handleLeadCreated}
+            />
           )}
           <Pagination />
         </div>

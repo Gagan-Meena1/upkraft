@@ -90,11 +90,8 @@ export default function BookSlotPage() {
   useEffect(() => {
     const filtered = allSocieties.filter((s) => {
       const sCity = s.city.toLowerCase();
-      if (city === 'Bengaluru') {
-        return sCity.includes('bengaluru') || sCity.includes('bangalore');
-      } else if (city === 'Gurugram') {
-        return sCity.includes('gurugram') || sCity.includes('gurgaon');
-      }
+      if (city === 'Bengaluru') return sCity.includes('bengaluru') || sCity.includes('bangalore');
+      if (city === 'Gurugram') return sCity.includes('gurugram') || sCity.includes('gurgaon');
       return false;
     });
     setCitySocieties(filtered);
@@ -109,7 +106,7 @@ export default function BookSlotPage() {
     setSubmitDisabled(!ok);
   }, [formData]);
 
-  const showToastMsg = (msg: string, type: string = '') => {
+  const showToastMsg = (msg: string, type = '') => {
     setToast({ show: true, message: msg, type });
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   };
@@ -122,10 +119,7 @@ export default function BookSlotPage() {
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const q = e.target.value;
     setSearchQuery(q);
-    if (q.trim().length < 2) {
-      setShowSuggestions(false);
-      return;
-    }
+    if (q.trim().length < 2) { setShowSuggestions(false); return; }
     const hits = citySocieties.filter(s => s.name.toLowerCase().includes(q.toLowerCase()));
     setSuggestions(hits);
     setShowSuggestions(true);
@@ -143,15 +137,11 @@ export default function BookSlotPage() {
     setHobby(h);
     setDay(0);
     setTimeFilter('all');
-
     if (society && typeof society.id === 'string' && society.id.startsWith('custom-')) {
       setShowCustomSocietyModal(true);
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 3000);
+      setTimeout(() => { window.location.href = '/'; }, 3000);
       return;
     }
-
     goTo('slots');
   };
 
@@ -166,7 +156,6 @@ export default function BookSlotPage() {
     try {
       setSubmitDisabled(true);
       const tutor = society.tutors.find((t: any) => t.username === formTutor || t.name === formTutor);
-
       const bookingDetails = {
         ...formData,
         society,
@@ -176,15 +165,12 @@ export default function BookSlotPage() {
         date: formRawSlotTime?.toISOString(),
         slotTime: formSlotTime
       };
-
       const res = await fetch('/Api/public/bookTrial', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingDetails)
       });
-
       const data = await res.json();
-
       if (res.ok && data.success) {
         setConfirmName(formData.name.split(' ')[0]);
         setFormOpen(false);
@@ -206,7 +192,6 @@ export default function BookSlotPage() {
   const activeTutors = (() => {
     if (society && society.tutors && society.tutors.length > 0 && typeof society.tutors[0] === 'object') {
       return society.tutors.map((t: any) => {
-        // Generate a stable random rating between 4.5 and 5.0 based on tutor id
         const idStr = (t._id || '').toString();
         const seed = idStr.split('').reduce((acc: number, ch: string) => acc + ch.charCodeAt(0), 0);
         const rating = (4.5 + (seed % 6) * 0.1).toFixed(1);
@@ -246,28 +231,20 @@ export default function BookSlotPage() {
     slotsForDay.forEach((slot: any) => {
       const st = new Date(slot.startTime);
       const et = new Date(slot.endTime);
-
       let currentSt = new Date(st);
       while (currentSt.getTime() + 45 * 60000 <= et.getTime()) {
         const hours = currentSt.getHours();
-
         let bandIdx = 0;
         if (hours >= 12 && hours < 17) bandIdx = 1;
         else if (hours >= 17) bandIdx = 2;
 
         const timeStr = currentSt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
         const slotStartMs = currentSt.getTime();
         const slotEndMs = slotStartMs + 45 * 60000;
 
-        let type = "avail";
-        let label = "Available";
-        if (slot.societyId === currentSocietyId) {
-          type = "soc";
-          label = "Your society";
-        }
+        let type = "avail", label = "Available";
+        if (slot.societyId === currentSocietyId) { type = "soc"; label = "Your society"; }
 
-        // Check for overlap with existing classes
         const isBlocked = tutor.classes?.some((cls: any) => {
           if (cls.status === 'canceled' || cls.status === 'rescheduled') return false;
           const clsStart = new Date(cls.startTime).getTime();
@@ -275,65 +252,44 @@ export default function BookSlotPage() {
           return (slotStartMs < clsEnd && slotEndMs > clsStart);
         });
 
-        if (isBlocked) {
-          type = "blocked";
-          label = "Booked";
-        }
+        if (isBlocked) { type = "blocked"; label = "Booked"; }
 
-        bands[bandIdx].slots.push({
-          time: timeStr,
-          type: type,
-          label: label,
-          rawSlotStartTime: new Date(currentSt)
-        });
-
-        // advance by 60 minutes (45 min class + 15 min buffer)
+        bands[bandIdx].slots.push({ time: timeStr, type, label, rawSlotStartTime: new Date(currentSt) });
         currentSt = new Date(currentSt.getTime() + 60 * 60000);
       }
     });
 
     bands.forEach(b => b.slots.sort((a, b) => a.rawSlotStartTime.getTime() - b.rawSlotStartTime.getTime()));
-
     return bands.filter(b => b.slots.length > 0);
   };
 
   const getDayAvailability = (dayIdx: number) => {
     let a = 0, s = 0;
     activeTutors.forEach((t: any) => {
-      const bands = getDynamicSlots(t, dayIdx, society?.id);
-      bands.forEach(band => {
-        band.slots.forEach(sl => {
-          if (sl.type === "avail") a++;
-          if (sl.type === "soc") s++;
-        });
-      });
+      getDynamicSlots(t, dayIdx, society?.id).forEach(band =>
+        band.slots.forEach(sl => { if (sl.type === "avail") a++; if (sl.type === "soc") s++; })
+      );
     });
     return { avail: a, soc: s, total: a + s };
   };
 
   const renderTutors = () => {
     if (!hobby) return null;
-
     if (activeTutors.length === 0) {
       return (
-        <div className="empty-day" style={{ padding: '40px 20px' }}>
-          <div className="em-icon">😔</div>
-          <p><strong>Right now any tutor is not available.</strong><br />
-            Please contact our support directly.<br />
-            Support email: <a href="mailto:support@upkraft.in" style={{ color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'none' }}>support@upkraft.in</a></p>
+        <div className="bsp-empty-day">
+          <div className="bsp-em-icon">😔</div>
+          <p><strong>No tutors available right now.</strong><br />
+            Contact: <a href="mailto:support@upkraft.in" style={{ color: 'var(--bsp-primary)', fontWeight: 700 }}>support@upkraft.in</a></p>
         </div>
       );
     }
-
     const { total } = getDayAvailability(day);
-
     if (total === 0) {
       return (
-        <div className="empty-day">
-          <div className="em-icon">📅</div>
-          <p><strong>No classes on {currentWeek[day].full}</strong><br />
-            Tutors are not visiting your society on this day.<br />
-            Try selecting another day for the most availability.</p>
+        <div className="bsp-empty-day">
+          <div className="bsp-em-icon">📅</div>
+          <p><strong>No classes on {currentWeek[day].full}</strong><br />Try a different day.</p>
         </div>
       );
     }
@@ -341,30 +297,31 @@ export default function BookSlotPage() {
     return activeTutors.map((t, tidx) => {
       const bands = getDynamicSlots(t, day, society?.id);
       const isVisiting = bands.length > 0;
-
       const bandMap: Record<string, string[]> = {
         morning: ['Morning'], afternoon: ['Afternoon'], evening: ['Evening'], all: ['Morning', 'Afternoon', 'Evening']
       };
-      const visibleBands = bandMap[timeFilter] || bandMap.all;
-      const filteredBands = bands.filter(b => visibleBands.includes(b.band));
+      const filteredBands = bands.filter(b => (bandMap[timeFilter] || bandMap.all).includes(b.band));
 
       const bandHtml = filteredBands.length === 0
-        ? <div className="empty-day" style={{ margin: 12 }}><p>No slots in this time range. Try a different filter.</p></div>
+        ? <div className="bsp-empty-day" style={{ margin: '8px 0' }}><p>No slots in this time range.</p></div>
         : filteredBands.map((band, bidx) => (
-          <div className="slots-time-band" key={bidx}>
-            <div className="slots-band-label">{band.band}</div>
-            <div className="slots-grid">
+          <div className="bsp-slots-band" key={bidx}>
+            <div className="bsp-slots-band-label">{band.band}</div>
+            <div className="bsp-slots-grid">
               {band.slots.map((sl, slidx) => {
-                if (sl.type === 'buf') return <div key={slidx} className="slot-pill buf"><span className="stime">—</span><span className="slabel">{sl.label}</span></div>;
-                if (sl.type === 'blocked') return <div key={slidx} className="slot-pill blocked"><span className="stime">{sl.time}</span></div>;
+                if (sl.type === 'blocked') return (
+                  <div key={slidx} className="bsp-slot-pill blocked"><span>{sl.time}</span></div>
+                );
                 if (sl.type === 'soc') return (
-                  <div key={slidx} className="slot-pill soc" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
-                    <span className="stime">{sl.time}</span>
+                  <div key={slidx} className="bsp-slot-pill soc" role="button" tabIndex={0}
+                    onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
+                    <span>{sl.time}</span>
                   </div>
                 );
                 return (
-                  <div key={slidx} className="slot-pill avail" role="button" tabIndex={0} onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
-                    <span className="stime">{sl.time}</span>
+                  <div key={slidx} className="bsp-slot-pill avail" role="button" tabIndex={0}
+                    onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
+                    <span>{sl.time}</span>
                   </div>
                 );
               })}
@@ -373,151 +330,152 @@ export default function BookSlotPage() {
         ));
 
       return (
-        <div className="tutor-block" key={tidx}>
-          <div className="tutor-top">
-            <div className="tutor-ava">
-              {t.profileImage ? <img src={t.profileImage} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : t.emoji}
+        <div className="bsp-tutor-block" key={tidx}>
+          <div className="bsp-tutor-top">
+            <div className="bsp-tutor-ava">
+              {t.profileImage
+                ? <img src={t.profileImage} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 }} />
+                : t.emoji}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div className="tutor-name">{t.name}</div>
-              <div className="tutor-detail"><span className="stars">★★★★★</span><span>{t.rating} rating</span><span style={{ opacity: .3 }}>·</span><span>{t.exp} exp.</span></div>
-              <div className="tutor-bio">{t.bio}</div>
+              <div className="bsp-tutor-name">{t.name}</div>
+              <div className="bsp-tutor-detail">
+                <span className="bsp-stars">★★★★★</span>
+                <span>{t.rating}</span>
+                <span style={{ opacity: 0.3 }}>·</span>
+                <span>{t.exp} exp.</span>
+              </div>
+              <div className="bsp-tutor-bio">{t.bio}</div>
             </div>
-            <div className="tutor-right">
-              <div className="tutor-verify">✔ Verified</div>
+            <div className="bsp-tutor-right">
+              <div className="bsp-tutor-verify">✔ Verified</div>
               {isVisiting
-                ? <div className="tutor-visit-badge">📍 Visiting your<br />society today</div>
-                : <div className="tutor-not-visiting">Not visiting<br />this day</div>}
+                ? <div className="bsp-tutor-visit-badge">📍 Visiting<br />your society</div>
+                : <div className="bsp-tutor-not-visiting">Not visiting<br />this day</div>}
             </div>
           </div>
-          <div className="slots-wrap">{bandHtml}</div>
+          <div className="bsp-slots-wrap">{bandHtml}</div>
         </div>
       );
     });
   };
 
   return (
-    <div className="book-slot-container">
-      {/* TOPBAR */}
-      <nav className="topbar">
-        <Link className="upkraft-logo" href="/" aria-label="UpKraft home">
-          <span className="uk-logo-pill">
-            <img src="/logo.png" alt="UpKraft" className="uk-img" style={{ height: '34px' }} />
-          </span>
+    <div className="bsp-root">
+
+      {/* ── TOPBAR ── */}
+      <nav className="bsp-topbar">
+        <Link className="bsp-logo-wrap" href="/" aria-label="UpKraft home">
+          <img src="/logo.png" alt="UpKraft" />
         </Link>
-        <div className="topbar-steps">
-          <div className={`step ${activeStep > 1 ? 'done' : activeStep === 1 ? 'active' : ''}`}><span className="step-dot"></span>Find Society</div>
-          <div className="step-sep"></div>
-          <div className={`step ${activeStep > 2 ? 'done' : activeStep === 2 ? 'active' : ''}`}><span className="step-dot"></span>Hobby</div>
-          <div className="step-sep"></div>
-          <div className={`step ${activeStep > 3 ? 'done' : activeStep === 3 ? 'active' : ''}`}><span className="step-dot"></span>Pick Slot</div>
-          <div className="step-sep"></div>
-          <div className={`step ${activeStep === 4 ? 'active' : ''}`}><span className="step-dot"></span>Confirm</div>
+
+        <div className="bsp-steps">
+          {(['Find Society', 'Hobby', 'Pick Slot', 'Confirm'] as const).map((label, i) => {
+            const n = i + 1;
+            const cls = activeStep > n ? 'done' : activeStep === n ? 'active' : '';
+            return (
+              <React.Fragment key={label}>
+                {i > 0 && <div className="bsp-step-sep" />}
+                <div className={`bsp-step ${cls}`}>
+                  <span className="bsp-step-dot" />
+                  {label}
+                </div>
+              </React.Fragment>
+            );
+          })}
         </div>
-        <div className="topbar-city" style={{ position: 'relative' }} onClick={() => setShowCityDropdown(!showCityDropdown)}>
-          📍 <span>{city}</span> ▾
+
+        <div style={{ position: 'relative' }}>
+          <button className="bsp-city-btn" onClick={() => setShowCityDropdown(v => !v)}>
+            📍 {city} ▾
+          </button>
           {showCityDropdown && (
-            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: '#fff', border: '1px solid var(--border2)', borderRadius: '12px', padding: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 10 }}>
-              <div style={{ padding: '6px 16px', cursor: 'pointer', borderRadius: '8px', ...(city === 'Bengaluru' ? { background: 'var(--primary-lite)', color: 'var(--primary)', fontWeight: '600' } : {}) }} onClick={() => setCity('Bengaluru')}>Bengaluru</div>
-              <div style={{ padding: '6px 16px', cursor: 'pointer', borderRadius: '8px', ...(city === 'Gurugram' ? { background: 'var(--primary-lite)', color: 'var(--primary)', fontWeight: '600' } : {}) }} onClick={() => setCity('Gurugram')}>Gurugram</div>
+            <div className="bsp-city-dropdown">
+              {['Bengaluru', 'Gurugram'].map(c => (
+                <div key={c} className={`bsp-city-option ${city === c ? 'sel' : ''}`}
+                  onClick={() => { setCity(c); setShowCityDropdown(false); }}>
+                  {c}
+                </div>
+              ))}
             </div>
           )}
         </div>
       </nav>
 
-      {/* SCREEN 1: HOME */}
+      {/* ── SCREEN 1: HOME ── */}
       {screen === 'home' && (
-        <div className="screen active">
-          <section className="hero-section">
-            <div className="hero-glow"></div>
-            <div className="hero-eyebrow">✦ Skills At Your Doorstep ✦</div>
-            <h1 className="hero-h1">UpKraft your skills,<br /><em>right in your society</em></h1>
+        <div className="bsp-screen">
+          <section className="bsp-hero">
+            <div className="bsp-hero-glow" />
+            <div className="bsp-eyebrow">✦ Skills At Your Doorstep ✦</div>
+            <h1 className="bsp-hero-h1">UpKraft your skills,<br /><em>right in your society</em></h1>
+            <p className="bsp-hero-sub">Step 2: Find certified tutors at your society, pick a slot &amp; lock your free trial — just like booking a movie!</p>
 
-            <p className="hero-sub">Step 2 : Discover certified tutors at your society, pick a slot &amp; lock your free trial — just like booking a movie!</p>
+            <div className="bsp-search-wrap" ref={searchRef}>
+              <div className="bsp-search-inner">
+                <span className="bsp-search-ico">🏢</span>
+                <input
+                  className="bsp-search-input"
+                  type="text"
+                  placeholder="Search your society name…"
+                  value={searchQuery}
+                  onChange={handleSearch}
+                  onFocus={() => { if (searchQuery.trim().length >= 2) setShowSuggestions(true); }}
+                  autoComplete="off"
+                />
+                <button className={`bsp-search-clear ${searchQuery ? 'show' : ''}`}
+                  onClick={() => { setSearchQuery(''); setShowSuggestions(false); }}>✕</button>
+              </div>
 
-            <div className="search-wrap" ref={searchRef}>
-              <span className="search-ico">🏢</span>
-              <input
-                className="search-box"
-                type="text"
-                placeholder="Search your society name…"
-                value={searchQuery}
-                onChange={handleSearch}
-                onFocus={() => {
-                  if (searchQuery.trim().length >= 2) setShowSuggestions(true);
-                }}
-                autoComplete="off"
-              />
-              <button
-                className={`search-clear ${searchQuery ? 'show' : ''}`}
-                onClick={() => {
-                  setSearchQuery('');
-                  setShowSuggestions(false);
-                }}
-              >✕</button>
               {showSuggestions && suggestions.length > 0 && (
-                <div className="suggestions" style={{ display: 'block' }}>
+                <div className="bsp-suggestions">
                   {suggestions.map((s: any) => (
-                    <div
-                      key={s.id}
-                      className="sug-item"
-                      onClick={() => selectSociety(s)}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      <span style={{ color: 'var(--red)', fontSize: '16px' }}>🏢</span>
+                    <div key={s.id} className="bsp-sug-item" onClick={() => selectSociety(s)} role="button" tabIndex={0}>
+                      <span style={{ color: '#FF4757', fontSize: 16 }}>🏢</span>
                       <span><strong>{s.name}</strong></span>
-                      <span className="sug-meta">{s.city} · {s.hobbies} hobbies</span>
+                      <span className="bsp-sug-meta">{s.city} · {s.hobbies} hobbies</span>
                     </div>
                   ))}
                 </div>
               )}
               {showSuggestions && suggestions.length === 0 && searchQuery.trim().length >= 2 && (
-                <div className="suggestions" style={{ display: 'block' }}>
-                  <div
-                    className="sug-item"
-                    style={{ cursor: 'pointer', color: 'var(--text)' }}
-                    onClick={() => selectSociety({ id: 'custom-' + Date.now(), name: searchQuery, city: city, isPopular: false, tutors: [], hobbies: 5, units: 1000 })}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <span></span><span><strong style={{ color: 'var(--primary)' }}>Add Your Society</strong></span>
+                <div className="bsp-suggestions">
+                  <div className="bsp-sug-item" style={{ cursor: 'pointer' }}
+                    onClick={() => selectSociety({ id: 'custom-' + Date.now(), name: searchQuery, city, isPopular: false, tutors: [], hobbies: 5, units: 1000 })}
+                    role="button" tabIndex={0}>
+                    <span /><span><strong style={{ color: 'var(--bsp-primary)' }}>Add Your Society</strong></span>
                   </div>
                 </div>
               )}
             </div>
           </section>
-          <div className="home-body">
-            <div className="promo-banner">
-              <div className="promo-badge">NEW</div>
-              <p><strong>More societies & Hobbies</strong> are coming soon ! </p>
+
+          <div className="bsp-home-body">
+            <div className="bsp-promo">
+              <div className="bsp-promo-badge">NEW</div>
+              <p><strong>More societies &amp; Hobbies</strong> are coming soon!</p>
             </div>
-            <div className="section-head">Popular Societies</div>
-            <div className="chips">
+
+            <div className="bsp-section-head">Popular Societies</div>
+            <div className="bsp-chips">
               {(() => {
                 const popular = citySocieties.filter(s => s.isPopular);
-                const displaySocieties = popular.length > 0 ? popular.slice(0, 5) : citySocieties.slice(0, 5);
-                return displaySocieties.map(s => (
-                  <button key={s.id} className="chip" onClick={() => selectSociety(s)}>{s.name}</button>
+                const display = popular.length > 0 ? popular.slice(0, 5) : citySocieties.slice(0, 5);
+                return display.map(s => (
+                  <button key={s.id} className="bsp-chip" onClick={() => selectSociety(s)}>{s.name}</button>
                 ));
               })()}
             </div>
-            <div className="section-head">Other Societies</div>
-            <div className="chips">
+
+            <div className="bsp-section-head">Other Societies</div>
+            <div className="bsp-chips">
               {(() => {
                 const popular = citySocieties.filter(s => s.isPopular);
                 const hasPopular = popular.length > 0;
-                const others = citySocieties.filter(s => hasPopular ? !s.isPopular : false);
-                // If there are no popular ones explicitly, we already showed the first 5 as popular. 
-                // So 'others' would be the rest.
-                const displayOthers = hasPopular ? others : citySocieties.slice(5);
-
-                if (displayOthers.length === 0) {
-                  return <div style={{ fontSize: 13, color: 'var(--muted)' }}>No other societies found in this city.</div>;
-                }
-
-                return displayOthers.map(s => (
-                  <button key={s.id} className="chip" style={{ background: '#f8f9fa' }} onClick={() => selectSociety(s)}>{s.name}</button>
+                const others = hasPopular ? citySocieties.filter(s => !s.isPopular) : citySocieties.slice(5);
+                if (others.length === 0) return <div style={{ fontSize: 13, color: 'var(--bsp-muted)' }}>No other societies found.</div>;
+                return others.map(s => (
+                  <button key={s.id} className="bsp-chip" style={{ background: 'var(--bsp-bg)' }} onClick={() => selectSociety(s)}>{s.name}</button>
                 ));
               })()}
             </div>
@@ -525,38 +483,40 @@ export default function BookSlotPage() {
         </div>
       )}
 
-      {/* SCREEN 2: CATEGORIES */}
+      {/* ── SCREEN 2: CATEGORIES ── */}
       {screen === 'categories' && society && (
-        <div className="screen active">
-          <div className="page-header">
-            <button className="back-btn" onClick={() => goTo('home')}>←</button>
-            <div className="page-hinfo">
+        <div className="bsp-screen">
+          <div className="bsp-page-header">
+            <button className="bsp-back-btn" onClick={() => goTo('home')}>←</button>
+            <div className="bsp-page-hinfo">
               <h2>{society.name}</h2>
-              <p className="breadcrumb">Home › <strong>{society.name}</strong></p>
+              <p className="bsp-breadcrumb">Home › <strong>{society.name}</strong></p>
             </div>
           </div>
-          <div className="filter-bar">
+
+          <div className="bsp-filter-bar">
             {['Music'].map(f => (
-              <button key={f} className={`fbtn ${catFilter === f ? 'active' : ''}`} onClick={() => setCatFilter(f)}>{f}</button>
+              <button key={f} className={`bsp-fbtn ${catFilter === f ? 'active' : ''}`} onClick={() => setCatFilter(f)}>{f}</button>
             ))}
           </div>
-          <div className="movies-grid">
+
+          <div className="bsp-movies-grid">
             {filteredHobbies.map(h => (
-              <div className="movie-card" key={h.id} onClick={() => selectHobby(h)}>
-                <div className="movie-poster" style={{ background: `linear-gradient(145deg,${h.col[0]},${h.col[1]})` }}>
-                  {h.new && <div className="poster-new">NEW</div>}
-                  {h.hot && !h.new && <div className="poster-hot">🔥 HOT</div>}
+              <div className="bsp-movie-card" key={h.id} onClick={() => selectHobby(h)}>
+                <div className="bsp-movie-poster" style={{ background: `linear-gradient(145deg,${h.col[0]},${h.col[1]})` }}>
+                  {h.new && <div className="bsp-poster-badge new">NEW</div>}
+                  {h.hot && !h.new && <div className="bsp-poster-badge hot">🔥 HOT</div>}
                   <span style={{ fontSize: 52 }}>{h.emoji}</span>
-                  <div className="poster-rating">⭐ {h.rating}</div>
-                  <div className="poster-slots">{h.slots} slots</div>
+                  <div className="bsp-poster-rating">⭐ {h.rating}</div>
+                  <div className="bsp-poster-slots">{h.slots} slots</div>
                 </div>
-                <div className="movie-info">
-                  <div className="movie-title">{h.name}</div>
-                  <div className="movie-cat">{h.cat} · {h.tutors} tutor{h.tutors > 1 ? 's' : ''}</div>
-                  <div className="tag-row">
-                    <span className="tag">{h.age}</span>
-                    <span className="tag green">Free trial</span>
-                    {h.new && <span className="tag blue">New</span>}
+                <div className="bsp-movie-info">
+                  <div className="bsp-movie-title">{h.name}</div>
+                  <div className="bsp-movie-cat">{h.cat} · {h.tutors} tutor{h.tutors > 1 ? 's' : ''}</div>
+                  <div className="bsp-tag-row">
+                    <span className="bsp-tag">{h.age}</span>
+                    <span className="bsp-tag green">Free trial</span>
+                    {h.new && <span className="bsp-tag blue">New</span>}
                   </div>
                 </div>
               </div>
@@ -565,268 +525,279 @@ export default function BookSlotPage() {
         </div>
       )}
 
-      {/* SCREEN 3: SLOTS */}
+      {/* ── SCREEN 3: SLOTS ── */}
       {screen === 'slots' && society && hobby && (
-        <div className="screen active">
-          <div className="page-header">
-            <button className="back-btn" onClick={() => goTo('categories')}>←</button>
-            <div className="page-hinfo">
+        <div className="bsp-screen">
+          <div className="bsp-page-header">
+            <button className="bsp-back-btn" onClick={() => goTo('categories')}>←</button>
+            <div className="bsp-page-hinfo">
               <h2>{hobby.name}</h2>
-              <p className="breadcrumb">Home › {society.name} › <strong>{hobby.name}</strong></p>
-            </div>
-          </div>
-          <div className="movie-hero-bar">
-            <div className="mh-poster" style={{ background: `linear-gradient(145deg,${hobby.col[0]},${hobby.col[1]})` }}>{hobby.emoji}</div>
-            <div className="mh-info">
-              <h2>{hobby.name}</h2>
-              <p className="mh-meta">{hobby.desc}</p>
-              <div className="mh-tags">
-                <span className="mh-tag age">{hobby.age}</span>
-                <span className="mh-tag lang">English / Hindi</span>
-                <span className="mh-tag loc">In-Society</span>
-              </div>
-              <div className="mh-avail"><span></span> Slots available this week</div>
+              <p className="bsp-breadcrumb">Home › {society.name} › <strong>{hobby.name}</strong></p>
             </div>
           </div>
 
-          <div className="week-tabs-wrapper">
-            <div className="week-tabs-label">Select a day to view slots</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button
+          <div className="bsp-movie-hero-bar">
+            <div className="bsp-mh-poster" style={{ background: `linear-gradient(145deg,${hobby.col[0]},${hobby.col[1]})` }}>
+              {hobby.emoji}
+            </div>
+            <div className="bsp-mh-info">
+              <h2>{hobby.name}</h2>
+              <p className="bsp-mh-meta">{hobby.desc}</p>
+              <div className="bsp-mh-tags">
+                <span className="bsp-mh-tag age">{hobby.age}</span>
+                <span className="bsp-mh-tag lang">English / Hindi</span>
+                <span className="bsp-mh-tag loc">In-Society</span>
+              </div>
+              <div className="bsp-mh-avail">Slots available this week</div>
+            </div>
+          </div>
+
+          {/* Week Picker */}
+          <div className="bsp-week-tabs-wrapper">
+            <div className="bsp-week-tabs-label">Select a day to view slots</div>
+            <div className="bsp-week-nav-row">
+              <button className="bsp-week-nav-btn"
                 onClick={() => { setWeekOffset(w => Math.max(0, w - 1)); setDay(0); }}
-                disabled={weekOffset === 0}
-                style={{
-                  background: 'var(--bg-card)', border: '1px solid var(--border2)',
-                  borderRadius: '50%', width: 36, height: 36, cursor: weekOffset === 0 ? 'not-allowed' : 'pointer',
-                  opacity: weekOffset === 0 ? 0.3 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, padding: 0
-                }}
-              >
-                ←
-              </button>
-              <div className="week-tabs-grid" style={{ flex: 1 }}>
+                disabled={weekOffset === 0}>←</button>
+              <div className="bsp-week-tabs-grid">
                 {currentWeek.map((d, i) => {
                   const { avail, soc, total } = getDayAvailability(i);
                   const hasSlots = total > 0;
                   let pillClass = 'none', pillText = 'No slots';
                   if (soc > 0) { pillClass = 'soc'; pillText = `${soc} priority`; }
                   else if (avail > 0) { pillClass = 'has'; pillText = `${avail} open`; }
-
                   return (
-                    <div key={i} className={`wday ${i === day ? 'active' : ''} ${!hasSlots ? 'no-slots' : ''}`}
+                    <div key={i} className={`bsp-wday ${i === day ? 'active' : ''} ${!hasSlots ? 'no-slots' : ''}`}
                       onClick={() => { if (hasSlots) setDay(i); else showToastMsg('No slots on this day', 'err'); }}>
-                      {i === 0 && weekOffset === 0 && <div className="wday-today-dot"></div>}
-                      <span className="wday-name">{d.short}</span>
-                      <span className="wday-num">{d.num}</span>
-                      <span className="wday-mon">{d.mon}</span>
-                      <span className={`wday-slots ${pillClass}`}>{pillText}</span>
+                      {i === 0 && weekOffset === 0 && <div className="bsp-wday-today-dot" />}
+                      <span className="bsp-wday-name">{d.short}</span>
+                      <span className="bsp-wday-num">{d.num}</span>
+                      <span className="bsp-wday-mon">{d.mon}</span>
+                      <span className={`bsp-wday-slots ${pillClass}`}>{pillText}</span>
                     </div>
                   );
                 })}
               </div>
-              <button
-                onClick={() => { setWeekOffset(w => w + 1); setDay(0); }}
-                style={{
-                  background: 'var(--bg-card)', border: '1px solid var(--border2)',
-                  borderRadius: '50%', width: 36, height: 36, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0, padding: 0
-                }}
-              >
-                →
-              </button>
+              <button className="bsp-week-nav-btn" onClick={() => { setWeekOffset(w => w + 1); setDay(0); }}>→</button>
             </div>
           </div>
 
-          <div className="selected-day-bar">
-            <span className="sdb-date">{currentWeek[day].label}</span>
+          {/* Selected Day Info */}
+          <div className="bsp-selected-day-bar">
+            <span className="bsp-sdb-date">{currentWeek[day].label}</span>
             {(() => {
               const { avail, soc } = getDayAvailability(day);
-              if (soc > 0) return <span className="sdb-pill soc">{soc} priority slots for your society</span>;
-              if (avail > 0) return <span className="sdb-pill">{avail} slots available</span>;
-              return <span className="sdb-pill empty">No slots this day</span>;
+              if (soc > 0) return <span className="bsp-sdb-pill soc">{soc} priority slots</span>;
+              if (avail > 0) return <span className="bsp-sdb-pill">{avail} available</span>;
+              return <span className="bsp-sdb-pill empty">No slots</span>;
             })()}
-            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>Tap a slot to book your free trial</span>
+            <span className="bsp-sdb-hint">Tap a slot to book your free trial</span>
           </div>
 
-          <div className="filters-panel">
-            <div className="filters-row">
-              <span className="filters-title">⏰ Filter by time</span>
-              <div className="filters-chips">
-                <button className={`sf-chip ${timeFilter === 'all' ? 'active' : ''}`} onClick={() => setTimeFilter('all')}>All</button>
-                <button className={`sf-chip ${timeFilter === 'morning' ? 'active' : ''}`} onClick={() => setTimeFilter('morning')}>🌅 Morning</button>
-                <button className={`sf-chip ${timeFilter === 'afternoon' ? 'active' : ''}`} onClick={() => setTimeFilter('afternoon')}>☀️ Afternoon</button>
-                <button className={`sf-chip ${timeFilter === 'evening' ? 'active' : ''}`} onClick={() => setTimeFilter('evening')}>🌆 Evening</button>
+          {/* Filters */}
+          <div className="bsp-filters-panel">
+            <div className="bsp-filters-row">
+              <span className="bsp-filters-title">⏰ Filter by time</span>
+              <div className="bsp-filters-chips">
+                {(['all', 'morning', 'afternoon', 'evening'] as TimeFilterType[]).map(f => (
+                  <button key={f} className={`bsp-sf-chip ${timeFilter === f ? 'active' : ''}`}
+                    onClick={() => setTimeFilter(f)}>
+                    {f === 'all' ? 'All' : f === 'morning' ? '🌅 Morning' : f === 'afternoon' ? '☀️ Afternoon' : '🌆 Evening'}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="callback-banner" onClick={() => { setShowCallbackModal(true); setTimeout(() => setShowCallbackModal(false), 3000); }}>
-              <span className="callback-icon">📞</span>
-              <div className="callback-text">
-                <span className="callback-title">Slots not working?</span>
-                <span className="callback-sub">Tap here to request a callback</span>
+            <div className="bsp-callback-banner"
+              onClick={() => { setShowCallbackModal(true); setTimeout(() => setShowCallbackModal(false), 3000); }}>
+              <span className="bsp-callback-icon">📞</span>
+              <div className="bsp-callback-text">
+                <span className="bsp-callback-title">Slots not working?</span>
+                <span className="bsp-callback-sub">Tap here to request a callback</span>
               </div>
-              <span className="callback-arrow">→</span>
+              <span className="bsp-callback-arrow">→</span>
             </div>
           </div>
 
-          <div className="tutors-area">{renderTutors()}</div>
+          {/* Tutors */}
+          <div className="bsp-tutors-area">{renderTutors()}</div>
 
-          <div className="legend-bar">
-            <div className="leg"><div className="leg-box a"></div>Available</div>
-            <div className="leg"><div className="leg-box s"></div>Priority — your society</div>
-            <div className="leg"><div className="leg-box b"></div>Booked</div>
-            <div style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>Tap a slot to block your free trial</div>
+          {/* Legend */}
+          <div className="bsp-legend-bar">
+            <div className="bsp-leg"><div className="bsp-leg-box a" />Available</div>
+            <div className="bsp-leg"><div className="bsp-leg-box s" />Priority — your society</div>
+            <div className="bsp-leg"><div className="bsp-leg-box b" />Booked</div>
+            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--bsp-muted)' }}>Tap a slot to block free trial</span>
           </div>
         </div>
       )}
 
-      {/* SCREEN 4: CONFIRM */}
+      {/* ── SCREEN 4: CONFIRM ── */}
       {screen === 'confirm' && (
-        <div className="screen active">
-          <div className="confirm-wrap">
-            <div className="confirm-anim">🎉</div>
-            <div className="confirm-title">All set, <span>{confirmName}</span>!</div>
-            <p className="confirm-sub">Your free trial slot is blocked. Our team will call within <strong style={{ color: 'var(--text)' }}>24 hours</strong> to confirm the session.</p>
-            <div className="confirm-card">
-              <div className="confirm-card-head">Booking Summary</div>
-              <div id="confirm-rows">
-                <div className="cr"><span className="k">Society</span><span className="v">{society?.name}</span></div>
-                <div className="cr"><span className="k">Hobby</span><span className="v">{hobby?.emoji} {hobby?.name}</span></div>
-                <div className="cr"><span className="k">Tutor</span><span className="v">{formTutor}</span></div>
-                <div className="cr"><span className="k">Date &amp; Slot</span><span className="v">{currentWeek[day]?.label} · <span className="green">{formSlotTime}</span></span></div>
-                <div className="cr"><span className="k">Participant</span><span className="v">{formData.pname} ({formData.age} yrs)</span></div>
-                <div className="cr"><span className="k">Contact</span><span className="v">+91 {formData.phone}</span></div>
-              </div>
+        <div className="bsp-screen">
+          <div className="bsp-confirm-wrap">
+            <div className="bsp-confirm-anim">🎉</div>
+            <div className="bsp-confirm-title">All set, <span>{confirmName}</span>!</div>
+            <p className="bsp-confirm-sub">
+              Your free trial slot is blocked. Our team will call within <strong style={{ color: 'var(--bsp-text)' }}>24 hours</strong> to confirm.
+            </p>
+            <div className="bsp-confirm-card">
+              <div className="bsp-confirm-card-head">Booking Summary</div>
+              <div className="bsp-cr"><span className="k">Society</span><span className="v">{society?.name}</span></div>
+              <div className="bsp-cr"><span className="k">Hobby</span><span className="v">{hobby?.emoji} {hobby?.name}</span></div>
+              <div className="bsp-cr"><span className="k">Tutor</span><span className="v">{formTutor}</span></div>
+              <div className="bsp-cr"><span className="k">Date &amp; Slot</span><span className="v">{currentWeek[day]?.label} · <span className="green">{formSlotTime}</span></span></div>
+              <div className="bsp-cr"><span className="k">Participant</span><span className="v">{formData.pname} ({formData.age} yrs)</span></div>
+              <div className="bsp-cr"><span className="k">Contact</span><span className="v">+91 {formData.phone}</span></div>
             </div>
-            <div className="confirm-note"><span style={{ fontSize: 16, flexShrink: 0 }}>💡</span><div>This is a free trial enquiry — no payment required. A team member will confirm the slot and share class details with you.</div></div>
-            <button className="home-btn" onClick={() => goTo('home')}>Explore More Classes →</button>
-            <button className="home-btn secondary" onClick={() => goTo('categories')}>Back to Hobbies</button>
+            <div className="bsp-confirm-note">
+              <span style={{ fontSize: 16, flexShrink: 0 }}>💡</span>
+              <div>This is a free trial enquiry — no payment required. A team member will confirm the slot and share class details with you.</div>
+            </div>
+            <button className="bsp-home-btn" onClick={() => goTo('home')}>Explore More Classes →</button>
+            <button className="bsp-home-btn secondary" onClick={() => goTo('categories')}>Back to Hobbies</button>
           </div>
         </div>
       )}
 
-      {/* INITIAL FORM OVERLAY */}
+      {/* ── INITIAL FORM OVERLAY ── */}
       {initialFormOpen && (
-        <div className="overlay show" style={{ backdropFilter: 'blur(5px)' }}>
-          <div className="sheet" style={{ maxWidth: '500px', margin: 'auto' }}>
-            <div className="sheet-head">
-              <span className="sheet-title">Step 1 : Enter Details</span>
+        <div className="bsp-overlay">
+          <div className="bsp-sheet">
+            <div className="bsp-sheet-head">
+              <span className="bsp-sheet-title">Step 1 — Enter Your Details</span>
             </div>
-            <p className="sheet-sub">Please fill in your details to continue.</p>
+            <p className="bsp-sheet-sub">Please fill in your details to get started. All fields marked * are required.</p>
 
-            <div className="form-row">
-              <div className="flabel">Your Name <span className="req">*</span></div>
-              <input className="finput" placeholder="Full name" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+            <div className="bsp-form-row">
+              <div className="bsp-flabel">Your Name <span className="bsp-req">*</span></div>
+              <input className="bsp-finput" placeholder="Full name" value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })} />
             </div>
-            <div className="form-row two">
+
+            <div className="bsp-form-row two">
               <div>
-                <div className="flabel">Mobile <span className="req">*</span></div>
-                <input className="finput" placeholder="10-digit number" maxLength={10} inputMode="numeric" value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })} />
+                <div className="bsp-flabel">Mobile <span className="bsp-req">*</span></div>
+                <input className="bsp-finput" placeholder="10-digit number" maxLength={10}
+                  inputMode="numeric" value={formData.phone}
+                  onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })} />
               </div>
               <div>
-                <div className="flabel">Email <span className="req">*</span></div>
-                <input className="finput" placeholder="your@email.com" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
-              </div>
-            </div>
-            <div className="form-row two">
-              <div>
-                <div className="flabel">Participant Name <span className="req">*</span></div>
-                <input className="finput" placeholder="Who will attend?" value={formData.pname} onChange={e => setFormData({ ...formData, pname: e.target.value })} />
-              </div>
-              <div>
-                <div className="flabel">Age <span className="req">*</span></div>
-                <input className="finput" placeholder="e.g. 10" type="number" min={1} max={99} value={formData.age} onChange={e => setFormData({ ...formData, age: e.target.value })} />
+                <div className="bsp-flabel">Email <span className="bsp-req">*</span></div>
+                <input className="bsp-finput" placeholder="your@email.com" type="email"
+                  value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
               </div>
             </div>
-            <div className="form-row">
-              <div className="flabel">City <span className="req">*</span></div>
-              <select className="finput" value={city} onChange={e => setCity(e.target.value)}>
+
+            <div className="bsp-form-row two">
+              <div>
+                <div className="bsp-flabel">Participant Name <span className="bsp-req">*</span></div>
+                <input className="bsp-finput" placeholder="Who will attend?" value={formData.pname}
+                  onChange={e => setFormData({ ...formData, pname: e.target.value })} />
+              </div>
+              <div>
+                <div className="bsp-flabel">Age <span className="bsp-req">*</span></div>
+                <input className="bsp-finput" placeholder="e.g. 10" type="number" min={1} max={99}
+                  value={formData.age} onChange={e => setFormData({ ...formData, age: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="bsp-form-row">
+              <div className="bsp-flabel">City <span className="bsp-req">*</span></div>
+              <select className="bsp-finput" value={city} onChange={e => setCity(e.target.value)}>
                 <option value="Bengaluru">Bengaluru</option>
                 <option value="Gurugram">Gurugram</option>
               </select>
             </div>
-            <div className="form-row">
-              <div className="flabel">Notes</div>
-              <textarea className="finput ta" rows={2} placeholder="Special requirements? (optional)" maxLength={250} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })}></textarea>
+
+            <div className="bsp-form-row">
+              <div className="bsp-flabel">Notes</div>
+              <textarea className="bsp-finput ta" rows={2} placeholder="Special requirements? (optional)"
+                maxLength={250} value={formData.notes}
+                onChange={e => setFormData({ ...formData, notes: e.target.value })} />
             </div>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-              <button className="submit-btn" style={{ background: '#f5f5fa', color: 'var(--muted)', border: '1px solid var(--border2)' }} onClick={() => window.location.href = '/'}>Cancel</button>
-              <button className="submit-btn" disabled={initialSubmitDisabled} onClick={() => setInitialFormOpen(false)}>Click Next</button>
+            <div className="bsp-form-btns" style={{ marginTop: 24 }}>
+              <button className="bsp-submit-btn ghost" onClick={() => window.location.href = '/'}>Cancel</button>
+              <button className="bsp-submit-btn primary" disabled={initialSubmitDisabled}
+                onClick={() => setInitialFormOpen(false)}>Next →</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* FINAL BOOKING FORM OVERLAY */}
+      {/* ── BOOKING FORM OVERLAY ── */}
       {formOpen && society && hobby && (
-        <div className="overlay show" onClick={(e) => { if (e.target === e.currentTarget) setFormOpen(false); }}>
-          <div className="sheet" style={{ maxWidth: '500px', margin: 'auto' }}>
-            <div className="sheet-handle"></div>
-            <div className="sheet-head">
-              <span className="sheet-title">Preview & Book Slot</span>
-              <button className="sheet-close" onClick={() => setFormOpen(false)}>✕</button>
+        <div className="bsp-overlay" onClick={(e) => { if (e.target === e.currentTarget) setFormOpen(false); }}>
+          <div className="bsp-sheet">
+            <div className="bsp-sheet-handle" />
+            <div className="bsp-sheet-head">
+              <span className="bsp-sheet-title">Preview &amp; Book Slot</span>
+              <button className="bsp-sheet-close" onClick={() => setFormOpen(false)}>✕</button>
             </div>
-            <p className="sheet-sub">Please review your details before confirming.</p>
-            <div className="booking-pill" style={{ gridTemplateColumns: '1fr', gap: '8px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="bp-item"><div className="bpl">Participant</div><div className="bpv">{formData.pname} ({formData.age} yrs)</div></div>
-                <div className="bp-item"><div className="bpl">Your Name</div><div className="bpv">{formData.name}</div></div>
+            <p className="bsp-sheet-sub">Review your details before confirming your free trial slot.</p>
+
+            <div className="bsp-booking-pill">
+              <div className="bsp-booking-grid">
+                <div className="bsp-bp-item"><div className="bsp-bpl">Participant</div><div className="bsp-bpv">{formData.pname} ({formData.age} yrs)</div></div>
+                <div className="bsp-bp-item"><div className="bsp-bpl">Your Name</div><div className="bsp-bpv">{formData.name}</div></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="bp-item"><div className="bpl">Phone</div><div className="bpv">{formData.phone}</div></div>
-                <div className="bp-item"><div className="bpl">Email</div><div className="bpv">{formData.email || '-'}</div></div>
+              <div className="bsp-booking-grid">
+                <div className="bsp-bp-item"><div className="bsp-bpl">Phone</div><div className="bsp-bpv">{formData.phone}</div></div>
+                <div className="bsp-bp-item"><div className="bsp-bpl">Email</div><div className="bsp-bpv">{formData.email || '—'}</div></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="bp-item"><div className="bpl">Location</div><div className="bpv">{society.name}, {city}</div></div>
-                <div className="bp-item"><div className="bpl">Hobby</div><div className="bpv">{hobby.emoji} {hobby.name}</div></div>
+              <div className="bsp-booking-grid">
+                <div className="bsp-bp-item"><div className="bsp-bpl">Location</div><div className="bsp-bpv">{society.name}, {city}</div></div>
+                <div className="bsp-bp-item"><div className="bsp-bpl">Hobby</div><div className="bsp-bpv">{hobby.emoji} {hobby.name}</div></div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div className="bp-item"><div className="bpl">Tutor</div><div className="bpv">{formTutor}</div></div>
-                <div className="bp-item"><div className="bpl">Time Slot</div><div className="bpv green">{currentWeek[day].label}<br />{formSlotTime}</div></div>
+              <div className="bsp-booking-grid">
+                <div className="bsp-bp-item"><div className="bsp-bpl">Tutor</div><div className="bsp-bpv">{formTutor}</div></div>
+                <div className="bsp-bp-item"><div className="bsp-bpl">Time Slot</div><div className="bsp-bpv green">{currentWeek[day].label}<br />{formSlotTime}</div></div>
               </div>
               {formData.notes && (
-                <div className="bp-item" style={{ marginTop: '4px' }}><div className="bpl">Notes</div><div className="bpv" style={{ fontWeight: 'normal', fontSize: '12px' }}>{formData.notes}</div></div>
+                <div className="bsp-bp-item"><div className="bsp-bpl">Notes</div><div className="bsp-bpv" style={{ fontWeight: 400, fontSize: 12 }}>{formData.notes}</div></div>
               )}
             </div>
 
-            <div className="consent-row">
-              <input type="checkbox" id="f-consent" checked={formData.consent} onChange={e => setFormData({ ...formData, consent: e.target.checked })} />
-              <label htmlFor="f-consent">I agree to be contacted by the UpKraft team for trial class confirmation and updates.</label>
+            <div className="bsp-consent-row">
+              <input type="checkbox" id="bsp-consent" checked={formData.consent}
+                onChange={e => setFormData({ ...formData, consent: e.target.checked })} />
+              <label htmlFor="bsp-consent">I agree to be contacted by the UpKraft team for trial class confirmation and updates.</label>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-              <button className="submit-btn" style={{ background: '#f5f5fa', color: 'var(--muted)', border: '1px solid var(--border2)' }} onClick={() => setFormOpen(false)}>Cancel</button>
-              <button className="submit-btn" disabled={submitDisabled} onClick={submitForm}>Book A Slot</button>
+            <div className="bsp-form-btns">
+              <button className="bsp-submit-btn ghost" onClick={() => setFormOpen(false)}>Cancel</button>
+              <button className="bsp-submit-btn primary" disabled={submitDisabled} onClick={submitForm}>Book Slot →</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* CUSTOM SOCIETY SUCCESS MODAL */}
+      {/* ── CUSTOM SOCIETY MODAL ── */}
       {showCustomSocietyModal && (
-        <div className="overlay show" style={{ backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', padding: '32px 24px', borderRadius: '24px', textAlign: 'center', maxWidth: '320px', width: '90%', animation: 'popIn 0.4s ease', boxShadow: '0 12px 40px rgba(0,0,0,0.15)' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>😀</div>
-            <h3 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px', color: 'var(--text)' }}>We Received your details!</h3>
-            <p style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: '1.5', margin: 0 }}>Our Team will get back to you shortly.</p>
+        <div className="bsp-overlay">
+          <div className="bsp-success-modal">
+            <div className="bsp-success-modal-icon">😀</div>
+            <h3>We received your details!</h3>
+            <p>Our team will get back to you shortly.</p>
           </div>
         </div>
       )}
 
-      {/* CALLBACK SUCCESS MODAL */}
+      {/* ── CALLBACK MODAL ── */}
       {showCallbackModal && (
-        <div className="overlay show" style={{ backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', padding: '32px 24px', borderRadius: '24px', textAlign: 'center', maxWidth: '320px', width: '90%', animation: 'popIn 0.4s ease', boxShadow: '0 12px 40px rgba(0,0,0,0.15)' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📞</div>
-            <h3 style={{ fontSize: '20px', fontWeight: '800', marginBottom: '12px', color: 'var(--text)' }}>We Received your details!</h3>
-            <p style={{ fontSize: '14px', color: 'var(--muted)', lineHeight: '1.5', margin: 0 }}>Our Team will call you shortly.</p>
+        <div className="bsp-overlay">
+          <div className="bsp-success-modal">
+            <div className="bsp-success-modal-icon">📞</div>
+            <h3>Request received!</h3>
+            <p>Our team will call you shortly.</p>
           </div>
         </div>
       )}
 
-      {/* TOAST */}
-      <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`} role="alert">{toast.message}</div>
+      {/* ── TOAST ── */}
+      <div className={`bsp-toast ${toast.type} ${toast.show ? 'show' : ''}`} role="alert">
+        {toast.message}
+      </div>
     </div>
   );
 }
