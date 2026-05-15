@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
             };
           }),
           slotsAvailable: (tutor.demoSlotsAvailable || []).map((slot) => ({
+            _id: slot._id?.toString(),
             startTime: slot.startTime instanceof Date ? slot.startTime.toISOString() : slot.startTime,
             endTime: slot.endTime instanceof Date ? slot.endTime.toISOString() : slot.endTime,
             // Return arrays instead of single values

@@ -342,7 +342,6 @@ const TutorManagementPage = () => {
                         </div>
                       </div>
                     </div>
-
                     {/* ── Inline Society Picker ── */}
                     {isExpanded && (
                       <div className="border-t border-purple-200 bg-purple-50/50 px-3 sm:px-5 py-4">

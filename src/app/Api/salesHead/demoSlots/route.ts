@@ -145,3 +145,49 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// DELETE — remove a specific demo slot from a tutor
+export async function DELETE(request: NextRequest) {
+  try {
+    const token = (() => {
+      const referer = request.headers.get("referer") || "";
+      let refererPath = "";
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      const isTutorContext = refererPath.startsWith("/tutor") || request.nextUrl?.pathname?.startsWith("/Api/tutor");
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value)
+        ? request.cookies.get("impersonate_token")?.value
+        : request.cookies.get("token")?.value;
+    })();
+
+    if (!token) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+
+    const decodedToken = jwt.decode(token);
+    const userId = decodedToken && typeof decodedToken === "object" && "id" in decodedToken
+      ? decodedToken.id : null;
+
+    if (!userId) return NextResponse.json({ success: false, message: "Invalid token" }, { status: 401 });
+
+    const body = await request.json();
+    const { tutorId, slotId } = body;
+
+    if (!tutorId) return NextResponse.json({ success: false, message: "Tutor ID is required" }, { status: 400 });
+    if (!slotId) return NextResponse.json({ success: false, message: "Slot ID is required" }, { status: 400 });
+
+    const result = await User.findByIdAndUpdate(
+      tutorId,
+      { $pull: { demoSlotsAvailable: { _id: slotId } } },
+      { new: true }
+    );
+
+    if (!result) return NextResponse.json({ success: false, message: "Tutor not found" }, { status: 404 });
+
+    return NextResponse.json({ success: true, message: "Slot removed successfully" }, { status: 200 });
+  } catch (error) {
+    console.error("Error removing demo slot:", error);
+    return NextResponse.json({
+      success: false,
+      message: "Server error",
+      error: error instanceof Error ? error.message : "Unknown error",
+    }, { status: 500 });
+  }
+}

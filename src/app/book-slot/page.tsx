@@ -649,15 +649,23 @@ export default function BookSlotPage() {
             <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--muted)' }}>Tap a slot to book your free trial</span>
           </div>
 
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', padding: '12px 22px 0', margin: 0 }}>💡 Slots not working? Request a callback</p>
-          <div className="slot-filters" style={{ flexWrap: 'wrap' }}>
-            <span className="sf-label">Filter</span>
-            <div className="sf-chips" style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              <button className={`sf-chip ${timeFilter === 'all' ? 'active' : ''}`} onClick={() => setTimeFilter('all')}>All Times</button>
-              <button className={`sf-chip ${timeFilter === 'morning' ? 'active' : ''}`} onClick={() => setTimeFilter('morning')}>🌅 Morning (10am–12pm)</button>
-              <button className={`sf-chip ${timeFilter === 'afternoon' ? 'active' : ''}`} onClick={() => setTimeFilter('afternoon')}>☀️ Afternoon (12pm–5pm)</button>
-              <button className={`sf-chip ${timeFilter === 'evening' ? 'active' : ''}`} onClick={() => setTimeFilter('evening')}>🌆 Evening (5pm–9pm)</button>
-              <button className="sf-chip" style={{ marginLeft: 'auto', background: 'var(--primary-lite)', color: 'var(--primary)', borderColor: 'var(--primary-glow)' }} onClick={() => { setShowCallbackModal(true); setTimeout(() => setShowCallbackModal(false), 3000); }}>📞 Request Callback</button>
+          <div className="filters-panel">
+            <div className="filters-row">
+              <span className="filters-title">⏰ Filter by time</span>
+              <div className="filters-chips">
+                <button className={`sf-chip ${timeFilter === 'all' ? 'active' : ''}`} onClick={() => setTimeFilter('all')}>All</button>
+                <button className={`sf-chip ${timeFilter === 'morning' ? 'active' : ''}`} onClick={() => setTimeFilter('morning')}>🌅 Morning</button>
+                <button className={`sf-chip ${timeFilter === 'afternoon' ? 'active' : ''}`} onClick={() => setTimeFilter('afternoon')}>☀️ Afternoon</button>
+                <button className={`sf-chip ${timeFilter === 'evening' ? 'active' : ''}`} onClick={() => setTimeFilter('evening')}>🌆 Evening</button>
+              </div>
+            </div>
+            <div className="callback-banner" onClick={() => { setShowCallbackModal(true); setTimeout(() => setShowCallbackModal(false), 3000); }}>
+              <span className="callback-icon">📞</span>
+              <div className="callback-text">
+                <span className="callback-title">Slots not working?</span>
+                <span className="callback-sub">Tap here to request a callback</span>
+              </div>
+              <span className="callback-arrow">→</span>
             </div>
           </div>
 

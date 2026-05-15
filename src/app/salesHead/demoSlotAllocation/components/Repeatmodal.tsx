@@ -5,31 +5,32 @@ import { format, parseISO, addDays } from "date-fns";
 interface RepeatModalProps {
     selectedSlots: Set<string>;
     repeatType: "daily" | "weekly";
-    setRepeatType: (type: "daily" | "weekly") => void;
+    onRepeatTypeChange: (type: "daily" | "weekly") => void;
     selectedDays: number[];
     repeatStartDate: string;
-    setRepeatStartDate: (date: string) => void;
+    onStartDateChange: (date: string) => void;
     repeatEndDate: string;
-    setRepeatEndDate: (date: string) => void;
+    onEndDateChange: (date: string) => void;
     onClose: () => void;
     onApply: () => void;
-    getAllowedDaysFromSelectedSlots: () => number[];
-    toggleDay: (day: number) => void;
+    getPreviewSlots: () => string[];
+    getAllowedDays: () => number[];
+    onToggleDay: (day: number) => void;
 }
 
 const RepeatModal = ({
     selectedSlots,
     repeatType,
-    setRepeatType,
+    onRepeatTypeChange,
     selectedDays,
     repeatStartDate,
-    setRepeatStartDate,
+    onStartDateChange,
     repeatEndDate,
-    setRepeatEndDate,
+    onEndDateChange,
     onClose,
     onApply,
-    getAllowedDaysFromSelectedSlots,
-    toggleDay,
+    getAllowedDays,
+    onToggleDay,
 }: RepeatModalProps) => {
     const getPreviewSlots = (): string[] => {
         if (!repeatStartDate || !repeatEndDate || selectedSlots.size === 0) return [];
@@ -116,7 +117,7 @@ const RepeatModal = ({
                                         type="radio"
                                         value={type}
                                         checked={repeatType === type}
-                                        onChange={() => setRepeatType(type)}
+                                        onChange={() => onRepeatTypeChange(type)}
                                         className="mr-2"
                                     />
                                     {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -141,14 +142,14 @@ const RepeatModal = ({
                                     { value: 5, label: "Fri" },
                                     { value: 6, label: "Sat" },
                                 ].map((day) => {
-                                    const allowedDays = getAllowedDaysFromSelectedSlots();
+                                    const allowedDays = getAllowedDays();
                                     const isAllowed = allowedDays.includes(day.value);
                                     const isSelected = selectedDays.includes(day.value);
 
                                     return (
                                         <button
                                             key={day.value}
-                                            onClick={() => toggleDay(day.value)}
+                                            onClick={() => onToggleDay(day.value)}
                                             disabled={!isAllowed}
                                             title={!isAllowed ? "This day is not in your selected slots" : ""}
                                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${isSelected
@@ -176,7 +177,7 @@ const RepeatModal = ({
                             <input
                                 type="date"
                                 value={repeatStartDate}
-                                onChange={(e) => setRepeatStartDate(e.target.value)}
+                                onChange={(e) => onStartDateChange(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                             />
                         </div>
@@ -185,7 +186,7 @@ const RepeatModal = ({
                             <input
                                 type="date"
                                 value={repeatEndDate}
-                                onChange={(e) => setRepeatEndDate(e.target.value)}
+                                onChange={(e) => onEndDateChange(e.target.value)}
                                 min={repeatStartDate}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                             />

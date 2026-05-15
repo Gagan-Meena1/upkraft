@@ -237,29 +237,50 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .leg-box.buf{background:transparent;border:1px dashed rgba(255,255,255,.18)}
 
 
-/* ── SLOT FILTERS ── */
-.slot-filters{
+/* ── FILTERS PANEL ── */
+.filters-panel{
   background:#fff;border-bottom:1px solid var(--border);
-  padding:12px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:14px 20px;display:flex;flex-direction:column;gap:12px;
 }
-.sf-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);white-space:nowrap}
-.sf-divider{width:1px;height:20px;background:var(--border);flex-shrink:0}
-.sf-chips{display:flex;gap:6px;flex-wrap:wrap}
+.filters-row{
+  display:flex;flex-direction:column;gap:8px;
+}
+.filters-title{
+  font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;
+}
+.filters-chips{
+  display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.filters-chips::-webkit-scrollbar{display:none}
 .sf-chip{
   background:#f5f5fa;border:1.5px solid var(--border2);
-  border-radius:20px;padding:6px 14px;font-size:12px;font-weight:500;
+  border-radius:20px;padding:7px 14px;font-size:12px;font-weight:500;
   cursor:pointer;transition:all .15s;color:var(--muted);white-space:nowrap;
   font-family:'Inter',sans-serif;
 }
 .sf-chip:hover{border-color:var(--primary-glow);color:var(--primary);background:var(--primary-lite)}
 .sf-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
 .sf-chip.active:hover{background:var(--primary-dark)}
-.slot-class-note{
-  display:flex;align-items:center;gap:6px;
-  background:rgba(92,22,197,.06);border:1px solid rgba(92,22,197,.15);
-  border-radius:8px;padding:6px 12px;font-size:11px;color:var(--primary);font-weight:600;
-  white-space:nowrap;
+
+.callback-banner{
+  display:flex;align-items:center;gap:12px;
+  background:linear-gradient(135deg,rgba(92,22,197,.06),rgba(92,22,197,.02));
+  border:1.5px solid rgba(92,22,197,.15);
+  border-radius:12px;padding:10px 16px;
+  cursor:pointer;transition:all .2s;
 }
+.callback-banner:hover{
+  border-color:rgba(92,22,197,.35);
+  background:linear-gradient(135deg,rgba(92,22,197,.1),rgba(92,22,197,.04));
+  transform:translateY(-1px);
+  box-shadow:0 4px 12px rgba(92,22,197,.1);
+}
+.callback-icon{font-size:20px;flex-shrink:0}
+.callback-text{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0}
+.callback-title{font-size:12px;font-weight:700;color:var(--text)}
+.callback-sub{font-size:11px;color:var(--muted)}
+.callback-arrow{font-size:16px;color:var(--primary);font-weight:700;flex-shrink:0;opacity:.6;transition:opacity .2s}
+.callback-banner:hover .callback-arrow{opacity:1}
 
 /* ── FORM SHEET ── */
 .overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);align-items:flex-end;justify-content:center}
@@ -317,22 +338,186 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .toast.ok{border-color:rgba(92,22,197,.4)}
 
 /* ── RESPONSIVE ── */
-@media(max-width:700px){
+
+/* Tablet & small laptops */
+@media(max-width:768px){
+  /* Topbar */
+  .topbar{padding:0 14px;height:50px;gap:8px}
   .topbar-steps{display:none}
-  .movies-grid{grid-template-columns:repeat(2,1fr);gap:12px;padding:14px 16px}
-  .tutors-area{padding:14px}
-  .week-tabs-wrapper{background:#fff;padding:12px 12px 0}
-  .wday-num{font-size:16px}
-  .wday{padding:8px 2px 10px}
-  .booking-pill{grid-template-columns:1fr}
-  .form-row.two{grid-template-columns:1fr}
-  .movie-hero-bar{padding:14px}
+  .uk-img{height:26px!important}
+  .topbar-city{padding:5px 10px;font-size:11px}
+
+  /* Hero */
+  .hero-section{padding:32px 16px 36px;min-height:auto}
+  .hero-h1{font-size:22px}
+  .hero-sub{font-size:13px;margin-bottom:20px}
+  .search-wrap{max-width:100%}
+  .search-box{padding:12px 16px 12px 42px;font-size:14px;border-radius:14px}
+  .search-ico{left:14px;font-size:16px}
+  .search-clear{right:12px}
+
+  /* Home body */
   .home-body{padding:16px}
-  .mh-poster{width:72px;height:104px}
-  .wday-slots{display:none}
-}
-@media(max-width:400px){
-  .week-tabs-grid{gap:3px}
+  .chips{gap:6px;margin-bottom:20px}
+  .chip{padding:6px 12px;font-size:12px}
+  .promo-banner{padding:10px 14px;font-size:12px;border-radius:10px}
+  .section-head{font-size:10px;letter-spacing:1.5px;margin-bottom:10px}
+
+  /* Categories */
+  .page-header{padding:12px 16px}
+  .page-hinfo h2{font-size:14px}
+  .filter-bar{padding:10px 16px;gap:6px}
+  .movies-grid{grid-template-columns:repeat(2,1fr);gap:10px;padding:14px 16px}
+  .movie-poster{aspect-ratio:2/2.5}
+  .movie-info{padding:10px}
+  .movie-title{font-size:12px}
+  .movie-cat{font-size:9px}
+
+  /* Slots hero bar */
+  .movie-hero-bar{padding:14px 16px;gap:12px;flex-direction:column;align-items:stretch}
+  .mh-poster{width:60px;height:80px;font-size:32px;align-self:center}
+  .mh-info h2{font-size:16px;text-align:center}
+  .mh-info .mh-meta{font-size:11px;text-align:center}
+  .mh-tags{justify-content:center}
+  .mh-avail{justify-content:center}
+
+  /* Week tabs */
+  .week-tabs-wrapper{padding:12px 10px 0}
+  .week-tabs-label{font-size:9px;letter-spacing:1px;margin-bottom:8px}
+  .week-tabs-grid{gap:4px}
+  .wday{padding:8px 2px 10px}
   .wday-name{font-size:9px}
-  .wday-num{font-size:14px}
+  .wday-num{font-size:16px}
+  .wday-mon{font-size:8px}
+  .wday-slots{font-size:8px;padding:2px 4px;display:none}
+
+  /* Selected day bar */
+  .selected-day-bar{padding:8px 16px;flex-wrap:wrap;gap:6px}
+  .sdb-date{font-size:13px}
+
+  /* Filters panel */
+  .filters-panel{padding:10px 14px;gap:8px}
+  .filters-title{font-size:11px}
+  .sf-chip{padding:5px 10px;font-size:11px}
+  .callback-banner{padding:8px 12px;gap:8px;border-radius:10px}
+  .callback-icon{font-size:16px}
+  .callback-title{font-size:11px}
+  .callback-sub{font-size:10px}
+
+  /* Tutor blocks */
+  .tutors-area{padding:12px}
+  .tutor-block{border-radius:12px;margin-bottom:12px}
+  .tutor-top{padding:12px 14px;flex-direction:column;gap:10px}
+  .tutor-ava{width:42px;height:42px;font-size:18px}
+  .tutor-name{font-size:13px}
+  .tutor-detail{font-size:10px;gap:6px}
+  .tutor-bio{font-size:10px}
+  .tutor-right{margin-left:0;flex-direction:row;align-items:center;gap:8px}
+  .tutor-verify{font-size:9px;padding:4px 8px}
+  .tutor-visit-badge,.tutor-not-visiting{font-size:9px;padding:3px 6px}
+
+  /* Slot pills */
+  .slots-wrap{padding:12px 14px}
+  .slots-grid{gap:6px}
+  .slot-pill{padding:8px 10px;min-width:70px;font-size:11px}
+  .slot-pill .stime{font-size:12px}
+
+  /* Legend */
+  .legend-bar{padding:10px 16px;gap:10px}
+  .leg{font-size:10px}
+
+  /* Form sheet */
+  .sheet{padding:0 16px 32px;border-radius:18px 18px 0 0;max-height:92vh}
+  .sheet-title{font-size:16px}
+  .sheet-sub{font-size:11px}
+  .booking-pill{grid-template-columns:1fr;gap:6px;padding:10px 12px}
+  .form-row.two{grid-template-columns:1fr}
+  .finput{padding:10px 12px;font-size:13px}
+  .submit-btn{padding:13px;font-size:14px}
+  .consent-row{margin:14px 0 16px}
+  .consent-row label{font-size:11px}
+
+  /* Confirm */
+  .confirm-wrap{padding:40px 16px 32px}
+  .confirm-title{font-size:22px}
+  .confirm-sub{font-size:13px}
+  .confirm-card{padding:14px}
+  .cr{font-size:12px;padding:6px 0}
+  .home-btn{padding:12px 24px;font-size:14px}
 }
+
+/* Small phones */
+@media(max-width:480px){
+  .topbar{padding:0 10px;height:46px}
+  .uk-img{height:22px!important}
+
+  .hero-section{padding:24px 12px 28px}
+  .hero-h1{font-size:19px}
+  .hero-sub{font-size:12px;margin-bottom:16px}
+  .hero-eyebrow{font-size:10px;letter-spacing:1.5px}
+  .search-box{padding:11px 14px 11px 38px;font-size:13px}
+
+  .movies-grid{grid-template-columns:repeat(2,1fr);gap:8px;padding:12px}
+  .movie-poster{aspect-ratio:2/2.2}
+  .movie-info{padding:8px}
+  .movie-title{font-size:11px}
+
+  .movie-hero-bar{padding:12px}
+  .mh-poster{width:50px;height:68px;font-size:28px}
+  .mh-info h2{font-size:15px}
+  .mh-tags{gap:4px}
+  .mh-tag{font-size:10px;padding:3px 7px}
+
+  .week-tabs-wrapper{padding:10px 6px 0}
+  .week-tabs-grid{gap:3px}
+  .wday{padding:6px 1px 8px;border-radius:8px 8px 0 0}
+  .wday-name{font-size:8px}
+  .wday-num{font-size:14px}
+
+  .tutor-top{padding:10px 12px;gap:8px;flex-direction:row;flex-wrap:wrap}
+  .tutor-ava{width:36px;height:36px;font-size:16px}
+  .tutor-name{font-size:12px}
+  .tutor-right{width:100%;flex-direction:row;justify-content:flex-start}
+
+  .slot-pill{padding:7px 8px;min-width:62px;border-radius:7px}
+  .slot-pill .stime{font-size:11px}
+  .slots-band-label{font-size:9px}
+
+  .filters-panel{padding:8px 10px;gap:6px}
+  .sf-chip{padding:4px 8px;font-size:10px}
+  .filters-title{font-size:10px}
+  .callback-banner{padding:7px 10px;gap:6px;border-radius:8px}
+  .callback-icon{font-size:14px}
+  .callback-title{font-size:10px}
+  .callback-sub{font-size:9px}
+  .callback-arrow{font-size:13px}
+
+  .sheet{padding:0 12px 28px}
+  .sheet-title{font-size:15px}
+  .booking-pill{padding:8px 10px}
+  .bp-item .bpv{font-size:12px}
+  .bp-item .bpl{font-size:9px}
+
+  .confirm-wrap{padding:32px 12px 24px}
+  .confirm-title{font-size:20px}
+  .confirm-anim{width:70px;height:70px;font-size:32px}
+
+  .selected-day-bar{padding:6px 12px;font-size:12px}
+  .sdb-date{font-size:12px}
+  .sdb-pill{font-size:9px;padding:2px 8px}
+
+  .legend-bar{padding:8px 12px;gap:8px}
+  .leg{font-size:9px}
+  .leg-box{width:11px;height:11px}
+}
+
+/* Very small phones */
+@media(max-width:360px){
+  .hero-h1{font-size:17px}
+  .wday-num{font-size:12px}
+  .wday-name{font-size:7px}
+  .slot-pill{min-width:55px;padding:6px 6px}
+  .movies-grid{gap:6px;padding:10px 8px}
+  .topbar-city{font-size:10px;padding:4px 8px}
+}
+

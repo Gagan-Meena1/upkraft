@@ -4,6 +4,7 @@ export interface Tutor {
   email: string;
   timezone: string;
   slotsAvailable: {
+    _id?: string;
     startTime: string;
     endTime: string;
     societyIds?: string[];
