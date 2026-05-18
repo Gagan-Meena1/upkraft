@@ -13,6 +13,7 @@ export interface IRegistration extends Document {
   demoTime?: string | null;
   resumeUrl?: string | null;
   resumeFileName?: string | null;
+  smsConsent?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +64,10 @@ const RegistrationSchema: Schema = new Schema(
     demoTime: { type: String, default: null },
     resumeUrl: { type: String, default: null },
     resumeFileName: { type: String, default: null },
+    smsConsent: {
+  type: Boolean,
+  default: false,
+},
   },
   {
     timestamps: true,

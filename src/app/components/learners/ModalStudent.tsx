@@ -47,6 +47,8 @@ const [formData, setFormData] = useState({
   skill: "",
   demoDate: "",
   demoTime: "",
+  smsConsent: true,
+
 });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -161,6 +163,7 @@ const calculateEndTime = (startTime) => {
   tutorName: key === "Student" ? tutorName || null : null,
   demoDate: formData.demoDate,
   demoTime: formData.demoTime,
+  smsConsent: formData.smsConsent,
 };
 
       const res = await fetch("/Api/express-interest", {
@@ -182,6 +185,7 @@ const calculateEndTime = (startTime) => {
   skill: "",
   demoDate: "",
   demoTime: "",
+  smsConsent: true,
 });
       } else {
         setMessage(`❌ ${data.error || "Failed to submit form"}`);
@@ -330,6 +334,43 @@ const calculateEndTime = (startTime) => {
     </div>
   </div>
 )}
+<div className="col-lg-12">
+  <Form.Group className="mb-3">
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: "10px",
+        padding: "12px 14px",
+        background: "#f8f5ff",
+        border: "1px solid #e2d4f7",
+        borderRadius: "8px",
+        cursor: "pointer",
+      }}
+      onClick={() =>
+        setFormData((prev) => ({ ...prev, smsConsent: !prev.smsConsent }))
+      }
+    >
+      <input
+        type="checkbox"
+        id="smsConsent"
+        name="smsConsent"
+        checked={formData.smsConsent}
+        onChange={(e) =>
+          setFormData((prev) => ({ ...prev, smsConsent: e.target.checked }))
+        }
+        style={{ marginTop: "3px", accentColor: "#6E09BD", flexShrink: 0 }}
+      />
+      <label
+        htmlFor="smsConsent"
+        style={{ fontSize: "13.5px", color: "#374151", lineHeight: 1.5, cursor: "pointer", margin: 0 }}
+      >
+        I hereby authorize UpKraft to send notifications on SMS / Messages /
+        Promotional / Informational messages.
+      </label>
+    </div>
+  </Form.Group>
+</div>
 </div>
 
         <div className="col-lg-12">
@@ -373,6 +414,7 @@ const calculateEndTime = (startTime) => {
     skill: "",
     demoDate: "",
     demoTime: "",
+    smsConsent: true,
   });
 }}
             >

@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
         tutorName: getStr("tutorName") || null,
         demoDate: getStr("demoDate") || null,
         demoTime: getStr("demoTime") || null,
+        smsConsent: getStr("smsConsent") === "true",
       };
 
       const file = form.get("resumeFile") as File | null;
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
     const tutorName = body.tutorName?.trim() || null;
     const demoDate = body.demoDate?.trim() || null;
     const demoTime = body.demoTime?.trim() || null;
-
+    const smsConsent = body.smsConsent === true || body.smsConsent === "true";
     if (
       !([
         userType,
@@ -178,6 +179,7 @@ export async function POST(req: NextRequest) {
       ...(demoTime ? { demoTime } : {}),
       ...(resumeUrl ? { resumeUrl } : {}),
       ...(resumeFileName ? { resumeFileName } : {}),
+      smsConsent: smsConsent ?? false,
     };
 
     const registration = await Registration.create(registrationData);
@@ -246,6 +248,10 @@ export async function POST(req: NextRequest) {
               <tr><td><b>Contact Number:</b></td><td>${countryCode} ${contactNumber}</td></tr>
               <tr><td><b>${instrumentLabel}:</b></td><td>${instrument}</td></tr>
               <tr><td><b>City:</b></td><td>${city}</td></tr>
+              <tr>
+  <td style="padding: 8px 0;"><b>SMS Consent:</b></td>
+  <td style="padding: 8px 0;">${smsConsent ? "✅ Authorized" : "❌ Not authorized"}</td>
+</tr>
               <tr><td><b>Submitted At:</b></td><td>${new Date().toLocaleString(
                 "en-IN",
                 { timeZone: "Asia/Kolkata" }
