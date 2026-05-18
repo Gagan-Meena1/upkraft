@@ -81,7 +81,7 @@
 }
 
 .bsp-logo-wrap img {
-  height: 32px;
+  height: 16px;
   display: block;
 }
 
@@ -201,7 +201,7 @@
   position: relative;
   padding: 56px 0 40px;
   text-align: center;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .bsp-hero-glow {
@@ -253,6 +253,7 @@
   position: relative;
   max-width: 520px;
   margin: 0 auto;
+  z-index: 10;
 }
 
 .bsp-search-inner {
@@ -318,7 +319,7 @@
   border-radius: var(--bsp-radius);
   box-shadow: var(--bsp-shadow-lg);
   overflow: hidden;
-  z-index: 50;
+  z-index: 200;
   animation: bsp-popIn 0.18s ease;
 }
 

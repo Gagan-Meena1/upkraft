@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import './book-slot.css';
 import { HOBBIES, TUTORS, WEEK, buildSlots, generateWeek } from './data';
+import LogoHeader from '@/assets/LogoHeader copy.png';
 
 type ScreenType = 'home' | 'categories' | 'slots' | 'confirm';
 type TimeFilterType = 'all' | 'morning' | 'afternoon' | 'evening';
@@ -383,7 +384,7 @@ export default function BookSlotPage() {
       {/* ── TOPBAR ── */}
       <nav className="bsp-topbar">
         <Link className="bsp-logo-wrap" href="/" aria-label="UpKraft home">
-          <img src="/logo.png" alt="UpKraft" />
+          <img src={LogoHeader.src} alt="UpKraft" />
         </Link>
 
         <div className="bsp-steps">
