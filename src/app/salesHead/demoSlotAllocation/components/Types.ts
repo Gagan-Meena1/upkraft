@@ -1,3 +1,5 @@
+export type SlotStatus = 'na' | 'open' | 'demo' | 'booked' | 'rescheduled';
+
 export interface Tutor {
   _id: string;
   username: string;
