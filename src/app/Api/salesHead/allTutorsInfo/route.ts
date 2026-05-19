@@ -3,6 +3,7 @@ import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
 import jwt from "jsonwebtoken";
 import Society from "@/models/society";
+import Class from "@/models/Class";
 
 await connect();
 
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     const tutors = await User.find(
       { category: "Tutor" },
-      { _id: 1, username: 1, email: 1, timezone: 1, demoSlotsAvailable: 1, profileImage: 1, societies: 1 }
+      { _id: 1, username: 1, email: 1, timezone: 1, demoSlotsAvailable: 1, profileImage: 1, societies: 1, classes: 1 }
     ).sort({ username: 1 });
 
     const tutorsFormatted = await Promise.all(
@@ -72,7 +73,6 @@ export async function GET(request: NextRequest) {
             _id: slot._id?.toString(),
             startTime: slot.startTime instanceof Date ? slot.startTime.toISOString() : slot.startTime,
             endTime: slot.endTime instanceof Date ? slot.endTime.toISOString() : slot.endTime,
-            // Return arrays instead of single values
             societyIds: (slot.societyIds || []).map((id: any) => id.toString()),
             societyNames: (slot.societyIds || [])
               .map((id: any) => societyMap[id.toString()]?.name || null)
@@ -81,6 +81,24 @@ export async function GET(request: NextRequest) {
               .map((id: any) => societyMap[id.toString()]?.city || null)
               .filter(Boolean),
           })),
+          // Populate classes from class IDs
+          classes: await (async () => {
+            const classIds = tutor.classes || [];
+            if (classIds.length === 0) return [];
+            const classData = await Class.find(
+              { _id: { $in: classIds } },
+              { _id: 1, title: 1, description: 1, startTime: 1, endTime: 1, status: 1, classType: 1 }
+            ).lean();
+            return classData.map((c: any) => ({
+              _id: c._id.toString(),
+              title: c.title,
+              description: c.description || "",
+              startTime: c.startTime instanceof Date ? c.startTime.toISOString() : c.startTime,
+              endTime: c.endTime instanceof Date ? c.endTime.toISOString() : c.endTime,
+              status: c.status || "scheduled",
+              classType: c.classType || "regular",
+            }));
+          })(),
         };
       })
     );

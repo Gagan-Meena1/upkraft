@@ -8,7 +8,7 @@ interface EditClassModalProps {
   errorMessage: string;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
-  onChange: (updated: ClassData) => void;
+  onClassChange: (updated: ClassData) => void;
 }
 
 const EditClassModal = ({
@@ -17,13 +17,13 @@ const EditClassModal = ({
   errorMessage,
   onClose,
   onSubmit,
-  onChange,
+  onClassChange,
 }: EditClassModalProps) => {
   const handleTimeChange = (field: "startTime" | "endTime", raw: string) => {
     let value = raw.replace(/[^\d:]/g, "");
     if (value.length === 2 && !value.includes(":")) value = value + ":";
     if (value.length > 5) value = value.slice(0, 5);
-    onChange({ ...editingClass, [field]: value });
+    onClassChange({ ...editingClass, [field]: value });
   };
 
   return (
@@ -45,7 +45,7 @@ const EditClassModal = ({
             <input
               type="text"
               value={editingClass.title}
-              onChange={(e) => onChange({ ...editingClass, title: e.target.value })}
+              onChange={(e) => onClassChange({ ...editingClass, title: e.target.value })}
               required
               className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
             />
@@ -55,7 +55,7 @@ const EditClassModal = ({
             <label className="block text-gray-600 mb-2 text-sm font-medium">Description</label>
             <textarea
               value={editingClass.description || ""}
-              onChange={(e) => onChange({ ...editingClass, description: e.target.value })}
+              onChange={(e) => onClassChange({ ...editingClass, description: e.target.value })}
               required
               className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28 transition-all"
             />

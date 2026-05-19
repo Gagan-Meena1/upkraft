@@ -3,7 +3,7 @@ import { X, AlertCircle } from "lucide-react";
 
 interface CancelClassModalProps {
   cancellationReason: string;
-  setCancellationReason: (reason: string) => void;
+  onReasonChange: (reason: string) => void;
   isCancelling: boolean;
   errorMessage: string;
   onClose: () => void;
@@ -12,7 +12,7 @@ interface CancelClassModalProps {
 
 const CancelClassModal = ({
   cancellationReason,
-  setCancellationReason,
+  onReasonChange,
   isCancelling,
   errorMessage,
   onClose,
@@ -43,7 +43,7 @@ const CancelClassModal = ({
             </label>
             <textarea
               value={cancellationReason}
-              onChange={(e) => setCancellationReason(e.target.value)}
+              onChange={(e) => onReasonChange(e.target.value)}
               placeholder="e.g., Instructor illness, scheduling conflict, etc."
               required
               className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 h-32 transition-all"

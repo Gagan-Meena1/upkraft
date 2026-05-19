@@ -9,9 +9,9 @@ export async function POST(request: NextRequest) {
   try {
     await connect();
     const body = await request.json();
-    const { 
+    const {
       name, phone, email, pname, age, notes, consent,
-      society, hobby, tutorId, date, slotTime 
+      society, hobby, tutorId, date, slotTime, address
     } = body;
 
     // 1. Save Lead in Registration
@@ -29,46 +29,25 @@ export async function POST(request: NextRequest) {
       instrument: hobby?.name || 'Unknown',
       tutorName: tutorId,
       demoDate: date,
-      demoTime: slotTime
+      demoTime: slotTime,
+      address: address || null,
     });
+    console.log("reg", reg);
     await reg.save();
-
     // 2. Create a Class for the Demo
-    const tutor = await User.findById(tutorId);
+    const tutor = await User.findById(tutorId).select('timezone').lean();
     if (!tutor) {
       return NextResponse.json({ success: false, message: "Tutor not found" }, { status: 404 });
     }
 
-    const tutorTz = tutor.timezone || "Asia/Calcutta";
-    
-    // Parse the slotTime, e.g., "04:00 PM"
-    const [time, modifier] = slotTime.split(' ');
-    let [hours, minutes] = time.split(':');
-    let hourNum = parseInt(hours, 10);
-    if (hourNum === 12) hourNum = 0;
-    if (modifier === 'PM') hourNum += 12;
-
-    // Parse the date. It should be passed directly from frontend as a Date string or we can reconstruct it.
-    // Assuming `date` passed is an ISO string of the raw slot start time.
-    let startLocal: Date;
-    if (date.includes("T")) {
-      startLocal = new Date(date);
-    } else {
-      // Fallback if frontend sends something else, but we will make sure frontend sends ISO string.
-      startLocal = new Date(date);
-      startLocal.setHours(hourNum, parseInt(minutes, 10), 0, 0);
-    }
-
-    // Class is 45 minutes
-    const endLocal = new Date(startLocal.getTime() + 45 * 60000);
-
-    // Convert to UTC before saving
-    const startUTC = dateFnsTz.fromZonedTime(startLocal, tutorTz);
-    const endUTC = dateFnsTz.fromZonedTime(endLocal, tutorTz);
+    // Frontend sends `date` as an ISO string with the correct time already set
+    const startUTC = new Date(date);
+    const durationMs = (body.duration || 45) * 60000; // default 45 min
+    const endUTC = new Date(startUTC.getTime() + durationMs);
 
     const newClass = new Class({
       title: `Free Trial: ${hobby?.name} for ${pname}`,
-      description: `Student: ${pname} (Age: ${age})\nParent: ${name}\nPhone: ${phone}\nEmail: ${email}\nNotes: ${notes}\nSociety: ${society?.name}`,
+      description: `Student: ${pname} (Age: ${age})\nParent: ${name}\nPhone: ${phone}\nEmail: ${email}\nNotes: ${notes}\nSociety: ${society?.name}\nAddress: ${address || ''}`,
       startTime: startUTC,
       endTime: endUTC,
       instructor: tutorId,

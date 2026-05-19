@@ -9,7 +9,7 @@ interface CreateClassModalProps {
   errorMessage: string;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  onFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
 }
 
 const CreateClassModal = ({
@@ -19,7 +19,7 @@ const CreateClassModal = ({
   errorMessage,
   onClose,
   onSubmit,
-  onChange,
+  onFormChange,
 }: CreateClassModalProps) => {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -48,7 +48,7 @@ const CreateClassModal = ({
               id="courseId"
               name="courseId"
               value={form.courseId}
-              onChange={onChange}
+              onChange={onFormChange}
               required
               className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
             >
@@ -70,7 +70,7 @@ const CreateClassModal = ({
               id="title"
               name="title"
               value={form.title}
-              onChange={onChange}
+              onChange={onFormChange}
               required
               placeholder="e.g., Introduction to Algebra"
               className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -85,7 +85,7 @@ const CreateClassModal = ({
               id="description"
               name="description"
               value={form.description}
-              onChange={onChange}
+              onChange={onFormChange}
               required
               placeholder="Provide details about the class..."
               className="w-full px-3 py-2.5 rounded-lg bg-white/50 border border-gray-300/70 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-28 transition-all"

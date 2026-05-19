@@ -25,13 +25,15 @@ const SlotCell: React.FC<SlotCellProps> = ({
   let info: React.ReactNode = null;
 
   if (classTitle) {
-    // This slot has a class booked
-    cellClass += "booked";
-    badge = <span className="c-badge b-booked">BOOKED</span>;
+    const isTrial = classTitle.toLowerCase().includes("free trial");
+    cellClass += isTrial ? "booked" : "booked";
+    badge = isTrial
+      ? <span className="c-badge b-booked">BOOKED</span>
+      : <span className="c-badge b-class">CLASS</span>;
     info = (
       <>
         {classTime && (
-          <div className="c-time" style={{ color: "var(--blue)" }}>
+          <div className="c-time" style={{ color: isTrial ? "var(--blue)" : "var(--violet)" }}>
             {classTime}
           </div>
         )}

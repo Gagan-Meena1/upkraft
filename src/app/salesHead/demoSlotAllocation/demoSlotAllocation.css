@@ -94,7 +94,7 @@
 .cell.selected-slot{ring:2px;ring-color:var(--amber);outline:2px solid var(--amber)}
 .c-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;display:inline-flex;align-items:center;gap:3px;width:fit-content;flex-shrink:0}
 .b-na{background:var(--nat);color:#fff}.b-open{background:var(--green);color:#fff}
-.b-demo{background:var(--amber);color:#fff}.b-booked{background:var(--blue);color:#fff}
+.b-demo{background:var(--amber);color:#fff}.b-booked{background:var(--blue);color:#fff}.b-class{background:var(--violet,#7C3AED);color:#fff}
 .b-rescheduled{background:var(--violet);color:#fff}.b-soc{background:var(--p);color:#fff}
 .c-text{font-size:9px;color:var(--txt2);line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical}
 .c-time{font-size:9px;font-weight:700;line-height:1.3}

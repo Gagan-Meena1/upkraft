@@ -1,61 +1,119 @@
-import React from "react";
+import React, { useState } from "react";
 import { Tutor, Society } from "./Types";
 
 interface FilterBarProps {
   tutors: Tutor[];
-  filterTutors: string[];
   filterSoc: string;
   allSocieties: Society[];
-  onToggleTutor: (id: string) => void;
   onSocFilterChange: (socId: string) => void;
   onClearFilters: () => void;
   onOpenSlotsPanel: () => void;
   selectedSlotCount: number;
   saving: boolean;
   onSaveSlots: () => void;
+  onSelectTutor: (id: string) => void;
+  selectedTutor: string;
+  pendingOpenCount?: number;
+  onSaveAllOpen?: () => void;
 }
 
 const FilterBar: React.FC<FilterBarProps> = ({
   tutors,
-  filterTutors,
   filterSoc,
   allSocieties,
-  onToggleTutor,
   onSocFilterChange,
   onClearFilters,
   onOpenSlotsPanel,
   selectedSlotCount,
   saving,
   onSaveSlots,
+  onSelectTutor,
+  selectedTutor,
+  pendingOpenCount = 0,
+  onSaveAllOpen,
 }) => {
-  const parts: string[] = [];
-  if (filterTutors.length > 0)
-    parts.push(`${filterTutors.length} tutor${filterTutors.length > 1 ? "s" : ""}`);
-  if (filterSoc) {
-    const soc = allSocieties.find((s) => s._id === filterSoc);
-    parts.push(soc?.name || filterSoc);
-  }
+  const [search, setSearch] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const filtered = search.trim()
+    ? tutors.filter(
+        (t) =>
+          t.username.toLowerCase().includes(search.toLowerCase()) ||
+          t.email.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
+
+  const handleSelect = (id: string) => {
+    onSelectTutor(id);
+    const tutor = tutors.find((t) => t._id === id);
+    setSearch(tutor?.username || "");
+    setShowDropdown(false);
+  };
 
   return (
     <div className="filter-bar">
-      <span className="fb-label">Filter</span>
-
-      {/* Tutor chips */}
-      <span className="fb-label" style={{ marginRight: 2 }}>Tutor</span>
-      {tutors.map((t) => {
-        const isOn = filterTutors.includes(t._id);
-        const dimmed = filterTutors.length > 0 && !isOn;
-        return (
-          <button
-            key={t._id}
-            className={`fb-chip${isOn ? " on" : ""}`}
-            style={{ opacity: dimmed ? 0.45 : 1 }}
-            onClick={() => onToggleTutor(t._id)}
+      {/* Search tutor */}
+      <span className="fb-label">Tutor</span>
+      <div style={{ position: "relative", flex: "0 1 220px" }}>
+        <input
+          className="finput"
+          style={{ padding: "7px 10px", fontSize: 12 }}
+          placeholder="🔍 Search tutor…"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setShowDropdown(true);
+          }}
+          onFocus={() => {
+            if (search.trim()) setShowDropdown(true);
+          }}
+        />
+        {showDropdown && filtered.length > 0 && (
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: 0,
+              right: 0,
+              background: "#fff",
+              border: "1.5px solid var(--bdr2)",
+              borderRadius: 8,
+              boxShadow: "0 6px 20px rgba(0,0,0,.12)",
+              zIndex: 50,
+              maxHeight: 200,
+              overflowY: "auto",
+              marginTop: 2,
+            }}
           >
-            {t.username.split(" ")[0]}
-          </button>
-        );
-      })}
+            {filtered.map((t) => (
+              <div
+                key={t._id}
+                onClick={() => handleSelect(t._id)}
+                style={{
+                  padding: "8px 12px",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: t._id === selectedTutor ? 700 : 500,
+                  color: t._id === selectedTutor ? "var(--p)" : "var(--txt)",
+                  borderBottom: "1px solid var(--bdr)",
+                  transition: "background .1s",
+                }}
+                onMouseEnter={(e) =>
+                  ((e.target as HTMLDivElement).style.background = "var(--pl)")
+                }
+                onMouseLeave={(e) =>
+                  ((e.target as HTMLDivElement).style.background = "transparent")
+                }
+              >
+                <div>{t.username}</div>
+                <div style={{ fontSize: 10, color: "var(--muted)" }}>
+                  {t.email}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="fb-divider" />
 
@@ -80,29 +138,30 @@ const FilterBar: React.FC<FilterBarProps> = ({
       <button
         className="fb-chip"
         onClick={onOpenSlotsPanel}
-        style={{ background: "var(--gl)", borderColor: "var(--gb)", color: "var(--green)" }}
+        style={{
+          background: "var(--gl)",
+          borderColor: "var(--gb)",
+          color: "var(--green)",
+        }}
       >
         🔍 Open Slots
       </button>
 
-      {/* Save selected slots */}
-      {selectedSlotCount > 0 && (
+
+      {/* Save All pending open slots */}
+      {pendingOpenCount > 0 && onSaveAllOpen && (
         <button
-          className="sm-btn sm-btn-p"
-          onClick={onSaveSlots}
-          disabled={saving}
-          style={{ opacity: saving ? 0.5 : 1 }}
+          className="sm-btn"
+          onClick={onSaveAllOpen}
+          style={{ background: "var(--amber)", color: "#fff", border: "none", fontWeight: 700 }}
         >
-          💾 Save {selectedSlotCount} Slot{selectedSlotCount !== 1 ? "s" : ""}
+          📦 Save All {pendingOpenCount} Slot{pendingOpenCount !== 1 ? "s" : ""}
         </button>
       )}
 
       <button className="fb-clear" onClick={onClearFilters}>
         Clear
       </button>
-      <span className="filter-count">
-        {parts.length ? `Filtering: ${parts.join(", ")}` : ""}
-      </span>
     </div>
   );
 };

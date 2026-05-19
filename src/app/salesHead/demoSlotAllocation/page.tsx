@@ -1,9 +1,10 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { parseISO, format, addDays } from "date-fns";
 import * as dateFnsTz from "date-fns-tz";
 import { Tutor, ClassData, Course, CreateClassForm, Society } from "./components/Types";
+import "./demoSlotAllocation.css";
 
 // Import all modals + grid
 import SlotGrid from "./components/Slotgrid";
@@ -13,6 +14,20 @@ import EditClassModal from "./components/Editclassmodal";
 import CancelClassModal from "./components/Cancelclassmodal";
 import SocietyModal from "./components/Societymodal";
 import ViewClassModal from "./components/Viewclassmodal";
+
+// New UI components
+import Navbar from "./components/Navbar";
+import FilterBar from "./components/FilterBar";
+import ViewTabs from "./components/ViewTabs";
+import TutorSidebar from "./components/TutorSidebar";
+import MobileBar from "./components/MobileBar";
+import DayTabs from "./components/DayTabs";
+import DayView from "./components/DayView";
+import Toast from "./components/Toast";
+import ManageSocietiesModal from "./components/ManageSocietiesModal";
+import OpenSlotsPanel from "./components/OpenSlotsPanel";
+import EditSlotModal from "./components/EditSlotModal";
+import type { EditSlotData, SlotStatusValue } from "./components/EditSlotModal";
 
 
 
@@ -69,9 +84,25 @@ const TutorAvailabilitySlots = () => {
   const [pendingSlotInfo, setPendingSlotInfo] = useState<{ date: string; hour: number } | null>(null);
   const [pendingRepeatSlots, setPendingRepeatSlots] = useState<Set<string>>(new Set());
 
+  // New UI state
+  const [filterTutors, setFilterTutors] = useState<string[]>([]);
+  const [filterSoc, setFilterSoc] = useState("");
+  const [currentView, setCurrentView] = useState<"tutor" | "society">("tutor");
+  const [activeDay, setActiveDay] = useState(0);
+  const [showManageSocModal, setShowManageSocModal] = useState(false);
+  const [showOpenPanel, setShowOpenPanel] = useState(false);
+  const [openPanelSoc, setOpenPanelSoc] = useState("");
+  const [toastMsg, setToastMsg] = useState("");
+  const [toastVisible, setToastVisible] = useState(false);
+  const [editSlotInfo, setEditSlotInfo] = useState<{ date: string; hour: number } | null>(null);
+  // Batch open slots: key = "date-hour", value = { startTime, endTime }
+  const [pendingOpenSlots, setPendingOpenSlots] = useState<Map<string, { date: string; hour: number; startTime: string; endTime: string }>>(new Map());
+  const [showBatchSocModal, setShowBatchSocModal] = useState(false);
+  const [batchSocIds, setBatchSocIds] = useState<string[]>([]);
+
   const toast = {
-    success: (msg: string) => alert(msg),
-    error: (msg: string) => alert(msg)
+    success: (msg: string) => { setToastMsg(msg); setToastVisible(true); setTimeout(() => setToastVisible(false), 2800); },
+    error: (msg: string) => { setToastMsg(msg); setToastVisible(true); setTimeout(() => setToastVisible(false), 2800); }
   };
 
   useEffect(() => {
@@ -110,25 +141,24 @@ const TutorAvailabilitySlots = () => {
     fetchTutors();
   }, []);
 
+  const fetchClasses = async (tutorId?: string) => {
+    const id = tutorId || selectedTutor;
+    if (!id) {
+      setClasses([]);
+      return;
+    }
+    try {
+      const response = await fetch(`/Api/classes?userid=${id}`);
+      const data = await response.json();
+      if (data.classData) {
+        setClasses(data.classData);
+      }
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchClasses = async () => {
-      if (!selectedTutor) {
-        setClasses([]);
-        return;
-      }
-
-      try {
-        const response = await fetch(`/Api/classes?userid=${selectedTutor}`);
-        const data = await response.json();
-
-        if (data.classData) {
-          setClasses(data.classData);
-        }
-      } catch (error) {
-        console.error("Error fetching classes:", error);
-      }
-    };
-
     fetchClasses();
   }, [selectedTutor]);
 
@@ -272,21 +302,8 @@ const TutorAvailabilitySlots = () => {
     return format(date, 'yyyy-MM-dd');
   };
 
-  const getWeekDays = (): Date[] => {
-    const ref = new Date(currentDate.getTime());
-    const day = ref.getDay();
-    const diff = ref.getDate() - day + (day === 0 ? -6 : 1);
-    const startOfWeek = new Date(ref);
-    startOfWeek.setDate(diff);
 
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(startOfWeek);
-      d.setDate(startOfWeek.getDate() + i);
-      days.push(d);
-    }
-    return days;
-  };
+
 
   const changeWeek = (direction: number) => {
     const newDate = new Date(currentDate);
@@ -572,8 +589,8 @@ const TutorAvailabilitySlots = () => {
     router.push(`/salesHead/demoSlotAllocation`);
   };
 
-  const weekDays = getWeekDays();
-  const hours = Array.from({ length: 24 }, (_, i) => i);
+
+
   // Handle opening create class modal
   const handleOpenCreateClass = (date: string, hour: number) => {
     const startTime = `${String(hour).padStart(2, '0')}:00`;
@@ -827,103 +844,124 @@ const TutorAvailabilitySlots = () => {
       setIsCancelling(false); // Stop loading
     }
   };
+  // Compute week label
+  const getWeekLabel = () => {
+    const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const ref = new Date(currentDate.getTime());
+    const day = ref.getDay();
+    const diff = ref.getDate() - day + (day === 0 ? -6 : 1);
+    const start = new Date(ref); start.setDate(diff);
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    return `${start.getDate()} ${MO[start.getMonth()]} – ${end.getDate()} ${MO[end.getMonth()]} ${end.getFullYear()}`;
+  };
+
+  const getWeekDays = (): Date[] => {
+    const ref = new Date(currentDate.getTime());
+    const day = ref.getDay();
+    const diff = ref.getDate() - day + (day === 0 ? -6 : 1);
+    const startOfWeek = new Date(ref); startOfWeek.setDate(diff);
+    const days = [];
+    for (let i = 0; i < 7; i++) { const d = new Date(startOfWeek); d.setDate(startOfWeek.getDate() + i); days.push(d); }
+    return days;
+  };
+
+  const allSocieties: Society[] = [...new Map(tutors.flatMap(t => t.societies || []).map(s => [s._id, s])).values()];
+  const curTutor = tutors.find(t => t._id === selectedTutor);
+  const curSocieties: Society[] = curTutor?.societies || [];
+
+  const toggleTutorFilter = (id: string) => {
+    setFilterTutors(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      <div className="slot-page" style={{ alignItems: "center", justifyContent: "center" }}>
+        <div style={{ width: 48, height: 48, border: "3px solid var(--p)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 px-1 py-2 sm:p-4 lg:p-6">
-      {/* Header / tutor selector stays inline or extract to its own component */}
-      <div className="bg-white rounded-lg shadow-sm p-3 sm:p-4 mb-4 sm:mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">
-          Demo Slot Allocation
-        </h1>
-        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-4 sm:items-end">
-          {/* Tutor Selector */}
-          <div className="w-full sm:flex-1 sm:min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Tutor</label>
-            <select
-              value={selectedTutor}
-              onChange={(e) => setSelectedTutor(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm"
-            >
-              <option value="">— Choose a tutor —</option>
-              {tutors.map((t) => (
-                <option key={t._id} value={t._id}>
-                  {t.username} ({t.email})
-                </option>
-              ))}
-            </select>
-          </div>
+    <div className="slot-page">
+      <Navbar weekLabel={getWeekLabel()} onPrevWeek={() => changeWeek(-1)} onNextWeek={() => changeWeek(1)} />
 
-          {/* Society Filter */}
-          {selectedTutor && (() => {
-            const tutor = tutors.find((t) => t._id === selectedTutor);
-            const tutorSocieties = tutor?.societies || [];
-            return tutorSocieties.length > 0 ? (
-              <div className="w-full sm:w-auto sm:min-w-[180px]">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Society</label>
-                <select
-                  value={currentSocietyId}
-                  onChange={(e) => setCurrentSocietyId(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
-                >
-                  <option value="">All Societies</option>
-                  {tutorSocieties.map((s) => (
-                    <option key={s._id} value={s._id}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
-            ) : null;
-          })()}
-
-          {/* Action Buttons */}
-          {selectedTutor && (
-            <div className="flex gap-2">
-              {/* <button
-                onClick={handleOpenRepeatModal}
-                className="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium text-sm transition-colors"
-              >
-                🔁 Repeat Slots
-              </button> */}
-              {selectedSlots.size > 0 && (
-                <button
-                  onClick={handleSaveSelectedSlots}
-                  disabled={saving}
-                  className="flex-1 sm:flex-none px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium text-sm transition-colors disabled:bg-gray-400"
-                >
-                  💾 Save {selectedSlots.size} Slot{selectedSlots.size !== 1 ? "s" : ""}
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Slot Grid */}
-      <SlotGrid
-        slots={slots}
-        classes={classes}
+      <FilterBar
         tutors={tutors}
+        filterSoc={filterSoc}
+        allSocieties={allSocieties}
+        onSocFilterChange={setFilterSoc}
+        onClearFilters={() => { setFilterSoc(""); }}
+        onOpenSlotsPanel={() => setShowOpenPanel(true)}
+        selectedSlotCount={selectedSlots.size}
+        saving={saving}
+        onSaveSlots={handleSaveSelectedSlots}
+        onSelectTutor={setSelectedTutor}
         selectedTutor={selectedTutor}
-        currentDate={currentDate}
-        userTimezone={userTimezone}
-        slotSocietyMap={slotSocietyMap}
-        selectedSlots={selectedSlots}
-        onSlotChange={handleSlotChange}
-        onOpenCreateClass={handleOpenCreateClass}
-        onEditClass={handleEditClass}
-        onDeleteClass={handleDeleteClass}
-        onViewClass={setViewClassDetails}
-        onWeekChange={changeWeek}
-        onToday={() => setCurrentDate(new Date())}
+        pendingOpenCount={pendingOpenSlots.size}
+        onSaveAllOpen={() => {
+          if (pendingOpenSlots.size === 0) return;
+          setBatchSocIds([]);
+          setShowBatchSocModal(true);
+        }}
       />
 
-      {/* Modals — conditionally rendered, all controlled from page.tsx */}
+      <ViewTabs currentView={currentView} onSwitchView={setCurrentView} />
+
+      <div className="sm-body">
+        {/* Mobile bar */}
+        <MobileBar
+          tutors={tutors}
+          selectedTutor={selectedTutor}
+          onSelectTutor={setSelectedTutor}
+          societies={curSocieties}
+          onManageSocieties={() => setShowManageSocModal(true)}
+        />
+
+        {/* Day tabs (mobile) */}
+        <DayTabs weekDays={getWeekDays()} activeDay={activeDay} onSelectDay={setActiveDay} />
+
+        {/* Desktop sidebar */}
+        {currentView === "tutor" && (
+          <TutorSidebar
+            tutors={tutors}
+            selectedTutor={selectedTutor}
+            onSelectTutor={setSelectedTutor}
+            onManageSocieties={() => setShowManageSocModal(true)}
+            filterTutors={filterTutors}
+          />
+        )}
+
+        {/* Grid (desktop) */}
+        {currentView === "tutor" && (
+          <SlotGrid
+            slots={slots}
+            classes={classes}
+            tutors={tutors}
+            selectedTutor={selectedTutor}
+            currentDate={currentDate}
+            userTimezone={userTimezone}
+            slotSocietyMap={slotSocietyMap}
+            selectedSlots={selectedSlots}
+            onSlotClick={(date, hour) => setEditSlotInfo({ date, hour })}
+            onViewClass={setViewClassDetails}
+            onWeekChange={changeWeek}
+            onToday={() => setCurrentDate(new Date())}
+          />
+        )}
+
+        {/* Society fill view placeholder */}
+        {currentView === "society" && (
+          <div className="grid-area" style={{ alignItems: "center", justifyContent: "center", display: "flex" }}>
+            <div style={{ textAlign: "center", color: "var(--muted)", padding: 40 }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>Society Fill View</div>
+              <div style={{ fontSize: 12, marginTop: 4 }}>Coming soon — select a society to see slot fill across all tutors</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* All existing modals */}
       {showRepeatModal && (
         <RepeatModal
           selectedSlots={selectedSlots}
@@ -961,11 +999,7 @@ const TutorAvailabilitySlots = () => {
           isSubmitting={isSubmitting}
           onClassChange={setEditingClass}
           onSubmit={handleUpdateClassSubmit}
-          onClose={() => {
-            setShowEditClassModal(false);
-            setEditingClass(null);
-            setErrorMessage("");
-          }}
+          onClose={() => { setShowEditClassModal(false); setEditingClass(null); setErrorMessage(""); }}
         />
       )}
 
@@ -976,54 +1010,307 @@ const TutorAvailabilitySlots = () => {
           errorMessage={errorMessage}
           onReasonChange={setCancellationReason}
           onConfirm={handleConfirmCancellation}
-          onClose={() => {
-            setShowCancelModal(false);
-            setCancellingClassId(null);
-            setCancellationReason("");
-            setErrorMessage("");
-          }}
+          onClose={() => { setShowCancelModal(false); setCancellingClassId(null); setCancellationReason(""); setErrorMessage(""); }}
         />
       )}
 
       {showSocietyModal && (() => {
-        const tutor = tutors.find((t) => t._id === selectedTutor);
-        const tutorSocieties: Society[] = tutor?.societies || [];
+        const tutorSocieties: Society[] = curTutor?.societies || [];
         return (
           <SocietyModal
             societies={tutorSocieties}
             selectedSocietyIds={selectedSocietyIds}
             saving={saving}
-            onToggleSociety={(id) =>
-              setSelectedSocietyIds(prev =>
-                prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-              )
-            }
+            onToggleSociety={(id) => setSelectedSocietyIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
             onConfirm={handleSocietyConfirmAndSave}
-            onClose={() => {
-              setShowSocietyModal(false);
-              setPendingSlotInfo(null);
-              setPendingRepeatSlots(new Set());
-            }}
+            onClose={() => { setShowSocietyModal(false); setPendingSlotInfo(null); setPendingRepeatSlots(new Set()); }}
           />
         );
       })()}
 
       {viewClassDetails && (
-        <ViewClassModal
-          classItem={viewClassDetails}
-          onClose={() => setViewClassDetails(null)}
+        <ViewClassModal classItem={viewClassDetails} onClose={() => setViewClassDetails(null)} />
+      )}
+
+      {showManageSocModal && curTutor && (
+        <ManageSocietiesModal
+          tutor={curTutor}
+          onClose={() => setShowManageSocModal(false)}
+          onAddSociety={(name) => toast.success(`Society "${name}" — use the Society page to add`)}
+          onRemoveSociety={(i) => toast.success(`Removed society at index ${i}`)}
         />
       )}
+
+      {showOpenPanel && (
+        <OpenSlotsPanel
+          tutors={tutors}
+          allSocieties={allSocieties}
+          selectedSoc={openPanelSoc}
+          onSocChange={setOpenPanelSoc}
+          onJumpToSlot={(tutorId) => { setSelectedTutor(tutorId); setShowOpenPanel(false); }}
+          onClose={() => setShowOpenPanel(false)}
+          slots={slots}
+          slotSocietyMap={slotSocietyMap}
+        />
+      )}
+      {editSlotInfo && (() => {
+        const { date, hour } = editSlotInfo;
+        const key = `${date}-${hour}`;
+        const status = slots.get(key) || "unavailable";
+        const socs = slotSocietyMap.get(key) || [];
+        const socIds = curSocieties.filter(s => socs.includes(s.name)).map(s => s._id);
+        const d = new Date(date);
+        const dayName = d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+        const formatH = (h: number) => {
+          if (h < 12) return `${h}:00 AM`;
+          if (h === 12) return `12:00 PM`;
+          return `${h - 12}:00 PM`;
+        };
+        const slotClasses = getClassesForSlot(date, hour);
+
+        return (
+          <EditSlotModal
+            dateLabel={dayName}
+            timeLabel={`${formatH(hour)} – ${formatH(hour + 1)}`}
+            hour={hour}
+            dateStr={date}
+            societies={curSocieties}
+            initialStatus={status === "available" ? "open" : "na"}
+            initialSocietyIds={socIds}
+            slotClasses={slotClasses}
+            saving={saving}
+            pendingCount={pendingOpenSlots.size}
+            onClose={() => setEditSlotInfo(null)}
+            onSelectMore={(st, et) => {
+              // Add this slot to pending batch and close modal
+              setPendingOpenSlots(prev => {
+                const next = new Map(prev);
+                next.set(key, { date, hour, startTime: st, endTime: et });
+                return next;
+              });
+              // Mark visually as selected
+              setSelectedSlots(prev => {
+                const next = new Set(prev);
+                next.add(key);
+                return next;
+              });
+              setEditSlotInfo(null);
+              toast.success(`Slot added to batch (${pendingOpenSlots.size + 1} total)`);
+            }}
+            onSave={async (data: EditSlotData) => {
+              setSaving(true);
+              try {
+                if (data.status === "na") {
+                  // Mark as unavailable locally
+                  handleSlotChange(date, hour, "unavailable");
+                  toast.success("Slot marked as NA");
+
+                } else if (data.status === "open") {
+                  // POST /Api/salesHead/demoSlots
+                  const startISO = new Date(`${date}T${data.startTime}:00`).toISOString();
+                  const endISO = new Date(`${date}T${data.endTime}:00`).toISOString();
+                  const socIdsToSend = data.societyIds.length > 0 ? data.societyIds : curSocieties.map(s => s._id);
+                  const res = await fetch("/Api/salesHead/demoSlots", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      tutorId: selectedTutor,
+                      slots: [{ startTime: startISO, endTime: endISO }],
+                      societyIds: socIdsToSend,
+                    }),
+                  });
+                  const result = await res.json();
+                  if (!result.success) throw new Error(result.message);
+                  handleSlotChange(date, hour, "available");
+                  // Store society names
+                  const socNames = socIdsToSend
+                    .map(id => curSocieties.find(s => s._id === id)?.name)
+                    .filter(Boolean) as string[];
+                  setSlotSocietyMap(prev => {
+                    const next = new Map(prev);
+                    next.set(key, socNames);
+                    return next;
+                  });
+                  toast.success("Slot opened with societies saved!");
+
+                } else if (data.status === "demo") {
+                  // POST /Api/public/bookTrial
+                  const res = await fetch("/Api/public/bookTrial", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      name: data.name,
+                      phone: data.contactNumber,
+                      email: data.email || "",
+                      pname: data.participantName,
+                      age: data.age ? parseInt(data.age) : null,
+                      notes: data.notes,
+                      consent: true,
+                      society: { name: data.societyName || "", city: data.city || "" },
+                      hobby: { name: data.instrument },
+                      tutorId: selectedTutor,
+                      date: new Date(`${date}T${data.startTime}:00`).toISOString(),
+                      slotTime: formatH(hour),
+                      duration: data.duration,
+                      address: data.address,
+                    }),
+                  });
+                  const result = await res.json();
+                  if (!result.success) throw new Error(result.message);
+                  // Refresh classes
+                  await fetchClasses(selectedTutor);
+                  toast.success("Demo booked successfully!");
+
+                } else if (data.status === "rescheduled") {
+                  // PUT /Api/classes?classId=xxx — reschedule existing class
+                  if (!data.classId) throw new Error("Select a class to reschedule");
+                  if (!data.rescheduleDate || !data.rescheduleTime) throw new Error("New date and time required");
+                  const tutor = tutors.find(t => t._id === selectedTutor);
+                  const tutorTz = tutor?.timezone || userTimezone;
+                  const [rH, rM] = data.rescheduleTime.split(":");
+                  const endH = parseInt(rH) + 1;
+                  const res = await fetch(`/Api/classes?classId=${data.classId}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      title: slotClasses.find(c => c._id === data.classId)?.title || "Rescheduled Class",
+                      description: slotClasses.find(c => c._id === data.classId)?.description || data.rescheduleReason,
+                      date: data.rescheduleDate,
+                      startTime: data.rescheduleTime,
+                      endTime: `${String(endH).padStart(2, "0")}:${rM}`,
+                      timezone: tutorTz,
+                      reasonForReschedule: data.rescheduleReason,
+                      status: "rescheduled",
+                      updateIntent: "reschedule",
+                    }),
+                  });
+                  const result = await res.json();
+                  if (result.error) throw new Error(result.error);
+                  await fetchClasses(selectedTutor);
+                  toast.success("Class rescheduled successfully!");
+
+                } else if (data.status === "booked") {
+                  // Book a trial + mark payment done
+                  const res = await fetch("/Api/public/bookTrial", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      name: data.name,
+                      phone: data.contactNumber,
+                      email: data.email || "",
+                      pname: data.participantName,
+                      age: data.age ? parseInt(data.age) : null,
+                      notes: data.notes,
+                      consent: true,
+                      society: { name: data.societyName || "", city: data.city || "" },
+                      hobby: { name: data.instrument },
+                      tutorId: selectedTutor,
+                      date: new Date(`${date}T${data.startTime}:00`).toISOString(),
+                      slotTime: formatH(hour),
+                      duration: data.duration,
+                      address: data.address,
+                    }),
+                  });
+                  const result = await res.json();
+                  if (!result.success) throw new Error(result.message);
+                  await fetchClasses(selectedTutor);
+                  toast.success("Booking saved with payment!");
+                }
+
+                setEditSlotInfo(null);
+              } catch (err: any) {
+                console.error("EditSlot save error:", err);
+                toast.error(err.message || "Failed to save");
+              } finally {
+                setSaving(false);
+              }
+            }}
+          />
+        );
+      })()}
+
+      {/* Batch society selection for multi-slot open */}
+      {showBatchSocModal && (() => {
+        const tutorSocieties: Society[] = curTutor?.societies || [];
+        return (
+          <SocietyModal
+            societies={tutorSocieties}
+            selectedSocietyIds={batchSocIds}
+            saving={saving}
+            slotCount={pendingOpenSlots.size}
+            onToggleSociety={(id) => setBatchSocIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])}
+            onConfirm={async () => {
+              if (batchSocIds.length === 0 && pendingOpenSlots.size > 0) {
+                toast.error("Please select at least one society");
+                return;
+              }
+              setSaving(true);
+              try {
+                // Build slots array from pending
+                const slotsArr = Array.from(pendingOpenSlots.values()).map(s => ({
+                  startTime: new Date(`${s.date}T${s.startTime}:00`).toISOString(),
+                  endTime: new Date(`${s.date}T${s.endTime}:00`).toISOString(),
+                }));
+
+                const res = await fetch("/Api/salesHead/demoSlots", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    tutorId: selectedTutor,
+                    slots: slotsArr,
+                    societyIds: batchSocIds,
+                  }),
+                });
+                const result = await res.json();
+                if (!result.success) throw new Error(result.message);
+
+                // Mark all pending as available locally — single batch update
+                const socNames = batchSocIds
+                  .map(id => curSocieties.find(sc => sc._id === id)?.name)
+                  .filter(Boolean) as string[];
+
+                setSlots(prev => {
+                  const next = new Map(prev);
+                  pendingOpenSlots.forEach((s, key) => {
+                    next.set(key, "available");
+                  });
+                  return next;
+                });
+
+                setSlotSocietyMap(prev => {
+                  const next = new Map(prev);
+                  pendingOpenSlots.forEach((_s, key) => {
+                    next.set(key, socNames);
+                  });
+                  return next;
+                });
+
+                // Clear batch
+                setPendingOpenSlots(new Map());
+                setSelectedSlots(new Set());
+                setShowBatchSocModal(false);
+                toast.success(`${slotsArr.length} slots opened successfully!`);
+              } catch (err: any) {
+                console.error("Batch save error:", err);
+                toast.error(err.message || "Failed to save slots");
+              } finally {
+                setSaving(false);
+              }
+            }}
+            onClose={() => setShowBatchSocModal(false)}
+          />
+        );
+      })()}
+
+      <Toast message={toastMsg} visible={toastVisible} />
     </div>
   );
 };
 
-
-
 const TutorAvailabilitySlotsWrapper = () => (
   <Suspense fallback={
-    <div className="flex justify-center items-center min-h-screen bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+    <div className="slot-page" style={{ alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 48, height: 48, border: "3px solid #5C16C5", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
     </div>
   }>
     <TutorAvailabilitySlots />
