@@ -24,7 +24,7 @@ import MobileBar from "./components/MobileBar";
 import DayTabs from "./components/DayTabs";
 import DayView from "./components/DayView";
 import Toast from "./components/Toast";
-import ManageSocietiesModal from "./components/ManageSocietiesModal";
+import AssignSocietiesModal from "./components/AssignSocietiesModal";
 import OpenSlotsPanel from "./components/OpenSlotsPanel";
 import EditSlotModal from "./components/EditSlotModal";
 import type { EditSlotData, SlotStatusValue } from "./components/EditSlotModal";
@@ -90,6 +90,7 @@ const TutorAvailabilitySlots = () => {
   const [currentView, setCurrentView] = useState<"tutor" | "society">("tutor");
   const [activeDay, setActiveDay] = useState(0);
   const [showManageSocModal, setShowManageSocModal] = useState(false);
+  const [showAssignSocModal, setShowAssignSocModal] = useState(false);
   const [showOpenPanel, setShowOpenPanel] = useState(false);
   const [openPanelSoc, setOpenPanelSoc] = useState("");
   const [toastMsg, setToastMsg] = useState("");
@@ -883,7 +884,7 @@ const TutorAvailabilitySlots = () => {
 
   return (
     <div className="slot-page">
-      <Navbar weekLabel={getWeekLabel()} onPrevWeek={() => changeWeek(-1)} onNextWeek={() => changeWeek(1)} />
+      <Navbar weekLabel={getWeekLabel()} onPrevWeek={() => changeWeek(-1)} onNextWeek={() => changeWeek(1)} onManageSocieties={() => setShowAssignSocModal(true)} />
 
       <FilterBar
         tutors={tutors}
@@ -1032,12 +1033,22 @@ const TutorAvailabilitySlots = () => {
         <ViewClassModal classItem={viewClassDetails} onClose={() => setViewClassDetails(null)} />
       )}
 
-      {showManageSocModal && curTutor && (
-        <ManageSocietiesModal
-          tutor={curTutor}
-          onClose={() => setShowManageSocModal(false)}
-          onAddSociety={(name) => toast.success(`Society "${name}" — use the Society page to add`)}
-          onRemoveSociety={(i) => toast.success(`Removed society at index ${i}`)}
+      {showAssignSocModal && (
+        <AssignSocietiesModal
+          tutors={tutors}
+          initialTutorId={selectedTutor}
+          onClose={() => setShowAssignSocModal(false)}
+          onSaved={async () => {
+            // Refresh tutor data
+            try {
+              const res = await fetch("/Api/salesHead/allTutorsInfo");
+              const data = await res.json();
+              if (data.success && data.tutors) setTutors(data.tutors);
+            } catch (err) {
+              console.error("Error refreshing tutors:", err);
+            }
+            toast.success("Societies assigned successfully!");
+          }}
         />
       )}
 
@@ -1157,8 +1168,11 @@ const TutorAvailabilitySlots = () => {
                   });
                   const result = await res.json();
                   if (!result.success) throw new Error(result.message);
-                  // Refresh classes
+                  // Refresh classes and tutor registrations
                   await fetchClasses(selectedTutor);
+                  const tutorsRes = await fetch("/Api/salesHead/allTutorsInfo");
+                  const tutorsData = await tutorsRes.json();
+                  if (tutorsData.success && tutorsData.tutors) setTutors(tutorsData.tutors);
                   toast.success("Demo booked successfully!");
 
                 } else if (data.status === "rescheduled") {
@@ -1209,11 +1223,16 @@ const TutorAvailabilitySlots = () => {
                       slotTime: formatH(hour),
                       duration: data.duration,
                       address: data.address,
+                      payment: { amount: data.paymentAmount || 1, status: "Done" },
                     }),
                   });
                   const result = await res.json();
                   if (!result.success) throw new Error(result.message);
+                  // Refresh classes and tutor registrations
                   await fetchClasses(selectedTutor);
+                  const tutorsRes2 = await fetch("/Api/salesHead/allTutorsInfo");
+                  const tutorsData2 = await tutorsRes2.json();
+                  if (tutorsData2.success && tutorsData2.tutors) setTutors(tutorsData2.tutors);
                   toast.success("Booking saved with payment!");
                 }
 

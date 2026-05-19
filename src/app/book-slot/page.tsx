@@ -43,8 +43,7 @@ export default function BookSlotPage() {
     formData.name.trim().length >= 2 &&
     formData.phone.trim().length === 10 &&
     formData.pname.trim().length >= 2 &&
-    Number(formData.age) > 0 &&
-    /^\S+@\S+\.\S+$/.test(formData.email)
+    Number(formData.age) > 0
   );
 
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
@@ -700,7 +699,7 @@ export default function BookSlotPage() {
                   onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '') })} />
               </div>
               <div>
-                <div className="bsp-flabel">Email <span className="bsp-req">*</span></div>
+                <div className="bsp-flabel">Email</div>
                 <input className="bsp-finput" placeholder="your@email.com" type="email"
                   value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
               </div>

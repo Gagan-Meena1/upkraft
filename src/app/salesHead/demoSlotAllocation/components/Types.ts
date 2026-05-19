@@ -13,6 +13,7 @@ export interface Tutor {
     societyNames?: string[];
   }[];
   societies?: Society[];
+  registrations?: RegistrationData[];
   description?: string;
 }
 
@@ -42,4 +43,19 @@ export interface CreateClassForm {
   date: string;
   startTime: string;
   endTime: string;
+}
+
+export interface RegistrationData {
+  _id: string;
+  participantName: string;
+  name: string;
+  societyName: string;
+  city: string;
+  demoDate: string | null;
+  demoTime: string | null;
+  paymentAmount: number;
+  paymentStatus: string;
+  instrument: string;
+  contactNumber: string;
+  address: string;
 }

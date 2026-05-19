@@ -115,12 +115,26 @@ const SlotGrid = ({
                 const endLocal = dateFnsTz.toZonedTime(parseISO(classItem.endTime), tutorTz);
                 const timeStr = `${format(startLocal, "h:mm a")} – ${format(endLocal, "h:mm a")}`;
 
+                // Find matching registration by demoDate
+                const curTutor = tutors.find((t) => t._id === selectedTutor);
+                const regs = curTutor?.registrations || [];
+                const matchingReg = regs.find((r) => {
+                  if (!r.demoDate) return false;
+                  try {
+                    const regStart = dateFnsTz.toZonedTime(parseISO(r.demoDate), tutorTz);
+                    // Match if the registration's demoDate falls within this slot
+                    return regStart >= startLocal && regStart < endLocal ||
+                      Math.abs(regStart.getTime() - startLocal.getTime()) < 60000; // within 1 min
+                  } catch { return false; }
+                });
+
                 return (
                   <SlotCell
                     key={key}
                     status="available"
                     classTitle={classItem.title}
                     classTime={timeStr}
+                    registration={matchingReg}
                     onClick={() => onViewClass(classItem)}
                   />
                 );

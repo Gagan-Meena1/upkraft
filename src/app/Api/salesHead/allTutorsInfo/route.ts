@@ -4,6 +4,7 @@ import User from "@/models/userModel";
 import jwt from "jsonwebtoken";
 import Society from "@/models/society";
 import Class from "@/models/Class";
+import Registration from "@/models/Registration";
 
 await connect();
 
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     const tutors = await User.find(
       { category: "Tutor" },
-      { _id: 1, username: 1, email: 1, timezone: 1, demoSlotsAvailable: 1, profileImage: 1, societies: 1, classes: 1 }
+      { _id: 1, username: 1, email: 1, timezone: 1, demoSlotsAvailable: 1, profileImage: 1, societies: 1, classes: 1, registrations: 1 }
     ).sort({ username: 1 });
 
     const tutorsFormatted = await Promise.all(
@@ -97,6 +98,29 @@ export async function GET(request: NextRequest) {
               endTime: c.endTime instanceof Date ? c.endTime.toISOString() : c.endTime,
               status: c.status || "scheduled",
               classType: c.classType || "regular",
+            }));
+          })(),
+          // Populate registrations from registration IDs
+          registrations: await (async () => {
+            const regIds = tutor.registrations || [];
+            if (regIds.length === 0) return [];
+            const regData = await Registration.find(
+              { _id: { $in: regIds } },
+              { _id: 1, participantName: 1, name: 1, societyName: 1, city: 1, demoDate: 1, demoTime: 1, payment: 1, instrument: 1, contactNumber: 1, address: 1 }
+            ).lean();
+            return regData.map((r: any) => ({
+              _id: r._id.toString(),
+              participantName: r.participantName || r.name || "",
+              name: r.name || "",
+              societyName: r.societyName || "",
+              city: r.city || "",
+              demoDate: r.demoDate || null,
+              demoTime: r.demoTime || null,
+              paymentAmount: r.payment?.amount || 0,
+              paymentStatus: r.payment?.status || "Pending",
+              instrument: r.instrument || "",
+              contactNumber: r.contactNumber || "",
+              address: r.address || "",
             }));
           })(),
         };

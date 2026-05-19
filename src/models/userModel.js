@@ -230,6 +230,10 @@ const userSchema = new mongoose.Schema({
 
         }]
     },
+    registrations: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Registration"
+    }],
     academyId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "users"

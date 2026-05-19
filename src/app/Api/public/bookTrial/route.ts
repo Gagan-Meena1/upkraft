@@ -25,12 +25,13 @@ export async function POST(request: NextRequest) {
       societyName: society?.name || null,
       contactNumber: phone,
       countryCode: '+91',
-      email: email || 'no-email@upkraft.in',
+      email: email || '',
       instrument: hobby?.name || 'Unknown',
       tutorName: tutorId,
       demoDate: date,
       demoTime: slotTime,
       address: address || null,
+      ...(body.payment ? { payment: body.payment } : {}),
     });
     console.log("reg", reg);
     await reg.save();
@@ -57,9 +58,9 @@ export async function POST(request: NextRequest) {
 
     const savedClass = await newClass.save();
 
-    // Update tutor's classes
+    // Update tutor's classes and registrations
     await User.findByIdAndUpdate(tutorId, {
-      $addToSet: { classes: savedClass._id }
+      $addToSet: { classes: savedClass._id, registrations: reg._id }
     });
 
     return NextResponse.json({ success: true, message: "Trial booked successfully" }, { status: 201 });

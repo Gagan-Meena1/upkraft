@@ -100,7 +100,7 @@ export default function LoginPage() {
       } else if (normalizedCategory === "relationshipmanager") {
         router.push("/relationshipmanager");
       } else if (normalizedCategory === "saleshead") {
-        router.push("/salesHead/society");
+        router.push("/salesHead/demoSlotAllocation");
       }
     } catch (error: any) {
       console.log("Login failed", error.response?.data?.error || error.message);

@@ -14,7 +14,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       'city', 'societyName', 'instrument',
       'participantName', 'age', 'notes',
       'status', 'payment',
-      'demoDate', 'demoTime',
+      'demoDate', 'demoTime', 'address',
     ];
 
     const updateData: any = {};

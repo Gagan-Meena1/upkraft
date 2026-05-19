@@ -123,6 +123,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
   const [editPaymentStatus, setEditPaymentStatus] = useState('');
   const [editDemoDate, setEditDemoDate] = useState('');
   const [editDemoTime, setEditDemoTime] = useState('');
+  const [editAddress, setEditAddress] = useState('');
 
   const openEditModal = (lead: any) => {
     setEditingLead(lead);
@@ -141,6 +142,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
     setEditPaymentStatus(lead.payment?.status || 'Pending');
     setEditDemoDate(lead.demoDate || '');
     setEditDemoTime(lead.demoTime || '');
+    setEditAddress(lead.address || '');
   };
 
   const closeEditModal = () => {
@@ -169,6 +171,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
       },
       demoDate: editDemoDate || null,
       demoTime: editDemoTime || null,
+      address: editAddress || null,
     };
 
     try {
@@ -195,7 +198,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
   return (
     <>
       <div className="table-wrap">
-        <table className="table" style={{ minWidth: '1800px', tableLayout: 'fixed' }}>
+        <table className="table" style={{ minWidth: '1940px', tableLayout: 'fixed' }}>
           <colgroup>
             <col style={{ width: '75px' }} />
             <col style={{ width: '130px' }} />
@@ -209,6 +212,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
             <col style={{ width: '120px' }} />
             <col style={{ width: '110px' }} />
             <col style={{ width: '120px' }} />
+            <col style={{ width: '130px' }} />
             <col style={{ width: '140px' }} />
             <col style={{ width: '90px' }} />
           </colgroup>
@@ -227,13 +231,14 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
               <th>Demo Status</th>
               <th>Payment Status</th>
               <th>Notes</th>
+              <th>Address</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {leads.length === 0 ? (
               <tr>
-                <td colSpan={14} className="empty-state">
+                <td colSpan={15} className="empty-state">
                   <div className="em-ico">📭</div>
                   <p>No leads found.</p>
                 </td>
@@ -305,6 +310,11 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
                   <td>
                     <div style={{ fontSize: '11px', color: 'var(--text2)', whiteSpace: 'normal' }}>
                       {lead.notes || '-'}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '11px', color: 'var(--text2)', whiteSpace: 'normal' }}>
+                      {lead.address || '-'}
                     </div>
                   </td>
                   <td>
@@ -427,6 +437,15 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
                 <div className="edit-modal-field full">
                   <label className="edit-modal-label">Notes</label>
                   <textarea className="edit-form-input" rows={3} style={{ resize: 'vertical', minHeight: '60px' }} value={editNotes} onChange={e => setEditNotes(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Section: Address */}
+              <div className="edit-modal-section-label">Address</div>
+              <div className="edit-modal-grid">
+                <div className="edit-modal-field full">
+                  <label className="edit-modal-label">Address</label>
+                  <textarea className="edit-form-input" rows={2} style={{ resize: 'vertical', minHeight: '50px' }} value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="Enter address..." />
                 </div>
               </div>
             </div>

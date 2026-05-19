@@ -54,8 +54,8 @@ const RegistrationSchema: Schema = new Schema(
     },
     email: {
       type: String,
-      required: [true, 'Contact number is required'],
       trim: true,
+      default: '',
     },
     instrument: {
       type: String,
