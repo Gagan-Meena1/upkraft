@@ -16,6 +16,7 @@ interface ToolbarProps {
   totalCount: number;
   filteredCount: number;
   onAddLead?: () => void;
+  onExportCSV?: () => void;
 }
 
 export default function Toolbar({
@@ -27,6 +28,7 @@ export default function Toolbar({
   dateFilter, onDateFilterChange,
   totalCount, filteredCount,
   onAddLead,
+  onExportCSV,
 }: ToolbarProps) {
   return (
     <div className="toolbar">
@@ -82,6 +84,11 @@ export default function Toolbar({
       />
 
       <div className="toolbar-right">
+        {onExportCSV && (
+          <button className="btn btn-outline export-csv-btn" onClick={onExportCSV}>
+            📥 Export CSV
+          </button>
+        )}
         {onAddLead && (
           <button className="btn btn-primary add-lead-btn" onClick={onAddLead}>
             + Add Lead

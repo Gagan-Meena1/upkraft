@@ -1200,6 +1200,8 @@ const TutorAvailabilitySlots = () => {
             }}
             onSave={async (data: EditSlotData) => {
               setSaving(true);
+              // Use editDate from the modal if the user changed it, else fall back to the grid date
+              const effectiveDate = data.editDate || date;
               try {
                 if (data.status === "na") {
                   // Mark as unavailable locally
@@ -1207,8 +1209,8 @@ const TutorAvailabilitySlots = () => {
                   toast.success("Slot marked as NA");
 
                 } else if (data.status === "open") {
-                  const startISO = new Date(`${date}T${data.startTime}:00`).toISOString();
-                  const endISO = new Date(`${date}T${data.endTime}:00`).toISOString();
+                  const startISO = new Date(`${effectiveDate}T${data.startTime}:00`).toISOString();
+                  const endISO = new Date(`${effectiveDate}T${data.endTime}:00`).toISOString();
                   const socIdsToSend = data.societyIds.length > 0 ? data.societyIds : curSocieties.map(s => s._id);
 
                   // Check if slot already exists in DB — use PUT to update, not POST to create
@@ -1262,6 +1264,8 @@ const TutorAvailabilitySlots = () => {
                       instrument: data.instrument,
                       address: data.address,
                       payment: { amount: 0, status: "Pending" },
+                      demoDate: new Date(`${effectiveDate}T${data.startTime}:00`).toISOString(),
+                      demoTime: formatH(parseInt(data.startTime.split(":")[0])),
                     };
                     const res = await fetch(`/Api/registration/${data.registrationId}`, {
                       method: "PUT",
@@ -1270,6 +1274,25 @@ const TutorAvailabilitySlots = () => {
                     });
                     const result = await res.json();
                     if (!result.success) throw new Error(result.message);
+
+                    // Also update the linked class time if it exists
+                    if (matchingReg?.classId) {
+                      const tutor = tutors.find(t => t._id === selectedTutor);
+                      const tz = tutor?.timezone || userTimezone;
+                      await fetch(`/Api/classes?classId=${matchingReg.classId}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          title: slotClasses.length > 0 ? slotClasses[0].title : "Free Trial",
+                          description: slotClasses.length > 0 ? (slotClasses[0].description || "") : "",
+                          date: effectiveDate,
+                          startTime: data.startTime,
+                          endTime: data.endTime,
+                          timezone: tz,
+                          updateIntent: "edit",
+                        }),
+                      });
+                    }
                   } else {
                     // No existing registration — create new via bookTrial
                     const res = await fetch("/Api/public/bookTrial", {
@@ -1286,7 +1309,7 @@ const TutorAvailabilitySlots = () => {
                         society: { name: data.societyName || "", city: data.city || "" },
                         hobby: { name: data.instrument },
                         tutorId: selectedTutor,
-                        date: new Date(`${date}T${data.startTime}:00`).toISOString(),
+                        date: new Date(`${effectiveDate}T${data.startTime}:00`).toISOString(),
                         slotTime: formatH(hour),
                         duration: data.duration,
                         address: data.address,
@@ -1301,9 +1324,20 @@ const TutorAvailabilitySlots = () => {
 
                 } else if (data.status === "booked") {
                   if (data.registrationId) {
-                    // Existing registration — just update payment via PUT
+                    // Existing registration — update all fields + payment via PUT
                     const updateBody: any = {
+                      name: data.name,
+                      participantName: data.participantName,
+                      contactNumber: data.contactNumber,
+                      email: data.email || "",
+                      age: data.age ? parseInt(data.age) : null,
+                      notes: data.notes,
+                      societyName: data.societyName || "",
+                      instrument: data.instrument,
+                      address: data.address,
                       payment: { amount: parseInt(data.paymentAmount) || 0, status: "Done" },
+                      demoDate: new Date(`${effectiveDate}T${data.startTime}:00`).toISOString(),
+                      demoTime: formatH(parseInt(data.startTime.split(":")[0])),
                     };
                     const res = await fetch(`/Api/registration/${data.registrationId}`, {
                       method: "PUT",
@@ -1311,6 +1345,25 @@ const TutorAvailabilitySlots = () => {
                       body: JSON.stringify(updateBody),
                     });
                     const result = await res.json();
+
+                    // Also update the linked class time if it exists
+                    if (matchingReg?.classId) {
+                      const tutor = tutors.find(t => t._id === selectedTutor);
+                      const tz = tutor?.timezone || userTimezone;
+                      await fetch(`/Api/classes?classId=${matchingReg.classId}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          title: slotClasses.length > 0 ? slotClasses[0].title : "Free Trial",
+                          description: slotClasses.length > 0 ? (slotClasses[0].description || "") : "",
+                          date: effectiveDate,
+                          startTime: data.startTime,
+                          endTime: data.endTime,
+                          timezone: tz,
+                          updateIntent: "edit",
+                        }),
+                      });
+                    }
                     if (!result.success) throw new Error(result.message);
                   } else {
                     // No existing registration — create new via bookTrial
@@ -1328,7 +1381,7 @@ const TutorAvailabilitySlots = () => {
                         society: { name: data.societyName || "", city: data.city || "" },
                         hobby: { name: data.instrument },
                         tutorId: selectedTutor,
-                        date: new Date(`${date}T${data.startTime}:00`).toISOString(),
+                        date: new Date(`${effectiveDate}T${data.startTime}:00`).toISOString(),
                         slotTime: formatH(hour),
                         duration: data.duration,
                         address: data.address,
@@ -1361,7 +1414,7 @@ const TutorAvailabilitySlots = () => {
                     updateBody.payment = { amount: parseInt(data.paymentAmount), status: "Done" };
                   }
                   // Update demoDate and demoTime on the registration
-                  updateBody.demoDate = new Date(`${date}T${data.startTime}:00`).toISOString();
+                  updateBody.demoDate = new Date(`${effectiveDate}T${data.startTime}:00`).toISOString();
                   updateBody.demoTime = formatH(parseInt(data.startTime.split(":")[0]));
 
                   const res = await fetch(`/Api/registration/${data.registrationId}`, {
@@ -1381,11 +1434,12 @@ const TutorAvailabilitySlots = () => {
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         title: slotClasses.length > 0 ? slotClasses[0].title : "Free Trial",
-                        description: slotClasses.length > 0 ? slotClasses[0].description : "",
-                        date: date,
+                        description: slotClasses.length > 0 ? (slotClasses[0].description || "Free Trial") : "Free Trial",
+                        date: effectiveDate,
                         startTime: data.startTime,
                         endTime: data.endTime,
                         timezone: tz,
+                        updateIntent: "edit",
                       }),
                     });
                   }
@@ -1393,8 +1447,8 @@ const TutorAvailabilitySlots = () => {
                   // Also update the demo slot time if it changed
                   const existingSlotId2 = slotKeyToIdMap.get(key);
                   if (existingSlotId2) {
-                    const startISO = new Date(`${date}T${data.startTime}:00`).toISOString();
-                    const endISO = new Date(`${date}T${data.endTime}:00`).toISOString();
+                    const startISO = new Date(`${effectiveDate}T${data.startTime}:00`).toISOString();
+                    const endISO = new Date(`${effectiveDate}T${data.endTime}:00`).toISOString();
                     await fetch("/Api/salesHead/demoSlots", {
                       method: "PUT",
                       headers: { "Content-Type": "application/json" },

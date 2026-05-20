@@ -248,35 +248,33 @@ export default function BookSlotPage() {
     slotsForDay.forEach((slot: any) => {
       const st = new Date(slot.startTime);
       const et = new Date(slot.endTime);
-      let currentSt = new Date(st);
-      // Show slots that are at least 30 min long, advance by 30 min
-      while (currentSt.getTime() + 30 * 60000 <= et.getTime()) {
-        const hours = currentSt.getHours();
-        let bandIdx = 0;
-        if (hours >= 12 && hours < 17) bandIdx = 1;
-        else if (hours >= 17) bandIdx = 2;
+      const slotStartMs = st.getTime();
+      const slotEndMs = et.getTime();
 
-        const timeStr = currentSt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        const slotStartMs = currentSt.getTime();
-        const slotEndMs = slotStartMs + 30 * 60000;
+      // Skip slots that already have a registration/class overlapping
+      const isBlocked = tutor.classes?.some((cls: any) => {
+        if (cls.status === 'canceled' || cls.status === 'rescheduled') return false;
+        const clsStart = new Date(cls.startTime).getTime();
+        const clsEnd = new Date(cls.endTime).getTime();
+        return (slotStartMs < clsEnd && slotEndMs > clsStart);
+      });
+      if (isBlocked) return;
 
-        let type = "avail", label = "Available";
-        // Check if any of the slot's societyIds match the current society
-        const slotSocIds = (slot.societyIds || []).map((sid: any) => sid.toString());
-        if (slotSocIds.includes(currentSocietyId)) { type = "soc"; label = "Your society"; }
+      const hours = st.getHours();
+      let bandIdx = 0;
+      if (hours >= 12 && hours < 17) bandIdx = 1;
+      else if (hours >= 17) bandIdx = 2;
 
-        const isBlocked = tutor.classes?.some((cls: any) => {
-          if (cls.status === 'canceled' || cls.status === 'rescheduled') return false;
-          const clsStart = new Date(cls.startTime).getTime();
-          const clsEnd = new Date(cls.endTime).getTime();
-          return (slotStartMs < clsEnd && slotEndMs > clsStart);
-        });
+      // Show the actual slot time range
+      const startStr = st.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const endStr = et.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const timeStr = `${startStr} – ${endStr}`;
 
-        if (isBlocked) { type = "blocked"; label = "Booked"; }
+      let type = "avail", label = "Available";
+      const slotSocIds = (slot.societyIds || []).map((sid: any) => sid.toString());
+      if (slotSocIds.includes(currentSocietyId)) { type = "soc"; label = "Your society"; }
 
-        bands[bandIdx].slots.push({ time: timeStr, type, label, rawSlotStartTime: new Date(currentSt) });
-        currentSt = new Date(currentSt.getTime() + 30 * 60000);
-      }
+      bands[bandIdx].slots.push({ time: timeStr, type, label, rawSlotStartTime: new Date(st) });
     });
 
     bands.forEach(b => b.slots.sort((a, b) => a.rawSlotStartTime.getTime() - b.rawSlotStartTime.getTime()));

@@ -101,20 +101,20 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       await Class.findByIdAndDelete(reg.classId);
     }
 
-    // If registration has a tutor, remove both class and registration from tutor's arrays
+    // Remove registration + class from tutor's arrays (but keep the registration document)
     if (reg.tutorName) {
       const pullUpdate: any = { registrations: reg._id };
       if (reg.classId) pullUpdate.classes = reg.classId;
       await User.findByIdAndUpdate(reg.tutorName, { $pull: pullUpdate });
     }
 
-    // Delete the registration itself
-    await Registration.findByIdAndDelete(id);
+    // Clear the classId on the registration since the class is deleted
+    await Registration.findByIdAndUpdate(id, { $set: { classId: null } });
 
-    return NextResponse.json({ success: true, message: "Registration and associated class deleted" }, { status: 200 });
+    return NextResponse.json({ success: true, message: "Registration removed from tutor. Slot is now open." }, { status: 200 });
 
   } catch (error: any) {
-    console.error("Error deleting registration:", error);
+    console.error("Error removing registration from tutor:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

@@ -95,11 +95,12 @@ export async function GET(request: NextRequest) {
             if (classIds.length === 0) return [];
             const classData = await Class.find(
               { _id: { $in: classIds } },
-              { _id: 1, title: 1, startTime: 1, endTime: 1, status: 1, classType: 1 }
+              { _id: 1, title: 1, description: 1, startTime: 1, endTime: 1, status: 1, classType: 1 }
             ).lean();
             return classData.map((c: any) => ({
               _id: c._id.toString(),
               title: c.title,
+              description: c.description || "",
               startTime: c.startTime instanceof Date ? c.startTime.toISOString() : c.startTime,
               endTime: c.endTime instanceof Date ? c.endTime.toISOString() : c.endTime,
               status: c.status || "scheduled",

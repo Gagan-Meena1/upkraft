@@ -492,7 +492,7 @@ export async function PUT(request: NextRequest) {
 
     console.log("RECEIVED:", { title, description, date, startTime, endTime, timezone, reasonForReschedule, editType, status, updateIntent });
 
-    if (!title || !description || !startTime || !endTime || (editType === "single" && !date)) {
+    if (!title || !startTime || !endTime || (editType === "single" && !date)) {
       return NextResponse.json(
         { error: "All required fields are missing or invalid" },
         { status: 400 }

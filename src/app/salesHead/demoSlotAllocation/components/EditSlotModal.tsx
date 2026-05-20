@@ -27,6 +27,8 @@ export interface EditSlotData {
   classId: string;
   // Registration reference (for edit/delete)
   registrationId: string;
+  // Edited date (may differ from the grid cell date)
+  editDate: string;
 }
 
 interface EditSlotModalProps {
@@ -195,6 +197,7 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
       paymentAmount,
       classId: selectedClassId,
       registrationId,
+      editDate,
     });
   };
 

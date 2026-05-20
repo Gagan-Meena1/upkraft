@@ -103,6 +103,56 @@ export default function SalesHeadDashboard() {
     }
   };
 
+  // Export filtered leads as CSV
+  const exportCSV = () => {
+    const headers = [
+      'RID', 'Name', 'Mobile', 'Email', 'Society', 'Hobby',
+      'Participant', 'Enquiry Date', 'Tutor Assigned', 'Tutor Email',
+      'Slot Date', 'Slot Time', 'Demo Status', 'Payment Amount',
+      'Payment Status', 'Notes', 'Address'
+    ];
+
+    const escapeCSV = (val: string) => {
+      if (!val) return '';
+      // Wrap in quotes if it contains comma, newline, or quote
+      if (val.includes(',') || val.includes('\n') || val.includes('"')) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    };
+
+    const rows = filteredLeads.map(lead => [
+      lead._id?.toString().slice(-6) || '',
+      lead.name || '',
+      `${lead.countryCode || ''} ${lead.contactNumber || ''}`.trim(),
+      lead.email || '',
+      lead.societyName || lead.city || '',
+      lead.instrument || '',
+      lead.participantName || '',
+      lead.createdAt ? new Date(lead.createdAt).toLocaleDateString('en-GB') : '',
+      lead.tutorName && typeof lead.tutorName === 'object' ? lead.tutorName.username || '' : '',
+      lead.tutorName && typeof lead.tutorName === 'object' ? lead.tutorName.email || '' : '',
+      lead.demoDate ? new Date(lead.demoDate).toLocaleDateString('en-GB') : '',
+      lead.demoTime || '',
+      lead.status || 'Pending',
+      String(lead.payment?.amount || 0),
+      lead.payment?.status || 'Pending',
+      lead.notes || '',
+      lead.address || '',
+    ].map(escapeCSV));
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `leads_export_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="dashboard-root">
       <div className="dashboard-body">
@@ -125,6 +175,7 @@ export default function SalesHeadDashboard() {
             totalCount={leads.length}
             filteredCount={filteredLeads.length}
             onAddLead={() => setShowAddModal(true)}
+            onExportCSV={exportCSV}
           />
           {loading ? (
             <div className="empty-state">
