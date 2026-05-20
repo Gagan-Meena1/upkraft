@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import './dashboard.css';
-import Sidebar from './components/Sidebar';
 import TopNav from './components/TopNav';
 // import StatsRow from './components/StatsRow';
 import Toolbar from './components/Toolbar';
