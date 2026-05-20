@@ -1,4 +1,10 @@
-export type SlotStatus = 'na' | 'open' | 'demo' | 'booked' | 'rescheduled';
+export type SlotStatus = 'na' | 'open' | 'demo' | 'booked' | 'edit';
+
+export interface TutorListItem {
+  _id: string;
+  username: string;
+  email: string;
+}
 
 export interface Tutor {
   _id: string;
@@ -22,7 +28,7 @@ export interface ClassData {
   title: string;
   startTime: string;
   endTime: string;
-  description: string;
+  description?: string;
 }
 
 export interface Course {
@@ -50,12 +56,31 @@ export interface RegistrationData {
   participantName: string;
   name: string;
   societyName: string;
-  city: string;
   demoDate: string | null;
   demoTime: string | null;
   paymentAmount: number;
   paymentStatus: string;
-  instrument: string;
-  contactNumber: string;
   address: string;
+  classId: string | null;
+}
+
+// Full registration data — fetched on demand when Edit is clicked
+export interface FullRegistrationData {
+  _id: string;
+  name: string;
+  participantName: string;
+  contactNumber: string;
+  countryCode: string;
+  email: string;
+  age: number | null;
+  instrument: string;
+  city: string;
+  societyName: string;
+  notes: string;
+  address: string;
+  demoDate: string | null;
+  demoTime: string | null;
+  paymentAmount: number;
+  paymentStatus: string;
+  classId: string | null;
 }

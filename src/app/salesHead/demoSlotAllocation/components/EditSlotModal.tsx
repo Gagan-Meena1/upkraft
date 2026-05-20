@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Society, ClassData } from "./Types";
+import { Society, ClassData, RegistrationData, FullRegistrationData } from "./Types";
 
-export type SlotStatusValue = "na" | "open" | "demo" | "booked" | "rescheduled";
+export type SlotStatusValue = "na" | "open" | "demo" | "booked" | "edit";
 
 export interface EditSlotData {
   status: SlotStatusValue;
@@ -21,14 +21,12 @@ export interface EditSlotData {
   startTime: string;
   endTime: string;
   duration: number;
-  // Reschedule
-  rescheduleDate: string;
-  rescheduleTime: string;
-  rescheduleReason: string;
   // Booked / payment
   paymentAmount: string;
   // Class reference
   classId: string;
+  // Registration reference (for edit/delete)
+  registrationId: string;
 }
 
 interface EditSlotModalProps {
@@ -40,8 +38,10 @@ interface EditSlotModalProps {
   initialStatus: SlotStatusValue;
   initialSocietyIds: string[];
   slotClasses: ClassData[];
+  initialRegistration?: RegistrationData | null;
   onClose: () => void;
   onSave: (data: EditSlotData) => void;
+  onDelete?: (registrationId: string) => void;
   onSelectMore?: (startTime: string, endTime: string) => void;
   saving: boolean;
   pendingCount?: number;
@@ -52,7 +52,7 @@ const STATUS_OPTIONS: { value: SlotStatusValue; label: string; cls: string }[] =
   { value: "open", label: "Open", cls: "sel-open" },
   { value: "demo", label: "Demo", cls: "sel-demo" },
   { value: "booked", label: "Booked", cls: "sel-booked" },
-  { value: "rescheduled", label: "Rescheduled", cls: "sel-rescheduled" },
+  { value: "edit", label: "Edit", cls: "sel-edit" },
 ];
 
 const DURATIONS = [30, 45, 60, 90];
@@ -66,8 +66,10 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
   initialStatus,
   initialSocietyIds,
   slotClasses,
+  initialRegistration,
   onClose,
   onSave,
+  onDelete,
   onSelectMore,
   saving,
   pendingCount = 0,
@@ -76,7 +78,14 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
   const [selectedSocs, setSelectedSocs] = useState<string[]>(initialSocietyIds);
   const [allSocs, setAllSocs] = useState(initialSocietyIds.length === 0 && initialStatus === "open");
 
-  // Registration form fields
+  // Lightweight registration from allTutorsInfo (used for grid display)
+  const reg = initialRegistration;
+
+  // Full registration data — fetched on demand when Edit is selected
+  const [fullReg, setFullReg] = useState<FullRegistrationData | null>(null);
+  const [loadingFullReg, setLoadingFullReg] = useState(false);
+
+  // Registration form fields — initially empty, filled when fullReg loads or for new demo/booked
   const [name, setName] = useState("");
   const [participantName, setParticipantName] = useState("");
   const [contactNumber, setContactNumber] = useState("");
@@ -84,26 +93,56 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
   const [age, setAge] = useState("");
   const [instrument, setInstrument] = useState("");
   const [city, setCity] = useState("");
-  const [societyName, setSocietyName] = useState("");
+  const [societyName, setSocietyName] = useState(reg?.societyName || "");
   const [customSociety, setCustomSociety] = useState(false);
   const [notes, setNotes] = useState("");
-  const [address, setAddress] = useState("");
+  const [address, setAddress] = useState(reg?.address || "");
 
   // Time
   const [startTime, setStartTime] = useState(`${String(hour).padStart(2, "0")}:00`);
   const [endTime, setEndTime] = useState(`${String(hour + 1).padStart(2, "0")}:00`);
   const [duration, setDuration] = useState(60);
 
-  // Reschedule
-  const [rescheduleDate, setRescheduleDate] = useState("");
-  const [rescheduleTime, setRescheduleTime] = useState("");
-  const [rescheduleReason, setRescheduleReason] = useState("");
-
   // Booked
-  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentAmount, setPaymentAmount] = useState(reg?.paymentAmount ? String(reg.paymentAmount) : "");
 
-  // Class selection for reschedule/booked
+  // Class selection
   const [selectedClassId, setSelectedClassId] = useState(slotClasses.length > 0 ? slotClasses[0]._id : "");
+
+  // Registration ID for edit/delete
+  const registrationId = reg?._id || "";
+
+  // Date for edit mode (editable)
+  const [editDate, setEditDate] = useState(dateStr);
+
+  // Fetch full registration data when modal opens if there's an existing registration
+  useEffect(() => {
+    if (registrationId && !fullReg) {
+      setLoadingFullReg(true);
+      fetch(`/Api/registration/${registrationId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data) {
+            const fr = data.data as FullRegistrationData;
+            setFullReg(fr);
+            // Populate form fields
+            setName(fr.name || "");
+            setParticipantName(fr.participantName || "");
+            setContactNumber(fr.contactNumber || "");
+            setEmail(fr.email || "");
+            setAge(fr.age ? String(fr.age) : "");
+            setInstrument(fr.instrument || "");
+            setCity(fr.city || "");
+            setSocietyName(fr.societyName || "");
+            setNotes(fr.notes || "");
+            setAddress(fr.address || "");
+            setPaymentAmount(fr.paymentAmount ? String(fr.paymentAmount) : "");
+          }
+        })
+        .catch(err => console.error("Error fetching full registration:", err))
+        .finally(() => setLoadingFullReg(false));
+    }
+  }, [registrationId]);
 
   useEffect(() => {
     const [h, m] = startTime.split(":").map(Number);
@@ -126,7 +165,7 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
   };
 
   const needsForm = status === "demo" || status === "booked";
-  const needsResched = status === "rescheduled";
+  const needsEditForm = status === "edit";
   const needsSocs = status === "open";
 
   const formatTime12 = (t: string) => {
@@ -153,13 +192,13 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
       startTime,
       endTime,
       duration,
-      rescheduleDate,
-      rescheduleTime,
-      rescheduleReason,
       paymentAmount,
       classId: selectedClassId,
+      registrationId,
     });
   };
+
+  const hasRegistration = !!reg;
 
   return (
     <div className="sm-overlay show" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -182,6 +221,12 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
               <span className="sp-l">Time</span>
               <span className="sp-v">{timeLabel}</span>
             </div>
+            {hasRegistration && (
+              <div className="sp-i">
+                <span className="sp-l">Registration</span>
+                <span className="sp-v" style={{ color: "var(--green)" }}>{reg?.participantName || reg?.name}</span>
+              </div>
+            )}
           </div>
 
           {/* Status selector */}
@@ -224,7 +269,7 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
             </div>
           )}
 
-          {/* Registration form — Demo / Booked */}
+          {/* Registration form — Demo / Booked (new registration) */}
           {needsForm && (
             <div className="cust-form show">
               <div className="sec-label">
@@ -324,8 +369,138 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
             </div>
           )}
 
+          {/* Edit Registration form — pre-filled */}
+          {needsEditForm && hasRegistration && loadingFullReg && (
+            <div style={{ padding: 20, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
+              Loading registration details…
+            </div>
+          )}
+          {needsEditForm && hasRegistration && !loadingFullReg && (
+            <div className="cust-form show">
+              <div className="sec-label" style={{ color: "var(--violet)" }}>Edit Registration Details</div>
+
+              <div className="fi">
+                <label className="fl">Parent / Guardian Name <span className="req">*</span></label>
+                <input className="finput" value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+
+              <div className="fi">
+                <label className="fl">Participant Name <span className="req">*</span></label>
+                <input className="finput" value={participantName} onChange={(e) => setParticipantName(e.target.value)} />
+              </div>
+
+              <div className="two">
+                <div className="fi">
+                  <label className="fl">Contact Number <span className="req">*</span></label>
+                  <input className="finput" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} />
+                </div>
+                <div className="fi">
+                  <label className="fl">Email</label>
+                  <input className="finput" value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="two">
+                <div className="fi">
+                  <label className="fl">Age</label>
+                  <input className="finput" type="number" value={age} onChange={(e) => setAge(e.target.value)} />
+                </div>
+                <div className="fi">
+                  <label className="fl">Instrument / Hobby <span className="req">*</span></label>
+                  <input className="finput" value={instrument} onChange={(e) => setInstrument(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="two">
+                <div className="fi">
+                  <label className="fl">City <span className="req">*</span></label>
+                  <input className="finput" value={city} onChange={(e) => setCity(e.target.value)} />
+                </div>
+                <div className="fi">
+                  <label className="fl">Society Name</label>
+                  <select
+                    className="finput"
+                    value={customSociety ? "__other__" : societyName}
+                    onChange={(e) => {
+                      if (e.target.value === "__other__") {
+                        setCustomSociety(true);
+                        setSocietyName("");
+                      } else {
+                        setCustomSociety(false);
+                        setSocietyName(e.target.value);
+                        const soc = societies.find(s => s.name === e.target.value);
+                        if (soc?.city) setCity(soc.city);
+                      }
+                    }}
+                  >
+                    <option value="">— Select Society —</option>
+                    {societies.map(s => (
+                      <option key={s._id} value={s.name}>{s.name}{s.city ? ` (${s.city})` : ""}</option>
+                    ))}
+                    <option value="__other__">Other (type manually)</option>
+                  </select>
+                  {customSociety && (
+                    <input
+                      className="finput"
+                      placeholder="Enter society name..."
+                      value={societyName}
+                      onChange={(e) => setSocietyName(e.target.value)}
+                      autoFocus
+                      style={{ marginTop: 6 }}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="fi">
+                <label className="fl">Address</label>
+                <input className="finput" value={address} onChange={(e) => setAddress(e.target.value)} />
+              </div>
+
+              <div className="fi">
+                <label className="fl">Notes</label>
+                <textarea className="finput" value={notes} onChange={(e) => setNotes(e.target.value)} style={{ minHeight: 60, resize: "vertical" }} />
+              </div>
+
+              <div className="fi">
+                <label className="fl">Payment Amount (₹)</label>
+                <input className="finput" type="number" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
+              </div>
+
+              {/* Date & Time edit for registration + slot + class */}
+              <div className="sec-label" style={{ marginTop: 8, color: "var(--violet)" }}>Change Date & Time</div>
+              <div className="two">
+                <div className="fi">
+                  <label className="fl">Date</label>
+                  <input className="finput" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                </div>
+                <div className="fi">
+                  <label className="fl">Start Time</label>
+                  <input className="finput" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                </div>
+              </div>
+              <div className="dur-row">
+                {DURATIONS.map((d) => (
+                  <button key={d} className={`dur-chip${duration === d ? " on" : ""}`} onClick={() => setDuration(d)}>
+                    {d} min
+                  </button>
+                ))}
+              </div>
+              <div className="t-preview">
+                {editDate} · {formatTime12(startTime)} – {formatTime12(endTime)}
+              </div>
+            </div>
+          )}
+
+          {/* Edit not available message — when no registration exists */}
+          {needsEditForm && !hasRegistration && (
+            <div style={{ padding: 16, textAlign: "center", color: "var(--muted)", fontSize: 13 }}>
+              No registration found for this slot. Edit is only available for Demo or Booked slots.
+            </div>
+          )}
+
           {/* Time inputs — for Open, Demo, Booked */}
-          {status !== "na" && (
+          {(status === "open" || status === "demo" || status === "booked") && (
             <div>
               <div className="sec-label">Time</div>
               <div className="time-inp">
@@ -346,49 +521,25 @@ const EditSlotModal: React.FC<EditSlotModalProps> = ({
               </div>
             </div>
           )}
-
-          {/* Reschedule — pick class, new date/time */}
-          {needsResched && (
-            <div className="resched-box show">
-              <div className="sec-label" style={{ color: "var(--violet)" }}>Reschedule Class</div>
-
-              {slotClasses.length > 0 && (
-                <div className="fi">
-                  <label className="fl">Select Class to Reschedule</label>
-                  <select className="finput" value={selectedClassId} onChange={(e) => setSelectedClassId(e.target.value)}>
-                    {slotClasses.map((c) => (
-                      <option key={c._id} value={c._id}>{c.title}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="two">
-                <div className="fi">
-                  <label className="fl">New Date</label>
-                  <input className="finput" type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)} />
-                </div>
-                <div className="fi">
-                  <label className="fl">New Time</label>
-                  <input className="finput" type="time" value={rescheduleTime} onChange={(e) => setRescheduleTime(e.target.value)} />
-                </div>
-              </div>
-              <div className="fi">
-                <label className="fl">Reason</label>
-                <input className="finput" placeholder="Reason for rescheduling…" value={rescheduleReason} onChange={(e) => setRescheduleReason(e.target.value)} />
-              </div>
-              {rescheduleDate && rescheduleTime && (
-                <div className="r-preview">
-                  → Rescheduled to {rescheduleDate} at {formatTime12(rescheduleTime)}
-                </div>
-              )}
-              <div className="r-note">Original slot will be marked as rescheduled</div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
         <div className="mf">
+          {/* Delete button — only when editing an existing registration */}
+          {hasRegistration && onDelete && (
+            <button
+              className="sm-btn"
+              style={{ background: "var(--rl)", color: "var(--red)", border: "1.5px solid var(--red)", marginRight: "auto" }}
+              onClick={() => {
+                if (confirm("Delete this registration? The class will also be deleted and the slot will become Open.")) {
+                  onDelete(registrationId);
+                }
+              }}
+              disabled={saving}
+            >
+              🗑 Delete
+            </button>
+          )}
           <button className="sm-btn sm-btn-o" onClick={onClose}>Cancel</button>
           {status === "open" && onSelectMore && (
             <button

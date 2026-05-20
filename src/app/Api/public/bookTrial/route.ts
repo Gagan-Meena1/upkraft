@@ -58,6 +58,10 @@ export async function POST(request: NextRequest) {
 
     const savedClass = await newClass.save();
 
+    // Store class reference on the registration
+    reg.classId = savedClass._id;
+    await reg.save();
+
     // Update tutor's classes and registrations
     await User.findByIdAndUpdate(tutorId, {
       $addToSet: { classes: savedClass._id, registrations: reg._id }

@@ -19,7 +19,7 @@ export async function GET() {
     const societyIds = societies.map(s => s._id);
     const tutorsWithDemoSlots = await User.find({
       category: "Tutor",
-      "demoSlotsAvailable.societyId": { $in: societyIds }
+      "demoSlotsAvailable.societyIds": { $in: societyIds }
     })
       .select('username email profileImage timezone demoSlotsAvailable skills experience aboutMyself classes instruments')
       .populate('classes', 'startTime endTime status classType')
@@ -34,7 +34,7 @@ export async function GET() {
       const existingTutorIds = new Set(society.tutors.map((t: any) => t._id.toString()));
 
       tutorsWithDemoSlots.forEach((tutor: any) => {
-        const hasSlotForSoc = tutor.demoSlotsAvailable?.some((slot: any) => slot.societyId?.toString() === socIdStr);
+        const hasSlotForSoc = tutor.demoSlotsAvailable?.some((slot: any) => slot.societyIds?.some((sid: any) => sid.toString() === socIdStr));
         if (hasSlotForSoc && !existingTutorIds.has(tutor._id.toString())) {
           society.tutors.push(tutor);
           existingTutorIds.add(tutor._id.toString());

@@ -1,8 +1,8 @@
 import React from "react";
-import { Tutor } from "./Types";
+import { TutorListItem } from "./Types";
 
 interface TutorSidebarProps {
-  tutors: Tutor[];
+  tutorList: TutorListItem[];
   selectedTutor: string;
   onSelectTutor: (id: string) => void;
   onManageSocieties: () => void;
@@ -10,7 +10,7 @@ interface TutorSidebarProps {
 }
 
 const TutorSidebar: React.FC<TutorSidebarProps> = ({
-  tutors,
+  tutorList,
   selectedTutor,
   onSelectTutor,
   onManageSocieties,
@@ -20,7 +20,7 @@ const TutorSidebar: React.FC<TutorSidebarProps> = ({
     <aside className="sm-sidebar">
       <div className="sb-head">Tutors</div>
       <div>
-        {tutors.map((t) => {
+        {tutorList.map((t) => {
           const isHidden =
             filterTutors.length > 0 && !filterTutors.includes(t._id);
           if (isHidden) return null;
@@ -32,13 +32,6 @@ const TutorSidebar: React.FC<TutorSidebarProps> = ({
             >
               <div className="ti-name">{t.username}</div>
               <div className="ti-inst">{t.email}</div>
-              <div className="ti-socs">
-                {(t.societies || []).map((s) => (
-                  <span key={s._id} className="ti-soc">
-                    {s.name}
-                  </span>
-                ))}
-              </div>
             </div>
           );
         })}
@@ -73,10 +66,6 @@ const TutorSidebar: React.FC<TutorSidebarProps> = ({
         <div className="leg-row">
           <div className="ld" style={{ background: "var(--bl)", border: "1px solid var(--bb)" }} />
           Booked
-        </div>
-        <div className="leg-row">
-          <div className="ld" style={{ background: "var(--vl)", border: "1px solid var(--vb)" }} />
-          Rescheduled
         </div>
       </div>
     </aside>

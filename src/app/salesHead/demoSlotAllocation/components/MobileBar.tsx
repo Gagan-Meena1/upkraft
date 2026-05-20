@@ -1,8 +1,8 @@
 import React from "react";
-import { Tutor, Society } from "./Types";
+import { TutorListItem, Society } from "./Types";
 
 interface MobileBarProps {
-  tutors: Tutor[];
+  tutorList: TutorListItem[];
   selectedTutor: string;
   onSelectTutor: (id: string) => void;
   societies: Society[];
@@ -10,7 +10,7 @@ interface MobileBarProps {
 }
 
 const MobileBar: React.FC<MobileBarProps> = ({
-  tutors,
+  tutorList,
   selectedTutor,
   onSelectTutor,
   societies,
@@ -26,7 +26,7 @@ const MobileBar: React.FC<MobileBarProps> = ({
           onChange={(e) => onSelectTutor(e.target.value)}
         >
           <option value="">— Choose a tutor —</option>
-          {tutors.map((t) => (
+          {tutorList.map((t) => (
             <option key={t._id} value={t._id}>
               {t.username}
             </option>

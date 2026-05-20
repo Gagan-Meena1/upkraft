@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Tutor, Society } from "./Types";
+import { TutorListItem, Society } from "./Types";
 
 interface FilterBarProps {
-  tutors: Tutor[];
+  tutorList: TutorListItem[];
   filterSoc: string;
   allSocieties: Society[];
   onSocFilterChange: (socId: string) => void;
@@ -18,7 +18,7 @@ interface FilterBarProps {
 }
 
 const FilterBar: React.FC<FilterBarProps> = ({
-  tutors,
+  tutorList,
   filterSoc,
   allSocieties,
   onSocFilterChange,
@@ -36,7 +36,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
 
   const filtered = search.trim()
-    ? tutors.filter(
+    ? tutorList.filter(
         (t) =>
           t.username.toLowerCase().includes(search.toLowerCase()) ||
           t.email.toLowerCase().includes(search.toLowerCase())
@@ -45,7 +45,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
   const handleSelect = (id: string) => {
     onSelectTutor(id);
-    const tutor = tutors.find((t) => t._id === id);
+    const tutor = tutorList.find((t) => t._id === id);
     setSearch(tutor?.username || "");
     setShowDropdown(false);
   };

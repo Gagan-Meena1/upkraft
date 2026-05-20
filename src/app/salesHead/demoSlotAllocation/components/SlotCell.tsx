@@ -4,6 +4,7 @@ import { RegistrationData } from "./Types";
 interface SlotCellProps {
   status: "na" | "available" | "unavailable";
   societyNames?: string[];
+  slotTime?: string;
   classTitle?: string;
   classTime?: string;
   registration?: RegistrationData;
@@ -14,6 +15,7 @@ interface SlotCellProps {
 const SlotCell: React.FC<SlotCellProps> = ({
   status,
   societyNames,
+  slotTime,
   classTitle,
   classTime,
   registration,
@@ -39,7 +41,7 @@ const SlotCell: React.FC<SlotCellProps> = ({
       info = (
         <>
           {classTime && (
-            <div className="c-time" style={{ color: isPaid ? "var(--green)" : "var(--orange, #e67e22)" }}>
+            <div className="c-time" style={{ color: "#000" }}>
               {classTime}
             </div>
           )}
@@ -65,7 +67,7 @@ const SlotCell: React.FC<SlotCellProps> = ({
       info = (
         <>
           {classTime && (
-            <div className="c-time" style={{ color: "var(--violet)" }}>
+            <div className="c-time" style={{ color: "#000" }}>
               {classTime}
             </div>
           )}
@@ -83,11 +85,17 @@ const SlotCell: React.FC<SlotCellProps> = ({
       <span className="c-badge b-open">OPEN</span>
     );
     info = hasSocs ? (
-      <div className="c-soc">{societyNames!.join(", ")}</div>
+      <>
+        {slotTime && <div className="c-time" style={{ color: "#000" }}>{slotTime}</div>}
+        <div className="c-soc">{societyNames!.join(", ")}</div>
+      </>
     ) : (
-      <div className="c-text" style={{ color: "var(--green)", fontWeight: 600 }}>
-        All societies
-      </div>
+      <>
+        {slotTime && <div className="c-time" style={{ color: "#000" }}>{slotTime}</div>}
+        <div className="c-text" style={{ color: "var(--green)", fontWeight: 600 }}>
+          All societies
+        </div>
+      </>
     );
   } else {
     cellClass += "na";

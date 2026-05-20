@@ -20,6 +20,7 @@ export interface IRegistration extends Document {
   resumeUrl?: string | null;
   resumeFileName?: string | null;
   address?: string | null;
+  classId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,6 +85,7 @@ const RegistrationSchema: Schema = new Schema(
     resumeUrl: { type: String, default: null },
     resumeFileName: { type: String, default: null },
     address: { type: String, trim: true, default: null },
+    classId: { type: mongoose.Schema.Types.ObjectId, ref: 'Class', default: null },
   },
   {
     timestamps: true,

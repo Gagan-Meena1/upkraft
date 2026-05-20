@@ -28,8 +28,15 @@ export async function GET(request: NextRequest) {
 
     if (!userId) return NextResponse.json({ success: false, message: "Invalid token" }, { status: 401 });
 
+    // Support optional ?tutorId param for single-tutor fetch
+    const { searchParams } = new URL(request.url);
+    const singleTutorId = searchParams.get("tutorId");
+
+    const query: any = { category: "Tutor" };
+    if (singleTutorId) query._id = singleTutorId;
+
     const tutors = await User.find(
-      { category: "Tutor" },
+      query,
       { _id: 1, username: 1, email: 1, timezone: 1, demoSlotsAvailable: 1, profileImage: 1, societies: 1, classes: 1, registrations: 1 }
     ).sort({ username: 1 });
 
@@ -88,12 +95,11 @@ export async function GET(request: NextRequest) {
             if (classIds.length === 0) return [];
             const classData = await Class.find(
               { _id: { $in: classIds } },
-              { _id: 1, title: 1, description: 1, startTime: 1, endTime: 1, status: 1, classType: 1 }
+              { _id: 1, title: 1, startTime: 1, endTime: 1, status: 1, classType: 1 }
             ).lean();
             return classData.map((c: any) => ({
               _id: c._id.toString(),
               title: c.title,
-              description: c.description || "",
               startTime: c.startTime instanceof Date ? c.startTime.toISOString() : c.startTime,
               endTime: c.endTime instanceof Date ? c.endTime.toISOString() : c.endTime,
               status: c.status || "scheduled",
@@ -106,21 +112,19 @@ export async function GET(request: NextRequest) {
             if (regIds.length === 0) return [];
             const regData = await Registration.find(
               { _id: { $in: regIds } },
-              { _id: 1, participantName: 1, name: 1, societyName: 1, city: 1, demoDate: 1, demoTime: 1, payment: 1, instrument: 1, contactNumber: 1, address: 1 }
+              { _id: 1, participantName: 1, name: 1, societyName: 1, demoDate: 1, demoTime: 1, payment: 1, address: 1, classId: 1 }
             ).lean();
             return regData.map((r: any) => ({
               _id: r._id.toString(),
               participantName: r.participantName || r.name || "",
               name: r.name || "",
               societyName: r.societyName || "",
-              city: r.city || "",
               demoDate: r.demoDate || null,
               demoTime: r.demoTime || null,
               paymentAmount: r.payment?.amount || 0,
               paymentStatus: r.payment?.status || "Pending",
-              instrument: r.instrument || "",
-              contactNumber: r.contactNumber || "",
               address: r.address || "",
+              classId: r.classId?.toString() || null,
             }));
           })(),
         };

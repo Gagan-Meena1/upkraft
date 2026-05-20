@@ -249,7 +249,8 @@ export default function BookSlotPage() {
       const st = new Date(slot.startTime);
       const et = new Date(slot.endTime);
       let currentSt = new Date(st);
-      while (currentSt.getTime() + 45 * 60000 <= et.getTime()) {
+      // Show slots that are at least 30 min long, advance by 30 min
+      while (currentSt.getTime() + 30 * 60000 <= et.getTime()) {
         const hours = currentSt.getHours();
         let bandIdx = 0;
         if (hours >= 12 && hours < 17) bandIdx = 1;
@@ -257,10 +258,12 @@ export default function BookSlotPage() {
 
         const timeStr = currentSt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         const slotStartMs = currentSt.getTime();
-        const slotEndMs = slotStartMs + 45 * 60000;
+        const slotEndMs = slotStartMs + 30 * 60000;
 
         let type = "avail", label = "Available";
-        if (slot.societyId === currentSocietyId) { type = "soc"; label = "Your society"; }
+        // Check if any of the slot's societyIds match the current society
+        const slotSocIds = (slot.societyIds || []).map((sid: any) => sid.toString());
+        if (slotSocIds.includes(currentSocietyId)) { type = "soc"; label = "Your society"; }
 
         const isBlocked = tutor.classes?.some((cls: any) => {
           if (cls.status === 'canceled' || cls.status === 'rescheduled') return false;
@@ -272,7 +275,7 @@ export default function BookSlotPage() {
         if (isBlocked) { type = "blocked"; label = "Booked"; }
 
         bands[bandIdx].slots.push({ time: timeStr, type, label, rawSlotStartTime: new Date(currentSt) });
-        currentSt = new Date(currentSt.getTime() + 60 * 60000);
+        currentSt = new Date(currentSt.getTime() + 30 * 60000);
       }
     });
 

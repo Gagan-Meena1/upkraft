@@ -11,6 +11,7 @@ const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","D
 interface SlotGridProps {
   slots: Map<string, "available" | "unavailable">;
   slotSocietyMap: Map<string, string[]>;
+  slotTimeMap: Map<string, string>;
   classes: ClassData[];
   selectedTutor: string;
   tutors: Tutor[];
@@ -26,6 +27,7 @@ interface SlotGridProps {
 const SlotGrid = ({
   slots,
   slotSocietyMap,
+  slotTimeMap,
   classes,
   selectedTutor,
   tutors,
@@ -135,7 +137,7 @@ const SlotGrid = ({
                     classTitle={classItem.title}
                     classTime={timeStr}
                     registration={matchingReg}
-                    onClick={() => onViewClass(classItem)}
+                    onClick={() => onSlotClick(dateStr, hour)}
                   />
                 );
               }
@@ -145,6 +147,7 @@ const SlotGrid = ({
                   key={key}
                   status={status}
                   societyNames={socs}
+                  slotTime={slotTimeMap.get(key)}
                   isSelected={isSelected}
                   onClick={() => onSlotClick(dateStr, hour)}
                 />

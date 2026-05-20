@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { parseISO, format, addDays } from "date-fns";
 import * as dateFnsTz from "date-fns-tz";
-import { Tutor, ClassData, Course, CreateClassForm, Society } from "./components/Types";
+import { Tutor, TutorListItem, ClassData, Course, CreateClassForm, Society, RegistrationData } from "./components/Types";
 import "./demoSlotAllocation.css";
 
 // Import all modals + grid
@@ -34,10 +34,24 @@ import type { EditSlotData, SlotStatusValue } from "./components/EditSlotModal";
 
 const TutorAvailabilitySlots = () => {
   const [tutors, setTutors] = useState<Tutor[]>([]);
+  const [tutorList, setTutorList] = useState<TutorListItem[]>([]);
   const searchParams = useSearchParams();
   const [selectedTutor, setSelectedTutor] = useState<string>(
     searchParams.get("tutorId") || ""
   );
+
+  // Persist selected tutor in URL so it survives refresh
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (selectedTutor) {
+      params.set("tutorId", selectedTutor);
+    } else {
+      params.delete("tutorId");
+    }
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, "", newUrl);
+  }, [selectedTutor]);
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [slots, setSlots] = useState<Map<string, "available" | "unavailable">>(new Map());
   const [loading, setLoading] = useState(false);
@@ -76,6 +90,7 @@ const TutorAvailabilitySlots = () => {
   // const societyId = searchParams.get("societyId") || "";
   const [slotSocietyMap, setSlotSocietyMap] = useState<Map<string, string[]>>(new Map());
   const [slotKeyToIdMap, setSlotKeyToIdMap] = useState<Map<string, string>>(new Map());
+  const [slotTimeMap, setSlotTimeMap] = useState<Map<string, string>>(new Map());
   const [currentSocietyId, setCurrentSocietyId] = useState<string>(
     searchParams.get("societyId") || ""
   );
@@ -124,23 +139,47 @@ const TutorAvailabilitySlots = () => {
   // Societies come from tutor.societies (fetched with allTutorsInfo)
 
   useEffect(() => {
-    const fetchTutors = async () => {
+    const fetchTutorList = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/Api/salesHead/allTutorsInfo");
+        const response = await fetch("/Api/salesHead/tutorsList");
         const data = await response.json();
         if (data.success && data.tutors) {
-          setTutors(data.tutors);
+          setTutorList(data.tutors);
         }
       } catch (error) {
-        console.error("Error fetching tutors:", error);
+        console.error("Error fetching tutor list:", error);
         toast.error("Failed to load tutors");
       } finally {
         setLoading(false);
       }
     };
-    fetchTutors();
+    fetchTutorList();
   }, []);
+
+  // Fetch full data for a single selected tutor
+  const fetchSelectedTutorData = async (tutorId?: string) => {
+    const id = tutorId || selectedTutor;
+    if (!id) return;
+    try {
+      const response = await fetch(`/Api/salesHead/allTutorsInfo?tutorId=${id}`);
+      const data = await response.json();
+      if (data.success && data.tutors && data.tutors.length > 0) {
+        setTutors(data.tutors);
+      }
+    } catch (error) {
+      console.error("Error fetching tutor data:", error);
+    }
+  };
+
+  // Load full data when tutor is selected
+  useEffect(() => {
+    if (selectedTutor) {
+      fetchSelectedTutorData(selectedTutor);
+    } else {
+      setTutors([]);
+    }
+  }, [selectedTutor]);
 
   const fetchClasses = async (tutorId?: string) => {
     const id = tutorId || selectedTutor;
@@ -180,6 +219,7 @@ const TutorAvailabilitySlots = () => {
     const newSlots = new Map<string, "available" | "unavailable">();
     const newSocietyMap = new Map<string, string[]>();
     const newKeyToIdMap = new Map<string, string>();
+    const newTimeMap = new Map<string, string>();
 
     tutor.slotsAvailable.forEach((slot) => {
       try {
@@ -201,9 +241,19 @@ const TutorAvailabilitySlots = () => {
         const startHour = startLocal.getHours();
         const endHour = endLocal.getHours();
 
-        for (let hour = startHour; hour < endHour; hour++) {
+        // Format the actual slot time from the API
+        const timeStr = `${format(startLocal, "h:mm a")} – ${format(endLocal, "h:mm a")}`;
+
+        // Calculate which hour rows this slot occupies
+        // If end has minutes > 0, the slot extends into that hour row
+        const loopEndHour = endLocal.getMinutes() > 0 ? endHour + 1 : endHour;
+        // Ensure sub-hour slots (e.g. 12:20–12:50) still mark at least one row
+        const effectiveEnd = Math.max(loopEndHour, startHour + 1);
+
+        for (let hour = startHour; hour < effectiveEnd; hour++) {
           const key = `${slotDate}-${hour}`;
           newSlots.set(key, "available");
+          newTimeMap.set(key, timeStr);
           // Map this grid key to the DB slot _id for deletion
           if (slot._id) {
             newKeyToIdMap.set(key, slot._id);
@@ -222,6 +272,7 @@ const TutorAvailabilitySlots = () => {
     setSlots(newSlots);
     setSlotSocietyMap(newSocietyMap);
     setSlotKeyToIdMap(newKeyToIdMap);
+    setSlotTimeMap(newTimeMap);
     setSelectedSlots(new Set());
   }, [selectedTutor, currentDate, tutors, userTimezone]);
 
@@ -330,11 +381,7 @@ const TutorAvailabilitySlots = () => {
           if (!res.ok) throw new Error(data.message || 'Failed to remove slot');
 
           // Refresh tutor data to get updated slots
-          const tutorsResponse = await fetch('/Api/salesHead/allTutorsInfo');
-          const tutorsData = await tutorsResponse.json();
-          if (tutorsData.success && tutorsData.tutors) {
-            setTutors(tutorsData.tutors);
-          }
+          await fetchSelectedTutorData(selectedTutor);
           toast.success('Slot removed successfully!');
         } catch (err: any) {
           toast.error(err.message || 'Failed to remove slot');
@@ -568,11 +615,7 @@ const TutorAvailabilitySlots = () => {
       toast.success("Slots saved successfully!");
 
       // Refresh tutor data
-      const tutorsResponse = await fetch("/Api/salesHead/allTutorsInfo");
-      const tutorsData = await tutorsResponse.json();
-      if (tutorsData.success && tutorsData.tutors) {
-        setTutors(tutorsData.tutors);
-      }
+      await fetchSelectedTutorData(selectedTutor);
 
       // Reset pending state
       setPendingSlotInfo(null);
@@ -887,7 +930,7 @@ const TutorAvailabilitySlots = () => {
       <Navbar weekLabel={getWeekLabel()} onPrevWeek={() => changeWeek(-1)} onNextWeek={() => changeWeek(1)} onManageSocieties={() => setShowAssignSocModal(true)} />
 
       <FilterBar
-        tutors={tutors}
+        tutorList={tutorList}
         filterSoc={filterSoc}
         allSocieties={allSocieties}
         onSocFilterChange={setFilterSoc}
@@ -911,7 +954,7 @@ const TutorAvailabilitySlots = () => {
       <div className="sm-body">
         {/* Mobile bar */}
         <MobileBar
-          tutors={tutors}
+          tutorList={tutorList}
           selectedTutor={selectedTutor}
           onSelectTutor={setSelectedTutor}
           societies={curSocieties}
@@ -924,7 +967,7 @@ const TutorAvailabilitySlots = () => {
         {/* Desktop sidebar */}
         {currentView === "tutor" && (
           <TutorSidebar
-            tutors={tutors}
+            tutorList={tutorList}
             selectedTutor={selectedTutor}
             onSelectTutor={setSelectedTutor}
             onManageSocieties={() => setShowManageSocModal(true)}
@@ -942,6 +985,7 @@ const TutorAvailabilitySlots = () => {
             currentDate={currentDate}
             userTimezone={userTimezone}
             slotSocietyMap={slotSocietyMap}
+            slotTimeMap={slotTimeMap}
             selectedSlots={selectedSlots}
             onSlotClick={(date, hour) => setEditSlotInfo({ date, hour })}
             onViewClass={setViewClassDetails}
@@ -1040,13 +1084,7 @@ const TutorAvailabilitySlots = () => {
           onClose={() => setShowAssignSocModal(false)}
           onSaved={async () => {
             // Refresh tutor data
-            try {
-              const res = await fetch("/Api/salesHead/allTutorsInfo");
-              const data = await res.json();
-              if (data.success && data.tutors) setTutors(data.tutors);
-            } catch (err) {
-              console.error("Error refreshing tutors:", err);
-            }
+            await fetchSelectedTutorData(selectedTutor);
             toast.success("Societies assigned successfully!");
           }}
         />
@@ -1079,6 +1117,37 @@ const TutorAvailabilitySlots = () => {
         };
         const slotClasses = getClassesForSlot(date, hour);
 
+        // Compute proper initial status based on actual slot state
+        const curTutor = tutors.find(t => t._id === selectedTutor);
+        const regs = curTutor?.registrations || [];
+        const tutorTz = curTutor?.timezone || userTimezone;
+
+        // Find matching registration for this slot
+        let matchingReg: RegistrationData | null = null;
+        if (slotClasses.length > 0) {
+          const classItem = slotClasses[0];
+          const startLocal = dateFnsTz.toZonedTime(parseISO(classItem.startTime), tutorTz);
+          const endLocal = dateFnsTz.toZonedTime(parseISO(classItem.endTime), tutorTz);
+          matchingReg = regs.find((r) => {
+            if (!r.demoDate) return false;
+            try {
+              const regStart = dateFnsTz.toZonedTime(parseISO(r.demoDate), tutorTz);
+              return (regStart >= startLocal && regStart < endLocal) ||
+                Math.abs(regStart.getTime() - startLocal.getTime()) < 60000;
+            } catch { return false; }
+          }) || null;
+        }
+
+        // Determine initial status
+        let computedStatus: "na" | "open" | "demo" | "booked" | "edit";
+        if (matchingReg) {
+          computedStatus = matchingReg.paymentAmount > 0 ? "booked" : "demo";
+        } else if (status === "available") {
+          computedStatus = "open";
+        } else {
+          computedStatus = "na";
+        }
+
         return (
           <EditSlotModal
             dateLabel={dayName}
@@ -1086,9 +1155,10 @@ const TutorAvailabilitySlots = () => {
             hour={hour}
             dateStr={date}
             societies={curSocieties}
-            initialStatus={status === "available" ? "open" : "na"}
+            initialStatus={computedStatus}
             initialSocietyIds={socIds}
             slotClasses={slotClasses}
+            initialRegistration={matchingReg}
             saving={saving}
             pendingCount={pendingOpenSlots.size}
             onClose={() => setEditSlotInfo(null)}
@@ -1108,6 +1178,26 @@ const TutorAvailabilitySlots = () => {
               setEditSlotInfo(null);
               toast.success(`Slot added to batch (${pendingOpenSlots.size + 1} total)`);
             }}
+            onDelete={async (registrationId: string) => {
+              setSaving(true);
+              try {
+                const res = await fetch(`/Api/registration/${registrationId}`, {
+                  method: "DELETE",
+                });
+                const result = await res.json();
+                if (!result.success) throw new Error(result.message);
+                // Refresh tutor data — slot stays open
+                await fetchClasses(selectedTutor);
+                await fetchSelectedTutorData(selectedTutor);
+                toast.success("Registration and class deleted. Slot is now Open.");
+                setEditSlotInfo(null);
+              } catch (err: any) {
+                console.error("Delete registration error:", err);
+                toast.error(err.message || "Failed to delete registration");
+              } finally {
+                setSaving(false);
+              }
+            }}
             onSave={async (data: EditSlotData) => {
               setSaving(true);
               try {
@@ -1117,123 +1207,209 @@ const TutorAvailabilitySlots = () => {
                   toast.success("Slot marked as NA");
 
                 } else if (data.status === "open") {
-                  // POST /Api/salesHead/demoSlots
                   const startISO = new Date(`${date}T${data.startTime}:00`).toISOString();
                   const endISO = new Date(`${date}T${data.endTime}:00`).toISOString();
                   const socIdsToSend = data.societyIds.length > 0 ? data.societyIds : curSocieties.map(s => s._id);
-                  const res = await fetch("/Api/salesHead/demoSlots", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      tutorId: selectedTutor,
-                      slots: [{ startTime: startISO, endTime: endISO }],
-                      societyIds: socIdsToSend,
-                    }),
-                  });
-                  const result = await res.json();
-                  if (!result.success) throw new Error(result.message);
-                  handleSlotChange(date, hour, "available");
-                  // Store society names
-                  const socNames = socIdsToSend
-                    .map(id => curSocieties.find(s => s._id === id)?.name)
-                    .filter(Boolean) as string[];
-                  setSlotSocietyMap(prev => {
-                    const next = new Map(prev);
-                    next.set(key, socNames);
-                    return next;
-                  });
-                  toast.success("Slot opened with societies saved!");
+
+                  // Check if slot already exists in DB — use PUT to update, not POST to create
+                  const existingSlotId = slotKeyToIdMap.get(key);
+                  if (existingSlotId) {
+                    // UPDATE existing slot
+                    const res = await fetch("/Api/salesHead/demoSlots", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        tutorId: selectedTutor,
+                        slotId: existingSlotId,
+                        startTime: startISO,
+                        endTime: endISO,
+                        societyIds: socIdsToSend,
+                      }),
+                    });
+                    const result = await res.json();
+                    if (!result.success) throw new Error(result.message);
+                    toast.success("Slot updated successfully!");
+                  } else {
+                    // CREATE new slot (NA → Open)
+                    const res = await fetch("/Api/salesHead/demoSlots", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        tutorId: selectedTutor,
+                        slots: [{ startTime: startISO, endTime: endISO }],
+                        societyIds: socIdsToSend,
+                      }),
+                    });
+                    const result = await res.json();
+                    if (!result.success) throw new Error(result.message);
+                    toast.success("Slot opened with societies saved!");
+                  }
+
+                  // Refresh tutor data
+                  await fetchSelectedTutorData(selectedTutor);
 
                 } else if (data.status === "demo") {
-                  // POST /Api/public/bookTrial
-                  const res = await fetch("/Api/public/bookTrial", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
+                  if (data.registrationId) {
+                    // Existing registration — update via PUT
+                    const updateBody: any = {
                       name: data.name,
-                      phone: data.contactNumber,
+                      participantName: data.participantName,
+                      contactNumber: data.contactNumber,
                       email: data.email || "",
-                      pname: data.participantName,
                       age: data.age ? parseInt(data.age) : null,
                       notes: data.notes,
-                      consent: true,
-                      society: { name: data.societyName || "", city: data.city || "" },
-                      hobby: { name: data.instrument },
-                      tutorId: selectedTutor,
-                      date: new Date(`${date}T${data.startTime}:00`).toISOString(),
-                      slotTime: formatH(hour),
-                      duration: data.duration,
+                      societyName: data.societyName || "",
+                      instrument: data.instrument,
                       address: data.address,
-                    }),
-                  });
-                  const result = await res.json();
-                  if (!result.success) throw new Error(result.message);
-                  // Refresh classes and tutor registrations
+                      payment: { amount: 0, status: "Pending" },
+                    };
+                    const res = await fetch(`/Api/registration/${data.registrationId}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(updateBody),
+                    });
+                    const result = await res.json();
+                    if (!result.success) throw new Error(result.message);
+                  } else {
+                    // No existing registration — create new via bookTrial
+                    const res = await fetch("/Api/public/bookTrial", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        name: data.name,
+                        phone: data.contactNumber,
+                        email: data.email || "",
+                        pname: data.participantName,
+                        age: data.age ? parseInt(data.age) : null,
+                        notes: data.notes,
+                        consent: true,
+                        society: { name: data.societyName || "", city: data.city || "" },
+                        hobby: { name: data.instrument },
+                        tutorId: selectedTutor,
+                        date: new Date(`${date}T${data.startTime}:00`).toISOString(),
+                        slotTime: formatH(hour),
+                        duration: data.duration,
+                        address: data.address,
+                      }),
+                    });
+                    const result = await res.json();
+                    if (!result.success) throw new Error(result.message);
+                  }
                   await fetchClasses(selectedTutor);
-                  const tutorsRes = await fetch("/Api/salesHead/allTutorsInfo");
-                  const tutorsData = await tutorsRes.json();
-                  if (tutorsData.success && tutorsData.tutors) setTutors(tutorsData.tutors);
+                  await fetchSelectedTutorData(selectedTutor);
                   toast.success("Demo booked successfully!");
 
-                } else if (data.status === "rescheduled") {
-                  // PUT /Api/classes?classId=xxx — reschedule existing class
-                  if (!data.classId) throw new Error("Select a class to reschedule");
-                  if (!data.rescheduleDate || !data.rescheduleTime) throw new Error("New date and time required");
-                  const tutor = tutors.find(t => t._id === selectedTutor);
-                  const tutorTz = tutor?.timezone || userTimezone;
-                  const [rH, rM] = data.rescheduleTime.split(":");
-                  const endH = parseInt(rH) + 1;
-                  const res = await fetch(`/Api/classes?classId=${data.classId}`, {
+                } else if (data.status === "booked") {
+                  if (data.registrationId) {
+                    // Existing registration — just update payment via PUT
+                    const updateBody: any = {
+                      payment: { amount: parseInt(data.paymentAmount) || 0, status: "Done" },
+                    };
+                    const res = await fetch(`/Api/registration/${data.registrationId}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify(updateBody),
+                    });
+                    const result = await res.json();
+                    if (!result.success) throw new Error(result.message);
+                  } else {
+                    // No existing registration — create new via bookTrial
+                    const res = await fetch("/Api/public/bookTrial", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        name: data.name,
+                        phone: data.contactNumber,
+                        email: data.email || "",
+                        pname: data.participantName,
+                        age: data.age ? parseInt(data.age) : null,
+                        notes: data.notes,
+                        consent: true,
+                        society: { name: data.societyName || "", city: data.city || "" },
+                        hobby: { name: data.instrument },
+                        tutorId: selectedTutor,
+                        date: new Date(`${date}T${data.startTime}:00`).toISOString(),
+                        slotTime: formatH(hour),
+                        duration: data.duration,
+                        address: data.address,
+                        payment: { amount: parseInt(data.paymentAmount) || 0, status: "Done" },
+                      }),
+                    });
+                    const result = await res.json();
+                    if (!result.success) throw new Error(result.message);
+                  }
+                  await fetchClasses(selectedTutor);
+                  await fetchSelectedTutorData(selectedTutor);
+                  toast.success("Booking saved with payment!");
+
+                } else if (data.status === "edit") {
+                  // Edit existing registration via PUT /Api/registration/[id]
+                  if (!data.registrationId) throw new Error("No registration to edit");
+                  const updateBody: any = {
+                    name: data.name,
+                    participantName: data.participantName,
+                    contactNumber: data.contactNumber,
+                    email: data.email,
+                    age: data.age ? parseInt(data.age) : null,
+                    instrument: data.instrument,
+                    city: data.city,
+                    societyName: data.societyName,
+                    notes: data.notes,
+                    address: data.address,
+                  };
+                  if (data.paymentAmount) {
+                    updateBody.payment = { amount: parseInt(data.paymentAmount), status: "Done" };
+                  }
+                  // Update demoDate and demoTime on the registration
+                  updateBody.demoDate = new Date(`${date}T${data.startTime}:00`).toISOString();
+                  updateBody.demoTime = formatH(parseInt(data.startTime.split(":")[0]));
+
+                  const res = await fetch(`/Api/registration/${data.registrationId}`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      title: slotClasses.find(c => c._id === data.classId)?.title || "Rescheduled Class",
-                      description: slotClasses.find(c => c._id === data.classId)?.description || data.rescheduleReason,
-                      date: data.rescheduleDate,
-                      startTime: data.rescheduleTime,
-                      endTime: `${String(endH).padStart(2, "0")}:${rM}`,
-                      timezone: tutorTz,
-                      reasonForReschedule: data.rescheduleReason,
-                      status: "rescheduled",
-                      updateIntent: "reschedule",
-                    }),
-                  });
-                  const result = await res.json();
-                  if (result.error) throw new Error(result.error);
-                  await fetchClasses(selectedTutor);
-                  toast.success("Class rescheduled successfully!");
-
-                } else if (data.status === "booked") {
-                  // Book a trial + mark payment done
-                  const res = await fetch("/Api/public/bookTrial", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      name: data.name,
-                      phone: data.contactNumber,
-                      email: data.email || "",
-                      pname: data.participantName,
-                      age: data.age ? parseInt(data.age) : null,
-                      notes: data.notes,
-                      consent: true,
-                      society: { name: data.societyName || "", city: data.city || "" },
-                      hobby: { name: data.instrument },
-                      tutorId: selectedTutor,
-                      date: new Date(`${date}T${data.startTime}:00`).toISOString(),
-                      slotTime: formatH(hour),
-                      duration: data.duration,
-                      address: data.address,
-                      payment: { amount: data.paymentAmount || 1, status: "Done" },
-                    }),
+                    body: JSON.stringify(updateBody),
                   });
                   const result = await res.json();
                   if (!result.success) throw new Error(result.message);
-                  // Refresh classes and tutor registrations
+
+                  // Also update the linked class time if it exists
+                  if (matchingReg?.classId) {
+                    const tutor = tutors.find(t => t._id === selectedTutor);
+                    const tz = tutor?.timezone || userTimezone;
+                    await fetch(`/Api/classes?classId=${matchingReg.classId}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        title: slotClasses.length > 0 ? slotClasses[0].title : "Free Trial",
+                        description: slotClasses.length > 0 ? slotClasses[0].description : "",
+                        date: date,
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        timezone: tz,
+                      }),
+                    });
+                  }
+
+                  // Also update the demo slot time if it changed
+                  const existingSlotId2 = slotKeyToIdMap.get(key);
+                  if (existingSlotId2) {
+                    const startISO = new Date(`${date}T${data.startTime}:00`).toISOString();
+                    const endISO = new Date(`${date}T${data.endTime}:00`).toISOString();
+                    await fetch("/Api/salesHead/demoSlots", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        tutorId: selectedTutor,
+                        slotId: existingSlotId2,
+                        startTime: startISO,
+                        endTime: endISO,
+                      }),
+                    });
+                  }
+
                   await fetchClasses(selectedTutor);
-                  const tutorsRes2 = await fetch("/Api/salesHead/allTutorsInfo");
-                  const tutorsData2 = await tutorsRes2.json();
-                  if (tutorsData2.success && tutorsData2.tutors) setTutors(tutorsData2.tutors);
-                  toast.success("Booking saved with payment!");
+                  await fetchSelectedTutorData(selectedTutor);
+                  toast.success("Registration updated successfully!");
                 }
 
                 setEditSlotInfo(null);
