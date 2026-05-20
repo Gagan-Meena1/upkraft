@@ -156,7 +156,7 @@ export default function SalesHeadDashboard() {
   return (
     <div className="dashboard-root">
       <div className="dashboard-body">
-        <Sidebar />
+        {/* <Sidebar /> */}
         <div className="main">
           <TopNav />
           {/* <StatsRow /> */}
