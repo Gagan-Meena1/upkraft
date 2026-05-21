@@ -104,7 +104,6 @@ const TutorAvailabilitySlots = () => {
   const [filterSoc, setFilterSoc] = useState("");
   const [currentView, setCurrentView] = useState<"tutor" | "society">("tutor");
   const [activeDay, setActiveDay] = useState(0);
-  const [showManageSocModal, setShowManageSocModal] = useState(false);
   const [showAssignSocModal, setShowAssignSocModal] = useState(false);
   const [showOpenPanel, setShowOpenPanel] = useState(false);
   const [openPanelSoc, setOpenPanelSoc] = useState("");
@@ -633,6 +632,14 @@ const TutorAvailabilitySlots = () => {
     router.push(`/salesHead/demoSlotAllocation`);
   };
 
+  const handleOpenManageSocieties = () => {
+    if (!selectedTutor) {
+      toast.error("Please select a tutor first to manage their societies");
+    } else {
+      setShowAssignSocModal(true);
+    }
+  };
+
 
 
   // Handle opening create class modal
@@ -927,7 +934,7 @@ const TutorAvailabilitySlots = () => {
 
   return (
     <div className="slot-page">
-      <Navbar weekLabel={getWeekLabel()} onPrevWeek={() => changeWeek(-1)} onNextWeek={() => changeWeek(1)} onManageSocieties={() => setShowAssignSocModal(true)} />
+      <Navbar weekLabel={getWeekLabel()} onPrevWeek={() => changeWeek(-1)} onNextWeek={() => changeWeek(1)} onManageSocieties={handleOpenManageSocieties} />
 
       <FilterBar
         tutorList={tutorList}
@@ -958,7 +965,7 @@ const TutorAvailabilitySlots = () => {
           selectedTutor={selectedTutor}
           onSelectTutor={setSelectedTutor}
           societies={curSocieties}
-          onManageSocieties={() => setShowManageSocModal(true)}
+          onManageSocieties={handleOpenManageSocieties}
         />
 
         {/* Day tabs (mobile) */}
@@ -970,7 +977,7 @@ const TutorAvailabilitySlots = () => {
             tutorList={tutorList}
             selectedTutor={selectedTutor}
             onSelectTutor={setSelectedTutor}
-            onManageSocieties={() => setShowManageSocModal(true)}
+            onManageSocieties={handleOpenManageSocieties}
             filterTutors={filterTutors}
           />
         )}

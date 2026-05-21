@@ -21,12 +21,11 @@ const AssignSocietiesModal: React.FC<AssignSocietiesModalProps> = ({
   onClose,
   onSaved,
 }) => {
-  const [selectedTutorId, setSelectedTutorId] = useState(initialTutorId || "");
+  const selectedTutorId = initialTutorId || "";
   const [societies, setSocieties] = useState<FullSociety[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [cityFilter, setCityFilter] = useState("");
-  const [tutorSearch, setTutorSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -65,11 +64,6 @@ const AssignSocietiesModal: React.FC<AssignSocietiesModalProps> = ({
     return matchSearch && matchCity;
   });
 
-  const filteredTutors = tutors.filter(t =>
-    t.username.toLowerCase().includes(tutorSearch.toLowerCase()) ||
-    t.email.toLowerCase().includes(tutorSearch.toLowerCase())
-  );
-
   const toggle = (id: string) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
@@ -98,181 +92,221 @@ const AssignSocietiesModal: React.FC<AssignSocietiesModalProps> = ({
 
   return (
     <div className="sm-overlay show" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="sm-modal" style={{ maxWidth: 560, overflow: "hidden" }} onClick={(e) => e.stopPropagation()}>
+      <div 
+        className="sm-modal" 
+        style={{ 
+          maxWidth: "1200px", 
+          width: "95vw", 
+          height: "85vh", 
+          display: "flex", 
+          flexDirection: "column", 
+          overflow: "hidden",
+          borderRadius: "16px",
+          boxShadow: "0 20px 45px rgba(0, 0, 0, 0.18)",
+          background: "#fff"
+        }} 
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="mh" style={{ borderBottom: "1px solid var(--bd)", paddingBottom: 14 }}>
+        <div className="mh" style={{ borderBottom: "1px solid var(--bdr)", padding: "18px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>🏘️ Assign Societies to Tutor</h3>
-            <p style={{ margin: "4px 0 0", fontSize: 12, color: "var(--muted)" }}>
-              Select a tutor and choose which societies to assign
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "var(--p)", display: "flex", alignItems: "center", gap: 8 }}>
+              🏘️ Manage Assigned Societies
+            </h3>
+            <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--muted)" }}>
+              Assigning societies to tutor: <strong style={{ color: "var(--txt)" }}>{selectedTutor?.username}</strong> ({selectedTutor?.email})
             </p>
           </div>
-          <button className="mclose" onClick={onClose}>✕</button>
+          <button className="mclose" onClick={onClose} style={{ width: 32, height: 32 }}>✕</button>
         </div>
 
-        <div className="mb" style={{ padding: "12px 16px", maxHeight: "75vh", overflowY: "auto" }}>
-          {/* Tutor Selector */}
-          <div style={{ marginBottom: 14 }}>
-            <div className="sec-label" style={{ marginBottom: 6 }}>Select Tutor</div>
-            <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>👤</span>
-              <input
+        {/* Body */}
+        <div className="mb" style={{ padding: "20px 24px", flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", gap: 16 }}>
+          
+          {/* Toolbar */}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 12, justifyContent: "space-between", flexShrink: 0 }}>
+            {/* Search + City Filter */}
+            <div style={{ display: "flex", gap: 10, flex: "1 1 auto", maxWidth: "600px" }}>
+              <div style={{ position: "relative", flex: 1 }}>
+                <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", fontSize: 14 }}>🔍</span>
+                <input
+                  className="finput"
+                  placeholder="Search societies by name or city..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  style={{ paddingLeft: 36, fontSize: 13, height: 40, borderRadius: "10px", width: "100%", boxSizing: "border-box" }}
+                />
+              </div>
+              <select
                 className="finput"
-                placeholder="Search tutor by name..."
-                value={tutorSearch}
-                onChange={(e) => setTutorSearch(e.target.value)}
-                style={{ paddingLeft: 32, width: "100%", boxSizing: "border-box", marginBottom: 6 }}
-              />
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+                style={{ width: 160, flexShrink: 0, fontSize: 13, height: 40, borderRadius: "10px", padding: "0 12px", cursor: "pointer" }}
+              >
+                <option value="">All Cities</option>
+                {uniqueCities.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
-            <div style={{ maxHeight: 160, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
-              {filteredTutors.map(t => {
-                const isActive = t._id === selectedTutorId;
-                const socCount = t.societies?.length || 0;
-                return (
-                  <div
-                    key={t._id}
-                    onClick={() => { setSelectedTutorId(t._id); setTutorSearch(""); }}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "8px 12px", borderRadius: 10, cursor: "pointer",
-                      background: isActive ? "var(--pl)" : "var(--card)",
-                      border: `1.5px solid ${isActive ? "var(--p)" : "var(--bd)"}`,
-                      transition: "all 0.15s ease",
-                    }}
-                  >
-                    <div style={{
-                      width: 32, height: 32, borderRadius: "50%",
-                      background: isActive ? "var(--p)" : "#eee",
-                      color: isActive ? "#fff" : "var(--txt)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 13, fontWeight: 700, flexShrink: 0,
-                    }}>
-                      {t.username.charAt(0).toUpperCase()}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--txt)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {t.username}
-                      </div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{t.email}</div>
-                    </div>
-                    <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: socCount > 0 ? "var(--pl)" : "#fee", color: socCount > 0 ? "var(--p)" : "#c00" }}>
-                      {socCount} soc
-                    </span>
-                  </div>
-                );
-              })}
+
+            {/* Quick Actions */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button
+                className="sm-btn sm-btn-o"
+                style={{ fontSize: 12, padding: "8px 14px", height: 40, borderRadius: "10px", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}
+                onClick={() => setSelectedIds(filtered.map(s => s._id))}
+              >
+                ✓ Select All
+              </button>
+              <button
+                className="sm-btn sm-btn-o"
+                style={{ fontSize: 12, padding: "8px 14px", height: 40, borderRadius: "10px", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}
+                onClick={() => setSelectedIds([])}
+              >
+                ✕ Deselect All
+              </button>
+              <span style={{ fontSize: 13, color: "var(--p)", fontWeight: 600, marginLeft: 6, background: "var(--pl)", padding: "8px 14px", borderRadius: "10px", height: 40, display: "flex", alignItems: "center", boxSizing: "border-box" }}>
+                {selectedIds.length} Selected
+              </span>
             </div>
           </div>
 
-          {/* Divider */}
-          {selectedTutorId && (
-            <>
-              <div style={{ height: 1, background: "var(--bd)", margin: "8px 0 14px" }} />
-
-              {/* Current assignment info */}
-              <div style={{ fontSize: 12, color: "var(--muted)", marginBottom: 10 }}>
-                Assigning to <strong style={{ color: "var(--txt)" }}>{selectedTutor?.username}</strong> — currently {selectedTutor?.societies?.length || 0} societies
+          {/* Society Grid container */}
+          <div style={{ flex: 1, overflowY: "auto", paddingRight: 4, marginTop: 4 }}>
+            {loading ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", gap: 12, color: "var(--muted)" }}>
+                <div style={{ width: 40, height: 40, border: "3px solid var(--p)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+                <span>Loading societies...</span>
               </div>
-
-              {/* Search + city filter */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                <div style={{ position: "relative", flex: 1 }}>
-                  <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 13 }}>🔍</span>
-                  <input
-                    className="finput"
-                    placeholder="Search societies..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    style={{ paddingLeft: 32, width: "100%", boxSizing: "border-box" }}
-                  />
-                </div>
-                <select
-                  className="finput"
-                  value={cityFilter}
-                  onChange={(e) => setCityFilter(e.target.value)}
-                  style={{ width: 140, flexShrink: 0 }}
-                >
-                  <option value="">All Cities</option>
-                  {uniqueCities.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+            ) : filtered.length === 0 ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--muted)", fontSize: 14 }}>
+                🏢 No societies found matching filters
               </div>
+            ) : (
+              <div 
+                style={{ 
+                  display: "grid", 
+                  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", 
+                  gap: 12,
+                  padding: "4px"
+                }}
+              >
+                {filtered.map(s => {
+                  const isOn = selectedIds.includes(s._id);
+                  return (
+                    <div
+                      key={s._id}
+                      onClick={() => toggle(s._id)}
+                      style={{
+                        display: "flex", 
+                        alignItems: "center", 
+                        gap: 12,
+                        padding: "12px 14px", 
+                        borderRadius: "12px", 
+                        cursor: "pointer",
+                        background: isOn ? "var(--pl)" : "#fff",
+                        border: `1.5px solid ${isOn ? "var(--p)" : "var(--bdr2)"}`,
+                        boxShadow: isOn ? "0 4px 12px rgba(92, 22, 197, 0.08)" : "0 2px 6px rgba(0, 0, 0, 0.02)",
+                        transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                        position: "relative",
+                        overflow: "hidden"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = isOn 
+                          ? "0 6px 16px rgba(92, 22, 197, 0.12)" 
+                          : "0 4px 12px rgba(0, 0, 0, 0.06)";
+                        if (!isOn) e.currentTarget.style.borderColor = "var(--p)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = isOn 
+                          ? "0 4px 12px rgba(92, 22, 197, 0.08)" 
+                          : "0 2px 6px rgba(0, 0, 0, 0.02)";
+                        if (!isOn) e.currentTarget.style.borderColor = "var(--bdr2)";
+                      }}
+                    >
+                      {/* Selection Checkbox */}
+                      <span style={{
+                        width: 20, 
+                        height: 20, 
+                        borderRadius: 6, 
+                        flexShrink: 0,
+                        border: `2px solid ${isOn ? "var(--p)" : "#ccc"}`,
+                        background: isOn ? "var(--p)" : "transparent",
+                        display: "flex", 
+                        alignItems: "center", 
+                        justifyContent: "center",
+                        fontSize: 11, 
+                        color: "#fff", 
+                        fontWeight: 700,
+                        transition: "all 0.15s ease",
+                      }}>
+                        {isOn ? "✓" : ""}
+                      </span>
 
-              {/* Select All / Deselect All */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                <button
-                  className="sm-btn sm-btn-o"
-                  style={{ fontSize: 11, padding: "4px 10px" }}
-                  onClick={() => setSelectedIds(filtered.map(s => s._id))}
-                >
-                  ✓ Select All
-                </button>
-                <button
-                  className="sm-btn sm-btn-o"
-                  style={{ fontSize: 11, padding: "4px 10px" }}
-                  onClick={() => setSelectedIds([])}
-                >
-                  ✕ Deselect All
-                </button>
-                <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--muted)", alignSelf: "center" }}>
-                  {selectedIds.length} selected
-                </span>
-              </div>
-
-              {/* Society grid */}
-              {loading ? (
-                <div style={{ textAlign: "center", padding: 30, color: "var(--muted)" }}>Loading societies...</div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, maxHeight: 280, overflowY: "auto" }}>
-                  {filtered.map(s => {
-                    const isOn = selectedIds.includes(s._id);
-                    return (
-                      <div
-                        key={s._id}
-                        onClick={() => toggle(s._id)}
-                        style={{
-                          display: "flex", alignItems: "center", gap: 8,
-                          padding: "8px 10px", borderRadius: 8, cursor: "pointer",
-                          background: isOn ? "var(--pl)" : "var(--card)",
-                          border: `1.5px solid ${isOn ? "var(--p)" : "var(--bd)"}`,
-                          transition: "all 0.12s ease",
-                        }}
-                      >
-                        <span style={{
-                          width: 18, height: 18, borderRadius: 5, flexShrink: 0,
-                          border: `2px solid ${isOn ? "var(--p)" : "#ccc"}`,
-                          background: isOn ? "var(--p)" : "transparent",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          fontSize: 10, color: "#fff", fontWeight: 700,
-                          transition: "all 0.12s ease",
+                      {/* Details */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ 
+                          fontSize: 13, 
+                          fontWeight: 600, 
+                          color: "var(--txt)", 
+                          overflow: "hidden", 
+                          textOverflow: "ellipsis", 
+                          whiteSpace: "nowrap" 
                         }}>
-                          {isOn ? "✓" : ""}
-                        </span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: "var(--txt)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {s.name}
-                          </div>
-                          <div style={{ fontSize: 10, color: "var(--muted)" }}>{s.city}</div>
+                          {s.name}
                         </div>
-                        {s.isPopular && <span style={{ fontSize: 10 }}>⭐</span>}
+                        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                          📍 {s.city}
+                        </div>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
+                      
+                      {s.isPopular && (
+                        <span 
+                          style={{ 
+                            fontSize: 11,
+                            background: "rgba(251, 191, 36, 0.15)",
+                            color: "#d97706",
+                            padding: "2px 6px",
+                            borderRadius: "6px",
+                            fontWeight: 700,
+                            letterSpacing: "0.2px"
+                          }}
+                        >
+                          Popular ⭐
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         </div>
 
         {/* Footer */}
-        <div className="mf" style={{ borderTop: "1px solid var(--bd)", paddingTop: 14 }}>
-          <button className="sm-btn sm-btn-o" onClick={onClose}>Cancel</button>
+        <div className="mf" style={{ borderTop: "1px solid var(--bdr)", padding: "16px 24px", flexShrink: 0 }}>
+          <button className="sm-btn sm-btn-o" onClick={onClose} style={{ height: 40, padding: "0 20px", borderRadius: "10px", fontSize: 13, fontWeight: 600 }}>Cancel</button>
           <button
             className="sm-btn sm-btn-p"
             onClick={handleSave}
-            disabled={!selectedTutorId || saving}
-            style={{ opacity: (!selectedTutorId || saving) ? 0.5 : 1 }}
+            disabled={saving}
+            style={{ 
+              opacity: saving ? 0.5 : 1, 
+              height: 40, 
+              padding: "0 24px", 
+              borderRadius: "10px", 
+              fontSize: 13, 
+              fontWeight: 600,
+              background: "var(--p)",
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.15s ease"
+            }}
           >
-            {saving ? "Saving…" : `Save ${selectedIds.length} Societies`}
+            {saving ? "Saving…" : `Save ${selectedIds.length} Assigned Societies`}
           </button>
         </div>
       </div>
