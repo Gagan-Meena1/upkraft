@@ -28,6 +28,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
   const [newTutorId, setNewTutorId] = useState('');
   const [newDate, setNewDate] = useState('');
   const [newSlotTime, setNewSlotTime] = useState('');
+  const [editSpoc, setEditSpoc] = useState('');
 
   const resetCreateForm = () => {
     setNewName(''); setNewEmail(''); setNewPhone('');
@@ -143,6 +144,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
     setEditDemoDate(lead.demoDate || '');
     setEditDemoTime(lead.demoTime || '');
     setEditAddress(lead.address || '');
+    setEditSpoc(lead.spoc || '');
   };
 
   const closeEditModal = () => {
@@ -172,6 +174,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
       demoDate: editDemoDate || null,
       demoTime: editDemoTime || null,
       address: editAddress || null,
+      spoc: editSpoc || null,
     };
 
     try {
@@ -200,7 +203,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
       <div className="table-wrap">
         <table className="table" style={{ minWidth: '1940px', tableLayout: 'fixed' }}>
           <colgroup>
-            <col style={{ width: '75px' }} />
+            <col style={{ width: '110px' }} />
             <col style={{ width: '130px' }} />
             <col style={{ width: '130px' }} />
             <col style={{ width: '160px' }} />
@@ -218,7 +221,7 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
           </colgroup>
           <thead>
             <tr>
-              <th>RID</th>
+              <th>SPOC</th>
               <th>Name</th>
               <th>Mobile</th>
               <th>Email</th>
@@ -247,7 +250,11 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
               leads.map((lead, idx) => (
                 <tr key={idx}>
                   <td>
-                    <div className="lead-id">{lead._id?.toString().slice(-6) || ''}</div>
+                    {lead.spoc ? (
+                      <span className="society-tag">{lead.spoc}</span>
+                    ) : (
+                      <div style={{ fontSize: '11px', color: 'var(--text2)' }}>—</div>
+                    )}
                   </td>
                   <td>
                     <div className="lead-name">{lead.name || '-'}</div>
@@ -448,7 +455,21 @@ export default function LeadsTable({ leads, onLeadUpdated, showAddModal, onClose
                   <textarea className="edit-form-input" rows={2} style={{ resize: 'vertical', minHeight: '50px' }} value={editAddress} onChange={e => setEditAddress(e.target.value)} placeholder="Enter address..." />
                 </div>
               </div>
+              {/* Section: SPOC */}
+              <div className="edit-modal-section-label">SPOC</div>
+              <div className="edit-modal-grid">
+                <div className="edit-modal-field full">
+                  <label className="edit-modal-label">SPOC</label>
+                  <select className="edit-modal-select" value={editSpoc} onChange={e => setEditSpoc(e.target.value)}>
+                    <option value="">-- Not Assigned --</option>
+                    {["Tejasvi", "Yash", "Nidhi", "Chandraditya", "Varun", "Nikita", "Kritika"].map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
+
             <div className="edit-modal-foot">
               <button className="btn btn-outline" onClick={closeEditModal}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>

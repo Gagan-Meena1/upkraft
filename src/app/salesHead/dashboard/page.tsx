@@ -105,7 +105,7 @@ export default function SalesHeadDashboard() {
   // Export filtered leads as CSV
   const exportCSV = () => {
     const headers = [
-      'RID', 'Name', 'Mobile', 'Email', 'Society', 'Hobby',
+      'SPOC', 'Name', 'Mobile', 'Email', 'Society', 'Hobby',
       'Participant', 'Enquiry Date', 'Tutor Assigned', 'Tutor Email',
       'Slot Date', 'Slot Time', 'Demo Status', 'Payment Amount',
       'Payment Status', 'Notes', 'Address'
@@ -121,7 +121,7 @@ export default function SalesHeadDashboard() {
     };
 
     const rows = filteredLeads.map(lead => [
-      lead._id?.toString().slice(-6) || '',
+      lead.spoc || '',
       lead.name || '',
       `${lead.countryCode || ''} ${lead.contactNumber || ''}`.trim(),
       lead.email || '',

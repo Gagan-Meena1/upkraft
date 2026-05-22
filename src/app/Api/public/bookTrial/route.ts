@@ -9,9 +9,10 @@ export async function POST(request: NextRequest) {
   try {
     await connect();
     const body = await request.json();
+    // In your trial booking POST, receive slotId from the body
     const {
       name, phone, email, pname, age, notes, consent,
-      society, hobby, tutorId, date, slotTime, address
+      society, hobby, tutorId, date, slotTime, address, slotId  // ✅ add slotId
     } = body;
 
     // 1. Save Lead in Registration
@@ -66,6 +67,38 @@ export async function POST(request: NextRequest) {
     await User.findByIdAndUpdate(tutorId, {
       $addToSet: { classes: savedClass._id, registrations: reg._id }
     });
+
+    // Set regId on the matching demoSlotsAvailable slot
+    if (slotId) {
+      console.log("demo slotID", slotId);
+
+      const slotObjectId = new mongoose.Types.ObjectId(slotId); // ✅ cast string → ObjectId
+
+      const slotUpdateResult = await User.updateOne(
+        {
+          _id: tutorId,
+          "demoSlotsAvailable._id": slotObjectId
+        },
+        {
+          $set: { "demoSlotsAvailable.$.regId": reg._id }
+        }
+      );
+
+      console.log("Demo Slot Update Result", slotUpdateResult);
+
+      if (slotUpdateResult.matchedCount === 0) {
+        console.warn(`No demo slot found with _id ${slotId} for tutor ${tutorId}`);
+      }
+    } else {
+      console.warn("No slotId received — skipping regId update");
+    }
+
+    console.log("demo slotID", slotId)
+    console.log("Demo Slot Update Result", slotUpdateResult);
+
+    if (slotUpdateResult.matchedCount === 0) {
+      console.warn(`No demo slot found with _id ${slotId} for tutor ${tutorId}`);
+    }
 
     return NextResponse.json({ success: true, message: "Trial booked successfully" }, { status: 201 });
 

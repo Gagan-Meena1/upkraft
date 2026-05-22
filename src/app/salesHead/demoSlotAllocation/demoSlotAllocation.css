@@ -522,12 +522,12 @@
 }
 
 .cell.open {
-  background: #f0fdf4;
-  border-color: var(--gb)
+  background: #d1fae5;
+  border-color: #047857
 }
 
 .cell.open:hover {
-  background: #dcfce7
+  background: #a7f3d0
 }
 
 .cell.open.soc-specific {
@@ -536,8 +536,18 @@
 }
 
 .cell.demo {
-  background: var(--al);
-  border-color: var(--ab)
+  background: #1a1a2e;
+  border-color: #2d2d44
+}
+
+.cell.demo .c-time,
+.cell.demo .c-text {
+  color: #e0e0e0
+}
+
+.cell.demo .c-soc {
+  background: rgba(255,255,255,.15);
+  color: #d4d4d8
 }
 
 .cell.booked {
@@ -582,12 +592,12 @@
 }
 
 .b-open {
-  background: var(--green);
+  background: #047857;
   color: #fff
 }
 
 .b-demo {
-  background: var(--amber);
+  background: #111827;
   color: #fff
 }
 
@@ -612,7 +622,7 @@
 }
 
 .b-soc {
-  background: var(--p);
+  background: #047857;
   color: #fff
 }
 
@@ -943,14 +953,14 @@
 }
 
 .s-opt.sel-open {
-  background: var(--green);
-  border-color: var(--green);
+  background: #047857;
+  border-color: #047857;
   color: #fff
 }
 
 .s-opt.sel-demo {
-  background: var(--amber);
-  border-color: var(--amber);
+  background: #111827;
+  border-color: #111827;
   color: #fff
 }
 

@@ -15,6 +15,7 @@ interface FilterBarProps {
   selectedTutor: string;
   pendingOpenCount?: number;
   onSaveAllOpen?: () => void;
+  selectedTutorSocieties?: Society[];
 }
 
 const FilterBar: React.FC<FilterBarProps> = ({
@@ -31,6 +32,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
   selectedTutor,
   pendingOpenCount = 0,
   onSaveAllOpen,
+  selectedTutorSocieties = [],
 }) => {
   const [search, setSearch] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -114,6 +116,28 @@ const FilterBar: React.FC<FilterBarProps> = ({
           </div>
         )}
       </div>
+
+      {/* Tutor's societies */}
+      {selectedTutor && selectedTutorSocieties.length > 0 && (
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+          {selectedTutorSocieties.map((s) => (
+            <span
+              key={s._id}
+              style={{
+                fontSize: 10,
+                background: "var(--gl)",
+                color: "var(--green)",
+                borderRadius: 10,
+                padding: "2px 8px",
+                fontWeight: 600,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {s.name}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="fb-divider" />
 

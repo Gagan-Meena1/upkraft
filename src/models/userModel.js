@@ -214,6 +214,11 @@ const userSchema = new mongoose.Schema({
         type: [{
             startTime: Date,
             endTime: Date,
+            regId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Registration",
+                default: null
+            },
             societyIds: [{
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "society"

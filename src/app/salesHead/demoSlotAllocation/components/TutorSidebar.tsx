@@ -1,5 +1,5 @@
 import React from "react";
-import { TutorListItem } from "./Types";
+import { TutorListItem, Society } from "./Types";
 
 interface TutorSidebarProps {
   tutorList: TutorListItem[];
@@ -7,6 +7,7 @@ interface TutorSidebarProps {
   onSelectTutor: (id: string) => void;
   onManageSocieties: () => void;
   filterTutors: string[];
+  selectedTutorSocieties?: Society[];
 }
 
 const TutorSidebar: React.FC<TutorSidebarProps> = ({
@@ -15,6 +16,7 @@ const TutorSidebar: React.FC<TutorSidebarProps> = ({
   onSelectTutor,
   onManageSocieties,
   filterTutors,
+  selectedTutorSocieties = [],
 }) => {
   return (
     <aside className="sm-sidebar">
@@ -32,6 +34,13 @@ const TutorSidebar: React.FC<TutorSidebarProps> = ({
             >
               <div className="ti-name">{t.username}</div>
               <div className="ti-inst">{t.email}</div>
+              {t._id === selectedTutor && selectedTutorSocieties.length > 0 && (
+                <div className="ti-socs" style={{ marginTop: 4 }}>
+                  {selectedTutorSocieties.map((s) => (
+                    <span key={s._id} className="ti-soc">{s.name}</span>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
@@ -46,7 +55,7 @@ const TutorSidebar: React.FC<TutorSidebarProps> = ({
           NA
         </div>
         <div className="leg-row">
-          <div className="ld" style={{ background: "#f0fdf4", border: "1px solid var(--gb)" }} />
+          <div className="ld" style={{ background: "#f0fdf4", border: "1px solid #047857" }} />
           Open — all
         </div>
         <div className="leg-row">
@@ -60,7 +69,7 @@ const TutorSidebar: React.FC<TutorSidebarProps> = ({
           Open — specific
         </div>
         <div className="leg-row">
-          <div className="ld" style={{ background: "var(--al)", border: "1px solid var(--ab)" }} />
+          <div className="ld" style={{ background: "#1a1a2e", border: "1px solid #2d2d44" }} />
           Demo
         </div>
         <div className="leg-row">

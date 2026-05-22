@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     await connect();
     const { id } = await params;
     const body = await request.json();
-    
+
     // All editable registration fields
     const allowedFields = [
       'name', 'contactNumber', 'countryCode', 'email',
@@ -55,6 +55,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       'participantName', 'age', 'notes',
       'status', 'payment',
       'demoDate', 'demoTime', 'address',
+      'spoc',
     ];
 
     const updateData: any = {};
@@ -67,7 +68,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const updatedReg = await Registration.findByIdAndUpdate(
       id,
       { $set: updateData },
-      { new: true }
+      { new: true, upsert: true }
     ).populate({
       path: 'tutorName',
       select: 'username email contact'
@@ -106,6 +107,12 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       const pullUpdate: any = { registrations: reg._id };
       if (reg.classId) pullUpdate.classes = reg.classId;
       await User.findByIdAndUpdate(reg.tutorName, { $pull: pullUpdate });
+
+      // Clear regId from the matching demo slot so it becomes visible again
+      await User.updateOne(
+        { _id: reg.tutorName, "demoSlotsAvailable.regId": reg._id },
+        { $set: { "demoSlotsAvailable.$.regId": null } }
+      );
     }
 
     // Clear the classId on the registration since the class is deleted

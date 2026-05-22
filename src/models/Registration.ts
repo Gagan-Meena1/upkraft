@@ -80,6 +80,11 @@ const RegistrationSchema: Schema = new Schema(
       ref: 'users',
       default: null,
     },
+    spoc: {
+      type: String,
+      default: null,
+      enum: ["Tejasvi", "Yash", "Nidhi", "Chandraditya", "Varun", "Nikita", "Kritika", null],
+    },
     demoDate: { type: String, default: null },
     demoTime: { type: String, default: null },
     resumeUrl: { type: String, default: null },

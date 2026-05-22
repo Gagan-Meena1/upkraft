@@ -52,6 +52,8 @@ export default function BookSlotPage() {
   const [showCallbackModal, setShowCallbackModal] = useState(false);
 
   const searchRef = useRef<HTMLDivElement>(null);
+  const [formSlotId, setFormSlotId] = useState<string>('');   // ✅ add this
+
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -145,10 +147,11 @@ export default function BookSlotPage() {
     goTo('slots');
   };
 
-  const openForm = (tutorName: string, slotTime: string, rawSlotStartTime: Date) => {
+  const openForm = (tutorName: string, slotTime: string, rawSlotStartTime: Date, slotId: string) => {
     setFormTutor(tutorName);
     setFormSlotTime(slotTime);
     setFormRawSlotTime(rawSlotStartTime);
+    setFormSlotId(slotId);
     setFormOpen(true);
   };
 
@@ -163,7 +166,10 @@ export default function BookSlotPage() {
         tutorId: tutor?._id || tutor?.id,
         tutorName: formTutor,
         date: formRawSlotTime?.toISOString(),
-        slotTime: formSlotTime
+        slotTime: formSlotTime,
+        slotId: formSlotId,
+
+
       };
       const res = await fetch('/Api/public/bookTrial', {
         method: 'POST',
@@ -246,6 +252,13 @@ export default function BookSlotPage() {
     ];
 
     slotsForDay.forEach((slot: any) => {
+      // Skip slots that already have a registration
+      if (slot.regId) return;
+
+      // ✅ Only show slots available for the selected society
+      const slotSocIds = (slot.societyIds || []).map((sid: any) => sid.toString());
+      if (!slotSocIds.includes(currentSocietyId)) return;
+
       const st = new Date(slot.startTime);
       const et = new Date(slot.endTime);
       const slotStartMs = st.getTime();
@@ -271,10 +284,8 @@ export default function BookSlotPage() {
       const timeStr = `${startStr} – ${endStr}`;
 
       let type = "avail", label = "Available";
-      const slotSocIds = (slot.societyIds || []).map((sid: any) => sid.toString());
-      if (slotSocIds.includes(currentSocietyId)) { type = "soc"; label = "Your society"; }
 
-      bands[bandIdx].slots.push({ time: timeStr, type, label, rawSlotStartTime: new Date(st) });
+      bands[bandIdx].slots.push({ time: timeStr, type, label, rawSlotStartTime: new Date(st), slotId: slot._id?.toString() });
     });
 
     bands.forEach(b => b.slots.sort((a, b) => a.rawSlotStartTime.getTime() - b.rawSlotStartTime.getTime()));
@@ -282,13 +293,13 @@ export default function BookSlotPage() {
   };
 
   const getDayAvailability = (dayIdx: number) => {
-    let a = 0, s = 0;
+    let total = 0;
     activeTutors.forEach((t: any) => {
       getDynamicSlots(t, dayIdx, society?.id).forEach(band =>
-        band.slots.forEach(sl => { if (sl.type === "avail") a++; if (sl.type === "soc") s++; })
+        band.slots.forEach(() => total++)
       );
     });
-    return { avail: a, soc: s, total: a + s };
+    return { avail: total, soc: 0, total };
   };
 
   const renderTutors = () => {
@@ -332,13 +343,13 @@ export default function BookSlotPage() {
                 );
                 if (sl.type === 'soc') return (
                   <div key={slidx} className="bsp-slot-pill soc" role="button" tabIndex={0}
-                    onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
+                    onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime, sl.slotId)}>
                     <span>{sl.time}</span>
                   </div>
                 );
                 return (
                   <div key={slidx} className="bsp-slot-pill avail" role="button" tabIndex={0}
-                    onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime)}>
+                    onClick={() => openForm(t.name, sl.time, sl.rawSlotStartTime, sl.slotId)}>
                     <span>{sl.time}</span>
                   </div>
                 );

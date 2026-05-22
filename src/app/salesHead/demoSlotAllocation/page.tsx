@@ -954,6 +954,7 @@ const TutorAvailabilitySlots = () => {
           setBatchSocIds([]);
           setShowBatchSocModal(true);
         }}
+        selectedTutorSocieties={curSocieties}
       />
 
       <ViewTabs currentView={currentView} onSwitchView={setCurrentView} />
@@ -979,6 +980,7 @@ const TutorAvailabilitySlots = () => {
             onSelectTutor={setSelectedTutor}
             onManageSocieties={handleOpenManageSocieties}
             filterTutors={filterTutors}
+            selectedTutorSocieties={curSocieties}
           />
         )}
 
@@ -1210,10 +1212,23 @@ const TutorAvailabilitySlots = () => {
               // Use editDate from the modal if the user changed it, else fall back to the grid date
               const effectiveDate = data.editDate || date;
               try {
+                // If slot has a registration and user is switching to NA or Open,
+                // delete the registration first (same as the delete button)
+                if ((data.status === "na" || data.status === "open") && matchingReg) {
+                  const regId = matchingReg._id;
+                  const delRes = await fetch(`/Api/registration/${regId}`, {
+                    method: "DELETE",
+                  });
+                  const delResult = await delRes.json();
+                  if (!delResult.success) throw new Error(delResult.message || "Failed to delete registration");
+                }
+
                 if (data.status === "na") {
-                  // Mark as unavailable locally
+                  // Mark as unavailable — remove slot from DB
                   handleSlotChange(date, hour, "unavailable");
-                  toast.success("Slot marked as NA");
+                  await fetchClasses(selectedTutor);
+                  await fetchSelectedTutorData(selectedTutor);
+                  toast.success(matchingReg ? "Registration deleted & slot marked as NA" : "Slot marked as NA");
 
                 } else if (data.status === "open") {
                   const startISO = new Date(`${effectiveDate}T${data.startTime}:00`).toISOString();
@@ -1237,7 +1252,7 @@ const TutorAvailabilitySlots = () => {
                     });
                     const result = await res.json();
                     if (!result.success) throw new Error(result.message);
-                    toast.success("Slot updated successfully!");
+                    toast.success(matchingReg ? "Registration deleted & slot updated!" : "Slot updated successfully!");
                   } else {
                     // CREATE new slot (NA → Open)
                     const res = await fetch("/Api/salesHead/demoSlots", {
@@ -1251,10 +1266,11 @@ const TutorAvailabilitySlots = () => {
                     });
                     const result = await res.json();
                     if (!result.success) throw new Error(result.message);
-                    toast.success("Slot opened with societies saved!");
+                    toast.success(matchingReg ? "Registration deleted & slot opened!" : "Slot opened with societies saved!");
                   }
 
                   // Refresh tutor data
+                  await fetchClasses(selectedTutor);
                   await fetchSelectedTutorData(selectedTutor);
 
                 } else if (data.status === "demo") {
