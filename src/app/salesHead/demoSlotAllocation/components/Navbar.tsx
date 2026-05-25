@@ -6,9 +6,11 @@ interface NavbarProps {
   onPrevWeek: () => void;
   onNextWeek: () => void;
   onManageSocieties: () => void;
+  onRepeat: () => void;        // ✅ add this
+  selectedSlotCount: number;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ weekLabel, onPrevWeek, onNextWeek, onManageSocieties }) => {
+const Navbar: React.FC<NavbarProps> = ({ weekLabel, onPrevWeek, onNextWeek, onManageSocieties, onRepeat, selectedSlotCount }) => {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -40,6 +42,25 @@ const Navbar: React.FC<NavbarProps> = ({ weekLabel, onPrevWeek, onNextWeek, onMa
 
         {/* Divider */}
         <div style={{ width: 1, height: 24, background: "var(--bd)", margin: "0 4px" }} />
+        <button
+          className="sm-btn"
+          onClick={onRepeat}
+          disabled={selectedSlotCount === 0}
+          style={{
+            background: selectedSlotCount > 0 ? "var(--p)" : "var(--bd)",
+            color: selectedSlotCount > 0 ? "#fff" : "var(--muted)",
+            border: "none",
+            fontWeight: 600,
+            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            opacity: selectedSlotCount === 0 ? 0.5 : 1,
+            cursor: selectedSlotCount === 0 ? "not-allowed" : "pointer",
+          }}
+        >
+          🔁 Repeat {selectedSlotCount > 0 ? `(${selectedSlotCount})` : ""}
+        </button>
 
         {/* Manage Societies */}
         <button

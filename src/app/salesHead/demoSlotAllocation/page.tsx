@@ -503,7 +503,8 @@ const TutorAvailabilitySlots = () => {
     }
   };
 
-  const applyRepeatPattern = () => {
+  const applyRepeatPattern = async () => {
+
     if (!repeatStartDate || !repeatEndDate) {
       toast.error("Please select both start and end dates");
       return;
@@ -522,46 +523,111 @@ const TutorAvailabilitySlots = () => {
       return;
     }
 
-    const slotsToRepeat: Array<{ dayOfWeek: number; hour: number }> = [];
+    const tutor = tutors.find(t => t._id === selectedTutor);
+    const tutorTimezone = tutor?.timezone || userTimezone;
+
+    // Build map: "dayOfWeek-hour" → societyIds from the original slot
+    const templateSocieties = new Map<string, string[]>();
     selectedSlots.forEach(key => {
+      const slotDbId = slotKeyToIdMap.get(key);
       const parts = key.split("-");
-      const date = parts.slice(0, 3).join("-");
       const hour = parseInt(parts[parts.length - 1]);
-      const dayOfWeek = parseISO(date).getDay();
-      slotsToRepeat.push({ dayOfWeek, hour });
+      const date = parts.slice(0, 3).join("-");
+      const dow = parseISO(date).getDay();
+
+      if (slotDbId && tutor) {
+        const slot = tutor.slotsAvailable.find((s: any) => s._id === slotDbId);
+        if (slot?.societyIds) {
+          templateSocieties.set(`${dow}-${hour}`, slot.societyIds);
+        }
+      }
     });
 
-    const generatedSlotKeys = new Set<string>();
-    let currentDate = new Date(startDate);
+    // Generate new slots grouped by their societyIds
+    // key = JSON.stringify(societyIds), value = [{startTime, endTime}]
+    const slotsGroupedBySociety = new Map<string, { startTime: string; endTime: string }[]>();
+    let totalCount = 0;
 
-    while (currentDate <= endDate) {
-      const currentDayOfWeek = currentDate.getDay();
-      const shouldInclude = repeatType === "daily" || selectedDays.includes(currentDayOfWeek);
+
+    let cur = new Date(startDate);
+    while (cur <= endDate) {
+      const curDow = cur.getDay();
+      const shouldInclude = repeatType === "daily" || selectedDays.includes(curDow);
 
       if (shouldInclude) {
-        slotsToRepeat.forEach(({ dayOfWeek, hour }) => {
-          if (repeatType === "daily" || dayOfWeek === currentDayOfWeek) {
-            const dateStr = format(currentDate, 'yyyy-MM-dd');
-            const key = `${dateStr}-${hour}`;
-            generatedSlotKeys.add(key);
+        selectedSlots.forEach(key => {
+          const parts = key.split("-");
+          const origDate = parts.slice(0, 3).join("-");
+          const hour = parseInt(parts[parts.length - 1]);
+          const origDow = parseISO(origDate).getDay();
+
+          if (repeatType === "daily" || origDow === curDow) {
+            const dateStr = format(cur, 'yyyy-MM-dd');
+            const newKey = `${dateStr}-${hour}`;
+
+            // Skip if slot already exists in DB
+            if (slotKeyToIdMap.has(newKey)) return;
+
+            // Get society IDs from the original slot
+            const societyIds = templateSocieties.get(`${origDow}-${hour}`) || [];
+            const societyKey = JSON.stringify([...societyIds].sort());
+
+            // Convert to UTC
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const startLocal = new Date(year, month - 1, day, hour, 0, 0);
+            const endLocal = new Date(year, month - 1, day, hour + 1, 0, 0);
+            const startUTC = dateFnsTz.fromZonedTime(startLocal, tutorTimezone);
+            const endUTC = dateFnsTz.fromZonedTime(endLocal, tutorTimezone);
+
+            const existing = slotsGroupedBySociety.get(societyKey) || [];
+            existing.push({ startTime: startUTC.toISOString(), endTime: endUTC.toISOString() });
+            slotsGroupedBySociety.set(societyKey, existing);
+            totalCount++;
           }
         });
       }
-
-      currentDate = addDays(currentDate, 1);
+      cur = addDays(cur, 1);
     }
 
-    // Store the repeated slot keys — mark them as selected, don't open popup yet
-    const newSlots = new Map(slots);
-    const newSelected = new Set(selectedSlots);
-    generatedSlotKeys.forEach((key) => {
-      newSlots.set(key, "available");
-      newSelected.add(key);
-    });
-    setSlots(newSlots);
-    setSelectedSlots(newSelected);
+    if (totalCount === 0) {
+      toast.error("No new slots to create (all already exist)");
+      return;
+    }
+
+    // ✅ Check if any slots have no society assignment (NA slots selected by mistake)
+    const hasEmptySocieties = Array.from(slotsGroupedBySociety.keys()).some(
+      k => JSON.parse(k).length === 0
+    );
+    if (hasEmptySocieties) {
+      toast.error("Some selected slots have no societies assigned. Please use 'Select More' on Open slots only.");
+      setSaving(false);
+      return;
+    }
+
+    setSaving(true);
     setShowRepeatModal(false);
-    alert(`${generatedSlotKeys.size} slots added. Click "Save Slots" to assign societies.`);
+
+    try {
+      // One API call per unique society combination
+      for (const [societyKey, slotsArr] of slotsGroupedBySociety) {
+        const societyIds = JSON.parse(societyKey);
+        const res = await fetch("/Api/salesHead/demoSlots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tutorId: selectedTutor, slots: slotsArr, societyIds }),
+        });
+        const result = await res.json();
+        if (!result.success) throw new Error(result.message);
+      }
+
+      await fetchSelectedTutorData(selectedTutor);
+      setSelectedSlots(new Set());
+      toast.success(`${totalCount} slots repeated successfully!`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to repeat slots");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Convert slot keys to API-ready slot objects
@@ -897,7 +963,7 @@ const TutorAvailabilitySlots = () => {
   };
   // Compute week label
   const getWeekLabel = () => {
-    const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const MO = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const ref = new Date(currentDate.getTime());
     const day = ref.getDay();
     const diff = ref.getDate() - day + (day === 0 ? -6 : 1);
@@ -934,7 +1000,14 @@ const TutorAvailabilitySlots = () => {
 
   return (
     <div className="slot-page">
-      <Navbar weekLabel={getWeekLabel()} onPrevWeek={() => changeWeek(-1)} onNextWeek={() => changeWeek(1)} onManageSocieties={handleOpenManageSocieties} />
+      <Navbar
+        weekLabel={getWeekLabel()}
+        onPrevWeek={() => changeWeek(-1)}
+        onNextWeek={() => changeWeek(1)}
+        onManageSocieties={handleOpenManageSocieties}
+        onRepeat={handleOpenRepeatModal}
+        selectedSlotCount={selectedSlots.size}
+      />
 
       <FilterBar
         tutorList={tutorList}
@@ -1172,20 +1245,30 @@ const TutorAvailabilitySlots = () => {
             pendingCount={pendingOpenSlots.size}
             onClose={() => setEditSlotInfo(null)}
             onSelectMore={(st, et) => {
-              // Add this slot to pending batch and close modal
-              setPendingOpenSlots(prev => {
-                const next = new Map(prev);
-                next.set(key, { date, hour, startTime: st, endTime: et });
-                return next;
-              });
-              // Mark visually as selected
+              const isExistingSlot = slotKeyToIdMap.has(key); // ✅ check if already in DB
+
+              if (!isExistingSlot) {
+                // New slot — add to pending open batch (needs society selection)
+                setPendingOpenSlots(prev => {
+                  const next = new Map(prev);
+                  next.set(key, { date, hour, startTime: st, endTime: et });
+                  return next;
+                });
+              }
+
+              // Always add to selectedSlots (for repeat)
               setSelectedSlots(prev => {
                 const next = new Set(prev);
                 next.add(key);
                 return next;
               });
+
               setEditSlotInfo(null);
-              toast.success(`Slot added to batch (${pendingOpenSlots.size + 1} total)`);
+              toast.success(
+                isExistingSlot
+                  ? `Slot queued for repeat (${selectedSlots.size + 1} total) — click 🔁 Repeat`
+                  : `Slot added to batch (${pendingOpenSlots.size + 1} total)`
+              );
             }}
             onDelete={async (registrationId: string) => {
               setSaving(true);
