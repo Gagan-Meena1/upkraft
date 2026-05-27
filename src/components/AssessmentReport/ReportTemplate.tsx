@@ -184,16 +184,19 @@ export const ReportTemplate: React.FC<ReportTemplateProps> = ({ data }) => {
         {/* Right Column (Feedback & Why UpKraft) */}
         <div className="w-5/12 flex flex-col gap-4">
           
-          <div className="bg-indigo-50 rounded-xl p-5 border border-indigo-100 flex-grow relative">
-            <div className="text-6xl text-indigo-200 absolute top-2 left-4 font-serif">"</div>
-            <div className="relative z-10 pt-2">
-              <h3 className="font-bold text-indigo-900 uppercase tracking-widest text-sm mb-3 flex items-center">
-                Tutor Feedback
-              </h3>
-              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-                {data.feedback || "No feedback provided by the tutor for this session."}
-              </p>
+          <div className="bg-indigo-50 rounded-xl p-6 border border-indigo-100 flex-grow">
+            <div className="flex items-start mb-4">
+              <span className="text-7xl text-indigo-900 font-serif leading-[0.6] mr-3 pt-2">“</span>
+              <div>
+                <h3 className="font-bold text-indigo-900 uppercase tracking-widest text-sm">
+                  Tutor Feedback
+                </h3>
+                <div className="h-[2px] w-8 bg-indigo-900 mt-1"></div>
+              </div>
             </div>
+            <p className="text-gray-800 text-[15px] leading-relaxed whitespace-pre-wrap font-medium">
+              {data.feedback || "No feedback provided by the tutor for this session."}
+            </p>
           </div>
 
           {/* Why Choose UpKraft */}
