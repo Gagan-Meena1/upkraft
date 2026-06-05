@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     const startDateTime = convertToUTC(date, startTime, timezone || "UTC");
     const endDateTime = convertToUTC(date, endTime, timezone || "UTC");
 
-    
+
     console.log("Timezone conversion:", {
       input: `${date} ${startTime}-${endTime} in ${timezone}`,
       storedUTC_Start: startDateTime.toISOString(),
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     const token = (() => {
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
       return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
     })();
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
 
     // Update users enrolled in this course
     await User.updateMany(
-      { courses: courseId , category:"Tutor"},
+      { courses: courseId, category: "Tutor" },
       { $addToSet: { classes: savednewClass._id } }
     );
 
@@ -299,7 +299,7 @@ export async function GET(request: NextRequest) {
     // Priority 3: Bearer token in Authorization header (React Native mobile app)
     const referer = request.headers.get("referer") || "";
     let refererPath = "";
-    try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+    try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
     const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
     const impersonateToken = request.cookies.get("impersonate_token")?.value;
     const authHeader = request.headers.get("Authorization") || "";
@@ -454,7 +454,7 @@ export async function PUT(request: NextRequest) {
     const token = (() => {
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
       return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
     })();
@@ -512,7 +512,10 @@ export async function PUT(request: NextRequest) {
     if (editType === 'all' && existingClass.recurrenceId) {
       const recurrenceId = existingClass.recurrenceId;
 
-      const docs = await Class.find({ recurrenceId });
+      const docs = await Class.find({
+        recurrenceId,
+        startTime: { $gte: existingClass.startTime }
+      });
       if (!docs.length) {
         return NextResponse.json(
           { error: 'No classes found for this series' },
@@ -527,18 +530,18 @@ export async function PUT(request: NextRequest) {
       const isExplicitReschedule =
         normalizedIntent === 'reschedule' || normalizedStatus === 'rescheduled';
 
-// Calculate delta from the selected class (existingClass) to the new requested time
-const dateTimeStr = `${date}T${startTime}:00`;
-const endDateTimeStr = `${date}T${endTime}:00`;
-const requestedStart = dateFnsTz.fromZonedTime(dateTimeStr, userTz);
-const requestedEnd = dateFnsTz.fromZonedTime(endDateTimeStr, userTz);
+      // Calculate delta from the selected class (existingClass) to the new requested time
+      const dateTimeStr = `${date}T${startTime}:00`;
+      const endDateTimeStr = `${date}T${endTime}:00`;
+      const requestedStart = dateFnsTz.fromZonedTime(dateTimeStr, userTz);
+      const requestedEnd = dateFnsTz.fromZonedTime(endDateTimeStr, userTz);
 
-const startDeltaMs = requestedStart.getTime() - existingClass.startTime.getTime();
-const endDeltaMs = requestedEnd.getTime() - existingClass.endTime.getTime();
+      const startDeltaMs = requestedStart.getTime() - existingClass.startTime.getTime();
+      const endDeltaMs = requestedEnd.getTime() - existingClass.endTime.getTime();
 
-const ops = docs.map((doc) => {
-  const newStart = new Date(doc.startTime.getTime() + startDeltaMs);
-  const newEnd = new Date(doc.endTime.getTime() + endDeltaMs);
+      const ops = docs.map((doc) => {
+        const newStart = new Date(doc.startTime.getTime() + startDeltaMs);
+        const newEnd = new Date(doc.endTime.getTime() + endDeltaMs);
 
         const scheduleChangedForDoc =
           doc.startTime.getTime() !== newStart.getTime() ||
@@ -793,7 +796,7 @@ export async function DELETE(request: NextRequest) {
     const token = (() => {
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
       return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
     })();
