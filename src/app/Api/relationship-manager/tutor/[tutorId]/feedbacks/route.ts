@@ -94,11 +94,17 @@ export async function GET(
             typeof id === "object" ? id._id : id
         );
 
-        const studentIds = (tutor.students || []).map((id: any) =>
-            typeof id === "object" ? id._id : id
-        );
+        const students = await (User as any).find({
+            category: "Student",
+            instructorId: tutorId
+        }).select("_id username email").lean();
 
-        if (classIds.length === 0 && studentIds.length === 0) {
+        console.log("students", JSON.stringify(students));
+
+        const studentIds = students.map((s: any) => s._id);
+
+
+        if (classIds.length === 0 && students.length === 0) {
             return NextResponse.json({
                 success: true,
                 tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
@@ -171,6 +177,7 @@ export async function GET(
         return NextResponse.json({
             success: true,
             tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
+            students: students,
             feedbacks: formattedFeedbacks,
         });
     } catch (error: any) {

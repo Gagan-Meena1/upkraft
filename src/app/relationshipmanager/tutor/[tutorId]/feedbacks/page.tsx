@@ -71,6 +71,8 @@ export default function RMStudentFeedbacksPage() {
     const [isSubmittingReassign, setIsSubmittingReassign] = useState(false);
     const [isLoadingTutors, setIsLoadingTutors] = useState(false);
     const [reassignType, setReassignType] = useState<"permanent" | "temporary">("permanent");
+    const [students, setStudents] = useState<UserInfo[]>([]);
+
 
     useEffect(() => {
         if (!tutorId) {
@@ -95,6 +97,8 @@ export default function RMStudentFeedbacksPage() {
 
                 setTutor(data.tutor || null);
                 setFeedbacks(data.feedbacks || []);
+                setStudents(data.students || []);
+
             } catch (err: any) {
                 setError(err.message || "Failed to load student feedbacks");
             } finally {
@@ -107,29 +111,20 @@ export default function RMStudentFeedbacksPage() {
 
     // Derived state: unique students list
     const studentSummaries = useMemo(() => {
-        const map = new Map<string, StudentSummary>();
-
-        feedbacks.forEach(fb => {
-            const sId = fb.student._id;
-            if (!map.has(sId)) {
-                map.set(sId, {
-                    student: fb.student,
-                    feedbacksCount: 1,
-                    lastFeedbackDate: fb.createdAt
-                });
-            } else {
-                const existing = map.get(sId)!;
-                existing.feedbacksCount += 1;
-                if (new Date(fb.createdAt) > new Date(existing.lastFeedbackDate)) {
-                    existing.lastFeedbackDate = fb.createdAt;
-                }
-            }
-        });
-
-        return Array.from(map.values()).sort((a, b) =>
+        return students.map(student => {
+            const studentFeedbacks = feedbacks.filter(fb => fb.student._id === student._id);
+            const sorted = [...studentFeedbacks].sort(
+                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            return {
+                student,
+                feedbacksCount: studentFeedbacks.length,
+                lastFeedbackDate: sorted[0]?.createdAt || ""
+            };
+        }).sort((a, b) =>
             new Date(b.lastFeedbackDate).getTime() - new Date(a.lastFeedbackDate).getTime()
         );
-    }, [feedbacks]);
+    }, [students, feedbacks]);
 
     // Filtered views based on search term
     const filteredStudents = useMemo(() => {
@@ -160,7 +155,7 @@ export default function RMStudentFeedbacksPage() {
         setIsReassignModalOpen(true);
         setNewTutorId("");
         setReassignType("permanent");
-        
+
         if (availableTutors.length === 0) {
             setIsLoadingTutors(true);
             try {
@@ -183,7 +178,7 @@ export default function RMStudentFeedbacksPage() {
 
     const handleReassignSubmit = async () => {
         if (!newTutorId || !studentToReassign || !tutorId) return;
-        
+
         setIsSubmittingReassign(true);
         try {
             const res = await fetch('/Api/relationship-manager/student/reassign', {
@@ -198,7 +193,7 @@ export default function RMStudentFeedbacksPage() {
                 })
             });
             const data = await res.json();
-            
+
             if (res.ok && data.success) {
                 alert(data.message || "Reassignment request has been sent to team lead for approval.");
                 setIsReassignModalOpen(false);
@@ -508,19 +503,19 @@ export default function RMStudentFeedbacksPage() {
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
                         <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
                             <h2 className="text-lg font-semibold text-gray-900">Request Student Reassignment</h2>
-                            <button 
+                            <button
                                 onClick={() => setIsReassignModalOpen(false)}
                                 className="text-gray-400 hover:text-gray-600 transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-                        
+
                         <div className="p-6">
                             <p className="text-sm text-gray-600 mb-4">
                                 Select a new tutor to assign <span className="font-semibold text-gray-900">{studentToReassign.username}</span> to. This will be sent as a request to the Team Lead for approval.
                             </p>
-                            
+
                             {isLoadingTutors ? (
                                 <div className="flex items-center justify-center py-8">
                                     <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
@@ -556,8 +551,8 @@ export default function RMStudentFeedbacksPage() {
                                             </label>
                                         </div>
                                         <p className="text-[10px] text-gray-500 mt-1">
-                                            {reassignType === "permanent" 
-                                                ? "Completely transfers student to new tutor." 
+                                            {reassignType === "permanent"
+                                                ? "Completely transfers student to new tutor."
                                                 : "Student remains visible to current tutor."}
                                         </p>
                                     </div>
@@ -575,13 +570,13 @@ export default function RMStudentFeedbacksPage() {
                                             {availableTutors
                                                 .filter(t => t._id !== tutorId)
                                                 .map(t => (
-                                                <option key={t._id} value={t._id}>
-                                                    {t.username} ({t.email})
-                                                </option>
-                                            ))}
+                                                    <option key={t._id} value={t._id}>
+                                                        {t.username} ({t.email})
+                                                    </option>
+                                                ))}
                                         </select>
                                     </div>
-                                    
+
                                     <div className="pt-2 flex justify-end gap-3">
                                         <button
                                             onClick={() => setIsReassignModalOpen(false)}
@@ -593,11 +588,10 @@ export default function RMStudentFeedbacksPage() {
                                         <button
                                             onClick={handleReassignSubmit}
                                             disabled={!newTutorId || isSubmittingReassign}
-                                            className={`px-4 py-2 text-sm font-medium text-white shadow-sm rounded-lg transition-colors flex items-center gap-2 ${
-                                                !newTutorId || isSubmittingReassign 
-                                                ? 'bg-purple-400 cursor-not-allowed' 
+                                            className={`px-4 py-2 text-sm font-medium text-white shadow-sm rounded-lg transition-colors flex items-center gap-2 ${!newTutorId || isSubmittingReassign
+                                                ? 'bg-purple-400 cursor-not-allowed'
                                                 : 'bg-purple-600 hover:bg-purple-700'
-                                            }`}
+                                                }`}
                                         >
                                             {isSubmittingReassign ? (
                                                 <>
