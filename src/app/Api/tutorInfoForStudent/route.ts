@@ -97,9 +97,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Sessions sent successfully',
+      tutor: tutors.length === 1 ? tutors[0] : tutors[0], // single tutor for tutorProfile page
       tutors, // All tutor details
       courses, // All courses (flat array)
-      tutorCoursesMap, // ✅ Grouped by tutor (easier to use)
+      tutorCoursesMap, // Grouped by tutor (easier to use)
       summary: {
         totalTutors: tutors.length,
         totalCourses: courses.length,

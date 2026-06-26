@@ -28,7 +28,7 @@ export async function GET(request) {
 
     const [user, studentCount] = await Promise.all([
       User.findById(userId)
-        .select("_id username email category profileImage courses timezone academyId")
+        .select("_id username email category profileImage courses timezone academyId city attendance instruments")
         .lean(),
 
       User.countDocuments({
@@ -57,12 +57,12 @@ export async function GET(request) {
       .select("_id category class title instructorId academyInstructorId")
       .lean();
 
-const allClassIds = courseDetails.flatMap(course => course.class ?? []);
-const uniqueClassIds = [...new Set(
-  allClassIds
-    .filter(id => id != null)
-    .map(id => id.toString())
-)];
+    const allClassIds = courseDetails.flatMap(course => course.class ?? []);
+    const uniqueClassIds = [...new Set(
+      allClassIds
+        .filter(id => id != null)
+        .map(id => id.toString())
+    )];
     const classDetails = uniqueClassIds.length
       ? await Class.find({ _id: { $in: uniqueClassIds } }).lean()
       : [];
