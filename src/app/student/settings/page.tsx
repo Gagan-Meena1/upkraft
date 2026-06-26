@@ -29,7 +29,8 @@ export default function StudentSettingsPage() {
     address: '',
     age: '',
     city: '',
-    timezone: ''
+    timezone: '',
+    instruments: ''
   });
   const [isSavingStudentInfo, setIsSavingStudentInfo] = useState(false);
   const [isLoadingStudentInfo, setIsLoadingStudentInfo] = useState(true);
@@ -181,7 +182,8 @@ export default function StudentSettingsPage() {
           address: userData.user?.address || '',
           age: userData.user?.age?.toString() || '',
           city: userData.user?.city || '',
-          timezone: userData.user?.timezone || deviceTimeZone
+          timezone: userData.user?.timezone || deviceTimeZone,
+          instruments: userData.user?.instruments || ''
         });
 
         // Set courses from user data
@@ -258,7 +260,8 @@ export default function StudentSettingsPage() {
           address: studentInfo.address,
           age: studentInfo.age ? parseInt(studentInfo.age) : undefined,
           city: studentInfo.city,
-          timezone: studentInfo.timezone
+          timezone: studentInfo.timezone,
+          instruments: studentInfo.instruments
         }),
         credentials: 'include'
       });
@@ -583,33 +586,81 @@ export default function StudentSettingsPage() {
                       </div>
                     </div>
 
-                    <div style={{ marginBottom: '20px' }}>
-                      <label style={{
-                        display: 'block',
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: '#1a1a1a',
-                        marginBottom: '8px'
-                      }}>
-                        City
-                      </label>
-                      <input
-                        type="text"
-                        value={studentInfo.city}
-                        onChange={(e) => setStudentInfo({ ...studentInfo, city: e.target.value })}
-                        style={{
-                          width: '100%',
-                          padding: '12px 16px',
-                          border: '2px solid #e0e0e0',
-                          borderRadius: '8px',
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '20px',
+                      marginBottom: '20px'
+                    }}>
+                      {/* City */}
+                      <div>
+                        <label style={{
+                          display: 'block',
                           fontSize: '14px',
-                          transition: 'border-color 0.3s',
-                          fontFamily: 'inherit'
-                        }}
-                        onFocus={(e) => e.target.style.borderColor = '#6200EA'}
-                        onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-                        placeholder="Enter city"
-                      />
+                          fontWeight: 600,
+                          color: '#1a1a1a',
+                          marginBottom: '8px'
+                        }}>
+                          City
+                        </label>
+                        <input
+                          type="text"
+                          value={studentInfo.city}
+                          onChange={(e) => setStudentInfo({ ...studentInfo, city: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: '2px solid #e0e0e0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            transition: 'border-color 0.3s',
+                            fontFamily: 'inherit'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                          onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                          placeholder="Enter city"
+                        />
+                      </div>
+
+                      {/* Instrument */}
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          color: '#1a1a1a',
+                          marginBottom: '8px'
+                        }}>
+                          Instrument
+                        </label>
+                        <select
+                          value={studentInfo.instruments}
+                          onChange={(e) => setStudentInfo({ ...studentInfo, instruments: e.target.value })}
+                          style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            border: '2px solid #e0e0e0',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            transition: 'border-color 0.3s',
+                            fontFamily: 'inherit',
+                            background: 'white',
+                            cursor: 'pointer',
+                            appearance: 'auto'
+                          }}
+                          onFocus={(e) => e.target.style.borderColor = '#6200EA'}
+                          onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                        >
+                          <option value="">Select instrument...</option>
+                          <option value="Guitar">Guitar</option>
+                          <option value="Piano">Piano</option>
+                          <option value="Violin">Violin</option>
+                          <option value="Drums">Drums</option>
+                          <option value="Vocals">Vocals</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
                     </div>
 
                     <div style={{ marginBottom: '20px' }}>

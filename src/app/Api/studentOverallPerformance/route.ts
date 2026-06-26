@@ -1,10 +1,39 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
 import feedback from '@/models/feedback';
+import FeedbackDance from '@/models/feedbackDance';
+import FeedbackDrawing from '@/models/feedbackDrawing';
+import FeedbackDrums from '@/models/feedbackDrums';
+import FeedbackViolin from '@/models/feedbackViolin';
+import FeedbackVocal from '@/models/feedbackVocal';
 import User from '@/models/userModel';
 import jwt from 'jsonwebtoken';
 
 await connect();
+
+// Define which fields are numeric scores for each feedback model
+const SCORE_FIELDS: Record<string, string[]> = {
+    music: ['rhythm', 'theoreticalUnderstanding', 'performance', 'earTraining', 'assignment', 'technique'],
+    dance: ['technique', 'musicality', 'retention', 'performance', 'effort'],
+    drawing: ['observationalSkills', 'lineQuality', 'proportionPerspective', 'valueShading', 'compositionCreativity'],
+    drums: ['techniqueAndFundamentals', 'timingAndTempo', 'coordinationAndIndependence', 'dynamicsAndMusicality', 'patternKnowledgeAndReading', 'progressAndPracticeHabits'],
+    violin: ['postureAndInstrumentHold', 'bowingTechnique', 'intonationAndPitchAccuracy', 'toneQualityAndSoundProduction', 'rhythmMusicalityAndExpression', 'progressAndPracticeHabits'],
+    vocal: ['vocalTechniqueAndControl', 'toneQualityAndRange', 'rhythmTimingAndMusicality', 'dictionAndArticulation', 'expressionAndPerformance', 'progressAndPracticeHabits'],
+};
+
+// Calculate average score for a single feedback entry given its score fields
+function getEntryAverage(entry: any, fields: string[]): number | null {
+    let total = 0;
+    let count = 0;
+    for (const field of fields) {
+        const val = Number(entry[field]);
+        if (!isNaN(val) && val > 0) {
+            total += val;
+            count++;
+        }
+    }
+    return count > 0 ? total / count : null;
+}
 
 export async function GET(request: NextRequest) {
     try {
@@ -61,7 +90,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({
                 success: true,
                 message: 'User has no classes enrolled',
-                data: { averageScore: null }
+                averageScore: null
             }, { status: 200 });
         }
         
@@ -71,56 +100,47 @@ export async function GET(request: NextRequest) {
             classId: { $in: user.classes }
         };
         
-        // Fetch all feedback matching the query
-        const feedbackData = await feedback.find(query)
-            .populate('userId', 'username email')
-            .populate('classId', 'title startTime')
-            .sort({ createdAt: -1 })
-            .lean();
+        // Fetch feedback from ALL models in parallel
+        const [musicFeedback, danceFeedback, drawingFeedback, drumsFeedback, violinFeedback, vocalFeedback] = await Promise.all([
+            feedback.find(query).lean(),
+            (FeedbackDance as any).find(query).lean(),
+            (FeedbackDrawing as any).find(query).lean(),
+            (FeedbackDrums as any).find(query).lean(),
+            (FeedbackViolin as any).find(query).lean(),
+            (FeedbackVocal as any).find(query).lean(),
+        ]);
         
-        if (!feedbackData || feedbackData.length === 0) {
+        // Collect all per-entry averages
+        const allAverages: number[] = [];
+        
+        const addAverages = (entries: any[], fields: string[]) => {
+            for (const entry of entries) {
+                const avg = getEntryAverage(entry, fields);
+                if (avg !== null) allAverages.push(avg);
+            }
+        };
+        
+        addAverages(musicFeedback, SCORE_FIELDS.music);
+        addAverages(danceFeedback, SCORE_FIELDS.dance);
+        addAverages(drawingFeedback, SCORE_FIELDS.drawing);
+        addAverages(drumsFeedback, SCORE_FIELDS.drums);
+        addAverages(violinFeedback, SCORE_FIELDS.violin);
+        addAverages(vocalFeedback, SCORE_FIELDS.vocal);
+        
+        if (allAverages.length === 0) {
             return NextResponse.json({
                 success: true,
                 message: 'No feedback found',
-                data: { averageScore: null }
+                averageScore: null
             }, { status: 200 });
         }
         
-        // Calculate average score across all feedback entries
-        const totalScores = feedbackData.reduce((acc, fb) => {
-            const rhythmScore = Number(fb.rhythm) || 0;
-            const theoreticalScore = Number(fb.theoreticalUnderstanding) || 0;
-            const performanceScore = Number(fb.performance) || 0;
-            const earTrainingScore = Number(fb.earTraining) || 0;
-            const assignmentScore = Number(fb.assignment) || 0;
-            const techniqueScore = Number(fb.technique) || 0;
-            
-            return acc + 
-                rhythmScore + 
-                theoreticalScore + 
-                performanceScore + 
-                earTrainingScore + 
-                assignmentScore + 
-                techniqueScore;
-        }, 0);
-        
-        // Calculate average across all metrics and all feedback entries
-        // Total metrics = 6 (rhythm, theoretical, performance, earTraining, assignment, technique)
-        const averageScore = totalScores / (feedbackData.length * 6);
-        
-        // Calculate individual metric averages (optional, but useful)
-        const metricAverages = {
-            rhythm: feedbackData.reduce((acc, fb) => acc + (Number(fb.rhythm) || 0), 0) / feedbackData.length,
-            theoreticalUnderstanding: feedbackData.reduce((acc, fb) => acc + (Number(fb.theoreticalUnderstanding) || 0), 0) / feedbackData.length,
-            performance: feedbackData.reduce((acc, fb) => acc + (Number(fb.performance) || 0), 0) / feedbackData.length,
-            earTraining: feedbackData.reduce((acc, fb) => acc + (Number(fb.earTraining) || 0), 0) / feedbackData.length,
-            assignment: feedbackData.reduce((acc, fb) => acc + (Number(fb.assignment) || 0), 0) / feedbackData.length,
-            technique: feedbackData.reduce((acc, fb) => acc + (Number(fb.technique) || 0), 0) / feedbackData.length
-        };
+        // Overall average: average of all individual feedback entry averages
+        const overallAverage = allAverages.reduce((sum, v) => sum + v, 0) / allAverages.length;
         
         return NextResponse.json({
             success: true,
-            data: { averageScore: parseFloat(averageScore.toFixed(1)) },
+            averageScore: parseFloat(overallAverage.toFixed(1)),
         }, { status: 200 });
         
     } catch (error: any) {

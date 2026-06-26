@@ -63,7 +63,7 @@ interface ClassData {
   title: string;
   description: string;
   course: string;
-  instructor: number;
+  ctor: number;
   startTime: string;
   endTime: string;
   recording?: string;
@@ -109,7 +109,7 @@ interface CourseData {
     topic: string;
     tangibleOutcome: string;
     _id: string;
-    
+
   }[];
   academyInstructorId: string[];
   instructorId: string;
@@ -277,7 +277,7 @@ const filterFutureClasses = (classes: ClassData[]) => {
 
 const ClassCard = ({
   classItem,
-onJoinMeeting
+  onJoinMeeting
 }: {
   classItem: ClassData;
   onJoinMeeting: (id: string) => void;
@@ -306,7 +306,7 @@ onJoinMeeting
               hour: "2-digit",
               minute: "2-digit",
             })}{" "}
-          
+
             {new Date(classItem.endTime).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
@@ -367,11 +367,10 @@ const AssignmentCard = ({ assignment }: { assignment: AssignmentData }) => {
             })}
           </p>
           <span
-            className={`inline-block mt-2 px-2 md:px-3 py-1 rounded-full text-xs font-medium ${
-              isOverdue
-                ? "bg-red-100 text-red-800"
-                : "bg-yellow-100 text-yellow-800"
-            }`}
+            className={`inline-block mt-2 px-2 md:px-3 py-1 rounded-full text-xs font-medium ${isOverdue
+              ? "bg-red-100 text-red-800"
+              : "bg-yellow-100 text-yellow-800"
+              }`}
           >
             {isOverdue ? "Overdue" : "Pending"}
           </span>
@@ -444,11 +443,10 @@ const SliderNavigation = ({
     <button
       onClick={onPrevSlide}
       disabled={currentSlide === 0}
-      className={`p-2 rounded-full transition-colors ${
-        currentSlide === 0
-          ? "text-gray-300 cursor-not-allowed"
-          : "text-orange-500 hover:bg-orange-50"
-      }`}
+      className={`p-2 rounded-full transition-colors ${currentSlide === 0
+        ? "text-gray-300 cursor-not-allowed"
+        : "text-orange-500 hover:bg-orange-50"
+        }`}
     >
       <ChevronLeft size={20} />
     </button>
@@ -458,11 +456,10 @@ const SliderNavigation = ({
     <button
       onClick={onNextSlide}
       disabled={currentSlide >= totalSlides - 1}
-      className={`p-2 rounded-full transition-colors ${
-        currentSlide >= totalSlides - 1
-          ? "text-gray-300 cursor-not-allowed"
-          : "text-orange-500 hover:bg-orange-50"
-      }`}
+      className={`p-2 rounded-full transition-colors ${currentSlide >= totalSlides - 1
+        ? "text-gray-300 cursor-not-allowed"
+        : "text-orange-500 hover:bg-orange-50"
+        }`}
     >
       <ChevronRight size={20} />
     </button>
@@ -502,27 +499,25 @@ const useResponsiveItemsPerPage = () => {
 // Main Component
 const StudentDashboard: React.FC = () => {
   const router = useRouter();
-  const pathname = usePathname();                             
-  const prevPathRef = useRef<string | null>(null);            
-  const pendingFetchRef = useRef<Promise<void> | null>(null); 
+  const pathname = usePathname();
+  const prevPathRef = useRef<string | null>(null);
+  const pendingFetchRef = useRef<Promise<void> | null>(null);
 
-  const { 
-    userData, 
-    classDetails: classData, 
+  const {
+    userData,
+    classDetails: classData,
     courseDetails,
-    loading, 
-    error 
+    loading,
+    error
   } = useUserData();
-  
 
-  const [assignmentData, setAssignmentData] = useState<AssignmentData[] | null>( null);
+
+  const [assignmentData, setAssignmentData] = useState<AssignmentData[] | null>(null);
   const [currentClassSlide, setCurrentClassSlide] = useState(0);
   const [currentAssignmentSlide, setCurrentAssignmentSlide] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [studentPerformance, setStudentPerformance] = useState<number>(0);
-  const [classQualityScore, setClassQualityScore] = useState<number | null>(
-    null
-  );
+
 
   const itemsPerPage = useResponsiveItemsPerPage();
 
@@ -545,8 +540,7 @@ const StudentDashboard: React.FC = () => {
       }
 
       router.push(
-        `/student/video-call?url=${encodeURIComponent(data.url)}&userRole=${
-          userData?.category || "Student"
+        `/student/video-call?url=${encodeURIComponent(data.url)}&userRole=${userData?.category || "Student"
         }&token=${encodeURIComponent(data.token)}`
       );
     } catch (error: any) {
@@ -597,29 +591,18 @@ const StudentDashboard: React.FC = () => {
       pathname === "/student" &&
       prevPathRef.current !== "/student"
     ) {
-      pendingFetchRef.current = null; 
+      pendingFetchRef.current = null;
     }
 
     prevPathRef.current = pathname;
   }, [pathname]);
-  
+
   useEffect(() => {
     setCurrentClassSlide(0);
     setCurrentAssignmentSlide(0);
   }, [itemsPerPage]);
 
-  useEffect(() => {
-    async function fetchClassQuality() {
-      if (!userData?.courses || userData.courses.length === 0) return;
-      const courseId = userData.courses[0];
-      const res = await fetch(`/Api/courseQuality?courseId=${courseId}`);
-      const json = await res.json();
-      if (json?.overall_quality_score !== undefined) {
-        setClassQualityScore(json.overall_quality_score);
-      }
-    }
-    fetchClassQuality();
-  }, [userData]);
+
 
 
   const upcomingClasses = useMemo(
@@ -638,8 +621,11 @@ const StudentDashboard: React.FC = () => {
   const totalClasses = classData?.length || 0;
 
   const completedClasses = useMemo(
-    () => classData?.filter((classItem) => classItem.recording).length || 0,
-    [classData]
+    () =>
+      (userData?.attendance || []).filter(
+        (a: any) => a.status === "present" || a.status === "absent"
+      ).length,
+    [userData?.attendance]
   );
 
   const totalAssignments = assignmentData?.length || 0;
@@ -674,10 +660,10 @@ const StudentDashboard: React.FC = () => {
   return (
     <div className="container">
       <div className="row">
-          <div className="col col-xxl-5 order-xxl-1 order-sm-1 col-md-6 order-md-1 mb-4">
+        <div className="col col-xxl-5 order-xxl-1 order-sm-1 col-md-6 order-md-1 mb-4">
           <div className="card-box profile-card">
             <h2 className="mb-4">Profile</h2>
-              <div className="com-profile d-flex align-items-center flex-md-nowrap flex-wrap justify-content-center gap-2">
+            <div className="com-profile d-flex align-items-center flex-md-nowrap flex-wrap justify-content-center gap-2">
               <div className="col-img-profile">
                 <ProfileProgress user={userData as UserData} />
               </div>
@@ -757,6 +743,7 @@ const StudentDashboard: React.FC = () => {
             <ProfileAttended
               classesAttended={completedClasses}
               lessonsCompleted={totalAssignments - incompleteAssignmentCount}
+              instrument={userData?.instruments || ""}
             />
           </div>
         </div>
@@ -816,37 +803,15 @@ const StudentDashboard: React.FC = () => {
         </div>
         <div className="col-xxl-3 col-md-6 mb-4">
           <div className="card-box">
-            <div className="top-progress mb-4">
-              <SemiCircleProgress
-                value={classQualityScore}
-                label="Class Quality Score"
-              />
-              <div className="text-center">
-                  <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={sessionSummaryUrl}>
-                    Session Summary
-                  </Link>
-              </div>
-              <div className="text-center ml-12">
-                <div className="student-profile-details-sec">
-                  {/* pass assignmentCount down */}
-                  {/* <StudentProfileDetails
-                    data={studentData}
-                    assignmentCount={assignmentCount}
-                  /> */}
-                </div>
-              </div>
-            </div>
             <div className="bottom-progress">
               <SemiCircleProgress
                 value={studentPerformance}
                 label="Overall Student Performance"
               />
-              <div className="text-center ml-8">
-{/* 
-                  <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={`/student/performance/viewPerformance?studentId=${data.studentId}&courseId=${course._id}`}>
-                    View Performance
-                  </Link> */}
-            
+              <div className="text-center mt-3">
+                <Link className="btn btn-primary d-flex align-items-center justify-content-center gap-2" href={sessionSummaryUrl}>
+                  Session Summary
+                </Link>
               </div>
             </div>
           </div>

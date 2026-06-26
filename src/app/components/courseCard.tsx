@@ -140,7 +140,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>(['UPI', 'Credit Card', 'Net Banking']);
   const [gstRate, setGstRate] = useState<string>('18%');
   const [pricingModel, setPricingModel] = useState<string>('Monthly Subscription');
-  const [monthlySubscriptionPricing, setMonthlySubscriptionPricing] = useState<Array<{months: number, discount: number}>>([
+  const [monthlySubscriptionPricing, setMonthlySubscriptionPricing] = useState<Array<{ months: number, discount: number }>>([
     { months: 1, discount: 0 },
     { months: 3, discount: 5 },
     { months: 6, discount: 10 },
@@ -154,7 +154,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   );
 
   const monthlyFee = typeof course.price === "number" ? course.price : 0;
-  
+
   // Calculate GST amount
   const parseGSTRate = (rate: string): number => {
     if (rate === 'No GST') return 0;
@@ -163,17 +163,17 @@ const CourseCard: React.FC<CourseCardProps> = ({
   };
 
   const gstPercentage = parseGSTRate(gstRate);
-  
+
   // Get discount for selected months
   const selectedPricing = monthlySubscriptionPricing.find(p => p.months === selectedMonths);
   const discountPercentage = selectedPricing?.discount || 0;
-  
+
   // Calculate base amount (monthly fee * months)
   const baseAmountBeforeDiscount = monthlyFee * selectedMonths;
   // Apply discount
   const discountAmount = (baseAmountBeforeDiscount * discountPercentage) / 100;
   const baseAmount = baseAmountBeforeDiscount - discountAmount;
-  
+
   // Calculate GST on discounted amount
   const gstAmount = (baseAmount * gstPercentage) / 100;
   const calculatedAmount = baseAmount + gstAmount;
@@ -286,7 +286,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
         setPaymentMethod("UPI");
       }
     }
-    
+
     setShowPaymentModal(true);
   };
 
@@ -322,51 +322,8 @@ const CourseCard: React.FC<CourseCardProps> = ({
   return (
     <div className="assignments-list-com">
       <div className="assignments-list-box !mb-3 !pb-3">
-        <div className="w-100">
-          <h3 className="!text-[18px] !mb-3">{course.title}</h3>
-        </div>
-        <div className="assignments-list d-flex align-items-center gap-2 flex-wrap w-100 justify-content-between">
-          <div className="left-assignment  d-flex align-items-center gap-xl-4 gap-2 flex-wrap">
-            <ul className="d-flex align-items-center gap-xl-4 gap-2 flex-wrap p-0 m-0 full-width-mobile">
-              {/* <li className="d-flex align-items-center gap-2">
-                <span className="student-text">Started From :</span>
-                <span className="student-txt">
-                  <strong>25 July</strong>
-                </span>
-              </li> */}
-              <li className="d-flex align-items-center gap-2">
-                <span className="student-text">Duration :</span>
-                <span className="student-txt">
-                  <strong>{course.duration}</strong>
-                </span>
-              </li>
-              {/* <li className="d-flex align-items-center gap-2"> */}
-                {/* <span className="student-text">Fees :</span> */}
-                {/* <span className="student-txt">
-                  <strong>Rs {course.price}</strong>
-                </span> */}
-              {/* </li> */}
-              <li className="d-flex align-items-center gap-2">
-                <span className="student-text">Sessions :</span>
-                <span className="student-txt ">
-                  <strong>{course.curriculum.length} Sessions</strong>
-                </span>
-              </li>
-            </ul>
-            <div className="student-img-name d-flex align-items-center justify-content-between full-width-mobile gap-2">
-              <p>Tutor : </p>
-              <div className="d-flex align-items-center  gap-1">
-                  <Image
-                  width={24}
-                  height={24}
-                  src={tutorData?.profileImage || Student01}
-                  alt=""
-                />
-                <span className="name">{tutorData?.username || "N/A"}</span>
-              </div>
-            </div>
-          </div>
-          <div className="right-assignment my-course-student-right mt-xxl-0 mt-3">
+        <div className="d-flex align-items-center gap-2 flex-wrap w-100 justify-content-between">
+          <h3 className="!text-[18px] !mb-0">{course.title}</h3>
             <div className="student-assignment my-course-student d-flex align-items-center flex-wrap gap-xl-4 gap-2">
               <ul className="d-flex !align-items-center w-full-width gap-2 list-unstyled flex-wrap m-0 p-0">
                 <li>
@@ -400,11 +357,10 @@ const CourseCard: React.FC<CourseCardProps> = ({
                 )} */}
                 <li>
                   <Link
-                    href={`${
-                      viewPerformanceRoutes[
-                        course.category as keyof typeof viewPerformanceRoutes
+                    href={`${viewPerformanceRoutes[
+                      course.category as keyof typeof viewPerformanceRoutes
                       ] || "/student/performance/viewPerformance"
-                    }?courseId=${course._id}&studentId=${userData._id}`}
+                      }?courseId=${course._id}&studentId=${userData._id}`}
                     className="group/btn"
                   >
                     <button className="w-full flex items-center justify-between !px-4 !py-3 !bg-purple-700 !hover:bg-purple-600 text-white !rounded-lg transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer">
@@ -415,7 +371,6 @@ const CourseCard: React.FC<CourseCardProps> = ({
                 </li>
               </ul>
             </div>
-          </div>
         </div>
       </div>
 
@@ -436,18 +391,18 @@ const CourseCard: React.FC<CourseCardProps> = ({
                 value={selectedMonths}
                 onChange={(e) => setSelectedMonths(parseInt(e.target.value, 10) || 1)}
               >
-                {pricingModel === 'Monthly Subscription' 
+                {pricingModel === 'Monthly Subscription'
                   ? monthlySubscriptionPricing.map((pricing) => (
-                      <option key={pricing.months} value={pricing.months}>
-                        {pricing.months} {pricing.months === 1 ? "Month" : "Months"}
-                        {pricing.discount > 0 && ` (${pricing.discount}% off)`}
-                      </option>
-                    ))
+                    <option key={pricing.months} value={pricing.months}>
+                      {pricing.months} {pricing.months === 1 ? "Month" : "Months"}
+                      {pricing.discount > 0 && ` (${pricing.discount}% off)`}
+                    </option>
+                  ))
                   : [1, 2, 3].map((month) => (
-                      <option key={month} value={month}>
-                        {month} {month === 1 ? "Month" : "Months"}
-                      </option>
-                    ))
+                    <option key={month} value={month}>
+                      {month} {month === 1 ? "Month" : "Months"}
+                    </option>
+                  ))
                 }
               </select>
             </div>

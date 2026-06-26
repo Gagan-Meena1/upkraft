@@ -582,14 +582,13 @@ const StudentCalendarView = () => {
 
                   <div className="grid grid-cols-7 gap-2">
                     {generateMonthDays(currentDate).map((d, idx) => {
-                      const classCount = d ? getMyClassesForDate(d).length : 0;
-                      const assignmentCount = d ? getMyAssignmentsForDate(d).length : 0;
-                      const hasItems = classCount + assignmentCount;
+                      const dayClasses = d ? getMyClassesForDate(d) : [];
+                      const dayAssignments = d ? getMyAssignmentsForDate(d) : [];
+                      const hasItems = dayClasses.length + dayAssignments.length;
 
                       return (
                         <div
                           key={idx}
-                          // clickable whole cell to open day
                           onClick={() => {
                             if (!d) return;
                             setCurrentDate(d);
@@ -601,18 +600,33 @@ const StudentCalendarView = () => {
                             <>
                               <div className="text-sm font-medium">{d.getDate()}</div>
 
-                              <div className="mt-2 text-xs text-gray-600">
-                                {hasItems > 0 ? (
-                                  <div className="flex flex-col gap-1">
-                                    <span className="inline-block px-2 py-1 bg-purple-50 text-purple-700 rounded text-xs">
-                                      {classCount} class{classCount !== 1 ? "es" : ""}
-                                    </span>
-                                    <span className="inline-block px-2 py-1 bg-yellow-50 text-yellow-700 rounded text-xs">
-                                      {assignmentCount} assignment{assignmentCount !== 1 ? "s" : ""}
-                                    </span>
+                              <div className="mt-1 flex flex-col gap-1 overflow-hidden">
+                                {dayClasses.map((classItem, cIdx) => {
+                                  const attendanceStatus = getClassAttendanceStatus(classItem);
+                                  const statusColor = getStatusColor(attendanceStatus);
+                                  return (
+                                    <div
+                                      key={classItem._id || `c-${cIdx}`}
+                                      className={`flex items-center gap-1 px-1.5 py-0.5 ${statusColor.bg} border-l-2 ${statusColor.border} rounded text-[10px] truncate`}
+                                      title={`${classItem.title || "Class"} - ${statusColor.label}`}
+                                    >
+                                      <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusColor.dot}`}></span>
+                                      <span className={`truncate ${statusColor.strikethrough || ''}`}>{classItem.title || "Class"}</span>
+                                    </div>
+                                  );
+                                })}
+                                {dayAssignments.map((a, aIdx) => (
+                                  <div
+                                    key={a._id || `a-${aIdx}`}
+                                    className="flex items-center gap-1 px-1.5 py-0.5 bg-yellow-50 border-l-2 border-yellow-400 rounded text-[10px] truncate"
+                                    title={a.title || "Assignment"}
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-yellow-500"></span>
+                                    <span className="truncate">{a.title || "Assignment"}</span>
                                   </div>
-                                ) : (
-                                  <span className="text-gray-300">—</span>
+                                ))}
+                                {hasItems === 0 && (
+                                  <span className="text-xs text-gray-300">—</span>
                                 )}
                               </div>
                             </>

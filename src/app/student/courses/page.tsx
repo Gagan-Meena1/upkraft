@@ -144,7 +144,7 @@ export default function TutorCoursesPage() {
     fetchCourses();
   }, [coursesFromStore, dispatch]);
 
-  if (isLoading) {
+  if (isLoading || !userData) {
     return (
       <div className="flex items-center justify-center h-screen bg-white">
         <div className="text-2xl font-light text-gray-800 animate-pulse">

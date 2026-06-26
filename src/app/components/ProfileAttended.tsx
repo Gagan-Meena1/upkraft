@@ -41,7 +41,7 @@ const ProfileAttended = ({classesAttended, lessonsCompleted, instrument}) => {
           <div className="d-flex align-items-center gap-3">
             <div style={{ width: 55, height: 55 }}>
               <CircularProgressbarWithChildren
-                value={40}
+                value={100}
                 styles={buildStyles({
                   pathColor: "#f9a826",
                   trailColor: "#eee",
