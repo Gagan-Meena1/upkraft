@@ -28,16 +28,20 @@ const userSchema = new mongoose.Schema({
                 enum: ["present", "absent", "canceled", "not_marked","marked"],
                 default: "not_marked"
 
-        },
-        videoUrl:{
-            type:String,
-            default:""
-        },
-        creditDeducted:{
-            type:Number,
-            default:0   
-        }
-    }]
+            },
+            reasonForCancellation: {
+                type: String,
+                default: ""
+            },
+            videoUrl: {
+                type: String,
+                default: ""
+            },
+            creditDeducted: {
+                type: Number,
+                default: 0
+            }
+        }]
     },
     contact: {
         type: String,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
-import courseName from "@/models/courseName";
+import CourseNameModel from "@/models/courseName";
 import Class from "@/models/Class";
 import AttendanceResetRequest from "@/models/AttendanceResetRequest";
 import jwt from "jsonwebtoken";
@@ -101,6 +101,8 @@ export async function GET(
         classes: [],
       });
     }
+    void CourseNameModel;
+
 
     const classes = await Class.find({ _id: { $in: classIds } })
       .populate("course", "courseName title name")

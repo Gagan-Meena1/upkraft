@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from 'react';
-import { CheckCircle, Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, ChevronLeft, ChevronRight, LogOut } from 'lucide-react';
+import { CheckCircle, Users, Home, User, BookOpen, Calendar, TrendingUp, MessageSquare, IndianRupee, Video, ChevronLeft, ChevronRight, LogOut, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { MdAssignment, MdAssignmentReturn } from 'react-icons/md';
 import { BiBulb } from 'react-icons/bi';
@@ -313,6 +313,14 @@ const Sidebar: React.FC<SidebarProps> = ({
             title="Requests"
             icon={<CheckCircle size={20} className="text-gray-700" />}
             route="/teamlead/requests"
+            collapsed={sidebarCollapsed}
+            onItemClick={onItemClick}
+            isMobile={isMobile}
+          />
+          <SidebarItem
+            title="Class Cancellation"
+            icon={<X size={20} className="text-gray-700" />}
+            route="/teamlead/classCancellation"
             collapsed={sidebarCollapsed}
             onItemClick={onItemClick}
             isMobile={isMobile}

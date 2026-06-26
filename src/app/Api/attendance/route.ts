@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId");
     const classId = searchParams.get("classId");
-    
+
     const body = await request.json();
     const { status, attendanceRecords } = body;
 
@@ -19,9 +19,9 @@ export async function POST(request: NextRequest) {
       // BULK ATTENDANCE MARKING
       if (!classId) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: "classId is required for bulk attendance" 
+          {
+            success: false,
+            error: "classId is required for bulk attendance"
           },
           { status: 400 }
         );
@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
       for (const record of attendanceRecords) {
         if (!record.studentId || !record.status) {
           return NextResponse.json(
-            { 
-              success: false, 
-              error: "Each record must have studentId and status" 
+            {
+              success: false,
+              error: "Each record must have studentId and status"
             },
             { status: 400 }
           );
@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
 
         if (!["present", "absent", "canceled", "not_marked"].includes(record.status)) {
           return NextResponse.json(
-            { 
-              success: false, 
-              error: `Invalid status for student ${record.studentId}` 
+            {
+              success: false,
+              error: `Invalid status for student ${record.studentId}`
             },
             { status: 400 }
           );
@@ -118,9 +118,9 @@ export async function POST(request: NextRequest) {
       // SINGLE ATTENDANCE MARKING (Original logic)
       if (!studentId || !classId) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: "studentId and classId are required" 
+          {
+            success: false,
+            error: "studentId and classId are required"
           },
           { status: 400 }
         );
@@ -128,9 +128,9 @@ export async function POST(request: NextRequest) {
 
       if (!status || !["present", "absent", "canceled", "not_marked"].includes(status)) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: "Valid status is required (present, absent, canceled, not_marked)" 
+          {
+            success: false,
+            error: "Valid status is required (present, absent, canceled, not_marked)"
           },
           { status: 400 }
         );
@@ -141,9 +141,9 @@ export async function POST(request: NextRequest) {
 
       if (!user) {
         return NextResponse.json(
-          { 
-            success: false, 
-            error: "Student not found" 
+          {
+            success: false,
+            error: "Student not found"
           },
           { status: 404 }
         );
@@ -191,5 +191,51 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    await connect();
+    const { searchParams } = new URL(request.url);
+    const studentId = searchParams.get("studentId");
+    const classId = searchParams.get("classId");
+    const body = await request.json();
+    const { status } = body;
+
+    if (!studentId || !classId) {
+      return NextResponse.json({ success: false, error: "studentId and classId are required" }, { status: 400 });
+    }
+
+    if (!status || !["present", "absent"].includes(status)) {
+      return NextResponse.json({ success: false, error: "Valid status is required (present, absent)" }, { status: 400 });
+    }
+
+    const user = await User.findById(studentId);
+    if (!user) {
+      return NextResponse.json({ success: false, error: "Student not found" }, { status: 404 });
+    }
+
+    const attendanceIndex = user.attendance.findIndex(
+      (att: any) => att.classId.toString() === classId
+    );
+
+    if (attendanceIndex !== -1) {
+      user.attendance[attendanceIndex].status = status;
+    } else {
+      user.attendance.push({ classId, status });
+    }
+
+    await user.save();
+
+    return NextResponse.json({
+      success: true,
+      message: `Attendance updated to ${status} successfully`,
+      data: { studentId, classId, status }
+    });
+
+  } catch (error: any) {
+    console.error("Error updating attendance:", error);
+    return NextResponse.json({ success: false, error: error.message || "Failed to update attendance" }, { status: 500 });
   }
 }

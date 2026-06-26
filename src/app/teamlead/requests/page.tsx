@@ -44,6 +44,10 @@ interface AttendanceResetRequest {
   relationshipManager: { _id: string; username: string; email: string };
   status: string;
   createdAt: string;
+  requestedChange: string;
+  creditDeduction: boolean | null;
+  singleStudent: boolean;
+  reasonForCancellation?: string;
 }
 
 export default function TeamLeadRequestsPage() {
@@ -80,7 +84,7 @@ export default function TeamLeadRequestsPage() {
   const handleAction = async (id: string, action: "approve" | "reject", type: "class" | "reassign" | "attendanceReset", isPartial?: boolean) => {
     let confirmMsg = "";
     if (type === "class") {
-      confirmMsg = action === "approve" 
+      confirmMsg = action === "approve"
         ? (isPartial ? "Are you sure you want to approve this partial deletion request? This will remove the selected students from the class." : "Are you sure you want to approve this request? This will completely cancel and delete the class.")
         : (isPartial ? "Are you sure you want to reject this partial deletion request? The students will remain in the class." : "Are you sure you want to reject this request? The class will remain scheduled.");
     } else if (type === "attendanceReset") {
@@ -97,11 +101,11 @@ export default function TeamLeadRequestsPage() {
 
     try {
       setActionLoading(id);
-      const endpoint = type === "class" 
+      const endpoint = type === "class"
         ? `/Api/teamlead/requests/${id}`
         : type === "attendanceReset"
-        ? `/Api/teamlead/attendance-reset-requests/${id}`
-        : `/Api/teamlead/reassign-requests/${id}`;
+          ? `/Api/teamlead/attendance-reset-requests/${id}`
+          : `/Api/teamlead/reassign-requests/${id}`;
 
       const res = await fetch(endpoint, {
         method: "PUT",
@@ -182,13 +186,13 @@ export default function TeamLeadRequestsPage() {
                               </span>
                             )}
                           </div>
-                          
+
                           <div className="space-y-1 text-xs text-gray-600">
                             <div><span className="font-semibold">Tutor:</span> {req.tutor?.username || "Unknown"}</div>
                             <div><span className="font-semibold">Course:</span> {courseName}</div>
                             <div>
                               <span className="font-semibold">Student(s):</span> {
-                                req.deleteRequestType === 'partial' 
+                                req.deleteRequestType === 'partial'
                                   ? (req.deleteRequestStudents?.map(s => s.username).join(", ") || "None")
                                   : (req.students?.map(s => s.username).join(", ") || "None")
                               }
@@ -238,16 +242,15 @@ export default function TeamLeadRequestsPage() {
                         <div className="flex items-center justify-between">
                           <h3 className="text-md font-bold text-gray-900 truncate">Reassign: {req.student?.username}</h3>
                           <div className="flex gap-1">
-                            <span className={`px-2 py-0.5 text-xs font-semibold rounded ${
-                              req.reassignType === 'temporary' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : 'bg-purple-100 text-purple-800'
-                            }`}>
+                            <span className={`px-2 py-0.5 text-xs font-semibold rounded ${req.reassignType === 'temporary'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-purple-100 text-purple-800'
+                              }`}>
                               {req.reassignType?.toUpperCase() || 'PERMANENT'}
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2 text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
                           <div className="flex justify-between items-center">
                             <span className="font-semibold">Old Tutor:</span>
@@ -310,16 +313,63 @@ export default function TeamLeadRequestsPage() {
                               ATTENDANCE
                             </span>
                           </div>
-                          
+
                           <div className="space-y-2 text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
                             <div className="flex justify-between items-center">
                               <span className="font-semibold">Class:</span>
                               <span className="text-gray-900">{classTitle}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="font-semibold text-gray-600">Tutor:</span>
+                              <span className="font-semibold">Tutor:</span>
                               <span className="text-gray-900">{req.classItem?.instructor?.username || "—"}</span>
                             </div>
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold">Change to:</span>
+                              <span className={`px-2 py-0.5 rounded-full font-semibold capitalize ${req.requestedChange === "present"
+                                ? "bg-green-100 text-green-800"
+                                : req.requestedChange === "absent"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-gray-100 text-gray-700"
+                                }`}>
+                                {req.requestedChange}
+                              </span>
+                            </div>
+
+                            {req.requestedChange === "cancelled" && req.reasonForCancellation && (
+                              <div className="flex justify-between items-start gap-2">
+                                <span className="font-semibold flex-shrink-0">Reason:</span>
+                                <span className="text-gray-900 text-right">{req.reasonForCancellation}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center">
+                              <span className="font-semibold">Date:</span>
+                              <span className="text-gray-900">
+                                {req.classItem?.startTime
+                                  ? new Date(req.classItem.startTime).toLocaleDateString("en-US", {
+                                    day: "numeric",
+                                    month: "short",
+                                    year: "numeric",
+                                  })
+                                  : "—"}
+                              </span>
+                            </div>
+                            {req.requestedChange === "cancelled" && (
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold">Credit deduction:</span>
+                                {req.singleStudent ? (
+                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[10px]">
+                                    Single student class
+                                  </span>
+                                ) : (
+                                  <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${req.creditDeduction
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-gray-100 text-gray-600"
+                                    }`}>
+                                    {req.creditDeduction ? "With deduction" : "Without deduction"}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                             <div className="pt-1 border-t border-gray-200 flex justify-between items-center text-[10px]">
                               <span className="italic">Requested by RM: {req.relationshipManager?.username}</span>
                               <span>{new Date(req.createdAt).toLocaleDateString()}</span>

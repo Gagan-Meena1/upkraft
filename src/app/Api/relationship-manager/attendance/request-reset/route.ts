@@ -25,10 +25,18 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Forbidden: Only Relationship Managers can request attendance reset." }, { status: 403 });
         }
         const body = await request.json();
-        const { studentId, classId } = body;
+        const { studentId, classId, newStatus, creditDeduction, singleStudent, reasonForCancellation } = body;
 
         if (!studentId || !classId) {
             return NextResponse.json({ success: false, error: "studentId and classId are required" }, { status: 400 });
+        }
+
+        if (!newStatus || !["present", "absent", "cancelled"].includes(newStatus)) {
+            return NextResponse.json({ success: false, error: "Valid requestedChange (present/absent/cancelled) is required" }, { status: 400 });
+        }
+
+        if (newStatus === "cancelled" && !singleStudent && creditDeduction === undefined) {
+            return NextResponse.json({ success: false, error: "creditDeduction is required for cancelled status on multi-student class" }, { status: 400 });
         }
 
         // Verify class and student exist
@@ -54,11 +62,15 @@ export async function POST(request: NextRequest) {
             student: studentId,
             classItem: classId,
             relationshipManager: rmId,
-            status: "pending"
+            status: "pending",
+            requestedChange: newStatus,
+            creditDeduction: newStatus === "cancelled" && !singleStudent ? creditDeduction : null,
+            singleStudent: singleStudent ?? false,
+            reasonForCancellation: newStatus === "cancelled" ? reasonForCancellation : ""
+
         });
 
         return NextResponse.json({ success: true, data: newRequest }, { status: 201 });
-
     } catch (error) {
         console.error("Attendance Reset Request Error:", error);
         return NextResponse.json({ success: false, error: "Failed to submit attendance reset request." }, { status: 500 });
