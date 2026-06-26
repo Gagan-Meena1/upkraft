@@ -20,6 +20,23 @@ const attendanceResetRequestSchema = new mongoose.Schema({
         type: String,
         enum: ["pending", "approved", "rejected"],
         default: "pending"
+    },
+    requestedChange: {
+        type: String,
+        enum: ["present", "absent", "cancelled"],
+        required: true
+    },
+    creditDeduction: {
+        type: Boolean,
+        default: null
+    },
+    singleStudent: {
+        type: Boolean,
+        default: false
+    },
+    reasonForCancellation: {
+        type: String,
+        default: ""
     }
 }, {
     timestamps: true

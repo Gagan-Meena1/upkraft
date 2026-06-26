@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { ChevronLeft, ChevronDown, Trash2, X } from "lucide-react";
 import { formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
 import { toast } from "react-hot-toast";
+import CancellationReasonPicker from "@/app/components/reasonForCancellation";
 
 interface Student {
   _id: string;
@@ -108,29 +109,61 @@ export default function RMTutorCalendarPage() {
   const [attendanceMap, setAttendanceMap] = useState<Record<string, any[]>>({});
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<ClassItem | null>(null);
-  const [resettingAttendanceFor, setResettingAttendanceFor] = useState<string | null>(null);
-  const [pendingResetRequests, setPendingResetRequests] = useState<any[]>([]);
 
-  const resetAttendance = async (studentId: string, classId: string) => {
+  const [pendingResetRequests, setPendingResetRequests] = useState<any[]>([]);
+  // Add this state at the top with your other states
+  const [resettingStudentId, setResettingStudentId] = useState<string | null>(null);
+  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
+  const [selectedNewStatus, setSelectedNewStatus] = useState<string>("");
+  const [creditDeduction, setCreditDeduction] = useState<"yes" | "no">("no");
+  const [cancellationReason, setCancellationReason] = useState<string>("");
+
+
+
+  const submitAttendanceReset = async (
+    studentId: string,
+    classId: string,
+    newStatus: string,
+    creditDeduction?: "yes" | "no",
+    singleStudent?: boolean,
+    reasonForCancellation?: string   // ← add
+
+  ) => {
     try {
-      setResettingAttendanceFor(studentId);
+      setResettingStudentId(studentId);
       const res = await fetch("/Api/relationship-manager/attendance/request-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ studentId, classId })
+        body: JSON.stringify({
+          studentId,
+          classId,
+          newStatus,
+          ...(newStatus === "cancelled" && {
+            creditDeduction: singleStudent ? undefined : creditDeduction === "yes",
+            singleStudent: singleStudent ?? false,
+            reasonForCancellation: reasonForCancellation || ""
+
+          }),
+        }),
       });
       const data = await res.json();
       if (res.ok && data.success) {
         setPendingResetRequests(prev => [...prev, data.data]);
-        toast?.success?.("Attendance reset requested sent to Team Lead.");
+        // Update local attendance map optimistically
+
+        setEditingStudentId(null);
+        setSelectedNewStatus("");
+        setCancellationReason("");
+
+        toast?.success?.("Attendance reset request sent.");
       } else {
-        alert(data.error || data.message || "Failed to request attendance reset");
+        alert(data.error || data.message || "Failed to request reset");
       }
     } catch (error) {
       console.error(error);
       alert("Failed to request attendance reset");
     } finally {
-      setResettingAttendanceFor(null);
+      setResettingStudentId(null);
     }
   };
 
@@ -240,14 +273,14 @@ export default function RMTutorCalendarPage() {
 
   const getStatusStyle = (cls: ClassItem) => {
     const rawStatus = (cls.status || "scheduled").toLowerCase();
-    
+
     if (rawStatus === "canceled" || rawStatus === "cancelled") {
       return STATUS_COLORS.cancelled;
     }
-    
+
     let isPresent = false;
     let isAbsent = false;
-    
+
     cls.students?.forEach(student => {
       const records = attendanceMap[student._id];
       if (records) {
@@ -266,9 +299,9 @@ export default function RMTutorCalendarPage() {
 
     if (isPresent) return STATUS_COLORS.present;
     if (isAbsent && !isPresent) return STATUS_COLORS.absent;
-    
+
     if (rawStatus === "completed") return STATUS_COLORS.present;
-    
+
     return STATUS_COLORS.pending;
   };
 
@@ -334,7 +367,7 @@ export default function RMTutorCalendarPage() {
 
   const handleDeleteRequest = async () => {
     if (!classToDelete) return;
-    
+
     if (classToDelete.students.length > 1 && selectedStudentsForDelete.length === 0) {
       toast.error("Please select at least one student or cancel.");
       return;
@@ -342,14 +375,14 @@ export default function RMTutorCalendarPage() {
 
     try {
       setIsDeleting(true);
-      const actionType = selectedStudentsForDelete.length > 0 && selectedStudentsForDelete.length < classToDelete.students.length 
-        ? "partial" 
+      const actionType = selectedStudentsForDelete.length > 0 && selectedStudentsForDelete.length < classToDelete.students.length
+        ? "partial"
         : "full";
 
       const res = await fetch(
         `/Api/relationship-manager/tutor/${tutorId}/classes/${classToDelete._id}/delete-request`,
-        { 
-          method: "POST", 
+        {
+          method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ actionType, studentIds: selectedStudentsForDelete })
@@ -375,6 +408,7 @@ export default function RMTutorCalendarPage() {
       setIsDeleting(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -685,7 +719,7 @@ export default function RMTutorCalendarPage() {
             </button>
             <h3 className="text-lg font-bold text-gray-900 mb-1">{selectedClassForAttendance.title || "Class"}</h3>
             <p className="text-xs text-gray-500 mb-4">{formatTime(selectedClassForAttendance.startTime, selectedClassForAttendance.endTime)}</p>
-            
+
             <div className="max-h-60 overflow-y-auto pr-2">
               <div className="space-y-2">
                 {selectedClassForAttendance.students.length > 0 ? (
@@ -693,38 +727,134 @@ export default function RMTutorCalendarPage() {
                     let studentStatus = "pending";
                     const records = attendanceMap[student._id];
                     if (records) {
-                      const record = records.find((r: any) => r.classId === selectedClassForAttendance._id || r.sessionId === selectedClassForAttendance._id);
-                      if (record && record.status) {
-                        studentStatus = record.status;
-                      }
+                      const record = records.find((r: any) =>
+                        r.classId === selectedClassForAttendance._id || r.sessionId === selectedClassForAttendance._id
+                      );
+                      if (record?.status) studentStatus = record.status;
                     }
-                    
+
                     const sc = STATUS_COLORS[studentStatus] || STATUS_COLORS.pending;
-                    
-                    const isResetRequested = pendingResetRequests.some((req: any) => 
-                      req.student === student._id && req.classItem === selectedClassForAttendance._id
-                    );
+                    const isEditing = editingStudentId === student._id;
+                    const isSingleStudent = selectedClassForAttendance.students.length === 1;
+                    const showCreditOption = selectedNewStatus === "cancelled" && !isSingleStudent;
 
                     return (
-                      <div key={student._id} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-100">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-gray-900">{student.username || student.email || "—"}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold ${sc.bg} ${sc.text} border ${sc.border}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></span>
-                            {sc.label}
+                      <div key={student._id} className="flex flex-col gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-900">
+                            {student.username || student.email || "—"}
                           </span>
-                          {(studentStatus === "absent" || studentStatus === "present") && (
+
+                          {!isEditing ? (
+                            <div className="flex items-center gap-2">
+                              {(() => {
+                                const isResetRequested = pendingResetRequests.some((req: any) =>
+                                  String(req.student) === String(student._id) &&
+                                  String(req.classItem) === String(selectedClassForAttendance._id)
+                                );
+
+                                return isResetRequested ? (
+                                  <span className="text-[10px] px-2 py-1 rounded-full bg-orange-100 text-orange-700 border border-orange-200 font-medium">
+                                    Reset Requested
+                                  </span>
+                                ) : (
+                                  <>
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold ${sc.bg} ${sc.text} border ${sc.border}`}>
+                                      <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`}></span>
+                                      {sc.label}
+                                    </span>
+                                    <button
+                                      onClick={() => {
+                                        setEditingStudentId(student._id);
+                                        setSelectedNewStatus("");
+                                        setCreditDeduction("no");
+                                        setCancellationReason("");
+
+                                      }}
+                                      className="text-[10px] px-2 py-1 rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 transition-colors"
+                                    >
+                                      Reset
+                                    </button>
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          ) : (
                             <button
-                              disabled={isResetRequested || resettingAttendanceFor === student._id}
-                              onClick={() => resetAttendance(student._id, selectedClassForAttendance._id)}
-                              className={`text-[10px] px-2 py-1 rounded border transition-colors disabled:opacity-50 ${isResetRequested ? 'text-orange-700 bg-orange-100 border-orange-200' : 'text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 border-red-200'}`}
+                              onClick={() => { setEditingStudentId(null); setSelectedNewStatus(""); setCancellationReason(""); }}
+                              className="text-[10px] text-gray-400 hover:text-gray-600"
                             >
-                              {isResetRequested ? "Reset Requested" : resettingAttendanceFor === student._id ? "Requesting..." : "Reset"}
+                              Cancel
                             </button>
                           )}
                         </div>
+
+                        {isEditing && (
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={selectedNewStatus}
+                                onChange={(e) => {
+                                  setSelectedNewStatus(e.target.value);
+                                  setCreditDeduction("no");
+                                  setCancellationReason("");
+                                }}
+                                className="text-xs px-2 py-1.5 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 flex-1"
+                              >
+                                <option value="">Select status...</option>
+                                <option value="present">Present</option>
+                                <option value="absent">Absent</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                              <button
+                                disabled={
+                                  !selectedNewStatus ||
+                                  resettingStudentId === student._id ||
+                                  (selectedNewStatus === "cancelled" && !cancellationReason.trim())
+                                }
+                                onClick={() =>
+                                  submitAttendanceReset(
+                                    student._id,
+                                    selectedClassForAttendance._id,
+                                    selectedNewStatus,
+                                    creditDeduction,
+                                    isSingleStudent,
+                                    cancellationReason
+                                  )
+                                }
+                                className="text-[10px] px-3 py-1.5 rounded-lg bg-purple-600 text-white disabled:opacity-50 hover:bg-purple-700 transition-colors whitespace-nowrap"
+                              >
+                                {resettingStudentId === student._id ? "Saving..." : "Confirm"}
+                              </button>
+                            </div>
+
+                            {showCreditOption && (
+                              <div className="flex items-center gap-4 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-800">
+                                <span className="font-medium">Credit deduction?</span>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`credit-${student._id}`} value="yes"
+                                    checked={creditDeduction === "yes"}
+                                    onChange={() => setCreditDeduction("yes")} />
+                                  With
+                                </label>
+                                <label className="flex items-center gap-1 cursor-pointer">
+                                  <input type="radio" name={`credit-${student._id}`} value="no"
+                                    checked={creditDeduction === "no"}
+                                    onChange={() => setCreditDeduction("no")} />
+                                  Without
+                                </label>
+                              </div>
+                            )}
+
+                            {selectedNewStatus === "cancelled" && (
+                              <CancellationReasonPicker
+                                value={cancellationReason}
+                                onChange={setCancellationReason}
+                                onReset={() => setCancellationReason("")}
+                              />
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -733,12 +863,15 @@ export default function RMTutorCalendarPage() {
                 )}
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => {
                   setAttendanceModalOpen(false);
                   setSelectedClassForAttendance(null);
+                  setEditingStudentId(null);
+                  setSelectedNewStatus("");
+                  setCancellationReason("");
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               >
@@ -760,15 +893,15 @@ export default function RMTutorCalendarPage() {
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Delete Class</h3>
-            
+
             <div className="text-gray-600 text-sm mb-6">
               {classToDelete.students.length > 1 ? (
                 <>
                   <p className="mb-4 text-gray-600">
-                    Select the students you want to remove from <span className="font-semibold text-gray-900">{classToDelete.title}</span>. 
+                    Select the students you want to remove from <span className="font-semibold text-gray-900">{classToDelete.title}</span>.
                     If all students are selected, the entire class will be deleted. This request will be sent to your team lead.
                   </p>
-                  
+
                   <div className="relative">
                     <button
                       type="button"
@@ -776,7 +909,7 @@ export default function RMTutorCalendarPage() {
                       className="w-full bg-white border border-gray-300 rounded-lg px-4 py-2.5 text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm transition-colors hover:bg-gray-50 mb-2"
                     >
                       <span className="text-gray-700 text-sm font-medium">
-                        {selectedStudentsForDelete.length === 0 
+                        {selectedStudentsForDelete.length === 0
                           ? "Select students..."
                           : selectedStudentsForDelete.length === classToDelete.students.length
                             ? "All students selected"
@@ -784,7 +917,7 @@ export default function RMTutorCalendarPage() {
                       </span>
                       <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
-                    
+
                     {isDropdownOpen && (
                       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm mt-1">
                         {/* Select All Row */}
@@ -805,12 +938,12 @@ export default function RMTutorCalendarPage() {
                             <span className="font-semibold text-sm text-gray-900">Select All Students</span>
                           </label>
                         </div>
-                        
+
                         {/* Individual Students List */}
                         <div className="max-h-52 overflow-y-auto p-2 flex flex-col gap-1">
                           {classToDelete.students.map((student) => (
-                            <label 
-                              key={student._id} 
+                            <label
+                              key={student._id}
                               className="flex items-center gap-3 cursor-pointer p-2 rounded-md hover:bg-gray-50 transition-colors select-none group"
                             >
                               <input

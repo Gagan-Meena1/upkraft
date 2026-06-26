@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema({
                 default: "not_marked"
 
             },
+            reasonForCancellation: {
+                type: String,
+                default: ""
+            },
             videoUrl: {
                 type: String,
                 default: ""
