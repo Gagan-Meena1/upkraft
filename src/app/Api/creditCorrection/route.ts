@@ -1,10 +1,20 @@
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
+import { getDataFromToken } from "@/helper/getDataFromToken";
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
     try {
         await connect();
+
+        const callerId = getDataFromToken(request);
+        if (!callerId) {
+            return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+        }
+        const caller = await User.findById(callerId).select("category");
+        if (!caller || !["Admin", "SalesHead"].includes(caller.category)) {
+            return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
+        }
 
         // Fetch all students
         const students = await User.find({ category: "Student" });

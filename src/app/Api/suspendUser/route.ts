@@ -1,11 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import mongoose from "mongoose";
-import User from "@/models/userModel"; // adjust path
-import {connect} from "@/dbConnection/dbConfic";  // your db connect function
+import User from "@/models/userModel";
+import {connect} from "@/dbConnection/dbConfic";
+import { getDataFromToken } from "@/helper/getDataFromToken";
 
-export async function PUT(req: Request) {
+export async function PUT(req: NextRequest) {
   try {
     await connect();
+
+    const callerId = getDataFromToken(req);
+    if (!callerId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const caller = await User.findById(callerId).select("category");
+    if (!caller || !["Admin", "TeamLead"].includes(caller.category)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
