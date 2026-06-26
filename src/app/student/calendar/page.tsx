@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   LogOut,
@@ -24,67 +24,23 @@ import { PiNutBold } from "react-icons/pi";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
+import CalendarControls from "@/app/components/calendar/CalendarControls";
+import {
+  CALENDAR_STATUS_COLORS,
+  getCalendarStatusColor,
+  resolveCalendarClassStatus,
+} from "@/app/components/calendar/status";
 
 interface UserData {
   _id: string;
   username?: string;
   name?: string;
   email?: string;
+  timezone?: string;
   category: string;
 }
 
-const STATUS_COLORS = {
-  present: {
-    bg: "bg-green-50",
-    border: "border-green-400",
-    text: "text-green-700",
-    dot: "bg-green-500",
-    label: "Present",
-  },
-  absent: {
-    bg: "bg-red-50",
-    border: "border-red-400",
-    text: "text-red-700",
-    dot: "bg-red-500",
-    label: "Absent",
-  },
-  cancelled: {
-    bg: "bg-gray-100",
-    border: "border-gray-400",
-    text: "text-gray-500",
-    dot: "bg-gray-400",
-    strikethrough: "line-through",
-    label: "Cancelled",
-  },
-  rescheduled: {
-    bg: "bg-blue-50",
-    border: "border-blue-400",
-    text: "text-blue-700",
-    dot: "bg-blue-500",
-    label: "Rescheduled",
-  },
-  edited: {
-    bg: "bg-blue-50",
-    border: "border-blue-400",
-    text: "text-blue-700",
-    dot: "bg-blue-500",
-    label: "Edited",
-  },
-  rescheduled_present: {
-    bg: "bg-teal-50",
-    border: "border-teal-400",
-    text: "text-teal-700",
-    dot: "bg-teal-500",
-    label: "Rescheduled (Present)",
-  },
-  pending: {
-    bg: "bg-purple-50",
-    border: "border-purple-400",
-    text: "text-purple-700",
-    dot: "bg-purple-500",
-    label: "Pending",
-  },
-};
+const STATUS_COLORS = CALENDAR_STATUS_COLORS;
 
 const StudentCalendarView = () => {
   const router = useRouter();
@@ -219,7 +175,7 @@ const StudentCalendarView = () => {
   }, []);
 
   const userTz = userData?.timezone || getUserTimeZone();
-  const cloneDate = (d) => new Date(d.getTime());
+  const cloneDate = (d: Date) => new Date(d.getTime());
 
   // Get days for current week (Mon - Sun)
   const getWeekDays = () => {
@@ -251,42 +207,68 @@ const StudentCalendarView = () => {
     return days;
   };
 
-  // Helper to get date components in user's timezone
-  const getDateComponentsInTz = (date: Date | string, tz: string) => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    const parts = formatter.formatToParts(d);
-    const year = parseInt(parts.find(p => p.type === 'year')?.value || '0');
-    const month = parseInt(parts.find(p => p.type === 'month')?.value || '0');
-    const day = parseInt(parts.find(p => p.type === 'day')?.value || '0');
-    return { year, month, day };
-  };
+  const datePartsFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: userTz,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }),
+    [userTz]
+  );
 
-  // Filter helpers for week/day - compare in user's timezone
-  const isSameDayInTz = (date1: Date | string, date2: Date, tz: string) => {
-    const d1 = getDateComponentsInTz(date1, tz);
-    const d2 = getDateComponentsInTz(date2, tz);
-    return d1.year === d2.year && d1.month === d2.month && d1.day === d2.day;
-  };
+  const getDateKeyInUserTz = useCallback(
+    (date: Date | string) => {
+      const d = typeof date === "string" ? new Date(date) : date;
+      const parts = datePartsFormatter.formatToParts(d);
+      const year = parts.find((p) => p.type === "year")?.value || "0000";
+      const month = parts.find((p) => p.type === "month")?.value || "00";
+      const day = parts.find((p) => p.type === "day")?.value || "00";
+      return `${year}-${month}-${day}`;
+    },
+    [datePartsFormatter]
+  );
 
-  const getMyClassesForDate = (date: Date) => {
-    return myClasses.filter((cls) => {
-      if (!cls?.startTime) return false;
-      return isSameDayInTz(cls.startTime, date, userTz);
-    });
-  };
+  const classesByDate = useMemo(() => {
+    const grouped = new Map<string, any[]>();
+    for (const cls of myClasses) {
+      if (!cls?.startTime) continue;
+      const key = getDateKeyInUserTz(cls.startTime);
+      const list = grouped.get(key);
+      if (list) {
+        list.push(cls);
+      } else {
+        grouped.set(key, [cls]);
+      }
+    }
+    return grouped;
+  }, [myClasses, getDateKeyInUserTz]);
 
-  const getMyAssignmentsForDate = (date: Date) => {
-    return myAssignments.filter((a) => {
-      if (!a?.deadline || a?.status === true) return false; 
-      return isSameDayInTz(a.deadline, date, userTz);
-    });
-  };
+  const assignmentsByDate = useMemo(() => {
+    const grouped = new Map<string, any[]>();
+    for (const assignment of myAssignments) {
+      if (!assignment?.deadline || assignment?.status === true) continue;
+      const key = getDateKeyInUserTz(assignment.deadline);
+      const list = grouped.get(key);
+      if (list) {
+        list.push(assignment);
+      } else {
+        grouped.set(key, [assignment]);
+      }
+    }
+    return grouped;
+  }, [myAssignments, getDateKeyInUserTz]);
+
+  const getMyClassesForDate = useCallback(
+    (date: Date) => classesByDate.get(getDateKeyInUserTz(date)) || [],
+    [classesByDate, getDateKeyInUserTz]
+  );
+
+  const getMyAssignmentsForDate = useCallback(
+    (date: Date) => assignmentsByDate.get(getDateKeyInUserTz(date)) || [],
+    [assignmentsByDate, getDateKeyInUserTz]
+  );
 
   const changeDay = (deltaDays) => {
     const d = cloneDate(currentDate);
@@ -385,7 +367,24 @@ const StudentCalendarView = () => {
     }
   };
 
-  const weekDays = activeView === "day" ? [currentDate] : getWeekDays();
+  const weekDays = useMemo(
+    () => (activeView === "day" ? [currentDate] : getWeekDays()),
+    [activeView, currentDate]
+  );
+
+  const monthDays = useMemo(() => generateMonthDays(currentDate), [currentDate]);
+
+  const attendanceByClassId = useMemo(() => {
+    const lookup = new Map<string, string>();
+    for (const rec of attendanceRecords || []) {
+      const status = (rec?.status || "pending").toString().toLowerCase();
+      if (rec?.classId) lookup.set(String(rec.classId), status);
+      if (rec?.sessionId && !lookup.has(String(rec.sessionId))) {
+        lookup.set(String(rec.sessionId), status);
+      }
+    }
+    return lookup;
+  }, [attendanceRecords]);
 
   if (loading) {
     return (
@@ -395,65 +394,13 @@ const StudentCalendarView = () => {
     );
   }
 
-  const gridTemplate = {
-    gridTemplateColumns: "200px repeat(7, minmax(0, 1fr))",
-  };
-
-  // Replace your getStatusColor function with:
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "present":
-        return STATUS_COLORS.present;
-      case "absent":
-        return STATUS_COLORS.absent;
-      case "cancelled":
-      case "canceled":
-        return STATUS_COLORS.cancelled;
-      case "rescheduled":
-        return STATUS_COLORS.rescheduled;
-      case "edited":
-        return STATUS_COLORS.edited;
-      case "rescheduled_present":
-        return STATUS_COLORS.rescheduled_present;
-      case "pending":
-      default:
-        return STATUS_COLORS.pending;
-    }
-  };
-  
-  // Resolve attendance/status for a class (prefers explicit class.status for canceled/rescheduled, otherwise attendance records)
   const getClassAttendanceStatus = (classItem: any) => {
-    const rawStatus = (classItem?.status || "").toString().toLowerCase();
-    let attendanceStatus = "pending";
-
-    if (attendanceRecords && attendanceRecords.length > 0) {
-      const classRecord = attendanceRecords.find(
-        (rec) => rec.classId === classItem._id || rec.sessionId === classItem._id
-      );
-
-      if (classRecord) {
-        attendanceStatus = (classRecord.status || "pending")
-          .toString()
-          .toLowerCase();
-      }
-    }
-
-    if (rawStatus === "canceled" || rawStatus === "cancelled") {
-      return "cancelled";
-    }
-
-    if (rawStatus === "reschedule" || rawStatus === "rescheduled") {
-      if (classItem.feedbackId && attendanceStatus === "present") {
-        return "rescheduled_present";
-      }
-      return "rescheduled";
-    }
-
-    if (rawStatus === "edited") {
-      return "rescheduled";
-    }
-
-    return attendanceStatus;
+    const attendanceStatus = attendanceByClassId.get(String(classItem?._id)) || "pending";
+    return resolveCalendarClassStatus(
+      classItem?.status,
+      attendanceStatus,
+      Boolean(classItem?.feedbackId)
+    );
   };
 
   return (
@@ -484,6 +431,8 @@ const StudentCalendarView = () => {
           {isMobile && (
             <button
               onClick={toggleSidebar}
+              aria-label="Toggle sidebar"
+              title="Toggle sidebar"
               className="p-2 rounded-lg hover:bg-gray-100 md:hidden"
             >
               <Menu size={24} />
@@ -495,69 +444,14 @@ const StudentCalendarView = () => {
         <main className="p-4 sm:p-6">
           {/* Calendar Container */}
           <div className="bg-white rounded-lg shadow-md p-6">
-            {/* Top Navigation Bar */}
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-4 text-[20px] text-[#212121]">
-                {/* prev / label / next / today */}
-                <button
-                  onClick={handlePrev}
-                  className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
-                >
-                  {"<"}
-                </button>
-                <span className="font-medium text-[20px] text-[#212121]">
-                  {currentDate.toLocaleDateString("en-US", {
-                    day: "2-digit",
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                  })}
-                </span>
-                <button
-                  onClick={handleNext}
-                  className="cursor-pointer select-none hover:bg-gray-100 p-2 rounded"
-                >
-                  {">"}
-                </button>
-                <button onClick={handleToday} className="ml-3 px-3 py-1 rounded bg-gray-100 text-sm">
-                  Today
-                </button>
-              </div>
-
-              {/* View toggle buttons */}
-              <div className="inline-flex items-center gap-2">
-                <button
-                  onClick={() => handleSetView("day")}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeView === "day"
-                      ? "bg-purple-600 text-white shadow-sm"
-                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  Day
-                </button>
-                <button
-                  onClick={() => handleSetView("week")}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeView === "week"
-                      ? "bg-purple-600 text-white shadow-sm"
-                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  Week
-                </button>
-                <button
-                  onClick={() => handleSetView("month")}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                    activeView === "month"
-                      ? "bg-purple-600 text-white shadow-sm"
-                      : "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50"
-                  }`}
-                >
-                  Month
-                </button>
-              </div>
-            </div>
+            <CalendarControls
+              currentDate={currentDate}
+              activeView={activeView}
+              onPrev={handlePrev}
+              onNext={handleNext}
+              onToday={handleToday}
+              onSetView={handleSetView}
+            />
 
             {/* Calendar Grid */}
             <div className="mt-2 rounded overflow-hidden">
@@ -581,7 +475,7 @@ const StudentCalendarView = () => {
                   </div>
 
                   <div className="grid grid-cols-7 gap-2">
-                    {generateMonthDays(currentDate).map((d, idx) => {
+                    {monthDays.map((d, idx) => {
                       const classCount = d ? getMyClassesForDate(d).length : 0;
                       const assignmentCount = d ? getMyAssignmentsForDate(d).length : 0;
                       const hasItems = classCount + assignmentCount;
@@ -625,7 +519,7 @@ const StudentCalendarView = () => {
               ) : (
                 <>
                   {/* Header Row */}
-                  <div className="grid items-stretch bg-white" style={gridTemplate}>
+                  <div className="grid items-stretch bg-white grid-cols-[200px_repeat(7,minmax(0,1fr))]">
                     {/* Label cell */}
                     <div className="p-3 bg-white flex items-center font-medium text-[#212121]">
                       My Schedule
@@ -641,10 +535,7 @@ const StudentCalendarView = () => {
                   </div>
 
                   {/* Calendar Body: single row (student) */}
-                  <div
-                    className="grid items-start bg-white border-t"
-                    style={gridTemplate}
-                  >
+                  <div className="grid items-start bg-white border-t grid-cols-[200px_repeat(7,minmax(0,1fr))]">
                     {/* Row label */}
                     <div className="p-3 border-r border-gray-200 flex items-center">
                       Upcoming Classes & Due Assignments
@@ -669,7 +560,7 @@ const StudentCalendarView = () => {
                               {/* Classes */}
                               {dayClasses.map((classItem, cIdx) => {
                                 const attendanceStatus = getClassAttendanceStatus(classItem);
-                                const statusColor = getStatusColor(attendanceStatus);
+                                const statusColor = getCalendarStatusColor(attendanceStatus);
 
                                 return (
                                   <div
@@ -680,7 +571,7 @@ const StudentCalendarView = () => {
                                   >
                                     {statusColor.strikethrough && (
                                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                        <div className="w-full h-[2px] bg-red-500 transform rotate-[-15deg]" />
+                                        <div className="w-full h-0.5 bg-red-500 transform rotate-[-15deg]" />
                                       </div>
                                     )}
                                      <div className="flex items-center justify-between gap-2">
