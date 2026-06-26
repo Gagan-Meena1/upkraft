@@ -317,11 +317,12 @@ const TutorTable = ({ refreshKey, tutorsData, loading: externalLoading }) => {
                       <th>Subject</th>
                       <th>Students</th>
                       <th>Classes</th>
+                      <th>Credits</th> 
                       <th>CSAT Score</th>
                       <th>Class Quality Score</th>
                       <th>Overall Performance Score</th>
                       <th>Feedback Pending</th>
-                      <th>Revenue</th>
+                      {/* <th>Revenue</th> */}
                       <th>Status</th>
                       <th className="text-center">Actions</th>
                     </tr>

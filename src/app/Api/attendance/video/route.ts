@@ -4,6 +4,7 @@ import User from '@/models/userModel';
 import Class from '@/models/Class'; // Import Class model to get class details
 import courseName from '@/models/courseName'; // Import Course model to get course name
 import { sendEmail } from '@/helper/mailer';
+import { formatPhoneNumber } from '@/helper/whatsappService';
 import { RekognitionClient, StartContentModerationCommand } from '@aws-sdk/client-rekognition';
 
 export async function POST(req: NextRequest) {
@@ -60,16 +61,18 @@ export async function POST(req: NextRequest) {
         })
       : '';
 
-    await sendEmail({
-      email: student.email,
-      emailType: 'VIDEO_SHARE',
-      username: student.username,
-      className: className,
-      courseName: courseName,
-      classDate: classDate,
-      videoUrl: videoUrl,
-      message: 'Your class recording is now available. You can watch or download it using the links below.',
-    });
+        // Send email with video links
+        await sendEmail({
+          email: student.email,
+          phone: student.contact ? formatPhoneNumber(student.contact) : undefined,
+          emailType: 'VIDEO_SHARE',
+          username: student.username,
+          className: className,
+          courseName: courseName,
+          classDate: classDate,
+          videoUrl: videoUrl,
+          message: 'Your class recording is now available. You can watch or download it using the links below.',
+        });
 
     console.log(`✅ Video email sent to ${student.email}`);
   } else if (studentId === '69537664baecc0ac710182f3') {

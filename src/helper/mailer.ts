@@ -3,6 +3,7 @@ import bcryptjs from "bcryptjs";
 import nodemailer from "nodemailer";
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { sendWhatsAppTextMessage, sendWhatsAppVideoMessage, formatPhoneNumber,sendWhatsAppTemplateMessage } from './whatsappService';
 
 // Add S3 client configuration
 const s3Client = new S3Client({
@@ -39,6 +40,7 @@ interface EmailParams {
   feedbackDetails?: any;
     videoUrl?: string; // Add this
   message?: string; // Add this
+  phone?: string; // Add this
 }
 
 export const sendEmail = async ({ email, emailType, userId, username, category, resetToken, tutorName, courseName,
@@ -56,7 +58,8 @@ export const sendEmail = async ({ email, emailType, userId, username, category, 
   classDate,
   feedbackDetails,
   videoUrl,
-  message
+  message,
+  phone
   
  }: EmailParams) => {
   console.log(`[Mailer] Sending ${emailType} email to: ${email}`);
@@ -515,7 +518,59 @@ else if (emailType === "VIDEO_SHARE") {
     expiresIn: 604800 
   });
 
+// Send WhatsApp message for feedback
+// if (phone) {
+//   try {
+//     const formattedPhone = formatPhoneNumber(phone);
+    
+//     // Build detailed scores text WITHOUT newlines - use commas instead
+//     const feedbackDetailsText = feedbackDetails 
+//       ? Object.entries(feedbackDetails)
+//           .map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1').trim()}: ${value}/10`)
+//           .join(', ')  // ✅ CHANGE THIS - NO NEWLINES
+//       : '';
+    
+//     const reportUrl = `${process.env.DOMAIN}/student/singleFeedback/${feedbackCategory}?classId=${classId}&studentId=${userId}`;
+    
+//     await sendWhatsAppTemplateMessage({
+//       phone: formattedPhone,
+//       templateName: 'feedback_notification',
+//       languageCode: 'en',
+//       components: [
+//         {
+//           type: 'body',
+//           parameters: [
+//             { type: 'text', text: username || 'Student' },
+//             { type: 'text', text: className || 'Class' },
+//             { type: 'text', text: classDate || new Date().toLocaleDateString() },
+//             { type: 'text', text: courseName || 'Course' },
+//             { type: 'text', text: averageScore || '0' },
+//             { type: 'text', text: feedbackDetailsText },
+//             { type: 'text', text: (personalFeedback || '').replace(/\n/g, ' ') }, 
+//             { type: 'text', text: reportUrl }
+//           ]
+//         },
+//         {
+//           type: 'button',
+//           sub_type: 'url',
+//           index: 0,
+//           parameters: [
+//             { 
+//               type: 'text', 
+//               text: reportUrl.replace(process.env.DOMAIN || '', '')
+//             }
+//           ]
+//         }
+//       ]
+//     });
+    
+//     console.log('[Mailer] WhatsApp feedback template sent successfully');
+//   } catch (whatsappError) {
+//     console.error('[Mailer] Failed to send WhatsApp template:', whatsappError);
+//   }
+// }
   mailOptions = {
+
     from: fromAddress,
     to: email,
     subject: `Class Recording - ${ username} - ${className || courseName}`,
