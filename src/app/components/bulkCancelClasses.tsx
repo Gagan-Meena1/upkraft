@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Search, X, CalendarX, ChevronDown, Loader2, AlertTriangle } from "lucide-react";
+import { Search, X, CalendarX, Loader2, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
+import CancellationReasonPicker from "@/app/components/reasonForCancellation";
 
 interface Student {
     _id: string;
@@ -34,20 +35,20 @@ export default function BulkCancelClasses() {
     const [isLoadingPreview, setIsLoadingPreview] = useState(false);
     const [isConfirming, setIsConfirming] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
+    const [cancellationReason, setCancellationReason] = useState<string>("");
+    const [creditDeduction, setCreditDeduction] = useState<boolean>(false);
+    const [selectedClassIds, setSelectedClassIds] = useState<Set<string>>(new Set());
 
     const cacheRef = useRef<Student[]>([]);
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
     const searchInputRef = useRef<HTMLDivElement>(null);
 
-    // Fetch recent students on mount
     useEffect(() => {
         const fetchRecent = async () => {
             try {
                 const res = await fetch("/Api/students/recent", { credentials: "include" });
                 const data = await res.json();
-                if (data.success) {
-                    cacheRef.current = data.students || [];
-                }
+                if (data.success) cacheRef.current = data.students || [];
             } catch (e) {
                 console.error("Failed to fetch recent students", e);
             }
@@ -55,7 +56,6 @@ export default function BulkCancelClasses() {
         fetchRecent();
     }, []);
 
-    // Click outside to close suggestions
     useEffect(() => {
         const handler = (e: MouseEvent) => {
             if (searchInputRef.current && !searchInputRef.current.contains(e.target as Node)) {
@@ -66,6 +66,15 @@ export default function BulkCancelClasses() {
         return () => document.removeEventListener("mousedown", handler);
     }, []);
 
+    const resetConfirmState = () => {
+        setShowConfirm(false);
+        setPreviewClasses([]);
+        setGroupedClasses({});
+        setSelectedClassIds(new Set());
+        setCancellationReason("");
+        setCreditDeduction(false);
+    };
+
     const searchStudents = useCallback((query: string) => {
         if (!query || query.length < 2) {
             setSuggestions([]);
@@ -74,8 +83,6 @@ export default function BulkCancelClasses() {
         }
 
         const lower = query.toLowerCase();
-
-        // Check cache first
         const cacheResults = cacheRef.current.filter(
             s => s.username.toLowerCase().includes(lower) || s.email.toLowerCase().includes(lower)
         );
@@ -86,12 +93,10 @@ export default function BulkCancelClasses() {
             return;
         }
 
-        // Cache miss — hit DB
         fetch(`/Api/students/search?q=${encodeURIComponent(query)}`, { credentials: "include" })
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    // Merge into cache
                     const newEntries = data.students.filter(
                         (s: Student) => !cacheRef.current.find(c => c._id === s._id)
                     );
@@ -107,10 +112,7 @@ export default function BulkCancelClasses() {
         const val = e.target.value;
         setSearchTerm(val);
         setSelectedStudent(null);
-        setPreviewClasses([]);
-        setGroupedClasses({});
-        setShowConfirm(false);
-
+        resetConfirmState();
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => searchStudents(val), 300);
     };
@@ -120,9 +122,26 @@ export default function BulkCancelClasses() {
         setSearchTerm(student.username);
         setSuggestions([]);
         setShowSuggestions(false);
-        setPreviewClasses([]);
-        setGroupedClasses({});
-        setShowConfirm(false);
+        resetConfirmState();
+    };
+
+    const toggleClass = (classId: string) => {
+        setSelectedClassIds(prev => {
+            const next = new Set(prev);
+            if (next.has(classId)) next.delete(classId);
+            else next.add(classId);
+            return next;
+        });
+    };
+
+    const toggleAll = (classIds: string[]) => {
+        setSelectedClassIds(prev => {
+            const next = new Set(prev);
+            const allSelected = classIds.every(id => next.has(id));
+            if (allSelected) classIds.forEach(id => next.delete(id));
+            else classIds.forEach(id => next.add(id));
+            return next;
+        });
     };
 
     const handlePreview = async () => {
@@ -137,7 +156,8 @@ export default function BulkCancelClasses() {
 
         try {
             setIsLoadingPreview(true);
-            setShowConfirm(false);
+            resetConfirmState();
+
             const res = await fetch("/Api/classes/bulk-cancel", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -158,14 +178,14 @@ export default function BulkCancelClasses() {
             const classes: ClassPreview[] = data.classes || [];
             setPreviewClasses(classes);
 
-            // Group by course name
             const grouped: GroupedClasses = {};
             classes.forEach(cls => {
-                const courseName = cls.course?.name || "Unknown Course";
-                if (!grouped[courseName]) grouped[courseName] = [];
-                grouped[courseName].push(cls);
+                const name = cls.course?.name || "Unknown Course";
+                if (!grouped[name]) grouped[name] = [];
+                grouped[name].push(cls);
             });
             setGroupedClasses(grouped);
+            setSelectedClassIds(new Set(classes.map(c => c._id)));
 
             if (classes.length > 0) setShowConfirm(true);
             else toast("No classes found in this date range", { icon: "ℹ️" });
@@ -178,7 +198,14 @@ export default function BulkCancelClasses() {
     };
 
     const handleConfirmCancel = async () => {
-        if (previewClasses.length === 0) return;
+        if (selectedClassIds.size === 0) {
+            toast.error("No classes selected");
+            return;
+        }
+        if (!cancellationReason.trim()) {
+            toast.error("Please select a reason for cancellation");
+            return;
+        }
 
         try {
             setIsConfirming(true);
@@ -187,7 +214,10 @@ export default function BulkCancelClasses() {
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
                 body: JSON.stringify({
-                    classIds: previewClasses.map(c => c._id)
+                    classIds: Array.from(selectedClassIds),
+                    studentId: selectedStudent!._id,
+                    creditDeduction,
+                    reasonForCancellation: cancellationReason
                 })
             });
             const data = await res.json();
@@ -198,14 +228,11 @@ export default function BulkCancelClasses() {
             }
 
             toast.success(`${data.cancelledCount} classes cancelled successfully`);
-            // Reset
             setSelectedStudent(null);
             setSearchTerm("");
             setStartDate("");
             setEndDate("");
-            setPreviewClasses([]);
-            setGroupedClasses({});
-            setShowConfirm(false);
+            resetConfirmState();
 
         } catch (e: any) {
             toast.error(e.message || "Something went wrong");
@@ -255,9 +282,7 @@ export default function BulkCancelClasses() {
                                     setSearchTerm("");
                                     setSelectedStudent(null);
                                     setSuggestions([]);
-                                    setPreviewClasses([]);
-                                    setGroupedClasses({});
-                                    setShowConfirm(false);
+                                    resetConfirmState();
                                 }}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             >
@@ -266,7 +291,6 @@ export default function BulkCancelClasses() {
                         )}
                     </div>
 
-                    {/* Suggestions dropdown */}
                     {showSuggestions && suggestions.length > 0 && (
                         <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
                             {suggestions.map(s => (
@@ -301,7 +325,7 @@ export default function BulkCancelClasses() {
                         <input
                             type="date"
                             value={startDate}
-                            onChange={e => { setStartDate(e.target.value); setShowConfirm(false); setPreviewClasses([]); setGroupedClasses({}); }}
+                            onChange={e => { setStartDate(e.target.value); resetConfirmState(); }}
                             className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
                         />
                     </div>
@@ -310,7 +334,7 @@ export default function BulkCancelClasses() {
                         <input
                             type="date"
                             value={endDate}
-                            onChange={e => { setEndDate(e.target.value); setShowConfirm(false); setPreviewClasses([]); setGroupedClasses({}); }}
+                            onChange={e => { setEndDate(e.target.value); resetConfirmState(); }}
                             className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:border-transparent"
                         />
                     </div>
@@ -324,71 +348,141 @@ export default function BulkCancelClasses() {
                 >
                     {isLoadingPreview ? (
                         <><Loader2 className="w-4 h-4 animate-spin" /> Fetching classes...</>
-                    ) : (
-                        "Preview Classes to Cancel"
-                    )}
+                    ) : "Preview Classes to Cancel"}
                 </button>
 
-                {/* Preview Results */}
+                {/* Preview Results with Checkboxes */}
                 {Object.keys(groupedClasses).length > 0 && (
                     <div className="border border-gray-200 rounded-xl overflow-hidden">
                         <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                             <span className="text-sm font-semibold text-gray-700">
-                                {previewClasses.length} class{previewClasses.length !== 1 ? "es" : ""} will be cancelled
+                                {selectedClassIds.size} of {previewClasses.length} class{previewClasses.length !== 1 ? "es" : ""} selected
                             </span>
-                            <span className="text-xs text-gray-500">
-                                {Object.keys(groupedClasses).length} course{Object.keys(groupedClasses).length !== 1 ? "s" : ""}
-                            </span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs text-gray-500">
+                                    {Object.keys(groupedClasses).length} course{Object.keys(groupedClasses).length !== 1 ? "s" : ""}
+                                </span>
+                                <button
+                                    onClick={() => {
+                                        if (selectedClassIds.size === previewClasses.length) {
+                                            setSelectedClassIds(new Set());
+                                        } else {
+                                            setSelectedClassIds(new Set(previewClasses.map(c => c._id)));
+                                        }
+                                    }}
+                                    className="text-xs text-purple-600 hover:text-purple-800 font-medium"
+                                >
+                                    {selectedClassIds.size === previewClasses.length ? "Deselect All" : "Select All"}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
-                            {Object.entries(groupedClasses).map(([courseName, classes]) => (
-                                <div key={courseName}>
-                                    <div className="px-4 py-2 bg-red-50 sticky top-0">
-                                        <span className="text-xs font-semibold text-red-700 uppercase tracking-wider">
-                                            {courseName}
-                                        </span>
-                                        <span className="ml-2 text-xs text-red-500">
-                                            ({classes.length} class{classes.length !== 1 ? "es" : ""})
-                                        </span>
-                                    </div>
-                                    {classes.map(cls => {
-                                        const { date, day, time } = formatDate(cls.startTime);
-                                        return (
-                                            <div key={cls._id} className="px-4 py-2.5 flex items-center justify-between hover:bg-gray-50">
-                                                <div>
-                                                    <p className="text-sm font-medium text-gray-900">{cls.title}</p>
-                                                    <p className="text-xs text-gray-500 mt-0.5">{day} · {date}</p>
+                            {Object.entries(groupedClasses).map(([courseName, classes]) => {
+                                const courseClassIds = classes.map(c => c._id);
+                                const allCourseSelected = courseClassIds.every(id => selectedClassIds.has(id));
+                                const someCourseSelected = courseClassIds.some(id => selectedClassIds.has(id));
+
+                                return (
+                                    <div key={courseName}>
+                                        <div className="px-4 py-2 bg-red-50 sticky top-0 flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                checked={allCourseSelected}
+                                                ref={el => { if (el) el.indeterminate = someCourseSelected && !allCourseSelected; }}
+                                                onChange={() => toggleAll(courseClassIds)}
+                                                className="w-3.5 h-3.5 rounded border-gray-300 text-red-600 focus:ring-red-400 cursor-pointer"
+                                            />
+                                            <span className="text-xs font-semibold text-red-700 uppercase tracking-wider">
+                                                {courseName}
+                                            </span>
+                                            <span className="ml-1 text-xs text-red-500">
+                                                ({courseClassIds.filter(id => selectedClassIds.has(id)).length}/{classes.length})
+                                            </span>
+                                        </div>
+
+                                        {classes.map(cls => {
+                                            const { date, day, time } = formatDate(cls.startTime);
+                                            const isChecked = selectedClassIds.has(cls._id);
+                                            return (
+                                                <div
+                                                    key={cls._id}
+                                                    onClick={() => toggleClass(cls._id)}
+                                                    className={`px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors ${isChecked ? "hover:bg-gray-50" : "bg-gray-50 opacity-50 hover:opacity-70"
+                                                        }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isChecked}
+                                                        onChange={() => toggleClass(cls._id)}
+                                                        onClick={e => e.stopPropagation()}
+                                                        className="w-3.5 h-3.5 rounded border-gray-300 text-red-600 focus:ring-red-400 cursor-pointer flex-shrink-0"
+                                                    />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-gray-900 truncate">{cls.title}</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">{day} · {date}</p>
+                                                    </div>
+                                                    <span className="text-xs text-gray-400 flex-shrink-0">{time}</span>
                                                 </div>
-                                                <span className="text-xs text-gray-400 flex-shrink-0">{time}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
 
-                {/* Confirm Cancel Button */}
+                {/* Confirm Section */}
                 {showConfirm && previewClasses.length > 0 && (
-                    <div className="border border-red-200 rounded-xl p-4 bg-red-50">
-                        <div className="flex items-start gap-3 mb-3">
+                    <div className="border border-red-200 rounded-xl p-4 bg-red-50 flex flex-col gap-4">
+
+                        {/* Credit deduction toggle */}
+                        <div className="flex items-center justify-between px-3 py-2.5 border border-amber-200 rounded-xl bg-amber-50">
+                            <div>
+                                <p className="text-sm font-medium text-amber-800">Credit Deduction</p>
+                                <p className="text-xs text-amber-600 mt-0.5">
+                                    {creditDeduction
+                                        ? "Attendance marked absent — credit deducted"
+                                        : "Attendance marked cancelled — no credit impact"}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setCreditDeduction(p => !p)}
+                                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-4 ${creditDeduction ? "bg-amber-500" : "bg-gray-300"
+                                    }`}
+                            >
+                                <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${creditDeduction ? "translate-x-5" : "translate-x-0"
+                                    }`} />
+                            </button>
+                        </div>
+
+                        {/* Reason picker */}
+                        <CancellationReasonPicker
+                            value={cancellationReason}
+                            onChange={setCancellationReason}
+                            onReset={() => setCancellationReason("")}
+                        />
+
+                        {/* Warning */}
+                        <div className="flex items-start gap-3">
                             <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                             <p className="text-sm text-red-700">
-                                This will permanently cancel <span className="font-semibold">{previewClasses.length} classes</span> for{" "}
+                                This will permanently cancel{" "}
+                                <span className="font-semibold">{selectedClassIds.size} classes</span> for{" "}
                                 <span className="font-semibold">{selectedStudent?.username}</span>. This action cannot be undone.
                             </p>
                         </div>
+
                         <button
                             onClick={handleConfirmCancel}
-                            disabled={isConfirming}
+                            disabled={isConfirming || selectedClassIds.size === 0 || !cancellationReason.trim()}
                             className="w-full py-2.5 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
                         >
                             {isConfirming ? (
                                 <><Loader2 className="w-4 h-4 animate-spin" /> Cancelling...</>
                             ) : (
-                                `Confirm — Cancel ${previewClasses.length} Classes`
+                                `Confirm — Cancel ${selectedClassIds.size} Classes`
                             )}
                         </button>
                     </div>

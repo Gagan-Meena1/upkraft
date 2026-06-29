@@ -160,9 +160,13 @@ export async function POST(request: NextRequest) {
                 // Duration in ms
                 const duration = cancelledEnd.getTime() - cancelledStart.getTime();
 
-                // New date: day after currentEndDate, same UTC time as cancelled class
+                // Find next occurrence of the same weekday after currentEndDate
                 const newStartDate = new Date(currentEndDate);
-                newStartDate.setUTCDate(newStartDate.getUTCDate() + 1);
+                newStartDate.setUTCDate(newStartDate.getUTCDate() + 1); // start from day after endDate
+                // Advance until we hit the same weekday as the cancelled class
+                while (newStartDate.getUTCDay() !== cancelledWeekday) {
+                    newStartDate.setUTCDate(newStartDate.getUTCDate() + 1);
+                }
                 newStartDate.setUTCHours(
                     cancelledStart.getUTCHours(),
                     cancelledStart.getUTCMinutes(),

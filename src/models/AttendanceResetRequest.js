@@ -4,7 +4,15 @@ const attendanceResetRequestSchema = new mongoose.Schema({
     student: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "users",
-        required: true
+        default: null  // null when it's a class-level cancellation
+    },
+    // NEW — for class-level cancellation affecting multiple students
+    students: {
+        type: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "users"
+        }],
+        default: []
     },
     classItem: {
         type: mongoose.Schema.Types.ObjectId,
@@ -37,6 +45,12 @@ const attendanceResetRequestSchema = new mongoose.Schema({
     reasonForCancellation: {
         type: String,
         default: ""
+    },
+    // NEW — to distinguish class-level vs individual reset
+    requestType: {
+        type: String,
+        enum: ["individual", "class"],
+        default: "individual"
     }
 }, {
     timestamps: true
