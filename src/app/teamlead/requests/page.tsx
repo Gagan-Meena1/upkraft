@@ -30,9 +30,12 @@ interface ReassignRequest {
   createdAt: string;
 }
 
+// Update interface
 interface AttendanceResetRequest {
   _id: string;
-  student: { _id: string; username: string; email: string };
+  student?: { _id: string; username: string; email: string };
+  students?: { _id: string; username: string; email: string }[];  // ← add
+  requestType?: "individual" | "class";  // ← add
   classItem: {
     _id: string;
     title: string;
@@ -308,10 +311,21 @@ export default function TeamLeadRequestsPage() {
                       <div key={req._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                         <div className="flex flex-col gap-3">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-md font-bold text-gray-900 truncate">Reset: {req.student?.username}</h3>
-                            <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
-                              ATTENDANCE
-                            </span>
+                            <h3 className="text-md font-bold text-gray-900 truncate">
+                              {req.requestType === "class"
+                                ? `Cancel Class: ${req.classItem?.title}`
+                                : `Reset: ${req.student?.username}`}
+                            </h3>
+                            <div className="flex items-center gap-1">
+                              {req.requestType === "class" && (
+                                <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-semibold rounded">
+                                  CLASS
+                                </span>
+                              )}
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
+                                ATTENDANCE
+                              </span>
+                            </div>
                           </div>
 
                           <div className="space-y-2 text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
@@ -319,6 +333,14 @@ export default function TeamLeadRequestsPage() {
                               <span className="font-semibold">Class:</span>
                               <span className="text-gray-900">{classTitle}</span>
                             </div>
+                            {req.requestType === "class" && req.students && req.students.length > 0 && (
+                              <div className="flex justify-between items-start gap-2">
+                                <span className="font-semibold flex-shrink-0">Students:</span>
+                                <span className="text-gray-900 text-right text-[10px] leading-relaxed">
+                                  {req.students.map(s => s.username).join(", ")}
+                                </span>
+                              </div>
+                            )}
                             <div className="flex justify-between items-center">
                               <span className="font-semibold">Tutor:</span>
                               <span className="text-gray-900">{req.classItem?.instructor?.username || "—"}</span>

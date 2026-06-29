@@ -117,6 +117,11 @@ export default function RMTutorCalendarPage() {
   const [selectedNewStatus, setSelectedNewStatus] = useState<string>("");
   const [creditDeduction, setCreditDeduction] = useState<"yes" | "no">("no");
   const [cancellationReason, setCancellationReason] = useState<string>("");
+  const [cancelClassModalOpen, setCancelClassModalOpen] = useState(false);
+  const [classToCancel, setClassToCancel] = useState<ClassItem | null>(null);
+  const [cancelCreditDeduction, setCancelCreditDeduction] = useState<"yes" | "no">("no");
+  const [cancelReason, setCancelReason] = useState<string>("");
+  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
 
 
 
@@ -409,6 +414,50 @@ export default function RMTutorCalendarPage() {
     }
   };
 
+  const openCancelModal = (cls: ClassItem, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setClassToCancel(cls);
+    setCancelCreditDeduction("no");
+    setCancelReason("");
+    setCancelClassModalOpen(true);
+  };
+
+  const closeCancelModal = () => {
+    setCancelClassModalOpen(false);
+    setClassToCancel(null);
+    setCancelCreditDeduction("no");
+    setCancelReason("");
+  };
+
+  const handleCancelClassSubmit = async () => {
+    if (!classToCancel || !cancelReason.trim()) return;
+    try {
+      setIsSubmittingCancel(true);
+      const res = await fetch("/Api/relationship-manager/class/cancel-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          classId: classToCancel._id,
+          creditDeduction: cancelCreditDeduction === "yes",
+          reasonForCancellation: cancelReason
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data.error || "Failed to submit cancellation request");
+        return;
+      }
+      setPendingResetRequests(prev => [...prev, data.data]);
+      toast.success("Cancellation request sent to Team Lead");
+      closeCancelModal();
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong");
+    } finally {
+      setIsSubmittingCancel(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -632,16 +681,39 @@ export default function RMTutorCalendarPage() {
                                           Deleted
                                         </span>
                                       ) : cls.status === "scheduled" || cls.status === "rescheduled" ? (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            openDeleteModal(cls);
-                                          }}
-                                          title="Request Delete"
-                                          className="text-gray-400 hover:text-red-500 transition-colors p-0.5"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
+                                        <>
+                                          {/* Check if cancel request already pending for this class */}
+                                          {pendingResetRequests.some(
+                                            (req: any) => req.requestType === "class" &&
+                                              String(req.classItem?._id || req.classItem) === String(cls._id) &&
+                                              req.status === "pending"
+                                          ) ? (
+                                            <span className="text-[10px] bg-orange-100 text-orange-700 px-1 py-0.5 rounded whitespace-nowrap">
+                                              Cancel Requested
+                                            </span>
+                                          ) : (
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openCancelModal(cls, e);
+                                              }}
+                                              title="Cancel Class"
+                                              className="text-gray-400 hover:text-orange-500 transition-colors p-0.5"
+                                            >
+                                              <X className="w-3.5 h-3.5" />
+                                            </button>
+                                          )}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              openDeleteModal(cls);
+                                            }}
+                                            title="Request Delete"
+                                            className="text-gray-400 hover:text-red-500 transition-colors p-0.5"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                          </button>
+                                        </>
                                       ) : null}
                                     </div>
                                   </div>
@@ -992,6 +1064,76 @@ export default function RMTutorCalendarPage() {
               >
                 {isDeleting ? "Requesting..." : "Confirm"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Cancel Class Modal */}
+      {cancelClassModalOpen && classToCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6 relative">
+            <button
+              onClick={closeCancelModal}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-lg font-bold text-gray-900 mb-1">Cancel Class</h3>
+            <p className="text-xs text-gray-500 mb-1">
+              {classToCancel.title} · {formatTime(classToCancel.startTime, classToCancel.endTime)}
+            </p>
+            <p className="text-xs text-gray-600 mb-4">
+              This will cancel the class for{" "}
+              <span className="font-semibold">{classToCancel.students.length} student(s)</span>.
+              A request will be sent to the Team Lead for approval.
+            </p>
+
+            <div className="flex flex-col gap-4">
+              {/* Credit deduction — only for multi-student */}
+              {classToCancel.students.length > 1 && (
+                <div className="flex items-center justify-between px-3 py-2.5 border border-amber-200 rounded-xl bg-amber-50">
+                  <div>
+                    <p className="text-sm font-medium text-amber-800">Credit Deduction</p>
+                    <p className="text-xs text-amber-600 mt-0.5">
+                      {cancelCreditDeduction === "yes"
+                        ? "Attendance marked absent — credit deducted"
+                        : "Attendance marked cancelled — no credit impact"}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setCancelCreditDeduction(p => p === "yes" ? "no" : "yes")}
+                    className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ml-4 ${cancelCreditDeduction === "yes" ? "bg-amber-500" : "bg-gray-300"
+                      }`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${cancelCreditDeduction === "yes" ? "translate-x-5" : "translate-x-0"
+                      }`} />
+                  </button>
+                </div>
+              )}
+
+              <CancellationReasonPicker
+                value={cancelReason}
+                onChange={setCancelReason}
+                onReset={() => setCancelReason("")}
+              />
+
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  onClick={closeCancelModal}
+                  disabled={isSubmittingCancel}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCancelClassSubmit}
+                  disabled={isSubmittingCancel || !cancelReason.trim()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSubmittingCancel ? "Submitting..." : "Send to Team Lead"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
 
     const pendingClasses = await (Class as any).find({ deleteRequestStatus: "pending" })
       .populate("instructor", "username email")
+      .populate("students", "username email")
       .populate("course", "courseName title name")
       .populate({ path: "deleteRequestStudents", select: "username email", strictPopulate: false })
       .sort({ createdAt: -1 })
@@ -88,19 +89,19 @@ export async function GET(request: NextRequest) {
     const attendanceResetRequests = await (AttendanceResetRequest as any).find({ status: "pending" })
       .populate("student", "username email")
       .populate({
-         path: "classItem",
-         select: "title startTime endTime course instructor",
-         populate: [
-            { path: "course", select: "courseName title name" },
-            { path: "instructor", select: "username email" }
-         ]
+        path: "classItem",
+        select: "title startTime endTime course instructor",
+        populate: [
+          { path: "course", select: "courseName title name" },
+          { path: "instructor", select: "username email" }
+        ]
       })
       .populate("relationshipManager", "username email")
       .sort({ createdAt: -1 })
       .lean();
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       classes: mappedClasses,
       reassignRequests: reassignRequests,
       attendanceResetRequests: attendanceResetRequests

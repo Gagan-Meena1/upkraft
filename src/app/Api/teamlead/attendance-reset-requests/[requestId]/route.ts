@@ -54,6 +54,8 @@ export async function PUT(
             const studentId = reqObj.student;
             const classId = reqObj.classItem;
             const requestedChange = reqObj.requestedChange;
+            const isClassLevel = reqObj.requestType === "class";
+            const studentIds = isClassLevel ? reqObj.students : [reqObj.student];
 
             if (requestedChange === "present") {
                 // Set attendance to present via PUT
@@ -103,85 +105,88 @@ export async function PUT(
                 }
 
             } else if (requestedChange === "cancelled") {
+                const newAttendanceStatus = reqObj.creditDeduction === true ? "absent" : "canceled";
+                const baseUrl = request.nextUrl.origin;
 
-                const newAttendanceStatus = (reqObj.creditDeduction === true)
-                    ? "absent"
-                    : "canceled";
-
-                // Update if exists, otherwise push new record
-                const studentDoc = await (User as any).findById(studentId).select("attendance").lean() as any;
-                const existingRecord = (studentDoc?.attendance || []).find(
-                    (a: any) => a.classId?.toString() === classId.toString()
-                );
-
-                // Replace the attendance update block with:
-                if (existingRecord) {
-                    await (User as any).updateOne(
-                        { _id: studentId },
-                        {
-                            $set: {
-                                "attendance.$[elem].status": newAttendanceStatus,
-                                "attendance.$[elem].reasonForCancellation": reqObj.reasonForCancellation || ""
-                            }
-                        },
-                        { arrayFilters: [{ "elem.classId": classId }] }
+                for (const currentStudentId of studentIds) {
+                    // Update attendance
+                    const studentDoc = await (User as any).findById(currentStudentId).select("attendance").lean() as any;
+                    const existingRecord = (studentDoc?.attendance || []).find(
+                        (a: any) => a.classId?.toString() === classId.toString()
                     );
-                } else {
-                    await (User as any).updateOne(
-                        { _id: studentId },
-                        {
-                            $push: {
-                                attendance: {
-                                    classId,
-                                    status: newAttendanceStatus,
-                                    reasonForCancellation: reqObj.reasonForCancellation || ""
+
+                    if (existingRecord) {
+                        await (User as any).updateOne(
+                            { _id: currentStudentId },
+                            {
+                                $set: {
+                                    "attendance.$[elem].status": newAttendanceStatus,
+                                    "attendance.$[elem].reasonForCancellation": reqObj.reasonForCancellation || ""
+                                }
+                            },
+                            { arrayFilters: [{ "elem.classId": classId }] }
+                        );
+                    } else {
+                        await (User as any).updateOne(
+                            { _id: currentStudentId },
+                            {
+                                $push: {
+                                    attendance: {
+                                        classId,
+                                        status: newAttendanceStatus,
+                                        reasonForCancellation: reqObj.reasonForCancellation || ""
+                                    }
                                 }
                             }
+                        );
+                    }
+
+                    // Delete feedbacks
+                    await Promise.all([
+                        Feedback.deleteMany({ classId, userId: currentStudentId }),
+                        FeedbackDance.deleteMany({ classId, userId: currentStudentId }),
+                        FeedbackDrawing.deleteMany({ classId, userId: currentStudentId }),
+                        FeedbackDrums.deleteMany({ classId, userId: currentStudentId }),
+                        FeedbackVocal.deleteMany({ classId, userId: currentStudentId }),
+                        FeedbackViolin.deleteMany({ classId, userId: currentStudentId })
+                    ]);
+
+                    // Handle credit/package logic
+                    const cancellationRes = await fetch(
+                        `${baseUrl}/Api/teamlead/handleCancellation`,
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Cookie": request.headers.get("cookie") || ""
+                            },
+                            body: JSON.stringify({
+                                studentId: currentStudentId.toString(),
+                                classId: classId.toString(),
+                                creditDeduction: reqObj.creditDeduction,
+                                singleStudent: reqObj.singleStudent
+                            })
                         }
                     );
+
+                    const cancellationData = await cancellationRes.json();
+                    if (!cancellationRes.ok || !cancellationData.success) {
+                        console.error(`Failed package logic for student ${currentStudentId}:`, cancellationData.error);
+                        // Don't block — continue with other students
+                    }
                 }
-                // If single student, mark the class as canceled
-                if (reqObj.singleStudent) {
+
+                // Mark class as canceled for class-level requests
+                if (isClassLevel) {
                     await Class.updateOne(
                         { _id: classId },
                         { $set: { status: "canceled" } }
                     );
-                }
-
-                await Promise.all([
-                    Feedback.deleteMany({ classId: classId, userId: studentId }),
-                    FeedbackDance.deleteMany({ classId: classId, userId: studentId }),
-                    FeedbackDrawing.deleteMany({ classId: classId, userId: studentId }),
-                    FeedbackDrums.deleteMany({ classId: classId, userId: studentId }),
-                    FeedbackVocal.deleteMany({ classId: classId, userId: studentId }),
-                    FeedbackViolin.deleteMany({ classId: classId, userId: studentId })
-                ]);
-
-                // Call the cancellation handler API
-                const baseUrl = request.nextUrl.origin;
-                const cancellationRes = await fetch(
-                    `${baseUrl}/Api/teamlead/handleCancellation`,
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "Cookie": request.headers.get("cookie") || ""  // forward auth cookie
-                        },
-                        body: JSON.stringify({
-                            studentId: studentId.toString(),
-                            classId: classId.toString(),
-                            creditDeduction: reqObj.creditDeduction,
-                            singleStudent: reqObj.singleStudent
-                        })
-                    }
-                );
-
-                const cancellationData = await cancellationRes.json();
-                if (!cancellationRes.ok || !cancellationData.success) {
-                    return NextResponse.json({
-                        success: false,
-                        error: cancellationData.error || "Failed to handle credit/package logic"
-                    }, { status: 500 });
+                } else if (reqObj.singleStudent) {
+                    await Class.updateOne(
+                        { _id: classId },
+                        { $set: { status: "canceled" } }
+                    );
                 }
             }
             await AttendanceResetRequest.updateOne(
