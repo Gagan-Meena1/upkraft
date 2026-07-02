@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { studentId, classId, creditDeduction, singleStudent } = body;
+        const { studentId, classId, creditDeduction, singleStudent, isNewRecord } = body;
 
         if (!studentId || !classId) {
             return NextResponse.json({ success: false, error: "studentId and classId are required" }, { status: 400 });
@@ -109,8 +109,8 @@ export async function POST(request: NextRequest) {
 
         const currentEndDate = activeEntry.endDate ? new Date(activeEntry.endDate) : new Date();
 
-        if (creditDeduction === true && !singleStudent) {
-            // --- WITH DEDUCTION: decrement credits on this package entry ---
+        if (creditDeduction === true && !singleStudent && isNewRecord) {
+            // --- WITH DEDUCTION: decrement credits on this package entry (only for new records) ---
             await (User as any).updateOne(
                 { _id: studentId },
                 {
@@ -124,6 +124,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({
                 success: true,
                 message: "Credit deducted from active package"
+            });
+
+        } else if (creditDeduction === true && !singleStudent && !isNewRecord) {
+            // --- WITH DEDUCTION but existing record: skip credit deduction ---
+            return NextResponse.json({
+                success: true,
+                message: "Attendance updated (existing record — no credit deducted)"
             });
 
         } else {
