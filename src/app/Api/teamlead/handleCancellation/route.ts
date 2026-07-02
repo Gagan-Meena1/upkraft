@@ -107,6 +107,8 @@ export async function POST(request: NextRequest) {
             (entry: any) => entry.courseId?.toString() === courseId
         );
 
+        const currentEndDate = activeEntry.endDate ? new Date(activeEntry.endDate) : new Date();
+
         if (creditDeduction === true && !singleStudent) {
             // --- WITH DEDUCTION: decrement credits on this package entry ---
             await (User as any).updateOne(
@@ -125,54 +127,104 @@ export async function POST(request: NextRequest) {
             });
 
         } else {
-            // --- WITHOUT DEDUCTION: find next class after endDate, add to package ---
-            const currentEndDate = activeEntry.endDate ? new Date(activeEntry.endDate) : new Date();
+            // ── WITHOUT DEDUCTION: find next class based on package's distinct weekdays ──
 
-            // Get the weekday of the cancelled class (0=Sun, 1=Mon, ... 6=Sat)
-            const cancelledWeekday = new Date(cancelledClass.startTime).getUTCDay();
+            // 1. Fetch all classes in the active package entry
+            const packageClassIds = (activeEntry.classIds || []).map(
+                (id: any) => new mongoose.Types.ObjectId(id)
+            );
 
-            // Fetch all scheduled classes of this course after endDate, sorted ascending
-            const candidateClasses = await Class.find({
+            const packageClasses = await Class.find({
+                _id: { $in: packageClassIds }
+            }).select("startTime endTime").lean() as any[];
+
+            // 2. Find distinct weekdays from package classes
+            const weekdaySet = new Set<number>();
+            const weekdayToClassTime = new Map<number, { startHour: number; startMin: number; duration: number }>();
+
+            for (const cls of packageClasses) {
+                const d = new Date(cls.startTime);
+                const weekday = d.getUTCDay();
+                weekdaySet.add(weekday);
+                // Store time for this weekday — last one wins, but all classes
+                // on same weekday should have same time
+                if (!weekdayToClassTime.has(weekday)) {
+                    const endD = new Date(cls.endTime);
+                    weekdayToClassTime.set(weekday, {
+                        startHour: d.getUTCHours(),
+                        startMin: d.getUTCMinutes(),
+                        duration: endD.getTime() - d.getTime()
+                    });
+                }
+            }
+
+            const distinctWeekdays = Array.from(weekdaySet).sort((a, b) => a - b);
+
+            if (distinctWeekdays.length === 0) {
+                return NextResponse.json({
+                    success: false,
+                    error: "No weekdays found in package classes"
+                }, { status: 400 });
+            }
+
+            // 3. Find the earliest date after currentEndDate that matches any package weekday
+            const searchFrom = new Date(currentEndDate);
+            searchFrom.setUTCDate(searchFrom.getUTCDate() + 1); // start from day after endDate
+            searchFrom.setUTCHours(0, 0, 0, 0);
+
+            let targetDate: Date | null = null;
+            let targetWeekday: number = -1;
+
+            // Walk forward day by day until we hit a matching weekday (max 7 days)
+            for (let i = 0; i < 7; i++) {
+                const candidate = new Date(searchFrom);
+                candidate.setUTCDate(searchFrom.getUTCDate() + i);
+                const candidateWeekday = candidate.getUTCDay();
+                if (distinctWeekdays.includes(candidateWeekday)) {
+                    targetDate = candidate;
+                    targetWeekday = candidateWeekday;
+                    break;
+                }
+            }
+
+            if (!targetDate || targetWeekday === -1) {
+                return NextResponse.json({
+                    success: false,
+                    error: "Could not determine target date for new class"
+                }, { status: 500 });
+            }
+
+            // 4. Look for existing scheduled class of same course on targetDate
+            const targetDayStart = new Date(targetDate);
+            targetDayStart.setUTCHours(0, 0, 0, 0);
+            const targetDayEnd = new Date(targetDate);
+            targetDayEnd.setUTCHours(23, 59, 59, 999);
+
+            const existingClass = await Class.findOne({
                 course: new mongoose.Types.ObjectId(courseId),
-                startTime: { $gt: currentEndDate },
+                startTime: { $gte: targetDayStart, $lte: targetDayEnd },
                 status: { $in: ["scheduled", "rescheduled"] }
-            })
-                .sort({ startTime: 1 })
-                .lean() as any[];
+            }).lean() as any;
 
-            // Pick the first one that falls on the same weekday as the cancelled class
-            const nextClass = candidateClasses.find(
-                (cls: any) => new Date(cls.startTime).getUTCDay() === cancelledWeekday
-            ) || null;
-
-            let nextClassId: string;
+            let nextClassId: mongoose.Types.ObjectId;
             let nextClassDate: Date;
 
-            if (nextClass) {
-                nextClassId = nextClass._id.toString();
-                nextClassDate = new Date(nextClass.startTime);
+            if (existingClass) {
+                nextClassId = existingClass._id;
+                nextClassDate = new Date(existingClass.startTime);
             } else {
-                // No class found — create one copying details from the cancelled class
-                // Calculate the same time of day (HH:mm) but on the day after currentEndDate
-                const cancelledStart = new Date(cancelledClass.startTime);
-                const cancelledEnd = new Date(cancelledClass.endTime);
-
-                // Duration in ms
-                const duration = cancelledEnd.getTime() - cancelledStart.getTime();
-
-                // Find next occurrence of the same weekday after currentEndDate
-                const newStartDate = new Date(currentEndDate);
-                newStartDate.setUTCDate(newStartDate.getUTCDate() + 1); // start from day after endDate
-                // Advance until we hit the same weekday as the cancelled class
-                while (newStartDate.getUTCDay() !== cancelledWeekday) {
-                    newStartDate.setUTCDate(newStartDate.getUTCDate() + 1);
+                // 5. Create new class — copy time from a package class on the same weekday
+                const timeInfo = weekdayToClassTime.get(targetWeekday);
+                if (!timeInfo) {
+                    return NextResponse.json({
+                        success: false,
+                        error: "Could not find time info for target weekday"
+                    }, { status: 500 });
                 }
-                newStartDate.setUTCHours(
-                    cancelledStart.getUTCHours(),
-                    cancelledStart.getUTCMinutes(),
-                    0, 0
-                );
-                const newEndDate = new Date(newStartDate.getTime() + duration);
+
+                const newStartDate = new Date(targetDate);
+                newStartDate.setUTCHours(timeInfo.startHour, timeInfo.startMin, 0, 0);
+                const newEndDate = new Date(newStartDate.getTime() + timeInfo.duration);
 
                 const newClass = await Class.create({
                     title: cancelledClass.title,
@@ -182,14 +234,15 @@ export async function POST(request: NextRequest) {
                     startTime: newStartDate,
                     endTime: newEndDate,
                     status: "scheduled",
-                    classType: cancelledClass.classType || "makeup",
+                    classType: "makeup"
                 });
 
-                // Add to student's classes array too
+                // Add to student's and tutor's classes arrays
                 await (User as any).updateOne(
                     { _id: studentId },
                     { $addToSet: { classes: newClass._id } }
                 );
+
                 if (cancelledClass.instructor) {
                     await (User as any).updateOne(
                         { _id: cancelledClass.instructor },
@@ -197,18 +250,17 @@ export async function POST(request: NextRequest) {
                     );
                 }
 
-                nextClassId = newClass._id.toString();
+                nextClassId = newClass._id;
                 nextClassDate = newStartDate;
             }
 
-            // Add nextClassId to the classIds of the active package entry
-            // and update endDate to the new class's date
+            // Update package entry — add classId and extend endDate
             await (User as any).updateOne(
                 { _id: studentId },
                 {
                     $addToSet: {
                         [`creditsPerCourse.${courseEntryIndex}.startTime.${activeEntryIndex}.classIds`]:
-                            new mongoose.Types.ObjectId(nextClassId)
+                            new mongoose.Types.ObjectId(nextClassId.toString())
                     },
                     $set: {
                         [`creditsPerCourse.${courseEntryIndex}.startTime.${activeEntryIndex}.endDate`]:
@@ -220,14 +272,16 @@ export async function POST(request: NextRequest) {
             // Also add to student's classes array if not already there
             await (User as any).updateOne(
                 { _id: studentId },
-                { $addToSet: { classes: new mongoose.Types.ObjectId(nextClassId) } }
+                { $addToSet: { classes: new mongoose.Types.ObjectId(nextClassId.toString()) } }
             );
 
             return NextResponse.json({
                 success: true,
                 message: "Package extended with a new class",
                 newClassId: nextClassId,
-                newEndDate: nextClassDate
+                newEndDate: nextClassDate,
+                targetWeekday,
+                distinctWeekdays
             });
         }
 
