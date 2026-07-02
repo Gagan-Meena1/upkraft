@@ -805,7 +805,8 @@ export default function RMTutorCalendarPage() {
                       if (record?.status) studentStatus = record.status;
                     }
 
-                    const sc = STATUS_COLORS[studentStatus] || STATUS_COLORS.pending;
+                    const normalizedStatus = studentStatus === "canceled" ? "cancelled" : studentStatus;
+                    const sc = STATUS_COLORS[normalizedStatus] || STATUS_COLORS.pending;
                     const isEditing = editingStudentId === student._id;
                     const isSingleStudent = selectedClassForAttendance.students.length === 1;
                     const showCreditOption = selectedNewStatus === "cancelled" && !isSingleStudent;

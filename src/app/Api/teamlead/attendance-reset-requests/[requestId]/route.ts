@@ -114,6 +114,7 @@ export async function PUT(
                     const existingRecord = (studentDoc?.attendance || []).find(
                         (a: any) => a.classId?.toString() === classId.toString()
                     );
+                    const isNewRecord = !existingRecord;
 
                     if (existingRecord) {
                         await (User as any).updateOne(
@@ -164,7 +165,8 @@ export async function PUT(
                                 studentId: currentStudentId.toString(),
                                 classId: classId.toString(),
                                 creditDeduction: reqObj.creditDeduction,
-                                singleStudent: reqObj.singleStudent
+                                singleStudent: reqObj.singleStudent,
+                                isNewRecord
                             })
                         }
                     );

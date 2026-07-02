@@ -185,42 +185,86 @@ export async function PUT(request: NextRequest) {
                     }
 
                 } else {
-                    // ── WITHOUT DEDUCTION: find next class of same weekday after currentEndDate ──
-                    const cancelledWeekday = new Date(cls.startTime).getUTCDay();
+                    // ── WITHOUT DEDUCTION: find next class based on package's distinct weekdays ──
 
-                    // Fetch future classes of this course after currentEndDate
-                    const candidateClasses = await Class.find({
+                    // Fetch all classes in the active package entry
+                    const packageClassIds = (startTimeEntries[activeEntryIdx].classIds || []).map(
+                        (id: any) => new mongoose.Types.ObjectId(id)
+                    );
+
+                    const packageClasses = await Class.find({
+                        _id: { $in: packageClassIds }
+                    }).select("startTime endTime").lean() as any[];
+
+                    // Find distinct weekdays and time per weekday
+                    const weekdaySet = new Set<number>();
+                    const weekdayToClassTime = new Map<number, { startHour: number; startMin: number; duration: number }>();
+
+                    for (const pkgCls of packageClasses) {
+                        const d = new Date(pkgCls.startTime);
+                        const weekday = d.getUTCDay();
+                        weekdaySet.add(weekday);
+                        if (!weekdayToClassTime.has(weekday)) {
+                            const endD = new Date(pkgCls.endTime);
+                            weekdayToClassTime.set(weekday, {
+                                startHour: d.getUTCHours(),
+                                startMin: d.getUTCMinutes(),
+                                duration: endD.getTime() - d.getTime()
+                            });
+                        }
+                    }
+
+                    const distinctWeekdays = Array.from(weekdaySet).sort((a, b) => a - b);
+
+                    if (distinctWeekdays.length === 0) continue; // skip if no weekdays found
+
+                    // Find earliest date after currentEndDate matching any package weekday
+                    const searchFrom = new Date(currentEndDate);
+                    searchFrom.setUTCDate(searchFrom.getUTCDate() + 1);
+                    searchFrom.setUTCHours(0, 0, 0, 0);
+
+                    let targetDate: Date | null = null;
+                    let targetWeekday: number = -1;
+
+                    for (let i = 0; i < 7; i++) {
+                        const candidate = new Date(searchFrom);
+                        candidate.setUTCDate(searchFrom.getUTCDate() + i);
+                        const candidateWeekday = candidate.getUTCDay();
+                        if (distinctWeekdays.includes(candidateWeekday)) {
+                            targetDate = candidate;
+                            targetWeekday = candidateWeekday;
+                            break;
+                        }
+                    }
+
+                    if (!targetDate || targetWeekday === -1) continue; // skip if no target date found
+
+                    // Look for existing class of same course on targetDate
+                    const targetDayStart = new Date(targetDate);
+                    targetDayStart.setUTCHours(0, 0, 0, 0);
+                    const targetDayEnd = new Date(targetDate);
+                    targetDayEnd.setUTCHours(23, 59, 59, 999);
+
+                    const existingClass = await Class.findOne({
                         course: new mongoose.Types.ObjectId(courseId),
-                        startTime: { $gt: currentEndDate },
+                        startTime: { $gte: targetDayStart, $lte: targetDayEnd },
                         status: { $in: ["scheduled", "rescheduled"] }
-                    })
-                        .sort({ startTime: 1 })
-                        .lean() as any[];
-
-                    const nextClass = candidateClasses.find(
-                        (c: any) => new Date(c.startTime).getUTCDay() === cancelledWeekday
-                    ) || null;
+                    }).lean() as any;
 
                     let nextClassId: mongoose.Types.ObjectId;
                     let nextClassDate: Date;
 
-                    if (nextClass) {
-                        nextClassId = nextClass._id;
-                        nextClassDate = new Date(nextClass.startTime);
+                    if (existingClass) {
+                        nextClassId = existingClass._id;
+                        nextClassDate = new Date(existingClass.startTime);
                     } else {
-                        // Create new class copying details from cancelled class
-                        const cancelledStart = new Date(cls.startTime);
-                        const cancelledEnd = new Date(cls.endTime);
-                        const duration = cancelledEnd.getTime() - cancelledStart.getTime();
+                        // Create new class using time from package class on same weekday
+                        const timeInfo = weekdayToClassTime.get(targetWeekday);
+                        if (!timeInfo) continue;
 
-                        const newStartDate = new Date(currentEndDate);
-                        newStartDate.setUTCDate(newStartDate.getUTCDate() + 1);
-                        newStartDate.setUTCHours(
-                            cancelledStart.getUTCHours(),
-                            cancelledStart.getUTCMinutes(),
-                            0, 0
-                        );
-                        const newEndDate = new Date(newStartDate.getTime() + duration);
+                        const newStartDate = new Date(targetDate);
+                        newStartDate.setUTCHours(timeInfo.startHour, timeInfo.startMin, 0, 0);
+                        const newEndDate = new Date(newStartDate.getTime() + timeInfo.duration);
 
                         const newClass = await Class.create({
                             title: cls.title,
@@ -233,7 +277,9 @@ export async function PUT(request: NextRequest) {
                             classType: "makeup"
                         });
 
-                        // Add to tutor's classes
+                        // Add to student's and tutor's classes
+                        newClassIdsToAdd.push(newClass._id);
+
                         if (cls.instructor) {
                             await (User as any).updateOne(
                                 { _id: cls.instructor },
@@ -245,19 +291,18 @@ export async function PUT(request: NextRequest) {
                         nextClassDate = newStartDate;
                     }
 
-                    // Track new classId to add to student.classes
-                    newClassIdsToAdd.push(nextClassId);
-
-                    // Update endDate in memory for next iteration of this course
+                    // Update endDate in memory for next iteration of same course
                     creditSetFields[endDateKey] = nextClassDate;
 
-                    // Add classId to the package entry's classIds in memory
+                    // Track classId to add to package entry
                     const classIdsKey = `creditsPerCourse.${courseEntryIdx}.startTime.${activeEntryIdx}.classIds`;
-                    // We can't use $push in a $set, so we'll collect these and handle via $push separately
                     if (!creditSetFields[`__push__${classIdsKey}`]) {
                         creditSetFields[`__push__${classIdsKey}`] = [];
                     }
                     creditSetFields[`__push__${classIdsKey}`].push(nextClassId);
+
+                    // Track for student's classes array
+                    newClassIdsToAdd.push(nextClassId);
                 }
             }
         }
