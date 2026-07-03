@@ -18,12 +18,14 @@ import {
   Menu,
   X,
   Home,
+  Package,
 } from "lucide-react";
 import Image from "next/image";
 import { PiNutBold } from "react-icons/pi";
 import { toast } from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { formatInTz, formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
+import StudentInfoPopup from "@/app/components/StudentInfoPopup";
 
 interface UserData {
   _id: string;
@@ -102,6 +104,7 @@ const StudentCalendarView = () => {
   
   // Add view state
   const [activeView, setActiveView] = useState<"day" | "week" | "month">("week");
+  const [showPackageDetails, setShowPackageDetails] = useState(false);
   const handleSetView = (v: "day" | "week" | "month") => {
     setActiveView(v);
   };
@@ -478,9 +481,18 @@ const StudentCalendarView = () => {
                                   >
                                     <ChevronLeft className="!text-gray-700 !w-5 !h-5 !sm:w-6 !sm:h-6" />
                                   </Link>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 m-0 p-0">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 m-0 p-0 flex-1">
             Student Calendar
           </h1>
+          {userId && (
+            <button
+              onClick={() => setShowPackageDetails(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-sm font-medium hover:from-purple-700 hover:to-indigo-700 transition-all shadow-sm"
+            >
+              <Package className="w-4 h-4" />
+              See Package Details
+            </button>
+          )}
           {isMobile && (
             <button
               onClick={toggleSidebar}
@@ -776,6 +788,15 @@ const StudentCalendarView = () => {
           </div>
         </main>
       </div>
+
+      {/* Package Details Popup */}
+      {showPackageDetails && userId && (
+        <StudentInfoPopup
+          studentId={userId}
+          studentName={userData?.username || userData?.name}
+          onClose={() => setShowPackageDetails(false)}
+        />
+      )}
     </div>
   );
 };

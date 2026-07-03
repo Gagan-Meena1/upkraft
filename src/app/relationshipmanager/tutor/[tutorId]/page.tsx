@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft, ChevronDown, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronDown, Trash2, X, Info } from "lucide-react";
 import { formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
 import { toast } from "react-hot-toast";
 import CancellationReasonPicker from "@/app/components/reasonForCancellation";
+import StudentInfoPopup from "@/app/components/StudentInfoPopup";
 
 interface Student {
   _id: string;
@@ -122,6 +123,7 @@ export default function RMTutorCalendarPage() {
   const [cancelCreditDeduction, setCancelCreditDeduction] = useState<"yes" | "no">("no");
   const [cancelReason, setCancelReason] = useState<string>("");
   const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
+  const [studentInfoId, setStudentInfoId] = useState<string | null>(null);
 
 
 
@@ -814,9 +816,21 @@ export default function RMTutorCalendarPage() {
                     return (
                       <div key={student._id} className="flex flex-col gap-2 p-2 rounded-lg bg-gray-50 border border-gray-100">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-900">
-                            {student.username || student.email || "—"}
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-gray-900">
+                              {student.username || student.email || "—"}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setStudentInfoId(student._id);
+                              }}
+                              className="p-0.5 rounded-full hover:bg-purple-100 text-purple-400 hover:text-purple-600 transition-colors"
+                              title="View student info"
+                            >
+                              <Info className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
 
                           {!isEditing ? (
                             <div className="flex items-center gap-2">
@@ -1138,6 +1152,14 @@ export default function RMTutorCalendarPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Student Info Popup */}
+      {studentInfoId && (
+        <StudentInfoPopup
+          studentId={studentInfoId}
+          onClose={() => setStudentInfoId(null)}
+        />
       )}
     </div>
   );
