@@ -307,7 +307,11 @@ export async function PUT(request: NextRequest) {
             }
         }
 
-        // ─── 4. Build final update operations ──────────────────────────────────
+        // ─── 4. Build and run update operations sequentially ─────────────────
+        // MongoDB cannot $set on "attendance.N.status" and $push to "attendance"
+        // in the same updateOne — they conflict on the "attendance" path.
+        // So we split: first $set (updates to existing records + credits),
+        // then $push (new attendance records), then classIds additions.
 
         // Separate out the __push__ keys from $set fields
         const pushToClassIds: Record<string, mongoose.Types.ObjectId[]> = {};
@@ -321,45 +325,34 @@ export async function PUT(request: NextRequest) {
             }
         }
 
-        // Merge attendance $set fields
+        // Merge attendance $set fields with credit $set fields
         const finalSetFields = { ...attendanceSetFields, ...cleanSetFields };
 
-        // Build $push for classIds arrays
-        // MongoDB doesn't support $push to multiple array paths in one op,
-        // so we do one updateOne per unique classIds path (rare — only when no class found)
-        const updateOps: Promise<any>[] = [];
-
-        // Main update — attendance + credits
-        const mainUpdate: any = {};
-        if (Object.keys(finalSetFields).length > 0) mainUpdate.$set = finalSetFields;
-        if (attendanceToPush.length > 0) {
-            mainUpdate.$push = {
-                attendance: { $each: attendanceToPush }
-            };
-        }
+        // Step 1: $set existing attendance + credits (+ $addToSet for student.classes)
+        const setUpdate: any = {};
+        if (Object.keys(finalSetFields).length > 0) setUpdate.$set = finalSetFields;
         if (newClassIdsToAdd.length > 0) {
-            if (!mainUpdate.$addToSet) mainUpdate.$addToSet = {};
-            mainUpdate.$addToSet.classes = { $each: newClassIdsToAdd };
+            setUpdate.$addToSet = { classes: { $each: newClassIdsToAdd } };
+        }
+        if (Object.keys(setUpdate).length > 0) {
+            await (User as any).updateOne({ _id: studentId }, setUpdate);
         }
 
-        if (Object.keys(mainUpdate).length > 0) {
-            updateOps.push(
-                (User as any).updateOne({ _id: studentId }, mainUpdate)
+        // Step 2: $push new attendance records (separate op to avoid path conflict)
+        if (attendanceToPush.length > 0) {
+            await (User as any).updateOne(
+                { _id: studentId },
+                { $push: { attendance: { $each: attendanceToPush } } }
             );
         }
 
-        // Push new classIds into package entries
+        // Step 3: Push new classIds into package entries
         for (const [path, ids] of Object.entries(pushToClassIds)) {
-            updateOps.push(
-                (User as any).updateOne(
-                    { _id: studentId },
-                    { $addToSet: { [path]: { $each: ids } } }
-                )
+            await (User as any).updateOne(
+                { _id: studentId },
+                { $addToSet: { [path]: { $each: ids } } }
             );
         }
-
-        // Run main update + any classIds pushes (these are separate paths, safe to parallel)
-        await Promise.all(updateOps);
 
         return NextResponse.json({
             success: true,
