@@ -33,7 +33,6 @@ export async function GET(request: NextRequest) {
 
     const pendingClasses = await (Class as any).find({ deleteRequestStatus: "pending" })
       .populate("instructor", "username email")
-      .populate("students", "username email")
       .populate("course", "courseName title name")
       .populate({ path: "deleteRequestStudents", select: "username email", strictPopulate: false })
       .sort({ createdAt: -1 })
