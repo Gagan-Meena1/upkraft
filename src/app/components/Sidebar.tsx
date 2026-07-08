@@ -7,6 +7,9 @@ import { BiBulb } from 'react-icons/bi';
 import { PiNutBold } from 'react-icons/pi';
 import { toast } from 'react-hot-toast';
 import { useUserData } from "@/app/providers/UserData/page";
+import { useDispatch } from 'react-redux';
+import { logout } from '@/store/slices/userSlice';
+import { persistor } from '@/store/store';
 
 interface SidebarItemProps {
   title: string;
@@ -86,6 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const toggleSidebarCollapse = () => {
     if (!isMobile) {
@@ -97,7 +101,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleLogout = async () => {
     try {
-      clearData(); // Clear user data
+      clearData();
+      dispatch(logout());
+      await persistor.purge();
       const response = await fetch('/Api/users/logout');
       if (response.ok) {
         toast.success('Logged out successfully');

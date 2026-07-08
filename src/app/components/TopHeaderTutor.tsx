@@ -8,11 +8,15 @@ import Chat from './Chat'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
 import { useUserData } from "@/app/providers/UserData/page";
+import { useDispatch } from 'react-redux';
+import { logout } from '@/store/slices/userSlice';
+import { persistor } from '@/store/store';
 
 const TopHeaderTutor = ({ role, setRole }) => {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+  const dispatch = useDispatch();
   const { userData, loading, clearData } = useUserData();
 
   const shouldShowDropdown = userData?.category === "Tutor" && userData?.academyId;
@@ -36,6 +40,8 @@ const TopHeaderTutor = ({ role, setRole }) => {
   const handleLogout = async () => {
     try {
       clearData();
+      dispatch(logout());
+      await persistor.purge();
       const response = await fetch('/Api/users/logout');
       if (response.ok) {
         toast.success('Logged out successfully');
