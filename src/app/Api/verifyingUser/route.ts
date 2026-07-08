@@ -108,7 +108,6 @@ export async function DELETE(request: NextRequest) {
     if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
 
     const { userId } = await request.json();
-    
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
