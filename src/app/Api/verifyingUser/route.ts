@@ -3,12 +3,22 @@ import User from "@/models/userModel";
 import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import { sendEmail } from "@/helper/mailer";
+import { getDataFromToken } from "@/helper/getDataFromToken";
 
+async function requireAdmin(request: NextRequest) {
+  const callerId = getDataFromToken(request);
+  if (!callerId) return { error: "Unauthorized", status: 401 };
+  const caller = await User.findById(callerId).select("category");
+  if (!caller || caller.category !== "Admin") return { error: "Forbidden", status: 403 };
+  return null;
+}
 
 // GET - Fetch all Tutors separated by verification status
 export async function GET(request: NextRequest) {
   try {
     await connect();
+    const authError = await requireAdmin(request);
+    if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
     
     // Execute both queries in parallel for better performance
     const [verifiedTutors, unverifiedTutors] = await Promise.all([
@@ -49,7 +59,9 @@ console.log("Unverified Tutors:", unverifiedTutors.length);
 export async function PUT(request: NextRequest) {
   try {
     await connect();
-    
+    const authError = await requireAdmin(request);
+    if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
+
     const { userId } = await request.json();
     
     if (!userId) {
@@ -92,9 +104,10 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     await connect();
-    
+    const authError = await requireAdmin(request);
+    if (authError) return NextResponse.json({ error: authError.error }, { status: authError.status });
+
     const { userId } = await request.json();
-    
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }

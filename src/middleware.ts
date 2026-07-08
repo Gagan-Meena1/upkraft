@@ -1,9 +1,9 @@
 // middleware.ts
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jsonwebtoken';
+import { jwtVerify } from 'jose';
 
-export  function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const impersonateToken = request.cookies.get('impersonate_token')?.value;
   const { pathname } = request.nextUrl;
@@ -43,8 +43,11 @@ export  function middleware(request: NextRequest) {
   // Define public routes that should skip middleware
   const publicRoutes = ['/login', '/signup', '/register', '/', '/about'];
 
-  // Skip middleware for public routes
-  if (publicRoutes.some(route => pathname === route || pathname.startsWith(route))) {
+  // Skip middleware for public routes.
+  // Use exact match for '/' to prevent it from matching all paths via startsWith.
+  if (publicRoutes.some(route =>
+    route === '/' ? pathname === '/' : (pathname === route || pathname.startsWith(route + '/') || pathname === route)
+  )) {
     return NextResponse.next();
   }
 
@@ -62,8 +65,9 @@ export  function middleware(request: NextRequest) {
 
     try {
       // Verify token (checks signature AND expiration)
-          jwt.verify(activeToken, process.env.TOKEN_SECRET!);
-          console.log('[Middleware] Token valid, allowing access');
+      const secret = new TextEncoder().encode(process.env.TOKEN_SECRET!);
+      await jwtVerify(activeToken, secret);
+      console.log('[Middleware] Token valid, allowing access');
 
       // Token is valid, allow access. 
       // If we used an impersonateToken, we transparently swap it for the 'token'
