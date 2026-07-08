@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
+import { getDataFromToken } from "@/helper/getDataFromToken";
 
 export async function PUT(request: NextRequest) {
   try {
     await connect();
+
+    const callerId = getDataFromToken(request);
+    if (!callerId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+    const caller = await User.findById(callerId).select("category");
+    if (!caller || !["Admin", "TeamLead"].includes(caller.category)) {
+      return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    }
+
     const { tutorId, relationshipManagerId } = await request.json();
 
     if (!tutorId || !relationshipManagerId) {

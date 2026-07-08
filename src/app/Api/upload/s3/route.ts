@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getDataFromToken } from '@/helper/getDataFromToken';
+
+const ALLOWED_MIME_PREFIX = 'data:video/webm;base64,';
+const MAX_BYTES = 200 * 1024 * 1024; // 200 MB
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION!,
@@ -11,6 +15,11 @@ const s3Client = new S3Client({
 
 export async function POST(req: NextRequest) {
   try {
+    const callerId = getDataFromToken(req);
+    if (!callerId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { videoData, classId, studentId } = body;
 
@@ -21,9 +30,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!videoData.startsWith(ALLOWED_MIME_PREFIX)) {
+      return NextResponse.json(
+        { success: false, error: 'Only webm video uploads are permitted' },
+        { status: 415 }
+      );
+    }
+
     // Convert base64 to buffer
-    const base64Data = videoData.replace(/^data:video\/\w+;base64,/, '');
+    const base64Data = videoData.replace(/^data:video\/webm;base64,/, '');
+    const estimatedBytes = Math.ceil(base64Data.length * 0.75);
+    if (estimatedBytes > MAX_BYTES) {
+      return NextResponse.json(
+        { success: false, error: 'File exceeds the 200 MB size limit' },
+        { status: 413 }
+      );
+    }
     const buffer = Buffer.from(base64Data, 'base64');
+
 
     // Generate unique filename
     const fileName = `class-recordings/${classId}/${studentId}_${Date.now()}.webm`;

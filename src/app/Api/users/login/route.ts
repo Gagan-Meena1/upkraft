@@ -19,25 +19,16 @@ export async function POST(request : NextRequest ){
         const emailLowerCase = email.toLowerCase();
 
         console.log("email : " ,email)
-        const user = await User.findOne({
-          email: { $regex: `^${email}$`, $options: 'i' }
-        });
-        
-        console.log("User found", user);
+        const user = await User.findOne({ email: emailLowerCase });
+
         if(!user){
-            return NextResponse.json({error:"User does not exist"}, {status: 401})
-
+            return NextResponse.json({error:"Invalid credentials"}, {status: 401})
         }
-
-        console.log("User exists");
-        
 
        const validPassword=await bcryptjs.compare(password,user.password);
        if(!validPassword)
        {
-          console.log("[Invalid Password]");
-          return NextResponse.json({error:"Incorrect password"}, {status: 401})
-
+          return NextResponse.json({error:"Invalid credentials"}, {status: 401})
        }
 
        console.log("[Valid Password]");
@@ -54,18 +45,20 @@ export async function POST(request : NextRequest ){
       console.log("[Token generated]");
       const response=NextResponse.json({
         message: "Login successful",
-        token, // Send token if using authentication
         user: {
           id: user._id,
           email: user.email,
-          category: user.category, // Student, Tutor, etc.
-          isVerified: user.isVerified, // Include verification status
+          category: user.category,
+          isVerified: user.isVerified,
         },
       });
 
-      response.cookies.set("token",token,{
-        httpOnly:true
-      })
+      response.cookies.set("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+      });
 
        console.log("[Login successful]");
        return response

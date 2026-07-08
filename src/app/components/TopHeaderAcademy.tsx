@@ -9,7 +9,8 @@ import LogoHeader from '../../assets/LogoHeader.png'
 import { Button, Dropdown, Form } from 'react-bootstrap'
 import Author from '../../assets/author-01.png'
 import { useDispatch } from 'react-redux'
-import { setUsers } from '@/store/slices/userSlice'
+import { setUsers, logout } from '@/store/slices/userSlice'
+import { persistor } from '@/store/store'
 
 interface UserData {
   _id: string;
@@ -71,6 +72,8 @@ const TopHeaderAcademy = () => {
 
   const handleLogout = async () => {
     try {
+      dispatch(logout());
+      await persistor.purge();
       const response = await fetch('/Api/users/logout');
       if (response.ok) {
         toast.success('Logged out successfully');
