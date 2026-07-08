@@ -19,9 +19,7 @@ export async function POST(request: NextRequest) {
     const emailLowerCase = email.toLowerCase();
 
     console.log("email : ", email)
-    const user = await User.findOne({
-      email: { $regex: `^${email}$`, $options: 'i' }
-    });
+    const user = await User.findOne({ email: emailLowerCase });
 
     if (!user) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
