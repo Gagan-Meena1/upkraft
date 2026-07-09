@@ -17,16 +17,19 @@ import { FileMusic } from 'lucide-react';
 import { Music } from 'lucide-react';
 import { BookOpen } from 'lucide-react';
 import { CreditCard } from 'lucide-react';
-import { useUserData } from "@/app/providers/UserData/page"; // ✅ Also works
-
+import { useUserData } from "@/app/providers/UserData/page";
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
+import { useDispatch } from 'react-redux';
+import { logout } from '@/store/slices/userSlice';
+import { persistor } from '@/store/store';
 
 
 const SideMenuHeader = ({ role }) => {
   const pathname = usePathname();
   const { userData, loading, clearData } = useUserData();
   const router = useRouter();
+  const dispatch = useDispatch();
 
 
   // Fetch user data to check for academyId
@@ -42,7 +45,9 @@ const SideMenuHeader = ({ role }) => {
 
   const handleLogout = async () => {
     try {
-      clearData(); // Clear user data immediately to prevent flickering
+      clearData();
+      dispatch(logout());
+      await persistor.purge();
       const response = await fetch('/Api/users/logout');
       if (response.ok) {
         toast.success('Logged out successfully');
