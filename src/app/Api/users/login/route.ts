@@ -52,7 +52,9 @@ export async function POST(request: NextRequest) {
         email: user.email,
         category: user.category,
         isVerified: user.isVerified,
+
       },
+
     });
 
     response.cookies.set("token", token, {

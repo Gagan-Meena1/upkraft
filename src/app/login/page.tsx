@@ -54,7 +54,7 @@ export default function LoginPage() {
         return;
       }
 
-      if (!response.data.user?.category || !response.data.token) {
+      if (!response.data.user?.category) {
         toast.error("Invalid response from server");
         return;
       }
@@ -86,7 +86,6 @@ export default function LoginPage() {
       toast.success("Login successful");
 
       // routing based on normalized category
-      localStorage?.setItem("token", response.data.token)
       if (normalizedCategory === "student") {
         router.push("/student");
       } else if (normalizedCategory === "tutor") {

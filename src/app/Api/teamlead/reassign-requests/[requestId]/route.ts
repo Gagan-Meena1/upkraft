@@ -3,6 +3,7 @@ import { connect } from "@/dbConnection/dbConfic";
 import ReassignRequest from "@/models/ReassignRequest";
 import CourseName from "@/models/courseName";
 import User from "@/models/userModel";
+import Class from "@/models/Class";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -61,12 +62,12 @@ export async function PUT(
             }
 
             // PERFORM ACTUAL REASSIGNMENT
-            
+
             // 1. Handle oldTutor removal based on type
             if (reassignType === "permanent") {
                 // Remove oldTutorId from student.instructorId
                 student.instructorId = (student.instructorId || []).filter((id: any) => id.toString() !== oldTutorId.toString());
-                
+
                 // Remove student from oldTutor.students
                 oldTutor.students = (oldTutor.students || []).filter((id: any) => id.toString() !== studentId.toString());
             }
@@ -81,31 +82,52 @@ export async function PUT(
             }
 
             // 3. Inherit courses + classes: Add the assigned courses (and their classes) from old tutor to new tutor
-const studentCourseIds = student.courses || [];
-const oldTutorCourseIds = oldTutor.courses || [];
-const commonCourseIds = studentCourseIds.filter((courseId: any) =>
-    oldTutorCourseIds.some((oldId: any) => oldId.toString() === courseId.toString())
-);
+            const studentCourseIds = student.courses || [];
+            const oldTutorCourseIds = oldTutor.courses || [];
+            const commonCourseIds = studentCourseIds.filter((courseId: any) =>
+                oldTutorCourseIds.some((oldId: any) => oldId.toString() === courseId.toString())
+            );
 
-// Fetch the common courses to get their associated classes
+            // Fetch the common courses to get their associated classes
 
-const commonCourses = await (CourseName as any).find({ _id: { $in: commonCourseIds } }).select("class");
-commonCourseIds.forEach((courseId: any) => {
-    if (!newTutor.courses.some((id: any) => id.toString() === courseId.toString())) {
-        newTutor.courses.push(courseId);
-    }
-});
+            const commonCourses = await (CourseName as any).find({ _id: { $in: commonCourseIds } }).select("class");
+            commonCourseIds.forEach((courseId: any) => {
+                if (!newTutor.courses.some((id: any) => id.toString() === courseId.toString())) {
+                    newTutor.courses.push(courseId);
+                }
+            });
 
-// Add all classes from those courses to new tutor
-const newTutorClassSet = new Set((newTutor.classes || []).map((id: any) => id.toString()));
-for (const course of commonCourses) {
-    for (const classId of (course.class || [])) {
-        if (!newTutorClassSet.has(classId.toString())) {
-            newTutor.classes.push(classId);
-            newTutorClassSet.add(classId.toString());
-        }
-    }
-}
+            // Add all classes from those courses to new tutor
+            const newTutorClassSet = new Set((newTutor.classes || []).map((id: any) => id.toString()));
+            for (const course of commonCourses) {
+                for (const classId of (course.class || [])) {
+                    if (!newTutorClassSet.has(classId.toString())) {
+                        newTutor.classes.push(classId);
+                        newTutorClassSet.add(classId.toString());
+                    }
+                }
+            }
+
+
+            // ✅ Update instructor on all common Classes
+            await Class.updateMany(
+                { _id: { $in: newTutor.classes }, instructor: oldTutorId },
+                { $set: { instructor: new mongoose.Types.ObjectId(newTutorId) } }
+            );
+            // ✅ Update academyInstructorId on all common Courses
+            await CourseName.updateMany(
+                { _id: { $in: commonCourseIds } },
+                {
+                    $pull: { academyInstructorId: new mongoose.Types.ObjectId(oldTutorId) },
+                }
+            );
+
+            await CourseName.updateMany(
+                { _id: { $in: commonCourseIds } },
+                {
+                    $addToSet: { academyInstructorId: new mongoose.Types.ObjectId(newTutorId) },
+                }
+            );
 
             await Promise.all([
                 student.save(),
