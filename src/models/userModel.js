@@ -384,8 +384,8 @@ const userSchema = new mongoose.Schema({
         default: null,
     },
     instruments: {
-        type: String,
-        default: "",
+        type: [String],
+        default: [],
     }
 },
     { timestamps: true }
