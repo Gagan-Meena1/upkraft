@@ -1,5 +1,5 @@
 "use client";
- 
+
 // Static imports for CSS
 import "rsuite/dist/rsuite.min.css";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -7,7 +7,7 @@ import "@fortawesome/fontawesome-free/css/all.min.css";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
- 
+
 // Local CSS imports
 // import "../../app/globals.css";
 import "@/styles/globals.css";
@@ -21,12 +21,15 @@ import "../../app/media.css";
 //import "../../app/media.css";
 //import "../../app/custom.css";
 //import "@/styles/style.css";
- 
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+import { store, persistor } from "@/store/store";
+
 import { Toaster } from "react-hot-toast";
 import Chat from "./Chat";
-import { useEffect } from "react";  
+import { useEffect } from "react";
 import { UserDataProvider } from "../providers/UserData/page";
- 
+
 export default function ClientLayout({
   children,
 }: {
@@ -41,17 +44,18 @@ export default function ClientLayout({
         console.error("Error loading Bootstrap:", error);
       }
     };
- 
+
     loadBootstrap();
   }, []);
- 
+
   return (
-    <>
-    <UserDataProvider>
-      <Toaster position="top-center" />
-      {children}
-      {/* <Chat /> */}
-    </UserDataProvider>
-    </>
+    <Provider store={store}>
+      <PersistGate loading={null} persistor={persistor}>
+        <UserDataProvider>
+          <Toaster position="top-center" />
+          {children}
+        </UserDataProvider>
+      </PersistGate>
+    </Provider>
   );
 }
