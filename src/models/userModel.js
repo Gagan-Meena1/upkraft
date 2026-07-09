@@ -380,12 +380,29 @@ const userSchema = new mongoose.Schema({
     // For tutors: which Relationship Manager they are assigned to
     relationshipManager: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: "users",
         default: null,
     },
     instruments: {
         type: [String],
         default: [],
+    },
+    hideFromRenewalDashboard: {
+        type: Boolean,
+        default: false
+    },
+    salesSPOC: {
+        type: String,
+        default: "",
+    },
+    renewalStatus: {
+        type: String,
+        enum: ['Not Contacted', 'In Discussion', 'Renewed', 'Dropped', 'Follow Up'],
+        default: 'Not Contacted',
+    },
+    notes: {
+        type: String,
+        default: "",
     }
 },
     { timestamps: true }
