@@ -21,13 +21,15 @@ export async function GET(request: NextRequest) {
         const fSpoc = searchParams.get("spoc") || "";
         const fType = searchParams.get("type") || "";
         const fRenewal = searchParams.get("renewalStatus") || "";
+        const now = new Date();
+
 
         // 1. Fetch all students with necessary fields (Lean for performance)
         const students = await User.find({
             category: "Student",
             hideFromRenewalDashboard: { $ne: true }
         })
-            .select("username email contact address city creditsPerCourse attendance instructorId relationshipManager salesSPOC renewalStatus notes type")
+            .select("username email contact address city creditsPerCourse attendance instructorId studentSociety studentRM salesSPOC renewalStatus notes type")
             .populate({ path: "instructorId", select: "username", model: User })
             .populate({ path: "relationshipManager", select: "username", model: User })
             .lean() as any[];
@@ -37,10 +39,10 @@ export async function GET(request: NextRequest) {
 
         for (const student of students) {
             // Apply student-level filters
-            if (fSociety && student.address !== fSociety) continue; // Assuming society is address
             if (fSpoc && student.salesSPOC !== fSpoc) continue;
             if (fRenewal && student.renewalStatus !== fRenewal) continue;
-            if (fRm && student.relationshipManager?.username !== fRm) continue;
+            if (fSociety && (student.studentSociety || student.address) !== fSociety) continue;
+            if (fRm && (student.studentRM || student.relationshipManager?.username) !== fRm) continue;
 
             // Search filter (name, phone, email)
             if (search) {
@@ -72,6 +74,15 @@ export async function GET(request: NextRequest) {
                         latestIndex = si;
                     }
                 }
+                // Find the earliest startTime across ALL courses for this student
+                const earliestStartDate = (student.creditsPerCourse || []).reduce((earliest: Date | null, courseEntry: any) => {
+                    const entries = courseEntry.startTime || [];
+                    for (const entry of entries) {
+                        const d = entry.date ? new Date(entry.date) : null;
+                        if (d && (!earliest || d < earliest)) return d;
+                    }
+                    return earliest;
+                }, null);
 
                 // Add to flat list
                 allPackages.push({
@@ -79,10 +90,11 @@ export async function GET(request: NextRequest) {
                     studentName: student.username,
                     email: student.email,
                     contact: student.contact,
-                    society: student.address,
+                    society: student.studentSociety || student.address || "",   // fallback to address if empty
+                    rmName: student.studentRM || "",
                     tutorName: Array.isArray(student.instructorId)
                         ? student.instructorId.map((t: any) => t?.username).filter(Boolean).join(", ")
-                        : "", rmName: student.relationshipManager?.username || "",
+                        : "",
                     salesSPOC: student.salesSPOC || "",
                     renewalStatus: student.renewalStatus || "Not Contacted",
                     notes: student.notes || "",
@@ -92,7 +104,9 @@ export async function GET(request: NextRequest) {
                     entryIndex: latestIndex,
                     courseEntryIndex: ci,
                     attendance: student.attendance || [],
-                    creditsPerCourse: student.creditsPerCourse
+                    creditsPerCourse: student.creditsPerCourse,
+                    startDate: earliestStartDate ? earliestStartDate.toISOString() : "",
+
                 });
             }
         }
@@ -105,11 +119,53 @@ export async function GET(request: NextRequest) {
             allPackages = allPackages.filter(p => p.type === fType);
         }
 
-        // 3. Sort by endDate (ascending: nearer/past dates first)
+        // Card filter
+        const cardFilter = searchParams.get("cardFilter") || "all";
+        if (cardFilter !== "all") {
+            allPackages = allPackages.filter(pkg => {
+                const renewalStatus = pkg.renewalStatus || "Not Contacted";
+
+                // Calculate completion + daysLeft inline
+                const classIds = (pkg.latestEntry.classIds || []).map((id: any) => id.toString());
+                const attendanceMap = new Map<string, string>();
+                for (const a of pkg.attendance) {
+                    if (a.classId) attendanceMap.set(a.classId.toString(), a.status);
+                }
+                const completed = classIds.filter((id: string) => {
+                    const s = attendanceMap.get(id);
+                    return s === "present" || s === "absent";
+                }).length;
+                const completion = classIds.length > 0 ? (completed / classIds.length) * 100 : 0;
+                const daysLeft = pkg.latestEntry.endDate
+                    ? (() => {
+                        const end = new Date(pkg.latestEntry.endDate);
+                        end.setHours(0, 0, 0, 0);          // strip time from endDate
+                        const today = new Date(now);
+                        today.setHours(0, 0, 0, 0);        // strip time from now
+                        return Math.floor((end.getTime() - today.getTime()) / 86400000);
+                    })()
+                    : 999;
+
+                if (cardFilter === "renewed") return renewalStatus === "Renewed";
+                if (cardFilter === "completed") return completion >= 100 && renewalStatus !== "Renewed";
+                if (cardFilter === "overdue") return daysLeft < 0 && renewalStatus !== "Renewed" && completion < 100;   // ← add
+                if (cardFilter === "urgent") return daysLeft >= 0 && daysLeft <= 7 && renewalStatus !== "Renewed" && completion < 100;  // ← note: now only future
+                if (cardFilter === "soon") return daysLeft > 7 && daysLeft <= 20 && renewalStatus !== "Renewed" && completion < 100;
+                if (cardFilter === "ontrack") return daysLeft > 20 && renewalStatus !== "Renewed" && completion < 100;
+                return true;
+            });
+        }
+
+        // ✅ Fix — nearest to today first (past or future)
         allPackages.sort((a, b) => {
-            const dateA = a.latestEntry.endDate ? new Date(a.latestEntry.endDate).getTime() : Infinity;
-            const dateB = b.latestEntry.endDate ? new Date(b.latestEntry.endDate).getTime() : Infinity;
-            return dateA - dateB;
+            const nowMs = now.getTime();
+            const distA = a.latestEntry.endDate
+                ? Math.abs(new Date(a.latestEntry.endDate).getTime() - nowMs)
+                : Infinity;
+            const distB = b.latestEntry.endDate
+                ? Math.abs(new Date(b.latestEntry.endDate).getTime() - nowMs)
+                : Infinity;
+            return distA - distB;
         });
 
         const totalItems = allPackages.length;
@@ -155,7 +211,6 @@ export async function GET(request: NextRequest) {
             courseCategoryMap.set(cn._id.toString(), cn.category || "");
         }
 
-        const now = new Date();
 
         // 6. Assemble final data
         const finalData = paginatedPackages.map(pkg => {
@@ -200,8 +255,11 @@ export async function GET(request: NextRequest) {
             let daysLeft = 0;
             let lastClassDateStr = pkg.latestEntry.endDate || "";
             if (pkg.latestEntry.endDate) {
-                const diffTime = new Date(pkg.latestEntry.endDate).getTime() - now.getTime();
-                daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const end = new Date(pkg.latestEntry.endDate);
+                end.setHours(0, 0, 0, 0);
+                const today = new Date(now);
+                today.setHours(0, 0, 0, 0);
+                daysLeft = Math.floor((end.getTime() - today.getTime()) / 86400000);
             }
 
             const completion = totalClasses > 0 ? ((completedClasses / totalClasses) * 100).toFixed(2) : 0;
@@ -235,7 +293,8 @@ export async function GET(request: NextRequest) {
                 reschCancel,
                 renewalStatus: pkg.renewalStatus,
                 notes: pkg.notes,
-                paymentCycle
+                paymentCycle,
+                startDate: pkg.startDate,
             };
         });
 

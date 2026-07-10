@@ -17,6 +17,7 @@ export async function PUT(request: NextRequest) {
             renewalStatus,
             notes,
             hideFromRenewalDashboard,
+            rm,
         } = reqBody;
 
         if (!studentId) {
@@ -27,11 +28,14 @@ export async function PUT(request: NextRequest) {
         if (custName !== undefined) updateData.username = custName;
         if (email !== undefined) updateData.email = email;
         if (phone !== undefined) updateData.contact = phone;
-        if (society !== undefined) updateData.address = society;
+        if (society !== undefined) updateData.studentSociety = society;   // ← was address, now studentSociety
+
         if (salesSPOC !== undefined) updateData.salesSPOC = salesSPOC;
         if (renewalStatus !== undefined) updateData.renewalStatus = renewalStatus;
         if (notes !== undefined) updateData.notes = notes;
         if (hideFromRenewalDashboard !== undefined) updateData.hideFromRenewalDashboard = hideFromRenewalDashboard;
+        if (rm !== undefined) updateData.studentRM = rm;                  // ← add
+
 
 
         const updatedUser = await User.findByIdAndUpdate(
