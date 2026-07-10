@@ -403,6 +403,12 @@ const userSchema = new mongoose.Schema({
     notes: {
         type: String,
         default: "",
+    },
+    studentSociety: {
+        type: String
+    },
+    studentRM: {
+        type: String
     }
 },
     { timestamps: true }
