@@ -3,6 +3,7 @@ import { connect } from "@/dbConnection/dbConfic";
 import jwt from "jsonwebtoken";
 import User from "@/models/userModel";
 import Class from "@/models/Class";
+import Course from "@/models/courseName";
 import AttendanceResetRequest from "@/models/AttendanceResetRequest";
 import mongoose from "mongoose";
 
@@ -256,6 +257,12 @@ export async function POST(request: NextRequest) {
                         { $addToSet: { classes: newClass._id } }
                     );
                 }
+
+                // Add the new class to its course's class array
+                await Course.updateOne(
+                    { _id: new mongoose.Types.ObjectId(courseId) },
+                    { $addToSet: { class: newClass._id } }
+                );
 
                 nextClassId = newClass._id;
                 nextClassDate = newStartDate;

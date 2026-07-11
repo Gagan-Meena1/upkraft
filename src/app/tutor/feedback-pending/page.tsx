@@ -37,6 +37,12 @@ interface Course {
   class: string[];
 }
 
+interface PendingFeedback {
+  student: Student;
+  classes: Class[];
+  selectedClassIndex: number;
+}
+
 // Category → fields (keys must match model/API field names)
 const CATEGORY_FIELDS: Record<string, Array<{ key: string; label: string }>> = {
   Music: [

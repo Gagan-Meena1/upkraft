@@ -22,12 +22,12 @@ export async function GET(request) {
 
     if (!tutorId) {
       const token = (() => {
-      const referer = request.headers.get("referer") || "";
-      let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
-      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
-    })();
+        const referer = request.headers.get("referer") || "";
+        let refererPath = "";
+        try { if (referer) refererPath = new URL(referer).pathname; } catch (e) { }
+        const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
+        return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+      })();
       if (!token) {
         return NextResponse.json({ error: "No token or tutorId found" }, { status: 401 });
       }
@@ -49,7 +49,7 @@ export async function GET(request) {
       }).select("_id username profileImage courses attendance classes").lean() // ✅ Added attendance
     ]);
 
-    console.log("[STUDENTS  : ",students)
+    console.log("[STUDENTS  : ", students)
 
     if (!tutor) {
       return NextResponse.json({ error: "Tutor not found" }, { status: 404 });
@@ -65,7 +65,7 @@ export async function GET(request) {
     }
 
     const tutorCourseIds = tutor.courses.map(id => id.toString());
-    
+
     if (tutorCourseIds.length === 0) {
       return NextResponse.json({
         success: true,
@@ -80,7 +80,7 @@ export async function GET(request) {
     // Collect all student IDs and course IDs for bulk queries
     const studentIds = students.map(s => s._id);
     const allStudentCourseIds = new Set();
-    
+
     students.forEach(student => {
       student.courses.forEach(courseId => {
         const courseIdStr = courseId.toString();
@@ -90,7 +90,7 @@ export async function GET(request) {
       });
     });
 
-    // console.log("COMMON COURSES : ",allStudentCourseIds)
+    console.log("COMMON COURSES : ", allStudentCourseIds)
 
     if (allStudentCourseIds.size === 0) {
       return NextResponse.json({
@@ -130,13 +130,14 @@ export async function GET(request) {
     }
 
 
-    // console.log("[CLASSES  : ", allClassIds )
+    console.log("[CLASSES  : ", [...allClassIds]);
+    console.dir(allClassIds, { maxArrayLength: null });
 
     // Fetch all classes in one query
     const classes = await Class.find({
       _id: { $in: Array.from(allClassIds) },
       endTime: { $lt: new Date() },
-      status:{ $ne: 'canceled'}
+      status: { $ne: 'canceled' }
     }).select("_id title description startTime endTime").lean();
 
     // Create a map for quick class lookup
@@ -192,11 +193,11 @@ export async function GET(request) {
       if (!student.attendance || student.attendance.length === 0) {
         return "not_marked"; // Default if no attendance records exist
       }
-      
+
       const attendanceRecord = student.attendance.find(
         att => att.classId.toString() === classId
       );
-      
+
       return attendanceRecord ? attendanceRecord.status : "not_marked";
     };
 
@@ -205,7 +206,7 @@ export async function GET(request) {
 
     for (const student of students) {
       const studentCourseIds = student.courses.map(id => id.toString());
-      const commonCourseIds = tutorCourseIds.filter(courseId => 
+      const commonCourseIds = tutorCourseIds.filter(courseId =>
         studentCourseIds.includes(courseId)
       );
 
@@ -217,16 +218,16 @@ export async function GET(request) {
         if (!category) continue;
 
         // Build a Set of this student's class IDs for O(1) lookup
-const studentClassIdSet = new Set((student.classes || []).map(id => id.toString()));
+        const studentClassIdSet = new Set((student.classes || []).map(id => id.toString()));
 
-for (const classId of course.class) {
-  const classIdStr = classId.toString();
+        for (const classId of course.class) {
+          const classIdStr = classId.toString();
 
-  // Only process classes that are also assigned to this student
-  if (!studentClassIdSet.has(classIdStr)) continue;
+          // Only process classes that are also assigned to this student
+          if (!studentClassIdSet.has(classIdStr)) continue;
 
-  const classItem = classMap.get(classIdStr);
-  if (!classItem) continue;
+          const classItem = classMap.get(classIdStr);
+          if (!classItem) continue;
 
           const attendanceStatus = getAttendanceStatus(student, classIdStr);
           if (attendanceStatus !== "not_marked") continue;
@@ -248,12 +249,12 @@ for (const classId of course.class) {
               attendanceStatus,
               feedbackModelRequired:
                 category === "Music" ? "feedback" :
-                category === "Dance" ? "feedbackDance" :
-                category === "Drawing" ? "feedbackDrawing" :
-                category === "Vocal" ? "feedbackVocal" :
-                category === "Drums" ? "feedbackDrums" :
-                category === "Violin" ? "feedbackViolin" :
-                "feedback"
+                  category === "Dance" ? "feedbackDance" :
+                    category === "Drawing" ? "feedbackDrawing" :
+                      category === "Vocal" ? "feedbackVocal" :
+                        category === "Drums" ? "feedbackDrums" :
+                          category === "Violin" ? "feedbackViolin" :
+                            "feedback"
             });
           }
         }
