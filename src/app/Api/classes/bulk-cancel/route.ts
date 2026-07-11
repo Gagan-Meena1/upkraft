@@ -287,6 +287,12 @@ export async function PUT(request: NextRequest) {
                             );
                         }
 
+                        // Add the new class to its course's class array
+                        await courseName.updateOne(
+                            { _id: new mongoose.Types.ObjectId(courseId) },
+                            { $addToSet: { class: newClass._id } }
+                        );
+
                         nextClassId = newClass._id;
                         nextClassDate = newStartDate;
                     }
