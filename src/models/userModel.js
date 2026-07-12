@@ -71,7 +71,35 @@ const userSchema = new mongoose.Schema({
                     message: String,
                     classIds: [{ type: mongoose.Schema.Types.ObjectId, ref: "Class" }],
                     endDate: Date,
-
+                    renewalStatus: {
+                        type: String,
+                        enum: ['Not Contacted', 'In Discussion', 'Renewed', 'Dropped', 'Follow Up'],
+                        default: 'Not Contacted',
+                    },
+                    renewalNotes: {
+                        type: String,
+                        default: "",
+                    },
+                    notes: {
+                        type: String,
+                        default: "",
+                    },
+                    amount: {
+                        type: Number,
+                        default: 0,
+                    },
+                    renewalClasses: {
+                        type: Number,
+                        default: 0,
+                    },
+                    renewalFrequency: {
+                        type: String,
+                        default: "",
+                    },
+                    renewalAmount: {
+                        type: Number,
+                        default: 0,
+                    },
 
                 }]
             },
@@ -399,10 +427,6 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['Not Contacted', 'In Discussion', 'Renewed', 'Dropped', 'Follow Up'],
         default: 'Not Contacted',
-    },
-    notes: {
-        type: String,
-        default: "",
     },
     studentSociety: {
         type: String

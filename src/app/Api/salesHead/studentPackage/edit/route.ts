@@ -15,28 +15,54 @@ export async function PUT(request: NextRequest) {
             society,
             salesSPOC,
             renewalStatus,
+            renewalNotes,
+            renewalClasses,
+            renewalFrequency,
+            renewalAmount,
             notes,
+            pkgAmount,
             hideFromRenewalDashboard,
             rm,
+            courseEntryIndex,
+            entryIndex,
         } = reqBody;
 
         if (!studentId) {
             return NextResponse.json({ success: false, error: "studentId is required" }, { status: 400 });
         }
 
+        // Student-level fields
         const updateData: any = {};
         if (custName !== undefined) updateData.username = custName;
         if (email !== undefined) updateData.email = email;
         if (phone !== undefined) updateData.contact = phone;
-        if (society !== undefined) updateData.studentSociety = society;   // ← was address, now studentSociety
-
+        if (society !== undefined) updateData.studentSociety = society;
         if (salesSPOC !== undefined) updateData.salesSPOC = salesSPOC;
-        if (renewalStatus !== undefined) updateData.renewalStatus = renewalStatus;
-        if (notes !== undefined) updateData.notes = notes;
         if (hideFromRenewalDashboard !== undefined) updateData.hideFromRenewalDashboard = hideFromRenewalDashboard;
-        if (rm !== undefined) updateData.studentRM = rm;                  // ← add
+        if (rm !== undefined) updateData.studentRM = rm;
 
-
+        // Entry-level fields (renewalStatus, renewalNotes, notes live inside creditsPerCourse[].startTime[])
+        if (renewalStatus !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.renewalStatus`] = renewalStatus;
+        }
+        if (renewalNotes !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.renewalNotes`] = renewalNotes;
+        }
+        if (notes !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.notes`] = notes;
+        }
+        if (pkgAmount !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.amount`] = pkgAmount;
+        }
+        if (renewalClasses !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.renewalClasses`] = renewalClasses;
+        }
+        if (renewalFrequency !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.renewalFrequency`] = renewalFrequency;
+        }
+        if (renewalAmount !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.renewalAmount`] = renewalAmount;
+        }
 
         const updatedUser = await User.findByIdAndUpdate(
             studentId,

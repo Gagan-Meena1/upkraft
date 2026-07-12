@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
             category: "Student",
             hideFromRenewalDashboard: { $ne: true }
         })
-            .select("username email contact address creditsPerCourse attendance instructorId relationshipManager salesSPOC renewalStatus type")
+            .select("username email contact address creditsPerCourse attendance instructorId relationshipManager salesSPOC type")
             .populate({ path: "instructorId", select: "username", model: User })
             .populate({ path: "relationshipManager", select: "username", model: User })
             .lean() as any[];
@@ -46,7 +46,6 @@ export async function GET(request: NextRequest) {
             // Apply filters
             if (fSociety && student.studentSociety !== fSociety) continue;
             if (fSpoc && student.salesSPOC !== fSpoc) continue;
-            if (fRenewal && student.renewalStatus !== fRenewal) continue;
             if (fRm && student.studentRM !== fRm) continue;
             if (fTutor) {
                 const names = Array.isArray(student.instructorId)
@@ -95,7 +94,9 @@ export async function GET(request: NextRequest) {
                         return Math.floor((end.getTime() - today.getTime()) / 86400000);
                     })()
                     : 999;
-                const renewalStatus = student.renewalStatus || "Not Contacted";
+                const renewalStatus = latestEntry.renewalStatus || "Not Contacted";
+
+                if (fRenewal && renewalStatus !== fRenewal) continue;
 
                 counts.total++;
                 if (renewalStatus === "Renewed") counts.renewed++;

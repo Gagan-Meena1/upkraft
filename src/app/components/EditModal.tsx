@@ -13,7 +13,8 @@ const FIELDS = [
     { label: "Email", key: "email", type: "email", required: false },
     { label: "Society", key: "society", type: "text", required: false },
     { label: "Sales SPOC", key: "spoc", type: "text", required: false },
-    { label: "RM", key: "rm", type: "text", required: false },  // ← add
+    { label: "RM", key: "rm", type: "text", required: false },
+    { label: "Pkg Amount", key: "pkgAmount", type: "number", required: false },
 
 ];
 
@@ -60,6 +61,18 @@ export default function EditModal({ lead, onClose, onSave, onChange }: Props) {
                                 <option>Follow Up</option>
                             </select>
                         </div>
+
+                        {/* Renewal Notes — visible when status is Renewed */}
+                        {lead.renewalStatus === "Renewed" && (
+                            <div className="flex flex-col gap-1">
+                                <label className="text-[11px] font-semibold text-gray-500 uppercase">Renewal Notes</label>
+                                <input type="text"
+                                    className="px-3 py-2 border border-gray-300 rounded-lg text-[13px] outline-none focus:border-purple-600"
+                                    placeholder="Same as previous / describe changes"
+                                    value={lead.renewalNotes || ""}
+                                    onChange={e => onChange({ ...lead, renewalNotes: e.target.value })} />
+                            </div>
+                        )}
 
                         <div className="flex flex-col gap-1 col-span-2">
                             <label className="text-[11px] font-semibold text-gray-500 uppercase">Notes</label>

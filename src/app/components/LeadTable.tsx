@@ -13,6 +13,7 @@ const HEADERS = [
     { label: "Total", className: "" },
     { label: "Completion %", className: "" },
     { label: "Remaining", className: "" },
+    { label: "Cancel", className: "" },
     { label: "Last Class", className: "" },
     { label: "Days Left", className: "" },
     { label: "Renewal Status", className: "" },
@@ -40,7 +41,7 @@ export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChan
                             Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
                         ) : leads.length === 0 ? (
                             <tr>
-                                <td colSpan={17} className="text-center py-16 text-gray-400">
+                                <td colSpan={18} className="text-center py-16 text-gray-400">
                                     <div className="text-3xl mb-2">🔍</div>
                                     No students match your filters
                                 </td>
