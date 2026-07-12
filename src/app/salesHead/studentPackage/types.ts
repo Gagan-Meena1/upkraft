@@ -19,13 +19,20 @@ export interface Lead {
     totalPkg: number;
     completion: number;
     remaining: number;
+    cancelled: number;
     startDate: string;       // ← add
     lastClassDate: string;
     daysLeft: number;
     reschCancel: number;
     renewalStatus: string;
+    renewalNotes: string;
+    renewalClasses: number;
+    renewalFrequency: string;
+    renewalAmount: number;
     notes: string;
     paymentCycle: number;
+    courseEntryIndex: number;
+    entryIndex: number;
 }
 
 export interface Stats {

@@ -4,6 +4,7 @@ import StatsCards from "@/app/components/StatsCards";
 import FiltersBar from "@/app/components/FiltersBar";
 import LeadTable from "@/app/components/LeadTable";
 import EditModal from "@/app/components/EditModal";
+import RenewalModal from "@/app/components/RenewalModal";
 
 export default function RenewalDashboardPage() {
   const {
@@ -13,6 +14,14 @@ export default function RenewalDashboardPage() {
     setSearch, setPage, setIsModalOpen, setEditingLead,
     handleFilterChange, handleCardClick, clearFilters,
     handleInlineStatusUpdate, handleHideStudent, handleSaveModal,
+    // Renewal modal
+    renewalModalLead, setRenewalModalLead,
+    renewalOption, setRenewalOption,
+    renewalNotes, setRenewalNotes,
+    renewalClasses, setRenewalClasses,
+    renewalFrequency, setRenewalFrequency,
+    renewalAmount, setRenewalAmount,
+    handleRenewalSubmit,
   } = useRenewalDashboard();
 
   return (
@@ -72,6 +81,24 @@ export default function RenewalDashboardPage() {
           onClose={() => setIsModalOpen(false)}
           onSave={handleSaveModal}
           onChange={setEditingLead}
+        />
+      )}
+
+      {renewalModalLead && (
+        <RenewalModal
+          lead={renewalModalLead}
+          option={renewalOption}
+          notes={renewalNotes}
+          renewalClasses={renewalClasses}
+          renewalFrequency={renewalFrequency}
+          renewalAmount={renewalAmount}
+          onOptionChange={setRenewalOption}
+          onNotesChange={setRenewalNotes}
+          onRenewalClassesChange={setRenewalClasses}
+          onRenewalFrequencyChange={setRenewalFrequency}
+          onRenewalAmountChange={setRenewalAmount}
+          onSubmit={handleRenewalSubmit}
+          onClose={() => setRenewalModalLead(null)}
         />
       )}
     </div>

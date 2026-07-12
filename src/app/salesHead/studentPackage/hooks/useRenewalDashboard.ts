@@ -19,6 +19,14 @@ export function useRenewalDashboard() {
     const cache = useRef<Record<string, any>>({});
     const [stats, setStats] = useState<Stats>({ total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, completed: 0, renewed: 0 });
 
+    // Renewal modal state
+    const [renewalModalLead, setRenewalModalLead] = useState<Lead | null>(null);
+    const [renewalOption, setRenewalOption] = useState<"same" | "changed">("same");
+    const [renewalNotes, setRenewalNotes] = useState("");
+    const [renewalClasses, setRenewalClasses] = useState(0);
+    const [renewalFrequency, setRenewalFrequency] = useState("");
+    const [renewalAmount, setRenewalAmount] = useState(0);
+
     const limit = 50;
 
     const cacheKey = (p: number) =>
@@ -28,6 +36,7 @@ export function useRenewalDashboard() {
     useEffect(() => {
         const h = setTimeout(() => {
             setDebouncedSearch(search);
+            if (search) setActiveCard("all" as any);   // show all results when searching
             setPage(1);
             cache.current = {};
         }, 500);
@@ -114,19 +123,75 @@ export function useRenewalDashboard() {
     }, [page, fetchPage, totalPages]);
 
     const handleInlineStatusUpdate = async (id: string, studentId: string, newStatus: string) => {
+        const lead = leads.find(l => l.id === id);
+        if (!lead) return;
+
+        // If "Renewed" is selected, open the renewal modal instead of saving directly
+        if (newStatus === "Renewed") {
+            setRenewalModalLead(lead);
+            setRenewalOption("same");
+            setRenewalNotes(lead.renewalNotes || "");
+            setRenewalClasses(lead.renewalClasses || 0);
+            setRenewalFrequency(lead.renewalFrequency || "");
+            setRenewalAmount(lead.renewalAmount || 0);
+            return;
+        }
+
         setLeads(prev => prev.map(l => l.id === id ? { ...l, renewalStatus: newStatus } : l));
         try {
             const res = await fetch("/Api/salesHead/studentPackage/edit", {
                 method: "PUT", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ studentId, renewalStatus: newStatus })
+                body: JSON.stringify({
+                    studentId,
+                    renewalStatus: newStatus,
+                    courseEntryIndex: lead.courseEntryIndex,
+                    entryIndex: lead.entryIndex,
+                })
             });
             const data = await res.json();
             if (!data.success) throw new Error(data.error);
             toast.success("Status updated");
+            cache.current = {};
             fetchStats();
         } catch (err: any) {
             toast.error(err.message || "Failed to update");
             fetchPage(page);
+        }
+    };
+
+    const handleRenewalSubmit = async () => {
+        if (!renewalModalLead) return;
+        const notesValue = renewalOption === "changed" ? renewalNotes : "Same as previous";
+        try {
+            const res = await fetch("/Api/salesHead/studentPackage/edit", {
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    studentId: renewalModalLead.studentId,
+                    renewalStatus: "Renewed",
+                    renewalNotes: notesValue,
+                    renewalClasses,
+                    renewalFrequency,
+                    renewalAmount,
+                    courseEntryIndex: renewalModalLead.courseEntryIndex,
+                    entryIndex: renewalModalLead.entryIndex,
+                })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+            toast.success("Marked as Renewed");
+            setLeads(prev => prev.map(l =>
+                l.id === renewalModalLead.id
+                    ? {
+                        ...l, renewalStatus: "Renewed", renewalNotes: notesValue,
+                        renewalClasses, renewalFrequency, renewalAmount,
+                    }
+                    : l
+            ));
+            setRenewalModalLead(null);
+            cache.current = {};
+            fetchStats();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update");
         }
     };
 
@@ -160,9 +225,12 @@ export function useRenewalDashboard() {
                     custName: editingLead.custName, email: editingLead.email,
                     phone: editingLead.phone, society: editingLead.society,
                     salesSPOC: editingLead.spoc, renewalStatus: editingLead.renewalStatus,
+                    renewalNotes: editingLead.renewalNotes,
                     notes: editingLead.notes,
-                    rm: editingLead.rm,           // ← add
-
+                    pkgAmount: editingLead.pkgAmount,
+                    rm: editingLead.rm,
+                    courseEntryIndex: editingLead.courseEntryIndex,
+                    entryIndex: editingLead.entryIndex,
                 })
             });
             const data = await res.json();
@@ -183,5 +251,13 @@ export function useRenewalDashboard() {
         setSearch, setPage, setIsModalOpen, setEditingLead,
         handleFilterChange, handleCardClick, clearFilters,
         handleInlineStatusUpdate, handleHideStudent, handleSaveModal,
+        // Renewal modal
+        renewalModalLead, setRenewalModalLead,
+        renewalOption, setRenewalOption,
+        renewalNotes, setRenewalNotes,
+        renewalClasses, setRenewalClasses,
+        renewalFrequency, setRenewalFrequency,
+        renewalAmount, setRenewalAmount,
+        handleRenewalSubmit,
     };
 }

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
             category: "Student",
             hideFromRenewalDashboard: { $ne: true }
         })
-            .select("username email contact address city creditsPerCourse attendance instructorId studentSociety studentRM salesSPOC renewalStatus notes type")
+            .select("username email contact address city creditsPerCourse attendance instructorId studentSociety studentRM salesSPOC type")
             .populate({ path: "instructorId", select: "username", model: User })
             .populate({ path: "relationshipManager", select: "username", model: User })
             .lean() as any[];
@@ -40,7 +40,6 @@ export async function GET(request: NextRequest) {
         for (const student of students) {
             // Apply student-level filters
             if (fSpoc && student.salesSPOC !== fSpoc) continue;
-            if (fRenewal && student.renewalStatus !== fRenewal) continue;
             if (fSociety && (student.studentSociety || student.address) !== fSociety) continue;
             if (fRm && (student.studentRM || student.relationshipManager?.username) !== fRm) continue;
 
@@ -96,8 +95,9 @@ export async function GET(request: NextRequest) {
                         ? student.instructorId.map((t: any) => t?.username).filter(Boolean).join(", ")
                         : "",
                     salesSPOC: student.salesSPOC || "",
-                    renewalStatus: student.renewalStatus || "Not Contacted",
-                    notes: student.notes || "",
+                    renewalStatus: latestEntry.renewalStatus || "Not Contacted",
+                    notes: latestEntry.notes || "",
+                    renewalNotes: latestEntry.renewalNotes || "",
                     type: student.type || "HOME TUTOR",
                     courseId,
                     latestEntry,
@@ -114,6 +114,9 @@ export async function GET(request: NextRequest) {
         // Apply tutor name filter now that it's extracted
         if (fTutor) {
             allPackages = allPackages.filter(p => p.tutorName === fTutor);
+        }
+        if (fRenewal) {
+            allPackages = allPackages.filter(p => p.renewalStatus === fRenewal);
         }
         if (fType) {
             allPackages = allPackages.filter(p => p.type === fType);
@@ -225,30 +228,34 @@ export async function GET(request: NextRequest) {
                 .filter(Boolean)
                 .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
-            const totalClasses = classIds.length;
+            const allClassCount = classIds.length;
 
             let completedClasses = 0;
-            let reschCancel = 0;
+            let cancelledClasses = 0;
             for (const cId of classIds) {
                 const attStatus = attendanceMap.get(cId);
+
+                // Check if canceled in attendance array
+                if (attStatus === "canceled" || attStatus === "cancelled") {
+                    cancelledClasses++;
+                    continue;
+                }
+
+                // Or if not canceled in attendance, check if the class document itself is canceled
+                const cls = classMap.get(cId);
+                if (cls && (cls.status === "cancelled" || cls.status === "canceled")) {
+                    cancelledClasses++;
+                    continue;
+                }
 
                 // Completed class means having its entry in attendance array with present/absent
                 if (attStatus === "present" || attStatus === "absent") {
                     completedClasses++;
                 }
-
-                // Check if canceled in attendance array
-                if (attStatus === "canceled" || attStatus === "cancelled") {
-                    reschCancel++;
-                } else {
-                    // Or if not canceled in attendance, check if the class document itself is canceled/rescheduled
-                    const cls = classMap.get(cId);
-                    if (cls && (cls.status === "rescheduled" || cls.status === "cancelled" || cls.status === "canceled")) {
-                        reschCancel++;
-                    }
-                }
             }
 
+            // Total = non-cancelled classes only
+            const totalClasses = allClassCount - cancelledClasses;
             const remainingClasses = totalClasses - completedClasses;
 
             // Calculate days left using endDate directly, exactly as requested.
@@ -288,13 +295,20 @@ export async function GET(request: NextRequest) {
                 totalPkg: totalClasses,
                 completion: parseFloat(completion as string),
                 remaining: remainingClasses,
+                cancelled: cancelledClasses,
                 lastClassDate: lastClassDateStr,
                 daysLeft,
-                reschCancel,
+                reschCancel: cancelledClasses,
                 renewalStatus: pkg.renewalStatus,
+                renewalNotes: pkg.renewalNotes || "",
+                renewalClasses: pkg.latestEntry.renewalClasses || 0,
+                renewalFrequency: pkg.latestEntry.renewalFrequency || "",
+                renewalAmount: pkg.latestEntry.renewalAmount || 0,
                 notes: pkg.notes,
                 paymentCycle,
                 startDate: pkg.startDate,
+                courseEntryIndex: pkg.courseEntryIndex,
+                entryIndex: pkg.entryIndex,
             };
         });
 
