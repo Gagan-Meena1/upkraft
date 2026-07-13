@@ -99,8 +99,10 @@ export async function PUT(
 
             // Add all classes from those courses to new tutor
             const newTutorClassSet = new Set((newTutor.classes || []).map((id: any) => id.toString()));
+            const commonClassIds = new Set<string>();
             for (const course of commonCourses) {
                 for (const classId of (course.class || [])) {
+                    commonClassIds.add(classId.toString());
                     if (!newTutorClassSet.has(classId.toString())) {
                         newTutor.classes.push(classId);
                         newTutorClassSet.add(classId.toString());
@@ -108,10 +110,22 @@ export async function PUT(
                 }
             }
 
+            // Remove common classes from old tutor
+            oldTutor.classes = (oldTutor.classes || []).filter(
+                (id: any) => !commonClassIds.has(id.toString())
+            );
+
+            // Remove common courses from old tutor
+            const commonCourseIdSet = new Set(commonCourseIds.map((id: any) => id.toString()));
+            oldTutor.courses = (oldTutor.courses || []).filter(
+                (id: any) => !commonCourseIdSet.has(id.toString())
+            );
+
+
 
             // ✅ Update instructor on all common Classes
             await Class.updateMany(
-                { _id: { $in: newTutor.classes }, instructor: oldTutorId },
+                { _id: { $in: [...commonClassIds] }, instructor: oldTutorId },
                 { $set: { instructor: new mongoose.Types.ObjectId(newTutorId) } }
             );
             // ✅ Update academyInstructorId on all common Courses
