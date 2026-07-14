@@ -54,11 +54,10 @@ export default function EditModal({ lead, onClose, onSave, onChange }: Props) {
                             <label className="text-[11px] font-semibold text-gray-500 uppercase">Renewal Status</label>
                             <select className="px-3 py-2 border border-gray-300 rounded-lg text-[13px] outline-none focus:border-purple-600 bg-white cursor-pointer"
                                 value={lead.renewalStatus} onChange={e => onChange({ ...lead, renewalStatus: e.target.value })}>
-                                <option>Not Contacted</option>
-                                <option>In Discussion</option>
+                                <option>YTR</option>
+                                <option>Follow Up</option>
                                 <option>Renewed</option>
                                 <option>Dropped</option>
-                                <option>Follow Up</option>
                             </select>
                         </div>
 

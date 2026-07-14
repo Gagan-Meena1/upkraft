@@ -73,8 +73,8 @@ const userSchema = new mongoose.Schema({
                     endDate: Date,
                     renewalStatus: {
                         type: String,
-                        enum: ['Not Contacted', 'In Discussion', 'Renewed', 'Dropped', 'Follow Up'],
-                        default: 'Not Contacted',
+                        enum: ['Dropped', 'Renewed', 'YTR', 'Follow Up'],
+                        default: 'YTR',
                     },
                     renewalNotes: {
                         type: String,
@@ -103,6 +103,10 @@ const userSchema = new mongoose.Schema({
                     frequency: {
                         type: String,
                         default: "",
+                    },
+                    classesPaid: {
+                        type: Number,
+                        default: 0,
                     },
 
                 }]
@@ -429,8 +433,8 @@ const userSchema = new mongoose.Schema({
     },
     renewalStatus: {
         type: String,
-        enum: ['Not Contacted', 'In Discussion', 'Renewed', 'Dropped', 'Follow Up'],
-        default: 'Not Contacted',
+        enum: ['Dropped', 'Renewed', 'YTR', 'Follow Up'],
+        default: 'YTR',
     },
     studentSociety: {
         type: String

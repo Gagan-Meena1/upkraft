@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
                         return Math.floor((end.getTime() - today.getTime()) / 86400000);
                     })()
                     : 999;
-                const renewalStatus = latestEntry.renewalStatus || "Not Contacted";
+                const renewalStatus = latestEntry.renewalStatus || "YTR";
 
                 if (fRenewal && renewalStatus !== fRenewal) continue;
 

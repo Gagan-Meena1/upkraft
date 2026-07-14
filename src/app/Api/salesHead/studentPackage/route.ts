@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
                         ? student.instructorId.map((t: any) => t?.username).filter(Boolean).join(", ")
                         : "",
                     salesSPOC: student.salesSPOC || "",
-                    renewalStatus: latestEntry.renewalStatus || "Not Contacted",
+                    renewalStatus: latestEntry.renewalStatus || "YTR",
                     notes: latestEntry.notes || "",
                     renewalNotes: latestEntry.renewalNotes || "",
                     type: student.type || "HOME TUTOR",
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
         const cardFilter = searchParams.get("cardFilter") || "all";
         if (cardFilter !== "all") {
             allPackages = allPackages.filter(pkg => {
-                const renewalStatus = pkg.renewalStatus || "Not Contacted";
+                const renewalStatus = pkg.renewalStatus || "YTR";
 
                 // Calculate completion + daysLeft inline
                 const classIds = (pkg.latestEntry.classIds || []).map((id: any) => id.toString());
