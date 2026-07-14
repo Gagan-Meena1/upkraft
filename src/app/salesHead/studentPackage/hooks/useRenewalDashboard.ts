@@ -17,7 +17,7 @@ export function useRenewalDashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingLead, setEditingLead] = useState<Lead | null>(null);
     const cache = useRef<Record<string, any>>({});
-    const [stats, setStats] = useState<Stats>({ total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, completed: 0, renewed: 0, dropped: 0 });
+    const [stats, setStats] = useState<Stats>({ total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, renewed: 0, dropped: 0 });
 
     // Renewal modal state
     const [renewalModalLead, setRenewalModalLead] = useState<Lead | null>(null);

@@ -151,11 +151,10 @@ export async function GET(request: NextRequest) {
 
                 if (cardFilter === "dropped") return renewalStatus === "Dropped";
                 if (cardFilter === "renewed") return renewalStatus === "Renewed";
-                if (cardFilter === "completed") return completion >= 100 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped";
-                if (cardFilter === "overdue") return daysLeft < 0 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped" && completion < 100;
-                if (cardFilter === "urgent") return daysLeft >= 0 && daysLeft <= 7 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped" && completion < 100;
-                if (cardFilter === "soon") return daysLeft > 7 && daysLeft <= 20 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped" && completion < 100;
-                if (cardFilter === "ontrack") return daysLeft > 20 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped" && completion < 100;
+                if (cardFilter === "overdue") return daysLeft <= 0 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped";
+                if (cardFilter === "urgent") return daysLeft >= 0 && daysLeft <= 7 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped";
+                if (cardFilter === "soon") return daysLeft > 7 && daysLeft <= 20 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped";
+                if (cardFilter === "ontrack") return daysLeft > 20 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped";
                 return true;
             });
         }
