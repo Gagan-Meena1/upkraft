@@ -31,7 +31,7 @@ const BORDER: Record<string, string> = {
 
 const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
     "Renewed": { bg: "#f3e8ff", color: "#7e22ce" },
-    "In Discussion": { bg: "#dbeafe", color: "#1d4ed8" },
+    "YTR": { bg: "#dbeafe", color: "#1d4ed8" },
     "Dropped": { bg: "#fee2e2", color: "#b91c1c" },
     "Follow Up": { bg: "#fef3c7", color: "#b45309" },
 
@@ -128,11 +128,10 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange }: Pro
                         style={{ backgroundColor: s.bg, color: s.color }}
                         value={l.renewalStatus}
                         onChange={e => onStatusChange(l.id, l.studentId, e.target.value)}>
-                        <option>Not Contacted</option>
-                        <option>In Discussion</option>
+                        <option>YTR</option>
+                        <option>Follow Up</option>
                         <option>Renewed</option>
                         <option>Dropped</option>
-                        <option>Follow Up</option>
                     </select>
                 </td>
 

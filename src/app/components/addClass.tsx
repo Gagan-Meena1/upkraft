@@ -52,6 +52,7 @@ export interface AssignPayload {
     classType?: 'makeup' | 'regularClass';
     frequency?: string;
     amount?: number;
+    classesPaid?: number;
     originalStartDate?: string;
 }
 
@@ -204,6 +205,7 @@ const [classType, setClassType] = useState<'makeup' | 'regularClass'>('regularCl
 const [viewingClassesEntry, setViewingClassesEntry] = useState<AssignmentHistory | null>(null);
 const [frequency, setFrequency] = useState<string>("");
 const [pkgAmount, setPkgAmount] = useState<string>("");
+const [classesPaid, setClassesPaid] = useState<string>("");
 
 
   
@@ -453,6 +455,7 @@ const toggleClassOverride = (
     classType: showClassType ? classType : undefined,
     frequency: frequency || undefined,
     amount: parseInt(pkgAmount, 10) || undefined,
+    classesPaid: parseInt(classesPaid, 10) || undefined,
     originalStartDate: editingEntry ? new Date(editingEntry.date).toISOString() : undefined,
   });
 };
@@ -600,6 +603,7 @@ const endDate = getEndDateForAssignment(entry);
         setStartDate(new Date(entry.date).toISOString().split("T")[0]);
         setFrequency((entry as any).frequency || "");
         setPkgAmount(String((entry as any).amount || ""));
+        setClassesPaid(String((entry as any).classesPaid || ""));
         setActiveTab("form");
       }}
       className="text-xs text-purple-600 border border-purple-300 rounded-lg px-3 py-1.5 hover:bg-purple-50 transition-colors"
@@ -613,6 +617,7 @@ const endDate = getEndDateForAssignment(entry);
         setStartDate(new Date(entry.date).toISOString().split("T")[0]);
         setFrequency((entry as any).frequency || "");
         setPkgAmount(String((entry as any).amount || ""));
+        setClassesPaid(String((entry as any).classesPaid || ""));
         setActiveTab("form");
       }}
       className="text-xs text-gray-600 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
@@ -762,6 +767,19 @@ const endDate = getEndDateForAssignment(entry);
         placeholder="Amount"
         value={pkgAmount}
         onChange={(e) => setPkgAmount(e.target.value)}
+        className="w-24 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
+      />
+    </div>
+
+    {/* Classes Paid */}
+    <div className="flex flex-col gap-0.5">
+      <label className="text-xs font-semibold text-gray-500">Classes Paid</label>
+      <input
+        type="number"
+        min={0}
+        placeholder="e.g. 12"
+        value={classesPaid}
+        onChange={(e) => setClassesPaid(e.target.value)}
         className="w-24 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
       />
     </div>

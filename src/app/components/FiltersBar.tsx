@@ -50,11 +50,10 @@ export default function FiltersBar({
                 <select value={filters.renewalStatus} onChange={e => onFilterChange("renewalStatus", e.target.value)}
                     className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white outline-none focus:border-purple-600 cursor-pointer">
                     <option value="">All Renewal Status</option>
-                    <option value="Not Contacted">Not Contacted</option>
-                    <option value="In Discussion">In Discussion</option>
+                    <option value="YTR">YTR</option>
+                    <option value="Follow Up">Follow Up</option>
                     <option value="Renewed">Renewed</option>
                     <option value="Dropped">Dropped</option>
-                    <option value="Follow Up">Follow Up</option>
                 </select>
 
                 {/* Pagination */}

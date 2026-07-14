@@ -162,6 +162,7 @@ const fetchClasses = async (courseId: string) => {
           credits: payload.credits,
           frequency: payload.frequency,
           amount: payload.amount,
+          classesPaid: payload.classesPaid,
         });
       } else {
         // POST — create new
@@ -175,6 +176,7 @@ const fetchClasses = async (courseId: string) => {
           endDate: payload.endDate,
           frequency: payload.frequency,
           amount: payload.amount,
+          classesPaid: payload.classesPaid,
         });
       }
 

@@ -11,7 +11,7 @@ connect();
 export async function POST(req: NextRequest) {
   try {
     const requestData = await req.json();
-    const { courseId, studentId, tutorId, credits, message, startDate, classIds: selectedClassIds = [] ,classType , endDate, frequency, amount } = requestData;
+    const { courseId, studentId, tutorId, credits, message, startDate, classIds: selectedClassIds = [] ,classType , endDate, frequency, amount, classesPaid } = requestData;
     console.log("requestData:", requestData);
 
     let instructorId;
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
           endDate: endDate ? new Date(endDate) : null,
           frequency: frequency || "",
           amount: amount || 0,
+          classesPaid: classesPaid || 0,
         }
       : null;
 
@@ -342,7 +343,7 @@ if (endDate) {
 export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
-    const { studentId, courseId, originalStartDate, startDate, credits, frequency, amount } = body;
+    const { studentId, courseId, originalStartDate, startDate, credits, frequency, amount, classesPaid } = body;
 
     if (!studentId || !courseId || !originalStartDate) {
       return NextResponse.json({ error: "studentId, courseId, and originalStartDate are required" }, { status: 400 });
@@ -387,6 +388,9 @@ export async function PUT(req: NextRequest) {
     }
     if (amount !== undefined) {
       setFields[`${basePath}.amount`] = amount;
+    }
+    if (classesPaid !== undefined) {
+      setFields[`${basePath}.classesPaid`] = classesPaid;
     }
 
     // Credits are stored at the courseEntry level, not the startTime entry level
