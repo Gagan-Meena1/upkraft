@@ -20,7 +20,7 @@ export interface Lead {
     completion: number;
     remaining: number;
     cancelled: number;
-    startDate: string;       // ← add
+    startDate: string;
     lastClassDate: string;
     daysLeft: number;
     reschCancel: number;
@@ -37,7 +37,7 @@ export interface Lead {
 
 export interface Stats {
     total: number; urgent: number; soon: number;
-    ontrack: number; completed: number; renewed: number; overdue: number;
+    ontrack: number; completed: number; renewed: number; overdue: number; dropped: number;
 }
 
 export interface Options {
@@ -46,8 +46,8 @@ export interface Options {
 }
 
 export interface Filters {
-    society: string; tutorName: string; rm: string;
-    spoc: string; type: string; renewalStatus: string;
+    society: string[]; tutorName: string[]; rm: string[];
+    spoc: string[]; type: string; renewalStatus: string;
 }
 
-export type CardFilter = "overdue" | "urgent" | "soon" | "ontrack" | "completed" | "renewed";
+export type CardFilter = "overdue" | "urgent" | "soon" | "ontrack" | "completed" | "renewed" | "dropped";

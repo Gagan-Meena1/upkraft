@@ -146,16 +146,14 @@ export async function POST(request: NextRequest) {
                 _id: { $in: packageClassIds }
             }).select("startTime endTime").lean() as any[];
 
-            // 2. Find distinct weekdays from package classes
-            const weekdaySet = new Set<number>();
+            // 2. Count classes per weekday and store time info
+            const weekdayCount = new Map<number, number>();
             const weekdayToClassTime = new Map<number, { startHour: number; startMin: number; duration: number }>();
 
             for (const cls of packageClasses) {
                 const d = new Date(cls.startTime);
                 const weekday = d.getUTCDay();
-                weekdaySet.add(weekday);
-                // Store time for this weekday — last one wins, but all classes
-                // on same weekday should have same time
+                weekdayCount.set(weekday, (weekdayCount.get(weekday) || 0) + 1);
                 if (!weekdayToClassTime.has(weekday)) {
                     const endD = new Date(cls.endTime);
                     weekdayToClassTime.set(weekday, {
@@ -166,16 +164,34 @@ export async function POST(request: NextRequest) {
                 }
             }
 
-            const distinctWeekdays = Array.from(weekdaySet).sort((a, b) => a - b);
+            // Sort weekdays by class count (descending)
+            const sortedWeekdays = Array.from(weekdayCount.entries())
+                .sort((a, b) => b[1] - a[1])
+                .map(([day]) => day);
 
-            if (distinctWeekdays.length === 0) {
+            // Parse frequency from package (e.g. "2x/week" → 2, "Daily" → 7)
+            const freqStr = activeEntry.frequency || "";
+            let freqNum = 0;
+            if (freqStr.toLowerCase() === "daily") {
+                freqNum = 7;
+            } else {
+                const match = freqStr.match(/^(\d+)/);
+                if (match) freqNum = parseInt(match[1], 10);
+            }
+
+            // Take top X days based on frequency, or all if frequency not set
+            const topWeekdays = freqNum > 0 && freqNum < sortedWeekdays.length
+                ? sortedWeekdays.slice(0, freqNum)
+                : sortedWeekdays;
+
+            if (topWeekdays.length === 0) {
                 return NextResponse.json({
                     success: false,
                     error: "No weekdays found in package classes"
                 }, { status: 400 });
             }
 
-            // 3. Find the earliest date after currentEndDate that matches any package weekday
+            // 3. Find the earliest date after currentEndDate that matches a top weekday
             const searchFrom = new Date(currentEndDate);
             searchFrom.setUTCDate(searchFrom.getUTCDate() + 1); // start from day after endDate
             searchFrom.setUTCHours(0, 0, 0, 0);
@@ -188,7 +204,7 @@ export async function POST(request: NextRequest) {
                 const candidate = new Date(searchFrom);
                 candidate.setUTCDate(searchFrom.getUTCDate() + i);
                 const candidateWeekday = candidate.getUTCDay();
-                if (distinctWeekdays.includes(candidateWeekday)) {
+                if (topWeekdays.includes(candidateWeekday)) {
                     targetDate = candidate;
                     targetWeekday = candidateWeekday;
                     break;
@@ -295,7 +311,8 @@ export async function POST(request: NextRequest) {
                 newClassId: nextClassId,
                 newEndDate: nextClassDate,
                 targetWeekday,
-                distinctWeekdays
+                topWeekdays,
+                frequency: freqStr || "not set"
             });
         }
 

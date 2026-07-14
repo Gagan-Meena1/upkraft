@@ -137,7 +137,7 @@ const fetchClasses = async (courseId: string) => {
 
   const handleFinalAssign = async (payload: AssignPayload) => {
     if (!pendingCourseId) return;
-    if (payload.classIds.length === 0) {
+    if (!payload.isEdit && payload.classIds.length === 0) {
       setAddStudentMessage({
         text: "Please select at least one class",
         type: "error",
@@ -150,26 +150,44 @@ const fetchClasses = async (courseId: string) => {
       setIsAddingStudent(true);
       setShowClassModal(false);
 
-      const response = await axios.post("/Api/addStudentToCourse", {
-        courseId: pendingCourseId,
-        studentId,
-        classIds: payload.classIds,
-        startDate: payload.startDate,
-        message: payload.message,
-        credits: payload.credits,
-        endDate: payload.endDate,
-      });
+      let response;
+
+      if (payload.isEdit) {
+        // PUT — update existing package entry
+        response = await axios.put("/Api/addStudentToCourse", {
+          studentId,
+          courseId: pendingCourseId,
+          originalStartDate: payload.originalStartDate,
+          startDate: payload.startDate,
+          credits: payload.credits,
+          frequency: payload.frequency,
+          amount: payload.amount,
+        });
+      } else {
+        // POST — create new
+        response = await axios.post("/Api/addStudentToCourse", {
+          courseId: pendingCourseId,
+          studentId,
+          classIds: payload.classIds,
+          startDate: payload.startDate,
+          message: payload.message,
+          credits: payload.credits,
+          endDate: payload.endDate,
+          frequency: payload.frequency,
+          amount: payload.amount,
+        });
+      }
 
       console.log("RESPONSE.    :     " , response);
 
       setAddStudentMessage({
-        text: response.data.message || "Course added to student successfully!",
+        text: response.data.message || (payload.isEdit ? "Package updated successfully!" : "Course added to student successfully!"),
         type: "success",
       });
     } catch (err: any) {
       setAddStudentMessage({
         text:
-          err.response?.data?.message || "Failed to add course to student",
+          err.response?.data?.message || err.response?.data?.error || "Failed to process request",
         type: "error",
       });
     } finally {

@@ -11,7 +11,7 @@ connect();
 export async function POST(req: NextRequest) {
   try {
     const requestData = await req.json();
-    const { courseId, studentId, tutorId, credits, message, startDate, classIds: selectedClassIds = [] ,classType , endDate } = requestData;
+    const { courseId, studentId, tutorId, credits, message, startDate, classIds: selectedClassIds = [] ,classType , endDate, frequency, amount } = requestData;
     console.log("requestData:", requestData);
 
     let instructorId;
@@ -41,7 +41,14 @@ export async function POST(req: NextRequest) {
     const courseClassIds = course.class || [];
 
     const startTimeEntry = startDate
-      ? { date: new Date(startDate), message: message || "" ,classIds : selectedClassIds , endDate: endDate ? new Date(endDate) : null}
+      ? {
+          date: new Date(startDate),
+          message: message || "",
+          classIds: selectedClassIds,
+          endDate: endDate ? new Date(endDate) : null,
+          frequency: frequency || "",
+          amount: amount || 0,
+        }
       : null;
 
     const existingEntry = student.creditsPerCourse?.find(
@@ -327,6 +334,87 @@ if (endDate) {
 
   } catch (error: any) {
     console.error("Error adding course:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// ─── PUT: Edit an existing package entry (startDate, credits, frequency, amount) ──
+export async function PUT(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { studentId, courseId, originalStartDate, startDate, credits, frequency, amount } = body;
+
+    if (!studentId || !courseId || !originalStartDate) {
+      return NextResponse.json({ error: "studentId, courseId, and originalStartDate are required" }, { status: 400 });
+    }
+
+    const student = await User.findById(studentId);
+    if (!student) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 });
+    }
+
+    // Find the creditsPerCourse entry for this course
+    const courseEntryIndex = student.creditsPerCourse?.findIndex(
+      (e: any) => e.courseId?.toString() === courseId
+    );
+
+    if (courseEntryIndex === -1 || courseEntryIndex === undefined) {
+      return NextResponse.json({ error: "Course entry not found" }, { status: 404 });
+    }
+
+    const courseEntry = student.creditsPerCourse[courseEntryIndex];
+
+    // Find the startTime entry by matching its date
+    const origDate = new Date(originalStartDate);
+    const entryIndex = (courseEntry.startTime || []).findIndex((s: any) => {
+      const d = new Date(s.date);
+      return d.toDateString() === origDate.toDateString();
+    });
+
+    if (entryIndex === -1) {
+      return NextResponse.json({ error: "Package entry not found for the given start date" }, { status: 404 });
+    }
+
+    // Build the $set update
+    const setFields: any = {};
+    const basePath = `creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}`;
+
+    if (startDate) {
+      setFields[`${basePath}.date`] = new Date(startDate);
+    }
+    if (frequency !== undefined) {
+      setFields[`${basePath}.frequency`] = frequency;
+    }
+    if (amount !== undefined) {
+      setFields[`${basePath}.amount`] = amount;
+    }
+
+    // Credits are stored at the courseEntry level, not the startTime entry level
+    const updateOps: any = {};
+    if (Object.keys(setFields).length > 0) {
+      updateOps.$set = setFields;
+    }
+    if (credits !== undefined) {
+      // Set credits directly on the courseEntry
+      updateOps.$set = {
+        ...updateOps.$set,
+        [`creditsPerCourse.${courseEntryIndex}.credits`]: credits,
+      };
+    }
+
+    if (Object.keys(updateOps).length === 0) {
+      return NextResponse.json({ success: true, message: "No changes to apply" });
+    }
+
+    await (User as any).updateOne({ _id: studentId }, updateOps);
+
+    return NextResponse.json({
+      success: true,
+      message: "Package entry updated successfully",
+    });
+
+  } catch (error: any) {
+    console.error("Error updating package entry:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

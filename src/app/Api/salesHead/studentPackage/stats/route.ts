@@ -8,10 +8,10 @@ export async function GET(request: NextRequest) {
 
         const { searchParams } = new URL(request.url);
         const search = (searchParams.get("search") || "").toLowerCase();
-        const fSociety = searchParams.get("society") || "";
-        const fTutor = searchParams.get("tutorName") || "";
-        const fRm = searchParams.get("rm") || "";
-        const fSpoc = searchParams.get("spoc") || "";
+        const fSociety = (searchParams.get("society") || "").split(",").filter(Boolean);
+        const fTutor = (searchParams.get("tutorName") || "").split(",").filter(Boolean);
+        const fRm = (searchParams.get("rm") || "").split(",").filter(Boolean);
+        const fSpoc = (searchParams.get("spoc") || "").split(",").filter(Boolean);
         const fType = searchParams.get("type") || "";
         const fRenewal = searchParams.get("renewalStatus") || "";
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         const rmNames = new Set<string>();
         const spocNames = new Set<string>();
 
-        const counts = { total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, completed: 0, renewed: 0 };
+        const counts = { total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, completed: 0, renewed: 0, dropped: 0 };
 
         for (const student of students) {
             // Collect dropdown values
@@ -44,14 +44,14 @@ export async function GET(request: NextRequest) {
             }
 
             // Apply filters
-            if (fSociety && student.studentSociety !== fSociety) continue;
-            if (fSpoc && student.salesSPOC !== fSpoc) continue;
-            if (fRm && student.studentRM !== fRm) continue;
-            if (fTutor) {
+            if (fSociety.length && !fSociety.includes(student.studentSociety || student.address || "")) continue;
+            if (fSpoc.length && !fSpoc.includes(student.salesSPOC || "")) continue;
+            if (fRm.length && !fRm.includes(student.studentRM || student.relationshipManager?.username || "")) continue;
+            if (fTutor.length) {
                 const names = Array.isArray(student.instructorId)
                     ? student.instructorId.map((t: any) => t?.username).filter(Boolean)
                     : [];
-                if (!names.includes(fTutor)) continue;
+                if (!fTutor.some((f: string) => names.includes(f))) continue;
             }
             if (search) {
                 const matchName = (student.username || "").toLowerCase().includes(search);
@@ -99,9 +99,10 @@ export async function GET(request: NextRequest) {
                 if (fRenewal && renewalStatus !== fRenewal) continue;
 
                 counts.total++;
-                if (renewalStatus === "Renewed") counts.renewed++;
+                if (renewalStatus === "Dropped") counts.dropped++;
+                else if (renewalStatus === "Renewed") counts.renewed++;
                 else if (completion >= 100) counts.completed++;
-                else if (daysLeft <= 0) counts.overdue++;           // ← past end date
+                else if (daysLeft <= 0) counts.overdue++;
                 else if (daysLeft <= 7) counts.urgent++;
                 else if (daysLeft <= 20) counts.soon++;
                 else counts.ontrack++;
