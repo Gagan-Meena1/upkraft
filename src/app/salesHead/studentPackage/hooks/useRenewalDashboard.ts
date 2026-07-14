@@ -13,11 +13,11 @@ export function useRenewalDashboard() {
     const [totalItems, setTotalItems] = useState(0);
     const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
-    const [filters, setFilters] = useState<Filters>({ society: "", tutorName: "", rm: "", spoc: "", type: "", renewalStatus: "" });
+    const [filters, setFilters] = useState<Filters>({ society: [], tutorName: [], rm: [], spoc: [], type: "", renewalStatus: "" });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingLead, setEditingLead] = useState<Lead | null>(null);
     const cache = useRef<Record<string, any>>({});
-    const [stats, setStats] = useState<Stats>({ total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, completed: 0, renewed: 0 });
+    const [stats, setStats] = useState<Stats>({ total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, completed: 0, renewed: 0, dropped: 0 });
 
     // Renewal modal state
     const [renewalModalLead, setRenewalModalLead] = useState<Lead | null>(null);
@@ -44,7 +44,19 @@ export function useRenewalDashboard() {
     }, [search]);
 
     const handleFilterChange = (key: keyof Filters, value: string) => {
-        setFilters(prev => ({ ...prev, [key]: value }));
+        setFilters(prev => {
+            const field = prev[key];
+            // Array fields: toggle value in/out
+            if (Array.isArray(field)) {
+                const arr = field as string[];
+                const next = arr.includes(value)
+                    ? arr.filter(v => v !== value)
+                    : [...arr, value];
+                return { ...prev, [key]: next };
+            }
+            // String fields (type, renewalStatus): simple replace
+            return { ...prev, [key]: value };
+        });
         setPage(1);
         cache.current = {};
     };
@@ -56,9 +68,9 @@ export function useRenewalDashboard() {
     };
 
     const clearFilters = () => {
-        setFilters({ society: "", tutorName: "", rm: "", spoc: "", type: "", renewalStatus: "" });
+        setFilters({ society: [], tutorName: [], rm: [], spoc: [], type: "", renewalStatus: "" });
         setSearch("");
-        setActiveCard("urgent");   // ← add
+        setActiveCard("urgent");
         setPage(1);
         cache.current = {};
     };
@@ -67,7 +79,11 @@ export function useRenewalDashboard() {
     const fetchStats = useCallback(async () => {
         setStatsLoading(true);
         try {
-            const query = new URLSearchParams({ search: debouncedSearch, ...filters });
+            const serialized: Record<string, string> = { search: debouncedSearch };
+            for (const [k, v] of Object.entries(filters)) {
+                serialized[k] = Array.isArray(v) ? v.join(",") : v;
+            }
+            const query = new URLSearchParams(serialized);
             const res = await fetch(`/Api/salesHead/studentPackage/stats?${query}`);
             const data = await res.json();
             if (data.success) {
@@ -92,10 +108,14 @@ export function useRenewalDashboard() {
         }
         try {
             if (!isPrefetch) setLoading(true);
-            const query = new URLSearchParams({
+            const serialized: Record<string, string> = {
                 page: targetPage.toString(), limit: limit.toString(),
-                search: debouncedSearch, cardFilter: activeCard, ...filters
-            });
+                search: debouncedSearch, cardFilter: activeCard
+            };
+            for (const [k, v] of Object.entries(filters)) {
+                serialized[k] = Array.isArray(v) ? v.join(",") : v;
+            }
+            const query = new URLSearchParams(serialized);
             const res = await fetch(`/Api/salesHead/studentPackage?${query}`);
             const data = await res.json();
             if (data.success) {

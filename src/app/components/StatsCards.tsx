@@ -10,7 +10,7 @@ interface Props {
 
 export default function StatsCards({ stats, statsLoading, activeCard, onCardClick }: Props) {
     return (
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-3 px-5 pt-5 pb-3">
+        <div className="grid grid-cols-3 md:grid-cols-7 gap-3 px-5 pt-5 pb-3">
             {CARDS.map(card => (
                 <button key={card.key} onClick={() => onCardClick(card.key)}
                     className={`bg-white rounded-xl p-4 text-left border-t-4 shadow-sm hover:shadow-md transition-all cursor-pointer

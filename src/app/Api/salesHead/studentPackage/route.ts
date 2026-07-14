@@ -15,10 +15,10 @@ export async function GET(request: NextRequest) {
         const search = (searchParams.get("search") || "").toLowerCase();
 
         // Filters
-        const fSociety = searchParams.get("society") || "";
-        const fTutor = searchParams.get("tutorName") || "";
-        const fRm = searchParams.get("rm") || "";
-        const fSpoc = searchParams.get("spoc") || "";
+        const fSociety = (searchParams.get("society") || "").split(",").filter(Boolean);
+        const fTutor = (searchParams.get("tutorName") || "").split(",").filter(Boolean);
+        const fRm = (searchParams.get("rm") || "").split(",").filter(Boolean);
+        const fSpoc = (searchParams.get("spoc") || "").split(",").filter(Boolean);
         const fType = searchParams.get("type") || "";
         const fRenewal = searchParams.get("renewalStatus") || "";
         const now = new Date();
@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
 
         for (const student of students) {
             // Apply student-level filters
-            if (fSpoc && student.salesSPOC !== fSpoc) continue;
-            if (fSociety && (student.studentSociety || student.address) !== fSociety) continue;
-            if (fRm && (student.studentRM || student.relationshipManager?.username) !== fRm) continue;
+            if (fSpoc.length && !fSpoc.includes(student.salesSPOC || "")) continue;
+            if (fSociety.length && !fSociety.includes(student.studentSociety || student.address || "")) continue;
+            if (fRm.length && !fRm.includes(student.studentRM || student.relationshipManager?.username || "")) continue;
 
             // Search filter (name, phone, email)
             if (search) {
@@ -112,8 +112,8 @@ export async function GET(request: NextRequest) {
         }
 
         // Apply tutor name filter now that it's extracted
-        if (fTutor) {
-            allPackages = allPackages.filter(p => p.tutorName === fTutor);
+        if (fTutor.length) {
+            allPackages = allPackages.filter(p => fTutor.includes(p.tutorName));
         }
         if (fRenewal) {
             allPackages = allPackages.filter(p => p.renewalStatus === fRenewal);
@@ -149,12 +149,13 @@ export async function GET(request: NextRequest) {
                     })()
                     : 999;
 
+                if (cardFilter === "dropped") return renewalStatus === "Dropped";
                 if (cardFilter === "renewed") return renewalStatus === "Renewed";
-                if (cardFilter === "completed") return completion >= 100 && renewalStatus !== "Renewed";
-                if (cardFilter === "overdue") return daysLeft < 0 && renewalStatus !== "Renewed" && completion < 100;   // ← add
-                if (cardFilter === "urgent") return daysLeft >= 0 && daysLeft <= 7 && renewalStatus !== "Renewed" && completion < 100;  // ← note: now only future
-                if (cardFilter === "soon") return daysLeft > 7 && daysLeft <= 20 && renewalStatus !== "Renewed" && completion < 100;
-                if (cardFilter === "ontrack") return daysLeft > 20 && renewalStatus !== "Renewed" && completion < 100;
+                if (cardFilter === "completed") return completion >= 100 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped";
+                if (cardFilter === "overdue") return daysLeft < 0 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped" && completion < 100;
+                if (cardFilter === "urgent") return daysLeft >= 0 && daysLeft <= 7 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped" && completion < 100;
+                if (cardFilter === "soon") return daysLeft > 7 && daysLeft <= 20 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped" && completion < 100;
+                if (cardFilter === "ontrack") return daysLeft > 20 && renewalStatus !== "Renewed" && renewalStatus !== "Dropped" && completion < 100;
                 return true;
             });
         }
