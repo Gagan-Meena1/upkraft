@@ -37,7 +37,7 @@ export interface Lead {
 
 export interface Stats {
     total: number; urgent: number; soon: number;
-    ontrack: number; completed: number; renewed: number; overdue: number; dropped: number;
+    ontrack: number; renewed: number; overdue: number; dropped: number;
 }
 
 export interface Options {
@@ -50,4 +50,4 @@ export interface Filters {
     spoc: string[]; type: string; renewalStatus: string;
 }
 
-export type CardFilter = "overdue" | "urgent" | "soon" | "ontrack" | "completed" | "renewed" | "dropped";
+export type CardFilter = "overdue" | "urgent" | "soon" | "ontrack" | "renewed" | "dropped";

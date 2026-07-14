@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         const rmNames = new Set<string>();
         const spocNames = new Set<string>();
 
-        const counts = { total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, completed: 0, renewed: 0, dropped: 0 };
+        const counts = { total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, renewed: 0, dropped: 0 };
 
         for (const student of students) {
             // Collect dropdown values
@@ -101,7 +101,6 @@ export async function GET(request: NextRequest) {
                 counts.total++;
                 if (renewalStatus === "Dropped") counts.dropped++;
                 else if (renewalStatus === "Renewed") counts.renewed++;
-                else if (completion >= 100) counts.completed++;
                 else if (daysLeft <= 0) counts.overdue++;
                 else if (daysLeft <= 7) counts.urgent++;
                 else if (daysLeft <= 20) counts.soon++;
