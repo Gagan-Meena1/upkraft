@@ -14,6 +14,8 @@ interface AssignmentHistory {
   date: Date;
   message: string;
   classIds:string[];
+  frequency?: string;
+  amount?: number;
 }
 
 interface CreditEntry {
@@ -45,10 +47,12 @@ export interface AssignPayload {
   startDate: string;
   message: string;
   credits: number;
-    isEdit?: boolean; // ← new
+    isEdit?: boolean;
     endDate: string;
     classType?: 'makeup' | 'regularClass';
-
+    frequency?: string;
+    amount?: number;
+    originalStartDate?: string;
 }
 
 interface Props {
@@ -198,6 +202,9 @@ export default function ClassSelectionModal({
   const [editingEntry, setEditingEntry] = useState<AssignmentHistory | null>(null);
 const [classType, setClassType] = useState<'makeup' | 'regularClass'>('regularClass');
 const [viewingClassesEntry, setViewingClassesEntry] = useState<AssignmentHistory | null>(null);
+const [frequency, setFrequency] = useState<string>("");
+const [pkgAmount, setPkgAmount] = useState<string>("");
+
 
   
 
@@ -255,6 +262,9 @@ const getEndDateForAssignment = (entry: AssignmentHistory): string => {
     year: "numeric",
   });
 };
+
+// When editing an expired entry, only frequency & amount are editable
+const isExpiredEdit = !!(editingEntry && new Date(getEndDateForAssignment(editingEntry)) <= new Date());
 
 // ── Reset when modal opens/closes ──────────────────────────────────────────
 React.useEffect(() => {
@@ -441,6 +451,9 @@ const toggleClassOverride = (
     isEdit: !!editingEntry,
     endDate,
     classType: showClassType ? classType : undefined,
+    frequency: frequency || undefined,
+    amount: parseInt(pkgAmount, 10) || undefined,
+    originalStartDate: editingEntry ? new Date(editingEntry.date).toISOString() : undefined,
   });
 };
 
@@ -580,16 +593,31 @@ const endDate = getEndDateForAssignment(entry);
     📋 Classes ({entry.classIds?.length || 0})
   </button>
 
-  {new Date(getEndDateForAssignment(entry)) > new Date() && (
+  {new Date(getEndDateForAssignment(entry)) > new Date() ? (
     <button
       onClick={() => {
         setEditingEntry(entry);
         setStartDate(new Date(entry.date).toISOString().split("T")[0]);
+        setFrequency((entry as any).frequency || "");
+        setPkgAmount(String((entry as any).amount || ""));
         setActiveTab("form");
       }}
       className="text-xs text-purple-600 border border-purple-300 rounded-lg px-3 py-1.5 hover:bg-purple-50 transition-colors"
     >
       ✏️ Edit
+    </button>
+  ) : (
+    <button
+      onClick={() => {
+        setEditingEntry(entry);
+        setStartDate(new Date(entry.date).toISOString().split("T")[0]);
+        setFrequency((entry as any).frequency || "");
+        setPkgAmount(String((entry as any).amount || ""));
+        setActiveTab("form");
+      }}
+      className="text-xs text-gray-600 border border-gray-300 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors"
+    >
+      ✏️ Edit Details
     </button>
   )}
 </div>
@@ -638,10 +666,10 @@ const endDate = getEndDateForAssignment(entry);
       <input
         type="date"
         value={startDate}
-        onChange={(e) => { if (!editingEntry) setStartDate(e.target.value); }}
-        readOnly={!!editingEntry}
+        onChange={(e) => { if (!isExpiredEdit) setStartDate(e.target.value); }}
+        readOnly={isExpiredEdit}
         className={`px-2 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 ${
-          editingEntry ? "bg-gray-100 cursor-not-allowed text-gray-500" : ""
+          isExpiredEdit ? "bg-gray-100 cursor-not-allowed text-gray-400" : ""
         }`}
       />
     </div>
@@ -655,11 +683,14 @@ const endDate = getEndDateForAssignment(entry);
           min={1}
           placeholder="Credits..."
           value={credits}
-          onChange={(e) => setCredits(e.target.value)}
+          onChange={(e) => { if (!isExpiredEdit) setCredits(e.target.value); }}
+          readOnly={isExpiredEdit}
           className={`w-24 px-2 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-1 ${
-            !isValidSelection && allSelectedClassIds.length > 0
-              ? "border-red-300 focus:ring-red-400"
-              : "border-gray-200 focus:ring-purple-400"
+            isExpiredEdit
+              ? "bg-gray-100 cursor-not-allowed text-gray-400 border-gray-200"
+              : !isValidSelection && allSelectedClassIds.length > 0
+                ? "border-red-300 focus:ring-red-400"
+                : "border-gray-200 focus:ring-purple-400"
           }`}
         />
 {credits && (
@@ -696,8 +727,42 @@ const endDate = getEndDateForAssignment(entry);
         type="text"
         placeholder="Add a note..."
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
+        onChange={(e) => { if (!isExpiredEdit) setMessage(e.target.value); }}
+        readOnly={isExpiredEdit}
+        className={`w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 ${
+          isExpiredEdit ? "bg-gray-100 cursor-not-allowed text-gray-400" : ""
+        }`}
+      />
+    </div>
+
+    {/* Frequency */}
+    <div className="flex flex-col gap-0.5">
+      <label className="text-xs font-semibold text-gray-500">Frequency</label>
+      <select
+        value={frequency}
+        onChange={(e) => setFrequency(e.target.value)}
+        className="px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 bg-white cursor-pointer"
+      >
+        <option value="">Select</option>
+        <option value="1x/week">1x/week</option>
+        <option value="2x/week">2x/week</option>
+        <option value="3x/week">3x/week</option>
+        <option value="4x/week">4x/week</option>
+        <option value="5x/week">5x/week</option>
+        <option value="Daily">Daily</option>
+      </select>
+    </div>
+
+    {/* Package Amount */}
+    <div className="flex flex-col gap-0.5">
+      <label className="text-xs font-semibold text-gray-500">Pkg Amount (₹)</label>
+      <input
+        type="number"
+        min={0}
+        placeholder="Amount"
+        value={pkgAmount}
+        onChange={(e) => setPkgAmount(e.target.value)}
+        className="w-24 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
       />
     </div>
 
