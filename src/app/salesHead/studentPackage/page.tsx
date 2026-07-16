@@ -5,6 +5,7 @@ import FiltersBar from "@/app/components/FiltersBar";
 import LeadTable from "@/app/components/LeadTable";
 import EditModal from "@/app/components/EditModal";
 import RenewalModal from "@/app/components/RenewalModal";
+import StudentInfoPopup from "@/app/components/StudentInfoPopup";
 
 export default function RenewalDashboardPage() {
   const {
@@ -22,6 +23,8 @@ export default function RenewalDashboardPage() {
     renewalFrequency, setRenewalFrequency,
     renewalAmount, setRenewalAmount,
     handleRenewalSubmit,
+    infoStudentId,
+    setInfoStudentId,
   } = useRenewalDashboard();
 
   return (
@@ -73,6 +76,7 @@ export default function RenewalDashboardPage() {
         onEdit={(l) => { setEditingLead(l); setIsModalOpen(true); }}
         onHide={handleHideStudent}
         onStatusChange={handleInlineStatusUpdate}
+        onShowInfo={setInfoStudentId}
       />
 
       {isModalOpen && editingLead && (
@@ -99,6 +103,13 @@ export default function RenewalDashboardPage() {
           onRenewalAmountChange={setRenewalAmount}
           onSubmit={handleRenewalSubmit}
           onClose={() => setRenewalModalLead(null)}
+        />
+      )}
+
+      {infoStudentId && (
+        <StudentInfoPopup
+          studentId={infoStudentId}
+          onClose={() => setInfoStudentId(null)}
         />
       )}
     </div>
