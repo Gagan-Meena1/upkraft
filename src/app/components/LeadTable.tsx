@@ -1,5 +1,15 @@
 import SkeletonRow from "./SkeletonRow";
 import LeadRow from "./LeadRow";
+import { Lead } from "@/app/salesHead/studentPackage/types";
+
+interface Props {
+    leads: Lead[];
+    loading: boolean;
+    onEdit: (l: Lead) => void;
+    onHide?: (id: string, st: string, cId: string, d: string) => void;
+    onStatusChange: (id: string, sId: string, val: string) => void;
+    onShowInfo: (studentId: string) => void;
+}
 const HEADERS = [
     { label: "Customer / Student", className: "sticky left-0 z-20 bg-[#faf9ff] min-w-[160px]" },
     { label: "Society", className: "sticky left-[160px] z-20 bg-[#faf9ff] min-w-[120px]" },
@@ -21,7 +31,7 @@ const HEADERS = [
     { label: "Action", className: "" },
 ];
 
-export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChange }: Props) {
+export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChange, onShowInfo }: Props) {
     return (
         <div className="px-5 overflow-x-auto pb-8 mt-2">
             <div className="rounded-xl border border-gray-200">
@@ -47,7 +57,7 @@ export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChan
                                 </td>
                             </tr>
                         ) : leads.map(l => (
-                            <LeadRow key={l.id} lead={l} onEdit={onEdit} onHide={onHide} onStatusChange={onStatusChange} />
+                            <LeadRow key={l.id} lead={l} onEdit={onEdit} onHide={onHide} onStatusChange={onStatusChange} onShowInfo={onShowInfo} />
                         ))}
                     </tbody>
                 </table>

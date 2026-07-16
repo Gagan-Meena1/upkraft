@@ -11,9 +11,11 @@ import {
   Calendar,
   Clock,
   ChevronRight,
+  ChevronDown,
   CreditCard,
   Music,
   ClipboardList,
+  IndianRupee,
 } from "lucide-react";
 import AttendanceHistory from "@/app/components/AttendanceHistory";
 
@@ -43,6 +45,19 @@ interface PackageInfo {
   endDate: string | null;
   packageEndDate: string | null;
   paymentCycle: number;
+}
+
+interface PaymentHistoryItem {
+  cycle: number;
+  amount: number;
+  classesPaid: number;
+  date: string | null;
+}
+
+interface PaymentHistoryGroup {
+  courseId: string;
+  courseName: string;
+  history: PaymentHistoryItem[];
 }
 
 function SkeletonLine({ width = "w-full" }: { width?: string }) {
@@ -83,6 +98,8 @@ export default function StudentInfoPopup({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAttendance, setShowAttendance] = useState(false);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryGroup[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,6 +121,7 @@ export default function StudentInfoPopup({
         // Show contact info immediately
         setContactInfo(data.contactInfo);
         setPackages(data.packages || []);
+        setPaymentHistory(data.paymentHistory || []);
       } catch (err: any) {
         setError(err.message || "Something went wrong");
       } finally {
@@ -205,7 +223,8 @@ export default function StudentInfoPopup({
             />
           </div>
         ) : (
-        <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+        <>
+          <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Left: Package Details */}
           <div className="space-y-4">
             {loading ? (
@@ -427,6 +446,66 @@ export default function StudentInfoPopup({
             {loading && <SkeletonBlock />}
           </div>
         </div>
+
+        {/* Payment History Section */}
+        {!loading && paymentHistory.length > 0 && (
+          <div className="px-6 pb-6 border-t border-gray-100 pt-6">
+            <button 
+              onClick={() => setShowPaymentHistory(!showPaymentHistory)}
+              className="w-full flex items-center justify-between text-left group"
+            >
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <IndianRupee className="w-4 h-4 text-gray-500" />
+                Payment History
+              </h3>
+              <ChevronDown 
+                className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${showPaymentHistory ? "rotate-180" : ""}`} 
+              />
+            </button>
+            {showPaymentHistory && (
+            <div className="space-y-6 mt-4">
+              {paymentHistory.map((group) => (
+                <div key={group.courseId} className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200 text-sm font-semibold text-gray-800">
+                    {group.courseName}
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
+                      <thead className="bg-gray-50/50 text-gray-500 text-xs uppercase tracking-wider">
+                        <tr>
+                          <th className="px-4 py-3 font-medium">Cycle</th>
+                          <th className="px-4 py-3 font-medium">Amount Paid</th>
+                          <th className="px-4 py-3 font-medium">Classes Paid</th>
+                          <th className="px-4 py-3 font-medium">Start Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {group.history.map((item, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-4 py-3 text-gray-900 font-medium">
+                              Cycle {item.cycle}
+                            </td>
+                            <td className="px-4 py-3 text-emerald-600 font-semibold">
+                              ₹{item.amount || 0}
+                            </td>
+                            <td className="px-4 py-3 text-gray-700">
+                              {item.classesPaid || "—"}
+                            </td>
+                            <td className="px-4 py-3 text-gray-500 text-xs">
+                              {formatDate(item.date)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+            )}
+          </div>
+        )}
+        </>
         )}
       </div>
 

@@ -213,10 +213,29 @@ export async function POST(request: NextRequest) {
             };
         });
 
+        // Build payment history for all courses
+        const paymentHistory = creditsPerCourse.map(courseEntry => {
+            const cId = courseEntry.courseId?.toString() || "";
+            const courseName = courseNameMap.get(cId) || "Unknown Course";
+            const history = (courseEntry.startTime || []).map((entry: any, index: number) => ({
+                cycle: index + 1,
+                amount: entry.amount || 0,
+                classesPaid: entry.classesPaid || 0,
+                date: entry.date || null
+            }));
+            
+            return {
+                courseId: cId,
+                courseName,
+                history
+            };
+        }).filter(ph => ph.history.length > 0);
+
         return NextResponse.json({
             success: true,
             contactInfo,
             packages,
+            paymentHistory,
         });
 
     } catch (error: any) {

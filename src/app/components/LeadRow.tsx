@@ -8,6 +8,7 @@ interface Props {
     onEdit: (l: Lead) => void;
     onHide: (id: string, studentId: string) => void;
     onStatusChange: (id: string, studentId: string, status: string) => void;
+    onShowInfo: (studentId: string) => void;
 }
 
 const urgencyOf = (l: Lead) => {
@@ -49,7 +50,7 @@ function DaysPill({ l }: { l: Lead }) {
 
 }
 
-export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange }: Props) {
+export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onShowInfo }: Props) {
     const u = urgencyOf(l);
     const s = STATUS_STYLE[l.renewalStatus] || { bg: "#f3f4f6", color: "#6b7280" };
     const [showNotes, setShowNotes] = useState(false);
@@ -64,7 +65,13 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange }: Pro
                 {/* Customer — sticky */}
                 <td className="px-4 py-3 align-middle sticky left-0 bg-white group-hover:bg-indigo-200 transition-colors z-10">
                     <div className="font-bold text-gray-900 text-[12px] truncate max-w-[150px]" title={l.custName}>{l.custName || "Unknown"}</div>
-                    <div className="text-[11px] text-gray-500 truncate max-w-[150px]">👤 {l.studName}</div>
+                    <div 
+                        className="text-[11px] text-gray-500 truncate max-w-[150px] cursor-pointer hover:text-indigo-600 hover:underline flex items-center gap-1"
+                        onClick={() => onShowInfo(l.studentId)}
+                        title="Click to view student details"
+                    >
+                        👤 {l.studName}
+                    </div>
                 </td>
 
                 {/* Society — sticky */}
