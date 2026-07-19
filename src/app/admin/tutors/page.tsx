@@ -45,6 +45,7 @@ function AllTutors() {
   const [relationshipManagers, setRelationshipManagers] = useState<RelationshipManager[]>([]);
   const [assigningTutorId, setAssigningTutorId] = useState<string | null>(null);
   const [loadingManagers, setLoadingManagers] = useState(false);
+  const [impersonatingTutorId, setImpersonatingTutorId] = useState<string | null>(null);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -130,6 +131,35 @@ function AllTutors() {
       })
     );
   }, [relationshipManagers, isTeamLeadView]);
+
+  const handleImpersonateTutor = async (tutorId: string) => {
+    try {
+      setImpersonatingTutorId(tutorId);
+
+      const response = await fetch("/Api/teamlead/impersonate-tutor", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ tutorId }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || "Failed to login as tutor");
+      }
+
+      toast.success("Successfully logged in as tutor");
+      window.open("/tutor", "_blank");
+    } catch (err: any) {
+      console.error("Error impersonating tutor:", err);
+      toast.error(err.message || "Failed to login as tutor. Please try again.");
+    } finally {
+      setImpersonatingTutorId(null);
+    }
+  };
 
   const handleAssignManager = async (tutorId: string, managerId: string) => {
     if (!managerId) return;
@@ -320,6 +350,27 @@ function AllTutors() {
                               <span>{tutor.contact}</span>
                             </div>
                           </div>
+                          {isTeamLeadView && (
+                            <div className="mt-4 flex gap-3">
+                              <button
+                                onClick={() => handleImpersonateTutor(tutor._id)}
+                                disabled={impersonatingTutorId === tutor._id}
+                                className="flex-1 inline-flex justify-center items-center px-4 py-2 !bg-purple-500 !text-white !text-sm font-medium rounded-lg hover:bg-purple-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {impersonatingTutorId === tutor._id ? (
+                                  <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Logging in...
+                                  </>
+                                ) : (
+                                  "Login"
+                                )}
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         {isTeamLeadView && (
