@@ -50,6 +50,8 @@ interface StudentSummary {
     student: UserInfo;
     feedbacksCount: number;
     lastFeedbackDate: string;
+    pendingFeedbacks?: any[];
+    pendingCount?: number;
 }
 
 export default function RMStudentFeedbacksPage() {
@@ -72,6 +74,10 @@ export default function RMStudentFeedbacksPage() {
     const [isLoadingTutors, setIsLoadingTutors] = useState(false);
     const [reassignType, setReassignType] = useState<"permanent" | "temporary">("permanent");
     const [students, setStudents] = useState<UserInfo[]>([]);
+    const [pendingFeedbacks, setPendingFeedbacks] = useState<any[]>([]);
+    const [isPendingModalOpen, setIsPendingModalOpen] = useState(false);
+    const [selectedStudentForPending, setSelectedStudentForPending] = useState<UserInfo | null>(null);
+    const [selectedStudentPendingList, setSelectedStudentPendingList] = useState<any[]>([]);
 
 
     useEffect(() => {
@@ -86,18 +92,33 @@ export default function RMStudentFeedbacksPage() {
                 setLoading(true);
                 setError(null);
 
-                const res = await fetch(`/Api/relationship-manager/tutor/${tutorId}/feedbacks`, {
-                    credentials: "include",
-                });
-                const data = await res.json();
+                const [res, pendingRes] = await Promise.all([
+                    fetch(`/Api/relationship-manager/tutor/${tutorId}/feedbacks`, {
+                        credentials: "include",
+                    }),
+                    fetch(`/Api/pendingFeedback?tutorId=${tutorId}`, {
+                        credentials: "include",
+                    })
+                ]);
 
+                const data = await res.json();
                 if (!res.ok || !data.success) {
                     throw new Error(data.error || "Failed to load feedbacks");
+                }
+
+                let pendingData = { missingFeedbackClasses: [] };
+                if (pendingRes.ok) {
+                    try {
+                        pendingData = await pendingRes.json();
+                    } catch (e) {
+                        console.error("Failed to parse pending feedbacks", e);
+                    }
                 }
 
                 setTutor(data.tutor || null);
                 setFeedbacks(data.feedbacks || []);
                 setStudents(data.students || []);
+                setPendingFeedbacks(pendingData.missingFeedbackClasses || []);
 
             } catch (err: any) {
                 setError(err.message || "Failed to load student feedbacks");
@@ -113,18 +134,21 @@ export default function RMStudentFeedbacksPage() {
     const studentSummaries = useMemo(() => {
         return students.map(student => {
             const studentFeedbacks = feedbacks.filter(fb => fb.student._id === student._id);
+            const studentPending = pendingFeedbacks.filter(fb => fb.studentId === student._id);
             const sorted = [...studentFeedbacks].sort(
                 (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
             return {
                 student,
                 feedbacksCount: studentFeedbacks.length,
-                lastFeedbackDate: sorted[0]?.createdAt || ""
+                lastFeedbackDate: sorted[0]?.createdAt || "",
+                pendingFeedbacks: studentPending,
+                pendingCount: studentPending.length
             };
         }).sort((a, b) =>
             new Date(b.lastFeedbackDate).getTime() - new Date(a.lastFeedbackDate).getTime()
         );
-    }, [students, feedbacks]);
+    }, [students, feedbacks, pendingFeedbacks]);
 
     // Filtered views based on search term
     const filteredStudents = useMemo(() => {
@@ -206,6 +230,12 @@ export default function RMStudentFeedbacksPage() {
         } finally {
             setIsSubmittingReassign(false);
         }
+    };
+
+    const handleOpenPendingModal = (student: UserInfo, pendingList: any[]) => {
+        setSelectedStudentForPending(student);
+        setSelectedStudentPendingList(pendingList);
+        setIsPendingModalOpen(true);
     };
 
     const handleEnableEdit = async (feedbackId: string) => {
@@ -347,34 +377,57 @@ export default function RMStudentFeedbacksPage() {
                                         setSelectedStudentId(summary.student._id);
                                         setSearchTerm("");
                                     }}
-                                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group"
+                                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
                                 >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-lg font-bold">
-                                                {summary.student.username.charAt(0).toUpperCase()}
+                                    <div>
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-lg font-bold">
+                                                    {summary.student.username.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
+                                                        {summary.student.username}
+                                                    </h3>
+                                                    <p className="text-xs text-gray-500 truncate w-32 sm:w-40">
+                                                        {summary.student.email}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
-                                                    {summary.student.username}
-                                                </h3>
-                                                <p className="text-xs text-gray-500 truncate w-32 sm:w-40">
-                                                    {summary.student.email}
-                                                </p>
+                                            <div className="flex items-center gap-1 mt-3">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOpenReassignModal(summary.student);
+                                                    }}
+                                                    className="p-1.5 rounded-full text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors z-10 relative"
+                                                    title="Reassign to another tutor"
+                                                >
+                                                    <ArrowRightLeft className="w-5 h-5" />
+                                                </button>
+                                                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" />
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-1 mt-3">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleOpenReassignModal(summary.student);
-                                                }}
-                                                className="p-1.5 rounded-full text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors z-10 relative"
-                                                title="Reassign to another tutor"
-                                            >
-                                                <ArrowRightLeft className="w-5 h-5" />
-                                            </button>
-                                            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" />
+
+                                        {/* Pending feedback button */}
+                                        <div className="mt-4">
+                                            {(summary.pendingCount ?? 0) > 0 ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleOpenPendingModal(summary.student, summary.pendingFeedbacks || []);
+                                                    }}
+                                                    className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all z-10 relative"
+                                                >
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                                                    {summary.pendingCount} pending feedback{summary.pendingCount > 1 ? 's' : ''}
+                                                </button>
+                                            ) : (
+                                                <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-semibold inline-flex items-center gap-1.5">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                                    No pending feedback
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
@@ -383,9 +436,9 @@ export default function RMStudentFeedbacksPage() {
                                             <span className="font-semibold text-gray-900">{summary.feedbacksCount}</span> feedbacks
                                         </div>
                                         <div className="text-gray-500 text-xs text-right">
-                                            Last: {new Date(summary.lastFeedbackDate).toLocaleDateString("en-US", {
+                                            {summary.lastFeedbackDate ? `Last: ${new Date(summary.lastFeedbackDate).toLocaleDateString("en-US", {
                                                 month: 'short', day: 'numeric', year: 'numeric'
-                                            })}
+                                            })}` : 'No feedbacks'}
                                         </div>
                                     </div>
                                 </div>
@@ -605,6 +658,86 @@ export default function RMStudentFeedbacksPage() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Pending Feedbacks Modal */}
+            {isPendingModalOpen && selectedStudentForPending && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100 bg-red-50/50">
+                            <div>
+                                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                                    Pending Feedbacks
+                                </h2>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                    For student <span className="font-semibold text-gray-700">{selectedStudentForPending.username}</span>
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setIsPendingModalOpen(false)}
+                                className="text-gray-400 hover:text-gray-600 transition-colors p-1.5 rounded-full hover:bg-gray-100"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 max-h-[60vh] overflow-y-auto space-y-4">
+                            {selectedStudentPendingList.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p className="font-medium">All caught up!</p>
+                                    <p className="text-xs mt-1">No pending feedbacks for this student.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {selectedStudentPendingList.map((item, index) => (
+                                        <div
+                                            key={index}
+                                            className="p-4 rounded-lg border border-red-100 bg-red-50/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-red-200 hover:bg-red-50/30 transition-all"
+                                        >
+                                            <div>
+                                                <div className="text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full inline-block mb-1.5">
+                                                    {item.courseName}
+                                                </div>
+                                                <h4 className="font-semibold text-gray-900 text-sm">
+                                                    {item.className}
+                                                </h4>
+                                                <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1">
+                                                    <span>Class Date:</span>
+                                                    <span className="font-medium text-gray-700">
+                                                        {new Date(item.classDate).toLocaleDateString("en-US", {
+                                                            weekday: 'short', month: 'short', day: 'numeric', year: 'numeric'
+                                                        })}
+                                                    </span>
+                                                    <span>•</span>
+                                                    <span className="font-medium text-gray-700">
+                                                        {new Date(item.classDate).toLocaleTimeString("en-US", {
+                                                            hour: '2-digit', minute: '2-digit'
+                                                        })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="flex-shrink-0">
+                                                <span className="text-[11px] font-semibold text-red-600 bg-red-100 border border-red-200 px-2 py-1 rounded-md">
+                                                    Pending
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                            <button
+                                onClick={() => setIsPendingModalOpen(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 bg-gray-100 rounded-lg transition-colors"
+                            >
+                                Close
+                            </button>
                         </div>
                     </div>
                 </div>
