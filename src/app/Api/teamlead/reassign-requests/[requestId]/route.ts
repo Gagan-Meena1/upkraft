@@ -33,7 +33,7 @@ export async function PUT(
 
         const { requestId } = await params;
         const body = await request.json();
-        const { action } = body; // 'approve' or 'reject'
+        const { action, effectiveDate } = body; // 'approve' or 'reject' + optional effectiveDate
 
         if (!requestId || !["approve", "reject"].includes(action)) {
             return NextResponse.json({ success: false, error: "Invalid request parameters" }, { status: 400 });
@@ -123,9 +123,16 @@ export async function PUT(
 
 
 
-            // ✅ Update instructor on all common Classes
+            // ✅ Update instructor on common Classes starting from effectiveDate
+            const classFilter: any = {
+                _id: { $in: [...commonClassIds] },
+                instructor: oldTutorId,
+            };
+            if (effectiveDate) {
+                classFilter.startTime = { $gte: new Date(effectiveDate) };
+            }
             await Class.updateMany(
-                { _id: { $in: [...commonClassIds] }, instructor: oldTutorId },
+                classFilter,
                 { $set: { instructor: new mongoose.Types.ObjectId(newTutorId) } }
             );
             // ✅ Update academyInstructorId on all common Courses
@@ -150,6 +157,9 @@ export async function PUT(
             ]);
 
             reassignReq.status = "approved";
+            if (effectiveDate) {
+                reassignReq.effectiveDate = new Date(effectiveDate);
+            }
         } else {
             reassignReq.status = "rejected";
         }
