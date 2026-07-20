@@ -59,6 +59,7 @@ export default function TeamLeadRequestsPage() {
   const [attendanceResetRequests, setAttendanceResetRequests] = useState<AttendanceResetRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [reassignDates, setReassignDates] = useState<Record<string, string>>({});
 
   const fetchRequests = async () => {
     try {
@@ -113,7 +114,7 @@ export default function TeamLeadRequestsPage() {
       const res = await fetch(endpoint, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...(type === "reassign" && reassignDates[id] ? { effectiveDate: reassignDates[id] } : {}) }),
       });
       const data = await res.json();
 
@@ -270,6 +271,18 @@ export default function TeamLeadRequestsPage() {
                         </div>
 
                         <div className="flex gap-2 mt-2">
+                          <div className="w-full mb-2">
+                            <label className="block text-[10px] font-semibold text-gray-500 mb-1">Effective From Date</label>
+                            <input
+                              type="date"
+                              value={reassignDates[req._id] || ""}
+                              onChange={(e) => setReassignDates(prev => ({ ...prev, [req._id]: e.target.value }))}
+                              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2">
                           <button
                             onClick={() => handleAction(req._id, "approve", "reassign")}
                             disabled={actionLoading !== null}

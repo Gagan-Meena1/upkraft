@@ -34,6 +34,10 @@ const reassignRequestSchema = new mongoose.Schema({
     reason: {
         type: String,
         default: ""
+    },
+    effectiveDate: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true
