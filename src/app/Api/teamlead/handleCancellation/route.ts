@@ -267,9 +267,12 @@ export async function POST(request: NextRequest) {
                     { $addToSet: { classes: newClass._id } }
                 );
 
-                if (cancelledClass.instructor) {
-                    await (User as any).updateOne(
-                        { _id: cancelledClass.instructor },
+                if (student.instructorId && student.instructorId.length > 0) {
+                    await (User as any).updateMany(
+                        { 
+                            _id: { $in: student.instructorId },
+                            classes: new mongoose.Types.ObjectId(classId)
+                        },
                         { $addToSet: { classes: newClass._id } }
                     );
                 }
