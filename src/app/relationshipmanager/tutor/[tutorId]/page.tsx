@@ -124,6 +124,15 @@ export default function RMTutorCalendarPage() {
   const [cancelReason, setCancelReason] = useState<string>("");
   const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
   const [studentInfoId, setStudentInfoId] = useState<string | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
+
+  const triggerViewTransition = (updateFn: () => void) => {
+    setViewLoading(true);
+    setTimeout(() => {
+      updateFn();
+      setViewLoading(false);
+    }, 300);
+  };
 
 
 
@@ -326,35 +335,39 @@ export default function RMTutorCalendarPage() {
   };
 
   const handlePrev = () => {
-    if (activeView === "month") {
-      setCurrentDate(
-        new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-      );
-    } else if (activeView === "week") {
-      const d = cloneDate(currentDate);
-      d.setDate(d.getDate() - 7);
-      setCurrentDate(d);
-    } else {
-      const d = cloneDate(currentDate);
-      d.setDate(d.getDate() - 1);
-      setCurrentDate(d);
-    }
+    triggerViewTransition(() => {
+      if (activeView === "month") {
+        setCurrentDate(
+          new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+        );
+      } else if (activeView === "week") {
+        const d = cloneDate(currentDate);
+        d.setDate(d.getDate() - 7);
+        setCurrentDate(d);
+      } else {
+        const d = cloneDate(currentDate);
+        d.setDate(d.getDate() - 1);
+        setCurrentDate(d);
+      }
+    });
   };
 
   const handleNext = () => {
-    if (activeView === "month") {
-      setCurrentDate(
-        new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
-      );
-    } else if (activeView === "week") {
-      const d = cloneDate(currentDate);
-      d.setDate(d.getDate() + 7);
-      setCurrentDate(d);
-    } else {
-      const d = cloneDate(currentDate);
-      d.setDate(d.getDate() + 1);
-      setCurrentDate(d);
-    }
+    triggerViewTransition(() => {
+      if (activeView === "month") {
+        setCurrentDate(
+          new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+        );
+      } else if (activeView === "week") {
+        const d = cloneDate(currentDate);
+        d.setDate(d.getDate() + 7);
+        setCurrentDate(d);
+      } else {
+        const d = cloneDate(currentDate);
+        d.setDate(d.getDate() + 1);
+        setCurrentDate(d);
+      }
+    });
   };
 
   const weekDays = activeView === "day" ? [currentDate] : getWeekDays();
@@ -560,7 +573,7 @@ export default function RMTutorCalendarPage() {
                 ›
               </button>
               <button
-                onClick={() => setCurrentDate(new Date())}
+                onClick={() => triggerViewTransition(() => setCurrentDate(new Date()))}
                 className="ml-2 px-3 py-1.5 rounded-lg bg-gray-100 text-sm font-medium text-gray-700 hover:bg-gray-200"
               >
                 Today
@@ -570,7 +583,7 @@ export default function RMTutorCalendarPage() {
               {(["day", "week", "month"] as const).map((view) => (
                 <button
                   key={view}
-                  onClick={() => setActiveView(view)}
+                  onClick={() => triggerViewTransition(() => setActiveView(view))}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${activeView === view
                     ? "bg-purple-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -583,7 +596,15 @@ export default function RMTutorCalendarPage() {
           </div>
 
           {/* Calendar content */}
-          <div className="p-4">
+          <div className="p-4 relative min-h-[300px]">
+            {viewLoading && (
+              <div className="absolute inset-0 bg-white/75 backdrop-blur-[1px] z-20 flex items-center justify-center transition-all duration-200">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600" />
+                  <span className="text-xs text-gray-500 font-medium">Updating view...</span>
+                </div>
+              </div>
+            )}
             {activeView === "month" && (
               <div className="grid grid-cols-7 gap-1">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
@@ -601,8 +622,10 @@ export default function RMTutorCalendarPage() {
                       key={idx}
                       onClick={() => {
                         if (d) {
-                          setCurrentDate(d);
-                          setActiveView("day");
+                          triggerViewTransition(() => {
+                            setCurrentDate(d);
+                            setActiveView("day");
+                          });
                         }
                       }}
                       className={`min-h-[90px] p-2 border rounded-lg ${d
@@ -802,7 +825,15 @@ export default function RMTutorCalendarPage() {
           </div>
           
           <div className="p-6 pt-0">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto relative min-h-[150px]">
+              {viewLoading && (
+                <div className="absolute inset-0 bg-white/75 backdrop-blur-[1px] z-20 flex items-center justify-center transition-all duration-200">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600" />
+                    <span className="text-xs text-gray-500 font-medium">Updating list...</span>
+                  </div>
+                </div>
+              )}
               {getVisibleClasses().length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Info className="w-8 h-8 text-gray-300 mx-auto mb-2" />
