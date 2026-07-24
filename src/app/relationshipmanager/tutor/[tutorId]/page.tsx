@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ChevronLeft, ChevronDown, Trash2, X, Info } from "lucide-react";
-import { formatTimeRangeInTz, getUserTimeZone } from "@/helper/time";
+import { ChevronLeft, ChevronDown, Trash2, X, Info, ClipboardCheck } from "lucide-react";
+import { formatTimeRangeInTz, getUserTimeZone, formatInTz } from "@/helper/time";
 import { toast } from "react-hot-toast";
 import CancellationReasonPicker from "@/app/components/reasonForCancellation";
 import StudentInfoPopup from "@/app/components/StudentInfoPopup";
@@ -124,6 +124,15 @@ export default function RMTutorCalendarPage() {
   const [cancelReason, setCancelReason] = useState<string>("");
   const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
   const [studentInfoId, setStudentInfoId] = useState<string | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
+
+  const triggerViewTransition = (updateFn: () => void) => {
+    setViewLoading(true);
+    setTimeout(() => {
+      updateFn();
+      setViewLoading(false);
+    }, 300);
+  };
 
 
 
@@ -326,38 +335,55 @@ export default function RMTutorCalendarPage() {
   };
 
   const handlePrev = () => {
-    if (activeView === "month") {
-      setCurrentDate(
-        new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-      );
-    } else if (activeView === "week") {
-      const d = cloneDate(currentDate);
-      d.setDate(d.getDate() - 7);
-      setCurrentDate(d);
-    } else {
-      const d = cloneDate(currentDate);
-      d.setDate(d.getDate() - 1);
-      setCurrentDate(d);
-    }
+    triggerViewTransition(() => {
+      if (activeView === "month") {
+        setCurrentDate(
+          new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+        );
+      } else if (activeView === "week") {
+        const d = cloneDate(currentDate);
+        d.setDate(d.getDate() - 7);
+        setCurrentDate(d);
+      } else {
+        const d = cloneDate(currentDate);
+        d.setDate(d.getDate() - 1);
+        setCurrentDate(d);
+      }
+    });
   };
 
   const handleNext = () => {
-    if (activeView === "month") {
-      setCurrentDate(
-        new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
-      );
-    } else if (activeView === "week") {
-      const d = cloneDate(currentDate);
-      d.setDate(d.getDate() + 7);
-      setCurrentDate(d);
-    } else {
-      const d = cloneDate(currentDate);
-      d.setDate(d.getDate() + 1);
-      setCurrentDate(d);
-    }
+    triggerViewTransition(() => {
+      if (activeView === "month") {
+        setCurrentDate(
+          new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+        );
+      } else if (activeView === "week") {
+        const d = cloneDate(currentDate);
+        d.setDate(d.getDate() + 7);
+        setCurrentDate(d);
+      } else {
+        const d = cloneDate(currentDate);
+        d.setDate(d.getDate() + 1);
+        setCurrentDate(d);
+      }
+    });
   };
 
   const weekDays = activeView === "day" ? [currentDate] : getWeekDays();
+
+  const getVisibleClasses = () => {
+    let filtered: ClassItem[] = [];
+    if (activeView === "month") {
+      const days = generateMonthDays(currentDate).filter((d): d is Date => d !== null);
+      filtered = classes.filter((c) => days.some((day) => isSameDay(c.startTime, day, userTz)));
+    } else {
+      filtered = classes.filter((c) => weekDays.some((day) => isSameDay(c.startTime, day, userTz)));
+    }
+    return [...filtered].sort(
+      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+  };
 
   const openDeleteModal = (cls: ClassItem) => {
     setClassToDelete(cls);
@@ -547,7 +573,7 @@ export default function RMTutorCalendarPage() {
                 ›
               </button>
               <button
-                onClick={() => setCurrentDate(new Date())}
+                onClick={() => triggerViewTransition(() => setCurrentDate(new Date()))}
                 className="ml-2 px-3 py-1.5 rounded-lg bg-gray-100 text-sm font-medium text-gray-700 hover:bg-gray-200"
               >
                 Today
@@ -557,7 +583,7 @@ export default function RMTutorCalendarPage() {
               {(["day", "week", "month"] as const).map((view) => (
                 <button
                   key={view}
-                  onClick={() => setActiveView(view)}
+                  onClick={() => triggerViewTransition(() => setActiveView(view))}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium capitalize ${activeView === view
                     ? "bg-purple-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -570,7 +596,15 @@ export default function RMTutorCalendarPage() {
           </div>
 
           {/* Calendar content */}
-          <div className="p-4">
+          <div className="p-4 relative min-h-[300px]">
+            {viewLoading && (
+              <div className="absolute inset-0 bg-white/75 backdrop-blur-[1px] z-20 flex items-center justify-center transition-all duration-200">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600" />
+                  <span className="text-xs text-gray-500 font-medium">Updating view...</span>
+                </div>
+              </div>
+            )}
             {activeView === "month" && (
               <div className="grid grid-cols-7 gap-1">
                 {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
@@ -588,8 +622,10 @@ export default function RMTutorCalendarPage() {
                       key={idx}
                       onClick={() => {
                         if (d) {
-                          setCurrentDate(d);
-                          setActiveView("day");
+                          triggerViewTransition(() => {
+                            setCurrentDate(d);
+                            setActiveView("day");
+                          });
                         }
                       }}
                       className={`min-h-[90px] p-2 border rounded-lg ${d
@@ -773,6 +809,181 @@ export default function RMTutorCalendarPage() {
                   </span>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Table View */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-6">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Class Details Table</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Showing details for {getVisibleClasses().length} class{getVisibleClasses().length !== 1 ? "es" : ""} in the current view
+              </p>
+            </div>
+          </div>
+          
+          <div className="p-6 pt-0">
+            <div className="overflow-x-auto relative min-h-[150px]">
+              {viewLoading && (
+                <div className="absolute inset-0 bg-white/75 backdrop-blur-[1px] z-20 flex items-center justify-center transition-all duration-200">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600" />
+                    <span className="text-xs text-gray-500 font-medium">Updating list...</span>
+                  </div>
+                </div>
+              )}
+              {getVisibleClasses().length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Info className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm font-medium">No classes scheduled in this range</p>
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider" style={{ paddingLeft: "1.5rem" }}>
+                        Class Title / Course
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Date & Time
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Students
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider" style={{ paddingRight: "1.5rem" }}>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {getVisibleClasses().map((cls) => {
+                      const statusStyle = getStatusStyle(cls);
+                      const isCancelPending = pendingResetRequests.some(
+                        (req: any) => req.requestType === "class" &&
+                          String(req.classItem?._id || req.classItem) === String(cls._id) &&
+                          req.status === "pending"
+                      );
+
+                      return (
+                        <tr key={cls._id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ paddingLeft: "1.5rem" }}>
+                            <div className="text-sm font-bold text-gray-900">{cls.title || "Class"}</div>
+                            {cls.course && (
+                              <div className="text-xs text-gray-500 mt-0.5">{cls.course}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 font-medium">
+                              {formatInTz(cls.startTime, userTz, {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric"
+                              })}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {formatTime(cls.startTime, cls.endTime)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            {cls.students.length > 0 ? (
+                              <div className="flex flex-col gap-1.5 max-w-xs">
+                                {cls.students.map((student) => (
+                                  <div key={student._id} className="text-xs">
+                                    <div className="font-semibold text-gray-900 flex items-center gap-1">
+                                      <span>{student.username || student.email || "—"}</span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setStudentInfoId(student._id);
+                                        }}
+                                        className="p-0.5 rounded-full hover:bg-purple-100 text-purple-400 hover:text-purple-600 transition-colors"
+                                        title="View student info"
+                                      >
+                                        <Info className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                    {student.address && (
+                                      <div className="text-[10px] text-gray-500 truncate" title={student.address}>
+                                        {student.address}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400 italic">No students</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`}></span>
+                              {statusStyle.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" style={{ paddingRight: "1.5rem" }}>
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setSelectedClassForAttendance(cls);
+                                  setAttendanceModalOpen(true);
+                                }}
+                                title="Manage Attendance"
+                                className="p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
+                              >
+                                <ClipboardCheck className="w-4 h-4" />
+                              </button>
+                              {cls.deleteRequestStatus === "pending" ? (
+                                <span className="inline-flex items-center text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1.5 rounded-lg border border-orange-200 font-medium">
+                                  Delete Requested
+                                </span>
+                              ) : cls.deleteRequestStatus === "approved" ? (
+                                <span className="inline-flex items-center text-[10px] bg-red-100 text-red-700 px-2.5 py-1.5 rounded-lg border border-red-200 font-medium">
+                                  Deleted
+                                </span>
+                              ) : cls.status === "scheduled" || cls.status === "rescheduled" ? (
+                                <>
+                                  {isCancelPending ? (
+                                    <span className="inline-flex items-center text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1.5 rounded-lg border border-orange-200 font-medium">
+                                      Cancel Requested
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openCancelModal(cls, e);
+                                      }}
+                                      title="Cancel Class"
+                                      className="p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openDeleteModal(cls);
+                                    }}
+                                    title="Request Delete"
+                                    className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>
