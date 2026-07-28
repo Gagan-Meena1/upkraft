@@ -63,6 +63,7 @@ export default function RMStudentFeedbacksPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
+    const [feedbackFilter, setFeedbackFilter] = useState<"all" | "pending" | "completed">("all");
     const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
     const [enablingFeedbackId, setEnablingFeedbackId] = useState<string | null>(null);
 
@@ -150,15 +151,23 @@ export default function RMStudentFeedbacksPage() {
         );
     }, [students, feedbacks, pendingFeedbacks]);
 
-    // Filtered views based on search term
+    // Filtered views based on search term and feedback status filter
     const filteredStudents = useMemo(() => {
-        if (!searchTerm) return studentSummaries;
+        let list = studentSummaries;
+
+        if (feedbackFilter === "pending") {
+            list = list.filter(s => (s.pendingCount ?? 0) > 0);
+        } else if (feedbackFilter === "completed") {
+            list = list.filter(s => (s.pendingCount ?? 0) === 0);
+        }
+
+        if (!searchTerm) return list;
         const lowerSearch = searchTerm.toLowerCase();
-        return studentSummaries.filter(s =>
+        return list.filter(s =>
             s.student.username.toLowerCase().includes(lowerSearch) ||
             s.student.email.toLowerCase().includes(lowerSearch)
         );
-    }, [studentSummaries, searchTerm]);
+    }, [studentSummaries, searchTerm, feedbackFilter]);
 
     const selectedStudentFeedbacks = useMemo(() => {
         if (!selectedStudentId) return [];
@@ -349,102 +358,159 @@ export default function RMStudentFeedbacksPage() {
             <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
                 {!selectedStudentId ? (
                     // View 1: List of Students
-                    filteredStudents.length === 0 ? (
-                        <div className="bg-white rounded-xl shadow-sm border border-dashed border-gray-300 p-12 text-center">
-                            <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                                No students found
-                            </h2>
-                            <p className="text-gray-500">
-                                {searchTerm
-                                    ? "No students match your search criteria."
-                                    : "This tutor hasn't submitted feedbacks for any students yet."}
-                            </p>
-                            {searchTerm && (
-                                <button
-                                    onClick={() => setSearchTerm("")}
-                                    className="mt-4 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200"
-                                >
-                                    Clear Search
-                                </button>
-                            )}
+                    <>
+                        <div className="flex bg-gray-200/60 p-1 rounded-xl w-fit mb-6 gap-1">
+                            <button
+                                onClick={() => setFeedbackFilter("all")}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                                    feedbackFilter === "all"
+                                        ? "bg-white text-gray-900 shadow-sm"
+                                        : "text-gray-600 hover:text-gray-900"
+                                }`}
+                            >
+                                <span>All</span>
+                                <span className={`text-xs px-1.5 py-0.5 rounded-md ${
+                                    feedbackFilter === "all" ? "bg-gray-900 text-white" : "bg-gray-300/50 text-gray-600"
+                                }`}>
+                                    {studentSummaries.length}
+                                </span>
+                            </button>
+                            <button
+                                onClick={() => setFeedbackFilter("pending")}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                                    feedbackFilter === "pending"
+                                        ? "bg-white text-red-600 shadow-sm"
+                                        : "text-gray-600 hover:text-gray-900"
+                                }`}
+                            >
+                                <span>Pending</span>
+                                <span className={`text-xs px-1.5 py-0.5 rounded-md ${
+                                    feedbackFilter === "pending" ? "bg-red-100 text-red-600" : "bg-gray-300/50 text-gray-600"
+                                }`}>
+                                    {studentSummaries.filter(s => (s.pendingCount ?? 0) > 0).length}
+                                </span>
+                            </button>
+                            <button
+                                onClick={() => setFeedbackFilter("completed")}
+                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                                    feedbackFilter === "completed"
+                                        ? "bg-white text-green-700 shadow-sm"
+                                        : "text-gray-600 hover:text-gray-900"
+                                }`}
+                            >
+                                <span>Completed</span>
+                                <span className={`text-xs px-1.5 py-0.5 rounded-md ${
+                                    feedbackFilter === "completed" ? "bg-green-100 text-green-700" : "bg-gray-300/50 text-gray-600"
+                                }`}>
+                                    {studentSummaries.filter(s => (s.pendingCount ?? 0) === 0).length}
+                                </span>
+                            </button>
                         </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredStudents.map((summary) => (
-                                <div
-                                    key={summary.student._id}
-                                    onClick={() => {
-                                        setSelectedStudentId(summary.student._id);
-                                        setSearchTerm("");
-                                    }}
-                                    className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
-                                >
-                                    <div>
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-lg font-bold">
-                                                    {summary.student.username.charAt(0).toUpperCase()}
+
+                        {filteredStudents.length === 0 ? (
+                            <div className="bg-white rounded-xl shadow-sm border border-dashed border-gray-300 p-12 text-center w-full">
+                                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                                    No students found
+                                </h2>
+                                <p className="text-gray-500">
+                                    {searchTerm
+                                        ? "No students match your search criteria."
+                                        : feedbackFilter === "pending"
+                                        ? "No students with pending feedbacks."
+                                        : feedbackFilter === "completed"
+                                        ? "No students with completed feedbacks."
+                                        : "This tutor hasn't submitted feedbacks for any students yet."}
+                                </p>
+                                {(searchTerm || feedbackFilter !== "all") && (
+                                    <button
+                                        onClick={() => {
+                                            setSearchTerm("");
+                                            setFeedbackFilter("all");
+                                        }}
+                                        className="mt-4 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200"
+                                    >
+                                        Reset Filters
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {filteredStudents.map((summary) => (
+                                    <div
+                                        key={summary.student._id}
+                                        onClick={() => {
+                                            setSelectedStudentId(summary.student._id);
+                                            setSearchTerm("");
+                                        }}
+                                        className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+                                    >
+                                        <div>
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-lg font-bold">
+                                                        {summary.student.username.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
+                                                            {summary.student.username}
+                                                        </h3>
+                                                        <p className="text-xs text-gray-500 truncate w-32 sm:w-40">
+                                                            {summary.student.email}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
-                                                        {summary.student.username}
-                                                    </h3>
-                                                    <p className="text-xs text-gray-500 truncate w-32 sm:w-40">
-                                                        {summary.student.email}
-                                                    </p>
+                                                <div className="flex items-center gap-1 mt-3">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenReassignModal(summary.student);
+                                                        }}
+                                                        className="p-1.5 rounded-full text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors z-10 relative"
+                                                        title="Reassign to another tutor"
+                                                    >
+                                                        <ArrowRightLeft className="w-5 h-5" />
+                                                    </button>
+                                                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" />
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-1 mt-3">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleOpenReassignModal(summary.student);
-                                                    }}
-                                                    className="p-1.5 rounded-full text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors z-10 relative"
-                                                    title="Reassign to another tutor"
-                                                >
-                                                    <ArrowRightLeft className="w-5 h-5" />
-                                                </button>
-                                                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" />
+
+                                            {/* Pending feedback button */}
+                                            <div className="mt-4">
+                                                {(summary.pendingCount ?? 0) > 0 ? (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleOpenPendingModal(summary.student, summary.pendingFeedbacks || []);
+                                                        }}
+                                                        className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all z-10 relative"
+                                                    >
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                                                        {summary.pendingCount} pending feedback{summary.pendingCount > 1 ? 's' : ''}
+                                                    </button>
+                                                ) : (
+                                                    <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-semibold inline-flex items-center gap-1.5">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                                        No pending feedback
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
 
-                                        {/* Pending feedback button */}
-                                        <div className="mt-4">
-                                            {(summary.pendingCount ?? 0) > 0 ? (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleOpenPendingModal(summary.student, summary.pendingFeedbacks || []);
-                                                    }}
-                                                    className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all z-10 relative"
-                                                >
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                                                    {summary.pendingCount} pending feedback{summary.pendingCount > 1 ? 's' : ''}
-                                                </button>
-                                            ) : (
-                                                <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-semibold inline-flex items-center gap-1.5">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                                    No pending feedback
-                                                </span>
-                                            )}
+                                        <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
+                                            <div className="text-gray-600">
+                                                <span className="font-semibold text-gray-900">{summary.feedbacksCount}</span> feedbacks
+                                            </div>
+                                            <div className="text-gray-500 text-xs text-right">
+                                                {summary.lastFeedbackDate ? `Last: ${new Date(summary.lastFeedbackDate).toLocaleDateString("en-US", {
+                                                    month: 'short', day: 'numeric', year: 'numeric'
+                                                })}` : 'No feedbacks'}
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
-                                        <div className="text-gray-600">
-                                            <span className="font-semibold text-gray-900">{summary.feedbacksCount}</span> feedbacks
-                                        </div>
-                                        <div className="text-gray-500 text-xs text-right">
-                                            {summary.lastFeedbackDate ? `Last: ${new Date(summary.lastFeedbackDate).toLocaleDateString("en-US", {
-                                                month: 'short', day: 'numeric', year: 'numeric'
-                                            })}` : 'No feedbacks'}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )
+                                ))}
+                            </div>
+                        )}
+                    </>
                 ) : (
                     // View 2: Feedbacks for Selected Student
                     selectedStudentFeedbacks.length === 0 ? (
