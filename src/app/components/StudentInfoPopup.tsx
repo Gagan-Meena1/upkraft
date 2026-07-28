@@ -448,7 +448,7 @@ export default function StudentInfoPopup({
         </div>
 
         {/* Payment History Section */}
-        {!loading && paymentHistory.length > 0 && (
+        {/* {!loading && paymentHistory.length > 0 && (
           <div className="px-6 pb-6 border-t border-gray-100 pt-6">
             <button 
               onClick={() => setShowPaymentHistory(!showPaymentHistory)}
@@ -504,7 +504,7 @@ export default function StudentInfoPopup({
             </div>
             )}
           </div>
-        )}
+        )} */}
         </>
         )}
       </div>
