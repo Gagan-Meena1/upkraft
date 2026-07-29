@@ -116,6 +116,23 @@ export async function POST(request: NextRequest) {
       videoPath = `/uploads/${newFilename}`;
     }
 
+    // Check for duplicate class at the same time in this course
+    const existingClass = await Class.findOne({
+      course: courseId,
+      startTime: startDateTime,
+      status: { $nin: ["canceled", "cancelled"] },
+    }).lean();
+
+    if (existingClass) {
+      return NextResponse.json(
+        {
+          message: "A class already exists at this time for this course",
+          error: "DUPLICATE_CLASS_TIME",
+        },
+        { status: 409 }
+      );
+    }
+
     const newClass = new Class({
       title,
       description,
@@ -133,23 +150,29 @@ export async function POST(request: NextRequest) {
 
     const savedClass = await newClass.save();
 
-    // Update references in parallel
-    await Promise.all([
-      courseName.findByIdAndUpdate(courseId, {
-        $addToSet: { class: savedClass._id },
-      }),
-      User.updateMany(
-        { $or: [{ courses: courseId }, { course: courseId }] },
-        { $addToSet: { classes: savedClass._id } }
-      ),
-      ...(instructorId
-        ? [
-          User.findByIdAndUpdate(instructorId, {
-            $addToSet: { classes: savedClass._id },
-          }),
-        ]
-        : []),
-    ]);
+    // Update references — rollback class if this fails
+    try {
+      await Promise.all([
+        courseName.findByIdAndUpdate(courseId, {
+          $addToSet: { class: savedClass._id },
+        }),
+        User.updateMany(
+          { $or: [{ courses: courseId }, { course: courseId }] },
+          { $addToSet: { classes: savedClass._id } }
+        ),
+        ...(instructorId
+          ? [
+            User.findByIdAndUpdate(instructorId, {
+              $addToSet: { classes: savedClass._id },
+            }),
+          ]
+          : []),
+      ]);
+    } catch (updateError) {
+      console.error("POST /Api/calendar/classes — failed to link class to course, rolling back:", updateError);
+      await Class.findByIdAndDelete(savedClass._id);
+      throw new Error("Class created but failed to link to course. Rolled back.");
+    }
 
     return NextResponse.json(
       { message: "Session created successfully", classData: savedClass },
