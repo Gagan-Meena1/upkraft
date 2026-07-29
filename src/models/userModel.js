@@ -441,6 +441,19 @@ const userSchema = new mongoose.Schema({
     },
     studentRM: {
         type: String
+    },
+    whatsappGroups: {
+        type: [{
+            name: {
+                type: String,
+                default: ""
+            },
+            link: {
+                type: String,
+                required: true
+            }
+        }],
+        default: []
     }
 },
     { timestamps: true }

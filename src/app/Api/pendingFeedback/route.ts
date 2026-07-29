@@ -108,7 +108,7 @@ export async function GET(request) {
       _id: { $in: Array.from(allStudentCourseIds) }
     }).select("_id title category class").lean();
 
-    // console.log("[COURSES : ",courses)
+    console.log("[COURSES : ", courses)
 
     // Collect all class IDs
     const allClassIds = new Set();

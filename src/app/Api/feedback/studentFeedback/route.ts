@@ -62,6 +62,23 @@
       
      
       
+      // Check for duplicate class at the same time in this course
+      const existingClass = await Class.findOne({
+        course: classId,
+        startTime: startDateTime,
+        status: { $nin: ["canceled", "cancelled"] },
+      }).lean();
+
+      if (existingClass) {
+        return NextResponse.json(
+          {
+            message: "A class already exists at this time for this course",
+            error: "DUPLICATE_CLASS_TIME",
+          },
+          { status: 409 }
+        );
+      }
+
       // Create a new Class document
       console.log("222222222222222222222222222222222222222222222222222");
       

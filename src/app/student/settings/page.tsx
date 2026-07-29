@@ -30,7 +30,8 @@ export default function StudentSettingsPage() {
     age: '',
     city: '',
     timezone: '',
-    instruments: ''
+    instruments: '',
+    whatsappGroups: [{ name: '', link: '' }] as { name: string; link: string }[]
   });
   const [isSavingStudentInfo, setIsSavingStudentInfo] = useState(false);
   const [isLoadingStudentInfo, setIsLoadingStudentInfo] = useState(true);
@@ -183,7 +184,10 @@ export default function StudentSettingsPage() {
           age: userData.user?.age?.toString() || '',
           city: userData.user?.city || '',
           timezone: userData.user?.timezone || deviceTimeZone,
-          instruments: userData.user?.instruments || ''
+          instruments: userData.user?.instruments || '',
+          whatsappGroups: userData.user?.whatsappGroups?.length
+            ? userData.user.whatsappGroups.map((g: any) => ({ name: g.name || '', link: g.link || '' }))
+            : [{ name: '', link: '' }]
         });
 
         // Set courses from user data
@@ -246,6 +250,16 @@ export default function StudentSettingsPage() {
       return;
     }
 
+    // Validate WhatsApp groups
+    const filledGroups = studentInfo.whatsappGroups.filter(g => g.link.trim() !== '');
+    if (filledGroups.length > 1) {
+      const missingNames = filledGroups.some(g => g.name.trim() === '');
+      if (missingNames) {
+        toast.error('Please provide a name for each WhatsApp group when adding multiple groups');
+        return;
+      }
+    }
+
     setIsSavingStudentInfo(true);
     try {
       const response = await fetch('/Api/student/updateInfo', {
@@ -261,7 +275,8 @@ export default function StudentSettingsPage() {
           age: studentInfo.age ? parseInt(studentInfo.age) : undefined,
           city: studentInfo.city,
           timezone: studentInfo.timezone,
-          instruments: studentInfo.instruments
+          instruments: studentInfo.instruments,
+          whatsappGroups: filledGroups
         }),
         credentials: 'include'
       });
@@ -874,6 +889,227 @@ export default function StudentSettingsPage() {
                         onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
                         placeholder="Enter address"
                       />
+                    </div>
+
+                    {/* WhatsApp Groups Section */}
+                    <div style={{ marginBottom: '30px' }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '12px'
+                      }}>
+                        <label style={{
+                          fontSize: '14px',
+                          fontWeight: 600,
+                          color: '#1a1a1a',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <span style={{ fontSize: '18px' }}>💬</span>
+                          WhatsApp Group{studentInfo.whatsappGroups.length > 1 ? 's' : ''}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setStudentInfo(prev => ({
+                              ...prev,
+                              whatsappGroups: [...prev.whatsappGroups, { name: '', link: '' }]
+                            }));
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '6px 14px',
+                            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            transition: 'all 0.3s',
+                            boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-1px)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 211, 102, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(37, 211, 102, 0.3)';
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                          </svg>
+                          Add Group
+                        </button>
+                      </div>
+
+                      {studentInfo.whatsappGroups.length > 1 && (
+                        <div style={{
+                          fontSize: '12px',
+                          color: '#e65100',
+                          background: '#fff3e0',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          marginBottom: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}>
+                          <span>⚠️</span>
+                          Group names are required when you have multiple groups
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {studentInfo.whatsappGroups.map((group, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '10px',
+                              padding: '14px',
+                              background: '#f8faf8',
+                              borderRadius: '10px',
+                              border: '1px solid #e8f5e9',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                              color: 'white',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              flexShrink: 0,
+                              marginTop: '6px'
+                            }}>
+                              {index + 1}
+                            </div>
+
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {/* Group Name - shown always but optional label changes */}
+                              <div>
+                                <label style={{
+                                  display: 'block',
+                                  fontSize: '12px',
+                                  fontWeight: 500,
+                                  color: '#666',
+                                  marginBottom: '4px'
+                                }}>
+                                  Group Name {studentInfo.whatsappGroups.length === 1 ? '(optional)' : '(required)'}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={group.name}
+                                  onChange={(e) => {
+                                    const updated = [...studentInfo.whatsappGroups];
+                                    updated[index] = { ...updated[index], name: e.target.value };
+                                    setStudentInfo(prev => ({ ...prev, whatsappGroups: updated }));
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    border: `2px solid ${studentInfo.whatsappGroups.length > 1 && group.link.trim() && !group.name.trim() ? '#e65100' : '#e0e0e0'}`,
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    transition: 'border-color 0.3s',
+                                    fontFamily: 'inherit'
+                                  }}
+                                  onFocus={(e) => e.target.style.borderColor = '#25D366'}
+                                  onBlur={(e) => e.target.style.borderColor = studentInfo.whatsappGroups.length > 1 && group.link.trim() && !group.name.trim() ? '#e65100' : '#e0e0e0'}
+                                  placeholder="e.g., Piano Batch 2025"
+                                />
+                              </div>
+
+                              {/* Group Link */}
+                              <div>
+                                <label style={{
+                                  display: 'block',
+                                  fontSize: '12px',
+                                  fontWeight: 500,
+                                  color: '#666',
+                                  marginBottom: '4px'
+                                }}>
+                                  Group Link
+                                </label>
+                                <input
+                                  type="url"
+                                  value={group.link}
+                                  onChange={(e) => {
+                                    const updated = [...studentInfo.whatsappGroups];
+                                    updated[index] = { ...updated[index], link: e.target.value };
+                                    setStudentInfo(prev => ({ ...prev, whatsappGroups: updated }));
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '10px 14px',
+                                    border: '2px solid #e0e0e0',
+                                    borderRadius: '8px',
+                                    fontSize: '14px',
+                                    transition: 'border-color 0.3s',
+                                    fontFamily: 'inherit'
+                                  }}
+                                  onFocus={(e) => e.target.style.borderColor = '#25D366'}
+                                  onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                  placeholder="https://chat.whatsapp.com/..."
+                                />
+                              </div>
+                            </div>
+
+                            {/* Remove button - only show if more than one group */}
+                            {studentInfo.whatsappGroups.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = studentInfo.whatsappGroups.filter((_, i) => i !== index);
+                                  setStudentInfo(prev => ({ ...prev, whatsappGroups: updated }));
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  width: '30px',
+                                  height: '30px',
+                                  borderRadius: '50%',
+                                  background: '#fff0f0',
+                                  color: '#d32f2f',
+                                  border: '1px solid #ffcdd2',
+                                  cursor: 'pointer',
+                                  fontSize: '16px',
+                                  fontWeight: 700,
+                                  transition: 'all 0.2s',
+                                  flexShrink: 0,
+                                  marginTop: '6px'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = '#ffebee';
+                                  e.currentTarget.style.borderColor = '#ef9a9a';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = '#fff0f0';
+                                  e.currentTarget.style.borderColor = '#ffcdd2';
+                                }}
+                                title="Remove this group"
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
                     <div style={{

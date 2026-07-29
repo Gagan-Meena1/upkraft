@@ -155,6 +155,23 @@ export async function POST(request: NextRequest) {
       videoPath = `/uploads/${newFilename}`;
     }
 
+    // Check for duplicate class at the same time in this course
+    const existingClass = await Class.findOne({
+      course: courseId,
+      startTime: startDateTime,
+      status: { $nin: ["canceled", "cancelled"] },
+    }).lean();
+
+    if (existingClass) {
+      return NextResponse.json(
+        {
+          message: "A class already exists at this time for this course",
+          error: "DUPLICATE_CLASS_TIME",
+        },
+        { status: 409 }
+      );
+    }
+
     // Create a new Class document
     console.log("222222222222222222222222222222222222222222222222222");
 
@@ -177,16 +194,22 @@ export async function POST(request: NextRequest) {
     console.log("333333333333333333333333333333333333333333333333333333333333");
     console.log("Saved class:", savednewClass);
 
-    const course = await courseName.findById(courseId);
-    await courseName.findByIdAndUpdate(courseId, {
-      $addToSet: { class: savednewClass._id },
-    });
+    // Update course and user arrays — rollback class if this fails
+    try {
+      await courseName.findByIdAndUpdate(courseId, {
+        $addToSet: { class: savednewClass._id },
+      });
 
-    // Update users enrolled in this course
-    await User.updateMany(
-      { courses: courseId, category: "Tutor" },
-      { $addToSet: { classes: savednewClass._id } }
-    );
+      // Update tutors enrolled in this course
+      await User.updateMany(
+        { courses: courseId, category: "Tutor" },
+        { $addToSet: { classes: savednewClass._id } }
+      );
+    } catch (updateError) {
+      console.error("Failed to update course/user arrays, rolling back class:", updateError);
+      await Class.findByIdAndDelete(savednewClass._id);
+      throw new Error("Class created but failed to link to course. Rolled back.");
+    }
 
     console.log(newClass);
 
@@ -208,86 +231,7 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-// export async function GET(request: NextRequest) {
-//   try {
-//     console.log("Fetching classes data...");
 
-//     const token = (() => {
-//       const referer = request.headers.get("referer") || "";
-//       let refererPath = "";
-//       try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
-//       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-//       return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
-//     })();
-//     const decodedToken = token ? jwt.decode(token) : null;
-//     let instructorId =
-//       decodedToken && typeof decodedToken === "object" && "id" in decodedToken
-//         ? decodedToken.id
-//         : null;
-
-//     // Check for userid query parameter
-//     const { searchParams } = new URL(request.url);
-//     const userIdFromQuery = searchParams.get("userid");
-
-//     // If userid query param exists, use it as the student ID
-//     if (userIdFromQuery) {
-//       instructorId = userIdFromQuery;
-//       console.log("Using userid from query param:", userIdFromQuery);
-//     }
-
-//     console.log("decodedToken : ", decodedToken);
-//     console.log("Final instructorId : ", instructorId);
-
-//     if (!instructorId) {
-//       return NextResponse.json(
-//         {
-//           message: "User ID not found",
-//           error: "No user ID provided",
-//         },
-//         { status: 400 }
-//       );
-//     }
-
-//     // Find the user and populate the classes array with actual class details
-//     const user = await User.findById(instructorId).populate({
-//       path: "classes",
-//       model: "Class", // Make sure this matches your Class model name
-//     }).select("-description -evaluation").lean();
-
-//     if (!user) {
-//       return NextResponse.json(
-//         {
-//           message: "User not found",
-//           error: "No user found with the provided ID",
-//         },
-//         { status: 404 }
-//       );
-//     }
-
-//     // Get the populated class data
-//     const classData = user.classes || [];
-
-//     console.log("Found classes:", classData.length);
-
-//     return NextResponse.json(
-//       {
-//         message: "Classes fetched successfully",
-//         classData: classData,
-//         totalClasses: classData.length,
-//       },
-//       { status: 200 }
-//     );
-//   } catch (error) {
-//     console.error("Server error:", error);
-//     return NextResponse.json(
-//       {
-//         message: "Server error",
-//         error: error instanceof Error ? error.message : "Unknown error",
-//       },
-//       { status: 500 }
-//     );
-//   }
-// }
 export async function GET(request: NextRequest) {
   try {
     await connect();

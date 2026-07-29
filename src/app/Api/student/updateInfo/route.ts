@@ -35,7 +35,7 @@ export async function PUT(request: NextRequest) {
 
     // Get request body
     const body = await request.json();
-    const { username, email, phone, address, age, city, timezone, instruments } = body;
+    const { username, email, phone, address, age, city, timezone, instruments, whatsappGroups } = body;
 
     // Validate required fields
     if (!username || !email) {
@@ -68,6 +68,9 @@ export async function PUT(request: NextRequest) {
     }
     if (instruments !== undefined && instruments !== null) {
       updateData.instruments = instruments;
+    }
+    if (whatsappGroups !== undefined && whatsappGroups !== null) {
+      updateData.whatsappGroups = whatsappGroups;
     }
 
     // Update the user in the database
