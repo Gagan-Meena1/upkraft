@@ -117,7 +117,7 @@ export async function GET(
       classes: { $in: classObjectIdList },
       category: { $in: ["Student", "student"] },
     })
-      .select("_id username email address classes whatsappGroups")
+      .select("_id username email address classes whatsappGroups contact")
       .lean();
 
     const studentsByClassId = new Map();
@@ -133,6 +133,7 @@ export async function GET(
           username: student.username,
           email: student.email,
           address: student.address,
+          contact: student.contact || "",
           whatsappGroups: student.whatsappGroups || [],
         });
       });
@@ -163,6 +164,7 @@ export async function GET(
         course: courseName,
         courseId: course?._id,
         students: studentsInClass,
+        whatsappSentCount: cls.whatsappSentCount || 0,
       };
     });
 

@@ -149,6 +149,11 @@ const ClassSchema = new mongoose.Schema({
     communication_justification: String,
     overall_quality_score: Number,
     overall_quality_justification: String
+  },
+
+  whatsappSentCount: {
+    type: Number,
+    default: 0
   }
 
 }, {

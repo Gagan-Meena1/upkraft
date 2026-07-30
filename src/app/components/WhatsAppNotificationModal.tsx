@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { X } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 interface WhatsAppGroup {
@@ -13,6 +13,7 @@ interface StudentData {
   _id: string;
   username?: string;
   email?: string;
+  contact?: string;
   whatsappGroups?: WhatsAppGroup[];
 }
 
@@ -29,18 +30,22 @@ interface WhatsAppNotificationModalProps {
   classData: ClassData;
   userTz: string;
   onClose: () => void;
+  onSend?: (classId: string) => void;
 }
 
 export default function WhatsAppNotificationModal({
   classData,
   userTz,
   onClose,
+  onSend,
 }: WhatsAppNotificationModalProps) {
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<string>>(
     new Set(classData.students.map((s) => s._id))
   );
   const [selectedGroupLink, setSelectedGroupLink] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const [isEdited, setIsEdited] = useState(false);
+  const [showEditWarning, setShowEditWarning] = useState(false);
 
   // Collect all unique WhatsApp groups from all students
   const allGroups = useMemo(() => {
@@ -98,13 +103,16 @@ export default function WhatsAppNotificationModal({
     }
   };
 
-  // Build message template based on selected students
+  // Build message template with phone number tags instead of names
   const buildMessage = () => {
     const selectedStudents = classData.students.filter((s) =>
       selectedStudentIds.has(s._id)
     );
     const studentMentions = selectedStudents
-      .map((s) => `@~${s.username || s.email || "Student"}`)
+      .map((s) => {
+        const phone = s.contact ? `@${s.contact}` : `@${s.username || s.email || "Student"}`;
+        return phone;
+      })
       .join(", ");
 
     return `Hi ${studentMentions},
@@ -119,11 +127,35 @@ Thank you
 Team UpKraft`;
   };
 
-  // Rebuild message when students change
+  // Rebuild message when students change (only if not manually edited)
+  useEffect(() => {
+    if (!isEdited) {
+      setMessage(buildMessage());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStudentIds, classData]);
+
+  // Set initial message
   useEffect(() => {
     setMessage(buildMessage());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedStudentIds, classData]);
+  }, []);
+
+  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!isEdited) {
+      setIsEdited(true);
+      setShowEditWarning(true);
+      // Auto-hide warning after 4 seconds
+      setTimeout(() => setShowEditWarning(false), 4000);
+    }
+    setMessage(e.target.value);
+  };
+
+  const handleResetTemplate = () => {
+    setIsEdited(false);
+    setShowEditWarning(false);
+    setMessage(buildMessage());
+  };
 
   const toggleStudent = (id: string) => {
     setSelectedStudentIds((prev) => {
@@ -135,6 +167,8 @@ Team UpKraft`;
       }
       return next;
     });
+    // Reset edited state so template rebuilds with new students
+    setIsEdited(false);
   };
 
   const toggleAllStudents = () => {
@@ -145,6 +179,7 @@ Team UpKraft`;
         new Set(classData.students.map((s) => s._id))
       );
     }
+    setIsEdited(false);
   };
 
   const handleSend = async () => {
@@ -188,6 +223,9 @@ Team UpKraft`;
       });
       window.open(selectedGroupLink, "_blank");
     }
+
+    // Notify parent about the send
+    onSend?.(classData._id);
   };
 
   const allSelected = selectedStudentIds.size === classData.students.length;
@@ -270,9 +308,16 @@ Team UpKraft`;
                       className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
                       style={{ accentColor: "#25D366" }}
                     />
-                    <span className="text-sm font-medium text-gray-800">
-                      {student.username || student.email || "—"}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm font-medium text-gray-800">
+                        {student.username || student.email || "—"}
+                      </span>
+                      {student.contact && (
+                        <span className="text-[10px] text-gray-400 ml-2">
+                          ({student.contact})
+                        </span>
+                      )}
+                    </div>
                   </label>
                 );
               })}
@@ -331,21 +376,44 @@ Team UpKraft`;
           {/* Message Template */}
           <div className="px-6 py-4 border-b border-gray-100">
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-semibold text-gray-800">
-                Message Preview
-              </label>
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-semibold text-gray-800">
+                  Message Preview
+                </label>
+                {isEdited && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
+                    <AlertTriangle className="w-3 h-3" />
+                    Edited
+                  </span>
+                )}
+              </div>
               <button
-                onClick={() => setMessage(buildMessage())}
+                onClick={handleResetTemplate}
                 className="text-xs font-medium text-green-600 hover:text-green-700 transition-colors"
               >
                 Reset Template
               </button>
             </div>
+
+            {/* Edit Warning */}
+            {showEditWarning && (
+              <div className="flex items-center gap-2 px-3 py-2 mb-3 bg-amber-50 border border-amber-200 rounded-lg animate-pulse">
+                <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                <span className="text-xs text-amber-700">
+                  You are editing the template. Click &quot;Reset Template&quot; to restore the original.
+                </span>
+              </div>
+            )}
+
             <textarea
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              onChange={handleMessageChange}
               rows={10}
-              className="w-full px-4 py-3 text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl resize-y focus:outline-none focus:ring-2 focus:ring-green-300 focus:border-green-400 transition-all"
+              className={`w-full px-4 py-3 text-sm text-gray-800 bg-gray-50 border rounded-xl resize-y focus:outline-none focus:ring-2 transition-all ${
+                isEdited
+                  ? "border-amber-300 focus:ring-amber-200 focus:border-amber-400"
+                  : "border-gray-200 focus:ring-green-300 focus:border-green-400"
+              }`}
               style={{ fontFamily: "inherit", lineHeight: "1.6" }}
             />
           </div>
