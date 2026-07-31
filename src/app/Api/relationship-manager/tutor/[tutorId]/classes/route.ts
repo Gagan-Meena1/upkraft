@@ -103,8 +103,20 @@ export async function GET(
     }
     void CourseNameModel;
 
+    // Optional date-range filtering via query params
+    const searchParams = request.nextUrl.searchParams;
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
 
-    const classes = await Class.find({ _id: { $in: classIds } })
+    const classQuery: any = { _id: { $in: classIds } };
+    if (startDateParam && endDateParam) {
+      classQuery.startTime = {
+        $gte: new Date(startDateParam),
+        $lte: new Date(endDateParam),
+      };
+    }
+
+    const classes = await Class.find(classQuery)
       .populate("course", "courseName title name")
       .sort({ startTime: 1 })
       .lean();
@@ -117,7 +129,7 @@ export async function GET(
       classes: { $in: classObjectIdList },
       category: { $in: ["Student", "student"] },
     })
-      .select("_id username email address classes whatsappGroups contact")
+      .select("_id username email address classes whatsappGroups contact studentSociety")
       .lean();
 
     const studentsByClassId = new Map();
@@ -135,6 +147,7 @@ export async function GET(
           address: student.address,
           contact: student.contact || "",
           whatsappGroups: student.whatsappGroups || [],
+          studentSociety: student.studentSociety || "",
         });
       });
     });

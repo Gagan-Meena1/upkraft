@@ -27,4 +27,4 @@ const SocietySchema = new mongoose.Schema({
 
 
 
-export default mongoose.models.society || mongoose.model('society', SocietySchema);
+export default (mongoose.models.society || mongoose.model('society', SocietySchema)) as mongoose.Model<any>;
