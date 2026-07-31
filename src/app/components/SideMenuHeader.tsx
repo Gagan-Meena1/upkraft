@@ -464,8 +464,8 @@ const SideMenuHeader = ({ role }) => {
                   {(!userData?.academyId) && (
                     <li>
                       <Link
-                        href="/student/profile"
-                        className={`d-flex align-items-center gap-2 ${isActive("/student/profile") ? "active" : ""
+                        href="/student/settings"
+                        className={`d-flex align-items-center gap-2 ${isActive("/student/settings") ? "active" : ""
                           }`}
                       >
                         <span className="svg-icons">
