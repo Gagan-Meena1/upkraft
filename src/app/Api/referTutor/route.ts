@@ -49,7 +49,7 @@ const referTutorSchema = new mongoose.Schema({
   }
 });
 
-const ReferTutorModel = mongoose.models.ReferTutor || mongoose.model('ReferTutor', referTutorSchema);
+const ReferTutorModel = (mongoose.models.ReferTutor || mongoose.model('ReferTutor', referTutorSchema)) as mongoose.Model<any>;
 
 export async function POST(request: NextRequest) {
   try {

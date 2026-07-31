@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ChevronLeft, ChevronDown, Trash2, X, Info, ClipboardCheck } from "lucide-react";
@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 import CancellationReasonPicker from "@/app/components/reasonForCancellation";
 import StudentInfoPopup from "@/app/components/StudentInfoPopup";
 import WhatsAppNotificationModal from "@/app/components/WhatsAppNotificationModal";
+import DailySummaryWhatsAppModal from "@/app/components/DailySummaryWhatsAppModal";
 
 interface Student {
   _id: string;
@@ -17,6 +18,7 @@ interface Student {
   address?: string;
   contact?: string;
   whatsappGroups?: { name: string; link: string }[];
+  studentSociety?: string;
 }
 
 interface ClassItem {
@@ -102,7 +104,8 @@ export default function RMTutorCalendarPage() {
 
   const [tutor, setTutor] = useState<TutorInfo | null>(null);
   const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [classesLoading, setClassesLoading] = useState(true);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeView, setActiveView] = useState<"day" | "week" | "month">("week");
@@ -116,7 +119,6 @@ export default function RMTutorCalendarPage() {
   const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<ClassItem | null>(null);
 
   const [pendingResetRequests, setPendingResetRequests] = useState<any[]>([]);
-  // Add this state at the top with your other states
   const [resettingStudentId, setResettingStudentId] = useState<string | null>(null);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [selectedNewStatus, setSelectedNewStatus] = useState<string>("");
@@ -131,6 +133,12 @@ export default function RMTutorCalendarPage() {
   const [viewLoading, setViewLoading] = useState(false);
   const [whatsappModalClass, setWhatsappModalClass] = useState<ClassItem | null>(null);
   const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
+  const [dailySummaryDay, setDailySummaryDay] = useState<Date | null>(null);
+
+  // --- Performance: class cache & debounce refs ---
+  const classCacheRef = useRef<Map<string, { classes: ClassItem[]; pendingResets: any[] }>>(new Map());
+  const fetchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const attendanceCacheRef = useRef<Set<string>>(new Set());
 
   const triggerViewTransition = (updateFn: () => void) => {
     setViewLoading(true);
@@ -140,19 +148,16 @@ export default function RMTutorCalendarPage() {
     }, 300);
   };
 
-
-
   const submitAttendanceReset = async (
     studentId: string,
     classId: string,
     newStatus: string,
     creditDeduction?: "yes" | "no",
     singleStudent?: boolean,
-    reasonForCancellation?: string   // ← add
-
+    reasonForCancellation?: string
   ) => {
+    setResettingStudentId(studentId);
     try {
-      setResettingStudentId(studentId);
       const res = await fetch("/Api/relationship-manager/attendance/request-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,92 +165,186 @@ export default function RMTutorCalendarPage() {
           studentId,
           classId,
           newStatus,
-          ...(newStatus === "cancelled" && {
-            creditDeduction: singleStudent ? undefined : creditDeduction === "yes",
-            singleStudent: singleStudent ?? false,
-            reasonForCancellation: reasonForCancellation || ""
-
-          }),
+          creditDeduction,
+          singleStudent: singleStudent ?? false,
+          reasonForCancellation: reasonForCancellation || ""
         }),
+        credentials: "include",
       });
       const data = await res.json();
-      if (res.ok && data.success) {
-        setPendingResetRequests(prev => [...prev, data.data]);
-        // Update local attendance map optimistically
-
-        setEditingStudentId(null);
-        setSelectedNewStatus("");
-        setCancellationReason("");
-
-        toast?.success?.("Attendance reset request sent.");
-      } else {
-        alert(data.error || data.message || "Failed to request reset");
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to request reset");
       }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to request attendance reset");
+      toast.success(data.message || "Attendance reset request submitted");
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong");
     } finally {
       setResettingStudentId(null);
+      setEditingStudentId(null);
+      setSelectedNewStatus("");
+      setCreditDeduction("no");
+      setCancellationReason("");
     }
   };
 
-  const userTz = getUserTimeZone();
+  // --- Helpers for date-range fetching ---
+  const getWeekRange = useCallback((refDate: Date) => {
+    const d = new Date(refDate.getTime());
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const start = new Date(d);
+    start.setDate(diff);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }, []);
 
+  const getMonthRange = useCallback((refDate: Date) => {
+    const start = new Date(refDate.getFullYear(), refDate.getMonth(), 1);
+    const end = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    return { start, end };
+  }, []);
+
+  const getCacheKey = useCallback((start: Date, end: Date) => {
+    return `${start.toISOString()}_${end.toISOString()}`;
+  }, []);
+
+  const fetchClassesForRange = useCallback(async (start: Date, end: Date, isBackground = false) => {
+    if (!tutorId) return;
+    const key = getCacheKey(start, end);
+
+    // Use cache if available
+    if (classCacheRef.current.has(key)) {
+      if (!isBackground) {
+        const cached = classCacheRef.current.get(key)!;
+        setClasses(cached.classes);
+        setPendingResetRequests(cached.pendingResets);
+      }
+      return;
+    }
+
+    if (!isBackground) setClassesLoading(true);
+    try {
+      const url = `/Api/relationship-manager/tutor/${tutorId}/classes?startDate=${start.toISOString()}&endDate=${end.toISOString()}`;
+      const res = await fetch(url, { credentials: "include" });
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        if (!isBackground) throw new Error(data.error || "Failed to load classes");
+        return;
+      }
+
+      const loadedClasses = data.classes || [];
+      const pendingResets = data.pendingResetRequests || [];
+
+      // Cache the result
+      classCacheRef.current.set(key, { classes: loadedClasses, pendingResets });
+
+      if (!isBackground) {
+        setTutor(data.tutor || null);
+        setClasses(loadedClasses);
+        setPendingResetRequests(pendingResets);
+      }
+
+      // Fetch attendance for students in these classes (non-blocking)
+      const studentIds = new Set<string>();
+      loadedClasses.forEach((cls: ClassItem) => {
+        cls.students?.forEach((s: Student) => studentIds.add(s._id));
+      });
+
+      // Only fetch attendance for students we haven't already fetched
+      const newStudentIds = Array.from(studentIds).filter(id => !attendanceCacheRef.current.has(id));
+      if (newStudentIds.length > 0) {
+        if (!isBackground) setAttendanceLoading(true);
+        try {
+          const attRes = await fetch("/Api/student/attendanceData", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ studentIds: newStudentIds })
+          });
+          const attData = await attRes.json();
+          if (attData.success && attData.data) {
+            newStudentIds.forEach(id => attendanceCacheRef.current.add(id));
+            setAttendanceMap(prev => ({ ...prev, ...attData.data }));
+          }
+        } catch (e) {
+          console.error("Failed to fetch attendance", e);
+        } finally {
+          if (!isBackground) setAttendanceLoading(false);
+        }
+      } else {
+        if (!isBackground) setAttendanceLoading(false);
+      }
+    } catch (err: any) {
+      if (!isBackground) setError(err.message || "Failed to load calendar");
+    } finally {
+      if (!isBackground) setClassesLoading(false);
+    }
+  }, [tutorId, getCacheKey]);
+
+  // Prefetch adjacent weeks in background
+  const prefetchAdjacent = useCallback((refDate: Date) => {
+    if (activeView === "month") {
+      const prevMonth = new Date(refDate.getFullYear(), refDate.getMonth() - 1, 1);
+      const nextMonth = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 1);
+      const prevRange = getMonthRange(prevMonth);
+      const nextRange = getMonthRange(nextMonth);
+      fetchClassesForRange(prevRange.start, prevRange.end, true);
+      fetchClassesForRange(nextRange.start, nextRange.end, true);
+    } else {
+      const prevWeekDate = new Date(refDate.getTime());
+      prevWeekDate.setDate(prevWeekDate.getDate() - 7);
+      const nextWeekDate = new Date(refDate.getTime());
+      nextWeekDate.setDate(nextWeekDate.getDate() + 7);
+      const prevRange = getWeekRange(prevWeekDate);
+      const nextRange = getWeekRange(nextWeekDate);
+      fetchClassesForRange(prevRange.start, prevRange.end, true);
+      fetchClassesForRange(nextRange.start, nextRange.end, true);
+    }
+  }, [activeView, getWeekRange, getMonthRange, fetchClassesForRange]);
+
+  // Main effect: fetch classes when date or view changes (with debounce)
   useEffect(() => {
     if (!tutorId) {
-      setLoading(false);
+      setClassesLoading(false);
       setError("Tutor not found");
       return;
     }
 
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await fetch(
-          `/Api/relationship-manager/tutor/${tutorId}/classes`,
-          { credentials: "include" }
-        );
-        const data = await res.json();
+    // Clear any pending debounce
+    if (fetchTimerRef.current) {
+      clearTimeout(fetchTimerRef.current);
+    }
 
-        if (!res.ok || !data.success) {
-          throw new Error(data.error || "Failed to load classes");
-        }
+    const range = activeView === "month"
+      ? getMonthRange(currentDate)
+      : getWeekRange(currentDate);
+    const key = getCacheKey(range.start, range.end);
 
-        const loadedClasses = data.classes || [];
-        setTutor(data.tutor || null);
-        setClasses(loadedClasses);
-        setPendingResetRequests(data.pendingResetRequests || []);
+    // If cached, show immediately (no debounce needed)
+    if (classCacheRef.current.has(key)) {
+      const cached = classCacheRef.current.get(key)!;
+      setClasses(cached.classes);
+      setPendingResetRequests(cached.pendingResets);
+      setClassesLoading(false);
+    }
 
-        const studentIds = new Set<string>();
-        loadedClasses.forEach((cls: ClassItem) => {
-          cls.students?.forEach((s) => studentIds.add(s._id));
-        });
+    // Debounce: wait 300ms before fetching (handles rapid clicking)
+    fetchTimerRef.current = setTimeout(async () => {
+      await fetchClassesForRange(range.start, range.end);
+      // Prefetch adjacent ranges after current loads
+      prefetchAdjacent(currentDate);
+    }, 300);
 
-        if (studentIds.size > 0) {
-          try {
-            const attRes = await fetch("/Api/student/attendanceData", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ studentIds: Array.from(studentIds) })
-            });
-            const attData = await attRes.json();
-            if (attData.success && attData.data) {
-              setAttendanceMap(attData.data);
-            }
-          } catch (e) {
-            console.error("Failed to fetch attendance for RM view", e);
-          }
-        }
-      } catch (err: any) {
-        setError(err.message || "Failed to load calendar");
-      } finally {
-        setLoading(false);
-      }
+    return () => {
+      if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
     };
+  }, [tutorId, currentDate, activeView, getWeekRange, getMonthRange, getCacheKey, fetchClassesForRange, prefetchAdjacent]);
 
-    fetchData();
-  }, [tutorId]);
+  const userTz = getUserTimeZone();
 
   const cloneDate = (d: Date) => new Date(d.getTime());
 
@@ -376,9 +475,9 @@ export default function RMTutorCalendarPage() {
     });
   };
 
-  const weekDays = activeView === "day" ? [currentDate] : getWeekDays();
+  const weekDays = useMemo(() => activeView === "day" ? [currentDate] : getWeekDays(), [activeView, currentDate]);
 
-  const getVisibleClasses = () => {
+  const visibleClasses = useMemo(() => {
     let filtered: ClassItem[] = [];
     if (activeView === "month") {
       const days = generateMonthDays(currentDate).filter((d): d is Date => d !== null);
@@ -397,7 +496,7 @@ export default function RMTutorCalendarPage() {
     return [...filtered].sort(
       (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
     );
-  };
+  }, [classes, activeView, currentDate, weekDays, selectedDayFilter, userTz]);
 
   const openDeleteModal = (cls: ClassItem) => {
     setClassToDelete(cls);
@@ -501,10 +600,13 @@ export default function RMTutorCalendarPage() {
   };
 
 
-  if (loading) {
+  if (classesLoading && classes.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600" />
+          <span className="text-sm text-gray-500">Loading classes...</span>
+        </div>
       </div>
     );
   }
@@ -834,12 +936,13 @@ export default function RMTutorCalendarPage() {
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Class Details Table</h2>
                 <p className="text-xs text-gray-500 mt-1">
-                  Showing details for {getVisibleClasses().length} class{getVisibleClasses().length !== 1 ? "es" : ""} in the current view
+                  Showing details for {visibleClasses.length} class{visibleClasses.length !== 1 ? "es" : ""} in the current view
                 </p>
               </div>
             </div>
             {/* Day filter for week view */}
             {activeView === "week" && (
+              <>
               <div className="flex items-center gap-2 mt-3 flex-wrap">
                 <span className="text-xs font-medium text-gray-500">Filter by day:</span>
                 <button
@@ -878,6 +981,41 @@ export default function RMTutorCalendarPage() {
                   );
                 })}
               </div>
+              {/* Daily Summary WhatsApp Button */}
+              <div className="mt-3">
+                <button
+                  onClick={() => {
+                    // Use the filtered day if selected, otherwise use today or first day with classes
+                    if (selectedDayFilter) {
+                      const matchingDay = weekDays.find(day => {
+                        const dayStr = day.toLocaleDateString("en-US", { weekday: "short", timeZone: userTz });
+                        return dayStr === selectedDayFilter;
+                      });
+                      if (matchingDay) setDailySummaryDay(matchingDay);
+                    } else {
+                      // Find today or first day with classes
+                      const today = new Date();
+                      const todayInWeek = weekDays.find(day => {
+                        const d1 = day.toLocaleDateString("en-US", { timeZone: userTz });
+                        const d2 = today.toLocaleDateString("en-US", { timeZone: userTz });
+                        return d1 === d2;
+                      });
+                      setDailySummaryDay(todayInWeek || weekDays[0]);
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white rounded-lg transition-all hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  </svg>
+                  📋 Send Daily Summary
+                </button>
+              </div>
+              </>
             )}
           </div>
           
@@ -891,7 +1029,7 @@ export default function RMTutorCalendarPage() {
                   </div>
                 </div>
               )}
-              {getVisibleClasses().length === 0 ? (
+              {visibleClasses.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
                   <Info className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                   <p className="text-sm font-medium">No classes scheduled in this range</p>
@@ -927,7 +1065,7 @@ export default function RMTutorCalendarPage() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {getVisibleClasses().map((cls) => {
+                    {visibleClasses.map((cls) => {
                       const statusStyle = getStatusStyle(cls);
                       const isCancelPending = pendingResetRequests.some(
                         (req: any) => req.requestType === "class" &&
@@ -1488,6 +1626,40 @@ export default function RMTutorCalendarPage() {
           }}
         />
       )}
+
+      {/* Daily Summary WhatsApp Modal */}
+      {dailySummaryDay && (() => {
+        const dayClasses = classes.filter((c) => isSameDay(c.startTime, dailySummaryDay, userTz));
+        const dayLabel = dailySummaryDay.toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          timeZone: userTz,
+        });
+        // Collect all unique WhatsApp groups from all students in all classes for this day
+        const groupMap = new Map<string, { name: string; link: string }>();
+        dayClasses.forEach((cls) => {
+          cls.students.forEach((student) => {
+            (student as any).whatsappGroups?.forEach((group: any) => {
+              if (group.link && !groupMap.has(group.link)) {
+                groupMap.set(group.link, { name: group.name || group.link, link: group.link });
+              }
+            });
+          });
+        });
+        const allGroups = Array.from(groupMap.values());
+
+        return (
+          <DailySummaryWhatsAppModal
+            classes={dayClasses}
+            dayLabel={dayLabel}
+            userTz={userTz}
+            whatsappGroups={allGroups}
+            onClose={() => setDailySummaryDay(null)}
+          />
+        );
+      })()}
 
       {/* Student Info Popup */}
       {studentInfoId && (

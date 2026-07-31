@@ -40,7 +40,7 @@ export async function PUT(request: NextRequest) {
 
     // Get request body
     const body = await request.json();
-    const { tutorName, email, contactNumber, address, city, skills, teachingExperience, teachingMode, timezone } = body;
+    const { tutorName, email, contactNumber, address, city, skills, teachingExperience, teachingMode, timezone, whatsappGroups } = body;
 
     // Validate required fields
     if (!tutorName || !email) {
@@ -82,6 +82,9 @@ export async function PUT(request: NextRequest) {
     }
     if (timezone !== undefined && timezone !== null && timezone !== '') {
       updateData.timezone = timezone;
+    }
+    if (whatsappGroups !== undefined && Array.isArray(whatsappGroups)) {
+      updateData.whatsappGroups = whatsappGroups;
     }
 
     // Update the user in the database

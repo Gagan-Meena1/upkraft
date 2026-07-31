@@ -239,4 +239,4 @@ SongSchema.pre('save', function(next) {
 
 
 
-export const Song = mongoose.models.Song || mongoose.model<ISong>("Song", SongSchema);
+export const Song = (mongoose.models.Song || mongoose.model<ISong>("Song", SongSchema)) as mongoose.Model<ISong>;

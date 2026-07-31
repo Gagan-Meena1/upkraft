@@ -32,7 +32,8 @@ export default function TutorSettingsPage() {
     skills: '',
     teachingExperience: '',
     teachingMode: '',
-    timezone: ''
+    timezone: '',
+    whatsappGroups: [{ name: '', link: '' }] as { name: string; link: string }[]
   });
   const [isSavingTutorInfo, setIsSavingTutorInfo] = useState(false);
   const [isLoadingTutorInfo, setIsLoadingTutorInfo] = useState(true);
@@ -195,7 +196,10 @@ export default function TutorSettingsPage() {
           skills: userData.user?.skills || '',
           teachingExperience: userData.user?.experience?.toString() || '',
           teachingMode: displayTeachingMode,
-          timezone: userData.user?.timezone || deviceTimeZone
+          timezone: userData.user?.timezone || deviceTimeZone,
+          whatsappGroups: userData.user?.whatsappGroups?.length
+            ? userData.user.whatsappGroups.map((g: any) => ({ name: g.name || '', link: g.link || '' }))
+            : [{ name: '', link: '' }]
         });
 
         // Fetch policies and payout settings if tutor has academyId
@@ -252,6 +256,16 @@ export default function TutorSettingsPage() {
       return;
     }
 
+    // Validate WhatsApp groups
+    const filledGroups = tutorInfo.whatsappGroups.filter(g => g.link.trim() !== '');
+    if (filledGroups.length > 1) {
+      const missingNames = filledGroups.some(g => g.name.trim() === '');
+      if (missingNames) {
+        toast.error('Please provide a name for each WhatsApp group when adding multiple groups');
+        return;
+      }
+    }
+
     setIsSavingTutorInfo(true);
     try {
       const response = await fetch('/Api/tutor/updateInfo', {
@@ -268,7 +282,8 @@ export default function TutorSettingsPage() {
           skills: tutorInfo.skills,
           teachingExperience: tutorInfo.teachingExperience ? parseInt(tutorInfo.teachingExperience) : undefined,
           teachingMode: tutorInfo.teachingMode,
-          timezone: tutorInfo.timezone
+          timezone: tutorInfo.timezone,
+          whatsappGroups: filledGroups
         }),
         credentials: 'include'
       });
@@ -914,6 +929,202 @@ export default function TutorSettingsPage() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* WhatsApp Groups Section */}
+                  <div style={{ marginTop: '24px', padding: '20px', background: '#f8faf8', borderRadius: '12px', border: '1px solid #e8f5e9' }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '12px'
+                    }}>
+                      <label style={{
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: '#1a1a1a',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span style={{ fontSize: '18px' }}>💬</span>
+                        WhatsApp Group{tutorInfo.whatsappGroups.length > 1 ? 's' : ''}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTutorInfo(prev => ({
+                            ...prev,
+                            whatsappGroups: [...prev.whatsappGroups, { name: '', link: '' }]
+                          }));
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '6px 14px',
+                          background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'all 0.3s',
+                          boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)'
+                        }}
+                      >
+                        + Add Group
+                      </button>
+                    </div>
+
+                    {tutorInfo.whatsappGroups.length > 1 && (
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#e65100',
+                        background: '#fff3e0',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        marginBottom: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}>
+                        <span>⚠️</span>
+                        Group names are required when you have multiple groups
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {tutorInfo.whatsappGroups.map((group, index) => (
+                        <div
+                          key={index}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '10px',
+                            padding: '14px',
+                            background: 'white',
+                            borderRadius: '10px',
+                            border: '1px solid #e8f5e9',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                            color: 'white',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            flexShrink: 0,
+                            marginTop: '6px'
+                          }}>
+                            {index + 1}
+                          </div>
+
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div>
+                              <label style={{
+                                display: 'block',
+                                fontSize: '12px',
+                                fontWeight: 500,
+                                color: '#666',
+                                marginBottom: '4px'
+                              }}>
+                                Group Name {tutorInfo.whatsappGroups.length === 1 ? '(optional)' : '(required)'}
+                              </label>
+                              <input
+                                type="text"
+                                value={group.name}
+                                onChange={(e) => {
+                                  const updated = [...tutorInfo.whatsappGroups];
+                                  updated[index] = { ...updated[index], name: e.target.value };
+                                  setTutorInfo(prev => ({ ...prev, whatsappGroups: updated }));
+                                }}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 14px',
+                                  border: `2px solid ${tutorInfo.whatsappGroups.length > 1 && group.link.trim() && !group.name.trim() ? '#e65100' : '#e0e0e0'}`,
+                                  borderRadius: '8px',
+                                  fontSize: '14px',
+                                  transition: 'border-color 0.3s',
+                                  fontFamily: 'inherit'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#25D366'}
+                                onBlur={(e) => e.target.style.borderColor = tutorInfo.whatsappGroups.length > 1 && group.link.trim() && !group.name.trim() ? '#e65100' : '#e0e0e0'}
+                                placeholder="e.g., Piano Batch 2025"
+                              />
+                            </div>
+                            <div>
+                              <label style={{
+                                display: 'block',
+                                fontSize: '12px',
+                                fontWeight: 500,
+                                color: '#666',
+                                marginBottom: '4px'
+                              }}>
+                                Group Link
+                              </label>
+                              <input
+                                type="url"
+                                value={group.link}
+                                onChange={(e) => {
+                                  const updated = [...tutorInfo.whatsappGroups];
+                                  updated[index] = { ...updated[index], link: e.target.value };
+                                  setTutorInfo(prev => ({ ...prev, whatsappGroups: updated }));
+                                }}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 14px',
+                                  border: '2px solid #e0e0e0',
+                                  borderRadius: '8px',
+                                  fontSize: '14px',
+                                  transition: 'border-color 0.3s',
+                                  fontFamily: 'inherit'
+                                }}
+                                onFocus={(e) => e.target.style.borderColor = '#25D366'}
+                                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                                placeholder="https://chat.whatsapp.com/..."
+                              />
+                            </div>
+                          </div>
+
+                          {tutorInfo.whatsappGroups.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = tutorInfo.whatsappGroups.filter((_, i) => i !== index);
+                                setTutorInfo(prev => ({ ...prev, whatsappGroups: updated }));
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '30px',
+                                height: '30px',
+                                borderRadius: '50%',
+                                background: '#fff0f0',
+                                color: '#d32f2f',
+                                border: '1px solid #ffcdd2',
+                                cursor: 'pointer',
+                                fontSize: '16px',
+                                fontWeight: 700,
+                                transition: 'all 0.2s',
+                                flexShrink: 0,
+                                marginTop: '6px'
+                              }}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </div>
 

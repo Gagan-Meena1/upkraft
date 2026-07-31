@@ -24,8 +24,8 @@ const InstitutionRegistrationSchema = new Schema<IInstitutionRegistration>({
   createdAt: { type: Date, default: Date.now },
 });
 
-export default mongoose.models.InstitutionRegistration ||
+export default (mongoose.models.InstitutionRegistration ||
   mongoose.model<IInstitutionRegistration>(
     "InstitutionRegistration",
     InstitutionRegistrationSchema
-  );
+  )) as mongoose.Model<IInstitutionRegistration>;
