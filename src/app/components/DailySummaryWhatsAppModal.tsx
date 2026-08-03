@@ -46,6 +46,9 @@ export default function DailySummaryWhatsAppModal({
   const [message, setMessage] = useState<string>("");
   const [isEdited, setIsEdited] = useState(false);
   const [showEditWarning, setShowEditWarning] = useState(false);
+  const [selectedClassIds, setSelectedClassIds] = useState<Set<string>>(
+    () => new Set(classes.map((c) => c._id))
+  );
 
   // Auto-select first group
   useEffect(() => {
@@ -71,9 +74,10 @@ export default function DailySummaryWhatsAppModal({
     }
   };
 
-  // Build consolidated daily summary message
+  // Build consolidated daily summary message (only selected classes)
   const buildMessage = () => {
-    const sortedClasses = [...classes].sort(
+    const selectedClasses = classes.filter((c) => selectedClassIds.has(c._id));
+    const sortedClasses = [...selectedClasses].sort(
       (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
     );
 
@@ -109,9 +113,11 @@ export default function DailySummaryWhatsAppModal({
   };
 
   useEffect(() => {
-    setMessage(buildMessage());
+    if (!isEdited) {
+      setMessage(buildMessage());
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classes]);
+  }, [classes, selectedClassIds]);
 
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (!isEdited) {
@@ -203,32 +209,70 @@ export default function DailySummaryWhatsAppModal({
           className="overflow-y-auto"
           style={{ maxHeight: "calc(90vh - 72px)" }}
         >
-          {/* Classes Preview */}
+          {/* Classes Preview — with deselect checkboxes */}
           <div className="px-6 py-4 border-b border-gray-100">
-            <label className="text-sm font-semibold text-gray-800 block mb-3">
-              Classes Included ({classes.length})
-            </label>
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm font-semibold text-gray-800">
+                Classes Included ({selectedClassIds.size} of {classes.length})
+              </label>
+              <button
+                onClick={() => {
+                  if (selectedClassIds.size === classes.length) {
+                    setSelectedClassIds(new Set());
+                  } else {
+                    setSelectedClassIds(new Set(classes.map((c) => c._id)));
+                  }
+                }}
+                className="text-xs text-green-600 hover:text-green-700 font-medium"
+              >
+                {selectedClassIds.size === classes.length ? "Deselect All" : "Select All"}
+              </button>
+            </div>
             <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
               {[...classes]
                 .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
-                .map((cls) => (
-                <div
-                  key={cls._id}
-                  className="flex items-center justify-between px-3 py-2 bg-green-50 border border-green-200 rounded-lg"
-                >
-                  <div>
-                    <div className="text-sm font-medium text-gray-800">
-                      {cls.title || "Class"}
-                    </div>
-                    <div className="text-[10px] text-gray-500">
-                      {formatTime(cls.startTime, cls.endTime)} · {cls.students.length} student{cls.students.length !== 1 ? "s" : ""}
-                    </div>
-                  </div>
-                  <span className="text-xs text-green-600 font-medium">
-                    {cls.course || ""}
-                  </span>
-                </div>
-              ))}
+                .map((cls) => {
+                  const isChecked = selectedClassIds.has(cls._id);
+                  return (
+                    <label
+                      key={cls._id}
+                      className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all border ${
+                        isChecked
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50 border-gray-100 opacity-60"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {
+                          setSelectedClassIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(cls._id)) {
+                              next.delete(cls._id);
+                            } else {
+                              next.add(cls._id);
+                            }
+                            return next;
+                          });
+                        }}
+                        className="w-4 h-4 rounded"
+                        style={{ accentColor: "#25D366" }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-800">
+                          {cls.title || "Class"}
+                        </div>
+                        <div className="text-[10px] text-gray-500">
+                          {formatTime(cls.startTime, cls.endTime)} · {cls.students.length} student{cls.students.length !== 1 ? "s" : ""}
+                        </div>
+                      </div>
+                      <span className="text-xs text-green-600 font-medium">
+                        {cls.course || ""}
+                      </span>
+                    </label>
+                  );
+                })}
             </div>
           </div>
 
@@ -241,8 +285,7 @@ export default function DailySummaryWhatsAppModal({
               <div className="flex items-center gap-2 px-3 py-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <span className="text-amber-500 text-base">⚠️</span>
                 <span className="text-xs text-amber-700">
-                  No WhatsApp groups found. Students need to add their group
-                  links in Settings.
+                  No WhatsApp groups found. Add group links in Tutor Settings.
                 </span>
               </div>
             ) : (
