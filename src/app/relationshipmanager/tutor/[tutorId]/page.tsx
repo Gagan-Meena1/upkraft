@@ -40,6 +40,7 @@ interface TutorInfo {
   _id: string;
   username?: string;
   email?: string;
+  whatsappGroups?: { name: string; link: string }[];
 }
 
 const STATUS_COLORS: Record<
@@ -1637,25 +1638,15 @@ export default function RMTutorCalendarPage() {
           year: "numeric",
           timeZone: userTz,
         });
-        // Collect all unique WhatsApp groups from all students in all classes for this day
-        const groupMap = new Map<string, { name: string; link: string }>();
-        dayClasses.forEach((cls) => {
-          cls.students.forEach((student) => {
-            (student as any).whatsappGroups?.forEach((group: any) => {
-              if (group.link && !groupMap.has(group.link)) {
-                groupMap.set(group.link, { name: group.name || group.link, link: group.link });
-              }
-            });
-          });
-        });
-        const allGroups = Array.from(groupMap.values());
+        // Use tutor's WhatsApp groups (from tutor settings)
+        const tutorGroups = (tutor?.whatsappGroups || []).filter(g => g.link?.trim());
 
         return (
           <DailySummaryWhatsAppModal
             classes={dayClasses}
             dayLabel={dayLabel}
             userTz={userTz}
-            whatsappGroups={allGroups}
+            whatsappGroups={tutorGroups}
             onClose={() => setDailySummaryDay(null)}
           />
         );

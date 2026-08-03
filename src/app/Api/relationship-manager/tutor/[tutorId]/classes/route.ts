@@ -66,7 +66,7 @@ export async function GET(
     }
 
     const tutor = await User.findById(tutorId)
-      .select("_id username email relationshipManager classes")
+      .select("_id username email relationshipManager classes whatsappGroups")
       .lean();
 
     if (!tutor) {
@@ -183,7 +183,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
+      tutor: { _id: tutor._id, username: tutor.username, email: tutor.email, whatsappGroups: (tutor as any).whatsappGroups || [] },
       classes: classesWithStudents,
       pendingResetRequests: pendingResetRequests,
     });
