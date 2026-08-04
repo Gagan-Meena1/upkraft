@@ -8,18 +8,17 @@ interface Props {
     onEdit: (l: Lead) => void;
     onHide?: (id: string, st: string, cId: string, d: string) => void;
     onStatusChange: (id: string, sId: string, val: string, dropReason?: string) => void;
-    onShowInfo: (studentId: string) => void;
+    onShowInfo: (studentId: string, courseId: string) => void;
 }
 const HEADERS = [
     { label: "Customer / Student", className: "sticky left-0 z-20 bg-[#faf9ff] min-w-[160px]" },
     { label: "Society", className: "sticky left-[160px] z-20 bg-[#faf9ff] min-w-[120px]" },
     { label: "Contact", className: "sticky left-[280px] z-20 bg-[#faf9ff] min-w-[140px]" },
     { label: "Tutor / Instrument", className: "sticky left-[420px] z-20 bg-[#faf9ff] min-w-[150px] shadow-[2px_0_4px_rgba(0,0,0,0.06)]" },
-    { label: "Start Date", className: "" },   // ← replaced Type
+    { label: "Start Date", className: "" },
     { label: "RM", className: "" },
     { label: "Sales SPOC", className: "" },
     { label: "Pkg Amount", className: "" },
-    { label: "Completed", className: "" },
     { label: "Total", className: "" },
     { label: "Completion %", className: "" },
     { label: "Remaining", className: "" },

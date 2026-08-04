@@ -8,7 +8,7 @@ interface Props {
     onEdit: (l: Lead) => void;
     onHide: (id: string, studentId: string) => void;
     onStatusChange: (id: string, studentId: string, status: string, dropReason?: string) => void;
-    onShowInfo: (studentId: string) => void;
+    onShowInfo: (studentId: string, courseId: string) => void;
 }
 
 const urgencyOf = (l: Lead) => {
@@ -70,7 +70,7 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                     <div className="font-bold text-gray-900 text-[12px] truncate max-w-[150px]" title={l.custName}>{l.custName || "Unknown"}</div>
                     <div 
                         className="text-[11px] text-gray-500 truncate max-w-[150px] cursor-pointer hover:text-indigo-600 hover:underline flex items-center gap-1"
-                        onClick={() => onShowInfo(l.studentId)}
+                        onClick={() => onShowInfo(l.studentId, l.courseId)}
                         title="Click to view student details"
                     >
                         👤 {l.studName}
@@ -110,7 +110,6 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                 <td className="px-4 py-3 align-middle text-[11px] font-semibold">{l.rm || "—"}</td>
                 <td className="px-4 py-3 align-middle text-[11px] text-gray-600">{l.spoc || "—"}</td>
                 <td className="px-4 py-3 align-middle text-[12px] font-bold text-emerald-600">{l.pkgAmount ? `₹${l.pkgAmount}` : "—"}</td>
-                <td className="px-4 py-3 align-middle text-center font-bold text-emerald-600 text-[12px]">{l.completed}</td>
                 <td className="px-4 py-3 align-middle text-center text-[12px] font-medium">{l.totalPkg}</td>
 
                 {/* Progress */}
@@ -132,7 +131,10 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                 <td className="px-4 py-3 align-middle text-[11px] whitespace-nowrap">
                     {l.lastClassDate ? new Date(l.lastClassDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                 </td>
-                <td className="px-4 py-3 align-middle"><DaysPill l={l} /></td>
+                <td className="px-4 py-3 align-middle text-center font-bold text-[12px]"
+                    style={{ color: l.renewalStatus === "Renewed" ? "#7c3aed" : l.daysLeft <= 0 ? "#be123c" : l.daysLeft <= 7 ? "#dc2626" : l.daysLeft <= 20 ? "#d97706" : "#059669" }}>
+                    {l.renewalStatus === "Renewed" ? "♻" : l.daysLeft <= 0 ? `${Math.abs(l.daysLeft)}d ago` : `${l.daysLeft}d`}
+                </td>
 
                 {/* Renewal Status */}
                 <td className="px-4 py-3 align-middle">

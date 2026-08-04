@@ -19,6 +19,7 @@ export function useRenewalDashboard() {
     const cache = useRef<Record<string, any>>({});
     const [stats, setStats] = useState<Stats>({ total: 0, overdue: 0, urgent: 0, soon: 0, ontrack: 0, renewed: 0, dropped: 0 });
     const [infoStudentId, setInfoStudentId] = useState<string | null>(null);
+    const [infoCourseId, setInfoCourseId] = useState<string | null>(null);
 
     // Renewal modal state
     const [renewalModalLead, setRenewalModalLead] = useState<Lead | null>(null);
@@ -286,5 +287,7 @@ export function useRenewalDashboard() {
         
         infoStudentId,
         setInfoStudentId,
+        infoCourseId,
+        setInfoCourseId,
     };
 }

@@ -19,13 +19,30 @@ import {
   Pencil,
   Check,
   Loader2,
+  BookOpen,
+  Users,
+  Tag,
 } from "lucide-react";
 import AttendanceHistory from "@/app/components/AttendanceHistory";
 
 interface StudentInfoPopupProps {
   studentId: string;
   studentName?: string;
+  courseId?: string;
   onClose: () => void;
+}
+
+interface CourseDetails {
+  title: string;
+  category: string;
+  description?: string;
+  instructorName?: string;
+  maxStudentCount?: number;
+  studentEnrolledCount?: number;
+  duration?: string;
+  price?: number;
+  subCategory?: string;
+  tag?: string;
 }
 
 interface ContactInfo {
@@ -98,6 +115,7 @@ function formatDate(dateStr: string | null | undefined): string {
 export default function StudentInfoPopup({
   studentId,
   studentName,
+  courseId,
   onClose,
 }: StudentInfoPopupProps) {
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
@@ -107,6 +125,8 @@ export default function StudentInfoPopup({
   const [showAttendance, setShowAttendance] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryGroup[]>([]);
+  const [courseDetails, setCourseDetails] = useState<CourseDetails | null>(null);
+  const [courseLoading, setCourseLoading] = useState(false);
 
   // Inline edit state: key = "pkgIdx_cycleIdx", value = { amount, classesPaid }
   const [editingCell, setEditingCell] = useState<string | null>(null);
@@ -143,6 +163,26 @@ export default function StudentInfoPopup({
 
     fetchData();
   }, [studentId]);
+
+  // Fetch course details when courseId is provided
+  useEffect(() => {
+    if (!courseId) return;
+    const fetchCourse = async () => {
+      setCourseLoading(true);
+      try {
+        const res = await fetch(`/Api/salesHead/studentPackage/course?courseId=${courseId}`);
+        const data = await res.json();
+        if (data.success) {
+          setCourseDetails(data.course);
+        }
+      } catch (err) {
+        console.error("Failed to fetch course details", err);
+      } finally {
+        setCourseLoading(false);
+      }
+    };
+    fetchCourse();
+  }, [courseId]);
 
   // Save inline edit
   const handleSaveCycle = useCallback(async (pkgIdx: number, cycleIdx: number) => {
@@ -593,6 +633,106 @@ export default function StudentInfoPopup({
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Course Details Card */}
+            {courseId && (
+              <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+                <div className="px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-semibold text-gray-900">
+                      Course Details
+                    </span>
+                  </div>
+                </div>
+                <div className="p-4 space-y-3">
+                  {courseLoading ? (
+                    <>
+                      <SkeletonLine width="w-2/3" />
+                      <SkeletonLine width="w-1/2" />
+                      <SkeletonLine width="w-3/4" />
+                    </>
+                  ) : courseDetails ? (
+                    <>
+                      <div className="flex items-start gap-3">
+                        <BookOpen className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Title</div>
+                          <div className="text-sm font-semibold text-gray-800">{courseDetails.title}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <Tag className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Category</div>
+                          <div className="text-sm text-gray-800">{courseDetails.category || "—"}</div>
+                        </div>
+                      </div>
+
+                      {courseDetails.subCategory && (
+                        <div className="flex items-start gap-3">
+                          <Tag className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Sub-Category</div>
+                            <div className="text-sm text-gray-800">{courseDetails.subCategory}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {courseDetails.instructorName && (
+                        <div className="flex items-start gap-3">
+                          <User className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Instructor</div>
+                            <div className="text-sm text-gray-800">{courseDetails.instructorName}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {courseDetails.description && (
+                        <div className="flex items-start gap-3">
+                          <ClipboardList className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Description</div>
+                            <div className="text-xs text-gray-600 mt-0.5">{courseDetails.description}</div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {courseDetails.duration && (
+                          <div className="px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
+                            <div className="text-[10px] uppercase tracking-wide text-blue-400 font-medium">Duration</div>
+                            <div className="text-sm font-bold text-blue-700">{courseDetails.duration}</div>
+                          </div>
+                        )}
+                        {courseDetails.price != null && courseDetails.price > 0 && (
+                          <div className="px-3 py-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                            <div className="text-[10px] uppercase tracking-wide text-emerald-400 font-medium">Price</div>
+                            <div className="text-sm font-bold text-emerald-700">₹{courseDetails.price}</div>
+                          </div>
+                        )}
+                        {courseDetails.maxStudentCount != null && courseDetails.maxStudentCount > 0 && (
+                          <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                            <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Max Students</div>
+                            <div className="text-sm font-bold text-gray-700">{courseDetails.maxStudentCount}</div>
+                          </div>
+                        )}
+                        {courseDetails.studentEnrolledCount != null && (
+                          <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                            <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">Enrolled</div>
+                            <div className="text-sm font-bold text-gray-700">{courseDetails.studentEnrolledCount}</div>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Course details not available</p>
+                  )}
                 </div>
               </div>
             )}
