@@ -25,6 +25,8 @@ export default function RenewalDashboardPage() {
     handleRenewalSubmit,
     infoStudentId,
     setInfoStudentId,
+    infoCourseId,
+    setInfoCourseId,
   } = useRenewalDashboard();
 
   return (
@@ -76,7 +78,7 @@ export default function RenewalDashboardPage() {
         onEdit={(l) => { setEditingLead(l); setIsModalOpen(true); }}
         onHide={handleHideStudent}
         onStatusChange={handleInlineStatusUpdate}
-        onShowInfo={setInfoStudentId}
+        onShowInfo={(studentId, courseId) => { setInfoStudentId(studentId); setInfoCourseId(courseId); }}
       />
 
       {isModalOpen && editingLead && (
@@ -109,7 +111,8 @@ export default function RenewalDashboardPage() {
       {infoStudentId && (
         <StudentInfoPopup
           studentId={infoStudentId}
-          onClose={() => setInfoStudentId(null)}
+          courseId={infoCourseId || undefined}
+          onClose={() => { setInfoStudentId(null); setInfoCourseId(null); }}
         />
       )}
     </div>

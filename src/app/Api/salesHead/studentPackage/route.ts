@@ -4,9 +4,40 @@ import User from "@/models/userModel";
 import Class from "@/models/Class";
 import CourseName from "@/models/courseName";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+
+// Allowed categories (normalized to lowercase, no spaces)
+const ALLOWED_CATEGORIES = ["saleshead", "admin"];
+
+// Helper: compute dynamic endDate from classIds using a classId→startTime map
+function getDynamicEndDate(
+    classIds: any[],
+    classStartTimeMap: Map<string, Date>
+): Date | null {
+    let maxDate: Date | null = null;
+    for (const cId of classIds) {
+        const st = classStartTimeMap.get(cId.toString());
+        if (st && (!maxDate || st > maxDate)) maxDate = st;
+    }
+    return maxDate;
+}
 
 export async function GET(request: NextRequest) {
     try {
+        // Auth: check category from token (no DB call)
+        const token = request.cookies.get("token")?.value || "";
+        if (!token) {
+            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+        }
+        const decoded: any = jwt.decode(token);
+        if (!decoded?.id) {
+            return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
+        }
+        const normalizedCategory = String(decoded.category || "").toLowerCase().replace(/\s/g, "");
+        if (!ALLOWED_CATEGORIES.includes(normalizedCategory)) {
+            return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+        }
+
         await connect();
 
         const { searchParams } = new URL(request.url);
@@ -122,32 +153,47 @@ export async function GET(request: NextRequest) {
             allPackages = allPackages.filter(p => p.type === fType);
         }
 
-        // Card filter
+        // ── Dynamic endDate: bulk fetch classId→startTime for ALL packages ──
+        const allPkgClassIds = new Set<string>();
+        for (const pkg of allPackages) {
+            for (const cId of (pkg.latestEntry.classIds || [])) {
+                allPkgClassIds.add(cId.toString());
+            }
+        }
+
+        const classStartTimeDocs = await Class.find({
+            _id: { $in: Array.from(allPkgClassIds).map(id => new mongoose.Types.ObjectId(id)) }
+        })
+            .select("_id startTime")
+            .lean() as any[];
+
+        const classStartTimeMap = new Map<string, Date>();
+        for (const doc of classStartTimeDocs) {
+            classStartTimeMap.set(doc._id.toString(), new Date(doc.startTime));
+        }
+
+        // Attach dynamic endDate + daysLeft to each package
+        for (const pkg of allPackages) {
+            const classIds = pkg.latestEntry.classIds || [];
+            const dynEnd = getDynamicEndDate(classIds, classStartTimeMap);
+            pkg._dynamicEndDate = dynEnd;
+            if (dynEnd) {
+                const end = new Date(dynEnd);
+                end.setHours(0, 0, 0, 0);
+                const today = new Date(now);
+                today.setHours(0, 0, 0, 0);
+                pkg._daysLeft = Math.floor((end.getTime() - today.getTime()) / 86400000);
+            } else {
+                pkg._daysLeft = 999;
+            }
+        }
+
+        // Card filter — uses dynamic daysLeft
         const cardFilter = searchParams.get("cardFilter") || "all";
         if (cardFilter !== "all") {
             allPackages = allPackages.filter(pkg => {
                 const renewalStatus = pkg.renewalStatus || "YTR";
-
-                // Calculate completion + daysLeft inline
-                const classIds = (pkg.latestEntry.classIds || []).map((id: any) => id.toString());
-                const attendanceMap = new Map<string, string>();
-                for (const a of pkg.attendance) {
-                    if (a.classId) attendanceMap.set(a.classId.toString(), a.status);
-                }
-                const completed = classIds.filter((id: string) => {
-                    const s = attendanceMap.get(id);
-                    return s === "present" || s === "absent";
-                }).length;
-                const completion = classIds.length > 0 ? (completed / classIds.length) * 100 : 0;
-                const daysLeft = pkg.latestEntry.endDate
-                    ? (() => {
-                        const end = new Date(pkg.latestEntry.endDate);
-                        end.setHours(0, 0, 0, 0);          // strip time from endDate
-                        const today = new Date(now);
-                        today.setHours(0, 0, 0, 0);        // strip time from now
-                        return Math.floor((end.getTime() - today.getTime()) / 86400000);
-                    })()
-                    : 999;
+                const daysLeft = pkg._daysLeft;
 
                 if (cardFilter === "dropped") return renewalStatus === "Dropped";
                 if (cardFilter === "renewed") return renewalStatus === "Renewed";
@@ -159,14 +205,14 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // ✅ Fix — nearest to today first (past or future)
+        // Sort by startDate (nearest to today first) — static field, no dynamic computation needed
         allPackages.sort((a, b) => {
             const nowMs = now.getTime();
-            const distA = a.latestEntry.endDate
-                ? Math.abs(new Date(a.latestEntry.endDate).getTime() - nowMs)
+            const distA = a.startDate
+                ? Math.abs(new Date(a.startDate).getTime() - nowMs)
                 : Infinity;
-            const distB = b.latestEntry.endDate
-                ? Math.abs(new Date(b.latestEntry.endDate).getTime() - nowMs)
+            const distB = b.startDate
+                ? Math.abs(new Date(b.startDate).getTime() - nowMs)
                 : Infinity;
             return distA - distB;
         });
@@ -262,11 +308,14 @@ export async function GET(request: NextRequest) {
             const totalClasses = allClassCount - cancelledClasses;
             const remainingClasses = totalClasses - completedClasses;
 
-            // Calculate days left using endDate directly, exactly as requested.
+            // Dynamic endDate: use last class's startTime from sorted classes array
+            const dynamicEndDate = classes.length > 0
+                ? classes[classes.length - 1].startTime
+                : (pkg._dynamicEndDate || pkg.latestEntry.endDate || "");
+
             let daysLeft = 0;
-            let lastClassDateStr = pkg.latestEntry.endDate || "";
-            if (pkg.latestEntry.endDate) {
-                const end = new Date(pkg.latestEntry.endDate);
+            if (dynamicEndDate) {
+                const end = new Date(dynamicEndDate);
                 end.setHours(0, 0, 0, 0);
                 const today = new Date(now);
                 today.setHours(0, 0, 0, 0);
@@ -276,8 +325,6 @@ export async function GET(request: NextRequest) {
             const completion = totalClasses > 0 ? ((completedClasses / totalClasses) * 100).toFixed(2) : 0;
             const courseEntry = pkg.creditsPerCourse[pkg.courseEntryIndex];
             const paymentCycle = (courseEntry?.startTime || []).length;
-
-
 
             return {
                 id: `${pkg.studentId}_${pkg.courseId}`,
@@ -295,12 +342,11 @@ export async function GET(request: NextRequest) {
                 spoc: pkg.salesSPOC,
                 pkgAmount: pkg.latestEntry.amount || 0,
                 pkgClasses: totalClasses,
-                completed: completedClasses,
                 totalPkg: totalClasses,
                 completion: parseFloat(completion as string),
                 remaining: remainingClasses,
                 cancelled: cancelledClasses,
-                lastClassDate: lastClassDateStr,
+                lastClassDate: dynamicEndDate,
                 daysLeft,
                 reschCancel: cancelledClasses,
                 renewalStatus: pkg.renewalStatus,
