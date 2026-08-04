@@ -5,6 +5,14 @@ import jwt from "jsonwebtoken";  // Ensure jwt is imported
 
 export async function GET(req: NextRequest)  {
   try {
+    // Auth: check category from token (no DB call)
+    const token = req.cookies.get("token")?.value || "";
+    if (!token) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    const decoded: any = jwt.decode(token);
+    if (!decoded?.id) return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
+    const normalizedCat = String(decoded.category || "").toLowerCase().replace(/\s/g, "");
+    if (normalizedCat !== "admin") return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+
     await connect();
  
 
