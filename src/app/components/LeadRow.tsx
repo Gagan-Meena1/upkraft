@@ -7,7 +7,7 @@ interface Props {
     lead: Lead;
     onEdit: (l: Lead) => void;
     onHide: (id: string, studentId: string) => void;
-    onStatusChange: (id: string, studentId: string, status: string) => void;
+    onStatusChange: (id: string, studentId: string, status: string, dropReason?: string) => void;
     onShowInfo: (studentId: string) => void;
 }
 
@@ -54,6 +54,9 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
     const u = urgencyOf(l);
     const s = STATUS_STYLE[l.renewalStatus] || { bg: "#f3f4f6", color: "#6b7280" };
     const [showNotes, setShowNotes] = useState(false);
+    const [showDropModal, setShowDropModal] = useState(false);
+    const [dropReason, setDropReason] = useState(l.dropReason || "");
+    const [customDropReason, setCustomDropReason] = useState("");
 
     return (
         <>
@@ -124,6 +127,8 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                     style={{ color: l.remaining <= 2 ? "#dc2626" : "inherit" }}>{l.remaining}</td>
                 <td className="px-4 py-3 align-middle text-center font-bold text-[12px]"
                     style={{ color: l.cancelled > 0 ? "#d97706" : "#9ca3af" }}>{l.cancelled}</td>
+                <td className="px-4 py-3 align-middle text-center font-bold text-[12px]"
+                    style={{ color: l.absent > 0 ? "#dc2626" : "#9ca3af" }}>{l.absent}</td>
                 <td className="px-4 py-3 align-middle text-[11px] whitespace-nowrap">
                     {l.lastClassDate ? new Date(l.lastClassDate).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
                 </td>
@@ -134,12 +139,23 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                     <select className="text-[11px] font-bold rounded px-1 py-1 cursor-pointer outline-none border border-transparent hover:border-gray-300"
                         style={{ backgroundColor: s.bg, color: s.color }}
                         value={l.renewalStatus}
-                        onChange={e => onStatusChange(l.id, l.studentId, e.target.value)}>
+                        onChange={e => {
+                            if (e.target.value === "Dropped") {
+                                setShowDropModal(true);
+                            } else {
+                                onStatusChange(l.id, l.studentId, e.target.value);
+                            }
+                        }}>
                         <option>YTR</option>
                         <option>Follow Up</option>
                         <option>Renewed</option>
                         <option>Dropped</option>
                     </select>
+                    {l.dropReason && l.renewalStatus === "Dropped" && (
+                        <div className="text-[9px] text-red-500 mt-0.5 truncate max-w-[120px]" title={l.dropReason}>
+                            ⛔ {l.dropReason}
+                        </div>
+                    )}
                 </td>
 
                 {/* Notes — click to open popup */}
@@ -176,7 +192,7 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
             {/* Notes Popup */}
             {showNotes && (
                 <tr>
-                    <td colSpan={18} className="p-0">
+                    <td colSpan={19} className="p-0">
                         <div className="fixed inset-0 bg-black/30 z-[100] flex items-center justify-center p-4"
                             onClick={() => setShowNotes(false)}>
                             <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden"
@@ -233,6 +249,85 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                                     ) : (
                                         <div className="text-[12px] text-gray-400 italic">No general notes</div>
                                     )}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+            )}
+
+            {/* Drop Reason Modal */}
+            {showDropModal && (
+                <tr>
+                    <td colSpan={19} className="p-0">
+                        <div className="fixed inset-0 bg-black/30 z-[100] flex items-center justify-center p-4"
+                            onClick={() => setShowDropModal(false)}>
+                            <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl overflow-hidden"
+                                onClick={e => e.stopPropagation()}>
+                                <div className="px-5 py-3 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-red-50 to-white">
+                                    <div>
+                                        <h3 className="text-[14px] font-bold text-gray-900">⛔ Drop Disposition</h3>
+                                        <p className="text-[11px] text-gray-500">{l.custName}</p>
+                                    </div>
+                                    <button onClick={() => setShowDropModal(false)}
+                                        className="bg-gray-100 hover:bg-gray-200 rounded-full w-7 h-7 flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors">
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="p-5 flex flex-col gap-4">
+                                    <div>
+                                        <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block mb-2">Select Reason</label>
+                                        <select
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-red-400 focus:ring-1 focus:ring-red-200"
+                                            value={dropReason}
+                                            onChange={e => {
+                                                setDropReason(e.target.value);
+                                                if (e.target.value !== "Other") setCustomDropReason("");
+                                            }}
+                                        >
+                                            <option value="">— Select a reason —</option>
+                                            <option>{"Didn't like the tutor"}</option>
+                                            <option>Slot issue</option>
+                                            <option>Classes are expensive</option>
+                                            <option>{"Kid didn't show interest"}</option>
+                                            <option>Will do later</option>
+                                            <option>Travelling</option>
+                                            <option value="Other">Other (custom)</option>
+                                        </select>
+                                    </div>
+                                    {dropReason === "Other" && (
+                                        <div>
+                                            <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block mb-2">Custom Reason</label>
+                                            <input
+                                                type="text"
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-[13px] outline-none focus:border-red-400 focus:ring-1 focus:ring-red-200"
+                                                placeholder="Enter reason..."
+                                                value={customDropReason}
+                                                onChange={e => setCustomDropReason(e.target.value)}
+                                                autoFocus
+                                            />
+                                        </div>
+                                    )}
+                                    <div className="flex gap-2 justify-end">
+                                        <button
+                                            onClick={() => setShowDropModal(false)}
+                                            className="px-4 py-2 text-[12px] rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const finalReason = dropReason === "Other" ? customDropReason.trim() : dropReason;
+                                                if (!finalReason) return;
+                                                onStatusChange(l.id, l.studentId, "Dropped", finalReason);
+                                                setShowDropModal(false);
+                                            }}
+                                            disabled={!dropReason || (dropReason === "Other" && !customDropReason.trim())}
+                                            className="px-4 py-2 text-[12px] rounded-lg bg-red-600 text-white font-bold hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            Confirm Drop
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

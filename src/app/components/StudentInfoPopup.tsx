@@ -40,11 +40,14 @@ interface PackageInfo {
   totalClasses: number;
   completedClasses: number;
   remainingClasses: number;
+  cancelledClasses: number;
+  absentClasses: number;
   lastClass: { title: string; startTime: string; _id: string } | null;
   nextClass: { title: string; startTime: string; _id: string } | null;
   endDate: string | null;
   packageEndDate: string | null;
   paymentCycle: number;
+  paymentCycles: { cycle: number; amount: number; classesPaid: number; date: string | null; frequency: string }[];
 }
 
 interface PaymentHistoryItem {
@@ -155,7 +158,7 @@ export default function StudentInfoPopup({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto relative animate-in">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto relative animate-in">
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center justify-between gap-4">
@@ -224,9 +227,9 @@ export default function StudentInfoPopup({
           </div>
         ) : (
         <>
-          <div className="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Left: Package Details */}
-          <div className="space-y-4">
+          <div className="px-4 sm:px-6 py-5 grid grid-cols-1 lg:grid-cols-5 gap-5">
+          {/* Left: Package Details — takes 3 of 5 cols */}
+          <div className="lg:col-span-3 space-y-4">
             {loading ? (
               <>
                 <SkeletonBlock />
@@ -263,9 +266,9 @@ export default function StudentInfoPopup({
                       </span>
                     </div>
 
-                    {/* Total / Completed */}
-                    <div className="flex gap-3">
-                      <div className="flex-1 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                    {/* Total / Completed / Cancelled / Absent */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
                         <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">
                           Total
                         </div>
@@ -273,12 +276,28 @@ export default function StudentInfoPopup({
                           {pkg.totalClasses}
                         </div>
                       </div>
-                      <div className="flex-1 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                      <div className="px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
                         <div className="text-[10px] uppercase tracking-wide text-gray-400 font-medium">
                           Completed
                         </div>
                         <div className="text-sm font-bold text-gray-900">
                           {pkg.completedClasses}
+                        </div>
+                      </div>
+                      <div className="px-3 py-2 rounded-lg bg-amber-50 border border-amber-100">
+                        <div className="text-[10px] uppercase tracking-wide text-amber-500 font-medium">
+                          Cancelled
+                        </div>
+                        <div className="text-sm font-bold text-amber-700">
+                          {pkg.cancelledClasses}
+                        </div>
+                      </div>
+                      <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-100">
+                        <div className="text-[10px] uppercase tracking-wide text-red-400 font-medium">
+                          Absent
+                        </div>
+                        <div className="text-sm font-bold text-red-700">
+                          {pkg.absentClasses}
                         </div>
                       </div>
                     </div>
@@ -331,8 +350,8 @@ export default function StudentInfoPopup({
             )}
           </div>
 
-          {/* Right: Contact + Meta */}
-          <div className="space-y-4">
+          {/* Right: Contact + Meta — takes 2 of 5 cols */}
+          <div className="lg:col-span-2 space-y-4">
             {/* Contact Details Card */}
             <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
               <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-100">
@@ -413,19 +432,11 @@ export default function StudentInfoPopup({
             {/* Payment Cycle + Instrument */}
             {!loading && packages.length > 0 && (
               <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
-                <div className="p-4 space-y-3">
+                <div className="p-4 space-y-4">
                   {packages.map((pkg, idx) => (
                     <div key={pkg.courseId + idx} className="space-y-2">
                       {idx > 0 && <hr className="border-gray-100" />}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <CreditCard className="w-4 h-4 text-gray-400" />
-                          <span>Payment Cycle</span>
-                        </div>
-                        <span className="text-sm font-semibold text-gray-900">
-                          {pkg.paymentCycle}
-                        </span>
-                      </div>
+                      {/* Instrument */}
                       {pkg.instrument && (
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2 text-sm text-gray-700">
@@ -437,6 +448,37 @@ export default function StudentInfoPopup({
                           </span>
                         </div>
                       )}
+                      {/* Payment Cycles Table */}
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-gray-700 mb-2">
+                          <CreditCard className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium">Payment Cycles ({pkg.paymentCycle})</span>
+                        </div>
+                        <div className="border border-gray-100 rounded-lg overflow-hidden">
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-gray-50 text-gray-500 text-[10px] uppercase tracking-wider">
+                              <tr>
+                                <th className="px-3 py-2 font-medium">#</th>
+                                <th className="px-3 py-2 font-medium">Amount</th>
+                                <th className="px-3 py-2 font-medium">Classes</th>
+                                <th className="px-3 py-2 font-medium">Date</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                              {pkg.paymentCycles.map((pc) => (
+                                <tr key={pc.cycle} className="hover:bg-gray-50/50">
+                                  <td className="px-3 py-1.5 text-gray-700 font-medium">{pc.cycle}</td>
+                                  <td className="px-3 py-1.5 text-emerald-600 font-semibold">
+                                    {pc.amount ? `\u20b9${pc.amount}` : "\u2014"}
+                                  </td>
+                                  <td className="px-3 py-1.5 text-gray-700">{pc.classesPaid || "\u2014"}</td>
+                                  <td className="px-3 py-1.5 text-gray-500">{formatDate(pc.date)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -25,6 +25,7 @@ export async function PUT(request: NextRequest) {
             rm,
             courseEntryIndex,
             entryIndex,
+            dropReason,
         } = reqBody;
 
         if (!studentId) {
@@ -62,6 +63,9 @@ export async function PUT(request: NextRequest) {
         }
         if (renewalAmount !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
             updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.renewalAmount`] = renewalAmount;
+        }
+        if (dropReason !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.dropReason`] = dropReason;
         }
 
         const updatedUser = await User.findByIdAndUpdate(

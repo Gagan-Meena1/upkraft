@@ -33,6 +33,8 @@ export interface Lead {
     paymentCycle: number;
     courseEntryIndex: number;
     entryIndex: number;
+    absent: number;
+    dropReason: string;
 }
 
 export interface Stats {
