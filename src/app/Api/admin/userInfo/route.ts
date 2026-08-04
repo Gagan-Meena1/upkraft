@@ -27,17 +27,16 @@ export async function GET(request:NextRequest) {
     console.log("11111111111111111111111111111111111111111111111111111111111");
     
     
-    // Get token from cookies
-    const token = (() => {
+    // Resolve effective token (impersonation support)
+    const effectiveToken = (() => {
       const referer = request.headers.get("referer") || "";
       let refererPath = "";
       try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
       const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
+      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : token;
     })();
-    if (!token) return NextResponse.json({ error: "No token found" }, { status: 401 });
 
-    const decodedToken = jwt.decode(token);
+    const decodedToken = jwt.decode(effectiveToken);
     if (!decodedToken || typeof decodedToken !== "object" || !decodedToken.id) {
       return NextResponse.json({ error: "Invalid token" }, { status: 401 });
     }
