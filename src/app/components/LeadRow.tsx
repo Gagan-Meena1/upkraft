@@ -110,6 +110,7 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                 <td className="px-4 py-3 align-middle text-[11px] font-semibold">{l.rm || "—"}</td>
                 <td className="px-4 py-3 align-middle text-[11px] text-gray-600">{l.spoc || "—"}</td>
                 <td className="px-4 py-3 align-middle text-[12px] font-bold text-emerald-600">{l.pkgAmount ? `₹${l.pkgAmount}` : "—"}</td>
+                <td className="px-4 py-3 align-middle text-center font-bold text-emerald-600 text-[12px]">{l.completed}</td>
                 <td className="px-4 py-3 align-middle text-center text-[12px] font-medium">{l.totalPkg}</td>
 
                 {/* Progress */}

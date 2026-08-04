@@ -19,6 +19,7 @@ const HEADERS = [
     { label: "RM", className: "" },
     { label: "Sales SPOC", className: "" },
     { label: "Pkg Amount", className: "" },
+    { label: "Completed", className: "" },
     { label: "Total", className: "" },
     { label: "Completion %", className: "" },
     { label: "Remaining", className: "" },

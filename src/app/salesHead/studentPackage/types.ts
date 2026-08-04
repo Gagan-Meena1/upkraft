@@ -15,6 +15,7 @@ export interface Lead {
     spoc: string;
     pkgAmount: number;
     pkgClasses: number;
+    completed: number;
     totalPkg: number;
     completion: number;
     remaining: number;
