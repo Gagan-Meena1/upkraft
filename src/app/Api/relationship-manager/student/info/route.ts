@@ -147,16 +147,35 @@ export async function POST(request: NextRequest) {
                 .filter(Boolean)
                 .sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
-            const totalClasses = classIds.length;
-
-            // Completed = attendance record exists for that classId (any status)
+            // Count cancelled vs non-cancelled classes
+            let cancelledClasses = 0;
             let completedClasses = 0;
+            let absentClasses = 0;
             for (const cId of classIds) {
-                if (attendanceByClassId.has(cId)) {
+                const attStatus = attendanceByClassId.get(cId);
+
+                // Check if cancelled in attendance
+                if (attStatus === "canceled" || attStatus === "cancelled") {
+                    cancelledClasses++;
+                    continue;
+                }
+
+                // Check if class document itself is cancelled
+                const cls = classMap.get(cId);
+                if (cls && (cls.status === "cancelled" || cls.status === "canceled")) {
+                    cancelledClasses++;
+                    continue;
+                }
+
+                // Completed = present or absent in attendance
+                if (attStatus === "present" || attStatus === "absent") {
                     completedClasses++;
+                    if (attStatus === "absent") absentClasses++;
                 }
             }
 
+            // Total = non-cancelled only
+            const totalClasses = classIds.length - cancelledClasses;
             const remainingClasses = totalClasses - completedClasses;
 
             // Last class: latest class that has an attendance record, sorted desc
@@ -194,9 +213,17 @@ export async function POST(request: NextRequest) {
                 ? classes[classes.length - 1].startTime
                 : e.entry.endDate || null;
 
-            // Payment cycle: total number of entries in this courseId
+            // Payment cycles: every entry in this courseId's startTime array
             const courseEntry = creditsPerCourse[e.courseEntryIndex];
-            const paymentCycle = (courseEntry?.startTime || []).length;
+            const allEntries = courseEntry?.startTime || [];
+            const paymentCycle = allEntries.length;
+            const paymentCycles = allEntries.map((entry: any, idx: number) => ({
+                cycle: idx + 1,
+                amount: entry.amount || 0,
+                classesPaid: entry.classesPaid || 0,
+                date: entry.date || null,
+                frequency: entry.frequency || "",
+            }));
 
             return {
                 courseId: e.courseId,
@@ -205,11 +232,15 @@ export async function POST(request: NextRequest) {
                 totalClasses,
                 completedClasses,
                 remainingClasses,
+                cancelledClasses,
+                absentClasses,
                 lastClass,
                 nextClass,
                 endDate,
                 packageEndDate: e.entry.endDate || null,
                 paymentCycle,
+                paymentCycles,
+                courseEntryIndex: e.courseEntryIndex,
             };
         });
 

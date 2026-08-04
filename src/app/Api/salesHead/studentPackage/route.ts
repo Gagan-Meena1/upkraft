@@ -232,6 +232,7 @@ export async function GET(request: NextRequest) {
 
             let completedClasses = 0;
             let cancelledClasses = 0;
+            let absentClasses = 0;
             for (const cId of classIds) {
                 const attStatus = attendanceMap.get(cId);
 
@@ -251,6 +252,9 @@ export async function GET(request: NextRequest) {
                 // Completed class means having its entry in attendance array with present/absent
                 if (attStatus === "present" || attStatus === "absent") {
                     completedClasses++;
+                    if (attStatus === "absent") {
+                        absentClasses++;
+                    }
                 }
             }
 
@@ -309,6 +313,8 @@ export async function GET(request: NextRequest) {
                 startDate: pkg.startDate,
                 courseEntryIndex: pkg.courseEntryIndex,
                 entryIndex: pkg.entryIndex,
+                absent: absentClasses,
+                dropReason: pkg.latestEntry.dropReason || "",
             };
         });
 

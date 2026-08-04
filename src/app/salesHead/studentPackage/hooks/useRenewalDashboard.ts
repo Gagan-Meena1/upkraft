@@ -143,7 +143,7 @@ export function useRenewalDashboard() {
         return () => { mounted = false; };
     }, [page, fetchPage, totalPages]);
 
-    const handleInlineStatusUpdate = async (id: string, studentId: string, newStatus: string) => {
+    const handleInlineStatusUpdate = async (id: string, studentId: string, newStatus: string, dropReason?: string) => {
         const lead = leads.find(l => l.id === id);
         if (!lead) return;
 
@@ -158,16 +158,19 @@ export function useRenewalDashboard() {
             return;
         }
 
-        setLeads(prev => prev.map(l => l.id === id ? { ...l, renewalStatus: newStatus } : l));
+        setLeads(prev => prev.map(l => l.id === id ? { ...l, renewalStatus: newStatus, ...(dropReason ? { dropReason } : {}) } : l));
         try {
+            const body: any = {
+                studentId,
+                renewalStatus: newStatus,
+                courseEntryIndex: lead.courseEntryIndex,
+                entryIndex: lead.entryIndex,
+            };
+            if (dropReason) body.dropReason = dropReason;
+
             const res = await fetch("/Api/salesHead/studentPackage/edit", {
                 method: "PUT", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    studentId,
-                    renewalStatus: newStatus,
-                    courseEntryIndex: lead.courseEntryIndex,
-                    entryIndex: lead.entryIndex,
-                })
+                body: JSON.stringify(body)
             });
             const data = await res.json();
             if (!data.success) throw new Error(data.error);
