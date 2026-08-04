@@ -3,9 +3,26 @@ import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
 import Class from "@/models/Class";
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+
+const ALLOWED_CATEGORIES = ["saleshead", "admin"];
 
 export async function GET(request: NextRequest) {
     try {
+        // Auth: check category from token (no DB call)
+        const token = request.cookies.get("token")?.value || "";
+        if (!token) {
+            return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+        }
+        const decoded: any = jwt.decode(token);
+        if (!decoded?.id) {
+            return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
+        }
+        const normalizedCategory = String(decoded.category || "").toLowerCase().replace(/\s/g, "");
+        if (!ALLOWED_CATEGORIES.includes(normalizedCategory)) {
+            return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+        }
+
         await connect();
 
         const { searchParams } = new URL(request.url);
