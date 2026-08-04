@@ -240,6 +240,7 @@ export async function POST(request: NextRequest) {
                 packageEndDate: e.entry.endDate || null,
                 paymentCycle,
                 paymentCycles,
+                courseEntryIndex: e.courseEntryIndex,
             };
         });
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   X,
   User,
@@ -16,6 +16,9 @@ import {
   Music,
   ClipboardList,
   IndianRupee,
+  Pencil,
+  Check,
+  Loader2,
 } from "lucide-react";
 import AttendanceHistory from "@/app/components/AttendanceHistory";
 
@@ -48,6 +51,7 @@ interface PackageInfo {
   packageEndDate: string | null;
   paymentCycle: number;
   paymentCycles: { cycle: number; amount: number; classesPaid: number; date: string | null; frequency: string }[];
+  courseEntryIndex: number;
 }
 
 interface PaymentHistoryItem {
@@ -104,6 +108,11 @@ export default function StudentInfoPopup({
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [paymentHistory, setPaymentHistory] = useState<PaymentHistoryGroup[]>([]);
 
+  // Inline edit state: key = "pkgIdx_cycleIdx", value = { amount, classesPaid }
+  const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{ amount: string; classesPaid: string }>({ amount: "", classesPaid: "" });
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -135,6 +144,44 @@ export default function StudentInfoPopup({
     fetchData();
   }, [studentId]);
 
+  // Save inline edit
+  const handleSaveCycle = useCallback(async (pkgIdx: number, cycleIdx: number) => {
+    const pkg = packages[pkgIdx];
+    if (!pkg) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/Api/salesHead/studentPackage/edit", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId,
+          courseEntryIndex: pkg.courseEntryIndex,
+          entryIndex: cycleIdx,
+          pkgAmount: Number(editValues.amount) || 0,
+          classesPaid: Number(editValues.classesPaid) || 0,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error);
+
+      // Update local state
+      setPackages(prev => prev.map((p, pi) => {
+        if (pi !== pkgIdx) return p;
+        return {
+          ...p,
+          paymentCycles: p.paymentCycles.map((pc, ci) =>
+            ci === cycleIdx ? { ...pc, amount: Number(editValues.amount) || 0, classesPaid: Number(editValues.classesPaid) || 0 } : pc
+          ),
+        };
+      }));
+      setEditingCell(null);
+    } catch (err: any) {
+      alert(err.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }, [packages, editValues, studentId]);
+
   // Close on Escape
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -158,7 +205,7 @@ export default function StudentInfoPopup({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto relative animate-in">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto relative animate-in">
         {/* Header */}
         <div className="sticky top-0 bg-white z-10 px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center justify-between gap-4">
@@ -465,19 +512,84 @@ export default function StudentInfoPopup({
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                              {pkg.paymentCycles.map((pc) => (
-                                <tr key={pc.cycle} className="hover:bg-gray-50/50">
+                              {pkg.paymentCycles.map((pc, cycleIdx) => {
+                                const cellKey = `${idx}_${cycleIdx}`;
+                                const isEditing = editingCell === cellKey;
+                                return (
+                                <tr key={pc.cycle} className={`group ${isEditing ? 'bg-emerald-50/50' : 'hover:bg-gray-50/50'}`}>
                                   <td className="px-3 py-1.5 text-gray-700 font-medium">{pc.cycle}</td>
-                                  <td className="px-3 py-1.5 text-emerald-600 font-semibold">
-                                    {pc.amount ? `\u20b9${pc.amount}` : "\u2014"}
+                                  <td className="px-3 py-1.5">
+                                    {isEditing ? (
+                                      <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        className="w-full max-w-[100px] border border-emerald-300 rounded px-2 py-1 text-xs text-emerald-700 outline-none focus:ring-1 focus:ring-emerald-200 bg-white"
+                                        value={editValues.amount}
+                                        onChange={e => setEditValues(v => ({ ...v, amount: e.target.value.replace(/[^0-9]/g, '') }))}
+                                        placeholder="Enter amount"
+                                        autoFocus
+                                      />
+                                    ) : (
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-emerald-600 font-semibold">
+                                          {pc.amount ? `\u20b9${pc.amount}` : "\u2014"}
+                                        </span>
+                                        <button
+                                          onClick={() => {
+                                            setEditingCell(cellKey);
+                                            setEditValues({ amount: pc.amount ? String(pc.amount) : '', classesPaid: pc.classesPaid ? String(pc.classesPaid) : '' });
+                                          }}
+                                          className="p-0.5 rounded hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition-all"
+                                          title="Edit"
+                                        >
+                                          <Pencil className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    )}
                                   </td>
-                                  <td className="px-3 py-1.5 text-gray-700">{pc.classesPaid || "\u2014"}</td>
+                                  <td className="px-3 py-1.5">
+                                    {isEditing ? (
+                                      <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        className="w-full max-w-[80px] border border-gray-300 rounded px-2 py-1 text-xs text-gray-700 outline-none focus:ring-1 focus:ring-gray-200 bg-white"
+                                        value={editValues.classesPaid}
+                                        onChange={e => setEditValues(v => ({ ...v, classesPaid: e.target.value.replace(/[^0-9]/g, '') }))}
+                                        placeholder="Enter classes"
+                                      />
+                                    ) : (
+                                      <span className="text-gray-700">{pc.classesPaid || "\u2014"}</span>
+                                    )}
+                                  </td>
                                   <td className="px-3 py-1.5 text-gray-500">{formatDate(pc.date)}</td>
                                 </tr>
-                              ))}
+                                );
+                              })}
                             </tbody>
                           </table>
                         </div>
+                        {/* Save/Cancel bar — shown below the table when editing */}
+                        {editingCell?.startsWith(`${idx}_`) && (
+                          <div className="flex items-center justify-end gap-2 mt-2">
+                            <button
+                              onClick={() => setEditingCell(null)}
+                              className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => {
+                                const cycleIdx = parseInt(editingCell.split('_')[1]);
+                                handleSaveCycle(idx, cycleIdx);
+                              }}
+                              disabled={saving}
+                              className="px-4 py-1.5 text-xs rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-semibold transition-colors disabled:opacity-50 shadow-sm flex items-center gap-1.5"
+                            >
+                              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                              Save
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
