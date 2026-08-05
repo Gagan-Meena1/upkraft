@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     const decoded: any = jwt.decode(token);
     if (!decoded?.id) return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
     const normalizedCat = String(decoded.category || "").toLowerCase().replace(/\s/g, "");
-    if (normalizedCat !== "admin") return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    if (normalizedCat !== "admin" && normalizedCat !== "teamlead") return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
 
     await connect();
     
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
     const decoded: any = jwt.decode(token);
     if (!decoded?.id) return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
     const normalizedCat = String(decoded.category || "").toLowerCase().replace(/\s/g, "");
-    if (normalizedCat !== "admin") return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    if (normalizedCat !== "admin" && normalizedCat !== "teamlead") return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
 
     await connect();
     
