@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useRenewalDashboard } from "./hooks/useRenewalDashboard";
 import StatsCards from "@/app/components/StatsCards";
 import FiltersBar from "@/app/components/FiltersBar";
@@ -44,6 +45,9 @@ export default function RenewalDashboardPage() {
           <span className="text-[11px] text-gray-400">
             Updated: {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
           </span>
+          <Link href="/salesHead/retention" className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all">
+            📊 Retention View
+          </Link>
           <button className="bg-white border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50">
             ⬇ Export CSV
           </button>
