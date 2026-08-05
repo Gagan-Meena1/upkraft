@@ -108,7 +108,12 @@ export default function DailySummaryWhatsAppModal({
       }
     });
 
-    msg += `\n━━━━━━━━━━━━━━━━━\nTeam UpKraft`;
+    msg += `\n━━━━━━━━━━━━━━━━━\n`;
+    msg += `\n📌 *Please ensure that you:*\n`;
+    msg += `• Reach 5–10 minutes early\n`;
+    msg += `• Mark attendance and update feedback within every class\n`;
+    msg += `• Inform the Relationship Manager in advance in case of any issues or emergencies\n`;
+    msg += `\nTeam UpKraft`;
     return msg;
   };
 
