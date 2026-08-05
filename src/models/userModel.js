@@ -112,6 +112,11 @@ const userSchema = new mongoose.Schema({
                         type: String,
                         default: "",
                     },
+                    sendTutor: {
+                        type: String,
+                        enum: ['yes', 'no', 'wait'],
+                        default: 'wait',
+                    },
 
                 }]
             },

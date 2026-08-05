@@ -35,6 +35,7 @@ export interface Lead {
     entryIndex: number;
     absent: number;
     dropReason: string;
+    sendTutor: string;
 }
 
 export interface Stats {

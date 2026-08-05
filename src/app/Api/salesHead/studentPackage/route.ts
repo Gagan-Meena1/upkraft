@@ -187,15 +187,9 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Sort by dynamic endDate ascending (earliest end date first)
+        // Sort by absolute daysLeft ascending (closest to expiry first)
         allPackages.sort((a, b) => {
-            const endA = a._dynamicEndDate
-                ? new Date(a._dynamicEndDate).getTime()
-                : Infinity;
-            const endB = b._dynamicEndDate
-                ? new Date(b._dynamicEndDate).getTime()
-                : Infinity;
-            return endA - endB;
+            return Math.abs(a._daysLeft ?? 999) - Math.abs(b._daysLeft ?? 999);
         });
 
         const totalItems = allPackages.length;
@@ -343,6 +337,7 @@ export async function GET(request: NextRequest) {
                 entryIndex: pkg.entryIndex,
                 absent: absentClasses,
                 dropReason: pkg.latestEntry.dropReason || "",
+                sendTutor: pkg.latestEntry.sendTutor || "wait",
             };
         });
 
