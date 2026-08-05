@@ -101,7 +101,12 @@ export async function GET(request: NextRequest) {
                 if (st && (!maxClassDate || st > maxClassDate)) maxClassDate = st;
             }
 
-            const status = maxClassDate && maxClassDate >= today ? "active" : "churned";
+            let status: "active" | "churned" = "churned";
+            if (maxClassDate) {
+                const bufferedEnd = new Date(maxClassDate);
+                bufferedEnd.setDate(bufferedEnd.getDate() + 14);
+                status = bufferedEnd >= today ? "active" : "churned";
+            }
 
             return {
                 studentId: s.studentId,

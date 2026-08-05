@@ -108,8 +108,14 @@ export async function GET(request: NextRequest) {
             }
 
             bucket.total++;
-            if (maxClassDate && maxClassDate >= today) {
-                bucket.active++;
+            if (maxClassDate) {
+                const bufferedEnd = new Date(maxClassDate);
+                bufferedEnd.setDate(bufferedEnd.getDate() + 14);
+                if (bufferedEnd >= today) {
+                    bucket.active++;
+                } else {
+                    bucket.churned++;
+                }
             } else {
                 bucket.churned++;
             }
