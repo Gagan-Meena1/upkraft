@@ -85,6 +85,16 @@ export default function LoginPage() {
 
       toast.success("Login successful");
 
+      // The middleware appends ?redirect=<path> when it bounces an anonymous
+      // user off a protected page, so send them back where they were headed.
+      // Only same-origin relative paths are honoured — "//evil.com" is a
+      // protocol-relative URL and would otherwise leave the site.
+      const redirectTo = new URLSearchParams(window.location.search).get("redirect");
+      if (redirectTo && redirectTo.startsWith("/") && !redirectTo.startsWith("//")) {
+        router.push(redirectTo);
+        return;
+      }
+
       // routing based on normalized category
       if (normalizedCategory === "student") {
         router.push("/student");

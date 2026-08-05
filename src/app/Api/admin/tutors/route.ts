@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import User from "@/models/userModel";
 import { connect } from "@/dbConnection/dbConfic";
+import { requireRole } from "@/helper/requireRole";
 
 export async function GET(req: NextRequest)  {
   try {
+    // This returns every tutor on the platform — admins only.
+    const guard = requireRole(req, ["admin"]);
+    if (guard.response) return guard.response;
+
     await connect();
- 
+
 
     const user = await User.find({ category: "Tutor" }).select("-password");
     console.log("2222222222222222222222222222222222222222222222222222222");

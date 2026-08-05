@@ -5,9 +5,14 @@ import Class from "@/models/Class";
 import { connect } from "@/dbConnection/dbConfic";
 import jwt from "jsonwebtoken";
 import courseName from "@/models/courseName";
+import { requireRole } from "@/helper/requireRole";
 
 export async function GET(request:NextRequest) {
   try {
+    // Returns an arbitrary user's profile by id — admins only.
+    const guard = requireRole(request, ["admin"]);
+    if (guard.response) return guard.response;
+
     await connect();
     console.log("Fetching user...");
 
