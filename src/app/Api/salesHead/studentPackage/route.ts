@@ -187,16 +187,15 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Sort by startDate (nearest to today first) — static field, no dynamic computation needed
+        // Sort by dynamic endDate ascending (earliest end date first)
         allPackages.sort((a, b) => {
-            const nowMs = now.getTime();
-            const distA = a.startDate
-                ? Math.abs(new Date(a.startDate).getTime() - nowMs)
+            const endA = a._dynamicEndDate
+                ? new Date(a._dynamicEndDate).getTime()
                 : Infinity;
-            const distB = b.startDate
-                ? Math.abs(new Date(b.startDate).getTime() - nowMs)
+            const endB = b._dynamicEndDate
+                ? new Date(b._dynamicEndDate).getTime()
                 : Infinity;
-            return distA - distB;
+            return endA - endB;
         });
 
         const totalItems = allPackages.length;
@@ -324,6 +323,7 @@ export async function GET(request: NextRequest) {
                 spoc: pkg.salesSPOC,
                 pkgAmount: pkg.latestEntry.amount || 0,
                 pkgClasses: totalClasses,
+                completed: completedClasses,
                 totalPkg: totalClasses,
                 completion: parseFloat(completion as string),
                 remaining: remainingClasses,
