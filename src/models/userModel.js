@@ -436,6 +436,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    consider: {
+        type: Boolean,
+        default: true
+    },
     salesSPOC: {
         type: String,
         default: "",
