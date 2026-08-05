@@ -14,7 +14,7 @@ export default function RenewalDashboardPage() {
     search, filters, isModalOpen, editingLead,
     setSearch, setPage, setIsModalOpen, setEditingLead,
     handleFilterChange, handleCardClick, clearFilters,
-    handleInlineStatusUpdate, handleHideStudent, handleSaveModal,
+    handleInlineStatusUpdate, handleHideStudent, handleSaveModal, handleSendTutorChange,
     // Renewal modal
     renewalModalLead, setRenewalModalLead,
     renewalOption, setRenewalOption,
@@ -79,6 +79,7 @@ export default function RenewalDashboardPage() {
         onHide={handleHideStudent}
         onStatusChange={handleInlineStatusUpdate}
         onShowInfo={(studentId, courseId) => { setInfoStudentId(studentId); setInfoCourseId(courseId); }}
+        onSendTutorChange={handleSendTutorChange}
       />
 
       {isModalOpen && editingLead && (

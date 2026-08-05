@@ -254,6 +254,7 @@ export function useRenewalDashboard() {
                     notes: editingLead.notes,
                     pkgAmount: editingLead.pkgAmount,
                     rm: editingLead.rm,
+                    dropReason: editingLead.dropReason,
                     courseEntryIndex: editingLead.courseEntryIndex,
                     entryIndex: editingLead.entryIndex,
                 })
@@ -269,6 +270,28 @@ export function useRenewalDashboard() {
         } catch { toast.error("Failed to save"); }
     };
 
+    const handleSendTutorChange = async (lead: Lead, value: string) => {
+        setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, sendTutor: value } : l));
+        try {
+            const res = await fetch("/Api/salesHead/studentPackage/edit", {
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    studentId: lead.studentId,
+                    sendTutor: value,
+                    courseEntryIndex: lead.courseEntryIndex,
+                    entryIndex: lead.entryIndex,
+                })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+            toast.success(`Send Tutor → ${value}`);
+            cache.current = {};
+        } catch (err: any) {
+            toast.error(err.message || "Failed to update");
+            fetchPage(page);
+        }
+    };
+
     return {
         leads, loading, statsLoading, stats, options,
         activeCard, page, totalPages, totalItems,
@@ -276,6 +299,7 @@ export function useRenewalDashboard() {
         setSearch, setPage, setIsModalOpen, setEditingLead,
         handleFilterChange, handleCardClick, clearFilters,
         handleInlineStatusUpdate, handleHideStudent, handleSaveModal,
+        handleSendTutorChange,
         // Renewal modal
         renewalModalLead, setRenewalModalLead,
         renewalOption, setRenewalOption,

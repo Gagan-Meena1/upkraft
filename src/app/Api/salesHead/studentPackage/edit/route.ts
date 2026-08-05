@@ -27,6 +27,7 @@ export async function PUT(request: NextRequest) {
             entryIndex,
             dropReason,
             classesPaid,
+            sendTutor,
         } = reqBody;
 
         if (!studentId) {
@@ -70,6 +71,9 @@ export async function PUT(request: NextRequest) {
         }
         if (classesPaid !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
             updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.classesPaid`] = classesPaid;
+        }
+        if (sendTutor !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.sendTutor`] = sendTutor;
         }
 
         const updatedUser = await User.findByIdAndUpdate(
