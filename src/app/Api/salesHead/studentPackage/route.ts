@@ -75,26 +75,17 @@ export async function GET(request: NextRequest) {
                 const startTimeEntries = courseEntry.startTime || [];
                 if (startTimeEntries.length === 0) continue;
 
-                // Find the latest entry in this course based on date or endDate
+                // Find the latest entry in this course based on startDate (date field)
                 let latestEntry = startTimeEntries[0];
                 let latestIndex = 0;
                 for (let si = 1; si < startTimeEntries.length; si++) {
-                    const entryDate = new Date(startTimeEntries[si].endDate || startTimeEntries[si].date || 0);
-                    const latestDate = new Date(latestEntry.endDate || latestEntry.date || 0);
+                    const entryDate = new Date(startTimeEntries[si].date || 0);
+                    const latestDate = new Date(latestEntry.date || 0);
                     if (entryDate > latestDate) {
                         latestEntry = startTimeEntries[si];
                         latestIndex = si;
                     }
                 }
-                // Find the earliest startTime across ALL courses for this student
-                const earliestStartDate = (student.creditsPerCourse || []).reduce((earliest: Date | null, courseEntry: any) => {
-                    const entries = courseEntry.startTime || [];
-                    for (const entry of entries) {
-                        const d = entry.date ? new Date(entry.date) : null;
-                        if (d && (!earliest || d < earliest)) return d;
-                    }
-                    return earliest;
-                }, null);
 
                 // Add to flat list
                 allPackages.push({
@@ -118,7 +109,7 @@ export async function GET(request: NextRequest) {
                     courseEntryIndex: ci,
                     attendance: student.attendance || [],
                     creditsPerCourse: student.creditsPerCourse,
-                    startDate: earliestStartDate ? earliestStartDate.toISOString() : "",
+                    startDate: latestEntry.date ? new Date(latestEntry.date).toISOString() : "",
 
                 });
             }
