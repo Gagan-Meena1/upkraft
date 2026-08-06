@@ -183,7 +183,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      tutor: { _id: tutor._id, username: tutor.username, email: tutor.email, whatsappGroups: (tutor as any).whatsappGroups || [] },
+      tutor: { _id: tutor._id, username: tutor.username, email: tutor.email, contact: (tutor as any).contact || "", whatsappGroups: (tutor as any).whatsappGroups || [] },
       classes: classesWithStudents,
       pendingResetRequests: pendingResetRequests,
     });
