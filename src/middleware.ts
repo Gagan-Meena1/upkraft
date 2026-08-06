@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { ROLE_HOME, normaliseRole } from '@/helper/roleHome';
 
 /**
  * Role-scoped sections of the app. Every prefix here requires a valid session;
@@ -38,20 +39,9 @@ const PROTECTED_APIS: { prefix: string; roles: string[] | null }[] = [
   { prefix: '/Api/admin/talent', roles: null },
 ];
 
-/** Where to send a signed-in user who lands on a section they may not view. */
-const ROLE_HOME: Record<string, string> = {
-  admin: '/admin',
-  tutor: '/tutor',
-  student: '/student',
-  academic: '/academy',
-  teamlead: '/teamlead/tutors',
-  relationshipmanager: '/relationshipmanager',
-  saleshead: '/salesHead/society',
-};
-
-// Matches the normalisation used when routing after login (src/app/login/page.tsx).
-const normaliseRole = (category: unknown) =>
-  typeof category === 'string' ? category.replace(/\s+/g, '').toLowerCase() : '';
+// `ROLE_HOME` (where to send a signed-in user who lands on a section they may
+// not view) and `normaliseRole` come from @/helper/roleHome, shared with the
+// post-login router and the landing header.
 
 /** Rewrites the outgoing cookie header so downstream routes see the impersonated user. */
 function withImpersonatedCookie(request: NextRequest, impersonateToken: string) {

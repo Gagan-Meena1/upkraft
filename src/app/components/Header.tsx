@@ -5,10 +5,37 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import LogoHeader from '@/assets/LogoHeader copy.png';
 
+type Session =
+  | { authenticated: true; role: string; home: string; dashboardLabel: string; username?: string | null }
+  | { authenticated: false };
+
 const Header = () => {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState('');
   const [isSticky, setIsSticky] = useState(false);
+  // `null` while the session check is in flight. The auth buttons stay hidden
+  // until it resolves so a signed-in visitor never sees Login / Sign Up flash
+  // before being swapped for their dashboard link.
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/Api/users/session', { cache: 'no-store', credentials: 'include' })
+      .then((res) => (res.ok ? res.json() : { authenticated: false }))
+      .then((data: Session) => {
+        if (!cancelled) setSession(data);
+      })
+      .catch(() => {
+        // Offline or server hiccup — fall back to the signed-out header rather
+        // than leaving the visitor with no way in.
+        if (!cancelled) setSession({ authenticated: false });
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Detect section in view while scrolling
   useEffect(() => {
@@ -123,22 +150,35 @@ const Header = () => {
 
           <div className="log-out-btn">
             <ul className="d-flex align-items-center gap-2 list-unstyled p-0 m-0">
-              <li>
-                <button
-                  className="btn btn-primary landing-primary"
-                  onClick={() => router.push('/signup')}
-                >
-                  <span>Sign Up</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className="btn btn-primary landing-primary"
-                  onClick={() => router.push('/login')}
-                >
-                  <span>Login</span>
-                </button>
-              </li>
+              {session?.authenticated ? (
+                <li>
+                  <button
+                    className="btn btn-primary landing-primary"
+                    onClick={() => router.push(session.home)}
+                  >
+                    <span>{session.dashboardLabel}</span>
+                  </button>
+                </li>
+              ) : session ? (
+                <>
+                  <li>
+                    <button
+                      className="btn btn-primary landing-primary"
+                      onClick={() => router.push('/signup')}
+                    >
+                      <span>Sign Up</span>
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      className="btn btn-primary landing-primary"
+                      onClick={() => router.push('/login')}
+                    >
+                      <span>Login</span>
+                    </button>
+                  </li>
+                </>
+              ) : null}
               <li className="btn-menu-mobile d-lg-none d-block">
                 <button
                   className="btn btn-menu border-0"

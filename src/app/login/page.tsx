@@ -9,6 +9,7 @@ import { MdError } from "react-icons/md";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import LogoHeader from '@/assets/LogoHeader copy.png';
 import LoginImg from "@/assets/login_img.jpg"
+import { roleHomePath } from "@/helper/roleHome";
 
 
 interface User {
@@ -95,21 +96,11 @@ export default function LoginPage() {
         return;
       }
 
-      // routing based on normalized category
-      if (normalizedCategory === "student") {
-        router.push("/student");
-      } else if (normalizedCategory === "tutor") {
-        router.push("/tutor");
-      } else if (normalizedCategory === "admin") {
-        router.push("/admin");
-      } else if (normalizedCategory === "academic") {
-        router.push("/academy");
-      } else if (normalizedCategory === "teamlead") {
-        router.push("/teamlead/tutors");
-      } else if (normalizedCategory === "relationshipmanager") {
-        router.push("/relationshipmanager");
-      } else if (normalizedCategory === "saleshead") {
-        router.push("/salesHead/society");
+      // Routing based on role. ROLE_HOME is shared with the middleware and the
+      // landing header, so all three agree on where a category belongs.
+      const home = roleHomePath(userCategory);
+      if (home) {
+        router.push(home);
       }
     } catch (error: any) {
       console.log("Login failed", error.response?.data?.error || error.message);

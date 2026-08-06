@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
+import { normaliseRole } from "./roleHome";
 
 export type SessionUser = {
     id: string;
@@ -8,9 +9,8 @@ export type SessionUser = {
     category?: string;
 };
 
-/** Matches the normalisation used by the middleware and the post-login router. */
-export const normaliseRole = (category: unknown) =>
-    typeof category === "string" ? category.replace(/\s+/g, "").toLowerCase() : "";
+/** Re-exported so existing callers keep importing it from here. */
+export { normaliseRole };
 
 /**
  * Verifies the caller's session and returns the decoded payload, or null when
