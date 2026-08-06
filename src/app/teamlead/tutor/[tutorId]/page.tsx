@@ -931,6 +931,295 @@ export default function TeamLeadTutorCalendarPage() {
           </div>
         </div>
 
+        {/* Table View */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-6">
+          <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Class Details Table</h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  Showing details for {visibleClasses.length} class{visibleClasses.length !== 1 ? "es" : ""} in the current view
+                </p>
+              </div>
+            </div>
+            {/* Day filter for week view */}
+            {activeView === "week" && (
+              <>
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                <span className="text-xs font-medium text-gray-500">Filter by day:</span>
+                <button
+                  onClick={() => setSelectedDayFilter(null)}
+                  className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+                    selectedDayFilter === null
+                      ? "bg-purple-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  All
+                </button>
+                {weekDays.map((day) => {
+                  const dayStr = day.toLocaleDateString("en-US", { weekday: "short", timeZone: userTz });
+                  const dateStr = day.toLocaleDateString("en-US", { day: "numeric", month: "short", timeZone: userTz });
+                  const classCount = classes.filter((c) => isSameDay(c.startTime, day, userTz)).length;
+                  return (
+                    <button
+                      key={day.toISOString()}
+                      onClick={() => setSelectedDayFilter(selectedDayFilter === dayStr ? null : dayStr)}
+                      className={`px-3 py-1 text-xs rounded-full font-medium transition-colors flex items-center gap-1 ${
+                        selectedDayFilter === dayStr
+                          ? "bg-purple-600 text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {dayStr} {dateStr}
+                      {classCount > 0 && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                          selectedDayFilter === dayStr ? "bg-white/20" : "bg-purple-100 text-purple-600"
+                        }`}>
+                          {classCount}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Daily Summary WhatsApp Button */}
+              <div className="mt-3">
+                <button
+                  onClick={() => {
+                    // Use the filtered day if selected, otherwise use today or first day with classes
+                    if (selectedDayFilter) {
+                      const matchingDay = weekDays.find(day => {
+                        const dayStr = day.toLocaleDateString("en-US", { weekday: "short", timeZone: userTz });
+                        return dayStr === selectedDayFilter;
+                      });
+                      if (matchingDay) setDailySummaryDay(matchingDay);
+                    } else {
+                      // Find today or first day with classes
+                      const today = new Date();
+                      const todayInWeek = weekDays.find(day => {
+                        const d1 = day.toLocaleDateString("en-US", { timeZone: userTz });
+                        const d2 = today.toLocaleDateString("en-US", { timeZone: userTz });
+                        return d1 === d2;
+                      });
+                      setDailySummaryDay(todayInWeek || weekDays[0]);
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white rounded-lg transition-all hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                    boxShadow: '0 2px 8px rgba(37, 211, 102, 0.3)',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="white">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                  </svg>
+                  📋 Send Daily Summary
+                </button>
+              </div>
+              </>
+            )}
+          </div>
+          
+          <div className="p-6 pt-0">
+            <div className="overflow-x-auto relative min-h-[150px]">
+              {viewLoading && (
+                <div className="absolute inset-0 bg-white/75 backdrop-blur-[1px] z-20 flex items-center justify-center transition-all duration-200">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-purple-600" />
+                    <span className="text-xs text-gray-500 font-medium">Updating list...</span>
+                  </div>
+                </div>
+              )}
+              {visibleClasses.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Info className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm font-medium">No classes scheduled in this range</p>
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider" style={{ paddingLeft: "1.5rem" }}>
+                        Class Title / Course
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Date & Time
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Students
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <span className="flex items-center justify-center gap-1">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                          WhatsApp
+                        </span>
+                      </th>
+                      <th scope="col" className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Sent
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider" style={{ paddingRight: "1.5rem" }}>
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {visibleClasses.map((cls) => {
+                      const statusStyle = getStatusStyle(cls);
+                      const isCancelPending = pendingResetRequests.some(
+                        (req: any) => req.requestType === "class" &&
+                          String(req.classItem?._id || req.classItem) === String(cls._id) &&
+                          req.status === "pending"
+                      );
+
+                      return (
+                        <tr key={cls._id} className={`transition-colors ${(cls.whatsappSentCount || 0) > 0 ? "bg-gray-100 opacity-60" : "hover:bg-gray-50"}`}>
+                          <td className="px-6 py-4 whitespace-nowrap" style={{ paddingLeft: "1.5rem" }}>
+                            <div className="text-sm font-bold text-gray-900">{cls.title || "Class"}</div>
+                            {cls.course && (
+                              <div className="text-xs text-gray-500 mt-0.5">{cls.course}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 font-medium">
+                              {formatInTz(cls.startTime, userTz, {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric"
+                              })}
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {formatTime(cls.startTime, cls.endTime)}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            {cls.students.length > 0 ? (
+                              <div className="flex flex-col gap-1.5 max-w-xs">
+                                {cls.students.map((student) => (
+                                  <div key={student._id} className="text-xs">
+                                    <div className="font-semibold text-gray-900 flex items-center gap-1">
+                                      <span>{student.username || student.email || "—"}</span>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setStudentInfoId(student._id);
+                                        }}
+                                        className="p-0.5 rounded-full hover:bg-purple-100 text-purple-400 hover:text-purple-600 transition-colors"
+                                        title="View student info"
+                                      >
+                                        <Info className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                    {student.address && (
+                                      <div className="text-[10px] text-gray-500 truncate" title={student.address}>
+                                        {student.address}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400 italic">No students</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusStyle.bg} ${statusStyle.text} border ${statusStyle.border}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`}></span>
+                              {statusStyle.label}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setWhatsappModalClass(cls);
+                              }}
+                              title="Send WhatsApp Notification"
+                              className="p-2 rounded-lg transition-all hover:scale-110"
+                              style={{
+                                background: 'linear-gradient(135deg, #25D366 0%, #128C7E 100%)',
+                                boxShadow: '0 2px 6px rgba(37, 211, 102, 0.3)',
+                              }}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                              </svg>
+                            </button>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-center">
+                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${
+                              (cls.whatsappSentCount || 0) > 0
+                                ? "bg-green-100 text-green-700 border border-green-300"
+                                : "bg-gray-100 text-gray-400 border border-gray-200"
+                            }`}>
+                              {cls.whatsappSentCount || 0}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" style={{ paddingRight: "1.5rem" }}>
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                onClick={() => {
+                                  setSelectedClassForAttendance(cls);
+                                  setAttendanceModalOpen(true);
+                                }}
+                                title="Manage Attendance"
+                                className="p-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
+                              >
+                                <ClipboardCheck className="w-4 h-4" />
+                              </button>
+                              {cls.deleteRequestStatus === "pending" ? (
+                                <span className="inline-flex items-center text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1.5 rounded-lg border border-orange-200 font-medium">
+                                  Delete Requested
+                                </span>
+                              ) : cls.deleteRequestStatus === "approved" ? (
+                                <span className="inline-flex items-center text-[10px] bg-red-100 text-red-700 px-2.5 py-1.5 rounded-lg border border-red-200 font-medium">
+                                  Deleted
+                                </span>
+                              ) : cls.status === "scheduled" || cls.status === "rescheduled" ? (
+                                <>
+                                  {isCancelPending ? (
+                                    <span className="inline-flex items-center text-[10px] bg-orange-100 text-orange-700 px-2.5 py-1.5 rounded-lg border border-orange-200 font-medium">
+                                      Cancel Requested
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        openCancelModal(cls, e);
+                                      }}
+                                      title="Cancel Class"
+                                      className="p-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors"
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openDeleteModal(cls);
+                                    }}
+                                    title="Request Delete"
+                                    className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
       </main>
 
       {/* Attendance Details Modal */}
