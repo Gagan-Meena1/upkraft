@@ -3,6 +3,7 @@ import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
 import courseName from "@/models/courseName";
 import Class from "@/models/Class";
+import AttendanceResetRequest from "@/models/AttendanceResetRequest";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -65,7 +66,7 @@ export async function GET(
     }
 
     const tutor = await User.findById(tutorId)
-      .select("_id username email relationshipManager classes")
+      .select("_id username email relationshipManager classes whatsappGroups contact")
       .lean();
 
     if (!tutor) {
@@ -82,12 +83,28 @@ export async function GET(
     if (classIds.length === 0) {
       return NextResponse.json({
         success: true,
-        tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
+        tutor: { _id: tutor._id, username: tutor.username, email: tutor.email, contact: (tutor as any).contact || "", whatsappGroups: (tutor as any).whatsappGroups || [] },
         classes: [],
+        pendingResetRequests: [],
       });
     }
 
-    const classes = await Class.find({ _id: { $in: classIds } })
+    void courseName;
+
+    // Optional date-range filtering via query params
+    const searchParams = request.nextUrl.searchParams;
+    const startDateParam = searchParams.get("startDate");
+    const endDateParam = searchParams.get("endDate");
+
+    const classQuery: any = { _id: { $in: classIds } };
+    if (startDateParam && endDateParam) {
+      classQuery.startTime = {
+        $gte: new Date(startDateParam),
+        $lte: new Date(endDateParam),
+      };
+    }
+
+    const classes = await Class.find(classQuery)
       .populate("course", "courseName title name")
       .sort({ startTime: 1 })
       .lean();
@@ -100,7 +117,7 @@ export async function GET(
       classes: { $in: classObjectIdList },
       category: { $in: ["Student", "student"] },
     })
-      .select("_id username email address classes")
+      .select("_id username email address classes whatsappGroups contact studentSociety")
       .lean();
 
     const studentsByClassId = new Map();
@@ -116,16 +133,24 @@ export async function GET(
           username: student.username,
           email: student.email,
           address: student.address,
+          contact: student.contact || "",
+          whatsappGroups: student.whatsappGroups || [],
+          studentSociety: student.studentSociety || "",
         });
       });
     });
+
+    const pendingResetRequests = await AttendanceResetRequest.find({
+      classItem: { $in: classObjectIdList },
+      status: "pending"
+    }).lean();
 
     const classesWithStudents = classes.map((cls: any) => {
       const classIdStr = cls._id.toString();
       const studentsInClass = studentsByClassId.get(classIdStr) || [];
 
       const course = cls.course as any;
-      const courseName =
+      const courseNameStr =
         course?.courseName || course?.title || course?.name || "—";
 
       return {
@@ -135,16 +160,26 @@ export async function GET(
         startTime: cls.startTime,
         endTime: cls.endTime,
         status: cls.status,
-        course: courseName,
+        deleteRequest: cls.deleteRequest,
+        deleteRequestStatus: cls.deleteRequestStatus,
+        course: courseNameStr,
         courseId: course?._id,
         students: studentsInClass,
+        whatsappSentCount: cls.whatsappSentCount || 0,
       };
     });
 
     return NextResponse.json({
       success: true,
-      tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
+      tutor: {
+        _id: tutor._id,
+        username: tutor.username,
+        email: tutor.email,
+        contact: (tutor as any).contact || "",
+        whatsappGroups: (tutor as any).whatsappGroups || []
+      },
       classes: classesWithStudents,
+      pendingResetRequests: pendingResetRequests,
     });
   } catch (error: any) {
     console.error("Error fetching Team Lead tutor classes:", error);

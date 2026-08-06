@@ -42,16 +42,15 @@ export async function GET(
         }
 
         const rmUser = (await (User as any).findById(rmId).select("category")) as any;
-        if (
-            !rmUser ||
-            !["RelationshipManager", "Relationship Manager"].includes(
-                String(rmUser.category)
-            )
-        ) {
+        const userCategory = String(rmUser?.category || "").toLowerCase().replace(/\s/g, "");
+        const isTeamLead = ["teamlead"].includes(userCategory);
+        const isRM = ["relationshipmanager"].includes(userCategory);
+
+        if (!rmUser || (!isRM && !isTeamLead)) {
             return NextResponse.json(
                 {
                     success: false,
-                    error: "Only relationship managers can access this endpoint",
+                    error: "Only relationship managers and team leads can access this endpoint",
                 },
                 { status: 403 }
             );
@@ -83,7 +82,7 @@ export async function GET(
                     ? String((tutor.relationshipManager as any)._id)
                     : String(tutor.relationshipManager);
 
-        if (tutorRmId !== rmId) {
+        if (!isTeamLead && tutorRmId !== rmId) {
             return NextResponse.json(
                 { success: false, error: "This tutor is not assigned to you" },
                 { status: 403 }
