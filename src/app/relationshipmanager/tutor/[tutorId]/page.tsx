@@ -40,6 +40,7 @@ interface TutorInfo {
   _id: string;
   username?: string;
   email?: string;
+  contact?: string;
   whatsappGroups?: { name: string; link: string }[];
 }
 
@@ -1647,6 +1648,7 @@ export default function RMTutorCalendarPage() {
             dayLabel={dayLabel}
             userTz={userTz}
             whatsappGroups={tutorGroups}
+            tutorPhone={tutor?.contact || ""}
             onClose={() => setDailySummaryDay(null)}
           />
         );
