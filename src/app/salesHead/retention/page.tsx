@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import RetentionView from "@/app/components/RetentionView";
 import RetentionStudentList from "@/app/components/RetentionStudentList";
+import DropCompositionModal from "@/app/components/DropCompositionModal";
 
 interface MonthData {
     month: string;
@@ -30,6 +31,7 @@ export default function RetentionPage() {
     const [months, setMonths] = useState<MonthData[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+    const [showDropComposition, setShowDropComposition] = useState(false);
 
     // Pre-fetched student data cache: month -> students[]
     const studentCache = useRef<Record<string, Student[]>>({});
@@ -166,8 +168,16 @@ export default function RetentionPage() {
                         Retention View
                     </span>
                 </div>
-                <div className="text-[11px] text-gray-400">
-                    {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setShowDropComposition(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-[11px] font-bold hover:bg-red-100 hover:border-red-300 transition-all cursor-pointer"
+                    >
+                        📊 Drop Composition
+                    </button>
+                    <div className="text-[11px] text-gray-400">
+                        {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                    </div>
                 </div>
             </div>
 
@@ -208,6 +218,12 @@ export default function RetentionPage() {
                     />
                 </div>
             )}
+
+            {/* Drop Composition Modal */}
+            <DropCompositionModal
+                isOpen={showDropComposition}
+                onClose={() => setShowDropComposition(false)}
+            />
         </div>
     );
 }
