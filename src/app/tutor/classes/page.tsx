@@ -320,7 +320,10 @@ function AddSessionPage() {
       setRepeatType(value);
     }
   };
-
+const getPrefixedTitle = (title: string, index: number, isRecurring: boolean) => {
+  if (!isRecurring) return title;
+  return `e${index + 1}. ${title}`;
+};
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -534,8 +537,10 @@ function AddSessionPage() {
         const occ = occurrences[idx];
 
         const formData = new FormData();
-        formData.append("title", sessionForm.title || "");
-        formData.append("description", sessionForm.description || "");
+formData.append(
+  "title",
+  getPrefixedTitle(sessionForm.title || "", idx, isRecurringBatch)
+);        formData.append("description", sessionForm.description || "");
         formData.append("date", occ.date); // YYYY-MM-DD
         formData.append("startTime", occ.startTime); // HH:MM
         formData.append("endTime", occ.endTime); // HH:MM
