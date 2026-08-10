@@ -53,10 +53,24 @@ interface AttendanceResetRequest {
   reasonForCancellation?: string;
 }
 
+interface DeletePackageRequestType {
+  _id: string;
+  studentId: { _id: string; username: string; email: string; contact: string };
+  tutorId: { _id: string; username: string; email: string; contact: string };
+  courseId: { _id: string; courseName: string; title: string; name: string };
+  packageId: string;
+  startDate: string;
+  endDate: string;
+  numberOfClasses: number;
+  status: string;
+  createdAt: string;
+}
+
 export default function TeamLeadRequestsPage() {
   const [requests, setRequests] = useState<ClassRequest[]>([]);
   const [reassignRequests, setReassignRequests] = useState<ReassignRequest[]>([]);
   const [attendanceResetRequests, setAttendanceResetRequests] = useState<AttendanceResetRequest[]>([]);
+  const [deletePackageRequests, setDeletePackageRequests] = useState<DeletePackageRequestType[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [reassignDates, setReassignDates] = useState<Record<string, string>>({});
@@ -70,6 +84,7 @@ export default function TeamLeadRequestsPage() {
         setRequests(data.classes || []);
         setReassignRequests(data.reassignRequests || []);
         setAttendanceResetRequests(data.attendanceResetRequests || []);
+        setDeletePackageRequests(data.deletePackageRequests || []);
       } else {
         toast.error(data.error || "Failed to fetch requests");
       }
@@ -85,7 +100,7 @@ export default function TeamLeadRequestsPage() {
     fetchRequests();
   }, []);
 
-  const handleAction = async (id: string, action: "approve" | "reject", type: "class" | "reassign" | "attendanceReset", isPartial?: boolean) => {
+  const handleAction = async (id: string, action: "approve" | "reject", type: "class" | "reassign" | "attendanceReset" | "deletePackage", isPartial?: boolean) => {
     let confirmMsg = "";
     if (type === "class") {
       confirmMsg = action === "approve"
@@ -95,6 +110,10 @@ export default function TeamLeadRequestsPage() {
       confirmMsg = action === "approve"
         ? "Are you sure you want to approve this attendance reset request? This will remove the 'absent' status for this student."
         : "Are you sure you want to reject this attendance reset request?";
+    } else if (type === "deletePackage") {
+      confirmMsg = action === "approve"
+        ? "Are you sure you want to approve this package deletion? This will remove all classes associated with this package and delete the package entry."
+        : "Are you sure you want to reject this package deletion request?";
     } else {
       confirmMsg = action === "approve"
         ? "Are you sure you want to approve this student reassignment request?"
@@ -109,7 +128,9 @@ export default function TeamLeadRequestsPage() {
         ? `/Api/teamlead/requests/${id}`
         : type === "attendanceReset"
           ? `/Api/teamlead/attendance-reset-requests/${id}`
-          : `/Api/teamlead/reassign-requests/${id}`;
+          : type === "deletePackage"
+            ? `/Api/teamlead/delete-package-requests/${id}`
+            : `/Api/teamlead/reassign-requests/${id}`;
 
       const res = await fetch(endpoint, {
         method: "PUT",
@@ -159,7 +180,64 @@ export default function TeamLeadRequestsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8">
+            {/* Delete Package Requests Section */}
+            <div className="bg-white shadow rounded-xl p-6 border border-gray-100">
+              <div className="flex items-center mb-6">
+                <Clock className="text-red-500 mr-2" />
+                <h2 className="text-xl font-semibold text-gray-800">Package Delete Requests ({deletePackageRequests.length})</h2>
+              </div>
+
+              {deletePackageRequests.length === 0 ? (
+                <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                  <p className="text-gray-500">No pending package delete requests found.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {deletePackageRequests.map((req) => {
+                    const courseName = req.courseId?.courseName || req.courseId?.title || req.courseId?.name || "N/A";
+                    return (
+                      <div key={req._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-md font-bold text-gray-900 truncate">Delete Package</h3>
+                            <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-semibold rounded">
+                              URGENT
+                            </span>
+                          </div>
+
+                          <div className="space-y-1 text-xs text-gray-600">
+                            <div><span className="font-semibold">Student:</span> {req.studentId?.username || "Unknown"}</div>
+                            <div><span className="font-semibold">Tutor:</span> {req.tutorId?.username || "Unknown"}</div>
+                            <div><span className="font-semibold">Course:</span> {courseName}</div>
+                            <div><span className="font-semibold">Start:</span> {new Date(req.startDate).toLocaleDateString()}</div>
+                            <div><span className="font-semibold">Classes:</span> {req.numberOfClasses}</div>
+                          </div>
+
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => handleAction(req._id, "approve", "deletePackage")}
+                              disabled={actionLoading !== null}
+                              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                            >
+                              {actionLoading === req._id ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div> : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => handleAction(req._id, "reject", "deletePackage")}
+                              disabled={actionLoading !== null}
+                              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Class Delete Requests Section */}
             <div className="bg-white shadow rounded-xl p-6 border border-gray-100">
               <div className="flex items-center mb-6">
