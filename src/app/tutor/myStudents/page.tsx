@@ -95,7 +95,7 @@ export default function MyStudents() {
   const [totalCount, setTotalCount] = useState(0);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const debouncedSearch = useDebounce(searchQuery, 400);
+  const debouncedSearch = useDebounce(searchQuery, 500);
 
   // Reset to page 1 whenever search changes
   useEffect(() => { setCurrentPage(1); }, [debouncedSearch]);
