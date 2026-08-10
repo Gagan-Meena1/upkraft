@@ -1,25 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connect } from '@/dbConnection/dbConfic';
 import User from '@/models/userModel';
-import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
+import { getDataFromToken } from '@/helper/getDataFromToken';
 
 connect();
 
+/**
+ * Caller id, or null when unauthenticated.
+ *
+ * This used to read `cookies.token` and `jwt.decode` it directly, which meant
+ * (a) an unverified signature was trusted and (b) the React Native app, which
+ * authenticates with an `Authorization: Bearer` header and has no cookie jar,
+ * always got a 401. `getDataFromToken` covers the cookie, impersonation and
+ * bearer cases and verifies the signature.
+ */
+function callerId(request: NextRequest): string | null {
+  try {
+    return getDataFromToken(request) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The caller's liked song ids — the mobile library's favourites state. */
+export async function GET(request: NextRequest) {
+  try {
+    const userId = callerId(request);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const user = await User.findById(userId).select('_id likedSongs');
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    return NextResponse.json({
+      success: true,
+      likedSongs: (user.likedSongs ?? []).map((id: any) => String(id)),
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message || 'Failed to read liked songs' }, { status: 500 });
+  }
+}
+
 export async function PUT(request: NextRequest) {
   try {
-    const token = (() => {
-      const referer = request.headers.get("referer") || "";
-      let refererPath = "";
-      try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
-      const isTutorContext = refererPath.startsWith("/tutor") || (request.nextUrl && request.nextUrl.pathname && request.nextUrl.pathname.startsWith("/Api/tutor"));
-      return (isTutorContext && request.cookies.get("impersonate_token")?.value) ? request.cookies.get("impersonate_token")?.value : request.cookies.get("token")?.value;
-    })();
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-    const decoded = jwt.decode(token);
-    const userId = decoded && typeof decoded === 'object' ? (decoded as any).id : null;
-    if (!userId) return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    const userId = callerId(request);
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { songId, action } = await request.json();
     if (!songId || !mongoose.Types.ObjectId.isValid(songId)) {
