@@ -229,8 +229,15 @@ export async function GET(request) {
           const classItem = classMap.get(classIdStr);
           if (!classItem) continue;
 
+          // Attendance does not decide whether feedback is owed — a past class
+          // with no feedback is outstanding either way. This used to skip every
+          // student whose register *was* marked, which is exactly the group the
+          // tutor can actually write feedback for, so the list came back empty
+          // while the class screen showed the same students as still due.
+          // `attendanceStatus` is returned below so the client can badge the
+          // unmarked ones and send them to the register first.
           const attendanceStatus = getAttendanceStatus(student, classIdStr);
-          if (attendanceStatus !== "not_marked") continue;
+          if (attendanceStatus === "canceled") continue;
 
           // Safe lookup: use empty Set if category not present
           const feedbackKey = `${student._id}_${classIdStr}`;
