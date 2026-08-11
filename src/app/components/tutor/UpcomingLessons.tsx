@@ -258,6 +258,7 @@ interface ClassData {
   description: string;
   startTime: string;
   endTime: string;
+  status?: string;
 }
 
 interface UserData {
@@ -278,22 +279,40 @@ const UpcomingLessons = ({ classDetails, userData }: UpcomingLessonsProps) => {
 
   const userTz = useMemo(() => userData?.timezone || getUserTimeZone(), [userData]);
 
-  const classes = useMemo(() => {
-    if (!classDetails?.length) return [];
+  /**
+   * Split the recent window into what is still to come and what the tutor has
+   * already finished today. A class counts as completed once the tutor marks it
+   * completed or its end time has passed, so it no longer inflates "Upcoming".
+   */
+  const { classes, completedToday } = useMemo(() => {
+    if (!classDetails?.length) return { classes: [], completedToday: [] };
+
     const now = new Date();
     const cutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
 
-    return classDetails
-      .filter(c => new Date(c.startTime) > cutoff)
-      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+    const isCompleted = (c: ClassData) =>
+      c.status === "completed" || new Date(c.endTime).getTime() < now.getTime();
+
+    const recent = classDetails.filter(c => new Date(c.startTime) > cutoff);
+
+    return {
+      classes: recent
+        .filter(c => !isCompleted(c))
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()),
+      completedToday: recent
+        .filter(c => isCompleted(c) && new Date(c.startTime) >= startOfToday)
+        .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()),
+    };
   }, [classDetails]);
 
 useEffect(() => {
-  if (!classes.length) return;
+  const visibleClasses = [...classes.slice(0, 10), ...completedToday];
+  if (!visibleClasses.length) return;
 
-  const top10Classes = classes.slice(0, 10);
-  const ids = top10Classes.map(c => c._id).join(",");
-  
+  const ids = [...new Set(visibleClasses.map(c => c._id))].join(",");
+
   setLoadingStudents(true);
 
   fetch(`/Api/classes/students?ids=${ids}`)
@@ -301,7 +320,7 @@ useEffect(() => {
     .then(data => setStudentsMap(data.studentsMap || {}))
     .catch(err => console.error("Students fetch error:", err))
     .finally(() => setLoadingStudents(false));
-}, [classes]);
+}, [classes, completedToday]);
   const handleJoinMeeting = async (classId: string) => {
     if (!userData) {
       toast.error("User data not available. Please refresh the page.");
@@ -331,9 +350,7 @@ useEffect(() => {
     }
   };
 
-  const visibleClasses = classes.slice(0, 8);
-
-  const rows: UpcomingSessionRow[] = visibleClasses.map((classItem) => {
+  const buildRow = (classItem: ClassData): UpcomingSessionRow => {
     const students = studentsMap[classItem._id] || [];
 
     const secondaryContent = loadingStudents
@@ -353,20 +370,48 @@ useEffect(() => {
       time: formatTimeRangeInTz(classItem.startTime, classItem.endTime, userTz),
       course: classItem.title,
       secondary: secondaryContent,
-      onJoin: () => handleJoinMeeting(classItem._id),
     };
-  });
+  };
+
+  const rows: UpcomingSessionRow[] = classes.slice(0, 8).map((classItem) => ({
+    ...buildRow(classItem),
+    onJoin: () => handleJoinMeeting(classItem._id),
+  }));
+
+  const completedRows: UpcomingSessionRow[] = completedToday.map((classItem) => ({
+    ...buildRow(classItem),
+    action: (
+      <span className="inline-block px-2 py-1 rounded bg-green-100 text-green-700 text-xs font-medium">
+        Completed
+      </span>
+    ),
+  }));
 
   return (
-    <UpcomingSessionsTable
-      title="Upcoming Sessions"
-      timezone={userTz}
-      viewAllHref="/tutor/calendar"
-      headers={["Date", "Time", "Class Name", "Student Name", "Action"]}
-      rows={rows}
-      emptyMessage="No upcoming lessons"
-      joinLabel="Join"
-    />
+    <>
+      <UpcomingSessionsTable
+        title="Upcoming Sessions"
+        timezone={userTz}
+        viewAllHref="/tutor/calendar"
+        headers={["Date", "Time", "Class Name", "Student Name", "Action"]}
+        rows={rows}
+        emptyMessage="No upcoming lessons"
+        joinLabel="Join"
+      />
+
+      {completedRows.length > 0 && (
+        <div className="mt-4">
+          <UpcomingSessionsTable
+            title={`Completed Today (${completedRows.length})`}
+            timezone={userTz}
+            viewAllHref="/tutor/calendar"
+            headers={["Date", "Time", "Class Name", "Student Name", "Status"]}
+            rows={completedRows}
+            emptyMessage="No classes completed today"
+          />
+        </div>
+      )}
+    </>
   );
 };
 

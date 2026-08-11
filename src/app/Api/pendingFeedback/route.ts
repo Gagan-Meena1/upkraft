@@ -133,11 +133,19 @@ export async function GET(request) {
     console.log("[CLASSES  : ", [...allClassIds]);
     console.dir(allClassIds, { maxArrayLength: null });
 
-    // Fetch all classes in one query
+    // Fetch all classes in one query.
+    //
+    // "Over" means the tutor ended it or its slot has passed — a class ended
+    // early is owed feedback straight away, and this list has to hold exactly
+    // what /Api/dashboard/pendingFeedbackCount counts.
     const classes = await Class.find({
       _id: { $in: Array.from(allClassIds) },
-      endTime: { $lt: new Date() },
-      status: { $ne: 'canceled' }
+      status: { $ne: 'canceled' },
+      $or: [
+        { status: 'completed' },
+        { actualEndTime: { $ne: null } },
+        { endTime: { $lt: new Date() } }
+      ]
     }).select("_id title description startTime endTime").lean();
 
     // Create a map for quick class lookup

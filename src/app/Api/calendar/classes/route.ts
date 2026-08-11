@@ -40,6 +40,33 @@ function getTokenUserId(request: NextRequest): string | null {
     : null;
 }
 
+/**
+ * Course IDs the student has actually paid for — i.e. at least one payment
+ * cycle with a non-zero amount is recorded against that course. Classes for
+ * any other course are demo classes.
+ */
+function getPaidCourseIds(student: any): Set<string> {
+  const paidCourseIds = new Set<string>();
+
+  for (const entry of student?.creditsPerCourse || []) {
+    if (!entry?.courseId) continue;
+    const hasPayment = (entry.startTime || []).some(
+      (cycle: any) => Number(cycle?.amount) > 0
+    );
+    if (hasPayment) paidCourseIds.add(entry.courseId.toString());
+  }
+
+  return paidCourseIds;
+}
+
+/** Tag each class with isDemo based on the student's payment history. */
+function withDemoFlag(classes: any[], paidCourseIds: Set<string>): any[] {
+  return classes.map((cls) => ({
+    ...cls,
+    isDemo: !paidCourseIds.has(cls?.course?.toString() || ""),
+  }));
+}
+
 /** Convert a local date+time string in a given timezone to a UTC Date. */
 function convertToUTC(
   dateStr: string,
@@ -425,7 +452,7 @@ export async function GET(request: NextRequest) {
       const [instructor, ...queriedUsers] = await Promise.all([
   User.findById(instructorId).select("classes").lean(),
   ...studentIds.map((sid) =>
-    User.findById(sid).select("_id classes").lean()
+    User.findById(sid).select("_id classes creditsPerCourse").lean()
   ),
 ]);
 
@@ -435,6 +462,7 @@ const instructorClassIds = new Set(
 
 const allCommonIds: string[] = [];
 const studentClassIdMap: Record<string, string[]> = {};
+const paidCourseMap: Record<string, Set<string>> = {};
 
 for (const student of queriedUsers) {
   if (!student) continue;
@@ -443,6 +471,7 @@ for (const student of queriedUsers) {
     .map((id: any) => id.toString())
     .filter((id) => instructorClassIds.has(id)); // ← intersection
   studentClassIdMap[sid] = commonIds;
+  paidCourseMap[sid] = getPaidCourseIds(student);
   allCommonIds.push(...commonIds);
 }
 
@@ -457,7 +486,10 @@ for (const student of queriedUsers) {
       const results = Object.entries(studentClassIdMap).map(
         ([sid, classIds]) => ({
           studentId: sid,
-          classes: classIds.map((id) => classMap.get(id)).filter(Boolean),
+          classes: withDemoFlag(
+            classIds.map((id) => classMap.get(id)).filter(Boolean),
+            paidCourseMap[sid] || new Set<string>()
+          ),
         })
       );
 
@@ -474,7 +506,7 @@ for (const student of queriedUsers) {
     // ── SINGLE student ─────────────────────────────────────────────────────
     if (userIdFromQuery) {
       const queriedUser = await User.findById(userIdFromQuery)
-        .select("classes")
+        .select("classes creditsPerCourse")
         .lean();
 
       if (!queriedUser) {
@@ -500,7 +532,7 @@ const commonClasses = await Class.find(classQuery).lean();
       return NextResponse.json(
         {
           message: "Common classes fetched successfully",
-          classData: commonClasses,
+          classData: withDemoFlag(commonClasses, getPaidCourseIds(queriedUser)),
           totalClasses: commonClasses.length,
         },
         { status: 200 }

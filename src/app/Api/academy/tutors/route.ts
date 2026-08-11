@@ -148,10 +148,18 @@ export async function GET(req: NextRequest) {
       return acc.concat(course.class || []);
     }, []);
 
+    // Only classes that are over, and not canceled. A class the tutor ended
+    // early counts from the moment they ended it — this map also gates the
+    // pending-feedback tally below, which has to agree with the tutor's own
+    // badge (/Api/dashboard/pendingFeedbackCount).
     const allClasses = await Class.find({
   _id: { $in: allClassIds },
-  endTime: { $lt: new Date() },  // ✅ Only past classes
-  status: { $ne: 'canceled' }     // ✅ Exclude canceled classes
+  status: { $ne: 'canceled' },
+  $or: [
+    { status: 'completed' },
+    { actualEndTime: { $ne: null } },
+    { endTime: { $lt: new Date() } }
+  ]
 }).select("csat").lean();
 
     

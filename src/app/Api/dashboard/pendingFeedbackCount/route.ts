@@ -90,11 +90,22 @@ export async function GET(request) {
       return NextResponse.json({ success: true, count: 0 });
     }
 
-    // Fetch all past classes
+    // Fetch every class that is over.
+    //
+    // A tutor who ends a class early has finished teaching it, so the feedback
+    // is owed from that moment — waiting for the scheduled endTime to pass
+    // would hide it from this badge for the rest of the slot. `status` and
+    // `actualEndTime` are both checked because ending sets both, but a class
+    // completed from the web sets only the status. Kept in step with
+    // /Api/pendingFeedback, whose list this number has to match.
     const pastClasses = await Class.find({
       _id: { $in: allClassIds },
-      endTime: { $lt: new Date() },
-      status: { $ne: 'canceled' }
+      status: { $ne: 'canceled' },
+      $or: [
+        { status: 'completed' },
+        { actualEndTime: { $ne: null } },
+        { endTime: { $lt: new Date() } }
+      ]
     }).select("_id").lean();
 
     if (!pastClasses.length) {
