@@ -77,8 +77,8 @@ export async function GET(request) {
 
     courses.forEach(course => {
       const courseIdStr = course._id.toString();
-(course.class ?? []).forEach(classId => {
-   if (classId == null) return;
+      (course.class ?? []).forEach(classId => {
+        if (classId == null) return;
         const classIdStr = classId.toString();
         classToCategoryMap.set(classIdStr, course.category);
         classToCourseMap.set(classIdStr, courseIdStr);
@@ -189,14 +189,14 @@ export async function GET(request) {
 
       // Build student course set
       const studentCourseSet = new Set(student.courses.map(c => c.toString()));
-      
+
       const studentClassSet = new Set((student.classes || []).map(c => c.toString()));
 
-studentDataMap.set(studentId, {
-  attendanceMap,
-  studentCourseSet,
-  studentClassSet
-});
+      studentDataMap.set(studentId, {
+        attendanceMap,
+        studentCourseSet,
+        studentClassSet
+      });
     });
 
     // Count pending feedbacks
@@ -218,10 +218,10 @@ studentDataMap.set(studentId, {
         }
 
         // Skip if this class is not in the student's own classes field
-  if (!studentData.studentClassSet.has(classIdStr)) {
-    return;
-  }
-        
+        if (!studentData.studentClassSet.has(classIdStr)) {
+          return;
+        }
+
         // Attendance does not decide whether feedback is owed — a past class
         // with no feedback is outstanding either way. This used to skip every
         // student whose register *was* marked, i.e. exactly the ones the tutor
@@ -229,7 +229,7 @@ studentDataMap.set(studentId, {
         // listed the same students as due. Kept in step with
         // /Api/pendingFeedback, whose list this number has to match.
         const attendanceStatus = studentData.attendanceMap.get(classIdStr);
-        if (attendanceStatus === "canceled") {
+        if (attendanceStatus !== undefined) {
           return;
         }
 
