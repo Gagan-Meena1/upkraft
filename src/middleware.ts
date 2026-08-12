@@ -33,8 +33,8 @@ const ROLE_SECTIONS: { prefix: string; roles: string[] }[] = [
  * authentication-only — restricting them to admins would break those screens.
  */
 const PROTECTED_APIS: { prefix: string; roles: string[] | null }[] = [
-  { prefix: '/Api/admin/tutors', roles: ['admin'] },
-  { prefix: '/Api/admin/userInfo', roles: ['admin'] },
+  { prefix: '/Api/admin/tutors', roles: ['admin', 'teamlead'] },
+  { prefix: '/Api/admin/userInfo', roles: ['admin', 'teamlead'] },
   { prefix: '/Api/admin/classQuality', roles: null },
   { prefix: '/Api/admin/talent', roles: null },
 ];

@@ -8,6 +8,62 @@ import EditModal from "@/app/components/EditModal";
 import RenewalModal from "@/app/components/RenewalModal";
 import StudentInfoPopup from "@/app/components/StudentInfoPopup";
 
+// Converts an array of lead objects into a CSV string and triggers a browser download.
+function exportLeadsToCSV(leads: any[], filename = "renewal-leads.csv") {
+  if (!leads || leads.length === 0) {
+    alert("No data to export.");
+    return;
+  }
+
+  // Flatten nested objects/arrays into readable strings, one level deep.
+  const flattenValue = (val: unknown): string => {
+    if (val === null || val === undefined) return "";
+    if (typeof val === "object") {
+      try {
+        return JSON.stringify(val);
+      } catch {
+        return String(val);
+      }
+    }
+    return String(val);
+  };
+
+  // Escape a field for CSV: wrap in quotes if it contains a comma, quote, or newline.
+  const escapeCSV = (field: string) => {
+    if (/[",\n]/.test(field)) {
+      return `"${field.replace(/"/g, '""')}"`;
+    }
+    return field;
+  };
+
+  // Union of all keys across leads, so the CSV covers every column even if some leads are missing fields.
+  const columns = Array.from(
+    leads.reduce((set, lead) => {
+      Object.keys(lead || {}).forEach((k) => set.add(k));
+      return set;
+    }, new Set<string>())
+  );
+
+  const headerRow = columns.map(escapeCSV).join(",");
+  const dataRows = leads.map((lead) =>
+    columns.map((col) => escapeCSV(flattenValue(lead?.[col]))).join(",")
+  );
+
+  const csvContent = [headerRow, ...dataRows].join("\n");
+
+  // BOM prefix so Excel opens UTF-8 content (e.g. names with special chars) correctly.
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 export default function RenewalDashboardPage() {
   const {
     leads, loading, statsLoading, stats, options,
