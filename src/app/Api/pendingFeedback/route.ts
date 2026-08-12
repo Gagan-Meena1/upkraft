@@ -245,7 +245,7 @@ export async function GET(request) {
           // `attendanceStatus` is returned below so the client can badge the
           // unmarked ones and send them to the register first.
           const attendanceStatus = getAttendanceStatus(student, classIdStr);
-          if (attendanceStatus === "canceled") continue;
+          if (attendanceStatus !== "not_marked") continue;
 
           // Safe lookup: use empty Set if category not present
           const feedbackKey = `${student._id}_${classIdStr}`;
