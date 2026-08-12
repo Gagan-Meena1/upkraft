@@ -112,6 +112,11 @@ const userSchema = new mongoose.Schema({
                         type: String,
                         default: "",
                     },
+                    sendTutor: {
+                        type: String,
+                        enum: ['yes', 'no', 'wait'],
+                        default: 'wait',
+                    },
 
                 }]
             },
@@ -441,6 +446,10 @@ const userSchema = new mongoose.Schema({
     hideFromRenewalDashboard: {
         type: Boolean,
         default: false
+    },
+    consider: {
+        type: Boolean,
+        default: true
     },
     salesSPOC: {
         type: String,

@@ -73,6 +73,49 @@ export default function EditModal({ lead, onClose, onSave, onChange }: Props) {
                             </div>
                         )}
 
+                        {/* Drop Reason — visible when status is Dropped */}
+                        {lead.renewalStatus === "Dropped" && (
+                            <>
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-[11px] font-semibold text-gray-500 uppercase">Drop Reason</label>
+                                    <select
+                                        className="px-3 py-2 border border-gray-300 rounded-lg text-[13px] outline-none focus:border-red-500 bg-white cursor-pointer"
+                                        value={
+                                            ["Didn't like the tutor", "Slot issue", "Classes are expensive", "Kid didn't show interest", "Will do later", "Travelling"].includes(lead.dropReason)
+                                                ? lead.dropReason
+                                                : lead.dropReason ? "Other" : ""
+                                        }
+                                        onChange={e => {
+                                            if (e.target.value === "Other") {
+                                                onChange({ ...lead, dropReason: "" });
+                                            } else {
+                                                onChange({ ...lead, dropReason: e.target.value });
+                                            }
+                                        }}
+                                    >
+                                        <option value="">— Select a reason —</option>
+                                        <option>{"Didn't like the tutor"}</option>
+                                        <option>Slot issue</option>
+                                        <option>Classes are expensive</option>
+                                        <option>{"Kid didn't show interest"}</option>
+                                        <option>Will do later</option>
+                                        <option>Travelling</option>
+                                        <option value="Other">Other (custom)</option>
+                                    </select>
+                                </div>
+                                {!["Didn't like the tutor", "Slot issue", "Classes are expensive", "Kid didn't show interest", "Will do later", "Travelling", ""].includes(lead.dropReason) && (
+                                    <div className="flex flex-col gap-1">
+                                        <label className="text-[11px] font-semibold text-gray-500 uppercase">Custom Reason</label>
+                                        <input type="text"
+                                            className="px-3 py-2 border border-gray-300 rounded-lg text-[13px] outline-none focus:border-red-500"
+                                            placeholder="Enter custom drop reason..."
+                                            value={lead.dropReason}
+                                            onChange={e => onChange({ ...lead, dropReason: e.target.value })} />
+                                    </div>
+                                )}
+                            </>
+                        )}
+
                         <div className="flex flex-col gap-1 col-span-2">
                             <label className="text-[11px] font-semibold text-gray-500 uppercase">Notes</label>
                             <textarea rows={3} className="px-3 py-2 border border-gray-300 rounded-lg text-[13px] outline-none focus:border-purple-600 resize-none"

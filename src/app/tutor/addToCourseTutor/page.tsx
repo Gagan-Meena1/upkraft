@@ -199,6 +199,33 @@ const fetchClasses = async (courseId: string) => {
     }
   };
 
+  const handleDeletePackageRequest = async (entry: any) => {
+    try {
+      if (!pendingCourseId) return;
+      setIsAddingStudent(true); // Re-use this loading overlay
+      const response = await axios.post("/Api/tutors/deletePackageRequest", {
+        studentId,
+        courseId: pendingCourseId,
+        packageId: entry._id || new Date(entry.date).getTime().toString(), // fallback if _id missing
+        startDate: entry.date,
+        endDate: entry.endDate || new Date().toISOString(), // we can refine this later
+        numberOfClasses: entry.classIds?.length || 0,
+      });
+      setAddStudentMessage({
+        text: response.data.message || "Delete package request sent successfully",
+        type: "success",
+      });
+    } catch (err: any) {
+      setAddStudentMessage({
+        text: err.response?.data?.error || err.message || "Failed to send delete package request",
+        type: "error",
+      });
+    } finally {
+      setIsAddingStudent(false);
+      setTimeout(() => setAddStudentMessage(null), 3000);
+    }
+  };
+
   const toggleExpanded = (courseId: string) => {
     setExpandedCourses((prev) => ({ ...prev, [courseId]: !prev[courseId] }));
   };
@@ -465,6 +492,7 @@ const fetchClasses = async (courseId: string) => {
         loading={classesLoading}
         courseId={pendingCourseId}
         creditsPerCourse={creditsPerCourse}
+        onDeleteRequest={handleDeletePackageRequest}
       />
     </div>
   );

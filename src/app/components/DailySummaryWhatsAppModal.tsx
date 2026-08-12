@@ -32,6 +32,7 @@ interface DailySummaryWhatsAppModalProps {
   dayLabel: string;
   userTz: string;
   whatsappGroups: WhatsAppGroup[];
+  tutorPhone?: string;
   onClose: () => void;
 }
 
@@ -40,6 +41,7 @@ export default function DailySummaryWhatsAppModal({
   dayLabel,
   userTz,
   whatsappGroups,
+  tutorPhone,
   onClose,
 }: DailySummaryWhatsAppModalProps) {
   const [selectedGroupLink, setSelectedGroupLink] = useState<string>("");
@@ -81,7 +83,14 @@ export default function DailySummaryWhatsAppModal({
       (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
     );
 
-    let msg = `📋 *Daily Schedule — ${dayLabel}*\n`;
+    let msg = "";
+    if (tutorPhone) {
+      // Format phone for WhatsApp tagging (e.g. @919880703940)
+      const cleanPhone = tutorPhone.replace(/[^0-9]/g, "");
+      const tagPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
+      msg += `@${tagPhone}\n\n`;
+    }
+    msg += `📋 *Daily Schedule — ${dayLabel}*\n`;
     msg += `Total Classes: ${sortedClasses.length}\n`;
     msg += `━━━━━━━━━━━━━━━━━\n\n`;
 
@@ -108,7 +117,12 @@ export default function DailySummaryWhatsAppModal({
       }
     });
 
-    msg += `\n━━━━━━━━━━━━━━━━━\nTeam UpKraft`;
+    msg += `\n━━━━━━━━━━━━━━━━━\n`;
+    msg += `\n📌 *Please ensure that you:*\n`;
+    msg += `• Reach 5–10 minutes early\n`;
+    msg += `• Mark attendance and update feedback within every class\n`;
+    msg += `• Inform the Relationship Manager in advance in case of any issues or emergencies\n`;
+    msg += `\nTeam UpKraft`;
     return msg;
   };
 

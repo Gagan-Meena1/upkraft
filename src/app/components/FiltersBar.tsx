@@ -72,7 +72,7 @@ export default function FiltersBar({
             {activeCard !== "urgent" && (
                 <div className="px-5 py-2 text-[12px] text-gray-600">
                     Showing: <span className="font-bold text-purple-700">{CARDS.find(c => c.key === activeCard)?.label}</span>
-                    {" "}— sorted by nearest end date
+                    {" "}— sorted by days left (descending)
                     <button onClick={onCardClear} className="ml-2 text-gray-400 hover:text-gray-600 text-[11px]">✕ clear</button>
                 </div>
             )}

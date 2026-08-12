@@ -3,7 +3,9 @@ import { connect } from "@/dbConnection/dbConfic";
 import Class from "@/models/Class";
 import ReassignRequest from "@/models/ReassignRequest";
 import AttendanceResetRequest from "@/models/AttendanceResetRequest";
+import DeletePackageRequest from "@/models/DeletePackageRequest";
 import User from "@/models/userModel";
+import CourseName from "@/models/courseName";
 import jwt from "jsonwebtoken";
 
 export async function GET(request: NextRequest) {
@@ -99,11 +101,20 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Fetch pending delete package requests
+    const deletePackageRequests = await (DeletePackageRequest as any).find({ status: "pending" })
+      .populate("studentId", "username email contact")
+      .populate("tutorId", "username email contact")
+      .populate("courseId", "courseName title name")
+      .sort({ createdAt: -1 })
+      .lean();
+
     return NextResponse.json({
       success: true,
       classes: mappedClasses,
       reassignRequests: reassignRequests,
-      attendanceResetRequests: attendanceResetRequests
+      attendanceResetRequests: attendanceResetRequests,
+      deletePackageRequests: deletePackageRequests
     });
 
   } catch (error: any) {

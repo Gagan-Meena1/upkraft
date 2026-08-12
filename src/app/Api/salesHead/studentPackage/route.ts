@@ -5,6 +5,19 @@ import Class from "@/models/Class";
 import CourseName from "@/models/courseName";
 import mongoose from "mongoose";
 
+// Helper: compute dynamic endDate from classIds using a classId→startTime map
+function getDynamicEndDate(
+    classIds: any[],
+    classStartTimeMap: Map<string, Date>
+): Date | null {
+    let maxDate: Date | null = null;
+    for (const cId of classIds) {
+        const st = classStartTimeMap.get(cId.toString());
+        if (st && (!maxDate || st > maxDate)) maxDate = st;
+    }
+    return maxDate;
+}
+
 export async function GET(request: NextRequest) {
     try {
         await connect();
@@ -62,26 +75,17 @@ export async function GET(request: NextRequest) {
                 const startTimeEntries = courseEntry.startTime || [];
                 if (startTimeEntries.length === 0) continue;
 
-                // Find the latest entry in this course based on date or endDate
+                // Find the latest entry in this course based on startDate (date field)
                 let latestEntry = startTimeEntries[0];
                 let latestIndex = 0;
                 for (let si = 1; si < startTimeEntries.length; si++) {
-                    const entryDate = new Date(startTimeEntries[si].endDate || startTimeEntries[si].date || 0);
-                    const latestDate = new Date(latestEntry.endDate || latestEntry.date || 0);
+                    const entryDate = new Date(startTimeEntries[si].date || 0);
+                    const latestDate = new Date(latestEntry.date || 0);
                     if (entryDate > latestDate) {
                         latestEntry = startTimeEntries[si];
                         latestIndex = si;
                     }
                 }
-                // Find the earliest startTime across ALL courses for this student
-                const earliestStartDate = (student.creditsPerCourse || []).reduce((earliest: Date | null, courseEntry: any) => {
-                    const entries = courseEntry.startTime || [];
-                    for (const entry of entries) {
-                        const d = entry.date ? new Date(entry.date) : null;
-                        if (d && (!earliest || d < earliest)) return d;
-                    }
-                    return earliest;
-                }, null);
 
                 // Add to flat list
                 allPackages.push({
@@ -105,7 +109,7 @@ export async function GET(request: NextRequest) {
                     courseEntryIndex: ci,
                     attendance: student.attendance || [],
                     creditsPerCourse: student.creditsPerCourse,
-                    startDate: earliestStartDate ? earliestStartDate.toISOString() : "",
+                    startDate: latestEntry.date ? new Date(latestEntry.date).toISOString() : "",
 
                 });
             }
@@ -122,32 +126,47 @@ export async function GET(request: NextRequest) {
             allPackages = allPackages.filter(p => p.type === fType);
         }
 
-        // Card filter
+        // ── Dynamic endDate: bulk fetch classId→startTime for ALL packages ──
+        const allPkgClassIds = new Set<string>();
+        for (const pkg of allPackages) {
+            for (const cId of (pkg.latestEntry.classIds || [])) {
+                allPkgClassIds.add(cId.toString());
+            }
+        }
+
+        const classStartTimeDocs = await Class.find({
+            _id: { $in: Array.from(allPkgClassIds).map(id => new mongoose.Types.ObjectId(id)) }
+        })
+            .select("_id startTime")
+            .lean() as any[];
+
+        const classStartTimeMap = new Map<string, Date>();
+        for (const doc of classStartTimeDocs) {
+            classStartTimeMap.set(doc._id.toString(), new Date(doc.startTime));
+        }
+
+        // Attach dynamic endDate + daysLeft to each package
+        for (const pkg of allPackages) {
+            const classIds = pkg.latestEntry.classIds || [];
+            const dynEnd = getDynamicEndDate(classIds, classStartTimeMap);
+            pkg._dynamicEndDate = dynEnd;
+            if (dynEnd) {
+                const end = new Date(dynEnd);
+                end.setHours(0, 0, 0, 0);
+                const today = new Date(now);
+                today.setHours(0, 0, 0, 0);
+                pkg._daysLeft = Math.floor((end.getTime() - today.getTime()) / 86400000);
+            } else {
+                pkg._daysLeft = 999;
+            }
+        }
+
+        // Card filter — uses dynamic daysLeft
         const cardFilter = searchParams.get("cardFilter") || "all";
         if (cardFilter !== "all") {
             allPackages = allPackages.filter(pkg => {
                 const renewalStatus = pkg.renewalStatus || "YTR";
-
-                // Calculate completion + daysLeft inline
-                const classIds = (pkg.latestEntry.classIds || []).map((id: any) => id.toString());
-                const attendanceMap = new Map<string, string>();
-                for (const a of pkg.attendance) {
-                    if (a.classId) attendanceMap.set(a.classId.toString(), a.status);
-                }
-                const completed = classIds.filter((id: string) => {
-                    const s = attendanceMap.get(id);
-                    return s === "present" || s === "absent";
-                }).length;
-                const completion = classIds.length > 0 ? (completed / classIds.length) * 100 : 0;
-                const daysLeft = pkg.latestEntry.endDate
-                    ? (() => {
-                        const end = new Date(pkg.latestEntry.endDate);
-                        end.setHours(0, 0, 0, 0);          // strip time from endDate
-                        const today = new Date(now);
-                        today.setHours(0, 0, 0, 0);        // strip time from now
-                        return Math.floor((end.getTime() - today.getTime()) / 86400000);
-                    })()
-                    : 999;
+                const daysLeft = pkg._daysLeft;
 
                 if (cardFilter === "dropped") return renewalStatus === "Dropped";
                 if (cardFilter === "renewed") return renewalStatus === "Renewed";
@@ -159,16 +178,9 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // ✅ Fix — nearest to today first (past or future)
+        // Sort by absolute daysLeft ascending (closest to expiry first)
         allPackages.sort((a, b) => {
-            const nowMs = now.getTime();
-            const distA = a.latestEntry.endDate
-                ? Math.abs(new Date(a.latestEntry.endDate).getTime() - nowMs)
-                : Infinity;
-            const distB = b.latestEntry.endDate
-                ? Math.abs(new Date(b.latestEntry.endDate).getTime() - nowMs)
-                : Infinity;
-            return distA - distB;
+            return Math.abs(a._daysLeft ?? 999) - Math.abs(b._daysLeft ?? 999);
         });
 
         const totalItems = allPackages.length;
@@ -262,11 +274,14 @@ export async function GET(request: NextRequest) {
             const totalClasses = allClassCount - cancelledClasses;
             const remainingClasses = totalClasses - completedClasses;
 
-            // Calculate days left using endDate directly, exactly as requested.
+            // Dynamic endDate: use last class's startTime from sorted classes array
+            const dynamicEndDate = classes.length > 0
+                ? classes[classes.length - 1].startTime
+                : (pkg._dynamicEndDate || pkg.latestEntry.endDate || "");
+
             let daysLeft = 0;
-            let lastClassDateStr = pkg.latestEntry.endDate || "";
-            if (pkg.latestEntry.endDate) {
-                const end = new Date(pkg.latestEntry.endDate);
+            if (dynamicEndDate) {
+                const end = new Date(dynamicEndDate);
                 end.setHours(0, 0, 0, 0);
                 const today = new Date(now);
                 today.setHours(0, 0, 0, 0);
@@ -276,8 +291,6 @@ export async function GET(request: NextRequest) {
             const completion = totalClasses > 0 ? ((completedClasses / totalClasses) * 100).toFixed(2) : 0;
             const courseEntry = pkg.creditsPerCourse[pkg.courseEntryIndex];
             const paymentCycle = (courseEntry?.startTime || []).length;
-
-
 
             return {
                 id: `${pkg.studentId}_${pkg.courseId}`,
@@ -300,7 +313,7 @@ export async function GET(request: NextRequest) {
                 completion: parseFloat(completion as string),
                 remaining: remainingClasses,
                 cancelled: cancelledClasses,
-                lastClassDate: lastClassDateStr,
+                lastClassDate: dynamicEndDate,
                 daysLeft,
                 reschCancel: cancelledClasses,
                 renewalStatus: pkg.renewalStatus,
@@ -315,6 +328,7 @@ export async function GET(request: NextRequest) {
                 entryIndex: pkg.entryIndex,
                 absent: absentClasses,
                 dropReason: pkg.latestEntry.dropReason || "",
+                sendTutor: pkg.latestEntry.sendTutor || "wait",
             };
         });
 

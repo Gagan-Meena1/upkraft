@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { CheckCircle, XCircle, Clock, ArrowLeft } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { CheckCircle, XCircle, Clock, ArrowLeft, CheckSquare } from "lucide-react";
 import toast from "react-hot-toast";
 import DashboardLayout from "@/app/components/DashboardLayout";
 
@@ -53,13 +53,32 @@ interface AttendanceResetRequest {
   reasonForCancellation?: string;
 }
 
+interface DeletePackageRequestType {
+  _id: string;
+  studentId: { _id: string; username: string; email: string; contact: string };
+  tutorId: { _id: string; username: string; email: string; contact: string };
+  courseId: { _id: string; courseName: string; title: string; name: string };
+  packageId: string;
+  startDate: string;
+  endDate: string;
+  numberOfClasses: number;
+  status: string;
+  createdAt: string;
+}
+
 export default function TeamLeadRequestsPage() {
   const [requests, setRequests] = useState<ClassRequest[]>([]);
   const [reassignRequests, setReassignRequests] = useState<ReassignRequest[]>([]);
   const [attendanceResetRequests, setAttendanceResetRequests] = useState<AttendanceResetRequest[]>([]);
+  const [deletePackageRequests, setDeletePackageRequests] = useState<DeletePackageRequestType[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [reassignDates, setReassignDates] = useState<Record<string, string>>({});
+
+  // Bulk selection state for Attendance Reset
+  const [selectedAttendanceIds, setSelectedAttendanceIds] = useState<Set<string>>(new Set());
+  const [bulkActionLoading, setBulkActionLoading] = useState(false);
+  const selectAllCheckboxRef = useRef<HTMLInputElement>(null);
 
   const fetchRequests = async () => {
     try {
@@ -70,6 +89,7 @@ export default function TeamLeadRequestsPage() {
         setRequests(data.classes || []);
         setReassignRequests(data.reassignRequests || []);
         setAttendanceResetRequests(data.attendanceResetRequests || []);
+        setDeletePackageRequests(data.deletePackageRequests || []);
       } else {
         toast.error(data.error || "Failed to fetch requests");
       }
@@ -85,7 +105,64 @@ export default function TeamLeadRequestsPage() {
     fetchRequests();
   }, []);
 
-  const handleAction = async (id: string, action: "approve" | "reject", type: "class" | "reassign" | "attendanceReset", isPartial?: boolean) => {
+  // Sync indeterminate state for select-all checkbox
+  useEffect(() => {
+    if (selectAllCheckboxRef.current) {
+      const total = attendanceResetRequests.length;
+      const selected = selectedAttendanceIds.size;
+      selectAllCheckboxRef.current.indeterminate = selected > 0 && selected < total;
+    }
+  }, [selectedAttendanceIds, attendanceResetRequests]);
+
+  const toggleSelectAll = () => {
+    if (selectedAttendanceIds.size === attendanceResetRequests.length) {
+      setSelectedAttendanceIds(new Set());
+    } else {
+      setSelectedAttendanceIds(new Set(attendanceResetRequests.map((r) => r._id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedAttendanceIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkAction = async (action: "approve" | "reject") => {
+    if (selectedAttendanceIds.size === 0) return;
+    const count = selectedAttendanceIds.size;
+    const confirmMsg = action === "approve"
+      ? `Are you sure you want to approve ${count} selected attendance reset request(s)?`
+      : `Are you sure you want to reject ${count} selected attendance reset request(s)?`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      setBulkActionLoading(true);
+      const res = await fetch("/Api/teamlead/attendance-reset-requests/bulk", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, requestIds: Array.from(selectedAttendanceIds) }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(data.message || `Requests ${action}d successfully`);
+        setSelectedAttendanceIds(new Set());
+        fetchRequests();
+      } else {
+        toast.error(data.error || `Failed to ${action} requests`);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(`An error occurred while trying to ${action} the requests`);
+    } finally {
+      setBulkActionLoading(false);
+    }
+  };
+
+  const handleAction = async (id: string, action: "approve" | "reject", type: "class" | "reassign" | "attendanceReset" | "deletePackage", isPartial?: boolean) => {
     let confirmMsg = "";
     if (type === "class") {
       confirmMsg = action === "approve"
@@ -95,6 +172,10 @@ export default function TeamLeadRequestsPage() {
       confirmMsg = action === "approve"
         ? "Are you sure you want to approve this attendance reset request? This will remove the 'absent' status for this student."
         : "Are you sure you want to reject this attendance reset request?";
+    } else if (type === "deletePackage") {
+      confirmMsg = action === "approve"
+        ? "Are you sure you want to approve this package deletion? This will remove all classes associated with this package and delete the package entry."
+        : "Are you sure you want to reject this package deletion request?";
     } else {
       confirmMsg = action === "approve"
         ? "Are you sure you want to approve this student reassignment request?"
@@ -109,7 +190,9 @@ export default function TeamLeadRequestsPage() {
         ? `/Api/teamlead/requests/${id}`
         : type === "attendanceReset"
           ? `/Api/teamlead/attendance-reset-requests/${id}`
-          : `/Api/teamlead/reassign-requests/${id}`;
+          : type === "deletePackage"
+            ? `/Api/teamlead/delete-package-requests/${id}`
+            : `/Api/teamlead/reassign-requests/${id}`;
 
       const res = await fetch(endpoint, {
         method: "PUT",
@@ -159,7 +242,64 @@ export default function TeamLeadRequestsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-8">
+            {/* Delete Package Requests Section */}
+            <div className="bg-white shadow rounded-xl p-6 border border-gray-100">
+              <div className="flex items-center mb-6">
+                <Clock className="text-red-500 mr-2" />
+                <h2 className="text-xl font-semibold text-gray-800">Package Delete Requests ({deletePackageRequests.length})</h2>
+              </div>
+
+              {deletePackageRequests.length === 0 ? (
+                <div className="text-center py-10 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                  <p className="text-gray-500">No pending package delete requests found.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {deletePackageRequests.map((req) => {
+                    const courseName = req.courseId?.courseName || req.courseId?.title || req.courseId?.name || "N/A";
+                    return (
+                      <div key={req._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-md font-bold text-gray-900 truncate">Delete Package</h3>
+                            <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-semibold rounded">
+                              URGENT
+                            </span>
+                          </div>
+
+                          <div className="space-y-1 text-xs text-gray-600">
+                            <div><span className="font-semibold">Student:</span> {req.studentId?.username || "Unknown"}</div>
+                            <div><span className="font-semibold">Tutor:</span> {req.tutorId?.username || "Unknown"}</div>
+                            <div><span className="font-semibold">Course:</span> {courseName}</div>
+                            <div><span className="font-semibold">Start:</span> {new Date(req.startDate).toLocaleDateString()}</div>
+                            <div><span className="font-semibold">Classes:</span> {req.numberOfClasses}</div>
+                          </div>
+
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              onClick={() => handleAction(req._id, "approve", "deletePackage")}
+                              disabled={actionLoading !== null}
+                              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                            >
+                              {actionLoading === req._id ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div> : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => handleAction(req._id, "reject", "deletePackage")}
+                              disabled={actionLoading !== null}
+                              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Class Delete Requests Section */}
             <div className="bg-white shadow rounded-xl p-6 border border-gray-100">
               <div className="flex items-center mb-6">
@@ -306,10 +446,12 @@ export default function TeamLeadRequestsPage() {
             </div>
 
             {/* Attendance Reset Requests Section */}
-            <div className="bg-white shadow rounded-xl p-6 border border-gray-100">
-              <div className="flex items-center mb-6">
-                <Clock className="text-blue-500 mr-2" />
-                <h2 className="text-xl font-semibold text-gray-800">Attendance Reset ({attendanceResetRequests.length})</h2>
+            <div className="bg-white shadow rounded-xl p-6 border border-gray-100 relative">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Clock className="text-blue-500" />
+                  <h2 className="text-xl font-semibold text-gray-800">Attendance Reset ({attendanceResetRequests.length})</h2>
+                </div>
               </div>
 
               {attendanceResetRequests.length === 0 ? (
@@ -317,121 +459,199 @@ export default function TeamLeadRequestsPage() {
                   <p className="text-gray-500">No pending attendance reset requests found.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {attendanceResetRequests.map((req) => {
-                    const classTitle = req.classItem?.title || "Unknown Class";
-                    return (
-                      <div key={req._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex flex-col gap-3">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-md font-bold text-gray-900 truncate">
-                              {req.requestType === "class"
-                                ? `Cancel Class: ${req.classItem?.title}`
-                                : `Reset: ${req.student?.username}`}
-                            </h3>
-                            <div className="flex items-center gap-1">
-                              {req.requestType === "class" && (
-                                <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-semibold rounded">
-                                  CLASS
-                                </span>
-                              )}
-                              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
-                                ATTENDANCE
-                              </span>
-                            </div>
-                          </div>
+                <>
+                  {/* Select All Row */}
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none group">
+                      <input
+                        ref={selectAllCheckboxRef}
+                        type="checkbox"
+                        checked={selectedAttendanceIds.size === attendanceResetRequests.length && attendanceResetRequests.length > 0}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 accent-blue-600 cursor-pointer"
+                      />
+                      <span className="text-xs font-medium text-gray-600 group-hover:text-blue-600 transition-colors">
+                        {selectedAttendanceIds.size === attendanceResetRequests.length && attendanceResetRequests.length > 0
+                          ? "Deselect All"
+                          : `Select All (${attendanceResetRequests.length})`}
+                      </span>
+                    </label>
+                    {selectedAttendanceIds.size > 0 && (
+                      <span className="text-xs text-blue-600 font-semibold">
+                        {selectedAttendanceIds.size} selected
+                      </span>
+                    )}
+                  </div>
 
-                          <div className="space-y-2 text-xs text-gray-600 bg-gray-50 p-2 rounded border border-gray-100">
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold">Class:</span>
-                              <span className="text-gray-900">{classTitle}</span>
-                            </div>
-                            {req.requestType === "class" && req.students && req.students.length > 0 && (
-                              <div className="flex justify-between items-start gap-2">
-                                <span className="font-semibold flex-shrink-0">Students:</span>
-                                <span className="text-gray-900 text-right text-[10px] leading-relaxed">
-                                  {req.students.map(s => s.username).join(", ")}
-                                </span>
-                              </div>
-                            )}
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold">Tutor:</span>
-                              <span className="text-gray-900">{req.classItem?.instructor?.username || "—"}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold">Change to:</span>
-                              <span className={`px-2 py-0.5 rounded-full font-semibold capitalize ${req.requestedChange === "present"
-                                ? "bg-green-100 text-green-800"
-                                : req.requestedChange === "absent"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-gray-100 text-gray-700"
-                                }`}>
-                                {req.requestedChange}
-                              </span>
-                            </div>
+                  {/* Bulk Action Bar */}
+                  {selectedAttendanceIds.size > 0 && (
+                    <div className="flex gap-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg animate-in fade-in duration-200">
+                      <button
+                        onClick={() => handleBulkAction("approve")}
+                        disabled={bulkActionLoading}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 transition-colors shadow-sm"
+                      >
+                        {bulkActionLoading ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-3.5 w-3.5" />
+                            Approve Selected ({selectedAttendanceIds.size})
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleBulkAction("reject")}
+                        disabled={bulkActionLoading}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-md text-red-700 bg-white border border-red-300 hover:bg-red-50 disabled:opacity-60 transition-colors"
+                      >
+                        {bulkActionLoading ? (
+                          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
+                        ) : (
+                          <>
+                            <XCircle className="h-3.5 w-3.5" />
+                            Reject Selected ({selectedAttendanceIds.size})
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
 
-                            {req.requestedChange === "cancelled" && req.reasonForCancellation && (
-                              <div className="flex justify-between items-start gap-2">
-                                <span className="font-semibold flex-shrink-0">Reason:</span>
-                                <span className="text-gray-900 text-right">{req.reasonForCancellation}</span>
+                  <div className="space-y-4">
+                    {attendanceResetRequests.map((req) => {
+                      const classTitle = req.classItem?.title || "Unknown Class";
+                      const isSelected = selectedAttendanceIds.has(req._id);
+                      return (
+                        <div
+                          key={req._id}
+                          onClick={() => toggleSelect(req._id)}
+                          className={`border rounded-lg p-4 transition-all cursor-pointer ${
+                            isSelected
+                              ? "border-blue-400 bg-blue-50 ring-1 ring-blue-300"
+                              : "border-gray-200 hover:bg-gray-50"
+                          }`}
+                        >
+                          <div className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => { e.stopPropagation(); toggleSelect(req._id); }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-4 h-4 flex-shrink-0 accent-blue-600 cursor-pointer"
+                                />
+                                <h3 className="text-sm font-bold text-gray-900 truncate">
+                                  {req.requestType === "class"
+                                    ? `Cancel Class: ${req.classItem?.title}`
+                                    : `Reset: ${req.student?.username}`}
+                                </h3>
                               </div>
-                            )}
-                            <div className="flex justify-between items-center">
-                              <span className="font-semibold">Date:</span>
-                              <span className="text-gray-900">
-                                {req.classItem?.startTime
-                                  ? new Date(req.classItem.startTime).toLocaleDateString("en-US", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })
-                                  : "—"}
-                              </span>
-                            </div>
-                            {req.requestedChange === "cancelled" && (
-                              <div className="flex justify-between items-center">
-                                <span className="font-semibold">Credit deduction:</span>
-                                {req.singleStudent ? (
-                                  <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[10px]">
-                                    Single student class
-                                  </span>
-                                ) : (
-                                  <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${req.creditDeduction
-                                    ? "bg-amber-100 text-amber-800"
-                                    : "bg-gray-100 text-gray-600"
-                                    }`}>
-                                    {req.creditDeduction ? "With deduction" : "Without deduction"}
+                              <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                                {req.requestType === "class" && (
+                                  <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-semibold rounded">
+                                    CLASS
                                   </span>
                                 )}
+                                <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-semibold rounded">
+                                  ATTENDANCE
+                                </span>
                               </div>
-                            )}
-                            <div className="pt-1 border-t border-gray-200 flex justify-between items-center text-[10px]">
-                              <span className="italic">Requested by RM: {req.relationshipManager?.username}</span>
-                              <span>{new Date(req.createdAt).toLocaleDateString()}</span>
+                            </div>
+
+                            <div className="space-y-2 text-xs text-gray-600 bg-white p-2 rounded border border-gray-100">
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold">Class:</span>
+                                <span className="text-gray-900">{classTitle}</span>
+                              </div>
+                              {req.requestType === "class" && req.students && req.students.length > 0 && (
+                                <div className="flex justify-between items-start gap-2">
+                                  <span className="font-semibold flex-shrink-0">Students:</span>
+                                  <span className="text-gray-900 text-right text-[10px] leading-relaxed">
+                                    {req.students.map(s => s.username).join(", ")}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold">Tutor:</span>
+                                <span className="text-gray-900">{req.classItem?.instructor?.username || "—"}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold">Change to:</span>
+                                <span className={`px-2 py-0.5 rounded-full font-semibold capitalize ${
+                                  req.requestedChange === "present"
+                                    ? "bg-green-100 text-green-800"
+                                    : req.requestedChange === "absent"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-gray-100 text-gray-700"
+                                }`}>
+                                  {req.requestedChange}
+                                </span>
+                              </div>
+                              {req.requestedChange === "cancelled" && req.reasonForCancellation && (
+                                <div className="flex justify-between items-start gap-2">
+                                  <span className="font-semibold flex-shrink-0">Reason:</span>
+                                  <span className="text-gray-900 text-right">{req.reasonForCancellation}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold">Date:</span>
+                                <span className="text-gray-900">
+                                  {req.classItem?.startTime
+                                    ? new Date(req.classItem.startTime).toLocaleDateString("en-US", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                      })
+                                    : "—"}
+                                </span>
+                              </div>
+                              {req.requestedChange === "cancelled" && (
+                                <div className="flex justify-between items-center">
+                                  <span className="font-semibold">Credit deduction:</span>
+                                  {req.singleStudent ? (
+                                    <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[10px]">
+                                      Single student class
+                                    </span>
+                                  ) : (
+                                    <span className={`px-2 py-0.5 rounded-full font-semibold text-[10px] ${
+                                      req.creditDeduction
+                                        ? "bg-amber-100 text-amber-800"
+                                        : "bg-gray-100 text-gray-600"
+                                    }`}>
+                                      {req.creditDeduction ? "With deduction" : "Without deduction"}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              <div className="pt-1 border-t border-gray-200 flex justify-between items-center text-[10px]">
+                                <span className="italic">Requested by RM: {req.relationshipManager?.username}</span>
+                                <span>{new Date(req.createdAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => handleAction(req._id, "approve", "attendanceReset")}
+                                disabled={actionLoading !== null || bulkActionLoading}
+                                className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                              >
+                                {actionLoading === req._id ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div> : "Approve"}
+                              </button>
+                              <button
+                                onClick={() => handleAction(req._id, "reject", "attendanceReset")}
+                                disabled={actionLoading !== null || bulkActionLoading}
+                                className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                              >
+                                Reject
+                              </button>
                             </div>
                           </div>
-
-                          <div className="flex gap-2 mt-2">
-                            <button
-                              onClick={() => handleAction(req._id, "approve", "attendanceReset")}
-                              disabled={actionLoading !== null}
-                              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                            >
-                              {actionLoading === req._id ? <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div> : "Approve"}
-                            </button>
-                            <button
-                              onClick={() => handleAction(req._id, "reject", "attendanceReset")}
-                              disabled={actionLoading !== null}
-                              className="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                            >
-                              Reject
-                            </button>
-                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                </>
               )}
             </div>
 

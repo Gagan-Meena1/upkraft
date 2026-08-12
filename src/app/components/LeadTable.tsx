@@ -8,14 +8,15 @@ interface Props {
     onEdit: (l: Lead) => void;
     onHide?: (id: string, st: string, cId: string, d: string) => void;
     onStatusChange: (id: string, sId: string, val: string, dropReason?: string) => void;
-    onShowInfo: (studentId: string) => void;
+    onShowInfo: (studentId: string, courseId: string) => void;
+    onSendTutorChange: (lead: Lead, value: string) => void;
 }
 const HEADERS = [
     { label: "Customer / Student", className: "sticky left-0 z-20 bg-[#faf9ff] min-w-[160px]" },
     { label: "Society", className: "sticky left-[160px] z-20 bg-[#faf9ff] min-w-[120px]" },
     { label: "Contact", className: "sticky left-[280px] z-20 bg-[#faf9ff] min-w-[140px]" },
     { label: "Tutor / Instrument", className: "sticky left-[420px] z-20 bg-[#faf9ff] min-w-[150px] shadow-[2px_0_4px_rgba(0,0,0,0.06)]" },
-    { label: "Start Date", className: "" },   // ← replaced Type
+    { label: "Start Date", className: "" },
     { label: "RM", className: "" },
     { label: "Sales SPOC", className: "" },
     { label: "Pkg Amount", className: "" },
@@ -28,11 +29,12 @@ const HEADERS = [
     { label: "Last Class", className: "" },
     { label: "Days Left", className: "" },
     { label: "Renewal Status", className: "" },
+    { label: "Send Tutor", className: "" },
     { label: "Notes", className: "" },
     { label: "Action", className: "" },
 ];
 
-export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChange, onShowInfo }: Props) {
+export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChange, onShowInfo, onSendTutorChange }: Props) {
     return (
         <div className="px-5 overflow-x-auto pb-8 mt-2">
             <div className="rounded-xl border border-gray-200">
@@ -52,13 +54,13 @@ export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChan
                             Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
                         ) : leads.length === 0 ? (
                             <tr>
-                                <td colSpan={19} className="text-center py-16 text-gray-400">
+                                <td colSpan={20} className="text-center py-16 text-gray-400">
                                     <div className="text-3xl mb-2">🔍</div>
                                     No students match your filters
                                 </td>
                             </tr>
                         ) : leads.map(l => (
-                            <LeadRow key={l.id} lead={l} onEdit={onEdit} onHide={onHide} onStatusChange={onStatusChange} onShowInfo={onShowInfo} />
+                            <LeadRow key={l.id} lead={l} onEdit={onEdit} onHide={onHide} onStatusChange={onStatusChange} onShowInfo={onShowInfo} onSendTutorChange={onSendTutorChange} />
                         ))}
                     </tbody>
                 </table>

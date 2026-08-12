@@ -21,8 +21,9 @@ export async function POST(request: NextRequest) {
 
         const rmId = decoded.id;
         const rmUser = await (User as any).findById(rmId).select("category");
-        if (!rmUser || !["relationshipmanager", "relationship manager", "RelationshipManager"].includes(String(rmUser.category).toLowerCase().replace(/\s/g, ""))) {
-            return NextResponse.json({ success: false, error: "Forbidden: Only Relationship Managers can request attendance reset." }, { status: 403 });
+        const categoryNormalized = String(rmUser?.category || "").toLowerCase().replace(/\s/g, "");
+        if (!rmUser || !["relationshipmanager", "teamlead"].includes(categoryNormalized)) {
+            return NextResponse.json({ success: false, error: "Forbidden: Only Relationship Managers and Team Leads can request attendance reset." }, { status: 403 });
         }
         const body = await request.json();
         const { studentId, classId, newStatus, creditDeduction, singleStudent, reasonForCancellation } = body;

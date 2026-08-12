@@ -17,9 +17,8 @@ export async function POST(request: NextRequest) {
 
         const rmId = decoded.id;
         const rmUser = await (User as any).findById(rmId).select("category");
-        if (!rmUser || !["relationshipmanager", "relationship manager", "RelationshipManager"].includes(
-            String(rmUser.category).toLowerCase().replace(/\s/g, "")
-        )) {
+        const categoryNormalized = String(rmUser?.category || "").toLowerCase().replace(/\s/g, "");
+        if (!rmUser || !["relationshipmanager", "teamlead"].includes(categoryNormalized)) {
             return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
         }
 

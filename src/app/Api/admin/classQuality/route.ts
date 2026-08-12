@@ -9,6 +9,14 @@ await connect();
 
 export async function POST(request: NextRequest) {
     try {
+      // Auth: check category from token (no DB call)
+      const token = request.cookies.get("token")?.value || "";
+      if (!token) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+      const decoded: any = jwt.decode(token);
+      if (!decoded?.id) return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
+      const normalizedCat = String(decoded.category || "").toLowerCase().replace(/\s/g, "");
+      if (normalizedCat !== "admin" && normalizedCat !== "teamlead") return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+
       const url = new URL(request.url);
       const classId = url.searchParams.get("classId");
       const courseId = url.searchParams.get("courseId");
@@ -96,6 +104,14 @@ export async function POST(request: NextRequest) {
 }
 export async function GET(request: NextRequest) {
     try {
+        // Auth: check category from token (no DB call)
+        const token = request.cookies.get("token")?.value || "";
+        if (!token) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+        const decoded: any = jwt.decode(token);
+        if (!decoded?.id) return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
+        const normalizedCat = String(decoded.category || "").toLowerCase().replace(/\s/g, "");
+        if (normalizedCat !== "admin" && normalizedCat !== "teamlead") return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+
         await connect();
         
         const url = new URL(request.url);

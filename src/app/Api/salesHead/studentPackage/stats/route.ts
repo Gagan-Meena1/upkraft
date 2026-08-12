@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connect } from "@/dbConnection/dbConfic";
 import User from "@/models/userModel";
+import Class from "@/models/Class";
+import mongoose from "mongoose";
 
 export async function GET(request: NextRequest) {
     try {
@@ -53,6 +55,21 @@ export async function GET(request: NextRequest) {
                     : [];
                 if (!fTutor.some((f: string) => names.includes(f))) continue;
             }
+        }
+
+        // Bulk fetch classId→startTime for all packages to compute dynamic endDate
+        const allPkgClassIds = new Set<string>();
+        for (const student of students) {
+            // Apply same filters to collect classIds only for matching students
+            if (fSociety.length && !fSociety.includes(student.studentSociety || student.address || "")) continue;
+            if (fSpoc.length && !fSpoc.includes(student.salesSPOC || "")) continue;
+            if (fRm.length && !fRm.includes(student.studentRM || student.relationshipManager?.username || "")) continue;
+            if (fTutor.length) {
+                const names = Array.isArray(student.instructorId)
+                    ? student.instructorId.map((t: any) => t?.username).filter(Boolean)
+                    : [];
+                if (!fTutor.some((f: string) => names.includes(f))) continue;
+            }
             if (search) {
                 const matchName = (student.username || "").toLowerCase().includes(search);
                 const matchEmail = (student.email || "").toLowerCase().includes(search);
@@ -60,7 +77,53 @@ export async function GET(request: NextRequest) {
                 if (!matchName && !matchEmail && !matchPhone) continue;
             }
 
-            // For each student, get latest package endDate
+            for (const courseEntry of (student.creditsPerCourse || [])) {
+                const startTimeEntries = courseEntry.startTime || [];
+                if (!startTimeEntries.length) continue;
+
+                // Find latest entry (same logic as counting loop)
+                let latestEntry = startTimeEntries[0];
+                for (let i = 1; i < startTimeEntries.length; i++) {
+                    const entryDate = new Date(startTimeEntries[i].date || 0);
+                    const latestDate = new Date(latestEntry.date || 0);
+                    if (entryDate > latestDate) latestEntry = startTimeEntries[i];
+                }
+                for (const cId of (latestEntry.classIds || [])) {
+                    allPkgClassIds.add(cId.toString());
+                }
+            }
+        }
+
+        const classStartTimeDocs = await Class.find({
+            _id: { $in: Array.from(allPkgClassIds).map(id => new mongoose.Types.ObjectId(id)) }
+        })
+            .select("_id startTime")
+            .lean() as any[];
+
+        const classStartTimeMap = new Map<string, Date>();
+        for (const doc of classStartTimeDocs) {
+            classStartTimeMap.set(doc._id.toString(), new Date(doc.startTime));
+        }
+
+        // Second pass: count stats using dynamic endDate
+        for (const student of students) {
+            // Apply same filters
+            if (fSociety.length && !fSociety.includes(student.studentSociety || student.address || "")) continue;
+            if (fSpoc.length && !fSpoc.includes(student.salesSPOC || "")) continue;
+            if (fRm.length && !fRm.includes(student.studentRM || student.relationshipManager?.username || "")) continue;
+            if (fTutor.length) {
+                const names = Array.isArray(student.instructorId)
+                    ? student.instructorId.map((t: any) => t?.username).filter(Boolean)
+                    : [];
+                if (!fTutor.some((f: string) => names.includes(f))) continue;
+            }
+            if (search) {
+                const matchName = (student.username || "").toLowerCase().includes(search);
+                const matchEmail = (student.email || "").toLowerCase().includes(search);
+                const matchPhone = (student.contact || "").toLowerCase().includes(search);
+                if (!matchName && !matchEmail && !matchPhone) continue;
+            }
+
             const creditsPerCourse = student.creditsPerCourse || [];
             for (const courseEntry of creditsPerCourse) {
                 const startTimeEntries = courseEntry.startTime || [];
@@ -68,26 +131,22 @@ export async function GET(request: NextRequest) {
 
                 let latestEntry = startTimeEntries[0];
                 for (let i = 1; i < startTimeEntries.length; i++) {
-                    if (new Date(startTimeEntries[i].endDate || 0) > new Date(latestEntry.endDate || 0)) {
-                        latestEntry = startTimeEntries[i];
-                    }
+                    const entryDate = new Date(startTimeEntries[i].date || 0);
+                    const latestDate = new Date(latestEntry.date || 0);
+                    if (entryDate > latestDate) latestEntry = startTimeEntries[i];
                 }
 
+                // Compute dynamic endDate from classIds
                 const classIds = latestEntry.classIds || [];
-                const totalClasses = classIds.length;
-                const attendanceMap = new Map<string, string>();
-                for (const a of (student.attendance || [])) {
-                    if (a.classId) attendanceMap.set(a.classId.toString(), a.status);
+                let dynamicEndDate: Date | null = null;
+                for (const cId of classIds) {
+                    const st = classStartTimeMap.get(cId.toString());
+                    if (st && (!dynamicEndDate || st > dynamicEndDate)) dynamicEndDate = st;
                 }
-                const completedClasses = classIds.filter((id: any) => {
-                    const s = attendanceMap.get(id.toString());
-                    return s === "present" || s === "absent";
-                }).length;
 
-                const completion = totalClasses > 0 ? (completedClasses / totalClasses) * 100 : 0;
-                const daysLeft = latestEntry.endDate
+                const daysLeft = dynamicEndDate
                     ? (() => {
-                        const end = new Date(latestEntry.endDate);
+                        const end = new Date(dynamicEndDate);
                         end.setHours(0, 0, 0, 0);
                         const today = new Date(now);
                         today.setHours(0, 0, 0, 0);

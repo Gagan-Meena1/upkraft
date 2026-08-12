@@ -27,7 +27,8 @@ const CANCELLATION_REASONS: Record<string, string[]> = {
         "Technical Issue (for online class)",
         "Weather Constraint",
         "Parent Requested Time Change in Advance",
-        "Parent Delayed – Personal Work"
+        "Parent Delayed – Personal Work",
+        "Due to House Renovation"
     ],
     "Pause Disposition (Parent/Student)": [
         "Student Exams",
