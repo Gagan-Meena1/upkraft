@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useState } from "react";
 import { useRenewalDashboard } from "./hooks/useRenewalDashboard";
 import StatsCards from "@/app/components/StatsCards";
 import FiltersBar from "@/app/components/FiltersBar";
@@ -84,7 +85,39 @@ export default function RenewalDashboardPage() {
     setInfoStudentId,
     infoCourseId,
     setInfoCourseId,
+    handleRemovePackage,
   } = useRenewalDashboard();
+
+  const [csvExporting, setCsvExporting] = useState(false);
+
+  // Fetch ALL data (ignoring pagination) and export as CSV
+  const handleExportAllCSV = async () => {
+    setCsvExporting(true);
+    try {
+      const serialized: Record<string, string> = {
+        page: "1",
+        limit: "999999",
+        search: search,
+        cardFilter: activeCard,
+      };
+      for (const [k, v] of Object.entries(filters)) {
+        serialized[k] = Array.isArray(v) ? v.join(",") : v;
+      }
+      const query = new URLSearchParams(serialized);
+      const res = await fetch(`/Api/salesHead/studentPackage?${query}`);
+      const data = await res.json();
+      if (data.success && data.data) {
+        exportLeadsToCSV(data.data, `renewal-leads-${new Date().toISOString().slice(0, 10)}.csv`);
+      } else {
+        alert("Failed to fetch data for export.");
+      }
+    } catch (err) {
+      console.error("CSV export error:", err);
+      alert("Failed to export CSV.");
+    } finally {
+      setCsvExporting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#f4f4f9] text-[#1a1a2e] font-sans pb-10">
@@ -104,8 +137,12 @@ export default function RenewalDashboardPage() {
           <Link href="/salesHead/retention" className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all">
             📊 Retention View
           </Link>
-          <button className="bg-white border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50">
-            ⬇ Export CSV
+          <button
+            onClick={handleExportAllCSV}
+            disabled={csvExporting}
+            className="bg-white border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-wait"
+          >
+            {csvExporting ? "⏳ Exporting..." : "⬇ Export CSV"}
           </button>
         </div>
       </nav>
@@ -140,6 +177,7 @@ export default function RenewalDashboardPage() {
         onStatusChange={handleInlineStatusUpdate}
         onShowInfo={(studentId, courseId) => { setInfoStudentId(studentId); setInfoCourseId(courseId); }}
         onSendTutorChange={handleSendTutorChange}
+        onRemovePackage={handleRemovePackage}
       />
 
       {isModalOpen && editingLead && (
