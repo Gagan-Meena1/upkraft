@@ -2,6 +2,24 @@ import mongoose from 'mongoose';
 import { type } from 'os';
 import feedback from './feedback';
 
+/**
+ * Where the tutor's device was when they started or ended the session.
+ *
+ * Best-effort: a tutor who denies location permission, or is indoors with no
+ * fix, still runs their class — the field is simply absent. Treat a missing
+ * location as "not captured", never as "was not there".
+ */
+const RunLocationSchema = new mongoose.Schema(
+  {
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
+    /** Radius of 68% confidence, in metres, as reported by the device. */
+    accuracy: { type: Number, default: null },
+    capturedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const ClassSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -40,6 +58,33 @@ const ClassSchema = new mongoose.Schema({
   endTime: {
     type: Date,
     required: true
+  },
+
+  // When the tutor actually ran the session, which is rarely exactly the
+  // scheduled window — they start late, finish early, or overrun. `startTime`
+  // /`endTime` stay the plan; these two are the record of what happened.
+  //
+  // `actualEndTime` is also the authoritative "this class is over" signal:
+  // feedback is gated on it (see the mobile client's `classPhase`). A class
+  // with `actualStartTime` set and `actualEndTime` null is live.
+  actualStartTime: {
+    type: Date,
+    default: null
+  },
+  actualEndTime: {
+    type: Date,
+    default: null
+  },
+
+  // Where the tutor was when they pressed Start / End. Optional by design —
+  // see RunLocationSchema.
+  actualStartLocation: {
+    type: RunLocationSchema,
+    default: null
+  },
+  actualEndLocation: {
+    type: RunLocationSchema,
+    default: null
   },
 
   reasonForReschedule: {
@@ -166,4 +211,17 @@ const ClassSchema = new mongoose.Schema({
 ClassSchema.index({ course: 1, startTime: 1 });           // for this query
 ClassSchema.index({ _id: 1, endTime: 1, status: 1 });
 
-export default mongoose.models.Class || mongoose.model('Class', ClassSchema);
+/**
+ * `mongoose.models` lives on the mongoose singleton, which survives the module
+ * recompiles Next does on every save — so a model compiled before a schema edit
+ * outlives that edit. Strict mode then drops assignments to the newly added
+ * paths *silently*: the route sets `actualStartTime`, `save()` reports success,
+ * and nothing is written. Recompiling the model whenever the cached one is
+ * missing a path this file declares is what makes a schema change take effect
+ * without restarting the server.
+ */
+const cached = mongoose.models.Class;
+const stale = !!cached && Object.keys(ClassSchema.paths).some(p => !cached.schema.path(p));
+if (stale) mongoose.deleteModel('Class');
+
+export default (stale ? null : cached) || mongoose.model('Class', ClassSchema);

@@ -5,16 +5,13 @@ import Class from "@/models/Class";
 import { connect } from "@/dbConnection/dbConfic";
 import jwt from "jsonwebtoken";
 import courseName from "@/models/courseName";
+import { requireRole } from "@/helper/requireRole";
 
 export async function GET(request:NextRequest) {
   try {
-    // Auth: check category from token (no DB call)
-    const token = request.cookies.get("token")?.value || "";
-    if (!token) return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    const decoded: any = jwt.decode(token);
-    if (!decoded?.id) return NextResponse.json({ success: false, error: "Invalid token" }, { status: 401 });
-    const normalizedCat = String(decoded.category || "").toLowerCase().replace(/\s/g, "");
-    if (normalizedCat !== "admin" && normalizedCat !== "teamlead") return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
+    // Returns an arbitrary user's profile by id — admins only.
+    const guard = requireRole(request, ["admin"]);
+    if (guard.response) return guard.response;
 
     await connect();
     console.log("Fetching user...");

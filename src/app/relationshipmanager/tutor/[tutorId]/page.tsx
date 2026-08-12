@@ -42,7 +42,16 @@ interface TutorInfo {
   email?: string;
   contact?: string;
   whatsappGroups?: { name: string; link: string }[];
+  /** Minutes before a class ends that this tutor's feedback reminder fires. */
+  classEndReminderMinutes?: number;
 }
+
+/**
+ * Lead times the RM can pick for the tutor's end-of-class feedback reminder.
+ * 5 is the default every tutor starts on.
+ */
+const REMINDER_OPTIONS = [5, 10, 15, 20, 30] as const;
+const DEFAULT_REMINDER_MINUTES = 5;
 
 const STATUS_COLORS: Record<
   string,
@@ -119,6 +128,11 @@ export default function RMTutorCalendarPage() {
   const [attendanceMap, setAttendanceMap] = useState<Record<string, any[]>>({});
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<ClassItem | null>(null);
+
+  // End-of-class feedback reminder timing for this tutor. Held separately from
+  // `tutor` so the select responds instantly while the save is in flight.
+  const [reminderMinutes, setReminderMinutes] = useState<number>(DEFAULT_REMINDER_MINUTES);
+  const [savingReminder, setSavingReminder] = useState(false);
 
   const [pendingResetRequests, setPendingResetRequests] = useState<any[]>([]);
   const [resettingStudentId, setResettingStudentId] = useState<string | null>(null);
@@ -214,6 +228,41 @@ export default function RMTutorCalendarPage() {
     return `${start.toISOString()}_${end.toISOString()}`;
   }, []);
 
+  /**
+   * Save the tutor's end-of-class reminder lead time.
+   *
+   * The select is moved optimistically so it never feels laggy, and rolled
+   * back on failure — leaving it on a value the server rejected would tell the
+   * RM the tutor is being reminded at a time they are not.
+   */
+  const saveReminderMinutes = useCallback(async (minutes: number) => {
+    if (!tutorId) return;
+    const previous = reminderMinutes;
+    setReminderMinutes(minutes);
+    setSavingReminder(true);
+    try {
+      const res = await fetch(
+        `/Api/relationship-manager/tutor/${tutorId}/notification-settings`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ classEndReminderMinutes: minutes }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to save");
+
+      setTutor(prev => (prev ? { ...prev, classEndReminderMinutes: minutes } : prev));
+      toast.success(data.message || "Reminder timing updated");
+    } catch (err: any) {
+      setReminderMinutes(previous);
+      toast.error(err.message || "Could not update reminder timing");
+    } finally {
+      setSavingReminder(false);
+    }
+  }, [tutorId, reminderMinutes]);
+
   const fetchClassesForRange = useCallback(async (start: Date, end: Date, isBackground = false) => {
     if (!tutorId) return;
     const key = getCacheKey(start, end);
@@ -247,6 +296,9 @@ export default function RMTutorCalendarPage() {
 
       if (!isBackground) {
         setTutor(data.tutor || null);
+        setReminderMinutes(
+          data.tutor?.classEndReminderMinutes ?? DEFAULT_REMINDER_MINUTES
+        );
         setClasses(loadedClasses);
         setPendingResetRequests(pendingResets);
       }
@@ -649,10 +701,35 @@ export default function RMTutorCalendarPage() {
               </p>
             </div>
           </div>
-          <div>
+          <div className="flex items-center gap-4">
+            {/* Auto-notification timing — the tutor's app fires the "wrap up
+                and write feedback" reminder this long before each class ends.
+                Only their RM can change it. */}
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="classEndReminderMinutes"
+                className="text-sm text-gray-600 whitespace-nowrap"
+                title="How long before a class ends the tutor's app reminds them to write feedback"
+              >
+                Feedback reminder
+              </label>
+              <select
+                id="classEndReminderMinutes"
+                value={reminderMinutes}
+                disabled={savingReminder || !tutor}
+                onChange={e => saveReminderMinutes(Number(e.target.value))}
+                className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-900 bg-white focus:border-orange-500 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {REMINDER_OPTIONS.map(m => (
+                  <option key={m} value={m}>
+                    {m} min before end{m === DEFAULT_REMINDER_MINUTES ? " (default)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
             <Link
               href={`/relationshipmanager/tutor/${tutorId}/feedbacks`}
-              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-medium rounded-lg hover:from-orange-600 hover:to-orange-500 transition-colors inline-block text-sm"
+              className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-400 text-white font-medium rounded-lg hover:from-orange-600 hover:to-orange-500 transition-colors inline-block text-sm whitespace-nowrap"
             >
               View Student Feedbacks
             </Link>

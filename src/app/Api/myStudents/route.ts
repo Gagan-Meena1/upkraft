@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         email: { $regex: `^${email}$`, $options: 'i' },
         category: "Student",
       })
-        .select('username email contact instructorId city profileImage assignment courses _id')
+        .select('username email contact instructorId address city profileImage assignment courses _id')
         .populate({
           path: 'courses',
           select: 'title category duration price courseQuality performanceScores instructorId',
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
         user: user
           ? {
             username: user.username, email: user.email, contact: user.contact,
-            city: user.city, profileImage: user.profileImage,
+            address: user.address, city: user.city, profileImage: user.profileImage,
             assignment: user.assignment, _id: user._id,
             courses: user.courses, isAlreadyAdded,
           }
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
     const [totalCountRaw, usersRaw] = await Promise.all([
       (User as any).countDocuments(filter),
       (User as any).find(filter)
-        .select('username email contact city profileImage assignment courses attendance instructorId _id')
+        .select('username email contact address city profileImage assignment courses attendance instructorId _id')
         .populate(populateConfig)
         .skip(skip)
         .limit(pageLength)
@@ -154,6 +154,9 @@ export async function GET(request: NextRequest) {
       email: user.email,
       contact: user.contact,
       profileImage: user.profileImage,
+      // Tutors travel to home lessons, so the full street address goes out
+      // alongside the city rather than the city standing in for it.
+      address: user.address,
       city: user.city,
       assignment: user.assignment,
       courses: user.courses,

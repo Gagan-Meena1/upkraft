@@ -133,11 +133,19 @@ export async function GET(request) {
     console.log("[CLASSES  : ", [...allClassIds]);
     console.dir(allClassIds, { maxArrayLength: null });
 
-    // Fetch all classes in one query
+    // Fetch all classes in one query.
+    //
+    // "Over" means the tutor ended it or its slot has passed — a class ended
+    // early is owed feedback straight away, and this list has to hold exactly
+    // what /Api/dashboard/pendingFeedbackCount counts.
     const classes = await Class.find({
       _id: { $in: Array.from(allClassIds) },
-      endTime: { $lt: new Date() },
-      status: { $ne: 'canceled' }
+      status: { $ne: 'canceled' },
+      $or: [
+        { status: 'completed' },
+        { actualEndTime: { $ne: null } },
+        { endTime: { $lt: new Date() } }
+      ]
     }).select("_id title description startTime endTime").lean();
 
     // Create a map for quick class lookup
@@ -229,8 +237,15 @@ export async function GET(request) {
           const classItem = classMap.get(classIdStr);
           if (!classItem) continue;
 
+          // Attendance does not decide whether feedback is owed — a past class
+          // with no feedback is outstanding either way. This used to skip every
+          // student whose register *was* marked, which is exactly the group the
+          // tutor can actually write feedback for, so the list came back empty
+          // while the class screen showed the same students as still due.
+          // `attendanceStatus` is returned below so the client can badge the
+          // unmarked ones and send them to the register first.
           const attendanceStatus = getAttendanceStatus(student, classIdStr);
-          if (attendanceStatus !== "not_marked") continue;
+          if (attendanceStatus === "canceled") continue;
 
           // Safe lookup: use empty Set if category not present
           const feedbackKey = `${student._id}_${classIdStr}`;

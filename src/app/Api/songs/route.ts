@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { Song } from '@/models/Songs';
 import { connect } from '@/dbConnection/dbConfic';
 import fs from 'fs';
@@ -21,10 +22,29 @@ export async function GET(request) {
     const difficulty = searchParams.get('difficulty') || '';
     const instrument = searchParams.get('instrument') || '';
     const institution = searchParams.get('institution') || '';
-    
+    const id = searchParams.get('id') || '';
+
     // Build query filters
-    const query = { isActive: { $ne: false } }; // Only active songs
-    
+    // Typed loosely because every branch below bolts on a different key —
+    // without it TypeScript pins the shape to the initialiser and rejects them.
+    const query: Record<string, any> = { isActive: { $ne: false } }; // Only active songs
+
+    // Single-record lookup, used by the mobile player screen to resolve a song
+    // from its id alone (a deep link, or a restored route) without paging the
+    // whole catalogue. Ignored when absent, so every other caller is unaffected.
+    if (id) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return NextResponse.json(
+          {
+            songs: [],
+            pagination: { currentPage: 1, totalPages: 0, totalCount: 0, hasNextPage: false, hasPrevPage: false },
+            filters: { genres: [], difficulties: [], instruments: [] },
+          },
+        );
+      }
+      query._id = new mongoose.Types.ObjectId(id);
+    }
+
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },

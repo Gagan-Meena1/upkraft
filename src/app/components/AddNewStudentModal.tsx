@@ -106,8 +106,13 @@ const AddNewStudentModal = () => {
                         </div>
                         <div className='col-md-12'>
                             <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
-                                <Form.Label className='w-100 d-block'>Home Address</Form.Label>
-                                <Form.Control type="text" placeholder="45xxxxx" />
+                                <Form.Label className='w-100 d-block'>Home Address <span className="text-danger">*</span></Form.Label>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={3}
+                                  required
+                                  placeholder="House / flat number, street, area, city and pincode"
+                                />
                             </Form.Group>
                         </div>
                         <div className='col-md-12'>

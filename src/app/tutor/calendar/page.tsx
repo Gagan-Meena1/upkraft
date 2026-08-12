@@ -46,6 +46,8 @@ interface ClassItem {
   student?: { _id: string; username?: string };
   studentName?: string;
   joinLink?: string;
+  /** True when the student has no recorded payment for this class's course. */
+  isDemo?: boolean;
 }
 
 interface Student {
@@ -1383,6 +1385,11 @@ const StudentCalendarView = () => {
                                             classItem.endTime
                                           )}
                                         </div>
+                                        {classItem.isDemo && (
+                                          <span className="inline-block mt-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-semibold uppercase tracking-wide">
+                                            Demo
+                                          </span>
+                                        )}
                                       </div>
                                     );
                                   })
@@ -1517,9 +1524,16 @@ const StudentCalendarView = () => {
         <Modal.Header closeButton className="border-0 pb-0">
           <div className="flex items-start justify-between w-full">
             <div>
-              <h5 className="mb-0 text-lg font-semibold">
-                {selectedClass?.title || "Class"}
-              </h5>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h5 className="mb-0 text-lg font-semibold">
+                  {selectedClass?.title || "Class"}
+                </h5>
+                {selectedClass?.isDemo && (
+                  <span className="inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-semibold uppercase tracking-wide">
+                    Demo Class
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-gray-500 mt-1">
                 {selectedClass?.studentName ||
                   selectedClass?.student?.username ||

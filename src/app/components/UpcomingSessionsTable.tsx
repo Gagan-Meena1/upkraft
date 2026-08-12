@@ -7,7 +7,10 @@ export interface UpcomingSessionRow {
   time: string;
   course: string;
   secondary: ReactNode;
-  onJoin: () => void;
+  /** Omit to render `action` instead of the Join button (e.g. completed sessions). */
+  onJoin?: () => void;
+  /** Rendered in the action column when there is nothing to join. */
+  action?: ReactNode;
 }
 
 interface UpcomingSessionsTableProps {
@@ -80,12 +83,16 @@ const UpcomingSessionsTable: React.FC<UpcomingSessionsTableProps> = ({
                     <td>{row.course}</td>
                     <td>{row.secondary}</td>
                     <td>
-                      <button
-                        onClick={row.onJoin}
-                        className="bg-purple-700 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        {joinLabel}
-                      </button>
+                      {row.onJoin ? (
+                        <button
+                          onClick={row.onJoin}
+                          className="bg-purple-700 text-white px-3 py-1 rounded text-sm font-medium hover:bg-blue-700 transition-colors"
+                        >
+                          {joinLabel}
+                        </button>
+                      ) : (
+                        row.action ?? null
+                      )}
                     </td>
                   </tr>
                 ))

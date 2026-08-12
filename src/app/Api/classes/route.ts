@@ -693,7 +693,50 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// PATCH - Update class title only (mobile app — no reschedule emails, no status change)
+/**
+ * Coerce a client-supplied position into something storable, or null.
+ *
+ * Location is supplementary evidence, so anything malformed is dropped rather
+ * than failing the request — refusing to start a class over a bad GPS reading
+ * would be the wrong trade.
+ */
+function sanitizeRunLocation(raw: any, capturedAt: Date) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const latitude = Number(raw.latitude);
+  const longitude = Number(raw.longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+  // (0, 0) is in the Gulf of Guinea — it is a stuck sensor, not a classroom.
+  if (latitude === 0 && longitude === 0) return null;
+
+  const accuracy = Number(raw.accuracy);
+  return {
+    latitude,
+    longitude,
+    accuracy: Number.isFinite(accuracy) && accuracy >= 0 ? accuracy : null,
+    capturedAt,
+  };
+}
+
+/**
+ * PATCH - in-place edits from the mobile app. No reschedule emails.
+ *
+ * Two shapes:
+ *   { title }                        rename the class
+ *   { action: 'start', location? }   the tutor is starting the session now
+ *   { action: 'end',   location? }   the tutor is ending the session now
+ *
+ * Start/end record what actually happened (`actualStartTime` /
+ * `actualEndTime`), which is rarely the scheduled window. `actualEndTime` is
+ * what marks the class genuinely over — the mobile client gates feedback on
+ * it — so ending also moves `status` to `completed`.
+ *
+ * `location` is `{ latitude, longitude, accuracy? }` from the tutor's device,
+ * stored as `actualStartLocation` / `actualEndLocation`. It is optional and
+ * best-effort: a denied permission or a bad reading is dropped silently rather
+ * than blocking the tutor from running their class.
+ */
 export async function PATCH(request: NextRequest) {
   try {
     await connect();
@@ -704,7 +747,95 @@ export async function PATCH(request: NextRequest) {
     const userId = await getDataFromToken(request);
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { title } = await request.json();
+    const body = await request.json();
+    const action = typeof body?.action === 'string' ? body.action.trim().toLowerCase() : null;
+
+    // ── Start / end the session ──────────────────────────────────────────────
+    if (action === 'start' || action === 'end') {
+      const cls = await Class.findById(classId);
+      if (!cls) return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+
+      // Only the tutor running the class may start or end it.
+      //
+      // Two signals, because either can be the real link: `instructor` is set
+      // from whoever *created* the class (an academy admin or RM may have
+      // created it on the tutor's behalf), while the tutor's own `classes`
+      // array is what GET already scopes reads by.
+      const isInstructor = cls.instructor?.toString() === userId.toString();
+      let isOwner = isInstructor;
+      if (!isOwner) {
+        const caller = await User.findById(userId).select('classes category').lean() as any;
+        const teaches = caller?.category === 'Tutor' || caller?.category === 'Academic';
+        isOwner = !!teaches && (caller?.classes ?? []).some(
+          (cId: any) => cId?.toString() === classId
+        );
+      }
+      if (!isOwner) {
+        return NextResponse.json(
+          { error: 'Only the tutor running this class can start or end it' },
+          { status: 403 }
+        );
+      }
+
+      if (cls.status === 'canceled') {
+        return NextResponse.json(
+          { error: 'This class was cancelled and cannot be started or ended' },
+          { status: 409 }
+        );
+      }
+
+      const now = new Date();
+      const where = sanitizeRunLocation(body?.location, now);
+
+      if (action === 'start') {
+        // Already ended is a real conflict; already started is just a repeat
+        // tap on a flaky connection, so echo the current state instead.
+        if (cls.actualEndTime) {
+          return NextResponse.json(
+            { error: 'This class has already ended' },
+            { status: 409 }
+          );
+        }
+        if (cls.actualStartTime) {
+          return NextResponse.json({ success: true, data: cls, alreadyStarted: true });
+        }
+        cls.actualStartTime = now;
+        if (where) cls.actualStartLocation = where;
+      } else {
+        if (cls.actualEndTime) {
+          return NextResponse.json({ success: true, data: cls, alreadyEnded: true });
+        }
+        // Ending without a recorded start is allowed — a tutor who forgot to
+        // press Start should still be able to close the class out. We just
+        // don't invent a start time we never observed.
+        cls.actualEndTime = now;
+        if (where) cls.actualEndLocation = where;
+        cls.status = 'completed';
+      }
+
+      await cls.save();
+
+      // Read the field back off the saved document rather than trusting that
+      // the assignment above took. A model compiled against an older schema
+      // drops an unknown path without complaining, and a 200 here would tell
+      // the tutor their class is running when nothing was recorded.
+      const recorded = action === 'start' ? cls.actualStartTime : cls.actualEndTime;
+      if (!recorded) {
+        console.error(
+          `Class ${classId}: '${action}' did not persist actual${action === 'start' ? 'Start' : 'End'}Time. ` +
+          `Registered Class schema is missing the field — restart the server so the model recompiles.`
+        );
+        return NextResponse.json(
+          { error: `Could not record the ${action} time. Please try again.` },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ success: true, data: cls });
+    }
+
+    // ── Rename ───────────────────────────────────────────────────────────────
+    const { title } = body;
     if (!title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 });
 
     const updatedClass = await Class.findByIdAndUpdate(
@@ -716,7 +847,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: updatedClass });
   } catch (error: any) {
-    console.error('Error updating class title:', error);
+    console.error('Error updating class:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

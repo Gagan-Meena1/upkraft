@@ -428,6 +428,17 @@ const userSchema = new mongoose.Schema({
         ref: "users",
         default: null,
     },
+    // For tutors: how many minutes before a class ends the mobile app fires the
+    // "wrap up and write feedback" reminder. Owned by the tutor's Relationship
+    // Manager (see /Api/relationship-manager/tutor/[tutorId]/notification-settings)
+    // — the tutor cannot change it themselves. The bounds match the ones the
+    // mobile client enforces in lib/notifications.ts.
+    classEndReminderMinutes: {
+        type: Number,
+        default: 5,
+        min: 1,
+        max: 60,
+    },
     instruments: {
         type: [String],
         default: [],

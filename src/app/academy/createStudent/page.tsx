@@ -9,8 +9,9 @@ interface AddStudentFormData {
   email: string;
   password: string;
   contact: string;
+  address: string;
   category: string;
-    addedBy: string; 
+    addedBy: string;
     mode?: string;
 
 }
@@ -21,8 +22,9 @@ const AddStudentPage = () => {
     email: "",
     password: "",
     contact: "",
+    address: "",
     category: "Student",
-      addedBy: "self", 
+      addedBy: "self",
       mode:""
 
   });
@@ -62,6 +64,7 @@ const AddStudentPage = () => {
             ...prev,
             username: data.user.username || "",
             contact: data.user.contact || "",
+            address: data.user.address || "",
             password: "", // Clear password as it's not needed for existing students
             mode: ""
           }));
@@ -90,9 +93,9 @@ const AddStudentPage = () => {
     return () => clearTimeout(debounceTimer);
   }, [formData.email]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
+
     if (name === 'email') {
       // Reset form except for the new email
       setFormData(prev => ({
@@ -100,6 +103,7 @@ const AddStudentPage = () => {
         email: value,
         password: "",
         contact: "",
+        address: "",
         category: "Student",
        addedBy: "self", // Change from prev.addedBy to "self"
        mode:""
@@ -162,6 +166,7 @@ const AddStudentPage = () => {
         email: "",
         password: "",
         contact: "",
+        address: "",
         category: "Student",
      addedBy: "self", // Change from "" to "self"
       mode:""
@@ -345,6 +350,30 @@ const AddStudentPage = () => {
                   }`}
                   placeholder="Enter student's contact number"
                 />
+              </div>
+
+              {/* Home Address - Required. Tutors travel to home lessons, so a
+                  student without one cannot be routed to. */}
+              <div>
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                  Home Address <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="address"
+                  name="address"
+                  required
+                  rows={3}
+                  value={formData.address}
+                  onChange={handleChange}
+                  disabled={existingStudent.exists}
+                  className={`mt-1 block w-full text-black rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 px-3 py-2 border ${
+                    existingStudent.exists ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
+                  placeholder="House / flat number, street, area, city and pincode"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Full address including city and pincode — used for directions to home classes
+                </p>
               </div>
 
               {/* Password Input - Only shown for new students */}

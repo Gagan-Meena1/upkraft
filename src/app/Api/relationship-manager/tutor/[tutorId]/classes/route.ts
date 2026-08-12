@@ -66,7 +66,7 @@ export async function GET(
     }
 
     const tutor = await User.findById(tutorId)
-      .select("_id username email relationshipManager classes whatsappGroups")
+      .select("_id username email relationshipManager classes whatsappGroups classEndReminderMinutes")
       .lean();
 
     if (!tutor) {
@@ -97,7 +97,12 @@ export async function GET(
     if (classIds.length === 0) {
       return NextResponse.json({
         success: true,
-        tutor: { _id: tutor._id, username: tutor.username, email: tutor.email },
+        tutor: {
+          _id: tutor._id,
+          username: tutor.username,
+          email: tutor.email,
+          classEndReminderMinutes: (tutor as any).classEndReminderMinutes ?? 5,
+        },
         classes: [],
       });
     }
@@ -183,7 +188,15 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      tutor: { _id: tutor._id, username: tutor.username, email: tutor.email, contact: (tutor as any).contact || "", whatsappGroups: (tutor as any).whatsappGroups || [] },
+      tutor: {
+        _id: tutor._id,
+        username: tutor.username,
+        email: tutor.email,
+        whatsappGroups: (tutor as any).whatsappGroups || [],
+        // Lets the RM page show the current reminder timing without a second
+        // round trip; the default stands in for tutors predating the field.
+        classEndReminderMinutes: (tutor as any).classEndReminderMinutes ?? 5,
+      },
       classes: classesWithStudents,
       pendingResetRequests: pendingResetRequests,
     });

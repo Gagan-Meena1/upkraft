@@ -90,11 +90,22 @@ export async function GET(request) {
       return NextResponse.json({ success: true, count: 0 });
     }
 
-    // Fetch all past classes
+    // Fetch every class that is over.
+    //
+    // A tutor who ends a class early has finished teaching it, so the feedback
+    // is owed from that moment — waiting for the scheduled endTime to pass
+    // would hide it from this badge for the rest of the slot. `status` and
+    // `actualEndTime` are both checked because ending sets both, but a class
+    // completed from the web sets only the status. Kept in step with
+    // /Api/pendingFeedback, whose list this number has to match.
     const pastClasses = await Class.find({
       _id: { $in: allClassIds },
-      endTime: { $lt: new Date() },
-      status: { $ne: 'canceled' }
+      status: { $ne: 'canceled' },
+      $or: [
+        { status: 'completed' },
+        { actualEndTime: { $ne: null } },
+        { endTime: { $lt: new Date() } }
+      ]
     }).select("_id").lean();
 
     if (!pastClasses.length) {
@@ -211,12 +222,18 @@ studentDataMap.set(studentId, {
     return;
   }
         
-         // Skip if attendance has been marked (any status)
-  const attendanceStatus = studentData.attendanceMap.get(classIdStr);
-  if (attendanceStatus && attendanceStatus !== "not_marked") {
-    return;
-  }
-        
+        // Attendance does not decide whether feedback is owed — a past class
+        // with no feedback is outstanding either way. This used to skip every
+        // student whose register *was* marked, i.e. exactly the ones the tutor
+        // can write feedback for, so the badge read 0 while the class screen
+        // listed the same students as due. Kept in step with
+        // /Api/pendingFeedback, whose list this number has to match.
+        const attendanceStatus = studentData.attendanceMap.get(classIdStr);
+        if (attendanceStatus === "canceled") {
+          return;
+        }
+
+
         // Check if feedback exists
         const feedbackKey = `${studentId}_${classIdStr}`;
         if (!feedbackSet.has(feedbackKey)) {
