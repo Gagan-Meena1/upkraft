@@ -10,7 +10,7 @@ import { requireRole } from "@/helper/requireRole";
 export async function GET(request:NextRequest) {
   try {
     // Returns an arbitrary user's profile by id — admins only.
-    const guard = requireRole(request, ["admin"]);
+    const guard = requireRole(request, ["admin", "teamlead"]);
     if (guard.response) return guard.response;
 
     await connect();
