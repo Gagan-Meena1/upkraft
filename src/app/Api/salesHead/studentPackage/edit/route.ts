@@ -28,6 +28,7 @@ export async function PUT(request: NextRequest) {
             dropReason,
             classesPaid,
             sendTutor,
+            show,
         } = reqBody;
 
         if (!studentId) {
@@ -43,6 +44,12 @@ export async function PUT(request: NextRequest) {
         if (salesSPOC !== undefined) updateData.salesSPOC = salesSPOC;
         if (hideFromRenewalDashboard !== undefined) updateData.hideFromRenewalDashboard = hideFromRenewalDashboard;
         if (rm !== undefined) updateData.studentRM = rm;
+        if (sendTutor !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.sendTutor`] = sendTutor;
+        }
+        if (show !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {
+            updateData[`creditsPerCourse.${courseEntryIndex}.startTime.${entryIndex}.show`] = show;
+        }
 
         // Entry-level fields (renewalStatus, renewalNotes, notes live inside creditsPerCourse[].startTime[])
         if (renewalStatus !== undefined && courseEntryIndex !== undefined && entryIndex !== undefined) {

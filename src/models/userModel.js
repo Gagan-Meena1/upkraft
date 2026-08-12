@@ -117,6 +117,10 @@ const userSchema = new mongoose.Schema({
                         enum: ['yes', 'no', 'wait'],
                         default: 'wait',
                     },
+                    show: {
+                        type: Boolean,
+                        default: true,
+                    }
 
                 }]
             },

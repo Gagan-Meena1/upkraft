@@ -19,7 +19,7 @@ const ROLE_SECTIONS: { prefix: string; roles: string[] }[] = [
   { prefix: '/academy', roles: ['academic', 'admin'] },
   { prefix: '/teamlead', roles: ['teamlead', 'admin'] },
   { prefix: '/relationshipmanager', roles: ['relationshipmanager', 'admin'] },
-  { prefix: '/salesHead', roles: ['saleshead', 'academic', 'admin'] },
+  { prefix: '/salesHead', roles: ['saleshead', 'academic', 'admin', 'teamlead', 'relationshipmanager'] },
   { prefix: '/tutor', roles: ['tutor', 'admin', 'teamlead', 'relationshipmanager'] },
   { prefix: '/student', roles: ['student', 'admin', 'tutor', 'teamlead', 'relationshipmanager'] },
 ];

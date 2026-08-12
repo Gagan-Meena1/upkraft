@@ -10,6 +10,7 @@ interface Props {
     onStatusChange: (id: string, studentId: string, status: string, dropReason?: string) => void;
     onShowInfo: (studentId: string, courseId: string) => void;
     onSendTutorChange: (lead: Lead, value: string) => void;
+    onRemovePackage: (id: string, studentId: string, courseEntryIndex: number, entryIndex: number) => void;
 }
 
 const urgencyOf = (l: Lead) => {
@@ -51,7 +52,7 @@ function DaysPill({ l }: { l: Lead }) {
 
 }
 
-export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onShowInfo, onSendTutorChange }: Props) {
+export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onShowInfo, onSendTutorChange, onRemovePackage }: Props) {
     const u = urgencyOf(l);
     const s = STATUS_STYLE[l.renewalStatus] || { bg: "#f3f4f6", color: "#6b7280" };
     const [showNotes, setShowNotes] = useState(false);
@@ -72,7 +73,7 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                 {/* Customer — sticky */}
                 <td className="px-4 py-3 align-middle sticky left-0 bg-white z-10">
                     <div className="font-bold text-gray-900 text-[12px] truncate max-w-[150px]" title={l.custName}>{l.custName || "Unknown"}</div>
-                    <div 
+                    <div
                         className="text-[11px] text-gray-500 truncate max-w-[150px] cursor-pointer hover:text-indigo-600 hover:underline flex items-center gap-1"
                         onClick={() => onShowInfo(l.studentId, l.courseId)}
                         title="Click to view student details"
@@ -211,6 +212,7 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                 </td>
 
                 {/* Actions */}
+                {/* Actions */}
                 <td className="px-4 py-3 align-middle">
                     <div className="flex items-center gap-1">
                         <button onClick={() => onEdit(l)}
@@ -223,12 +225,23 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
                         </button>
                     </div>
                 </td>
+
+                {/* Remove package */}
+                <td className="px-4 py-3 align-middle">
+                    <button
+                        onClick={() => onRemovePackage(l.id, l.studentId, l.courseEntryIndex, l.entryIndex)}
+                        className="px-2.5 py-1.5 border border-gray-300 rounded text-[11px] font-semibold text-gray-600 bg-white hover:bg-red-50 hover:text-red-600 hover:border-red-300 transition-colors shadow-sm whitespace-nowrap"
+                        title="Remove this package from the dashboard"
+                    >
+                        🗑 Remove
+                    </button>
+                </td>
             </tr>
 
             {/* Notes Popup */}
             {showNotes && (
                 <tr>
-                    <td colSpan={20} className="p-0">
+                    <td colSpan={21} className="p-0">
                         <div className="fixed inset-0 bg-black/30 z-[100] flex items-center justify-center p-4"
                             onClick={() => setShowNotes(false)}>
                             <div className="bg-white rounded-xl w-full max-w-md shadow-2xl overflow-hidden"
@@ -295,7 +308,7 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
             {/* Drop Reason Modal */}
             {showDropModal && (
                 <tr>
-                    <td colSpan={20} className="p-0">
+                    <td colSpan={21} className="p-0">
                         <div className="fixed inset-0 bg-black/30 z-[100] flex items-center justify-center p-4"
                             onClick={() => setShowDropModal(false)}>
                             <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl overflow-hidden"
@@ -374,7 +387,7 @@ export default function LeadRow({ lead: l, onEdit, onHide, onStatusChange, onSho
             {/* Edit Drop Reason Modal (when already Dropped) */}
             {showEditDropReason && (
                 <tr>
-                    <td colSpan={20} className="p-0">
+                    <td colSpan={21} className="p-0">
                         <div className="fixed inset-0 bg-black/30 z-[100] flex items-center justify-center p-4"
                             onClick={() => setShowEditDropReason(false)}>
                             <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl overflow-hidden"

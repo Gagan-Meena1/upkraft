@@ -10,6 +10,7 @@ interface Props {
     onStatusChange: (id: string, sId: string, val: string, dropReason?: string) => void;
     onShowInfo: (studentId: string, courseId: string) => void;
     onSendTutorChange: (lead: Lead, value: string) => void;
+    onRemovePackage: (id: string, studentId: string, courseEntryIndex: number, entryIndex: number) => void;
 }
 const HEADERS = [
     { label: "Customer / Student", className: "sticky left-0 z-20 bg-[#faf9ff] min-w-[160px]" },
@@ -32,9 +33,10 @@ const HEADERS = [
     { label: "Send Tutor", className: "" },
     { label: "Notes", className: "" },
     { label: "Action", className: "" },
+    { label: "Remove", className: "" },
 ];
 
-export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChange, onShowInfo, onSendTutorChange }: Props) {
+export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChange, onShowInfo, onSendTutorChange, onRemovePackage }: Props) {
     return (
         <div className="px-5 overflow-x-auto pb-8 mt-2">
             <div className="rounded-xl border border-gray-200">
@@ -54,13 +56,22 @@ export default function LeadTable({ leads, loading, onEdit, onHide, onStatusChan
                             Array.from({ length: 10 }).map((_, i) => <SkeletonRow key={i} />)
                         ) : leads.length === 0 ? (
                             <tr>
-                                <td colSpan={20} className="text-center py-16 text-gray-400">
+                                <td colSpan={21} className="text-center py-16 text-gray-400">
                                     <div className="text-3xl mb-2">🔍</div>
                                     No students match your filters
                                 </td>
                             </tr>
                         ) : leads.map(l => (
-                            <LeadRow key={l.id} lead={l} onEdit={onEdit} onHide={onHide} onStatusChange={onStatusChange} onShowInfo={onShowInfo} onSendTutorChange={onSendTutorChange} />
+                            <LeadRow
+                                key={l.id}
+                                lead={l}
+                                onEdit={onEdit}
+                                onHide={onHide}
+                                onStatusChange={onStatusChange}
+                                onShowInfo={onShowInfo}
+                                onSendTutorChange={onSendTutorChange}
+                                onRemovePackage={onRemovePackage}
+                            />
                         ))}
                     </tbody>
                 </table>
