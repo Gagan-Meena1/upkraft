@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
                         latestEntry = entries[i];
                     }
                 }
+                if (latestEntry.show === false) continue;
 
                 for (const cId of (latestEntry.classIds || [])) {
                     const idStr = cId.toString();
