@@ -88,6 +88,7 @@ export async function GET(request: NextRequest) {
                     const latestDate = new Date(latestEntry.date || 0);
                     if (entryDate > latestDate) latestEntry = startTimeEntries[i];
                 }
+                if (latestEntry.show === false) continue;
                 for (const cId of (latestEntry.classIds || [])) {
                     allPkgClassIds.add(cId.toString());
                 }
@@ -135,6 +136,7 @@ export async function GET(request: NextRequest) {
                     const latestDate = new Date(latestEntry.date || 0);
                     if (entryDate > latestDate) latestEntry = startTimeEntries[i];
                 }
+                if (latestEntry.show === false) continue;
 
                 // Compute dynamic endDate from classIds
                 const classIds = latestEntry.classIds || [];

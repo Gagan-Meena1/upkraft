@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
                         latestEntry = startTimeEntries[si];
                     }
                 }
+                if (latestEntry.show === false) continue;
 
                 if (latestEntry.renewalStatus === "Dropped") {
                     let reason = (latestEntry.dropReason || "").trim();
