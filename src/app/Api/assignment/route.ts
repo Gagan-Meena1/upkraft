@@ -103,7 +103,12 @@ export async function POST(request: NextRequest) {
             {
               resource_type: "raw",
               folder: "assignments",
-              public_id: `${Date.now()}-${assignmentFile.name.split('.')[0]}`,
+              // Extension kept. A raw asset is served with the content type its
+              // public_id implies, and `.split('.')[0]` dropped it — so an
+              // uploaded JPEG or PDF came back as application/octet-stream,
+              // which neither an inline image preview nor an external PDF
+              // viewer can do anything useful with.
+              public_id: `${Date.now()}-${assignmentFile.name}`,
               use_filename: true,
               unique_filename: false,
             },
@@ -118,7 +123,11 @@ export async function POST(request: NextRequest) {
         assignmentData.fileName = assignmentFile.name;
         assignmentData.cloudinaryPublicId = uploadResult.public_id;
 
-      } catch (uploadError) {
+      } catch (uploadError: any) {
+        // Logged because this is the one 500 the route can return without any
+        // trace of why — a blank CLOUDINARY_* env looks identical to a network
+        // failure from the client side.
+        console.error('Assignment file upload to Cloudinary failed:', uploadError?.message || uploadError);
         return NextResponse.json({
           success: false,
           message: 'File upload failed. Please try again.'
@@ -942,6 +951,10 @@ export async function GET(request: NextRequest) {
             tutorRemarks: sub.tutorRemarks || '',
             fileUrl: sub.fileUrl || '',
             fileName: sub.fileName || '',
+            // Carried through so the tutor can see the marked-up file they
+            // sent back, not just the student's original.
+            correctionFileUrl: sub.correctionFileUrl || '',
+            correctionFileName: sub.correctionFileName || '',
             rating: sub.rating,
             ratingMessage: sub.ratingMessage || '',
           })),
@@ -1201,7 +1214,8 @@ export async function PUT(request: NextRequest) {
             {
               resource_type: "raw",
               folder: "assignments",
-              public_id: `${Date.now()}-${assignmentFile.name.split('.')[0]}`,
+              // Extension kept, for the same reason as in POST above.
+              public_id: `${Date.now()}-${assignmentFile.name}`,
               use_filename: true,
               unique_filename: false,
             },
