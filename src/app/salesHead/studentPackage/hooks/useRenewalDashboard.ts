@@ -239,6 +239,29 @@ export function useRenewalDashboard() {
         }
     };
 
+    const handleRemovePackage = async (id: string, studentId: string, courseEntryIndex: number, entryIndex: number) => {
+        if (!confirm("Do you want to remove this package? It will no longer appear on the renewal dashboard.")) return;
+
+        // Optimistic removal
+        setLeads(prev => prev.filter(l => l.id !== id));
+        setTotalItems(prev => prev - 1);
+
+        try {
+            const res = await fetch("/Api/salesHead/studentPackage/edit", {
+                method: "PUT", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ studentId, show: false, courseEntryIndex, entryIndex })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
+            toast.success("Package removed");
+            cache.current = {};
+            fetchStats();
+        } catch (err: any) {
+            toast.error(err.message || "Failed to remove package");
+            fetchPage(page);
+        }
+    };
+
     const handleSaveModal = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingLead) return;
@@ -308,10 +331,11 @@ export function useRenewalDashboard() {
         renewalFrequency, setRenewalFrequency,
         renewalAmount, setRenewalAmount,
         handleRenewalSubmit,
-        
+
         infoStudentId,
         setInfoStudentId,
         infoCourseId,
         setInfoCourseId,
+        handleRemovePackage,
     };
 }

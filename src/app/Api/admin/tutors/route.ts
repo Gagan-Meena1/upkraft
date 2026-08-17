@@ -6,7 +6,7 @@ import { requireRole } from "@/helper/requireRole";
 export async function GET(req: NextRequest)  {
   try {
     // This returns every tutor on the platform — admins only.
-    const guard = requireRole(req, ["admin"]);
+    const guard = requireRole(req, ["admin", "teamlead"]);
     if (guard.response) return guard.response;
 
     await connect();

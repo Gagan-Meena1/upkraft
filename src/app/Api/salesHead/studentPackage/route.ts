@@ -86,6 +86,8 @@ export async function GET(request: NextRequest) {
                         latestIndex = si;
                     }
                 }
+                if (latestEntry.show === false) continue;
+
 
                 // Add to flat list
                 allPackages.push({
