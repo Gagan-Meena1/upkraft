@@ -101,12 +101,21 @@ export async function GET(request) {
                 username: user.username,
                 email: user.email,
                 submissionStatus: studentSubmission?.status || "PENDING",
+                // The schema field is `studentMessage`, and the PUT below
+                // writes it under that name. Reading `message` /
+                // `submissionMessage` — neither of which exists on the
+                // subdocument — meant this was always "", so the student's
+                // note never reached the app. The old names stay as
+                // fallbacks in case any document predates the rename.
                 submissionMessage:
+                  studentSubmission?.studentMessage ||
                   studentSubmission?.message ||
                   studentSubmission?.submissionMessage ||
                   "",
                 submissionFileUrl: studentSubmission?.fileUrl || "",
                 submissionFileName: studentSubmission?.fileName || "",
+                correctionFileUrl: studentSubmission?.correctionFileUrl || "",
+                correctionFileName: studentSubmission?.correctionFileName || "",
                 tutorRemarks: studentSubmission?.tutorRemarks || "",
                 rating: studentSubmission?.rating || null,
                 ratingMessage: studentSubmission?.ratingMessage || "",
@@ -252,7 +261,9 @@ export async function PUT(request) {
                     {
                       resource_type: "raw",
                       folder: "assignment-corrections",
-                      public_id: `${Date.now()}-${correctionFile.name.split(".")[0]}`,
+                      // Extension kept, for the same reason as the submission
+                      // upload below.
+                      public_id: `${Date.now()}-${correctionFile.name}`,
                       use_filename: true,
                       unique_filename: false,
                     },
@@ -381,9 +392,19 @@ export async function PUT(request) {
           { status: 400 }
         );
       } else {
+        // The two submit screens in the app disagree on field names — the
+        // assignment detail sheet sends `submissionMessage`/`assignmentFile`,
+        // the class sheet sends `studentMessage`/`assignmentFile`. Reading only
+        // `submissionFile`/`file` meant every attachment was dropped on the
+        // floor, so `submissionFileUrl` came back empty for every student.
         submissionMessage =
-          formData.get("submissionMessage") || formData.get("message");
-        submissionFile = formData.get("submissionFile") || formData.get("file");
+          formData.get("submissionMessage") ||
+          formData.get("studentMessage") ||
+          formData.get("message");
+        submissionFile =
+          formData.get("assignmentFile") ||
+          formData.get("submissionFile") ||
+          formData.get("file");
       }
     }
 
@@ -488,9 +509,17 @@ export async function PUT(request) {
       }
     }
 
-    if (!submissionMessage || !submissionMessage.toString().trim()) {
+    const hasFile =
+      submissionFile instanceof File && submissionFile.size > 0;
+
+    // A note alone or a file alone is a valid submission — the class-detail
+    // sheet leaves the note optional when work is attached.
+    if (
+      (!submissionMessage || !submissionMessage.toString().trim()) &&
+      !hasFile
+    ) {
       return NextResponse.json(
-        { success: false, message: "Submission message is required" },
+        { success: false, message: "A submission message or file is required" },
         { status: 400 }
       );
     }
@@ -504,11 +533,7 @@ export async function PUT(request) {
     }
 
     let fileData = {};
-    if (
-      submissionFile &&
-      submissionFile instanceof File &&
-      submissionFile.size > 0
-    ) {
+    if (hasFile) {
       try {
         const fileBuffer = Buffer.from(await submissionFile.arrayBuffer());
 
@@ -518,7 +543,10 @@ export async function PUT(request) {
               {
                 resource_type: "raw",
                 folder: "assignment-submissions",
-                public_id: `${Date.now()}-${submissionFile.name.split(".")[0]}`,
+                // Extension kept so the stored URL serves a usable content
+                // type — the app previews image submissions inline and hands
+                // PDFs to the OS viewer, and both need it.
+                public_id: `${Date.now()}-${submissionFile.name}`,
                 use_filename: true,
                 unique_filename: false,
               },
@@ -550,7 +578,7 @@ export async function PUT(request) {
 
     const submissionData = {
       studentId: userId,
-      studentMessage: submissionMessage.toString(),
+      studentMessage: submissionMessage ? submissionMessage.toString() : "",
       status: "SUBMITTED",
       submittedAt: new Date(),
       ...fileData,
