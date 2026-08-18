@@ -231,7 +231,7 @@ export async function GET(request) {
         // register was complete — while the class screen still listed every
         // one of them as due. Only a feedback record decrements this now.
         const attendanceStatus = studentData.attendanceMap.get(classIdStr);
-        if (attendanceStatus === "absent" || attendanceStatus === "canceled") {
+        if (attendanceStatus !== undefined) {
           return;
         }
 
