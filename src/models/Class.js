@@ -76,8 +76,20 @@ const ClassSchema = new mongoose.Schema({
     default: null
   },
 
+  // True when `actualStartTime`/`actualEndTime` were filled in after the fact
+  // rather than observed live — a tutor recording a class they taught but
+  // never pressed Start on. The times are then the tutor's account of the
+  // session, not a measurement of it, and anything reading drift or location
+  // off this class should say so.
+  runBackfilled: {
+    type: Boolean,
+    default: false
+  },
+
   // Where the tutor was when they pressed Start / End. Optional by design —
-  // see RunLocationSchema.
+  // see RunLocationSchema. Never set on a backfilled run: the tutor is not
+  // there any more, so a fix taken then would place them somewhere they were
+  // not at the time.
   actualStartLocation: {
     type: RunLocationSchema,
     default: null
