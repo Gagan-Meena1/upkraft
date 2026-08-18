@@ -222,14 +222,16 @@ export async function GET(request) {
           return;
         }
 
-        // Attendance does not decide whether feedback is owed — a past class
-        // with no feedback is outstanding either way. This used to skip every
-        // student whose register *was* marked, i.e. exactly the ones the tutor
-        // can write feedback for, so the badge read 0 while the class screen
-        // listed the same students as due. Kept in step with
-        // /Api/pendingFeedback, whose list this number has to match.
+        // Only a student who was not in the room is off the hook. Kept in
+        // step with /Api/pendingFeedback, whose list this number has to match.
+        //
+        // Taking the register is not writing the feedback. This used to drop
+        // a student the moment they had any attendance record, so the badge
+        // counted down as the tutor marked a class and hit zero once the
+        // register was complete — while the class screen still listed every
+        // one of them as due. Only a feedback record decrements this now.
         const attendanceStatus = studentData.attendanceMap.get(classIdStr);
-        if (attendanceStatus !== undefined) {
+        if (attendanceStatus === "absent" || attendanceStatus === "canceled") {
           return;
         }
 

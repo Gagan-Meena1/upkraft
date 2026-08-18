@@ -237,15 +237,23 @@ export async function GET(request) {
           const classItem = classMap.get(classIdStr);
           if (!classItem) continue;
 
-          // Attendance does not decide whether feedback is owed — a past class
-          // with no feedback is outstanding either way. This used to skip every
-          // student whose register *was* marked, which is exactly the group the
-          // tutor can actually write feedback for, so the list came back empty
-          // while the class screen showed the same students as still due.
-          // `attendanceStatus` is returned below so the client can badge the
-          // unmarked ones and send them to the register first.
+          // Only a student who was not in the room is off the hook.
+          //
+          // Taking the register is not writing the feedback. This used to drop
+          // a student the moment they had *any* attendance record, so the list
+          // shrank as the tutor marked their way down a class and emptied
+          // completely once the register was done — feedback that had never
+          // been written simply stopped being asked for, and the tutor's own
+          // "Feedback due" count fell as they worked. Only a feedback record
+          // clears a row now (checked below).
+          //
+          // `absent` and `canceled` are the exception: there was no lesson for
+          // that student, so there is nothing to rate and the mobile client
+          // will not open the form for them either (`feedbackGate`).
+          // `not_marked` stays in — it is owed, it just needs the register
+          // first, which is what `attendanceStatus` lets the client badge.
           const attendanceStatus = getAttendanceStatus(student, classIdStr);
-          if (attendanceStatus !== "not_marked") continue;
+          if (attendanceStatus === "absent" || attendanceStatus === "canceled") continue;
 
           // Safe lookup: use empty Set if category not present
           const feedbackKey = `${student._id}_${classIdStr}`;

@@ -719,23 +719,45 @@ function sanitizeRunLocation(raw: any, capturedAt: Date) {
   };
 }
 
+/** How far ahead of this server's clock a client timestamp may still be. */
+const CLOCK_SKEW_MS = 5 * 60_000;
+
+/** Longest single session anyone can claim to have taught. */
+const MAX_RUN_MS = 24 * 60 * 60_000;
+
+/** An ISO timestamp from the client, or null when it is not one. */
+function parseStamp(value: unknown): Date | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) ? parsed : null;
+}
+
 /**
  * PATCH - in-place edits from the mobile app. No reschedule emails.
  *
- * Two shapes:
- *   { title }                        rename the class
- *   { action: 'start', location? }   the tutor is starting the session now
- *   { action: 'end',   location? }   the tutor is ending the session now
+ * Four shapes:
+ *   { title }                                    rename the class
+ *   { action: 'start',    location? }            the tutor is starting now
+ *   { action: 'end',      location? }            the tutor is ending now
+ *   { action: 'backfill', startedAt, endedAt }   record a class already taught
  *
  * Start/end record what actually happened (`actualStartTime` /
  * `actualEndTime`), which is rarely the scheduled window. `actualEndTime` is
- * what marks the class genuinely over — the mobile client gates feedback on
- * it — so ending also moves `status` to `completed`.
+ * what marks the class genuinely over, so ending also moves `status` to
+ * `completed`.
+ *
+ * Backfill writes the same two fields for a class that is already over and was
+ * never run through the controls — a lesson the tutor taught and simply did
+ * not press Start on. The difference is the source of the times: start and end
+ * observe this server's clock, backfill takes the tutor's word. That is a
+ * weaker claim, so it is stored as one (`runBackfilled: true`) rather than
+ * being made to look like a measurement.
  *
  * `location` is `{ latitude, longitude, accuracy? }` from the tutor's device,
  * stored as `actualStartLocation` / `actualEndLocation`. It is optional and
  * best-effort: a denied permission or a bad reading is dropped silently rather
- * than blocking the tutor from running their class.
+ * than blocking the tutor from running their class. Backfill never stores one
+ * — the tutor is somewhere else by then, and the fix would say they were there.
  */
 export async function PATCH(request: NextRequest) {
   try {
@@ -750,8 +772,8 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const action = typeof body?.action === 'string' ? body.action.trim().toLowerCase() : null;
 
-    // ── Start / end the session ──────────────────────────────────────────────
-    if (action === 'start' || action === 'end') {
+    // ── Start / end / record the session ─────────────────────────────────────
+    if (action === 'start' || action === 'end' || action === 'backfill') {
       const cls = await Class.findById(classId);
       if (!cls) return NextResponse.json({ error: 'Class not found' }, { status: 404 });
 
@@ -772,14 +794,14 @@ export async function PATCH(request: NextRequest) {
       }
       if (!isOwner) {
         return NextResponse.json(
-          { error: 'Only the tutor running this class can start or end it' },
+          { error: 'Only the tutor running this class can record it' },
           { status: 403 }
         );
       }
 
       if (cls.status === 'canceled') {
         return NextResponse.json(
-          { error: 'This class was cancelled and cannot be started or ended' },
+          { error: 'This class was cancelled and cannot be started, ended or recorded' },
           { status: 409 }
         );
       }
@@ -787,7 +809,61 @@ export async function PATCH(request: NextRequest) {
       const now = new Date();
       const where = sanitizeRunLocation(body?.location, now);
 
-      if (action === 'start') {
+      if (action === 'backfill') {
+        // Only ever fills a gap. A class already carrying a finish time has a
+        // record, and this is not the route through which records get rewritten.
+        if (cls.actualEndTime) {
+          return NextResponse.json(
+            { error: 'This class has already been recorded' },
+            { status: 409 }
+          );
+        }
+
+        const endedAt = parseStamp(body?.endedAt);
+        if (!endedAt) {
+          return NextResponse.json(
+            { error: 'A finish time is required to record this class' },
+            { status: 400 }
+          );
+        }
+        if (endedAt.getTime() > now.getTime() + CLOCK_SKEW_MS) {
+          return NextResponse.json(
+            { error: 'A class cannot be recorded as finishing in the future' },
+            { status: 400 }
+          );
+        }
+
+        // A start that *was* observed stands. Backfill fills the blank next to
+        // it — the case of a tutor who pressed Start and then forgot to end.
+        const startedAt = cls.actualStartTime
+          ? new Date(cls.actualStartTime)
+          : parseStamp(body?.startedAt);
+        if (!startedAt) {
+          return NextResponse.json(
+            { error: 'A start time is required to record this class' },
+            { status: 400 }
+          );
+        }
+        if (startedAt.getTime() >= endedAt.getTime()) {
+          return NextResponse.json(
+            { error: 'The class has to finish after it starts' },
+            { status: 400 }
+          );
+        }
+        if (endedAt.getTime() - startedAt.getTime() > MAX_RUN_MS) {
+          return NextResponse.json(
+            { error: 'A single session cannot run for longer than 24 hours' },
+            { status: 400 }
+          );
+        }
+
+        cls.actualStartTime = startedAt;
+        cls.actualEndTime = endedAt;
+        // Say what this is. Every reader of these two fields is entitled to
+        // know they were written from memory rather than from a clock.
+        cls.runBackfilled = true;
+        cls.status = 'completed';
+      } else if (action === 'start') {
         // Already ended is a real conflict; already started is just a repeat
         // tap on a flaky connection, so echo the current state instead.
         if (cls.actualEndTime) {
@@ -820,10 +896,10 @@ export async function PATCH(request: NextRequest) {
       // drops an unknown path without complaining, and a 200 here would tell
       // the tutor their class is running when nothing was recorded.
       const recorded = action === 'start' ? cls.actualStartTime : cls.actualEndTime;
-      if (!recorded) {
+      if (!recorded || (action === 'backfill' && !cls.runBackfilled)) {
         console.error(
-          `Class ${classId}: '${action}' did not persist actual${action === 'start' ? 'Start' : 'End'}Time. ` +
-          `Registered Class schema is missing the field — restart the server so the model recompiles.`
+          `Class ${classId}: '${action}' did not persist its run fields. ` +
+          `Registered Class schema is missing a path — restart the server so the model recompiles.`
         );
         return NextResponse.json(
           { error: `Could not record the ${action} time. Please try again.` },
