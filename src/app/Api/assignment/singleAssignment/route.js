@@ -30,6 +30,30 @@ export async function GET(request) {
         );
       }
 
+      // Extract requesting user from JWT (for student-specific submission data)
+      let requestingUserId = null;
+      try {
+        const token = (() => {
+          const referer = request.headers.get("referer") || "";
+          let refererPath = "";
+          try { if (referer) refererPath = new URL(referer).pathname; } catch (e) {}
+          const isTutorContext = refererPath.startsWith("/tutor");
+          const impersonateToken = request.cookies.get("impersonate_token")?.value;
+          if (isTutorContext && impersonateToken) return impersonateToken;
+          const cookieToken = request.cookies.get("token")?.value;
+          if (cookieToken) return cookieToken;
+          const authHeader = request.headers.get("Authorization") || "";
+          return authHeader.replace("Bearer ", "") || null;
+        })();
+        const decodedToken = token ? jwt.decode(token) : null;
+        requestingUserId =
+          decodedToken && typeof decodedToken === "object" && "id" in decodedToken
+            ? decodedToken.id
+            : null;
+      } catch (e) {
+        // Non-critical: we just won't include user-specific submission data
+      }
+
       // Find assignment by ID and populate related data
       const assignment = await Assignment.findById(assignmentId)
         .populate({
@@ -57,6 +81,15 @@ export async function GET(request) {
         );
       }
 
+      // Find the requesting user's own submission (for top-level fields)
+      const mySubmission = requestingUserId
+        ? assignment.submissions?.find(
+            (sub) =>
+              sub.studentId?._id?.toString() === requestingUserId.toString() ||
+              sub.studentId?.toString() === requestingUserId.toString()
+          )
+        : null;
+
       const transformedAssignment = {
         _id: assignment._id,
         title: assignment.title,
@@ -64,9 +97,13 @@ export async function GET(request) {
         deadline: assignment.deadline,
         status: assignment.status || false,
         currentAssignmentStatus:
-          assignment.currentAssignmentStatus || "PENDING",
-        tutorRemarks: assignment.tutorRemarks || "",
-        studentSubmissionMessage: assignment.studentSubmissionMessage || "",
+          mySubmission?.status || assignment.currentAssignmentStatus || "PENDING",
+        tutorRemarks: mySubmission?.tutorRemarks || assignment.tutorRemarks || "",
+        studentSubmissionMessage: mySubmission?.studentMessage || assignment.studentSubmissionMessage || "",
+        submissionFileUrl: mySubmission?.fileUrl || "",
+        submissionFileName: mySubmission?.fileName || "",
+        correctionFileUrl: mySubmission?.correctionFileUrl || "",
+        correctionFileName: mySubmission?.correctionFileName || "",
         fileUrl: assignment.fileUrl,
         fileName: assignment.fileName,
         songName: assignment.songName,
