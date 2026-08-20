@@ -13,7 +13,7 @@ export function useRenewalDashboard() {
     const [totalItems, setTotalItems] = useState(0);
     const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
-    const [filters, setFilters] = useState<Filters>({ society: [], tutorName: [], rm: [], spoc: [], type: "", renewalStatus: "" });
+    const [filters, setFilters] = useState<Filters>({ society: [], tutorName: [], rm: [], spoc: [], type: "", renewalStatus: "", endDateFrom: "", endDateTo: "" });
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingLead, setEditingLead] = useState<Lead | null>(null);
     const cache = useRef<Record<string, any>>({});
@@ -70,7 +70,7 @@ export function useRenewalDashboard() {
     };
 
     const clearFilters = () => {
-        setFilters({ society: [], tutorName: [], rm: [], spoc: [], type: "", renewalStatus: "" });
+        setFilters({ society: [], tutorName: [], rm: [], spoc: [], type: "", renewalStatus: "", endDateFrom: "", endDateTo: "" });
         setSearch("");
         setActiveCard("urgent");
         setPage(1);

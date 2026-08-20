@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRenewalDashboard } from "./hooks/useRenewalDashboard";
 import StatsCards from "@/app/components/StatsCards";
 import FiltersBar from "@/app/components/FiltersBar";
@@ -89,16 +89,28 @@ export default function RenewalDashboardPage() {
   } = useRenewalDashboard();
 
   const [csvExporting, setCsvExporting] = useState(false);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
-  // Fetch ALL data (ignoring pagination) and export as CSV
-  const handleExportAllCSV = async () => {
+  // Close export menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) setExportMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // mode: "all" = every package regardless of bucket, "selected" = current activeCard bucket
+  const handleExportCSV = async (mode: "all" | "selected") => {
+    setExportMenuOpen(false);
     setCsvExporting(true);
     try {
       const serialized: Record<string, string> = {
         page: "1",
         limit: "999999",
         search: search,
-        cardFilter: activeCard,
+        cardFilter: mode === "all" ? "all" : activeCard,
       };
       for (const [k, v] of Object.entries(filters)) {
         serialized[k] = Array.isArray(v) ? v.join(",") : v;
@@ -107,7 +119,8 @@ export default function RenewalDashboardPage() {
       const res = await fetch(`/Api/salesHead/studentPackage?${query}`);
       const data = await res.json();
       if (data.success && data.data) {
-        exportLeadsToCSV(data.data, `renewal-leads-${new Date().toISOString().slice(0, 10)}.csv`);
+        const suffix = mode === "all" ? "all" : activeCard;
+        exportLeadsToCSV(data.data, `renewal-leads-${suffix}-${new Date().toISOString().slice(0, 10)}.csv`);
       } else {
         alert("Failed to fetch data for export.");
       }
@@ -137,13 +150,31 @@ export default function RenewalDashboardPage() {
           <Link href="/salesHead/retention" className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all">
             📊 Retention View
           </Link>
-          <button
-            onClick={handleExportAllCSV}
-            disabled={csvExporting}
-            className="bg-white border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-wait"
-          >
-            {csvExporting ? "⏳ Exporting..." : "⬇ Export CSV"}
-          </button>
+          <div className="relative" ref={exportRef}>
+            <button
+              onClick={() => setExportMenuOpen(o => !o)}
+              disabled={csvExporting}
+              className="bg-white border border-gray-300 text-gray-600 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-gray-50 disabled:opacity-50 disabled:cursor-wait"
+            >
+              {csvExporting ? "⏳ Exporting..." : "⬇ Export CSV"}
+            </button>
+            {exportMenuOpen && !csvExporting && (
+              <div className="absolute right-0 mt-1 w-44 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+                <button
+                  onClick={() => handleExportCSV("all")}
+                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-700 transition-colors"
+                >
+                  📋 Export All
+                </button>
+                <button
+                  onClick={() => handleExportCSV("selected")}
+                  className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-purple-50 hover:text-purple-700 border-t border-gray-100 transition-colors"
+                >
+                  📌 Export Selected Tab
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 

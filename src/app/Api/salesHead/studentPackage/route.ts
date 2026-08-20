@@ -34,6 +34,8 @@ export async function GET(request: NextRequest) {
         const fSpoc = (searchParams.get("spoc") || "").split(",").filter(Boolean);
         const fType = searchParams.get("type") || "";
         const fRenewal = searchParams.get("renewalStatus") || "";
+        const fEndDateFrom = searchParams.get("endDateFrom") || "";
+        const fEndDateTo = searchParams.get("endDateTo") || "";
         const now = new Date();
 
 
@@ -161,6 +163,22 @@ export async function GET(request: NextRequest) {
             } else {
                 pkg._daysLeft = 999;
             }
+        }
+
+        // ── End-date range filter ──
+        if (fEndDateFrom || fEndDateTo) {
+            const from = fEndDateFrom ? new Date(fEndDateFrom) : null;
+            const to = fEndDateTo ? new Date(fEndDateTo) : null;
+            if (from) from.setHours(0, 0, 0, 0);
+            if (to) to.setHours(23, 59, 59, 999);
+
+            allPackages = allPackages.filter(pkg => {
+                if (!pkg._dynamicEndDate) return false;
+                const endDate = new Date(pkg._dynamicEndDate);
+                if (from && endDate < from) return false;
+                if (to && endDate > to) return false;
+                return true;
+            });
         }
 
         // Card filter — uses dynamic daysLeft

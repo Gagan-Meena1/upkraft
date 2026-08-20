@@ -51,6 +51,7 @@ export interface Options {
 export interface Filters {
     society: string[]; tutorName: string[]; rm: string[];
     spoc: string[]; type: string; renewalStatus: string;
+    endDateFrom: string; endDateTo: string;
 }
 
-export type CardFilter = "overdue" | "urgent" | "soon" | "ontrack" | "renewed" | "dropped";
+export type CardFilter = "all" | "overdue" | "urgent" | "soon" | "ontrack" | "renewed" | "dropped";
