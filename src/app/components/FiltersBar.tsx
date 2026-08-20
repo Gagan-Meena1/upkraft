@@ -56,6 +56,24 @@ export default function FiltersBar({
                     <option value="Dropped">Dropped</option>
                 </select>
 
+                {/* End Date Range */}
+                <div className="flex items-center gap-1.5">
+                    <label className="text-[11px] text-gray-500 whitespace-nowrap">End Date:</label>
+                    <input
+                        type="date"
+                        value={filters.endDateFrom}
+                        onChange={e => onFilterChange("endDateFrom", e.target.value)}
+                        className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white outline-none focus:border-purple-600 cursor-pointer"
+                    />
+                    <span className="text-[11px] text-gray-400">to</span>
+                    <input
+                        type="date"
+                        value={filters.endDateTo}
+                        onChange={e => onFilterChange("endDateTo", e.target.value)}
+                        className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs bg-white outline-none focus:border-purple-600 cursor-pointer"
+                    />
+                </div>
+
                 {/* Pagination */}
                 <div className="ml-auto flex items-center gap-3">
                     <span className="text-xs text-gray-500">{totalItems} leads</span>

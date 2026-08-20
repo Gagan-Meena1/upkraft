@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
         const fSpoc = (searchParams.get("spoc") || "").split(",").filter(Boolean);
         const fType = searchParams.get("type") || "";
         const fRenewal = searchParams.get("renewalStatus") || "";
+        const fEndDateFrom = searchParams.get("endDateFrom") || "";
+        const fEndDateTo = searchParams.get("endDateTo") || "";
 
         const students = await User.find({
             category: "Student",
@@ -156,6 +158,17 @@ export async function GET(request: NextRequest) {
                     })()
                     : 999;
                 const renewalStatus = latestEntry.renewalStatus || "YTR";
+
+                // End-date range filter
+                if (fEndDateFrom || fEndDateTo) {
+                    if (!dynamicEndDate) continue;
+                    const fromD = fEndDateFrom ? new Date(fEndDateFrom) : null;
+                    const toD = fEndDateTo ? new Date(fEndDateTo) : null;
+                    if (fromD) fromD.setHours(0, 0, 0, 0);
+                    if (toD) toD.setHours(23, 59, 59, 999);
+                    if (fromD && dynamicEndDate < fromD) continue;
+                    if (toD && dynamicEndDate > toD) continue;
+                }
 
                 if (fRenewal && renewalStatus !== fRenewal) continue;
 
