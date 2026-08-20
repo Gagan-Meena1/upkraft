@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
       User.find({
   category: "Student",
   instructorId: { $in: tutorIds }
-}).select("_id courses instructorId attendance").lean(),
+}).select("_id courses instructorId attendance classes").lean(),
 
       // 5. Tutors with their courses
       User.find({
@@ -344,6 +344,10 @@ const feedbackSets = {
 
           if (commonCourseIds.length === 0) continue;
 
+          const studentClassIdSet = new Set(
+            (student.classes || []).map((id: any) => id.toString())
+          );
+
           for (const courseId of commonCourseIds) {
             const course = courseDetailsMap.get(courseId);
             if (!course) continue;
@@ -356,10 +360,16 @@ for (const classId of classIds) {
   
   // ✅ CRITICAL: Only process classes that passed our filters (past, non-canceled)
   if (!classMap.has(classIdStr)) continue;
-  
-  // ✅ Check attendance status
+
+  // Only classes the student is actually on, as in /Api/pendingFeedback.
+  if (!studentClassIdSet.has(classIdStr)) continue;
+
+  // Only a student who was not in the room is off the hook. Kept in step
+  // with /Api/pendingFeedback and /Api/dashboard/pendingFeedbackCount, whose
+  // numbers this column has to agree with.
+
   const attendanceStatus = getAttendanceStatus(student, classIdStr);
-  if (attendanceStatus !== "not_marked") continue;
+  if (attendanceStatus === "absent" || attendanceStatus === "canceled") continue;
   
   // Check appropriate feedback set based on category
   const feedbackSet = feedbackSets[course.category as keyof typeof feedbackSets];
