@@ -734,6 +734,25 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // CLASS FILTER (applies to all user types)
+    //
+    // Narrows the list to one class. A caller that wants a single class's work
+    // cannot get there by filtering the unscoped list client-side: this
+    // endpoint pages at `limit` (10 unless asked otherwise) and sorts by
+    // deadline ascending, so the most recently set work — which is exactly what
+    // a tutor looks for right after creating it — sits well past the first
+    // page. The mobile app's per-class Assignments tab uses this.
+    const classIdParam = url.searchParams.get('classId');
+    if (classIdParam) {
+      if (!mongoose.Types.ObjectId.isValid(classIdParam)) {
+        return NextResponse.json({
+          success: false,
+          message: "Invalid class ID format"
+        }, { status: 400 });
+      }
+      filterQuery.classId = new mongoose.Types.ObjectId(classIdParam);
+    }
+
     // ==================== STUDENT CATEGORY ====================
     if (user.category.toLowerCase() === 'student') {
       console.log('=== STUDENT ASSIGNMENT FETCH ===');
@@ -783,6 +802,11 @@ export async function GET(request: NextRequest) {
           metronome: assignment.metronome,
           createdAt: assignment.createdAt,
           class: assignment.classId,
+          // The raw id next to the populated document. `class` alone forces
+          // every caller that just needs to know *which* class this is to reach
+          // into it, and the one that did not reach in filtered on a `classId`
+          // the payload never carried.
+          classId: assignment.classId?._id ?? assignment.classId,
           course: assignment.courseId
         };
       });
@@ -941,6 +965,11 @@ export async function GET(request: NextRequest) {
           metronome: assignment.metronome,
           createdAt: assignment.createdAt,
           class: assignment.classId,
+          // The raw id next to the populated document. `class` alone forces
+          // every caller that just needs to know *which* class this is to reach
+          // into it, and the one that did not reach in filtered on a `classId`
+          // the payload never carried.
+          classId: assignment.classId?._id ?? assignment.classId,
           course: assignment.courseId,
           // Full submissions array — used by mobile app to show per-student status in detail view
           submissions: (assignment.submissions ?? []).map((sub: any) => ({
@@ -1087,6 +1116,11 @@ export async function GET(request: NextRequest) {
           metronome: assignment.metronome,
           createdAt: assignment.createdAt,
           class: assignment.classId,
+          // The raw id next to the populated document. `class` alone forces
+          // every caller that just needs to know *which* class this is to reach
+          // into it, and the one that did not reach in filtered on a `classId`
+          // the payload never carried.
+          classId: assignment.classId?._id ?? assignment.classId,
           course: assignment.courseId,
           tutor: tutorInAssignment ? {
             userId: tutorInAssignment._id,
