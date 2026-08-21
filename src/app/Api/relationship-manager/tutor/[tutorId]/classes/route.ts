@@ -66,7 +66,7 @@ export async function GET(
     }
 
     const tutor = await User.findById(tutorId)
-      .select("_id username email relationshipManager classes whatsappGroups classEndReminderMinutes")
+      .select("_id username email relationshipManager classes whatsappGroups classEndReminderMinutes classStartReminderMinutes")
       .lean();
 
     if (!tutor) {
@@ -102,6 +102,7 @@ export async function GET(
           username: tutor.username,
           email: tutor.email,
           classEndReminderMinutes: (tutor as any).classEndReminderMinutes ?? 5,
+          classStartReminderMinutes: (tutor as any).classStartReminderMinutes ?? 30,
         },
         classes: [],
       });
@@ -193,9 +194,10 @@ export async function GET(
         username: tutor.username,
         email: tutor.email,
         whatsappGroups: (tutor as any).whatsappGroups || [],
-        // Lets the RM page show the current reminder timing without a second
-        // round trip; the default stands in for tutors predating the field.
+        // Lets the RM page show both current reminder timings without a second
+        // round trip; the defaults stand in for tutors predating the fields.
         classEndReminderMinutes: (tutor as any).classEndReminderMinutes ?? 5,
+        classStartReminderMinutes: (tutor as any).classStartReminderMinutes ?? 30,
       },
       classes: classesWithStudents,
       pendingResetRequests: pendingResetRequests,

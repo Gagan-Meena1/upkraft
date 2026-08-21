@@ -44,6 +44,8 @@ interface TutorInfo {
   whatsappGroups?: { name: string; link: string }[];
   /** Minutes before a class ends that this tutor's feedback reminder fires. */
   classEndReminderMinutes?: number;
+  /** Minutes before a class starts that this tutor's "starting soon" reminder fires. */
+  classStartReminderMinutes?: number;
 }
 
 /**
@@ -52,6 +54,15 @@ interface TutorInfo {
  */
 const REMINDER_OPTIONS = [5, 10, 15, 20, 30] as const;
 const DEFAULT_REMINDER_MINUTES = 5;
+
+/**
+ * Lead times for the "class starting soon" reminder, which is a separate
+ * setting with a separate range — a tutor who travels between students needs
+ * far more notice to be ready than they do to wrap up. 30 is the default, and
+ * the value the app used for everyone before this became editable.
+ */
+const START_REMINDER_OPTIONS = [10, 15, 30, 45, 60, 90, 120] as const;
+const DEFAULT_START_REMINDER_MINUTES = 30;
 
 const STATUS_COLORS: Record<
   string,
@@ -132,7 +143,11 @@ export default function RMTutorCalendarPage() {
   // End-of-class feedback reminder timing for this tutor. Held separately from
   // `tutor` so the select responds instantly while the save is in flight.
   const [reminderMinutes, setReminderMinutes] = useState<number>(DEFAULT_REMINDER_MINUTES);
+  const [startReminderMinutes, setStartReminderMinutes] = useState<number>(
+    DEFAULT_START_REMINDER_MINUTES
+  );
   const [savingReminder, setSavingReminder] = useState(false);
+  const [savingStartReminder, setSavingStartReminder] = useState(false);
 
   const [pendingResetRequests, setPendingResetRequests] = useState<any[]>([]);
   const [resettingStudentId, setResettingStudentId] = useState<string | null>(null);
@@ -247,6 +262,8 @@ export default function RMTutorCalendarPage() {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
+          // Only the key that changed. The endpoint patches per field, so the
+          // start reminder is left exactly as the server has it.
           body: JSON.stringify({ classEndReminderMinutes: minutes }),
         }
       );
@@ -254,14 +271,49 @@ export default function RMTutorCalendarPage() {
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to save");
 
       setTutor(prev => (prev ? { ...prev, classEndReminderMinutes: minutes } : prev));
-      toast.success(data.message || "Reminder timing updated");
+      toast.success(data.message || "Feedback reminder timing updated");
     } catch (err: any) {
       setReminderMinutes(previous);
-      toast.error(err.message || "Could not update reminder timing");
+      toast.error(err.message || "Could not update feedback reminder timing");
     } finally {
       setSavingReminder(false);
     }
   }, [tutorId, reminderMinutes]);
+
+  /**
+   * Save the tutor's "class starting soon" lead time.
+   *
+   * Deliberately a separate call from `saveReminderMinutes` rather than one
+   * save button over both dropdowns: they are independent settings, and a
+   * combined write would make changing one re-send the other.
+   */
+  const saveStartReminderMinutes = useCallback(async (minutes: number) => {
+    if (!tutorId) return;
+    const previous = startReminderMinutes;
+    setStartReminderMinutes(minutes);
+    setSavingStartReminder(true);
+    try {
+      const res = await fetch(
+        `/Api/relationship-manager/tutor/${tutorId}/notification-settings`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ classStartReminderMinutes: minutes }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to save");
+
+      setTutor(prev => (prev ? { ...prev, classStartReminderMinutes: minutes } : prev));
+      toast.success(data.message || "Class starting reminder timing updated");
+    } catch (err: any) {
+      setStartReminderMinutes(previous);
+      toast.error(err.message || "Could not update class starting reminder timing");
+    } finally {
+      setSavingStartReminder(false);
+    }
+  }, [tutorId, startReminderMinutes]);
 
   const fetchClassesForRange = useCallback(async (start: Date, end: Date, isBackground = false) => {
     if (!tutorId) return;
@@ -298,6 +350,9 @@ export default function RMTutorCalendarPage() {
         setTutor(data.tutor || null);
         setReminderMinutes(
           data.tutor?.classEndReminderMinutes ?? DEFAULT_REMINDER_MINUTES
+        );
+        setStartReminderMinutes(
+          data.tutor?.classStartReminderMinutes ?? DEFAULT_START_REMINDER_MINUTES
         );
         setClasses(loadedClasses);
         setPendingResetRequests(pendingResets);
@@ -702,9 +757,31 @@ export default function RMTutorCalendarPage() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            {/* Auto-notification timing — the tutor's app fires the "wrap up
-                and write feedback" reminder this long before each class ends.
-                Only their RM can change it. */}
+            {/* Auto-notification timing. Two independent settings — one for
+                getting ready to teach, one for wrapping up and writing
+                feedback — each saved on change. Only their RM can change them. */}
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="classStartReminderMinutes"
+                className="text-sm text-gray-600 whitespace-nowrap"
+                title="How long before a class starts the tutor's app tells them it is coming up"
+              >
+                Class starting reminder
+              </label>
+              <select
+                id="classStartReminderMinutes"
+                value={startReminderMinutes}
+                disabled={savingStartReminder || !tutor}
+                onChange={e => saveStartReminderMinutes(Number(e.target.value))}
+                className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-900 bg-white focus:border-orange-500 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {START_REMINDER_OPTIONS.map(m => (
+                  <option key={m} value={m}>
+                    {m} min before start{m === DEFAULT_START_REMINDER_MINUTES ? " (default)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="flex items-center gap-2">
               <label
                 htmlFor="classEndReminderMinutes"

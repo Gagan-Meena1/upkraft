@@ -443,6 +443,19 @@ const userSchema = new mongoose.Schema({
         min: 1,
         max: 60,
     },
+    // For tutors: how many minutes before a class *starts* the mobile app fires
+    // the "class starting soon" reminder. Deliberately a separate field from
+    // classEndReminderMinutes above — the two answer different questions ("when
+    // do I need to be ready?" vs "when do I stop teaching and write feedback?"),
+    // so an RM tuning one must not drag the other with it. The wider ceiling is
+    // what makes it useful: a tutor who travels wants two hours' warning, which
+    // is nonsense as a feedback lead. Same owner, same endpoint.
+    classStartReminderMinutes: {
+        type: Number,
+        default: 30,
+        min: 1,
+        max: 120,
+    },
     instruments: {
         type: [String],
         default: [],
