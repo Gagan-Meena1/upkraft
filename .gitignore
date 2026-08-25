@@ -15,6 +15,9 @@
 
 # testing
 /coverage
+mongo-dump/
+mongo-dump.zip
+
 
 # next.js
 /.next/

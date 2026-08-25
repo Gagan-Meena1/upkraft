@@ -147,6 +147,9 @@ export default function RenewalDashboardPage() {
           <span className="text-[11px] text-gray-400">
             Updated: {new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
           </span>
+          <Link href="/salesHead/tutorClasses" className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:from-teal-700 hover:to-cyan-700 transition-all">
+            👨‍🏫 Tutor Classes
+          </Link>
           <Link href="/salesHead/retention" className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all">
             📊 Retention View
           </Link>
