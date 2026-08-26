@@ -153,6 +153,9 @@ export default function RenewalDashboardPage() {
           <Link href="/salesHead/retention" className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all">
             📊 Retention View
           </Link>
+          <Link href="/salesHead/monthlyClasses" className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all">
+            📅 Monthly Classes
+          </Link>
           <div className="relative" ref={exportRef}>
             <button
               onClick={() => setExportMenuOpen(o => !o)}
