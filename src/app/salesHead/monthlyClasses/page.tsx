@@ -1,10 +1,12 @@
+// MonthlyClassesPage.tsx
 "use client";
 
 import Link from "next/link";
-import { useMonthlyClasses } from "./hooks/useMonthlyClasses";
+import { useMonthlyClasses, MonthlyCount, ClassDetail } from "./hooks/useMonthlyClasses";
 
 export default function MonthlyClassesPage() {
-    const { monthlyClasses, totalClasses, loading, error } = useMonthlyClasses();
+    const { monthlyClasses, totalClasses, loading, error, selectedMonth, setSelectedMonth } =
+        useMonthlyClasses();
 
     return (
         <div className="min-h-screen bg-[#f4f4f9] text-[#1a1a2e] font-sans pb-10">
@@ -33,7 +35,7 @@ export default function MonthlyClassesPage() {
                     <div>
                         <h1 className="text-[16px] font-bold text-gray-900">All Classes Happened</h1>
                         <p className="text-[11px] text-gray-500 mt-0.5">
-                            Counted from student attendance records (present or absent)
+                            Counted from student attendance records (present or absent) · Click a month to debug
                         </p>
                     </div>
                     <div className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg text-center">
@@ -67,20 +69,100 @@ export default function MonthlyClassesPage() {
                         {monthlyClasses.map((m) => (
                             <div
                                 key={m.month}
-                                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-blue-200 transition-all"
+                                onClick={() => setSelectedMonth(m)}
+                                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md hover:border-blue-300 transition-all cursor-pointer"
                             >
                                 <div className="flex items-center justify-between">
                                     <span className="text-[12px] font-semibold text-gray-700">{m.label}</span>
                                     <span className="text-[16px] font-black text-blue-700">{m.count}</span>
                                 </div>
                                 <div className="text-[9px] text-gray-400 mt-1">
-                                    {m.count} class{m.count !== 1 ? "es" : ""}
+                                    {m.count} class{m.count !== 1 ? "es" : ""} · click to inspect
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            {/* Modal */}
+            {selectedMonth && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+                    onClick={() => setSelectedMonth(null)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                            <div>
+                                <h2 className="text-[15px] font-bold text-gray-900">
+                                    {selectedMonth.label} — Debug View
+                                </h2>
+                                <p className="text-[11px] text-gray-500 mt-0.5">
+                                    {selectedMonth.count} attendance records
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedMonth(null)}
+                                className="text-gray-400 hover:text-gray-700 text-xl font-bold leading-none"
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        {/* Table */}
+                        <div className="overflow-auto flex-1">
+                            <table className="w-full text-[11px] border-collapse">
+                                <thead className="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        {["#", "Class ID", "Start Time (IST)", "Course", "Tutor", "Tutor Email", "Student", "Attendance"].map((h) => (
+                                            <th
+                                                key={h}
+                                                className="text-left px-3 py-2 text-[10px] font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-200 whitespace-nowrap"
+                                            >
+                                                {h}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {selectedMonth.classes.map((cls, i) => (
+                                        <tr
+                                            key={`${cls.classId}-${i}`}
+                                            className="border-b border-gray-100 hover:bg-blue-50 transition-colors"
+                                        >
+                                            <td className="px-3 py-2 text-gray-400">{i + 1}</td>
+                                            <td className="px-3 py-2 font-mono text-gray-600 text-[10px]">
+                                                {cls.classId}
+                                            </td>
+                                            <td className="px-3 py-2 whitespace-nowrap text-gray-700">
+                                                {cls.startTime}
+                                            </td>
+                                            <td className="px-3 py-2 text-gray-700">{cls.courseName}</td>
+                                            <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{cls.tutorName}</td>
+                                            <td className="px-3 py-2 text-gray-500">{cls.tutorEmail}</td>
+                                            <td className="px-3 py-2 text-gray-700">{cls.studentName}</td>
+                                            <td className="px-3 py-2">
+                                                <span
+                                                    className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${cls.attendanceStatus === "present"
+                                                            ? "bg-green-100 text-green-700"
+                                                            : "bg-red-100 text-red-600"
+                                                        }`}
+                                                >
+                                                    {cls.attendanceStatus}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
