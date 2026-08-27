@@ -1,12 +1,30 @@
+// hooks/useMonthlyClasses.ts
 "use client";
 import { useState, useEffect } from "react";
-import { MonthlyCount } from "@/app/salesHead/tutorClasses/types";
+
+export interface ClassDetail {
+    classId: string;
+    startTime: string;
+    courseName: string;
+    tutorName: string;
+    tutorEmail: string;
+    studentName: string;
+    attendanceStatus: string;
+}
+
+export interface MonthlyCount {
+    month: string;
+    label: string;
+    count: number;
+    classes: ClassDetail[];
+}
 
 export function useMonthlyClasses() {
     const [monthlyClasses, setMonthlyClasses] = useState<MonthlyCount[]>([]);
     const [totalClasses, setTotalClasses] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedMonth, setSelectedMonth] = useState<MonthlyCount | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -34,5 +52,5 @@ export function useMonthlyClasses() {
         return () => { cancelled = true; };
     }, []);
 
-    return { monthlyClasses, totalClasses, loading, error };
+    return { monthlyClasses, totalClasses, loading, error, selectedMonth, setSelectedMonth };
 }
