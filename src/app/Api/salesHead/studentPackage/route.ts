@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
             hideFromRenewalDashboard: { $ne: true }
         })
             .select("username email contact address city creditsPerCourse attendance instructorId studentSociety studentRM salesSPOC type")
-            .populate({ path: "instructorId", select: "username", model: User })
+            .populate({ path: "instructorId", select: "username category courses", model: User })
             .populate({ path: "relationshipManager", select: "username", model: User })
             .lean() as any[];
 
@@ -99,9 +99,13 @@ export async function GET(request: NextRequest) {
                     contact: student.contact,
                     society: student.studentSociety || student.address || "",   // fallback to address if empty
                     rmName: student.studentRM || "",
-                    tutorName: Array.isArray(student.instructorId)
-                        ? student.instructorId.map((t: any) => t?.username).filter(Boolean).join(", ")
-                        : "",
+                    tutorName: (() => {
+                        if (!Array.isArray(student.instructorId)) return "";
+                        const matchedTutor = student.instructorId.find((t: any) =>
+                            t?.category === "Tutor" && t?.courses?.some((c: any) => c.toString() === courseId)
+                        );
+                        return matchedTutor?.username || "";
+                    })(),
                     salesSPOC: student.salesSPOC || "",
                     renewalStatus: latestEntry.renewalStatus || "YTR",
                     notes: latestEntry.notes || "",
