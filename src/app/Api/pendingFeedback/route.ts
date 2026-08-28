@@ -143,7 +143,7 @@ export async function GET(request) {
       status: { $ne: 'canceled' },
       $or: [
         { status: 'completed' },
-        { actualEndTime: { $ne: null } },
+        { actualEndTime: { $ne: null }, status: { $ne: 'rescheduled' } },
         { endTime: { $lt: new Date() } }
       ]
     }).select("_id title description startTime endTime").lean();
