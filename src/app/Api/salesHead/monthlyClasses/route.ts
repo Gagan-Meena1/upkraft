@@ -62,6 +62,12 @@ const EXCLUDED_TUTOR_IDS = new Set<string>([
     "690c9e5019511dd90e0b2963", "690ce0399570845bb0e563a9", "690e159960041e6207e462f7", "68d0e4d114df83a34cb7afab", "68ff211cbb2bf76d03fe69f3", "68ff42d78e4a0dbf08a5dcc4", "690c395f3df775ecf256971a", "690c8a236c16d8688e21ec9e", "68c11972329415ef857c609d", "68c79b366182ec58bc609007", "68d224279e81c57b2048487b", "68d268024eb6f6f52f4e3f5d", "68d379fc13a2ff977dbfcda3", "68f88fdd7ad9734aa71231b7", "6903b5ee069de7ee67c56c91", "690cd6789f1b54a12bfe211b", "682c1039fc93ce1442bb6a40", "68cbcb56c06d7da78a003cc4", "68e64489a47716f5c2edc8a4", "68ecdcd57e41dac0ace36a95", "68f34064c66a67acc602380d", "67f125828e946f26bd0357b0", "68c8ee055601192f18db1f45", "68d379b613a2ff977dbfcd99", "68dc09f0f1656df2a30fe6b4", "6901dcf632ada6ad0b3d8938", "69088009741f50753261f0fa", "68708a290a44626446647e51", "68cae4ed763d8609e0443355", "68d508d114a97fa51c292f99", "68dd07b2c66cdc42f0ed4cab", "69006533f88c6fc2247e8d3b", "68ceca1a24cbb5bfa3721e49", "68db7d82dd91ec55c7145dc1", "68ff47692ea3de1d2eb1cbf1", "6908ed18b24005ca72d15577", "68c938131a7af63e904fe329", "68e50bdbfb62c37dfd0777d5", "68edf6f73b0f6725f01795bb", "690bfb7f62cb12dbe5712c45", "69145abf91b08a2c2fa925a6", "692e88f4f07cbb6e4ea87607", "691ff485093a49531987c26e", "693aac7279d69c8147e67564", "6911d494927e87672388d987", "691d4f827cc6787da4c54171", "6932b1a043885dfdd21d5d85", "6916f7e1de8a7c0222eae09e", "691dd1f4834d7c8ac930fa52", "692f200a1c1d025e3507548f", "693a7c3ef766f4f8868a55ac", "694a44bce93fe5e771d7f8f9", "694a4ab59f06fdd65f0aca6f", "694e965fee1d0cea7fa5b0fd", "692d9b8e9fb4a4ac261ca32b", "691dd83580a5ca80b311259a", "692840c363a4bda16a8d0708", "69293d643cc4c335fa2f7cba", "69579edb8e65285f24184776", "6958dbc9cf6726f7533bc7a2", "69590ca2a9eab50b0e85ae36", "6965d3c70d9ea108f263767f", "6985d6fc0c5fdc2990344753", "698701e2bd4a260eb3748d06", "69abbe94614f5e45708ac378", "69db507d1926f0e647f7788e", "69ef0b412c6a42c8e7717b38", "69f96a3eafe83983b04cd85f", "6a18417cb5f1f67e0cc8e68f", "6a64de5a669d3a19974c1bcb", "6a6a38a1b64c403f38ccbb44", "6a6d029c565939e896f7ac94", "6a6d7b5fce52eaf6aed0efd1"
 ]);
 
+// Add this set near EXCLUDED_TUTOR_IDS
+const EXCLUDED_STUDENT_IDS = new Set<string>([
+    "694a678f5d6d626e20d56ce6",
+    // add more here as needed
+]);
+
 function monthLabel(key: string): string {
     const [year, month] = key.split("-");
     return `${MONTH_NAMES[parseInt(month, 10) - 1]} ${year}`;
@@ -128,6 +134,8 @@ export async function GET(req: NextRequest) {
 
         for (const stu of allStudents) {
             // Build a lookup of this student's own classes array
+            if (EXCLUDED_STUDENT_IDS.has(stu._id.toString())) continue; // ← add this line
+
             const stuClassSet = new Set(
                 (stu.classes || []).map((c: any) => c.toString())
             );
