@@ -20,6 +20,15 @@ interface Tutor {
   username: string;
   email: string;
   contact?: string;
+  tutorTrainer?: boolean;
+  assignedTutorTrainer?:
+  | string
+  | {
+    _id: string;
+    username: string;
+    email: string;
+  }
+  | null;
   relationshipManager?:
   | string
   | {
@@ -28,6 +37,12 @@ interface Tutor {
     email: string;
   }
   | null;
+}
+
+interface TutorTrainerOption {
+  _id: string;
+  username: string;
+  email: string;
 }
 
 interface RelationshipManager {
@@ -46,6 +61,10 @@ function AllTutors() {
   const [assigningTutorId, setAssigningTutorId] = useState<string | null>(null);
   const [loadingManagers, setLoadingManagers] = useState(false);
   const [impersonatingTutorId, setImpersonatingTutorId] = useState<string | null>(null);
+  const [tutorTrainers, setTutorTrainers] = useState<TutorTrainerOption[]>([]);
+  const [loadingTrainers, setLoadingTrainers] = useState(false);
+  const [togglingTrainerId, setTogglingTrainerId] = useState<string | null>(null);
+  const [assigningTrainerTutorId, setAssigningTrainerTutorId] = useState<string | null>(null);
 
   const pathname = usePathname();
   const router = useRouter();
@@ -83,6 +102,8 @@ function AllTutors() {
           username: Tutor.username,
           email: Tutor.email,
           contact: Tutor.contact,
+          tutorTrainer: Tutor.tutorTrainer || false,
+          assignedTutorTrainer: Tutor.assignedTutorTrainer || null,
           relationshipManager: Tutor.relationshipManager || null
         }));
 
@@ -110,9 +131,25 @@ function AllTutors() {
       }
     };
 
+    const fetchTrainers = async () => {
+      try {
+        setLoadingTrainers(true);
+        const res = await fetch("/Api/teamlead/tutor-trainers");
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setTutorTrainers(data.trainers || []);
+        }
+      } catch (err) {
+        console.error("Error fetching tutor trainers:", err);
+      } finally {
+        setLoadingTrainers(false);
+      }
+    };
+
     fetchTutors();
     if (isTeamLeadView) {
       fetchManagers();
+      fetchTrainers();
     }
   }, [isTeamLeadView]);
 
@@ -189,6 +226,78 @@ function AllTutors() {
       alert(err.message || "Failed to assign relationship manager");
     } finally {
       setAssigningTutorId(null);
+    }
+  };
+
+  const handleToggleTutorTrainer = async (tutorId: string, makeTrainer: boolean) => {
+    try {
+      setTogglingTrainerId(tutorId);
+      const res = await fetch("/Api/teamlead/toggle-tutor-trainer", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tutorId, tutorTrainer: makeTrainer }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data.error || "Failed to update tutor trainer status");
+        return;
+      }
+
+      // Update tutors list locally
+      setTutors((prev) =>
+        prev.map((t) =>
+          t._id === tutorId ? { ...t, tutorTrainer: makeTrainer } : t
+        )
+      );
+
+      // Refresh tutor trainers list
+      if (makeTrainer) {
+        const tutor = Tutors.find((t) => t._id === tutorId);
+        if (tutor) {
+          setTutorTrainers((prev) => [...prev, { _id: tutor._id, username: tutor.username, email: tutor.email }]);
+        }
+      } else {
+        setTutorTrainers((prev) => prev.filter((t) => t._id !== tutorId));
+      }
+
+      toast.success(makeTrainer ? "Tutor is now a Tutor Trainer" : "Tutor Trainer role removed");
+    } catch (err: any) {
+      console.error("Toggle tutor trainer error:", err);
+      toast.error(err.message || "Failed to update tutor trainer status");
+    } finally {
+      setTogglingTrainerId(null);
+    }
+  };
+
+  const handleAssignTutorTrainer = async (tutorId: string, trainerId: string) => {
+    if (!trainerId) return;
+    try {
+      setAssigningTrainerTutorId(tutorId);
+      const res = await fetch("/Api/teamlead/assign-tutor-trainer", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tutorId, tutorTrainerId: trainerId }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data.error || "Failed to assign tutor trainer");
+        return;
+      }
+
+      // Update tutors list locally
+      setTutors((prev) =>
+        prev.map((t) =>
+          t._id === tutorId
+            ? { ...t, assignedTutorTrainer: data.tutor.assignedTutorTrainer }
+            : t
+        )
+      );
+      toast.success("Tutor Trainer assigned successfully");
+    } catch (err: any) {
+      console.error("Assign tutor trainer error:", err);
+      toast.error(err.message || "Failed to assign tutor trainer");
+    } finally {
+      setAssigningTrainerTutorId(null);
     }
   };
 
@@ -374,66 +483,162 @@ function AllTutors() {
                         </div>
 
                         {isTeamLeadView && (
-                          <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/60 space-y-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
-                                Relationship Manager
-                              </p>
+                          <div className="px-6 py-3 border-t border-gray-100 bg-gray-50/60 space-y-3">
+                            {/* ── Relationship Manager Section ── */}
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">
+                                  Relationship Manager
+                                </p>
 
-                              {/* Current RM pill */}
-                              <div className="flex-1 flex justify-end">
-                                {currentRm ? (
-                                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-[11px] font-medium max-w-full">
-                                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-[10px] font-bold">
-                                      {currentRm.username.charAt(0).toUpperCase()}
+                                {/* Current RM pill */}
+                                <div className="flex-1 flex justify-end">
+                                  {currentRm ? (
+                                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-[11px] font-medium max-w-full">
+                                      <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100 text-[10px] font-bold">
+                                        {currentRm.username.charAt(0).toUpperCase()}
+                                      </span>
+                                      <span className="truncate max-w-[150px] text-right">
+                                        {currentRm.username} ({currentRm.email})
+                                      </span>
                                     </span>
-                                    <span className="truncate max-w-[150px] text-right">
-                                      {currentRm.username} ({currentRm.email})
+                                  ) : (
+                                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-50 text-gray-400 text-[11px] font-medium">
+                                      Not assigned
                                     </span>
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-50 text-gray-400 text-[11px] font-medium">
-                                    Not assigned
-                                  </span>
-                                )}
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Assign / Change select */}
+                              <div className="relative">
+                                <select
+                                  className="block w-full appearance-none rounded-md border border-gray-200 bg-white px-3 py-2 pr-8 text-sm text-gray-800 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200 disabled:bg-gray-100 disabled:text-gray-400"
+                                  disabled={loadingManagers || assigningTutorId === tutor._id}
+                                  value={currentRmId}
+                                  onChange={(e) => handleAssignManager(tutor._id, e.target.value)}
+                                >
+                                  <option value="">
+                                    {currentRm ? "Change relationship manager" : "Assign relationship manager"}
+                                  </option>
+                                  {relationshipManagers.map((rm) => (
+                                    <option key={rm._id} value={rm._id}>
+                                      {rm.username} ({rm.email})
+                                    </option>
+                                  ))}
+                                </select>
+
+                                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                                  <svg
+                                    className="h-4 w-4"
+                                    viewBox="0 0 20 20"
+                                    fill="none"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                  >
+                                    <path
+                                      d="M5 7.5L10 12.5L15 7.5"
+                                      stroke="currentColor"
+                                      strokeWidth="1.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </span>
                               </div>
                             </div>
 
-                            {/* Assign / Change select */}
-                            <div className="relative">
-                              <select
-                                className="block w-full appearance-none rounded-md border border-gray-200 bg-white px-3 py-2 pr-8 text-sm text-gray-800 shadow-sm focus:border-orange-500 focus:ring-2 focus:ring-orange-200 disabled:bg-gray-100 disabled:text-gray-400"
-                                disabled={loadingManagers || assigningTutorId === tutor._id}
-                                value={currentRmId}
-                                onChange={(e) => handleAssignManager(tutor._id, e.target.value)}
-                              >
-                                <option value="">
-                                  {currentRm ? "Change relationship manager" : "Assign relationship manager"}
-                                </option>
-                                {relationshipManagers.map((rm) => (
-                                  <option key={rm._id} value={rm._id}>
-                                    {rm.username} ({rm.email})
-                                  </option>
-                                ))}
-                              </select>
+                            {/* ── Make TutorTrainer Section ── */}
+                            <div className="border-t border-gray-200 pt-2 space-y-2">
+                              <div className="flex items-center justify-between gap-2">
 
-                              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
-                                <svg
-                                  className="h-4 w-4"
-                                  viewBox="0 0 20 20"
-                                  fill="none"
-                                  xmlns="http://www.w3.org/2000/svg"
+                                <button
+                                  onClick={() => handleToggleTutorTrainer(tutor._id, !tutor.tutorTrainer)}
+                                  disabled={togglingTrainerId === tutor._id}
+                                  className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-medium transition ${tutor.tutorTrainer
+                                    ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
-                                  <path
-                                    d="M5 7.5L10 12.5L15 7.5"
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </span>
+                                  {togglingTrainerId === tutor._id
+                                    ? "Updating..."
+                                    : tutor.tutorTrainer
+                                      ? "✓ Is Tutor Trainer"
+                                      : "Make Tutor Trainer"}
+                                </button>
+                              </div>
                             </div>
+
+                            {/* ── Assign TutorTrainer Section ── */}
+                            {!tutor.tutorTrainer && (
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between gap-2">
+
+                                  <div className="flex-1 flex justify-end">
+                                    {(() => {
+                                      const currentTrainer =
+                                        typeof tutor.assignedTutorTrainer === "object"
+                                          ? tutor.assignedTutorTrainer
+                                          : tutorTrainers.find((t) => t._id === tutor.assignedTutorTrainer);
+                                      return currentTrainer ? (
+                                        <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium max-w-full">
+                                          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-100 text-[10px] font-bold">
+                                            {currentTrainer.username.charAt(0).toUpperCase()}
+                                          </span>
+                                          <span className="truncate max-w-[150px] text-right">
+                                            {currentTrainer.username}
+                                          </span>
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-gray-50 text-gray-400 text-[11px] font-medium">
+                                          Not assigned
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+                                </div>
+
+                                <div className="relative">
+                                  <select
+                                    className="block w-full appearance-none rounded-md border border-gray-200 bg-white px-3 py-2 pr-8 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:text-gray-400"
+                                    disabled={loadingTrainers || assigningTrainerTutorId === tutor._id}
+                                    value={
+                                      typeof tutor.assignedTutorTrainer === "object"
+                                        ? tutor.assignedTutorTrainer?._id || ""
+                                        : tutor.assignedTutorTrainer || ""
+                                    }
+                                    onChange={(e) => handleAssignTutorTrainer(tutor._id, e.target.value)}
+                                  >
+                                    <option value="">
+                                      {tutor.assignedTutorTrainer ? "Change tutor trainer" : "Assign tutor trainer"}
+                                    </option>
+                                    {tutorTrainers
+                                      .filter((t) => t._id !== tutor._id)
+                                      .map((trainer) => (
+                                        <option key={trainer._id} value={trainer._id}>
+                                          {trainer.username} ({trainer.email})
+                                        </option>
+                                      ))}
+                                  </select>
+
+                                  <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400">
+                                    <svg
+                                      className="h-4 w-4"
+                                      viewBox="0 0 20 20"
+                                      fill="none"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <path
+                                        d="M5 7.5L10 12.5L15 7.5"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                      />
+                                    </svg>
+                                  </span>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 
