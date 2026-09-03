@@ -100,7 +100,7 @@ export async function middleware(request: NextRequest) {
   const apiRule = PROTECTED_APIS.find(r => pathname.startsWith(r.prefix));
 
   // Define public routes that should skip middleware
-  const publicRoutes = ['/login', '/signup', '/register', '/', '/about'];
+  const publicRoutes = ['/login', '/signup', '/admin/signup', '/register', '/', '/about'];
 
   // Skip middleware for public routes.
   // Use exact match for '/' to prevent it from matching all paths via startsWith.
