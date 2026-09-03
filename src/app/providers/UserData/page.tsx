@@ -24,6 +24,7 @@ interface UserData {
   createdAt: string;
   academyId?: string;
   profileImage?: string;
+  tutorTrainer?: boolean;
 }
 
 interface UserDataContextType {

@@ -426,6 +426,17 @@ const userSchema = new mongoose.Schema({
             }
         }]
     },
+    // For tutors: whether this tutor is also a Tutor Trainer
+    tutorTrainer: {
+        type: Boolean,
+        default: false
+    },
+    // For tutors: which Tutor Trainer they are assigned to
+    assignedTutorTrainer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "users",
+        default: null,
+    },
     // For tutors: which Relationship Manager they are assigned to
     relationshipManager: {
         type: mongoose.Schema.Types.ObjectId,

@@ -17,6 +17,7 @@ import { FileMusic } from 'lucide-react';
 import { Music } from 'lucide-react';
 import { BookOpen } from 'lucide-react';
 import { CreditCard } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { useUserData } from "@/app/providers/UserData/page";
 import { toast } from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
@@ -103,10 +104,25 @@ const SideMenuHeader = ({ role }) => {
                       <span>Home</span>
                     </Link>
                   </li>
+                  {/* TutorTrainer-only: Tutors link */}
+                  {userData?.tutorTrainer && (
+                    <li>
+                      <Link
+                        href="/tutor/my-tutors"
+                        className={`d-flex align-items-center gap-2 ${isActive("/tutor/my-tutors") ? "active" : ""
+                          }`}
+                      >
+                        <span className="svg-icons">
+                          <Users />
+                        </span>
+                        <span>Tutors</span>
+                      </Link>
+                    </li>
+                  )}
                   <li>
                     <Link
                       href="/tutor/myStudents"
-                      className={`d-flex align-items-center gap-2 ${isActive("/my-students") ? "active" : ""
+                      className={`d-flex align-items-center gap-2 ${isActive("/tutor/myStudents") ? "active" : ""
                         }`}
                     >
                       <span className="svg-icons">
