@@ -254,3 +254,170 @@ export async function GET(request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export async function POST(request) {
+  try {
+    await connect();
+    const { tutorIds } = await request.json();
+
+    if (!Array.isArray(tutorIds) || tutorIds.length === 0) {
+      return NextResponse.json({ success: true, counts: {} });
+    }
+
+    const emptyCounts = () => Object.fromEntries(tutorIds.map(id => [id, 0]));
+
+    // 1 query: every tutor's course list
+    const tutors = await User.find({ _id: { $in: tutorIds } })
+      .select("_id courses").lean();
+
+    const tutorCourseMap = new Map(); // tutorId -> Set(courseId)
+    const allCourseIdSet = new Set();
+    tutors.forEach(t => {
+      const cIds = (t.courses || []).map(c => c.toString());
+      tutorCourseMap.set(t._id.toString(), new Set(cIds));
+      cIds.forEach(id => allCourseIdSet.add(id));
+    });
+
+    if (allCourseIdSet.size === 0) return NextResponse.json({ success: true, counts: emptyCounts() });
+
+    // 1 query: every course used by any requested tutor
+    const courses = await courseName.find({
+      _id: { $in: Array.from(allCourseIdSet) }
+    }).select("_id class category").lean();
+
+    if (courses.length === 0) return NextResponse.json({ success: true, counts: emptyCounts() });
+
+    // Union of ALL classIds across ALL these courses, just to query Class once
+    const allClassIdSet = new Set();
+    courses.forEach(course => {
+      (course.class ?? []).forEach(classId => {
+        if (classId != null) allClassIdSet.add(classId.toString());
+      });
+    });
+
+    if (allClassIdSet.size === 0) return NextResponse.json({ success: true, counts: emptyCounts() });
+
+    // 1 query: every "over" class across all of them
+    const pastClasses = await Class.find({
+      _id: { $in: Array.from(allClassIdSet) },
+      status: { $ne: 'canceled' },
+      $or: [
+        { status: 'completed' },
+        { actualEndTime: { $ne: null }, status: { $ne: 'rescheduled' } },
+        { endTime: { $lt: new Date() } }
+      ]
+    }).select("_id").lean();
+
+    const pastClassIdSet = new Set(pastClasses.map(c => c._id.toString()));
+    if (pastClassIdSet.size === 0) return NextResponse.json({ success: true, counts: emptyCounts() });
+
+    // Build course -> its own "over" classIds, and category -> classIds for feedback fetch.
+    // No reverse map, no collisions — each course only ever touches its own class array.
+    const courseToClassesMap = new Map(); // courseId -> Set(classIdStr)
+    const categorizedClassSets = { Music: new Set(), Dance: new Set(), Drawing: new Set(), Drums: new Set(), Vocal: new Set(), Violin: new Set() };
+
+    courses.forEach(course => {
+      const courseIdStr = course._id.toString();
+      const overClassesForCourse = new Set();
+      (course.class ?? []).forEach(classId => {
+        if (classId == null) return;
+        const classIdStr = classId.toString();
+        if (!pastClassIdSet.has(classIdStr)) return;
+        overClassesForCourse.add(classIdStr);
+        if (categorizedClassSets[course.category]) categorizedClassSets[course.category].add(classIdStr);
+      });
+      if (overClassesForCourse.size > 0) courseToClassesMap.set(courseIdStr, overClassesForCourse);
+    });
+
+    if (courseToClassesMap.size === 0) return NextResponse.json({ success: true, counts: emptyCounts() });
+
+    // 1 query: every student belonging to ANY of these tutors
+    const students = await User.find({
+      instructorId: { $in: tutorIds },
+      category: "Student"
+    }).select("_id courses attendance classes instructorId").lean();
+
+    const studentIds = students.map(s => s._id);
+    const feedbackModelMap = {
+      Music: feedback, Dance: feedbackDance, Drawing: feedbackDrawing,
+      Drums: feedbackDrums, Vocal: feedbackVocal, Violin: feedbackViolin
+    };
+
+    // up to 6 queries — one per category actually in play
+    const feedbackResults = await Promise.all(
+      Object.entries(categorizedClassSets)
+        .filter(([, idSet]) => idSet.size > 0)
+        .map(([category, idSet]) =>
+          feedbackModelMap[category].find({
+            userId: { $in: studentIds },
+            classId: { $in: Array.from(idSet) }
+          }).select("userId classId").lean()
+        )
+    );
+
+    const feedbackSet = new Set();
+    feedbackResults.forEach(list => list.forEach(f => feedbackSet.add(`${f.userId}_${f.classId}`)));
+
+    // Per-student lookup structures, built once
+    const studentDataMap = new Map();
+    const courseToStudentsMap = new Map(); // courseId -> studentId[] (only students enrolled in that course)
+
+    students.forEach(student => {
+      const studentId = student._id.toString();
+      const attendanceMap = new Map();
+      (student.attendance || []).forEach(att => {
+        if (att.classId) attendanceMap.set(att.classId.toString(), att.status);
+      });
+      const studentCourseSet = new Set((student.courses || []).map(c => c.toString()));
+      const studentClassSet = new Set((student.classes || []).map(c => c.toString()));
+      const instructorIds = (student.instructorId || []).map(id => id.toString());
+
+      studentDataMap.set(studentId, { attendanceMap, studentClassSet, instructorIds });
+
+      studentCourseSet.forEach(courseId => {
+        if (!courseToClassesMap.has(courseId)) return; // course irrelevant to this batch
+        if (!courseToStudentsMap.has(courseId)) courseToStudentsMap.set(courseId, []);
+        courseToStudentsMap.get(courseId).push(studentId);
+      });
+    });
+
+    // Per-tutor computation, driven off the tutor's OWN course list — no shared
+    // reverse-map, so results for a given tutor are identical to calling this
+    // tutor alone through the single-tutor GET.
+    const counts = emptyCounts();
+
+    tutorIds.forEach(tutorId => {
+      const ownedCourseIds = tutorCourseMap.get(tutorId) || new Set();
+
+      ownedCourseIds.forEach(courseId => {
+        const classIdsForCourse = courseToClassesMap.get(courseId);
+        if (!classIdsForCourse) return;
+
+        const candidateStudentIds = courseToStudentsMap.get(courseId) || [];
+
+        candidateStudentIds.forEach(studentId => {
+          const data = studentDataMap.get(studentId);
+          if (!data.instructorIds.includes(tutorId)) return; // this tutor doesn't actually teach this student
+
+          classIdsForCourse.forEach(classIdStr => {
+            if (!data.studentClassSet.has(classIdStr)) return;
+
+            const attendanceStatus = data.attendanceMap.get(classIdStr);
+            if (attendanceStatus !== undefined) return;
+
+            const feedbackKey = `${studentId}_${classIdStr}`;
+            if (feedbackSet.has(feedbackKey)) return;
+
+            counts[tutorId] = (counts[tutorId] || 0) + 1;
+          });
+        });
+      });
+    });
+
+    return NextResponse.json({ success: true, counts });
+
+  } catch (err) {
+    console.error("Error in pendingFeedbackCount (batch):", err);
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}

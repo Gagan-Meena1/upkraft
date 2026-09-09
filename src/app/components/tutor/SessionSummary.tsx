@@ -227,7 +227,7 @@ const SessionSummary = ({ studentId, tutorId, courseId }: { studentId: string, t
                   <th>Date</th>
                   <th className='text-center'>Performance Score</th>
                   <th className='text-center'>Session Quality Score</th>
-                                    <th className='text-center'>Tutor CSAT</th>
+                  <th className='text-center'>Tutor CSAT</th>
 
                   <th className='text-center'>Assignments (Completed/Total)</th>
                   <th>Performance Feedback</th>
@@ -257,11 +257,11 @@ const SessionSummary = ({ studentId, tutorId, courseId }: { studentId: string, t
                         {(session.completedAssignments ?? 0)} / {(session.totalAssignments ?? 0)}
                       </td>
                       <td>{session.tutorFeedback}</td>
-                      <td>
+                      {/* <td>
                         <Link href={`/tutor`} className='btn btn-primary d-flex align-items-center gap-2 justify-content-center small'>
                           <span>Notify</span>
                         </Link>
-                      </td>
+                      </td> */}
                     </tr>
                   ))
                 )}

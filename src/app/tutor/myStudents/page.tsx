@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ChevronLeft, AlertTriangle } from "lucide-react";
 import { Form } from "react-bootstrap";
 import CommonTable from "@/components/tutor/CommonTable";
 import { AppDispatch, RootState } from "@/store/store";
@@ -96,6 +97,10 @@ export default function MyStudents() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const debouncedSearch = useDebounce(searchQuery, 500);
+  const router = useRouter();
+
+  // Warning modal state
+  const [warningStudent, setWarningStudent] = useState<Student | null>(null);
 
   // Reset to page 1 whenever search changes
   useEffect(() => { setCurrentPage(1); }, [debouncedSearch]);
@@ -138,12 +143,18 @@ export default function MyStudents() {
       label: "Assign",
       sortable: false,
       render: (_: any, row: Student) => (
-        <a
-          href={`/tutor/addToCourseTutor?studentId=${row._id}`}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
+        <button
+          onClick={() => {
+            if (row.courses && row.courses.length > 0) {
+              setWarningStudent(row);
+            } else {
+              router.push(`/tutor/addToCourseTutor?studentId=${row._id}`);
+            }
+          }}
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline bg-transparent border-none cursor-pointer p-0"
         >
           Course
-        </a>
+        </button>
       ),
     },
     {
@@ -305,6 +316,68 @@ export default function MyStudents() {
           )}
         </div>
       </div>
+
+      {/* Warning modal: student already has courses */}
+      {warningStudent && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setWarningStudent(null);
+          }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            {/* Header */}
+            <div className="px-6 pt-5 pb-3 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900">
+                  Student Already Has Courses
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  <span className="font-semibold text-gray-700">{warningStudent.username}</span>{" "}
+                  is already enrolled in the following course{warningStudent.courses.length > 1 ? "s" : ""}:
+                </p>
+              </div>
+            </div>
+
+            {/* Course list */}
+            <div className="px-6 pb-4">
+              <div className="ml-[52px] flex flex-wrap gap-1.5">
+                {warningStudent.courses.map((course) => (
+                  <span
+                    key={course._id}
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100"
+                  >
+                    {course.title}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 pb-5 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setWarningStudent(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const id = warningStudent._id;
+                  setWarningStudent(null);
+                  router.push(`/tutor/addToCourseTutor?studentId=${id}`);
+                }}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Assign Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

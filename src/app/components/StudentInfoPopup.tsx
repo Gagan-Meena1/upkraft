@@ -30,6 +30,10 @@ interface StudentInfoPopupProps {
   studentName?: string;
   courseId?: string;
   onClose: () => void;
+  /** When true, hides the payment cycles table (Amount/Classes/Date). Used for tutor trainers. */
+  hidePayment?: boolean;
+  /** When true, hides the contact details card (phone, email, address). Used for tutor trainers. */
+  hideContactDetails?: boolean;
 }
 
 interface CourseDetails {
@@ -117,6 +121,8 @@ export default function StudentInfoPopup({
   studentName,
   courseId,
   onClose,
+  hidePayment = false,
+  hideContactDetails = false,
 }: StudentInfoPopupProps) {
   const [contactInfo, setContactInfo] = useState<ContactInfo | null>(null);
   const [packages, setPackages] = useState<PackageInfo[]>([]);
@@ -440,6 +446,7 @@ export default function StudentInfoPopup({
           {/* Right: Contact + Meta — takes 2 of 5 cols */}
           <div className="lg:col-span-2 space-y-4">
             {/* Contact Details Card */}
+            {!hideContactDetails && (
             <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
               <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-slate-50 border-b border-gray-100">
                 <div className="flex items-center gap-2">
@@ -515,9 +522,10 @@ export default function StudentInfoPopup({
                 ) : null}
               </div>
             </div>
+            )}
 
             {/* Payment Cycle + Instrument */}
-            {!loading && packages.length > 0 && (
+            {!loading && !hidePayment && packages.length > 0 && (
               <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
                 <div className="p-4 space-y-4">
                   {packages.map((pkg, idx) => (
