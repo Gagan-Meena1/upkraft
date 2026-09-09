@@ -49,6 +49,30 @@ export default function MyTutorsPage() {
       tutor.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const [feedbackCounts, setFeedbackCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (tutors.length === 0) return;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch("/Api/dashboard/pendingFeedbackCount", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tutorIds: tutors.map((t) => t._id) }),
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        if (data.success) setFeedbackCounts(data.counts);
+      } catch (err: any) {
+        if (err.name !== "AbortError") console.error("Error fetching feedback counts:", err);
+      }
+    })();
+
+    return () => controller.abort();
+  }, [tutors]);
+
   return (
     <div className="side-details-box">
       <div className="content-area">
@@ -130,6 +154,9 @@ export default function MyTutorsPage() {
                     <th className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       City
                     </th>
+                    <th className="border-0 px-3 py-3 text-center" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Feedback Pending
+                    </th>
                     <th className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       Courses
                     </th>
@@ -177,24 +204,42 @@ export default function MyTutorsPage() {
                       <td className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.875rem" }}>
                         {tutor.city || "—"}
                       </td>
+                      <td className="border-0 px-3 py-3 text-center">
+                        {feedbackCounts[tutor._id] !== undefined ? (
+                          <span
+                            className="badge"
+                            style={{
+                              backgroundColor: feedbackCounts[tutor._id] > 0 ? "#fef3c7" : "#f0fdf4",
+                              color: feedbackCounts[tutor._id] > 0 ? "#b45309" : "#16a34a",
+                              fontSize: "0.75rem",
+                              fontWeight: 600,
+                              padding: "4px 10px",
+                            }}
+                          >
+                            {feedbackCounts[tutor._id]}
+                          </span>
+                        ) : (
+                          <span className="spinner-border spinner-border-sm text-secondary" role="status" style={{ width: "0.9rem", height: "0.9rem" }} />
+                        )}
+                      </td>
                       <td className="border-0 px-3 py-3">
                         <div className="d-flex flex-wrap gap-1">
                           {tutor.courses && tutor.courses.length > 0
                             ? tutor.courses.slice(0, 2).map((course) => (
-                                <span
-                                  key={course._id}
-                                  className="badge"
-                                  style={{
-                                    backgroundColor: "#eff6ff",
-                                    color: "#3b82f6",
-                                    fontSize: "0.7rem",
-                                    fontWeight: 500,
-                                    padding: "4px 8px",
-                                  }}
-                                >
-                                  {course.title}
-                                </span>
-                              ))
+                              <span
+                                key={course._id}
+                                className="badge"
+                                style={{
+                                  backgroundColor: "#eff6ff",
+                                  color: "#3b82f6",
+                                  fontSize: "0.7rem",
+                                  fontWeight: 500,
+                                  padding: "4px 8px",
+                                }}
+                              >
+                                {course.title}
+                              </span>
+                            ))
                             : <span style={{ color: "#cbd5e1", fontSize: "0.875rem" }}>—</span>}
                           {tutor.courses && tutor.courses.length > 2 && (
                             <span
@@ -212,6 +257,7 @@ export default function MyTutorsPage() {
                           )}
                         </div>
                       </td>
+
                       <td className="border-0 px-3 py-3 text-center">
                         <Link
                           href={`/tutor/my-tutors/students?tutorId=${tutor._id}&tutorName=${encodeURIComponent(tutor.username)}`}

@@ -1,13 +1,19 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { ChevronLeft, Users } from "lucide-react";
+import { ChevronLeft, Users, Info, ClipboardList, BarChart3 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import StudentInfoPopup from "@/app/components/StudentInfoPopup";
+import AssignmentModal from "@/app/components/AssignmentModal";
+import StudentFeedbackModal from "@/app/components/StudentFeedbackModal";
 
 interface Course {
   _id: string;
   title: string;
   category: string;
+  performanceScores?: any[];
+  instructorId?: any;
+  duration?: string;
 }
 
 interface Student {
@@ -17,6 +23,8 @@ interface Student {
   contact: string;
   city?: string;
   courses: Course[];
+  pendingAssignments?: number;
+  assignment?: string[];
 }
 
 function StudentsContent() {
@@ -28,6 +36,18 @@ function StudentsContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Popup states
+  const [studentInfoId, setStudentInfoId] = useState<string | null>(null);
+  const [assignmentStudent, setAssignmentStudent] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [feedbackStudent, setFeedbackStudent] = useState<{
+    id: string;
+    name: string;
+    courses: Course[];
+  } | null>(null);
 
   useEffect(() => {
     if (!tutorId) {
@@ -141,17 +161,19 @@ function StudentsContent() {
                     <th className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       Name
                     </th>
-                    <th className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      Email
-                    </th>
-                    <th className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      Contact
-                    </th>
-                    <th className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      City
-                    </th>
+
+
                     <th className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       Courses
+                    </th>
+                    <th className="border-0 px-3 py-3 text-center" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Attendance
+                    </th>
+                    <th className="border-0 px-3 py-3 text-center" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Assignments
+                    </th>
+                    <th className="border-0 px-3 py-3 text-center" style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Feedback
                     </th>
                   </tr>
                 </thead>
@@ -185,15 +207,8 @@ function StudentsContent() {
                           </span>
                         </div>
                       </td>
-                      <td className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                        {student.email}
-                      </td>
-                      <td className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                        {student.contact || "—"}
-                      </td>
-                      <td className="border-0 px-3 py-3" style={{ color: "#64748b", fontSize: "0.875rem" }}>
-                        {student.city || "—"}
-                      </td>
+
+
                       <td className="border-0 px-3 py-3">
                         <div className="d-flex flex-wrap gap-1">
                           {student.courses && student.courses.length > 0
@@ -229,6 +244,79 @@ function StudentsContent() {
                           )}
                         </div>
                       </td>
+
+                      {/* Attendance column */}
+                      <td className="border-0 px-3 py-3 text-center">
+                        <button
+                          onClick={() => setStudentInfoId(student._id)}
+                          className="btn btn-sm d-inline-flex align-items-center gap-1"
+                          style={{
+                            backgroundColor: "#8b5cf6",
+                            color: "#ffffff",
+                            borderRadius: "6px",
+                            padding: "6px 12px",
+                            fontSize: "0.8rem",
+                            fontWeight: 500,
+                            border: "none",
+                          }}
+                        >
+                          <Info size={14} />
+                          View
+                        </button>
+                      </td>
+
+                      {/* Assignments column */}
+                      <td className="border-0 px-3 py-3 text-center">
+                        <button
+                          onClick={() =>
+                            setAssignmentStudent({
+                              id: student._id,
+                              name: student.username,
+                            })
+                          }
+                          className="btn btn-sm d-inline-flex align-items-center gap-1"
+                          style={{
+                            backgroundColor: (student.pendingAssignments || 0) > 0 ? "#f59e0b" : "#3b82f6",
+                            color: "#ffffff",
+                            borderRadius: "6px",
+                            padding: "6px 12px",
+                            fontSize: "0.8rem",
+                            fontWeight: 500,
+                            border: "none",
+                          }}
+                        >
+                          <ClipboardList size={14} />
+                          {(student.pendingAssignments || 0) > 0
+                            ? `${student.pendingAssignments} Pending`
+                            : "View"}
+                        </button>
+                      </td>
+
+                      {/* Feedback column */}
+                      <td className="border-0 px-3 py-3 text-center">
+                        <button
+                          onClick={() =>
+                            setFeedbackStudent({
+                              id: student._id,
+                              name: student.username,
+                              courses: student.courses || [],
+                            })
+                          }
+                          className="btn btn-sm d-inline-flex align-items-center gap-1"
+                          style={{
+                            backgroundColor: "#7c3aed",
+                            color: "#ffffff",
+                            borderRadius: "6px",
+                            padding: "6px 12px",
+                            fontSize: "0.8rem",
+                            fontWeight: 500,
+                            border: "none",
+                          }}
+                        >
+                          <BarChart3 size={14} />
+                          Feedback
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -237,6 +325,35 @@ function StudentsContent() {
           </>
         )}
       </div>
+
+      {/* Student Info Popup (Attendance & Package details — hide payment for tutor trainer) */}
+      {studentInfoId && (
+        <StudentInfoPopup
+          studentId={studentInfoId}
+          onClose={() => setStudentInfoId(null)}
+          hidePayment={true}
+          hideContactDetails={true}
+        />
+      )}
+
+      {/* Assignment Modal */}
+      {assignmentStudent && (
+        <AssignmentModal
+          studentId={assignmentStudent.id}
+          studentName={assignmentStudent.name}
+          onClose={() => setAssignmentStudent(null)}
+        />
+      )}
+
+      {/* Feedback Modal */}
+      {feedbackStudent && (
+        <StudentFeedbackModal
+          studentId={feedbackStudent.id}
+          studentName={feedbackStudent.name}
+          courses={feedbackStudent.courses}
+          onClose={() => setFeedbackStudent(null)}
+        />
+      )}
     </div>
   );
 }
